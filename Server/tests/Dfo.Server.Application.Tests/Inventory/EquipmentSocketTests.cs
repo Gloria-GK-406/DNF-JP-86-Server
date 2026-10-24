@@ -38,7 +38,7 @@ public sealed class EquipmentSocketTests
         else Assert.Equal(65, request.DrillSlot);
     }
 
-    private sealed class Content : IItemSocketDefinitionSource, IItemPlacementDefinitionSource
+    internal sealed class Content : IItemSocketDefinitionSource, IItemPlacementDefinitionSource
     {
         public long DrillExpiresAt { get; set; }
         public ImmutableArray<ushort> EquipmentTypes { get; set; } = [4, 4];
@@ -57,19 +57,19 @@ public sealed class EquipmentSocketTests
             _ => new NpcShopTestContent().GetAsync(id, ct),
         };
     }
-    private static ShopFixture Fixture(Content? content = null)
+    internal static ShopFixture Fixture(Content? content = null, Action<IServiceCollection>? configure = null)
     {
         content ??= new();
-        var f = new ShopFixture(s => { s.AddSingleton<IItemSocketDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); });
+        var f = new ShopFixture(s => { s.AddSingleton<IItemSocketDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); configure?.Invoke(s); });
         TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar), new(InventoryContainerType.Avatar, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
                 f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
-    private static InventoryItemCoreState Equipment(byte sockets = 0) => StackableItemCore.Create(1, 3000, 123456) with
+    internal static InventoryItemCoreState Equipment(byte sockets = 0) => StackableItemCore.Create(1, 3000, 123456) with
     { Attribute = 7, Durability = 45, EnchantCardId = 3600, EmblemSocketCount = sockets, EmblemId1 = sockets > 0 ? -1 : 0, EmblemId2 = sockets == 2 ? -1 : 0 };
-    private static async Task Seed(ShopFixture f, byte sockets = 0, int drillCount = 2, int emblemCount = 3)
+    internal static async Task Seed(ShopFixture f, byte sockets = 0, int drillCount = 2, int emblemCount = 3)
     { await f.SeedCore(9, Equipment(sockets)); await f.Seed(65, 4000, drillCount); await f.Seed(289, 5000, emblemCount, 9); }
     private static ItemSocketInput Open(bool avatar = false) => new(avatar, true,
         new(avatar ? BusinessInventorySpace.Avatar : BusinessInventorySpace.CarriedEquipment, 0), avatar ? 3001 : 3000,
@@ -78,8 +78,8 @@ public sealed class EquipmentSocketTests
         new(BusinessInventorySpace.CarriedEquipment, 0), 3000, null, emblems.ToImmutableArray());
     private static EmblemPlacement Green(byte index, int id = 5000, int slot = 0) => new(new(BusinessInventorySpace.AvatarEmblem, slot), id, index);
     private static Task<ItemSocketResult> Apply(ShopFixture f, ItemSocketInput input) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new ItemSocketCommand(f.OnlineUser, f.Session, input)).AsTask();
-    private static async Task<ItemSnapshot> Read(ShopFixture f, InventoryContainerType list, int slot)
+        ItemSocketDomainTestDriver.Apply(f, f.Session, input);
+    internal static async Task<ItemSnapshot> Read(ShopFixture f, InventoryContainerType list, int slot)
     {
         return await TestGameplay.RunAsync(f.Services, async () =>
         {
@@ -203,7 +203,7 @@ public sealed class EquipmentSocketTests
         using var f = Fixture(); await Seed(f, drillCount: 0); await SendOpen(f);
         Assert.Equal(new byte[] { 0, 0x11 }, Assert.Single(Frames(f))[15..]);
         await f.Seed(65, 4000, 2); var old = f.Session; f.Select(2);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>().SendAsync(new ItemSocketCommand(f.OnlineUser, old, Open())));
+        await Assert.ThrowsAnyAsync<Exception>(async () => await ItemSocketDomainTestDriver.Apply(f, old, Open()));
         Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
     }
     [Theory]

@@ -34,6 +34,34 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Four_socket_logicals_share_one_exact_direct_whole_with_only_existing_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        var expected = new[]
+        {
+            (ClientMessageType.GameAvatarEmblem, typeof(Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest), typeof(Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand)),
+            (ClientMessageType.GameAvatarSocketOpen, typeof(Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest), typeof(Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand)),
+            (ClientMessageType.GameEquipmentEmblem, typeof(Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest), typeof(Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand)),
+            (ClientMessageType.GameEquipmentSocketOpen, typeof(Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest), typeof(Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand)),
+        };
+        foreach (var (logical, input, command) in expected)
+        {
+            var row = Assert.Single(commands, row => row.CommandType == command);
+            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(expected.Select(x => new ProtocolCommandMessageBinding(x.Item1, x.Item2)), row.ProtocolMessages);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
+            Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "ItemSocketCommand");
+    }
+
+
+
+    [Fact]
     public void Two_quality_protocols_have_exact_direct_wholes_and_only_existing_replay_permission()
     {
         using var provider = BuildProductionGraph();

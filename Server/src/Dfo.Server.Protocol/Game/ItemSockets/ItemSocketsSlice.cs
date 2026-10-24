@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -89,52 +90,10 @@ internal sealed class ItemSocketEncoder : GameCmdMessageEncoder<ItemSocketRespon
         return OnePayload(message.Type, stream.ToArray());
     }
 }
-public sealed record ItemSocketCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, ItemSocketInput Input)
-    : ICommand<ItemSocketResult>, IRequestSettlementCommand, IAccountCommand
-{ public AccountId AccountId => Session.AccountId; }
-public sealed class ItemSocketCommandHandler(IItemSocketDomainService sockets) : ICommandHandler<ItemSocketCommand, ItemSocketResult>
+public sealed class ItemSocketHandler(ICommandBus commands) : ClientMessageHandler<ItemSocketRequest>, IProtocolCommandMessageHandler<GameItemSocketCommand>
 {
-    public ValueTask<ItemSocketResult> HandleAsync(CommandExecutionContext context, ItemSocketCommand command, CancellationToken ct) =>
-        sockets.ApplyAsync(command.Session, command.Input, context.LegacyFootprint, ct);
-}
-public sealed class ItemSocketHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mapping, ICommandBus commands, IEventService events, IGameMessageSender sender,
-    ILogger<ItemSocketHandler> logger) : ClientMessageHandler<ItemSocketRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ItemSocketRequest request, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (!request.Valid || session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
-            || online is null) { await Reject(0x04); return; }
-        ItemSocketInput input;
-        try
-        {
-            if (request.Avatar && request.TargetList is not (InventoryContainerType.Avatar or InventoryContainerType.Equipment))
-            { await Reject(0x04); return; }
-            input = new(request.Avatar, request.Open, mapping.ToBusinessSlot(new(request.TargetList, request.TargetSlot)), request.ExpectedItemId,
-                request.Open ? mapping.ToBusinessSlot(new(InventoryContainerType.Main, request.DrillSlot)) : null,
-                request.Emblems.Select(x => new EmblemPlacement(mapping.ToBusinessSlot(new(InventoryContainerType.Main, x.MaterialSlot)), x.ItemId, x.SocketIndex)).ToImmutableArray());
-        }
-        catch (InventorySlotMappingException) { await Reject(0x04); return; }
-        ItemSocketResult result;
-        try { result = await commands.SendAsync(new ItemSocketCommand(online.OnlineUserId, session, input), ct).ConfigureAwait(false); }
-        catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogError(failure, "Socket transaction failed type={Type:X4} character={Character}", request.Metadata.Type, session.CharacterId);
-            await Reject(0x04); return;
-        }
-        if (result.Receipt is not { } receipt)
-        {
-            logger.LogInformation("Socket refused type={Type:X4} character={Character} target={List}/{Slot}/{Item} reason={Reason}",
-                request.Metadata.Type, session.CharacterId, request.TargetList, request.TargetSlot, request.ExpectedItemId, result.Rejection);
-            await Reject(result.Rejection switch { ItemSocketRejection.Locked => (byte)0x16,
-                ItemSocketRejection.MissingMaterial => 0x11, ItemSocketRejection.WrongEmblem => 0x08, _ => 0x04 }); return;
-        }
-        logger.LogInformation("Socket committed type={Type:X4} character={Character} target={List}/{Slot}/{Item} materials={Count}",
-            request.Metadata.Type, session.CharacterId, request.TargetList, request.TargetSlot, request.ExpectedItemId, receipt.Materials.Length);
-        await events.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new ItemSocketCompleted(request.Metadata.Type, receipt), ct).ConfigureAwait(false);
-        ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new ItemSocketResponse(request.Metadata.Type, false, Error: error), ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ItemSocketRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameItemSocketCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed record ItemSocketCompleted(ushort Type, ItemSocketReceipt Receipt) : INotification<ItemSocketCompleted>;
 public sealed class ItemSocketCompletedHandler(ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService projection,

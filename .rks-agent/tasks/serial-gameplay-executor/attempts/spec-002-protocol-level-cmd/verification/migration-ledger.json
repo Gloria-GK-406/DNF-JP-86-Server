@@ -7310,25 +7310,52 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 95,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "early malformed/list/mapping/no actor no fine; valid fine one transaction, normal domain refusals commit and ordinary faults rollback before original04 ACK",
+          "new": "original valid selected branch one Main; Footprint getter outside narrow domain try; normalRefusedCommitted, earlyRejected noMain; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after completed unit; sameentry/Ordinal retry/current replay, no re-opening or second ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 95,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old ItemSocketCommand CLR/handler/Tx registration deleted; four logicals owned by unique whole"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.ItemSockets.ItemSocketCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.ItemSockets.ItemSocketCommand",
@@ -7354,32 +7381,84 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.ItemSocketResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 95,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 95,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 95,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "four actual ItemSocketHandler logical routes -> one Transactional ItemSocketCommand -> domain.ApplyAsync with legacy footprint; original domain tests35 incl pure nativeFK Throws",
+          "new": "thin handler -> one GameItemSocketCommand exact ItemSocketRequest/fourbindings; direct original domain in one Main with live unit.Footprint; typed domain driver preserves owner/current/percalltestlease/realDomainTx/Throws, no oldfine alias or nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account with actual configured original target/material stores, shared SQLite facets/lifecycle/event batch, optional volatile configured containers",
+          "new": "same original dynamic domain participants and exact physical captured reporter; actual original EquipmentEmbed actionSQL and AvatarOpen nondefault nativeCommit FK1/receipt/child/stage/19-787; material groups and pertransactionGuard preserved, no universal fixed SQLite-only set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original DemandActive/current owner, grouped pile count/UID, zeroDefault material validation, ACK-first currentRead and exact replay, handler ordinary04 catch after rollback",
+          "new": "live Main cap actual DemandActive sticky rejection cannot map normal04; target+allvalidatedmaterial footprint incl zeroDefault; grouped ItemUsed(count2) and one remainder, no zeroDefault debit/ItemUsed/materialNOTI; accepted Task15 guard/unknown/typed/cancel/E+independentX default protections; notification Failed isolation and directACK real-phase default fence/source close; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+          "purpose": "one complete Socket protocol command owns four exact logical bindings and one Main domainFootprint with original result/frame semantics"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -22302,26 +22381,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "early malformed/list/mapping/no actor no fine; valid fine one transaction, normal domain refusals commit and ordinary faults rollback before original04 ACK",
+          "new": "original valid selected branch one Main; Footprint getter outside narrow domain try; normalRefusedCommitted, earlyRejected noMain; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after completed unit; sameentry/Ordinal retry/current replay, no re-opening or second ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+      ],
       "id": "message:65737",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ItemSockets.ItemSocketHandler",
@@ -22343,37 +22450,89 @@
         "telemetry": false,
         "value": 65737
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "four actual ItemSocketHandler logical routes -> one Transactional ItemSocketCommand -> domain.ApplyAsync with legacy footprint; original domain tests35 incl pure nativeFK Throws",
+          "new": "thin handler -> one GameItemSocketCommand exact ItemSocketRequest/fourbindings; direct original domain in one Main with live unit.Footprint; typed domain driver preserves owner/current/percalltestlease/realDomainTx/Throws, no oldfine alias or nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account with actual configured original target/material stores, shared SQLite facets/lifecycle/event batch, optional volatile configured containers",
+          "new": "same original dynamic domain participants and exact physical captured reporter; actual original EquipmentEmbed actionSQL and AvatarOpen nondefault nativeCommit FK1/receipt/child/stage/19-787; material groups and pertransactionGuard preserved, no universal fixed SQLite-only set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original DemandActive/current owner, grouped pile count/UID, zeroDefault material validation, ACK-first currentRead and exact replay, handler ordinary04 catch after rollback",
+          "new": "live Main cap actual DemandActive sticky rejection cannot map normal04; target+allvalidatedmaterial footprint incl zeroDefault; grouped ItemUsed(count2) and one remainder, no zeroDefault debit/ItemUsed/materialNOTI; accepted Task15 guard/unknown/typed/cancel/E+independentX default protections; notification Failed isolation and directACK real-phase default fence/source close; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ItemSockets.ItemSocketCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+          "purpose": "one complete Socket protocol command owns four exact logical bindings and one Main domainFootprint with original result/frame semantics"
+        }
+      ]
     },
     {
       "actual_units": [
@@ -22600,26 +22759,54 @@
       ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "early malformed/list/mapping/no actor no fine; valid fine one transaction, normal domain refusals commit and ordinary faults rollback before original04 ACK",
+          "new": "original valid selected branch one Main; Footprint getter outside narrow domain try; normalRefusedCommitted, earlyRejected noMain; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after completed unit; sameentry/Ordinal retry/current replay, no re-opening or second ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+      ],
       "id": "message:65742",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ItemSockets.ItemSocketHandler",
@@ -22641,37 +22828,89 @@
         "telemetry": false,
         "value": 65742
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "four actual ItemSocketHandler logical routes -> one Transactional ItemSocketCommand -> domain.ApplyAsync with legacy footprint; original domain tests35 incl pure nativeFK Throws",
+          "new": "thin handler -> one GameItemSocketCommand exact ItemSocketRequest/fourbindings; direct original domain in one Main with live unit.Footprint; typed domain driver preserves owner/current/percalltestlease/realDomainTx/Throws, no oldfine alias or nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account with actual configured original target/material stores, shared SQLite facets/lifecycle/event batch, optional volatile configured containers",
+          "new": "same original dynamic domain participants and exact physical captured reporter; actual original EquipmentEmbed actionSQL and AvatarOpen nondefault nativeCommit FK1/receipt/child/stage/19-787; material groups and pertransactionGuard preserved, no universal fixed SQLite-only set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original DemandActive/current owner, grouped pile count/UID, zeroDefault material validation, ACK-first currentRead and exact replay, handler ordinary04 catch after rollback",
+          "new": "live Main cap actual DemandActive sticky rejection cannot map normal04; target+allvalidatedmaterial footprint incl zeroDefault; grouped ItemUsed(count2) and one remainder, no zeroDefault debit/ItemUsed/materialNOTI; accepted Task15 guard/unknown/typed/cancel/E+independentX default protections; notification Failed isolation and directACK real-phase default fence/source close; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ItemSockets.ItemSocketCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+          "purpose": "one complete Socket protocol command owns four exact logical bindings and one Main domainFootprint with original result/frame semantics"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -27517,26 +27756,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "early malformed/list/mapping/no actor no fine; valid fine one transaction, normal domain refusals commit and ordinary faults rollback before original04 ACK",
+          "new": "original valid selected branch one Main; Footprint getter outside narrow domain try; normalRefusedCommitted, earlyRejected noMain; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after completed unit; sameentry/Ordinal retry/current replay, no re-opening or second ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+      ],
       "id": "message:66425",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ItemSockets.ItemSocketHandler",
@@ -27558,59 +27825,139 @@
         "telemetry": false,
         "value": 66425
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "four actual ItemSocketHandler logical routes -> one Transactional ItemSocketCommand -> domain.ApplyAsync with legacy footprint; original domain tests35 incl pure nativeFK Throws",
+          "new": "thin handler -> one GameItemSocketCommand exact ItemSocketRequest/fourbindings; direct original domain in one Main with live unit.Footprint; typed domain driver preserves owner/current/percalltestlease/realDomainTx/Throws, no oldfine alias or nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account with actual configured original target/material stores, shared SQLite facets/lifecycle/event batch, optional volatile configured containers",
+          "new": "same original dynamic domain participants and exact physical captured reporter; actual original EquipmentEmbed actionSQL and AvatarOpen nondefault nativeCommit FK1/receipt/child/stage/19-787; material groups and pertransactionGuard preserved, no universal fixed SQLite-only set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original DemandActive/current owner, grouped pile count/UID, zeroDefault material validation, ACK-first currentRead and exact replay, handler ordinary04 catch after rollback",
+          "new": "live Main cap actual DemandActive sticky rejection cannot map normal04; target+allvalidatedmaterial footprint incl zeroDefault; grouped ItemUsed(count2) and one remainder, no zeroDefault debit/ItemUsed/materialNOTI; accepted Task15 guard/unknown/typed/cancel/E+independentX default protections; notification Failed isolation and directACK real-phase default fence/source close; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ItemSockets.ItemSocketCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+          "purpose": "one complete Socket protocol command owns four exact logical bindings and one Main domainFootprint with original result/frame semantics"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "early malformed/list/mapping/no actor no fine; valid fine one transaction, normal domain refusals commit and ordinary faults rollback before original04 ACK",
+          "new": "original valid selected branch one Main; Footprint getter outside narrow domain try; normalRefusedCommitted, earlyRejected noMain; ordinary action RequireRollback(E) or accepted known CommitRolledBack only after completed unit; sameentry/Ordinal retry/current replay, no re-opening or second ItemUsed",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.ItemSockets.GameItemSocketCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+      ],
       "id": "message:66426",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ItemSockets.ItemSocketHandler",
@@ -27632,37 +27979,89 @@
         "telemetry": false,
         "value": 66426
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/ItemSocketsSlice.cs",
-          "line": 100,
-          "source_sha256": "b0518c13d775ee14ee366a1e8ac52ede3eefdea3626ec57af779ba8fb59e1814"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "four actual ItemSocketHandler logical routes -> one Transactional ItemSocketCommand -> domain.ApplyAsync with legacy footprint; original domain tests35 incl pure nativeFK Throws",
+          "new": "thin handler -> one GameItemSocketCommand exact ItemSocketRequest/fourbindings; direct original domain in one Main with live unit.Footprint; typed domain driver preserves owner/current/percalltestlease/realDomainTx/Throws, no oldfine alias or nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one exact selected actor/account with actual configured original target/material stores, shared SQLite facets/lifecycle/event batch, optional volatile configured containers",
+          "new": "same original dynamic domain participants and exact physical captured reporter; actual original EquipmentEmbed actionSQL and AvatarOpen nondefault nativeCommit FK1/receipt/child/stage/19-787; material groups and pertransactionGuard preserved, no universal fixed SQLite-only set",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "original DemandActive/current owner, grouped pile count/UID, zeroDefault material validation, ACK-first currentRead and exact replay, handler ordinary04 catch after rollback",
+          "new": "live Main cap actual DemandActive sticky rejection cannot map normal04; target+allvalidatedmaterial footprint incl zeroDefault; grouped ItemUsed(count2) and one remainder, no zeroDefault debit/ItemUsed/materialNOTI; accepted Task15 guard/unknown/typed/cancel/E+independentX default protections; notification Failed isolation and directACK real-phase default fence/source close; only existing committed replay permission",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentSocketTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ItemSocketProtocolCommandFlowTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-freeze.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/before-oracle-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/final-protocol-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/oracle-before-after-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-reconstruction-provenance.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/test-delta.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-17-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ItemSockets.ItemSocketCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-17.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/ItemSockets/GameItemSocketCommand.cs",
+          "purpose": "one complete Socket protocol command owns four exact logical bindings and one Main domainFootprint with original result/frame semantics"
+        }
+      ]
     },
     {
       "actual_units": {

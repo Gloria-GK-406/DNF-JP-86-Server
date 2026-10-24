@@ -277,3 +277,12 @@ P3 新结果由真实 source/phase/原 cause/发生身份限制，Guard/Unknown/
 原两业务类Throws/SQL/UID/quickslot/stale/nativeFK目的用同provider显式typed domain driver保持。四旧/新完整wire SQL19/1811和真nativeCommit19/787、最低Inventory/自然拒绝、受控NoSession查询边界、E+独立X同对象、ushort真实存储mutation及恢复，见task-16-inspection。完整Release0/0＋三full/四actualcontrol，原74+7/Golden15/Char10与实际N30-D0；其余1800仅Task15库存，不称新八full。
 
 实际pending133message／178fine／72source及5protection／8transition；original/baseline/其它row不改。最终T012新八full/单CMD≤2秒测量、Astra/Spec根封存和用户分支收尾仍pending，不因本单元宣告B完成。
+
+
+## TASK17 — Socket四logical一个完整CMD
+
+仅闭message65737/65742/66425/66426及原ItemSocketCommand精确ID。四exact ItemSocketRequest绑定同一Direct whole，原领域分支Main传unit.Footprint，所有原DemandActive/目标与验证物料足迹保持；正常domainRefusedCommitted，早拒无Main。sharedpile分组Count2/UID与ItemUsed、AvatarDefaults零消耗仍验证pile/无ItemUsed/FFFF/仅target，原ACK→materials→target当前读不改。只既有committed replay，不新增raw。
+
+真实产品前两窄wire探针是EquipmentEmbed actionSQL与AvatarOpen非default nativeCommit；迁后同oracle、四logical成功拒绝/原35业务测试、真实Take1 storageRED/恢复、默认通知/ACK/E+X保护及三full四actualcontrols/74+7/Golden15/Char10/N30-D0见task-17-inspection。注册before捕获曾遗漏，按主控裁定迁后精确HEAD重建ConfigureServices语义基线，实际时间/源SHA/finally10源恢复单独披露，不称产品前fresh捕获。
+
+实际pending129message/177fine/72source及5protection/8transition；original/baseline/其它行与原md字节前缀保持。另1800仅Task15库存，最终T012新八full/单CMD≤2秒、Astra/Spec根封存及用户分支收尾仍pending，不宣告B完成。
