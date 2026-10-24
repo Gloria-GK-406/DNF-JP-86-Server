@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
@@ -48,71 +49,11 @@ internal sealed class ResetRandomOptionEncoder : GameCmdMessageEncoder<ResetRand
         => OnePayload(0x01C8, message.Success ? [1] : GameCmdEnvelope.Refuse(message.Error));
 }
 
-public sealed record ResetRandomOptionCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Target, BusinessSlot Material, ushort OptionIndex)
-    : ICommand<EquipmentQualityResult>, IRequestSettlementCommand, IAccountCommand
+public sealed class ResetRandomOptionHandler(ICommandBus commands) : ClientMessageHandler<ResetRandomOptionRequest>, IProtocolCommandMessageHandler<GameResetRandomOptionCommand>
 {
-    public AccountId AccountId => Session.AccountId;
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ResetRandomOptionRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameResetRandomOptionCommand(context, message), ct).ConfigureAwait(false);
 }
-
-public sealed class ResetRandomOptionCommandHandler(IEquipmentQualityDomainService quality)
-    : ICommandHandler<ResetRandomOptionCommand, EquipmentQualityResult>
-{
-    public ValueTask<EquipmentQualityResult> HandleAsync(CommandExecutionContext context,
-        ResetRandomOptionCommand command, CancellationToken ct)
-        => quality.RerollMagicSealGradeAsync(command.Session, command.Target, command.Material, command.OptionIndex, ct);
-}
-
-public sealed class ResetRandomOptionHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mappings, ICommandBus commands, IEventService events,
-    IGameMessageSender sender, ILogger<ResetRandomOptionHandler> logger) : ClientMessageHandler<ResetRandomOptionRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ResetRandomOptionRequest request, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !request.Valid || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
-            || online is null) { await Reject(0x13); return; }
-        BusinessSlot target;
-        BusinessSlot material;
-        try
-        {
-            target = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.TargetSlot));
-            material = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.MaterialSlot));
-        }
-        catch (InventorySlotMappingException) { await Reject(0x13); return; }
-        EquipmentQualityResult result;
-        try
-        {
-            result = await commands.SendAsync(new ResetRandomOptionCommand(online.OnlineUserId, session,
-                target, material, request.OptionIndex), ct).ConfigureAwait(false);
-        }
-        catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogError(failure, "Magic-seal grade transaction failed character={Character}", session.CharacterId);
-            await Reject(0x13); return;
-        }
-        if (result.Receipt is not { } receipt)
-        {
-            logger.LogInformation("Magic-seal grade refused character={Character} target={Target} material={Material} option={Option} reason={Reason}",
-                session.CharacterId, request.TargetSlot, request.MaterialSlot, request.OptionIndex, result.Rejection);
-            await Reject(result.Rejection switch
-            {
-                EquipmentQualityRejection.Locked => 0xD5,
-                EquipmentQualityRejection.MaterialUnavailable => 0x15,
-                EquipmentQualityRejection.UnmodifiableOption => 0x17,
-                EquipmentQualityRejection.ItemUnavailable => 0x11,
-                _ => 0x13,
-            });
-            return;
-        }
-        logger.LogInformation("Magic-seal grade committed character={Character} target={Target} material={Material} option={Option} remaining={Count}",
-            session.CharacterId, request.TargetSlot, request.MaterialSlot, request.OptionIndex, receipt.MaterialRemaining);
-        await events.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-            new MagicSealGradeCompleted(receipt), ct).ConfigureAwait(false);
-        ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new ResetRandomOptionResponse(false, error), ct);
-    }
-}
-
 public sealed record MagicSealGradeCompleted(EquipmentQualityReceipt Receipt) : INotification<MagicSealGradeCompleted>;
 
 public sealed class MagicSealGradeCompletedHandler(ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService slots)

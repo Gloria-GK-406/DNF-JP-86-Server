@@ -268,3 +268,12 @@ B2只保Main后RequiredExplicit及replay普通Write后CurrentStateBatch的本次
 P3 新结果由真实 source/phase/原 cause/发生身份限制，Guard/Unknown/typed/取消/已提交/清理失败仍默认；RequireRollback(E) 保 E+独立X含同对象和重复声明。旧/新同provider协议 action SQL19/1811 与真实 native Commit19/787 两完整 oracle、三 leaf/facet guard、两 B2/default、mutation、完整 Release 与新八 full、DFO74/7、Golden15/Char10、case delta 和 R1 见 task-15-inspection。
 
 实际账 messages24closed/135pending/14retained、commands24closed/180pending；source1closed/72pending/12retained、5protection/8transition pending。original/baseline/其它 row 不动。最终 T-012 八 full/单 CMD≤2秒测量、Astra/Spec根封存及用户分支收尾仍 pending，不因本Task宣布B完成。
+
+
+## TASK16 — Quality／RandomOption 完整协议
+
+仅闭message:65617／65992与ResetItemQualityCommand／ResetRandomOptionCommand两精确fine。每logical原shape唯一Direct whole，原domain有效分支一次Main最低Inventory且不造footprint链；normal domainRefusedCommitted，reseal仅null回落，ushort完整。真实action回滚与已证nativeCommit确认回滚才映原0x13，原cause/Error、同entry/Ordinal retry/current replay保持。Quality ACK→target与Random target→material→ACK原字节/顺序、NotiBus普通Failed隔离保持；直接拒绝ACK仍默认保护，只有既有committed replay许可。
+
+原两业务类Throws/SQL/UID/quickslot/stale/nativeFK目的用同provider显式typed domain driver保持。四旧/新完整wire SQL19/1811和真nativeCommit19/787、最低Inventory/自然拒绝、受控NoSession查询边界、E+独立X同对象、ushort真实存储mutation及恢复，见task-16-inspection。完整Release0/0＋三full/四actualcontrol，原74+7/Golden15/Char10与实际N30-D0；其余1800仅Task15库存，不称新八full。
+
+实际pending133message／178fine／72source及5protection／8transition；original/baseline/其它row不改。最终T012新八full/单CMD≤2秒测量、Astra/Spec根封存和用户分支收尾仍pending，不因本单元宣告B完成。

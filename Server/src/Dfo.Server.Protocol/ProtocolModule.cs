@@ -675,12 +675,14 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<AvatarCompoundCommand, AvatarCompoundResult, AvatarCompoundCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ResetRandomOptionCommand, EquipmentQualityResult, ResetRandomOptionCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameResetRandomOptionCommand, EquipmentQualityResult, GameResetRandomOptionCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameResetRandomOption, typeof(ResetRandomOptionRequest)));
         services.AddCommandHandler<ItemSocketCommand, ItemSocketResult, ItemSocketCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ResetItemQualityCommand, EquipmentQualityResult, ResetItemQualityCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameResetItemQualityCommand, EquipmentQualityResult, GameResetItemQualityCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameResetItemQuality, typeof(ResetItemQualityRequest)));
         services.AddCommandHandler<EpicCraftCommand, EpicCraftReceipt, EpicCraftCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameOutworldCommand, EquipmentOutworldResult, GameOutworldCommandHandler>(
@@ -985,8 +987,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameEquipmentEmblem);
         services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameAvatarSocketOpen);
         services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameAvatarEmblem);
-        services.RegisterMessageHandler<ResetItemQualityHandler>(ClientMessageType.GameResetItemQuality);
-        services.RegisterMessageHandler<ResetRandomOptionHandler>(ClientMessageType.GameResetRandomOption);
+        services.RegisterProtocolMessageHandler<ResetItemQualityHandler, ResetItemQualityRequest, GameResetItemQualityCommand>(ClientMessageType.GameResetItemQuality);
+        services.RegisterProtocolMessageHandler<ResetRandomOptionHandler, ResetRandomOptionRequest, GameResetRandomOptionCommand>(ClientMessageType.GameResetRandomOption);
         services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GamePurifyItem);
         services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GameInvestAmplifyOption);
         services.RegisterProtocolMessageHandler<ForgingHandler, ForgingRequest, GameForgingCommand>(ClientMessageType.GameSeparateUpgrade);

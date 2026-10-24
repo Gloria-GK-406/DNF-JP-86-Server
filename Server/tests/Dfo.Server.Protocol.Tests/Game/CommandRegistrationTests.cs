@@ -34,6 +34,31 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Two_quality_protocols_have_exact_direct_wholes_and_only_existing_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        var expected = new[]
+        {
+            (ClientMessageType.GameResetItemQuality, typeof(Dfo.Server.Protocol.Game.ResetItemQuality.ResetItemQualityRequest), typeof(Dfo.Server.Protocol.Game.ResetItemQuality.GameResetItemQualityCommand)),
+            (ClientMessageType.GameResetRandomOption, typeof(Dfo.Server.Protocol.Game.ResetRandomOption.ResetRandomOptionRequest), typeof(Dfo.Server.Protocol.Game.ResetRandomOption.GameResetRandomOptionCommand)),
+        };
+        foreach (var (logical, input, command) in expected)
+        {
+            var row = Assert.Single(commands, row => row.CommandType == command);
+            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(new[] { new ProtocolCommandMessageBinding(logical, input) }, row.ProtocolMessages);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
+            Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "ResetItemQualityCommand" or "ResetRandomOptionCommand");
+    }
+
+
+    [Fact]
     public void Four_openings_each_have_one_exact_direct_whole_with_only_existing_replay_permission()
     {
         using var provider = BuildProductionGraph();
