@@ -358,14 +358,13 @@ public sealed partial class SelectCharacterLifecycleTests
         var sendsBeforeRejection = fixture.Sender.StateMessageCount;
         await TestGameplay.RunAsync(async () =>
         {
-            var login = new GameLoginHandler(
+            var login = GameLoginTests.CreateHandler(
                 fixture.Users,
                 fixture.Sender,
-                new RejectedLoginCommandBus(),
-                new StubServerConfigService(),
+                new RejectedLoginAuthentication(),
                 new UnusedAccountEntryStateDomainService(),
                 fixture.Closer,
-                NullLogger<GameLoginHandler>.Instance);
+                NullLogger<GameLoginCommandHandler>.Instance);
 
             await login.HandleAsync(
                 fixture.Context,
@@ -974,13 +973,10 @@ public sealed partial class SelectCharacterLifecycleTests
                 : ValueTask.FromResult(new ExpiredItemCleanupResult(!refuse, []));
     }
 
-    private sealed class RejectedLoginCommandBus : ICommandBus
+    private sealed class RejectedLoginAuthentication : Dfo.Server.Abstractions.Authentication.IGameLoginAuthenticationDomainService
     {
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull =>
-            ValueTask.FromResult((TResult)(object)new RedeemGameLoginResult(null));
+        public ValueTask<AccountId?> AuthenticateSessionAsync(OnlineUserId id, string mId, string ticket, CancellationToken ct) =>
+            ValueTask.FromResult<AccountId?>(null);
     }
 
     private sealed class UnusedAccountEntryStateDomainService : IAccountEntryStateDomainService

@@ -113,7 +113,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         Assert.True(await ReadsFinAsync(client, server.Timeout));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
         AssertLifecycleChild(server.Recorder.First("disconnect-enter", id)!, id, id,
-            new(GameplayCallSource.Connection, "inbound:GameLogin"));
+            new(GameplayCallSource.Connection, nameof(Dfo.Server.Protocol.Game.Login.GameLoginCommand)));
         output.WriteLine($"next job ran in {(await server.NextJobLatencyAsync()).TotalMilliseconds:F0} ms");
     }
 

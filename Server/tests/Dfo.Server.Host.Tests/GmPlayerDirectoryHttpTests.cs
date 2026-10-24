@@ -270,8 +270,15 @@ public sealed class GmPlayerDirectoryHttpTests
         using var scope = host.Services.CreateScope(); var commands = scope.ServiceProvider.GetRequiredService<ICommandBus>();
         var ticket = await TestCredentials.LoginAsync(scope.ServiceProvider, $"player{accountId:D2}", password, default);
         Assert.NotNull(ticket.Ticket);
-        var result = await commands.SendAsync(new RedeemGameLoginCommand(user.OnlineUserId, ticket.MId!, ticket.Ticket!), default);
-        Assert.Equal(new AccountId(accountId), result.AccountId);
+        var result = await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            await using var transaction = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            var account = await host.Services.GetRequiredService<Dfo.Server.Abstractions.Authentication.IGameLoginAuthenticationDomainService>()
+                .AuthenticateSessionAsync(user.OnlineUserId, ticket.MId!, ticket.Ticket!, default);
+            await transaction.CommitAsync(default);
+            return account;
+        });
+        Assert.Equal(new AccountId(accountId), result);
         return TestGameplay.Run(host.Services, () =>
             online.GetRequired(user.OnlineUserId)
         );

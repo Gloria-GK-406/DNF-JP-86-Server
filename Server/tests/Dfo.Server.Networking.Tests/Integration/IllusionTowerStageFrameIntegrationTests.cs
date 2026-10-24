@@ -88,15 +88,19 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 Assert.True(online.TryGetByConnection(connectionId, out var anonymous));
                 return anonymous;
             });
-            var redeemed = await commands.SendAsync(
-                new Dfo.Server.Protocol.Game.Login.RedeemGameLoginCommand(
-                    anonymous!.OnlineUserId, issued.MId!, issued.Ticket!),
-                timeout.Token);
-            Assert.True(redeemed.Succeeded);
+            var redeemed = await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var transaction = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var account = await host.Services.GetRequiredService<Dfo.Server.Abstractions.Authentication.IGameLoginAuthenticationDomainService>()
+                    .AuthenticateSessionAsync(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!, timeout.Token);
+                await transaction.CommitAsync(timeout.Token);
+                return account;
+            });
+            Assert.NotNull(redeemed);
             var selected = TestGameplay.Run(host.Services, () =>
                 SelectedSessionIdentity.Create(
-                redeemed.AccountId!.Value, new CharacterId(1), connectionId,
-                online.GetRequired(anonymous.OnlineUserId).Generation, gamePort)
+                redeemed.Value, new CharacterId(1), connectionId,
+                online.GetRequired(anonymous!.OnlineUserId).Generation, gamePort)
             );
             // The real grant service verifies ownership even for temporary tower containers.
             await using (var seed = new SqliteConnection($"Data Source={host.DatabasePath}"))

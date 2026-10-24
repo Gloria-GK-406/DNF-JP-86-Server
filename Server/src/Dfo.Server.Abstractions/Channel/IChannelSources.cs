@@ -49,6 +49,7 @@ public sealed record ChannelEntryOptions(
 /// <summary>
 /// Resolves which channel a connection arrived on, and whether a character may enter it.
 /// </summary>
+/// <remarks>Temporary compatibility alias to the same IChannelEntryDomainService singleton for legacy consumers.</remarks>
 public interface IChannelEntryPolicy
 {
     /// <summary>

@@ -205,3 +205,9 @@ TASK03两次独立capture payload SHA256为 `4861e139bb126adaefba9240d0371d582c2
 ## TASK-05 剩余 Channel 闭合
 
 Connect/Script/Info三消息（11/9/17）及旧GetScript/GetInfo两命令已对应新协议CMD，旧Get/result/handler及注册删除。原无事务形状保持，key纯算法一处、原同连接/header/body/ciphertext/catalog顺序由新CMD及真实TCP共同保护，见`evidence/task-05-mapping/workunit-map.md`。Task04四行closed不改，current capture应为173消息/205命令，4Protocol+1Internal+200Legacy；actual源/CLR逐条核验见本轮capture。其余155业务消息/200旧命令/72来源仍pending，整体Spec未完成。
+
+## TASK-06：LOGIN 闭包
+
+GameLogin message:65537 与旧 RedeemGameLogin command 两行 closed，实际边界见 `evidence/task-06-mapping/workunit-map.md`。173 消息当前5个 Protocol 入口；实际命令仍205，其中 Protocol5／Internal1／Legacy199。历史 original/baseline 和其它 closed 行不改。正常兑换实际仅有 LoginSessionRegistry、OnlineStateRegistry 两个运行态参与者，均 CommitCanFail=false；selected-session recipients 为空。注册/launcher 的 SQLite 夹具以及测试注入的可失败参与者不等于生产兑换 SQLite enlist。提交后重查身份、settings、typed部署与七消息登记不再开认证事务，hotkeys 后直接 domain 激活 profile0。
+
+原同票据 reconnect/supersede 语义保留；“提交不回滚”不等于新增一次性票据。原 Net postcommit reconnect 断言保持。ChannelEntryDomainService 吸收原 policy 全部职责，旧接口同 singleton alias 与 Activate（Select caller）仍 pending，记于现过渡行／命令 notes。业务154、旧命令199、来源72仍 pending；本行不代表 T003／Spec 完成。新注册精确数以本轮 capture 为准。

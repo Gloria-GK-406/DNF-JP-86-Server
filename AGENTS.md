@@ -253,8 +253,10 @@ C6完整文本按账号＋profile存入`account_hotkey_options`。登录使用�
 AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他玩家可见性联动未纳入blob能力。
 协议依据和实机边界见`protocol/patterns/game-settings.md`。连招store与入场读取仍保留原有边界，不因本能力移除。
 
-**宿主部署配置不是规则输入。** `IServerConfigService` 与它的三个消费方按下面「接口后缀标明
-类别」那节记的例外办，不受这条约束。同样不算规则输入的还有两类，各自在代码里写明了理由：
+**宿主部署配置不是规则输入。** `IServerConfigService` 的实际消费方包括启动服务、连接观察者、每日重置／疲劳／黑钻服务，
+以及 Infrastructure 的 `ChannelLoginDeploymentSource`。它们沿用下面「接口后缀标明类别」的部署配置例外。
+LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，不直接 `GetConfig`；来源持同一只读快照，
+仅在成功响应阶段按需读取。旧 `IChannelEntryPolicy` 暂为同一领域 singleton 的兼容别名。同样不算规则输入的还有两类，各自在代码里写明了理由：
 纯测量开关（`ExperienceDiagnostics`）与协议投递行为（`SelectCharacterDeliveryOptions`）。
 
 **在线身份只有一条记录、一把锁。** “这个账号/角色/连接现在是哪个会话、走到哪一阶段”只在
@@ -348,7 +350,7 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 
 ### 2) 命令执行总线（Application/Commands）
 
-协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info 与 GM 启动初始化：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus，内部来源显式声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info 与 LOGIN：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
 
 协议级 CMD 可注入领域服务／store，以及具名的 `ICommandWorkUnits`、`ICommandMessageOutbox`、`ICommandConnectionClosures`、`ICommandProjections`、Protocol 所有的 `IGameCommandOutbox`、既有顺序／槽位映射能力和日志；旧 sender／closer、总线、队列、执行器和动态服务解析仍禁止。新消息 handler 的构造器只允许总线和日志，注册闭合检查绑定消息 CLR 类型、handler 与协议 CMD。
 
@@ -411,10 +413,10 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
   自开一次性边界并当场落定。
 - 注册（`ProtocolModule.cs`，与协议接线同处）：**凡能触达持久写的命令一律
   `Transactional`**——只有它会让 `UnitOfWorkBehavior` 开领域事务，没有那个事务，
-  持久化就没有边界可加入，写会各自落定且无人能收回。据此：RedeemGameLogin、
-  CreateCharacter、DeleteCharacter，以及 SelectCharacter 的 Prepare、DailyRefill、
+  持久化就没有边界可加入，写会各自落定且无人能收回。据此（旧细命令路线）：CreateCharacter、DeleteCharacter，以及 SelectCharacter 的 Prepare、DailyRefill、
   Quests、Pet，加上 MoveItemSpace、UseStackable、GrantTutorialReward，均为
-  **Transactional**。
+  **Transactional**。LOGIN 已 opt-in 同总线的 `GameLoginCommand` Protocol 路线，
+  仅认证兑换段用普通 `ICommandWorkUnits.WriteAsync` 开显式事务；不把整协议包成事务。
   Workflow 只有四条：只动内存注册表的 Publish、PvpReady，以及执行拆除清理的
   **Compensate** 与 CompleteReturnToSelection。Compensate 是刻意的——补偿逐个收集失败并继续，
   最后把收集到的抛出，边界会把此前每一处成功一并撤销，正是它的反面。拆除清理唯一的持久写
@@ -486,7 +488,8 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 1. 从 `NetworkDispatchContext` 解出连接身份，取不到就抛；
 2. 只读查询与端点解析（`IOnlineUserQueryDomainService`、`IChannelEntryPolicy`）；
 3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
-   Protocol 所有的当日密钥，或 LOGIN 从 `IServerConfigService` 读取端点配置并构造响应；
+   Protocol 所有的当日密钥。LOGIN 已 opt-in 薄入口，仅构造原 request/context 的 `GameLoginCommand`；
+   CMD 经 `IChannelEntryDomainService` 取得 LOGIN 具名部署事实；
 4. `commandBus.SendAsync(...)`、sender 的单连接或显式收件人发送方法、
    `IEventService.ProjectAsync(...)`，以及把两者按顺序打包好的投递服务
    （如 `ICleanupNotificationDelivery.DeliverAsync`）——见下面的「领域事件与即时投影」。
@@ -517,18 +520,19 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 
 ### 端到端示例：GameLogin
 
-1. 14B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin`
-   按不透明 selector 0x01/type 0x0001 查表；Protocol 将所有 C→S Game 注册固定为 CMD，
-   `GameLoginPayloadCodec` 解出 loginId + 密码哈希
-2. dispatcher 入队 `inbound:GameLogin` 作业 → 作业内 `GameLoginHandler`：要求该连接已有匿名在线注册
-   （TCP 连上时由 `lifecycle:connected` 作业里的 `OnlineUserConnectionObserver` 创建并登记初始连接通知）
-3. `commandBus.SendAsync(LoginGameUserCommand)` 在同一作业内经管线（没有租约）→
-   `LoginGameUserCommandHandler` →
-   `IAccountDomainService.LoginAsync` → SQLite `GetOrCreate` → `OnlineUser.Authenticate`
-   （generation +1）
-4. handler 从通用 `IServerConfigService` 的内存快照读取环境、公开 host 与三个端口，
-   构造完整 `GameLoginResponse` 后经 `SendCmdAsync` 编码并登记进作业的发件箱，作业结束后由发送端交付；
-   CMD 编码器只按消息字段编码，固定首字节 0x01，再由 15B Game 头出站
+1. 14B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin` 按 selector 0x01/type 0x0001 查表；
+   `GameLoginPayloadCodec` 解出 MId + 票据。
+2. dispatcher 按 `ProtocolCommand` 注册调用薄 `GameLoginHandler` → 同一总线将 `GameLoginCommand` 入队一次，
+   全程保原 request 和物理连接 context；不先建立旧 `inbound:GameLogin` 作业。
+   匿名在线注册由 TCP connected 生命周期先建立；匿名协议请求不因此变为内部请求。
+3. Protocol CMD 的唯一普通 Write 调真实认证领域服务：正常兑换只登记 LoginSessionRegistry 和
+   OnlineStateRegistry 两个内存参与者，提交发布身份后执行既有 afterCommit 顶替清理；selected-session 声明列表为空。
+   该兑换路径不加入 SQLite；注册和 launcher 发票的 SQLite 事务是另一个用例边界。
+4. 提交返回后重查精确身份，再读取账号设置；`IChannelEntryDomainService.ResolveLoginAsync` 先映射 listener，
+   按频道 environment 短路选择回退，再由 typed 部署来源读取连接端口、host、PortA、PortB。
+5. `IGameCommandOutbox` 登记成功 CMD 和原六 NOTI。hotkeys 登记后、auction0 前直接激活 profile0；
+   设置读取、激活和登记均在兑换事务之后。拒绝保 Warning 类别、移除在线身份并登记原完整连接关闭。
+   编码器保持固定 CMD/NOTI 与 15B Game 头；作业结束后由发送端交付。
 
 集成测试 `Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs`
 用真实 TouchSocket host + SQLite 断言逐字节行为。

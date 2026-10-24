@@ -776,7 +776,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IAccountEntryStateRepository, AccountEntryAssembly>();
         services.TryAddSingleton<IAccountEntryStateDomainService, AccountEntryStateDomainService>();
         services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
-        services.TryAddSingleton<IChannelEntryPolicy, ChannelEntryPolicy>();
+        services.TryAddSingleton<ChannelEntryDomainService>();
+        services.TryAddSingleton<IChannelEntryDomainService>(provider => provider.GetRequiredService<ChannelEntryDomainService>());
+        services.TryAddSingleton<IChannelEntryPolicy>(provider => provider.GetRequiredService<ChannelEntryDomainService>());
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
         services.TryAddSingleton<SelectedSessionDomainService>();
         services.TryAddSingleton<ISelectedSessionDomainService>(sp => sp.GetRequiredService<SelectedSessionDomainService>());

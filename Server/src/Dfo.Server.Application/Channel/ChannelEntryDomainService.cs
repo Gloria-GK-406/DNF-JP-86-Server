@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Abstractions.Configuration;
 
 namespace Dfo.Server.Application.Channel;
 
@@ -7,11 +8,20 @@ namespace Dfo.Server.Application.Channel;
 /// Decides what a listener means and who may enter through it.
 /// </summary>
 /// <remarks>Saint Horn identity, level admission and listener mapping are separate decisions.</remarks>
-internal sealed class ChannelEntryPolicy(
+internal sealed class ChannelEntryDomainService(
     IChannelContentRuleService channels,
     ChannelEntryOptions options,
-    ChannelListenerOptions listeners) : IChannelEntryPolicy
+    ChannelListenerOptions listeners,
+    IChannelLoginDeploymentSource deployment) : IChannelEntryDomainService
 {
+    public async ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken)
+    {
+        var channel = await ResolveAsync(listenerPort, cancellationToken).ConfigureAwait(false);
+        var environment = channel.LoginEnvironment ?? deployment.ReadDefaultEnvironment();
+        var endpoints = deployment.ReadEndpoints();
+        return new ChannelLoginEntry(environment, endpoints);
+    }
+
     public async ValueTask<ChannelEntryIdentity> ResolveAsync(
         int listenerPort,
         CancellationToken cancellationToken)

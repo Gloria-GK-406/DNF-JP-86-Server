@@ -41,6 +41,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();
         services.TryAddSingleton<ITeleportConsumableDefinitionSource, PvfTeleportConsumableDefinitionSource>();
         services.TryAddSingleton<IServerConfigService>(_ => new ServerConfigService(configuration));
+        services.TryAddSingleton<IChannelLoginDeploymentSource, ChannelLoginDeploymentSource>();
         if (bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
             && launcherEnabled)
         {

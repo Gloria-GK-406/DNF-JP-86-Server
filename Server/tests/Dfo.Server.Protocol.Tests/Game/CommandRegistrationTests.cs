@@ -108,7 +108,6 @@ public sealed class CommandRegistrationTests
 
         Type[] reachPersistentWrites =
         [
-            typeof(RedeemGameLoginCommand),
             typeof(CreateCharacterCommand),
             typeof(DeleteCharacterCommand),
             typeof(PrepareSelectedCharacterSessionCommand),
@@ -132,14 +131,15 @@ public sealed class CommandRegistrationTests
     }
 
     [Fact]
-    public void GameTicketRedemptionIsTransactional()
+    public void GameLoginUsesTheProtocolRouteWithExplicitWorkUnits()
     {
         using var provider = BuildProductionGraph();
         var registration = Assert.Single(
             provider.GetServices<CommandHandlerRegistration>(),
-            value => value.CommandType == typeof(RedeemGameLoginCommand));
+            value => value.CommandType == typeof(GameLoginCommand));
 
-        Assert.Equal(CommandExecutionKind.Transactional, registration.ExecutionKind);
+        Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
+        Assert.Equal(CommandRouteKind.Protocol, registration.Route);
     }
 
     [Fact]

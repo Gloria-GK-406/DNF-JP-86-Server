@@ -555,8 +555,8 @@ public sealed class ProtocolModule : IServerModule
         // worked, it is not taken back by whatever else the command was doing, and no test shows
         // it, because a lone write does succeed. The kind decides only that -- the pipeline treats
         // Direct, Workflow and Transactional identically everywhere else.
-        services.AddCommandHandler<RedeemGameLoginCommand, RedeemGameLoginResult, RedeemGameLoginCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameLoginCommand, GameLoginCompleted, GameLoginCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameLogin, typeof(GameLoginRequest)));
         services.AddCommandHandler<GetAccountCharacterRosterCommand, AccountCharacterRoster, GetAccountCharacterRosterCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<CheckCharacterNameCommand, CharacterNameStatus, CheckCharacterNameCommandHandler>(
@@ -793,7 +793,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
         services.RegisterMessageHandler<PremiumServiceUsageReportHandler>(ClientMessageType.GamePremiumServiceUsageReport);
         services.RegisterMessageHandler<RecoverStaminaHandler>(ClientMessageType.GameRecoverStamina);
-        services.RegisterMessageHandler<GameLoginHandler>(ClientMessageType.GameLogin);
+        services.RegisterProtocolMessageHandler<GameLoginHandler, GameLoginRequest, GameLoginCommand>(ClientMessageType.GameLogin);
         services.RegisterMessageHandler<GetAccountCharacterRosterHandler>(
             ClientMessageType.GameGetAccountCharacterRoster);
         services.RegisterMessageHandler<GetOtherCharacterDetailHandler>(

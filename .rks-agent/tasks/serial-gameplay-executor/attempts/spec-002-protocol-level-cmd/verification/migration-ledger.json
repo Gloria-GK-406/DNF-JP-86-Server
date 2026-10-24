@@ -3503,6 +3503,7 @@
       },
       "evidence": [],
       "id": "command:Dfo.Server.Protocol.Game.ActivateClientHotkeyProfileCommand",
+      "notes": "TASK-06: LOGIN now directly activates profile0 through IClientSettingsDomainService after hotkeys registration; SelectCharacterHandler still calls old Activate command, registration remains pending. original unchanged.",
       "original": {
         "command": "Dfo.Server.Protocol.Game.ActivateClientHotkeyProfileCommand",
         "command_source": {
@@ -7875,25 +7876,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/LoginGameUserCommand.cs",
-          "line": 18,
-          "source_sha256": "ba3397dae4814bd32bbc3a7af6160a28a0a00c0f626f36c63c23b1e8a71c914f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+          ],
+          "new": "game-login-redemption Ordinary Write calls identical authentication domain only; normal path Prepare both runtime participants, commit/publish and original afterCommit preserved; settings, deployment, activation and registration after unit, no second authentication unit; no production SQLite redemption enlist",
+          "old": "RedeemGameLogin Transactional opens exactly authentication redemption transaction; all account settings and delivery follow commit"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-06.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/LoginGameUserCommand.cs",
-          "line": 18,
-          "source_sha256": "ba3397dae4814bd32bbc3a7af6160a28a0a00c0f626f36c63c23b1e8a71c914f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Login.RedeemGameLoginCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Login.RedeemGameLoginCommand",
@@ -7920,31 +7932,49 @@
         "result": "Dfo.Server.Protocol.Game.Login.RedeemGameLoginResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/LoginGameUserCommand.cs",
-          "line": 18,
-          "source_sha256": "ba3397dae4814bd32bbc3a7af6160a28a0a00c0f626f36c63c23b1e8a71c914f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+        ],
+        "mapping": "Old production Redeem single LOGIN caller migrated and deleted. LOGIN no longer calls Activate; SelectCharacter retains that legacy command. Test stage probes/setup are separately identified, not captured as production routes."
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/LoginGameUserCommand.cs",
-          "line": 18,
-          "source_sha256": "ba3397dae4814bd32bbc3a7af6160a28a0a00c0f626f36c63c23b1e8a71c914f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/LoginGameUserCommand.cs",
-          "line": 18,
-          "source_sha256": "ba3397dae4814bd32bbc3a7af6160a28a0a00c0f626f36c63c23b1e8a71c914f"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+          ],
+          "new": "Same two real runtime transaction participants via unchanged domain algorithm; declaration Participants=[] only means no selected-session settlement recipients. No SQLite participant added or claimed; existing explicit failing test participant still verifies cause, rollback, anonymity and retry.",
+          "old": "Actual normal redemption enlists LoginSessionRegistry and OnlineStateRegistry only, both CommitCanFail=false; SQLite belongs to separate registration/launcher issuance and settings fixtures, not redemption. Existing explicit failing TicketParticipant/PrepareFaultParticipant are test fault stages, not production SQLite commits."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+          ],
+          "new": "One same-bus ProtocolNonEffect request and original Game metadata; same identity/settings/wire ordering and native categories; full-context close None, real old reconnect and work-unit fault sticky cause preserved",
+          "old": "One inbound gameplay job; exact online identity recheck after redemption; native Warning refusal, full six-notice batch and disconnect; real same-ticket reconnect"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -15167,26 +15197,37 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginHandler.cs",
-          "line": 18,
-          "source_sha256": "e90c8a87517efe548757ffc593e6f5bcb51e59876bb566ad51a875217196394d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+          ],
+          "new": "game-login-redemption Ordinary Write calls identical authentication domain only; normal path Prepare both runtime participants, commit/publish and original afterCommit preserved; settings, deployment, activation and registration after unit, no second authentication unit; no production SQLite redemption enlist",
+          "old": "RedeemGameLogin Transactional opens exactly authentication redemption transaction; all account settings and delivery follow commit"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-06.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginHandler.cs",
-          "line": 18,
-          "source_sha256": "e90c8a87517efe548757ffc593e6f5bcb51e59876bb566ad51a875217196394d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+        "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+      ],
       "id": "message:65537",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Login.GameLoginHandler",
@@ -15209,35 +15250,53 @@
         "value": 65537
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginHandler.cs",
-          "line": 18,
-          "source_sha256": "e90c8a87517efe548757ffc593e6f5bcb51e59876bb566ad51a875217196394d"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+          "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+          "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+        ],
+        "mapping": "Old production Redeem single LOGIN caller migrated and deleted. LOGIN no longer calls Activate; SelectCharacter retains that legacy command. Test stage probes/setup are separately identified, not captured as production routes."
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginHandler.cs",
-          "line": 18,
-          "source_sha256": "e90c8a87517efe548757ffc593e6f5bcb51e59876bb566ad51a875217196394d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginHandler.cs",
-          "line": 18,
-          "source_sha256": "e90c8a87517efe548757ffc593e6f5bcb51e59876bb566ad51a875217196394d"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+          ],
+          "new": "Same two real runtime transaction participants via unchanged domain algorithm; declaration Participants=[] only means no selected-session settlement recipients. No SQLite participant added or claimed; existing explicit failing test participant still verifies cause, rollback, anonymity and retry.",
+          "old": "Actual normal redemption enlists LoginSessionRegistry and OnlineStateRegistry only, both CommitCanFail=false; SQLite belongs to separate registration/launcher issuance and settings fixtures, not redemption. Existing explicit failing TicketParticipant/PrepareFaultParticipant are test fault stages, not production SQLite commits."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/workunit-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-GameLoginHandler.cs.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-06-mapping/old-LoginGameUserCommand.cs.txt",
+            "Server/src/Dfo.Server.Protocol/Game/Login/GameLoginCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Authentication/GameLoginCommandTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Game/GameLoginCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/GameLoginIntegrationTests.cs"
+          ],
+          "new": "One same-bus ProtocolNonEffect request and original Game metadata; same identity/settings/wire ordering and native categories; full-context close None, real old reconnect and work-unit fault sticky cause preserved",
+          "old": "One inbound gameplay job; exact online identity recheck after redemption; native Warning refusal, full six-notice batch and disconnect; real same-ticket reconnect"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ActivateClientHotkeyProfileCommand",
         "command:Dfo.Server.Protocol.Game.Login.RedeemGameLoginCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -33780,9 +33839,13 @@
         {
           "location": "Server/src/Dfo.Server.Application/Commands/SelectedSessionSafety.cs",
           "purpose": "old Capture overload delegates metadata for legacy only; remove final consumer T011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Abstractions/Channel/IChannelSources.cs",
+          "purpose": "IChannelEntryPolicy compatibility alias resolves same ChannelEntryDomainService singleton; remaining legacy protocol consumers must migrate before removal at T011"
         }
       ],
-      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback.",
+      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-legacy-routes",

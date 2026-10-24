@@ -74,12 +74,19 @@ public sealed class BossTowerFrameIntegrationTests
                 Assert.True(online.TryGetByConnection(connection, out var anonymous));
                 return anonymous;
             });
-            var redeemed = await commands.SendAsync(new RedeemGameLoginCommand(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!), timeout.Token);
-            Assert.True(redeemed.Succeeded);
+            var redeemed = await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var transaction = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var account = await host.Services.GetRequiredService<Dfo.Server.Abstractions.Authentication.IGameLoginAuthenticationDomainService>()
+                    .AuthenticateSessionAsync(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!, timeout.Token);
+                await transaction.CommitAsync(timeout.Token);
+                return account;
+            });
+            Assert.NotNull(redeemed);
             var authenticated = TestGameplay.Run(host.Services, () =>
-                online.GetRequired(anonymous.OnlineUserId)
+                online.GetRequired(anonymous!.OnlineUserId)
             );
-            var session = SelectedSessionIdentity.Create(redeemed.AccountId!.Value, new CharacterId(2), connection, authenticated.Generation, gamePort);
+            var session = SelectedSessionIdentity.Create(redeemed.Value, new CharacterId(2), connection, authenticated.Generation, gamePort);
             TestGameplay.Run(host.Services, () =>
             {
                 host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
