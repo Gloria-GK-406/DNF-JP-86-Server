@@ -117,7 +117,7 @@ public sealed class CharacterContainerDomainServiceTests
     public void The_item_commands_reach_storage_only_through_business_slot_binding()
     {
         foreach (var handler in
-                 new[] { typeof(MoveItemSpaceCommandHandler), typeof(UseStackableCommandHandler) })
+                 new[] { typeof(MoveItemSpaceCommandHandler), typeof(GameUseStackableCommandHandler) })
         {
             var parameters = handler.GetConstructors().Single().GetParameters();
             Assert.DoesNotContain(

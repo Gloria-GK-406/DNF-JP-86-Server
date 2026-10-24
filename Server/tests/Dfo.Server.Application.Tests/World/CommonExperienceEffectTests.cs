@@ -244,7 +244,7 @@ public sealed class CommonExperienceEffectTests
     {
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
         string[] direct = ["ActivateClientHotkeyProfileCommand", "LeaveDungeonCommand"];
-        string[] expected = ["ReadRentalRefreshCommand","RentEquipmentCommand","ChargeRentPointCommand","EnterBossTowerCommand","LoadBossTowerCommand","StartBossTowerCommand","KillBossTowerActorCommand","AdvanceBossTowerCommand","DieInBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","PickupBossTowerItemCommand","ReleaseBossTowerSelectionCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","ProcessMonsterDeathCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseStackableCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
+        string[] expected = ["ReadRentalRefreshCommand","RentEquipmentCommand","ChargeRentPointCommand","EnterBossTowerCommand","LoadBossTowerCommand","StartBossTowerCommand","KillBossTowerActorCommand","AdvanceBossTowerCommand","DieInBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","PickupBossTowerItemCommand","ReleaseBossTowerSelectionCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","ProcessMonsterDeathCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
             "ForgingCommand","MarriageCeremonyCommand", "MarriageProposalCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
             "CapsuleCommand","CollectionBoxCommand","HousingCommand","HousingBuyItemCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","SharedEffectCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
@@ -253,6 +253,9 @@ public sealed class CommonExperienceEffectTests
         Assert.Equal(expected.Concat(["EnterDungeonCommand"]).Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());
         var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
+        var use = registry.GetRegistration(typeof(Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand));
+        Assert.Equal(CommandRouteKind.Protocol, use.Route);
+        Assert.Equal(CommandExecutionKind.Direct, use.ExecutionKind);
         Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:direct.Contains(type.Name)?CommandExecutionKind.Direct:CommandExecutionKind.Transactional,
             registry.GetRegistration(type).ExecutionKind));
         Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 45);

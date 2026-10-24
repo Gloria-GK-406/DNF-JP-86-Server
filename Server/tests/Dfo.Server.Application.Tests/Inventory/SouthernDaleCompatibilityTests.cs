@@ -207,7 +207,7 @@ public sealed class SouthernDaleCompatibilityTests
                 Assert.Equal(open, current.World.Subject!.SouthernDaleQuestAvailable);
             });
             var replay = await services.GetRequiredService<ICommandBus>().SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(
-                fixture.Host.Session, new(Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Quests, [])));
+                fixture.Host.Session, new(Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Quests, []), null));
             Assert.Equal(open, replay.Quests!.Offers.Any(x => x.QuestId == 20549));
         }
     }

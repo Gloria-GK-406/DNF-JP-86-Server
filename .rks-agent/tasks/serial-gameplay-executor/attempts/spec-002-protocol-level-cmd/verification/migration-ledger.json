@@ -14558,26 +14558,49 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 254,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "one explicit Write(MainSettlement), Freeze/Commit/Settled, then exact ordered registration; unselected only Silent ACK",
+          "old": "selected UseStackable fine Transactional; ordinary refusals inside original fine body; ACK+slot/XP outside main"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-11.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 254,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Old UseStackableCommand and handler CLR definitions/registration deleted; their full behavior is owned by GameUseStackableCommand with MainSettlement, not a forwarding wrapper."
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+        "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.UseStackable.UseStackableCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+          "purpose": "complete protocol command / explicit Main and exact registration failure protection"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+          "purpose": "complete protocol command / explicit Main and exact registration failure protection"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+          "purpose": "complete protocol command / explicit Main and exact registration failure protection"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.UseStackable.UseStackableCommand",
         "command_source": {
@@ -14602,32 +14625,50 @@
         },
         "result": "Dfo.Server.Protocol.Game.UseStackable.ItemUseResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 254,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 254,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 254,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "thin handler→one GameUseStackableCommand; no fine/legacy dispatch; real external dispatcher/testing callers migrated",
+          "old": "UseStackableHandler.ResolveAsync→old UseStackableCommand/Handler and ordered response registration"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "same original physical connection, explicit metadata/recipient, unique Main reporter participant; all committed/uncertain participant protections",
+          "old": "original physical effect request and exact selected session; selected scope/ledger"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "same CWT pure admission, ExplicitEffectRequest/Footprint, CommandWorkUnits, opaque actual-encoder proof and final one-time failure classification",
+          "old": "EffectOperationLedger CWT/raw identity and EffectOperationContext main lifecycle; actual encoder raw exits beyond old fine scope"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -18421,27 +18462,51 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 334,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "one explicit Write(MainSettlement), Freeze/Commit/Settled, then exact ordered registration; unselected only Silent ACK",
+          "old": "selected UseStackable fine Transactional; ordinary refusals inside original fine body; ACK+slot/XP outside main"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-11.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 334,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
+        "command": "Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand",
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+        "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+        "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+      ],
       "id": "message:65580",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+          "purpose": "complete protocol command / explicit Main and exact registration failure protection"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+          "purpose": "complete protocol command / explicit Main and exact registration failure protection"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+          "purpose": "complete protocol command / explicit Main and exact registration failure protection"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.UseStackable.UseStackableHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -18462,30 +18527,48 @@
         "telemetry": false,
         "value": 65580
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 334,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 334,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/UseStackableSlice.cs",
-          "line": 334,
-          "source_sha256": "409ecf07cc9605e3fdce314227e90b7248a1770d120683681e8bf83ddfd226ba"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "thin handler→one GameUseStackableCommand; no fine/legacy dispatch; real external dispatcher/testing callers migrated",
+          "old": "UseStackableHandler.ResolveAsync→old UseStackableCommand/Handler and ordered response registration"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "same original physical connection, explicit metadata/recipient, unique Main reporter participant; all committed/uncertain participant protections",
+          "old": "original physical effect request and exact selected session; selected scope/ledger"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-11-inspection/workunit-map.md",
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs",
+            "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Commands/ExplicitEffectCommandTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
+          ],
+          "new": "same CWT pure admission, ExplicitEffectRequest/Footprint, CommandWorkUnits, opaque actual-encoder proof and final one-time failure classification",
+          "old": "EffectOperationLedger CWT/raw identity and EffectOperationContext main lifecycle; actual encoder raw exits beyond old fine scope"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.UseStackable.UseStackableCommand"
       ],
@@ -18493,7 +18576,7 @@
         "GameExplicitMessageDelivery",
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -33984,9 +34067,21 @@
         {
           "location": "Server/src/Dfo.Server.Application/World/HerasDungeonDomainService.cs",
           "purpose": "same explicit context entry and post-quota-validation Demand before the original Direct fact; no change to quota/event/transaction rules"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/LegacyReplayStateProjectionDelivery.cs",
+          "purpose": "temporary old ledger Dispatch + Joust to one old ReadCMD then no-bus sink; remove final legacy consumer T-011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+          "purpose": "explicit selected request/Main/footprint; no ambient source"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/EffectFootprintProjection.cs",
+          "purpose": "single pure complete applied mapping, per-request/legacy-frame accumulator"
         }
       ],
-      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round.",
+      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round. TASK-11 r3: complete UseStackable now explicit Protocol/Main and same-ledger admission/footprint. LegacyReplayStateProjectionDelivery is temporary only for old ledger Dispatch and JoustBetHandler; one ReadReplayStateCommand dispatch remains there, followed by parameterized reader and no-bus sink. New bus directly uses ordinary Write/read and sink; adapter/ReadCMD/old request ambient remain pending until final consumers T-011. B2 two named actual-encoder exits are provenance/phase/physical-target bound and finally adjudicated after drain and scope cleanup; default all-participant protection remains. No other effect protocol or source closure.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:T4",
@@ -34120,9 +34215,21 @@
         {
           "location": "Server/src/Dfo.Server.Application/World/HerasDungeonDomainService.cs",
           "purpose": "same explicit context entry and post-quota-validation Demand before the original Direct fact; no change to quota/event/transaction rules"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/LegacyReplayStateProjectionDelivery.cs",
+          "purpose": "temporary old ledger Dispatch + Joust to one old ReadCMD then no-bus sink; remove final legacy consumer T-011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+          "purpose": "explicit selected request/Main/footprint; no ambient source"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/EffectFootprintProjection.cs",
+          "purpose": "single pure complete applied mapping, per-request/legacy-frame accumulator"
         }
       ],
-      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate. TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round.",
+      "notes": "TASK04 introduced actual routes; all remain pending until final consumer removal T011. Effect handle/footprint/main lifecycle intentionally unavailable and must be completed in first effect Task; no new core ambient fallback. TASK-06 adds old IChannelEntryPolicy alias duty; actual mapping/KindOf/Refuse owned by ChannelEntryDomainService, new LOGIN only consumes IChannelEntryDomainService; do not delete old alias until remaining consumers migrate. TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round. TASK-11 r3: complete UseStackable now explicit Protocol/Main and same-ledger admission/footprint. LegacyReplayStateProjectionDelivery is temporary only for old ledger Dispatch and JoustBetHandler; one ReadReplayStateCommand dispatch remains there, followed by parameterized reader and no-bus sink. New bus directly uses ordinary Write/read and sink; adapter/ReadCMD/old request ambient remain pending until final consumers T-011. B2 two named actual-encoder exits are provenance/phase/physical-target bound and finally adjudicated after drain and scope cleanup; default all-participant protection remains. No other effect protocol or source closure.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-legacy-routes",
@@ -34183,9 +34290,21 @@
         {
           "location": "Server/src/Dfo.Server.Application/World/HerasDungeonDomainService.cs",
           "purpose": "same explicit context entry and post-quota-validation Demand before the original Direct fact; no change to quota/event/transaction rules"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/LegacyReplayStateProjectionDelivery.cs",
+          "purpose": "temporary old ledger Dispatch + Joust to one old ReadCMD then no-bus sink; remove final legacy consumer T-011"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+          "purpose": "explicit selected request/Main/footprint; no ambient source"
+        },
+        {
+          "location": "Server/src/Dfo.Server.Application/Effects/EffectFootprintProjection.cs",
+          "purpose": "single pure complete applied mapping, per-request/legacy-frame accumulator"
         }
       ],
-      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round.",
+      "notes": "TASK-09 r3: direct InventorySlots/RentalState now require IEffectFootprintRecorder through six domain objects/facades/SharedEffect and three fine handlers. Old IRequestReplayProjectionDomainService/implicit slots/rental API/DI alias removed. Only true LegacyFineGrained innermost invocation admits capture after selected/main and transaction setup: original frame/execution/rejection references, actual registration/context identity, same job ID and per-call closed lease. Dispatcher snapshots actual Effect/NonEffect/Unknown category; only the real external bus queue branch carries Standalone; closed inheritance refuses before suppression, Unknown is Unavailable at migrated capability use. New typed bridge failures are sticky. This does not remove request ambient or enable new Effect/Main: ApplyEffects optional old consumer and 17 constructions plus unmigrated child await continuations remain successor work; final legacy/ambient deletion still T011. Ended capability cannot reenter migrated domain, whose own writes/delegations check it. TASK-10 r4: all 17 EffectExecutionContext constructions require explicit non-null Footprint; ApplyEffects optional operations/implicit Record removed. Captured frame mapping retains original switch, Opening/XP/actual cleanup callers pass per-invocation authority. Actual Consume post-read-before-Take expiry protection is behavior/mutation checked; other owning write/delegation boundaries are checked without claiming all deeper unpassed APIs. Ordinary XP/Cera/Daily use explicit NonRequest with real multi-owner facts. Observer cleanup alone creates explicit Lifecycle origin/current-chain/SourceConnection-null temporary lease; delete it when T010 supplies typed Internal CMD. Preview does not record/settle, deferred commit reads plain facts after the lease closes. No routes or new Effect/Main enabled; no business/source/protection/transition closed, final legacy ambient removal remains T011. TASK-10 r5 also closes the demonstrated Heras ApplyAllowance quota-read await to Direct window with the same passed context; actual Direct/SQLite gate and compilable mutation distinguish it from final Record failure. Original Illusion 11000 if/foreach ownership is restored after the diagnosed formal01 regression; all final checks use a new freeze/round. TASK-11 r3: complete UseStackable now explicit Protocol/Main and same-ledger admission/footprint. LegacyReplayStateProjectionDelivery is temporary only for old ledger Dispatch and JoustBetHandler; one ReadReplayStateCommand dispatch remains there, followed by parameterized reader and no-bus sink. New bus directly uses ordinary Write/read and sink; adapter/ReadCMD/old request ambient remain pending until final consumers T-011. B2 two named actual-encoder exits are provenance/phase/physical-target bound and finally adjudicated after drain and scope cleanup; default all-participant protection remains. No other effect protocol or source closure.",
       "original": {
         "final_evidence": "pending",
         "id": "transition:planned-LegacyRequestAdapter",

@@ -190,7 +190,7 @@ public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnli
         catch(Exception e) when(e is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(e))
         {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
         if(result.Succeeded)await notices.ProjectAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustDetailsChanged(result.State.ServerTime),ct);
-        if(result.Succeeded)await replay.RefreshAsync(c.Connection,session,new(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Joust,result.Debits.Select(d=>d.Slot).ToImmutableArray()),ct);
+        if(result.Succeeded)await replay.RefreshAsync(c.Connection,session,new(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Joust,result.Debits.Select(d=>d.Slot).ToImmutableArray()),m.Metadata,ct);
         safety.DemandCurrent(recipient);
         await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E7,result.Succeeded?0u:6u)],ct);
     }

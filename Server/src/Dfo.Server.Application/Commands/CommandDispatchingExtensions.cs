@@ -68,13 +68,19 @@ public static class CommandDispatchingExtensions
         where THandler : class, ICommandHandler<TCommand, TResult> =>
         Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages]);
 
+    public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
+        IReadOnlyCollection<CommandRegistrationExit> exits, params ProtocolCommandMessageBinding[] messages)
+        where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
+        where THandler : class, ICommandHandler<TCommand, TResult> =>
+        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], exits);
+
     public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
         Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Internal, null);
 
     private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
-        CommandExecutionKind kind, CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages)
+        CommandExecutionKind kind, CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
     {
@@ -85,7 +91,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            kind, route, messages).Freeze());
+            kind, route, messages, exits).Freeze());
         return services;
     }
 }

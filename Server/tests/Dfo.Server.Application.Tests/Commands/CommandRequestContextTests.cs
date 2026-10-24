@@ -67,13 +67,13 @@ public sealed class CommandRequestContextTests
     }
 
     [Fact]
-    public async Task A_main_effect_settlement_is_rejected_before_any_business_runs()
+    public async Task An_internal_request_cannot_claim_an_effect_main_before_any_business_runs()
     {
         await using var world = new CommandWorld();
         var ran = false;
         world.Settings.Action = ctx => world.Services.GetRequiredService<ICommandWorkUnits>().WriteAsync(ctx,
-            new("not-enabled", [], CommandWorkUnitKind.MainSettlement), (_, _) => { ran = true; return ValueTask.FromResult(1); });
-        await Assert.ThrowsAsync<NotSupportedException>(() => world.Internal(new InternalProbe()).AsTask());
+            new("internal-main", [], CommandWorkUnitKind.MainSettlement), (_, _) => { ran = true; return ValueTask.FromResult(1); });
+        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Internal(new InternalProbe()).AsTask());
         Assert.False(ran);
     }
 }

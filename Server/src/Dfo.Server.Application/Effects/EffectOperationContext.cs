@@ -180,72 +180,11 @@ internal sealed class EffectOperationContext
         return new(authorization, () => { context.DemandLegacyInvocation(); inheritedGuard(); },
             Unavailable, DemandOwner, Inventory, Rental, DemandEffectsOwner, applied => RecordEffects(frame, applied));
     }
-    private static void RecordEffects(Frame? frame, IReadOnlyList<AppliedEffect> applied)
-    {
-        if (frame is null) return;
-        foreach (var item in applied)
-        {
-            switch (item.Effect, item.Change)
-            {
-                case (ConsumeFromContainerEffect, ContainerConsumptionChange change): Physical(change.Slot); break;
-                case (SetEquipmentUpgradeEffect or SetEquipmentEnchantmentEffect or SetEquipmentDimensionalEffect
-                    or SetEquipmentMagicSealEffect or SetEquipmentForgingEffect or DestroyEquipmentEffect, EquipmentEffectChange change):
-                    Physical(change.Slot); break;
-                case (GrantStackableEffect, StackableGrantEffectChange change):
-                    frame.Needs |= ReplayProjectionNeeds.Inventory;
-                    foreach (var addition in change.Additions) Physical(addition.Slot);
-                    foreach (var slot in change.Slots) Physical(slot.Slot);
-                    break;
-                case (GrantPreparedItemEffect grant, PreparedItemGrantChange change):
-                    frame.Needs |= ReplayProjectionNeeds.Inventory;
-                    foreach (var slot in change.Slots) Physical(slot);
-                    if (grant.Grant.Item.Placement.ItemKind == 5) frame.Needs |= ReplayProjectionNeeds.Pets;
-                    break;
-                case (GrantBasicCharacterItemEffect grant, BasicCharacterItemChange change):
-                    frame.Needs |= ReplayProjectionNeeds.Inventory;
-                    foreach (var addition in change.Additions) Physical(addition.Slot);
-                    if (grant.Placement.ItemKind == 5) frame.Needs |= ReplayProjectionNeeds.Pets;
-                    break;
-                case (SpendGoldEffect, GoldEffectChange):
-                case (SetQuestRewardGoldEffect, QuestRewardGoldChange):
-                case (GrantOpeningGoldEffect, OpeningVirtualChange):
-                case (GrantOpeningVirtualEffect, OpeningVirtualChange): frame.Needs |= ReplayProjectionNeeds.Inventory; break;
-                case (MoveToTownEffect move, TownPositionChange):
-                    frame.Needs |= ReplayProjectionNeeds.TownLocation;
-                    frame.Areas.Add(move.SourceArea);
-                    frame.Areas.Add(new(move.ChannelId, move.Destination.TownId, move.Destination.AreaId));
-                    break;
-                case (AddDungeonEntryAllowanceEffect, DungeonEntryAllowanceChange): frame.Needs |= ReplayProjectionNeeds.HerasQuota; break;
-                case (SetFatigueStateEffect, FatigueStateChange): frame.Needs |= ReplayProjectionNeeds.Fatigue; break;
-                case (SetItemUsageStateEffect, ItemUsageStateChange): frame.Needs |= ReplayProjectionNeeds.ItemUsage; break;
-                case (SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect, QuestRowChange): frame.Needs |= ReplayProjectionNeeds.Quests; break;
-                case (SetLearnedSkillEffect, LearnedSkillChange): frame.Needs |= ReplayProjectionNeeds.Skills; break;
-                case (RenamePetEffect, PetNameChange):
-                case (AddPetStomachEffect, PetStomachChange): frame.Needs |= ReplayProjectionNeeds.Pets; break;
-                case (CharacterExperienceEffect, CharacterExperienceChange): frame.Needs |= ReplayProjectionNeeds.Experience; break;
-                case (SetCharacterLevelEffect, CharacterLevelChange): frame.Needs |= ReplayProjectionNeeds.Experience | ReplayProjectionNeeds.Skills; break;
-                case (SetCharacterGrowTypeEffect, CharacterGrowTypeChange):
-                case (SetCharacterAwakeningEffect, CharacterGrowTypeChange):
-                case (MaterializeSkillBuildsEffect, SkillBuildsMaterializedChange):
-                    frame.Needs |= ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills; break;
-                case (SetOpeningPremiumEffect, OpeningPremiumChange):
-                case (SetDoublePotUsageEffect, DoublePotUsageChange): frame.Needs |= ReplayProjectionNeeds.Premium; break;
-                // These runtime changes have no safe absolute wire representation in the current protocol.
-                case (StartItemCooldownEffect, ItemCooldownChange):
-                case (StartSpiritPotionEffect, SpiritPotionChange):
-                case (SetSeriaLuckEffect, SeriaLuckChange): break;
-                default: throw new NotSupportedException($"No current-state footprint for {item.Effect.GetType().Name}/{item.Change.GetType().Name}.");
-            }
-        }
-        void Physical(BusinessSlot slot) { frame.Needs |= ReplayProjectionNeeds.Inventory; frame.Slots.Add(slot); }
-    }
-    private sealed class Frame(EffectOperationEntry entry, SelectedSessionRecipient recipient, ReplayProjectionNeeds minimum)
+    private static void RecordEffects(Frame? frame, IReadOnlyList<AppliedEffect> applied) => frame?.RecordEffects(applied);
+    private sealed class Frame(EffectOperationEntry entry, SelectedSessionRecipient recipient, ReplayProjectionNeeds minimum) : EffectFootprintProjection(minimum)
     {
         public EffectOperationEntry Entry { get; } = entry;
         public SelectedSessionRecipient Recipient { get; } = recipient;
-        public ReplayProjectionNeeds Needs { get; set; } = minimum;
-        public HashSet<BusinessSlot> Slots { get; } = [];
-        public HashSet<TownAreaKey> Areas { get; } = [];
         public Guid? MainExecutionId { get; set; }
         public bool TransactionStarted { get; set; }
         public bool Frozen { get; set; }

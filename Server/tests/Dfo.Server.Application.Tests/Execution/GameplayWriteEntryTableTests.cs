@@ -437,6 +437,8 @@ public sealed class GameplayWriteEntryTableTests
         ["SelectedSessionSafety.PublicationFailedAsync(SelectedSessionRecipient, Exception, String)"] = W,
 
         // EffectOperationLedger
+        ["EffectOperationLedger.Admit(NetworkConnectionContext, IEffectSettlementRequest)"] = W,
+        ["EffectOperationLedger.FinalizePending(EffectOperationEntry)"] = W,
         ["EffectOperationLedger.DispatchAsync(NetworkConnectionContext, IEffectSettlementRequest, Func<ValueTask>, CancellationToken)"] = W,
 
         // DungeonRunDeliveryRegistry

@@ -12,10 +12,12 @@ public sealed record CommandHandlerRegistration(
     Type InvokerType,
     CommandExecutionKind ExecutionKind,
     CommandRouteKind Route = CommandRouteKind.LegacyFineGrained,
-    IReadOnlyList<ProtocolCommandMessageBinding>? ProtocolMessages = null)
+    IReadOnlyList<ProtocolCommandMessageBinding>? ProtocolMessages = null,
+    IReadOnlyCollection<CommandRegistrationExit>? RegistrationExits = null)
 {
-    internal CommandHandlerRegistration Freeze() => ProtocolMessages is null ? this : this with
-    { ProtocolMessages = Array.AsReadOnly(ProtocolMessages.ToArray()) };
+    internal CommandHandlerRegistration Freeze() => ProtocolMessages is null && RegistrationExits is null ? this : this with
+    { ProtocolMessages = ProtocolMessages is null ? null : Array.AsReadOnly(ProtocolMessages.ToArray()),
+      RegistrationExits = RegistrationExits is null ? null : Array.AsReadOnly(RegistrationExits.ToArray()) };
 }
 
 /// <summary>
@@ -57,10 +59,12 @@ public sealed class CommandHandlerRegistry
                     || bindings.Select(x => x.MessageType).Distinct().Count() != bindings.Count
                     || bindings.Any(x => !typeof(IClientNetworkMessage).IsAssignableFrom(x.MessageClrType)))
                     throw new InvalidOperationException("A protocol command requires unique typed message bindings.");
-                if (bindings.Any(x => typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType)))
-                    throw new NotSupportedException("Explicit effect commands are not enabled.");
+                if (item.RegistrationExits is { Count: > 0 } exits
+                    && (exits.Any(exit => !Enum.IsDefined(exit)) || exits.Distinct().Count() != exits.Count
+                        || bindings.Any(x => !typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))))
+                    throw new InvalidOperationException("Registration exits require compatible effect bindings.");
             }
-            else if (item.ProtocolMessages is { Count: > 0 })
+            else if (item.ProtocolMessages is { Count: > 0 } || item.RegistrationExits is { Count: > 0 })
                 throw new InvalidOperationException("Only a protocol command may bind messages.");
         }
         this.registrations = registrationList.ToDictionary(item => item.CommandType);

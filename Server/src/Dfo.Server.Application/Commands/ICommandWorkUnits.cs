@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.Effects;
 
 namespace Dfo.Server.Application.Commands;
 
@@ -11,8 +12,18 @@ public sealed class CommandWorkUnit
     private readonly IDomainTransaction transaction;
     private readonly CommandRequestContext request;
     private bool open = true;
-    internal CommandWorkUnit(IDomainTransaction transaction, CommandRequestContext request)
-    { this.transaction = transaction; this.request = request; }
+    private readonly IEffectFootprintRecorder? footprint;
+    internal CommandWorkUnit(IDomainTransaction transaction, CommandRequestContext request, IEffectFootprintRecorder? footprint = null)
+    { this.transaction = transaction; this.request = request; this.footprint = footprint; }
+    public IEffectFootprintRecorder Footprint
+    {
+        get
+        {
+            request.DemandCurrent();
+            if (!open || footprint is null) throw new InvalidOperationException("Only a live Main has an effect footprint.");
+            return footprint;
+        }
+    }
     public void RequireRollback()
     {
         request.DemandCurrent();

@@ -41,7 +41,7 @@ public sealed class HerasEntryCouponTests
     }
     private static ValueTask<HerasQuotaSnapshot> Quota(CeraShopFixture f) => f.Host.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(f.Host.Session.CharacterId, default);
     private static Task<ItemUseResult> Use(CeraShopFixture f) => f.Host.Services.GetRequiredService<ICommandBus>()
-        .SendAsync(new UseStackableCommand(f.Host.Session, Source, Coupon)).AsTask();
+        .SendAsync(WholeUse.Command(f.Host.Services, f.Host.Session, Source, Coupon)).AsTask();
 
     [Fact]
     public async Task Coupons_are_not_usage_limited_to_two_and_both_counters_reset_at_six()
@@ -163,7 +163,7 @@ public sealed class HerasEntryCouponTests
         Assert.Equal(1, f.Host.Count(Coupon));
         Assert.Equal(4, (await Quota(f)).Remaining);
         await f.Host.Seed(69, 490002848, 1);
-        var result = await f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Host.Session, Source, 490002848));
+        var result = await f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(WholeUse.Command(f.Host.Services, f.Host.Session, Source, 490002848));
         Assert.NotEqual(ItemUseStatus.Used, result.Status);
         Assert.Equal(1, f.Host.Count(490002848));
     }

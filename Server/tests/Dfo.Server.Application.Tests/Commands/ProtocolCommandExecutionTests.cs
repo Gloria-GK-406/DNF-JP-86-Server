@@ -128,6 +128,15 @@ public sealed class ProtocolCommandExecutionTests
         Assert.Equal(typeof(ProbeMessage), Assert.Single(registry.GetRegistration(typeof(Probe)).ProtocolMessages!).MessageClrType);
     }
 
+    [Fact]
+    public void Registration_exit_permissions_are_frozen_against_mutation_of_the_callers_array()
+    {
+        var exits = new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch };
+        var registry = new CommandHandlerRegistry([Registration([new(ClientMessageType.GameUseStackable, typeof(EffectMessage))]) with { RegistrationExits = exits }]);
+        exits[0] = CommandRegistrationExit.CommittedReplayCurrentStateBatch;
+        Assert.Equal(new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch }, registry.GetRegistration(typeof(Probe)).RegistrationExits);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -144,10 +153,10 @@ public sealed class ProtocolCommandExecutionTests
     }
 
     [Fact]
-    public void Explicit_effect_registration_remains_disabled_before_business_or_a_main_unit_can_run()
+    public void A_non_effect_binding_cannot_claim_the_effect_registration_exits()
     {
-        Assert.Throws<NotSupportedException>(() => new CommandHandlerRegistry([
-            Registration([new(ClientMessageType.GameUseStackable, typeof(EffectMessage))]) ]));
+        Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([
+            Registration([new(ClientMessageType.ChannelConnect, typeof(ProbeMessage))]) with { RegistrationExits = new[] { CommandRegistrationExit.SettledRequiredExplicit } } ]));
     }
 
     [Fact]

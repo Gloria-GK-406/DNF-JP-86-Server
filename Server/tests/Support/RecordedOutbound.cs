@@ -83,6 +83,7 @@ internal sealed partial class RecordedOutbound
         services.AddSingleton(provider => new GameplayOutboxes(
             provider.GetRequiredService<IOutboundSender>(), provider.GetRequiredService<ILogger<GameplayOutbox>>()));
         services.AddSingleton<INetworkMessageSender>(provider => recorded.Bound(provider).network!);
+        services.AddSingleton<ICommandMessageOutbox>(provider => (ICommandMessageOutbox)recorded.Bound(provider).network!);
         services.AddSingleton<INetworkConnectionCloser>(provider => recorded.Bound(provider).closer!);
         return recorded;
     }
@@ -324,7 +325,7 @@ internal sealed partial class RecordedOutbound
     }
 
     /// <summary>Forwards every call to the real adapter; it records nothing and throws nothing of its own.</summary>
-    private sealed class Registering(RecordedOutbound owner, INetworkMessageSender inner) : INetworkMessageSender
+    private sealed class Registering(RecordedOutbound owner, OutboxNetworkMessageSender inner) : INetworkMessageSender, ICommandMessageOutbox
     {
         public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message, CancellationToken cancellationToken)
         {
@@ -368,6 +369,28 @@ internal sealed partial class RecordedOutbound
             owner.explicitCalls.Enqueue(new ExplicitCall(requiredDirectConnectionId,
                 [.. owner.Pending().Where(entry => !before.Contains(Key(entry)))]));
         }
+        public ValueTask RegisterAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct) => SendAsync(id, message, ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct) => SendBatchAsync(connection, messages, ct);
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct) => SendExplicitAsync(id, delivery, ct);
+        public async ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, ICommandRegistrationAttempt attempt, CancellationToken ct)
+        {
+            Interlocked.Increment(ref owner.attempts);
+            owner.BeforeSend?.Invoke();
+            owner.inFlight.Value = messages;
+            try { await inner.RegisterBatchAsync(connection, messages, attempt, ct); }
+            finally { owner.inFlight.Value = null; }
+            if (messages.Count > 0) owner.batchCalls.Enqueue(new BatchCall(connection, [.. messages]));
+        }
+        public async ValueTask RegisterExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, ICommandRegistrationAttempt attempt, CancellationToken ct)
+        {
+            owner.BeforeExplicit?.Invoke();
+            var before = owner.Pending().Select(Key).ToHashSet(ReferenceEqualityComparer.Instance);
+            owner.inFlight.Value = delivery;
+            try { await inner.RegisterExplicitAsync(id, delivery, attempt, ct); }
+            finally { owner.inFlight.Value = null; }
+            owner.explicitCalls.Enqueue(new ExplicitCall(id, [.. owner.Pending().Where(entry => !before.Contains(Key(entry)))]));
+        }
+
     }
 
     /// <summary>

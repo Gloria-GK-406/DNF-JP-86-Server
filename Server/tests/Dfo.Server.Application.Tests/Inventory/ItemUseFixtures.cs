@@ -87,7 +87,6 @@ internal sealed class AdvanceableTimeProvider(DateTimeOffset start) : TimeProvid
 /// so a bus that opened none would be testing the handler against a container it can never meet.
 /// </remarks>
 internal sealed class DirectCommandBus(
-    ICommandHandler<UseStackableCommand, ItemUseResult>? use = null,
     ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>? move = null,
     DomainTransactionScope? scope = null,
     ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>? reward = null) : ICommandBus
@@ -106,7 +105,6 @@ internal sealed class DirectCommandBus(
         await using var transaction = this.scope.Begin();
         object dispatched = command switch
         {
-            UseStackableCommand value => await TestEffectFootprints.Invoke(use!, value, cancellationToken).ConfigureAwait(false),
             MoveItemSpaceCommand value => await move!
                 .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
             GrantTutorialRewardCommand value => await reward!
@@ -262,4 +260,30 @@ internal sealed class OneCharacter(ICharacter character) : ICharacterDomainServi
 
     private static NotSupportedException Unused() =>
         new("This repository knows one character and nothing else about characters.");
+}
+
+/// <summary>Builds a complete fresh transport input for the actual protocol command.</summary>
+internal static class WholeUse
+{
+    private static long ordinal;
+    internal static Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand Command(IServiceProvider services,
+        Dfo.Server.Data.World.SelectedSessionIdentity session, BusinessSlot slot, int itemCode)
+    {
+        var query = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services);
+        if (!query.TryGetByConnection(session.ConnectionId, out var user) || user is null) throw new InvalidOperationException("Missing physical fixture connection.");
+        var game = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService().ToGameSlot(slot);
+        return new(new(user.Connection), Input(game, itemCode));
+    }
+    internal static Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest Input(GameSlot slot, int itemCode, int instance = 0)
+    {
+        var next = Interlocked.Increment(ref ordinal);
+        var body = new byte[11];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt16LittleEndian(body, checked((short)slot.Index));
+        body[2] = (byte)slot.Space;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), instance);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(7), itemCode);
+        var metadata = (new Dfo.Server.Data.Networking.GameMessageMetadata(1, 0x2C, 0, unchecked((ushort)next))
+            { InboundOrdinal = next, SequenceIsFresh = true }).WithRawBody(body);
+        return new(metadata, slot, instance, itemCode);
+    }
 }

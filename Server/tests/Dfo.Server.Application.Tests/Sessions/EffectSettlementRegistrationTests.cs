@@ -34,12 +34,15 @@ public sealed class EffectSettlementRegistrationTests
         Assert.Equal(new[] { "AvatarCompoundCommand", "AvatarPackageOpeningCommand", "CapsuleCommand", "ChargeRentPointCommand", "CollectionBoxCommand", "CompoundItemCommand", "EnchantByBeadCommand", "EpicCraftCommand", "FinishQuestCommand", "ForgingCommand",
             "HousingBuyItemCommand", "HousingCommand", "IncreaseStatusCommand", "ItemSocketCommand", "JoustBetCommand", "LearnSkillCommand", "LotteryOpeningCommand", "MagicBoxBatchOpeningCommand", "MagicBoxSingleOpeningCommand", "MagicSealCommand",
             "NpcDisjointItemCommand", "OutworldCommand", "PackageOpeningCommand", "PortableDisjointItemCommand", "QuestClearCouponCommand",
-            "ReinforceItemCommand", "RenameCreatureCommand", "RentEquipmentCommand", "ResetItemQualityCommand", "ResetRandomOptionCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "UseStackableCommand", "VendingMachineCommand", "WarehouseCommand", "WeddingLovePointCommand" },
+            "ReinforceItemCommand", "RenameCreatureCommand", "RentEquipmentCommand", "ResetItemQualityCommand", "ResetRandomOptionCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WarehouseCommand", "WeddingLovePointCommand" },
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
             Assert.Same(x, commandRegistry.GetRegistration(x.CommandType));
             Assert.Equal(CommandExecutionKind.Transactional, x.ExecutionKind);
         });
+        var use = commandRegistry.GetRegistration(typeof(Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand));
+        Assert.Equal(CommandRouteKind.Protocol, use.Route);
+        Assert.Equal(new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch }, use.RegistrationExits);
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
         Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand", "AltarDeathBatchCommand", "ApplyMonsterKillCommand", "BeginTournamentRewardsCommand", "ClaimWeeklyAttendanceCommand", "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand", "EnterMarriageChurchCommand", "EquipCarriedTitleReplacingMirrorCommand", "GrantClearExperienceCommand", "GrantKillExperienceCommand",

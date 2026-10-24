@@ -96,7 +96,7 @@ public sealed class CommandRegistrationTests
         using var provider = BuildProductionGraph();
         var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
 
-        Assert.Contains(registrations, value => value.CommandType == typeof(UseStackableCommand));
+        Assert.Contains(registrations, value => value.CommandType == typeof(GameUseStackableCommand));
         Assert.Contains(registrations, value => value.CommandType == typeof(MoveItemSpaceCommand));
     }
 
@@ -123,6 +123,8 @@ public sealed class CommandRegistrationTests
         var registrations = provider.GetServices<CommandHandlerRegistration>()
             .ToDictionary(value => value.CommandType, value => value.ExecutionKind);
 
+        Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameUseStackableCommand)]);
+        Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameUseStackableCommand)).Route);
         Type[] reachPersistentWrites =
         [
             typeof(PrepareSelectedCharacterSessionCommand),
@@ -132,7 +134,6 @@ public sealed class CommandRegistrationTests
             typeof(SynchronizeSelectedCharacterQuestsCommand),
             typeof(ReviveSelectedCharacterPetCommand),
             typeof(MoveItemSpaceCommand),
-            typeof(UseStackableCommand),
             typeof(GrantTutorialRewardCommand),
         ];
 

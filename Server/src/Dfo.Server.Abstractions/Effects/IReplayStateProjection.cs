@@ -7,6 +7,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Networking;
 
 namespace Dfo.Server.Abstractions.Effects;
 
@@ -152,11 +153,17 @@ public sealed record ReplayStateSnapshot(SelectedSessionIdentity Session, Replay
 public interface IReplayStateDomainService
 {
     ValueTask<ReplayStateSnapshot> ReadAsync(SelectedSessionIdentity session,
-        ReplayProjectionRequest request, CancellationToken cancellationToken);
+        ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken cancellationToken);
 }
 
 public interface IReplayStateProjectionDelivery
 {
     ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
-        ReplayProjectionRequest request, CancellationToken cancellationToken);
+        ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken cancellationToken);
+}
+
+public interface IReplayStateProjectionSink
+{
+    ValueTask ProjectAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
+        GameMessageMetadata? metadata, ReplayStateSnapshot snapshot, ICommandRegistrationAttempt? attempt, CancellationToken cancellationToken);
 }

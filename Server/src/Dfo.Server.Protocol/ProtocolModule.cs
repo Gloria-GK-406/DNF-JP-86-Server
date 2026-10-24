@@ -207,7 +207,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<PartyClientIdRegistry>();
         services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionDelivery, ReplayStateProjectionDelivery>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink, ReplayStateProjectionDelivery>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionDelivery, LegacyReplayStateProjectionDelivery>();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
@@ -603,8 +604,9 @@ public sealed class ProtocolModule : IServerModule
         // settle them together -- a window every test would pass through green.
         services.AddCommandHandler<MoveItemSpaceCommand, ItemMoveResult, MoveItemSpaceCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<UseStackableCommand, ItemUseResult, UseStackableCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(
+            new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));
         services.AddCommandHandler<IncreaseStatusCommand, IncreaseStatusResult, IncreaseStatusCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<IncreaseStatusHandler>(ClientMessageType.GameIncreaseStatus);
         services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
@@ -955,7 +957,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterMessageHandler<MoveItemSpaceHandler>(ClientMessageType.GameMoveItemSpace);
-        services.RegisterMessageHandler<UseStackableHandler>(ClientMessageType.GameUseStackable);
+        services.RegisterProtocolMessageHandler<UseStackableHandler, UseStackableRequest, GameUseStackableCommand>(ClientMessageType.GameUseStackable);
         services.RegisterMessageHandler<RenameCreatureHandler>(ClientMessageType.GameRenameCreature);
         services.RegisterMessageHandler<HatchCreatureHandler>(ClientMessageType.GameHatchCreature);
         services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);

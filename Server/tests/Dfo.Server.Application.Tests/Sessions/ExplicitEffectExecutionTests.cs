@@ -437,7 +437,7 @@ public sealed class ExplicitEffectExecutionTests
     private sealed class Replay : IReplayStateProjectionDelivery
     {
         public List<ReplayProjectionRequest> Plans { get; } = [];
-        public ValueTask RefreshAsync(NetworkConnectionContext connection, SelectedSessionIdentity session, ReplayProjectionRequest request, CancellationToken ct)
+        public ValueTask RefreshAsync(NetworkConnectionContext connection, SelectedSessionIdentity session, ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken ct)
         { Plans.Add(request); return ValueTask.CompletedTask; }
     }
     private class Pause

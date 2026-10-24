@@ -15,10 +15,9 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
 {
     private const long Window = 128;
     private readonly ConditionalWeakTable<NetworkConnectionContext, Ledger> ledgers = new();
-    public async ValueTask DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request,
-        Func<ValueTask> handler, CancellationToken ct)
+    internal EffectAdmission Admit(NetworkConnectionContext connection, IEffectSettlementRequest request)
     {
-        GameplayWriteAssertion.Writing(nameof(EffectOperationLedger) + "." + nameof(DispatchAsync));
+        GameplayWriteAssertion.Writing(nameof(EffectOperationLedger) + "." + nameof(Admit));
         var metadata = request.Metadata;
         if (metadata.InboundOrdinal is not > 0 || metadata.FullBodyLength is not (>= 0 and <= 1_048_576)
             || metadata.FullBodySha256 is not { Length: 64 } hash || !hash.All(Uri.IsHexDigit))
@@ -26,12 +25,9 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
         var session = sessions.FindByConnection(connection.ConnectionId);
         if (session is null)
         {
-            // Preserve pure first rejection replies; an intervening selection cannot grant this request settlement rights.
-            using var rejection = operations.EnterWithoutSelectedSession();
-            await handler().ConfigureAwait(false);
-            return;
+            return new EffectAdmission.Rejected();
         }
-        var recipient = safety.Capture(session);
+        var recipient = safety.Capture(session, metadata);
         if (!ReferenceEquals(recipient.Connection, connection))
             throw new InvalidOperationException("Effect request is not from the captured physical recipient.");
         // Capture before registering: an old request must never bind to a replacement character.
@@ -56,26 +52,54 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
                 throw new InvalidDataException("Unknown, expired or conflicting effect request identity.");
             if (entry.State == EffectOperationState.Committed)
             {
-                await delivery.RefreshAsync(connection, session, entry.Projection
-                    ?? throw new InvalidOperationException("Committed operation has no prepared projection."), ct).ConfigureAwait(false);
-                return;
+                return new EffectAdmission.Replay(entry, recipient);
             }
             if (entry.State != EffectOperationState.ConfirmedRollback)
                 throw new InvalidDataException($"Effect request cannot retry a {entry.State} operation.");
             entry.State = EffectOperationState.Pending;
             entry.Projection = null;
         }
-        using var operation = operations.Enter(entry, recipient, request.MinimumReplayNeeds);
-        try { await handler().ConfigureAwait(false); }
-        finally
+        return new EffectAdmission.Selected(entry, recipient, request.MinimumReplayNeeds);
+    }
+    internal static void FinalizePending(EffectOperationEntry entry)
+    {
+        GameplayWriteAssertion.Writing(nameof(EffectOperationLedger) + "." + nameof(FinalizePending));
+        if (entry.State == EffectOperationState.Pending) entry.State = EffectOperationState.Rejected;
+    }
+
+    public async ValueTask DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request,
+        Func<ValueTask> handler, CancellationToken ct)
+    {
+        GameplayWriteAssertion.Writing(nameof(EffectOperationLedger) + "." + nameof(DispatchAsync));
+        var admission = Admit(connection, request);
+        if (admission is EffectAdmission.Rejected)
         {
-            // A refusal before the primary command settles is not evidence of a confirmed rollback.
-            if (entry.State == EffectOperationState.Pending) entry.State = EffectOperationState.Rejected;
+            using var rejection = operations.EnterWithoutSelectedSession();
+            await handler().ConfigureAwait(false);
+            return;
         }
+        if (admission is EffectAdmission.Replay replay)
+        {
+            await delivery.RefreshAsync(connection, replay.Recipient.Session, replay.Entry.Projection
+                ?? throw new InvalidOperationException("Committed operation has no prepared projection."), request.Metadata, ct).ConfigureAwait(false);
+            return;
+        }
+        var selected = (EffectAdmission.Selected)admission;
+        using var operation = operations.Enter(selected.Entry, selected.Recipient, selected.Minimum);
+        try { await handler().ConfigureAwait(false); }
+        finally { FinalizePending(selected.Entry); }
     }
     private sealed class Ledger
     {
         public long LatestOrdinal { get; set; }
         public Dictionary<(SelectedSessionIdentity, ushort), EffectOperationEntry> Entries { get; } = [];
     }
+}
+
+internal abstract record EffectAdmission
+{
+    private EffectAdmission() { }
+    internal sealed record Rejected : EffectAdmission;
+    internal sealed record Selected(EffectOperationEntry Entry, SelectedSessionRecipient Recipient, ReplayProjectionNeeds Minimum) : EffectAdmission;
+    internal sealed record Replay(EffectOperationEntry Entry, SelectedSessionRecipient Recipient) : EffectAdmission;
 }

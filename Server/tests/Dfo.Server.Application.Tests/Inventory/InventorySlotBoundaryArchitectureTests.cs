@@ -14,7 +14,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class InventorySlotBoundaryArchitectureTests
 {
     [Fact]
-    public void The_six_item_commands_expose_only_business_slot_addresses()
+    public void Legacy_item_commands_and_whole_use_preserve_their_respective_slot_boundaries()
     {
         AssertSlotProperty<SellItemCommand>(nameof(SellItemCommand.Slot), typeof(BusinessSlot));
         AssertSlotProperty<DiscardItemCommand>(nameof(DiscardItemCommand.Slot), typeof(BusinessSlot));
@@ -24,7 +24,7 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertSlotProperty<PortableDisjointItemCommand>(nameof(PortableDisjointItemCommand.DisjointToolSlot), typeof(BusinessSlot));
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.SourceSlot), typeof(BusinessSlot));
         AssertSlotProperty<MoveItemSpaceCommand>(nameof(MoveItemSpaceCommand.DestinationSlot), typeof(BusinessSlot));
-        AssertSlotProperty<UseStackableCommand>(nameof(UseStackableCommand.Slot), typeof(BusinessSlot));
+        AssertSlotProperty<UseStackableRequest>(nameof(UseStackableRequest.Slot), typeof(GameSlot));
 
         AssertNoGameAddress<SellItemCommand>();
         AssertNoGameAddress<DiscardItemCommand>();
@@ -32,7 +32,10 @@ public sealed class InventorySlotBoundaryArchitectureTests
         AssertNoGameAddress<NpcDisjointItemCommand>();
         AssertNoGameAddress<PortableDisjointItemCommand>();
         AssertNoGameAddress<MoveItemSpaceCommand>();
-        AssertNoGameAddress<UseStackableCommand>();
+        var use = typeof(GameUseStackableCommandHandler).GetMethod("UseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        Assert.Equal(typeof(BusinessSlot), use.GetParameters().Single(parameter => parameter.Name == "slotAddress").ParameterType);
+        Assert.Equal(typeof(BusinessSlot), typeof(IItemUseEffectDomainService).GetMethod(nameof(IItemUseEffectDomainService.UseAsync))!
+            .GetParameters().Single(parameter => parameter.Name == "source").ParameterType);
     }
 
     [Fact]

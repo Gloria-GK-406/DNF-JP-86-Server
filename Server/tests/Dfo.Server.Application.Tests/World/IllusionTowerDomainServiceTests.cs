@@ -1476,12 +1476,12 @@ public sealed class IllusionTowerDomainServiceTests
     [Fact]
     public async Task Death_quickslot_potion_use_sends_remaining_then_empty_without_consuming_default_bag()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
             using var f = Fixture(configure: services => services.AddSingleton<IItemUseRuleDefinitionSource>(
                 new FakeItemUseRules((6521, ItemUseRules.Potion(cooldownMilliseconds: 0)))));
             await f.Seed(65, 4183, 2);
             await f.Seed(4, 2000, 7);
+            var (run, containers, current, permanent) = await TestGameplay.RunAsync(f.Services, async () =>
+            {
             var run = (await Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
             var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
             var current = containers.GetContainer(f.Session.CharacterId, InventoryContainerType.QuickSlot);
@@ -1493,20 +1493,14 @@ public sealed class IllusionTowerDomainServiceTests
                     ItemSnapshot.FromCore(StackableItemCore.Create(2, 6521, 2), true), default), default);
                 await tx.CommitAsync(default);
             }
+            return (run, containers, current, permanent);
+            });
             var handler = f.Services.GetRequiredService<Dfo.Server.Protocol.Game.UseStackable.UseStackableHandler>();
             var registrations = f.Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 f.Sender.Messages.Clear();
-                var request = new Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest(
-                    GameMessageMetadata.Empty, new(InventoryContainerType.QuickSlot, 4), 25333, 6521);
-                using var source = f.Services.GetRequiredService<Dfo.Server.Application.Commands.NetworkCommandAuthorization>()
-                    .Enter(() => true, request.Metadata, Dfo.Server.Application.Commands.NetworkCommandAuthorization.MessageCategory.Effect);
-                // Explicit test request state per attempt; this driver does not use the network replay ledger.
-                using var operation = f.Services.GetRequiredService<Dfo.Server.Application.Effects.EffectOperationContext>().Enter(
-                    new(f.Session, attempt + 1, 1, 0x2C, 0, "explicit-test-attempt-" + attempt, 0),
-                    f.Services.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>().Capture(f.Session, request.Metadata),
-                    request.MinimumReplayNeeds);
+                var request = WholeUse.Input(new(InventoryContainerType.QuickSlot, 4), 6521, 25333);
                 await handler.HandleAsync(new(f.Connection), request, default);
                 var frames = f.Sender.Messages.SelectMany(message =>
                     ((IServerMessageEncoder)f.Services.GetRequiredService(registrations[message.GetType()].EncoderType))
@@ -1527,10 +1521,9 @@ public sealed class IllusionTowerDomainServiceTests
                 Assert.Equal(7, (await permanent.GetAsync(4, default))!.Count);
             }
             Assert.Null(await current.GetAsync(4, default));
-            await TestEffectFootprints.Run((Tower(f).Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => Tower(f).LeaveAsync(Context(run, f.Session), false, cap, default));
+            await TestGameplay.RunAsync(f.Services, () => TestEffectFootprints.Run((Tower(f).Find((Context(run, f.Session)).Session)?.Members.Select(member => member.Session) ?? []).Append((Context(run, f.Session)).Session), cap => Tower(f).LeaveAsync(Context(run, f.Session), false, cap, default)).AsTask());
             Assert.Same(permanent, containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main));
             Assert.Equal(7, (await permanent.GetAsync(4, default))!.Count);
-        });
     }
 
     [Fact]
@@ -1853,7 +1846,7 @@ public sealed class IllusionTowerDomainServiceTests
         Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.ItemCannotOccupySlot, escaped.Status);
         var request = new Dfo.Server.Abstractions.Effects.ReplayProjectionRequest(
             Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.TowerQuickSlot, 0)]);
-        var active = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request), default);
+        var active = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request, null), default);
         var memory = active.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.QuickSlot);
         Assert.Equal(6521, memory.Items.Single(x => x.SlotIndex == 3).Core.ItemId);
         Assert.Equal(6515, memory.Items.Single(x => x.SlotIndex == 4).Core.ItemId);
@@ -1863,7 +1856,7 @@ public sealed class IllusionTowerDomainServiceTests
         {
             await TestEffectFootprints.Run((tower.Find(context.Session)?.Members.Select(member => member.Session) ?? []).Append(context.Session), cap => tower.LeaveAsync(context, false, cap, default));
         });
-        var returned = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request), default);
+        var returned = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request, null), default);
         Assert.DoesNotContain(returned.Inventory!.Character().Containers, x => x.ContainerType == InventoryContainerType.QuickSlot);
         Assert.Equal(2000, returned.Inventory.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Main)
             .Items.Single(x => x.SlotIndex == 3).Core.ItemId);

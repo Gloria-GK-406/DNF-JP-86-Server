@@ -80,7 +80,7 @@ public sealed class MagicSealHandlerTests
             shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
             shop.Select(1);
             await shop.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(
-                shop.Connection, shop.Session, new(ReplayProjectionNeeds.Inventory, []), default);
+                shop.Connection, shop.Session, new(ReplayProjectionNeeds.Inventory, []), null, default);
         });
         var snapshot = EffectRequestTransport.MainSnapshot(shop);
         var count = BinaryPrimitives.ReadUInt16LittleEndian(snapshot.AsSpan(18));

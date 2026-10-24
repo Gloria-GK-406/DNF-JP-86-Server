@@ -1,4 +1,6 @@
 using System.Runtime.ExceptionServices;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 
@@ -36,31 +38,48 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         DomainTransactionLease? lease = null;
         CommandWorkUnit? unit = null;
         var began = false;
+        ExplicitEffectRequest? main = null;
+        IEffectFootprintRecorder? footprint = null;
         try
         {
             request.DemandCurrent();
             ArgumentException.ThrowIfNullOrWhiteSpace(declaration.Name);
-            if (declaration.Kind != CommandWorkUnitKind.Ordinary)
-                throw new NotSupportedException("Explicit effect main settlement is not enabled.");
+            if (!Enum.IsDefined(declaration.Kind)) throw new InvalidOperationException("Unknown work-unit kind.");
             participants = [.. declaration.Participants ?? throw new InvalidOperationException("Participants are required.")];
             if (participants.Any(p => p is null) || participants.Select(p => p.Session).Distinct().Count() != participants.Length)
                 throw new InvalidOperationException("Work-unit participants must be exact and unique.");
             foreach (var participant in participants) safety.DemandCurrent(participant);
+            if (declaration.Kind == CommandWorkUnitKind.MainSettlement)
+            {
+                main = (request as CommandRequestContext.ProtocolEffectSelected)?.State
+                    ?? throw new InvalidOperationException("Main requires a selected effect request.");
+                footprint = main.BeginMain(participants, readOnly);
+            }
             request.BeginUnit(); began = true;
             var transaction = lease = transactions.Begin(readOnly);
-            unit = new CommandWorkUnit(transaction.Transaction, request);
+            main?.TransactionStarted();
+            unit = new CommandWorkUnit(transaction.Transaction, request, footprint);
             var result = await action(unit, ct).ConfigureAwait(false);
             request.DemandCurrent();
             foreach (var participant in participants) safety.DemandCurrent(participant);
             if (transaction.Transaction.IsRollbackOnly)
+            {
                 await transaction.DisposeAsync().ConfigureAwait(false);
+                main?.Failed(rollback: transaction.Completion == DomainTransactionCompletion.ConfirmedRollback, uncertain: false);
+            }
             else
             {
+                main?.Freeze();
                 var settlement = transaction.CommitAsync(ct).AsTask();
                 await settlement.ConfigureAwait(false);
             }
             if (!readOnly && transaction.Completion == DomainTransactionCompletion.Committed)
+            {
                 request.ConfirmCommit(participants);
+                main?.Settled();
+                if (request is CommandRequestContext.ProtocolEffectSelected selected && selected.State.IsReplay)
+                    selected.State.ReplayCommitted();
+            }
             return result;
         }
         catch (Exception cause)
@@ -75,6 +94,8 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                 if (lease.Completion == DomainTransactionCompletion.Uncertain || TransactionOutcomeUncertainException.Contains(error))
                     request.Uncertain(participants);
             }
+            main?.Failed(lease?.Completion == DomainTransactionCompletion.ConfirmedRollback,
+                lease?.Completion == DomainTransactionCompletion.Uncertain || TransactionOutcomeUncertainException.Contains(error));
             request.Failed(error);
             ExceptionDispatchInfo.Capture(error).Throw();
             throw;
@@ -83,15 +104,20 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         {
             unit?.Close();
             if (began) request.EndUnit();
-            if (lease is not null) await lease.DisposeAsync().ConfigureAwait(false);
+            main?.EndMain();
+            if (lease is not null)
+            {
+                try { await lease.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception cleanup) { request.FailedIndependent(cleanup, lease); throw; }
+            }
         }
     }
 
     internal static async ValueTask<Exception> FailAsync(CommandRequestContext request, Exception cause, SelectedSessionSafety safety, string operation)
     {
         request.Failed(cause);
-        await request.DrainOperationsAsync().ConfigureAwait(false);
         var error = request.Failure!;
+        if (request.RetainsRawEncoderFailure(error)) return error;
         if (request.HasCommittedUnit && !TransactionOutcomeUncertainException.Contains(error))
             error = new TransactionOutcomeUncertainException(TransactionUncertaintyReason.PostCommitPublicationFailure,
                 "A command failed after a confirmed work-unit commit.", error);

@@ -89,26 +89,39 @@ internal sealed class CommandBus(
         }
         catch (Exception cause)
         {
-            failure = request is not null && safety is not null
-                ? await CommandWorkUnits.FailAsync(request, cause, safety, registration.CommandType.Name).ConfigureAwait(false)
-                : cause;
+            failure = cause;
+            request?.Failed(cause);
         }
         finally
         {
-            request?.Close();
+            // Drain while scope and request still exist. No final raw/typed decision precedes cleanup.
+            if (request is not null)
+            {
+                await request.DrainOperationsAsync().ConfigureAwait(false);
+                failure = request.Failure ?? failure;
+                request.Close();
+            }
             try
             {
                 if (scope is { } ownedScope)
                 {
+                    request?.BeginScopeCleanup(ownedScope.ServiceProvider);
                     try { await ownedScope.DisposeAsync().ConfigureAwait(false); }
                     catch (Exception cleanup)
                     {
-                        var cause = failure is null ? cleanup : new AggregateException("Command scope cleanup failed.", failure, cleanup);
-                        failure = request is not null && safety is not null
-                            ? await CommandWorkUnits.FailAsync(request, cause, safety, registration.CommandType.Name).ConfigureAwait(false)
-                            : cause;
+                        if (request is not null) request.Failed(cleanup);
+                        else failure = failure is null ? cleanup : new AggregateException("Command scope cleanup failed.", failure, cleanup);
+                    }
+                    finally
+                    {
+                        request?.EndScopeCleanup();
+                        failure = request?.Failure ?? failure;
                     }
                 }
+                if (failure is not null && request is not null && safety is not null)
+                    failure = await CommandWorkUnits.FailAsync(request, failure, safety, registration.CommandType.Name).ConfigureAwait(false);
+                if (request is CommandRequestContext.ProtocolEffectSelected selected)
+                    EffectOperationLedger.FinalizePending(selected.State.Entry);
             }
             finally { DispatchDepth.Value = previousDepth; }
         }
@@ -123,8 +136,6 @@ internal sealed class CommandBus(
                 if (registration.ProtocolMessages?.Any(binding => binding.MessageType == protocol.Message.MessageType
                     && binding.MessageClrType == protocol.Message.GetType()) != true)
                     throw new InvalidOperationException("The protocol command received an unbound message CLR type.");
-                if (protocol.Message is IEffectSettlementRequest)
-                    throw new NotSupportedException("Explicit effect commands are not enabled.");
                 var connection = protocol.Dispatch.Connection;
                 var frameMatches = protocol.Frame switch
                 {
@@ -136,14 +147,45 @@ internal sealed class CommandBus(
                 var sessions = services.GetService<LoginSessionRegistry>();
                 if (safety.IsBlocked(connection) || sessions?.IsSuperseded(connection.ConnectionId) == true) return default!;
                 var authority = sessions?.CaptureAuthority(connection.ConnectionId);
-                request = new CommandRequestContext.ProtocolNonEffect(protocol.Dispatch, protocol.Message, protocol.Frame,
-                    () => !safety.IsBlocked(connection) && (authority?.Invoke() ?? true));
+                Func<bool> valid = () => !safety.IsBlocked(connection) && (authority?.Invoke() ?? true);
+                if (protocol.Message is IEffectSettlementRequest effect)
+                {
+                    if (protocol.Frame is not ProtocolFrameMetadata.Game game || !Equals(game.Value, effect.Metadata))
+                        throw new InvalidOperationException("The effect frame differs from the request metadata.");
+                    var admission = services.GetRequiredService<EffectOperationLedger>().Admit(connection, effect);
+                    request = admission switch
+                    {
+                        EffectAdmission.Rejected => new CommandRequestContext.ProtocolEffectRejected(protocol.Dispatch, protocol.Message, protocol.Frame, valid),
+                        EffectAdmission.Selected selected => new CommandRequestContext.ProtocolEffectSelected(protocol.Dispatch, protocol.Message, protocol.Frame, valid,
+                            new(selected.Entry, selected.Recipient, selected.Minimum, safety)),
+                        EffectAdmission.Replay replay => new CommandRequestContext.ProtocolEffectSelected(protocol.Dispatch, protocol.Message, protocol.Frame, valid,
+                            new(replay.Entry, replay.Recipient, effect.MinimumReplayNeeds, safety, replay: true)),
+                        _ => throw new InvalidOperationException("Unknown effect admission."),
+                    };
+                }
+                else request = new CommandRequestContext.ProtocolNonEffect(protocol.Dispatch, protocol.Message, protocol.Frame, valid);
             }
             else
                 request = new CommandRequestContext.TrustedInternal(origin ?? throw new InvalidOperationException("Missing internal origin."));
+            request.RegistrationExits = registration.RegistrationExits ?? [];
             var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType,
                 registration.ExecutionKind) { Request = request };
             request.DemandCurrent();
+            if (request is CommandRequestContext.ProtocolEffectSelected { State.IsReplay: true } replayRequest)
+            {
+                var replay = replayRequest.State;
+                var snapshot = await services.GetRequiredService<ICommandWorkUnits>().WriteAsync(context,
+                    new("committed-replay-current-state", [replay.Recipient]), (_, token) =>
+                        services.GetRequiredService<Dfo.Server.Abstractions.Effects.IReplayStateDomainService>().ReadAsync(
+                            replay.Recipient.Session, replay.Entry.Projection ?? throw new InvalidOperationException("Missing committed projection."),
+                            replay.Recipient.Metadata, token), ct).ConfigureAwait(false);
+                var attempt = registration.RegistrationExits?.Contains(CommandRegistrationExit.CommittedReplayCurrentStateBatch) == true
+                    ? request.BeginRegistrationAttempt(CommandRegistrationExit.CommittedReplayCurrentStateBatch, protocol!.Dispatch.Connection) : null;
+                await services.GetRequiredService<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink>().ProjectAsync(
+                    protocol!.Dispatch.Connection, replay.Recipient.Session, replay.Recipient.Metadata, snapshot, attempt, ct).ConfigureAwait(false);
+                request.DemandFinished();
+                return default!;
+            }
             var invoker = (ICommandInvoker<TResult>)services.GetRequiredService(registration.InvokerType);
             var result = await invoker.InvokeAsync(context, command, ct).ConfigureAwait(false);
             request.DemandFinished();

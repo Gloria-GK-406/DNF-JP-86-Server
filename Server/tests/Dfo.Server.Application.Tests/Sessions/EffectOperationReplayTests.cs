@@ -99,7 +99,8 @@ public sealed class EffectOperationReplayTests
         using var fixture = new ShopFixture(services => services.AddSingleton<IItemUseRuleDefinitionSource>(
             new FakeItemUseRules((1000, ItemUseRules.Potion(0)))));
         await fixture.Seed(69, 1000, 3);
-        fixture.Sender.FailExplicit = true;
+        var cause = new IOException("Fixture Explicit publication failed after settlement.");
+        fixture.Sender.Outbound.FailDirect(fixture.Connection.ConnectionId, () => cause);
         var counter = new GameInboundFrameCounter();
         var dispatcher = fixture.Services.GetRequiredService<INetworkMessageDispatcher>();
         UseStackableRequest Request()
@@ -112,7 +113,10 @@ public sealed class EffectOperationReplayTests
                 new(InventoryContainerType.Main, 69), 0, 1000);
         }
         // Inject the Explicit I/O failure only after the actual command has committed.
-        await Assert.ThrowsAsync<IOException>(async () => await dispatcher.DispatchAsync(new(fixture.Connection), Request(), default));
+        Assert.Same(cause, await Assert.ThrowsAsync<IOException>(async () => await dispatcher.DispatchAsync(new(fixture.Connection), Request(), default)));
+        Assert.False(fixture.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(fixture.Connection));
+        Assert.True(fixture.Sender.Outbound.Entries.Last().IsClose);
+        Assert.Same(fixture.Connection, fixture.Sender.Outbound.Entries.Last().Connection);
         Assert.Equal(2, fixture.Count(1000));
         await dispatcher.DispatchAsync(new(fixture.Connection), Request(), default);
         var batch = Assert.Single(fixture.Sender.Batches);
@@ -175,7 +179,7 @@ public sealed class EffectOperationReplayTests
         f.Sender.BeforeExplicit = () => child = Task.Run(async () =>
         {
             inherited.SetResult(); await release.Task;
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Session,
+            await f.Services.GetRequiredService<ICommandBus>().SendAsync(WholeUse.Command(f.Services, f.Session,
                 new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
         });
         await Dispatch(f, stream.Request(1)); await inherited.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -183,18 +187,8 @@ public sealed class EffectOperationReplayTests
         Assert.Equal(2, f.Count(1000));
     }
     [Fact]
-    public async Task Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state()
-    {
-        using var f = Fixture(); await f.Seed(69, 1000, 1); var stream = new Stream();
-        f.Sender.BeforeExplicit = () => f.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new ReadReplayStateCommand(f.Session, new(ReplayProjectionNeeds.Inventory, []))).AsTask().GetAwaiter().GetResult();
-        await Dispatch(f, stream.Request(1)); Assert.Equal(0, f.Count(1000));
-        await Dispatch(f, stream.Request(1)); Assert.Equal(0, f.Count(1000));
-        var batch = Assert.Single(f.Sender.Batches);
-        var cleared = Assert.Single(batch.Frames, x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x000E);
-        Assert.Equal(69, BinaryPrimitives.ReadInt16LittleEndian(cleared.AsSpan(18)));
-        Assert.Equal(-1, BinaryPrimitives.ReadInt32LittleEndian(cleared.AsSpan(20)));
-    }
+    public async Task Later_readonly_transactions_do_not_replace_the_primary_footprint_or_commit_state() =>
+        await Dfo.Server.Application.Tests.Commands.ExplicitEffectCommandTests.AssertOrdinaryReplayReadPreservesMainAsync();
     [Theory]
     [InlineData(127, true)] [InlineData(128, false)]
     public async Task Window_counts_every_inbound_frame_including_unknown_types(int otherFrames, bool accepted)
@@ -219,9 +213,15 @@ public sealed class EffectOperationReplayTests
     public async Task Batch_IO_failure_keeps_committed_state_and_uses_later_current_quantity()
     {
         using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
-        await Dispatch(f, stream.Request(1)); f.Sender.FailBatch = true;
-        await Assert.ThrowsAsync<IOException>(() => Dispatch(f, stream.Request(1)));
-        Assert.Equal(2, f.Count(1000)); await f.Seed(69, 1000, 7); f.Sender.FailBatch = false;
+        await Dispatch(f, stream.Request(1));
+        var cause = new IOException("Fixture batch transport failed after preencoding.");
+        var failBatch = true;
+        f.Sender.Outbound.FailAny(_ => failBatch && f.Sender.Outbound.BatchInFlight, () => cause);
+        Assert.Same(cause, await Assert.ThrowsAsync<IOException>(() => Dispatch(f, stream.Request(1))));
+        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        Assert.True(f.Sender.Outbound.Entries.Last().IsClose);
+        Assert.Same(f.Connection, f.Sender.Outbound.Entries.Last().Connection);
+        Assert.Equal(2, f.Count(1000)); await f.Seed(69, 1000, 7); failBatch = false;
         await Dispatch(f, stream.Request(1)); Assert.Equal(7, f.Count(1000));
         var frame = f.Sender.Batches.Last().Frames.Single(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x000D && x[15] == 0);
         Assert.Equal(7, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15 + 5 + 3 * 101 + 6)));
@@ -286,13 +286,13 @@ public sealed class EffectOperationReplayTests
         var context = f.Services.GetRequiredService<EffectOperationContext>();
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = context.Enter(entry, f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        var command = new UseStackableCommand(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
+        var command = new SharedEffectCommand(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
         var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(object), CommandExecutionKind.Transactional);
         using var main = context.BeginMain(execution, command);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var child = Task.Run(async () => {
-            var read = new ReadReplayStateCommand(f.Session, new(ReplayProjectionNeeds.Inventory, []));
+            var read = new ReadReplayStateCommand(f.Session, new(ReplayProjectionNeeds.Inventory, []), null);
             using var readonlyScope = context.BeginMain(new(Guid.NewGuid(), read.GetType(), typeof(object), CommandExecutionKind.Transactional), read);
             entered.SetResult(); await release.Task;
         });
@@ -303,15 +303,8 @@ public sealed class EffectOperationReplayTests
     }
 
     [Fact]
-    public async Task Second_primary_command_cannot_pay_or_overwrite_the_first_committed_entry()
-    {
-        using var f = Fixture(); await f.Seed(69, 1000, 3); var stream = new Stream();
-        f.Sender.BeforeExplicit = () => f.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Session,
-            new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000)).AsTask().GetAwaiter().GetResult();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Dispatch(f, stream.Request(1)));
-        Assert.Equal(2, f.Count(1000)); f.Sender.BeforeExplicit = null;
-        await Dispatch(f, stream.Request(1)); Assert.Equal(2, f.Count(1000)); Assert.Single(f.Sender.Batches);
-    }
+    public async Task Second_primary_command_cannot_pay_or_overwrite_the_first_committed_entry() =>
+        await Dfo.Server.Application.Tests.Commands.ExplicitEffectCommandTests.AssertSecondMainPreservesEntryAsync();
     [Fact]
     public async Task Same_ID_new_physical_context_has_an_independent_ledger_and_does_not_clear_the_old_fence()
     {
@@ -339,6 +332,8 @@ public sealed class EffectOperationReplayTests
             return (safety, replacement);
         });
         Assert.True(safety.IsBlocked(f.Connection)); Assert.False(safety.IsBlocked(replacement));
+        f.Sender.Outbound.Connections.Remove(replacement.ConnectionId);
+        f.Sender.Outbound.Connections.Add(replacement);
         await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(replacement), new Stream().Request(1), default);
         Assert.Equal(1, f.Count(1000)); Assert.Empty(f.Sender.Batches);
         Assert.True(safety.IsBlocked(f.Connection));
@@ -381,7 +376,7 @@ public sealed class EffectOperationReplayTests
         var pending = TestGameplay.RunAsync(f.Services, () => f.Services.GetRequiredService<EffectOperationLedger>().DispatchAsync(f.Connection, new Stream().Request(1), async () => {
             f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
             f.Select(1);
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new UseStackableCommand(f.Session,
+            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SharedEffectCommand(f.Session,
                 new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
         }, default).AsTask());
         await Assert.ThrowsAsync<InvalidOperationException>(() => pending);

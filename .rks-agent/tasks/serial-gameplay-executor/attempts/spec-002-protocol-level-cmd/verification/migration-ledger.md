@@ -231,3 +231,10 @@ GameLogin message:65537 与旧 RedeemGameLogin command 两行 closed，实际边
 仅上述三条开放 transition 的 notes／introduced_artifacts 补充当前事实，仍 pending。17 构造及 Opening／XP／实际 cleanup 全 caller 显式传本次必需能力，ApplyEffects 删除 optional operations／隐式 Record，原完整映射用捕获引用。真实 Consume await-read 后到 Take 前复验有真实存储及 mutation 证据；其它 own 写／委托边界逐项检查，不称未继续传 cap 的下层 await 全部覆盖。Preview 不记录／不结算，原 commit 回调读取普通 facts。断线 observer 是临时 Lifecycle source 唯一生产创建点，明确原 chain／空物理 SourceConnection；T010 真 Internal CMD 取代时删除。未启新 Effect/Main、不迁 routes；149 非遥测消息／194 旧命令／72 来源、五保护及八过渡继续 pending，original／baseline／其它行保持。
 
 TASK-10 r5另补已证Heras额度验证await→Direct前同一context复验，真实Direct/SQLite gate与可编译mutation作区分；未改变周期、额度、事件或事务规则。正式01的Illusion条件作用域回归已恢复原if→foreach，失败轮与源冻结保留，最终完整核验另建r5轮；以上仍不闭合任何行。
+
+
+## TASK-11：完整 UseStackable 与显式 Main（r3）
+
+仅 `message:65580` 和 `command:Dfo.Server.Protocol.Game.UseStackable.UseStackableCommand` 闭合：原fine删除，新完整CMD在Main内保留全部判断/效果/当前槽，普通selected拒绝仍提交最低Inventory；无selected只Silent ACK。ACK→虚拟资源→源槽绝对状态→可选XP，原bytes且无Creature附帧。新旧唯一CWT、原entry.Ordinal重试窗口、显式Footprint与最终失败收口见 `verification/evidence/task-11-inspection/workunit-map.md`。ConfigureServices-only capture01/02为173消息/205命令；route为11Protocol＋1Internal＋193Legacy，Kind为165Tx/27Direct/9RO/4Workflow，消息162Legacy/11Protocol，14遥测保持。
+
+B2只保Main后RequiredExplicit及replay普通Write后CurrentStateBatch的本次真实encoder原cause；scope/lease额外独立错误（含同一Exception引用）撤raw，其它提交后来源仍全参与者围栏。新reader metadata是必需显式参数，sink无bus；临时LegacyReplay实际上游只有旧ledger Dispatch和Joust，唯一ReadReplayStateCommand dispatch仍pending，最迟T-011删除。只更新已有三条pending transition的notes/artifacts，未关闭其它消息、命令、来源、保护或过渡项；当前业务消息148、旧命令193、来源72 pending按JSON实数复核。最终验证、数量账与required Result review独立于此开放迁移账。

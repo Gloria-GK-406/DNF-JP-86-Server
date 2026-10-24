@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 public sealed class EffectDispatchOnExecutorTests
 {
     [Fact]
-    public async Task An_effect_request_and_its_replay_both_run_as_the_inbound_job()
+    public async Task An_effect_request_and_its_replay_both_run_as_the_whole_protocol_job()
     {
         using var f = new ShopFixture(services => services.AddSingleton<IItemUseRuleDefinitionSource>(
             new FakeItemUseRules((1000, ItemUseRules.Potion(0)))));
@@ -50,7 +50,7 @@ public sealed class EffectDispatchOnExecutorTests
         Assert.All(seen, x =>
         {
             Assert.True(x.OnExecutor);
-            Assert.Equal($"inbound:{nameof(ClientMessageType.GameUseStackable)}", x.CommandType);
+            Assert.Equal(nameof(GameUseStackableCommand), x.CommandType);
         });
     }
 }

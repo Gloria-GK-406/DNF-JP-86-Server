@@ -109,14 +109,14 @@ public sealed class ItemRefusalCodeTests
             if (verdict is ItemUsability.Allowed)
                 continue;
 
-            var status = UseStackableCommandHandler.StatusFor(verdict);
+            var status = GameUseStackableCommandHandler.StatusFor(verdict);
             Assert.NotEqual(ItemUseStatus.Used, status);
         }
 
         // Each refusal keeps its own identity rather than collapsing onto one status.
         var refusals = Enum.GetValues<ItemUsability>()
             .Where(verdict => verdict is not ItemUsability.Allowed)
-            .Select(UseStackableCommandHandler.StatusFor)
+            .Select(GameUseStackableCommandHandler.StatusFor)
             .ToArray();
         Assert.Equal(refusals.Length, refusals.Distinct().Count());
     }

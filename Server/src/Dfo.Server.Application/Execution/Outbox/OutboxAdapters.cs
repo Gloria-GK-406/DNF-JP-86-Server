@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
@@ -60,8 +61,13 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
     /// </summary>
     public ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
         IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken)
+        => RegisterBatchCore(expectedConnection, messages, null, cancellationToken);
+
+    private ValueTask RegisterBatchCore(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IServerNetworkMessage> messages, CommandRegistrationAttempt? attempt, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(expectedConnection);
+        attempt?.DemandTarget(expectedConnection);
         ArgumentNullException.ThrowIfNull(messages);
         cancellationToken.ThrowIfCancellationRequested();
         IServerNetworkMessage[] batch = [.. messages];
@@ -74,7 +80,7 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
         if (encoder is null)
             return Dropped(expectedConnection.ConnectionId);
         var outbox = outboxes.Current;
-        var frames = encoder.EncodeBatch(expectedConnection, batch);
+        var frames = EncodeBatch(expectedConnection, batch, attempt);
         outbox.Register(OutboundEntry.Batch(expectedConnection, batch, frames));
         return ValueTask.CompletedTask;
     }
@@ -89,6 +95,10 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
         NetworkConnectionId requiredDirectConnectionId,
         ExplicitMessageDelivery delivery,
         CancellationToken cancellationToken)
+        => RegisterExplicitCore(requiredDirectConnectionId, delivery, null, cancellationToken);
+
+    private ValueTask RegisterExplicitCore(NetworkConnectionId requiredDirectConnectionId, ExplicitMessageDelivery delivery,
+        CommandRegistrationAttempt? attempt, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(delivery);
         ValidateExplicitDelivery(delivery);
@@ -97,8 +107,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
         {
             if (TryFind(requiredDirectConnectionId, out var direct))
             {
+                attempt?.DemandTarget(direct);
                 var outbox = outboxes.Current;
-                var frames = EncodeEach(direct, delivery.RequiredDirectMessages);
+                var frames = EncodeEach(direct, delivery.RequiredDirectMessages, attempt);
                 outbox.Register(OutboundEntry.Batch(direct, delivery.RequiredDirectMessages, frames));
             }
             else
@@ -145,11 +156,38 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
     public ValueTask RegisterExplicitAsync(NetworkConnectionId connectionId, ExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
         SendExplicitAsync(connectionId, delivery, cancellationToken);
 
-    private byte[] EncodeEach(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages)
+    public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages,
+        ICommandRegistrationAttempt token, CancellationToken cancellationToken)
+    {
+        var attempt = CommandRegistrationAttempt.Enter(token, CommandRegistrationExit.CommittedReplayCurrentStateBatch, connection.ConnectionId);
+        try { return RegisterBatchCore(connection, messages, attempt, cancellationToken); }
+        catch (Exception error) { attempt.Failed(error); throw; }
+        finally { attempt.Complete(); }
+    }
+    public ValueTask RegisterExplicitAsync(NetworkConnectionId connectionId, ExplicitMessageDelivery delivery,
+        ICommandRegistrationAttempt token, CancellationToken cancellationToken)
+    {
+        var attempt = CommandRegistrationAttempt.Enter(token, CommandRegistrationExit.SettledRequiredExplicit, connectionId);
+        try { return RegisterExplicitCore(connectionId, delivery, attempt, cancellationToken); }
+        catch (Exception error) { attempt.Failed(error); throw; }
+        finally { attempt.Complete(); }
+    }
+    private byte[] EncodeMessage(NetworkConnectionContext connection, IServerNetworkMessage message, CommandRegistrationAttempt? attempt)
+    {
+        try { return encoder!.EncodeMessage(connection, message); }
+        catch (Exception error) { attempt?.EncoderFailed(error); throw; }
+    }
+    private byte[] EncodeBatch(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CommandRegistrationAttempt? attempt)
+    {
+        try { return encoder!.EncodeBatch(connection, messages); }
+        catch (Exception error) { attempt?.EncoderFailed(error); throw; }
+    }
+
+    private byte[] EncodeEach(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CommandRegistrationAttempt? attempt = null)
     {
         using var buffer = new MemoryStream();
         foreach (var message in messages)
-            buffer.Write(encoder!.EncodeMessage(connection, message));
+            buffer.Write(EncodeMessage(connection, message, attempt));
         return buffer.ToArray();
     }
 
