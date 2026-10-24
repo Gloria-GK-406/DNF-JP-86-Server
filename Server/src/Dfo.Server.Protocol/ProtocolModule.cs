@@ -714,7 +714,8 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameSortItem, typeof(SortItemRequest)));
         services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
             DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SelectCrystalContractCommand, bool, SelectCrystalContractCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameCrystalContractCommand, bool, GameCrystalContractCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCrystalContract, typeof(CrystalContractRequest)));
         services.AddProtocolCommandHandler<GameDeleteItemCommand, bool, GameDeleteItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteItem, typeof(DeleteItemRequest)));
         services.AddProtocolCommandHandler<GameBuyItemCommand, BuyItemOutcome, GameBuyItemCommandHandler>(
@@ -1004,7 +1005,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GamePurifyItem);
         services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GameInvestAmplifyOption);
         services.RegisterProtocolMessageHandler<ForgingHandler, ForgingRequest, GameForgingCommand>(ClientMessageType.GameSeparateUpgrade);
-        services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
+        services.RegisterProtocolMessageHandler<CrystalContractHandler, CrystalContractRequest, GameCrystalContractCommand>(ClientMessageType.GameCrystalContract);
         services.RegisterProtocolMessageHandler<DeleteItemHandler, DeleteItemRequest, GameDeleteItemCommand>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
 

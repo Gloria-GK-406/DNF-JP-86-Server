@@ -18,8 +18,7 @@ public sealed class CrystalContractTests
         return f;
     }
     private static async ValueTask Request(ShopFixture f, byte mode, byte selection) =>
-        await TestGameplay.RunAsync(f.Services, async () => await f.Services.GetRequiredService<CrystalContractHandler>().HandleAsync(new(f.Connection),
-            new CrystalContractRequest(GameMessageMetadata.Empty, mode, selection), default));
+        _ = await CrystalWire.Send(f, mode, selection);
 
     [Theory]
     [InlineData(0,0)] [InlineData(0,5)] [InlineData(1,3)] [InlineData(0,255)]
@@ -57,7 +56,13 @@ public sealed class CrystalContractTests
     public async Task Stale_session_does_not_change_previous_character()
     {
         using var f=Create();var old=f.Session;f.Select(2);
-        Assert.False(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SelectCrystalContractCommand(f.OnlineUser,old,0,1)));
+        Assert.False(await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            var saved = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Accounts.ICrystalContractDomainService>().SelectAsync(old, 0, 1, default);
+            await tx.CommitAsync(default);
+            return saved;
+        }));
         Assert.Equal(255,f.Scalar("SELECT crystal_cube_grade FROM character_condition WHERE character_id=1"));
     }
     [Fact]

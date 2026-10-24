@@ -5503,25 +5503,54 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 43,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "One Transactional fine when session/online present; domain normalfalse commits, mode is UI flag, current/entitlement then immediate two condition column save; after fine Info then world recheck then projection/refusal",
+          "new": "One ordinary Write([],Ordinary,None), same real domain and SQL participant, normalfalse Committed/exceptions Abort; postunit Info and IsInWorld order preserved, no early world gate, no material consumption/Main/footprint/ledger/attempt/replay/P3 recovery",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-25.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 43,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "Old fine record/handler removed from mixed slice, original bytes sealed; whole owns original orchestration; message/codec/notification chunks and domain/API unchanged"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CrystalContract.SelectCrystalContractCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CrystalContract.SelectCrystalContractCommand",
@@ -5547,32 +5576,87 @@
         },
         "result": "System.Boolean"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 43,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 43,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 43,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact original2B CrystalContractRequest decoder -> handler -> IAccount-only Transactional SelectCrystalContractCommand",
+          "new": "Exact request/Dispatch/metadata -> thin once-bus -> one GameCrystalContractCommand<bool>; old fine record/handler and actual callers/registrations removed from mixed slice, no nested dispatch; other message/codec/notification chunks byte exact",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "IAccountCommand only, no selected participants; exact condition character save in same database participant",
+          "new": "Empty explicit selected participants preserve original range. Action UPDATE19/1811 and sameparticipant deferredFK true SqliteTransaction.Commit19/787 with FK1/child>0/action staged mode1 grade3, causeSame/ConfirmedRollback and full two-character condition/BLOBhex/NULL/other assets exact rollback; same-seq retry current",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Success one target preparedbatch ACK then CubeProgression; composer/encoder Warning+Failed isolated; normalCommitted refused directACK encoder raw failure; old chain/sourceclose/no fence",
+          "new": "Original mixed message/codec/notification blocks and domain/core readonly. Actual ComposeAsync decorator and encoder failures remain Failed/caller ignored, saved value retained/no halfbatch/close. Invalid and missing-entitlement normalCommitted ACK failures default PostCommitPublicationFailure innerSame, explicit shell difference, root chain/EndedAJob/emptyselected+attempts/Single physicalsourceclose Same/nofence; no fourth raw permission. Postworld proxy only proves branch order, true previous-session proxy uses actual registry; VC-B2 whole log identity",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-25.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+          "purpose": "one exact typed NonEffect crystal selection command with original ordinary write and post-save current-query/projection boundary"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -28231,26 +28315,56 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 62,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "One Transactional fine when session/online present; domain normalfalse commits, mode is UI flag, current/entitlement then immediate two condition column save; after fine Info then world recheck then projection/refusal",
+          "new": "One ordinary Write([],Ordinary,None), same real domain and SQL participant, normalfalse Committed/exceptions Abort; postunit Info and IsInWorld order preserved, no early world gate, no material consumption/Main/footprint/ledger/attempt/replay/P3 recovery",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-25.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 62,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.CrystalContract.GameCrystalContractCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+      ],
       "id": "message:66072",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CrystalContract.CrystalContractHandler",
@@ -28272,35 +28386,90 @@
         "telemetry": false,
         "value": 66072
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 62,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 62,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/CrystalContractSlice.cs",
-          "line": 62,
-          "source_sha256": "95ba1beaa6cd0b8f26f4910d1456ea66bf77cbdcaee3c67e359cdd48560c8351"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "Exact original2B CrystalContractRequest decoder -> handler -> IAccount-only Transactional SelectCrystalContractCommand",
+          "new": "Exact request/Dispatch/metadata -> thin once-bus -> one GameCrystalContractCommand<bool>; old fine record/handler and actual callers/registrations removed from mixed slice, no nested dispatch; other message/codec/notification chunks byte exact",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "IAccountCommand only, no selected participants; exact condition character save in same database participant",
+          "new": "Empty explicit selected participants preserve original range. Action UPDATE19/1811 and sameparticipant deferredFK true SqliteTransaction.Commit19/787 with FK1/child>0/action staged mode1 grade3, causeSame/ConfirmedRollback and full two-character condition/BLOBhex/NULL/other assets exact rollback; same-seq retry current",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "Success one target preparedbatch ACK then CubeProgression; composer/encoder Warning+Failed isolated; normalCommitted refused directACK encoder raw failure; old chain/sourceclose/no fence",
+          "new": "Original mixed message/codec/notification blocks and domain/core readonly. Actual ComposeAsync decorator and encoder failures remain Failed/caller ignored, saved value retained/no halfbatch/close. Invalid and missing-entitlement normalCommitted ACK failures default PostCommitPublicationFailure innerSame, explicit shell difference, root chain/EndedAJob/emptyselected+attempts/Single physicalsourceclose Same/nofence; no fourth raw permission. Postworld proxy only proves branch order, true previous-session proxy uses actual registry; VC-B2 whole log identity",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-manifest.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-source.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/before-observations.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-freeze-01.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/source-final-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/oracle-before-after-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/selection-mutation-result.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/formal-summary-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/test-delta-02.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/assertions-check.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/workunit-and-coverage-map.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-message-codec-before.txt",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-25-inspection/mixed-pure-notification-before.txt",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CrystalContractProtocolCommandFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CrystalContract.SelectCrystalContractCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-25.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/CrystalContract/GameCrystalContractCommand.cs",
+          "purpose": "one exact typed NonEffect crystal selection command with original ordinary write and post-save current-query/projection boundary"
+        }
+      ]
     },
     {
       "actual_units": {

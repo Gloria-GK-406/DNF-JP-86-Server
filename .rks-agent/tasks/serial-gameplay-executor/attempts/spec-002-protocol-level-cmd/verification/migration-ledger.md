@@ -353,3 +353,12 @@ Level→Default有效mutation 1行为RED+2可达正控，finally逐byte恢复3/3
 真before31项封后才迁产品，原入口45/45与codec4/4；21组新旧57全列asset快照及具名SQL时间/GUID双射/DeliveryFK保完整core/BLOBhex/NULL/次数/period/权益和帧。ordinary/auto各action UPDATE19/1811、sameparticipant deferredFK nativeCommit19/787/FK1/child>0/阶段与causeSame/完整回滚及同seq当前重做。pre quick1拒绝ACK编码故障rawSame，normal普通与auto拒绝ACK变既有默认PostCommitPublicationFailure/innerSame，明确两外壳差异，原chain/EndedAJob/物理sourceclose Same/nofence保持，无第四许可。
 
 可编译auto调用误换ordinary mutation实际auto扣113且usage0为资产RED，ordinary正控pass，finally原wholebytes/SHA恢复同2目标2pass。正式finalfreeze02 9源8present1deleted，Release0/0及三无filterfull+四freshcontrols，原8947逐display/status/multiplicity全保N=22/D=0→8969=8949pass+原Dim2fail+18skip；其余1800是Task20库存，非八freshfull。DFO74/7/outside-exe-orphan0、Golden15/Char10。actualcapture201cmd/173logical，原一fine→whole唯一65559，family/三许可owners其它逐值不变。完整NUL14505=7owned+14498nonowned，最终仅两actualcanonical排除后14496全SHA同。T012单CMD2秒/A21/Astra/Spec终局及主控checkpoint仍后继。
+
+
+## TASK25 r1 — CrystalContract 两字节选择单 typed NonEffect whole
+
+仅闭message66072及SelectCrystalContractCommand fine。精确request→GameCrystalContractCommand<bool>，Direct/Protocol/无exit；旧fine两类型从mixedslice删除，其余消息/decoder/encoder/通知chunks逐byte保持。session/online静默与原domain字段/current/权益/两列保存保一次ordinary Write([],Ordinary,None)，normalfalse Commit、SQL/commit异常Abort；unit后Info→world复核→成功ACK/CubeProgression一个batch或原拒绝ACK，普通通知Warning+Failed隔离，无Main/footprint/ledger/attempt/replay/raw/P3。
+
+真正before33项封后才迁产品，原registered2B入口31/31+原codec7/7，21组旧新54全列asset快照及具名SQL时间/GUID双射/DeliveryFK保护两角色condition/BLOBhex/NULL/非选择列/权益/其它资产与帧。action19/1811与sameparticipant deferredFK nativeCommit19/787/FK1/child>0/action完成stage/causeSame/fullrollback及同seq当前重存有直接证据。normal非法及缺失权益拒绝ACK旧raw→既有默认PostCommitPublicationFailure innerSame两处壳差异明确，原chain/EndedAJob/物理sourcecloseSame/nofence保；没有原preACK，不虚构第四许可。postworld proxy仅证保存后分支顺序，不冒实际并发退出。
+
+可编译selection3→5域实参mutation实际保存grade5资产RED、selection0正控pass；finally原wholebytes恢复同2目标2pass。finalfreeze01七present/零删除文件，Release0/0和三无filterfull+四freshcontrols，原8969逐display/status/multiplicity全保N=22/D=0→8991=8971pass+原Dim2fail+18skip；其余1800仍Task20库存，非八freshfull。DFO74/7/outside-exe-orphan0、Golden15/Char10。actualcapture173/201只有66072/一fine→whole，purefamilies/三许可所有owner其它精确同原。完整NUL14646=5owned+14641nonowned，排两actualcanonical后14639原SHA同。T012单CMD2秒/A21/Astra/Spec终局/主控checkpoint后继。
