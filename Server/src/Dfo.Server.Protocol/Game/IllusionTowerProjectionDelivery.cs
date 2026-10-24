@@ -835,19 +835,15 @@ public sealed class IllusionTowerReturnSweepService(
         {
             try
             {
-                await GameplayTimerWork.TickAsync(ticks, Command, TickCoreAsync, stoppingToken).ConfigureAwait(false);
+                await GameplayTimerWork.TickAsync(ticks, Command, TickCoreAsync, logger, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 throw;
             }
-            catch (Exception error) when (GameplayJob.EndedAJob(error))
-            {
-                // The executor logged the sweep CMD's failure with its stack (F-30).
-                logger.LogWarning("Unexpected illusion tower projection sweep failure; the hosted service will continue");
-            }
             catch (Exception error)
             {
+                // A failed sweep CMD is absorbed by TickAsync; what reaches here is not one (F-30).
                 logger.LogError(error,
                     "Unexpected illusion tower projection sweep failure; the hosted service will continue");
             }

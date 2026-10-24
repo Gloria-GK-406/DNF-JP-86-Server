@@ -1,6 +1,7 @@
 # T-009 收口对账（TASK-34：T-009e，spec-001 收口）
 
 - 日期 2026-10-24。冻结点 `2bdb1afd`；Spec 基准 `a02bce46`；规划检查点 `b76504bb`（测试数量基线 7872，`baseline.md`）。本单元开始时 HEAD 为 `51c294fa`。`git diff 2bdb1afd -- Server Tool` 在开始、正式全量前与结束时都为空（`logs/task-34-verify.txt`、`logs/task-34-build-test.txt` part 0、`logs/task-34-boundary.txt`）。
+- **TASK-35 修订（2026-10-24，基准 `9aeb638c`）**：按完整结果评审改了 §1 的 AC-009 一行与覆盖栏、§6 移交清单、§7 封存数据，新增 §7.4；scratchpad 引用改指 `evidence/`。TASK-35 改了生产代码，代码冻结点前移到 TASK-35 的提交；本文 §2～§5 记的是 TASK-34 在 `2bdb1afd` 上的那次，TASK-35 的正式全量见 `logs/task-35-build-test.txt` 与 `tasks/TASK-35.md`。
 - 用途：spec-001 封存与完整结果评审的输入。要点是：Plan T-009 逐项对到证据；A 封存状态的最终全量；从基线到 A 封存的测试数量加法；测试文件改动清单；表征与金样本；移交清单；交主控方的封存数据。
 - 写法：仿 `t006-closure.md`，只写「要求 → 单元 → 证据 → 状态」。未关闭事项只引 F 编号，内容在 `follow-ups.md`；推导过程在 `tasks/TASK-30.md`～`tasks/TASK-34.md`。
 - 文件:行 指冻结点；路径相对 `Server/`，另有注明的除外。日志路径相对 `verification/`。
@@ -14,7 +15,7 @@
 | RQ-061 运行期判据的最终核对：不设启动期例外（F-16），原行括注按 F-60 改正 | TASK-30 | `t009-criteria.md` §1、§2；本单元正式全量取证 73 条，反例类与对照以外 0、`exe:` 0、没有测试帧 0（`logs/task-34-violations.txt`） | 满足 |
 | A 的判据加固与反例对账（F-76；RQ-072 的 A 一半） | TASK-30 | `t009-criteria.md` §4（34 条判据，每条有反例或变异）、§5 | 满足 |
 | A 期间改写的判据逐条对账（RQ-071、AC-018 的 A 一半） | TASK-30 | `t009-criteria.md` §3（11 条：旧断言 → 新断言 → 保护意图 → 反例） | 满足 |
-| AC-009 的 A 一半 | TASK-31、TASK-33、本单元 | ①②④ `t009-docs-and-appendices.md` §10、§7；③ `t009-logs-and-cases.md` §5；①的「通过」：本单元正式全量中 193 个方法全部通过，共 332 行（§3.3） | 满足 |
+| AC-009 的 A 一半 | TASK-31、TASK-33、本单元 | ①②④ `t009-docs-and-appendices.md` §10、§7；③ `t009-logs-and-cases.md` §5；①的「通过」：本单元正式全量中 193 个方法全部通过，共 332 行（§3.3） | 满足，附条件（F-88、F-93；TASK-35 更正，见 `a-final-report.md` §9.1） |
 | RQ-024 的 A 一半：A 期间提交点有没有合并或拆分 | TASK-33 | `t009-docs-and-appendices.md` §9 | 满足 |
 | 附录 A、B、E、F 的最终对账；附录 H 中属于 A 的各行（F-62、F-75、F-85、F-97、F-99） | TASK-30、TASK-33 | `t009-criteria.md` §7；`t009-docs-and-appendices.md` §3～§7 | 满足 |
 | 文档：RQ-100 的 A 一半（F-35、F-36、F-89、F-92、F-105、F-118），F-110、F-122 的 A 一半 | TASK-33、本单元 | `t009-docs-and-appendices.md` §1、§13；本单元改了 `AGENTS.md`，2 个 hunk、3 处改动：过渡态 T3 一条补上四个标记接口（`transition-mechanisms.md` §4）；偶发栈根表的标题改为「四条」，并追加第四个栈根（§2.2） | 满足 |
@@ -25,7 +26,7 @@
 
 覆盖栏逐条：
 - RQ-061：TASK-30（`t009-criteria.md` §1）；
-- RQ-023 的 A 一半：保护在今天的位置原样保留，由 AC-009 的既有测试证明（§3.3）；
+- RQ-023 的 A 一半：保护在今天的位置原样保留；AC-009 的既有测试断言不变并通过（§3.3）。但 A 删锁时保留下来的几处语句（当前性检查、`DiscardExact`、`DemandCurrent(recipient)`）删掉后没有用例变红（F-88、F-93），所以「由既有测试证明」对这几处不成立（TASK-35 更正）；
 - RQ-024 的 A 一半：`t009-docs-and-appendices.md` §9；
 - RQ-071、RQ-072 的 A 一半：`t009-criteria.md` §3、§4；
 - RQ-100 的 A 一半：`t009-docs-and-appendices.md` §1；
@@ -39,8 +40,8 @@
 
 ### 2.1 结果
 
-- 命令：`dotnet build Server/86JP.Server.slnx -c Release --no-incremental`；`DFO_GAMEPLAY_ASSERTIONS=<证据目录> dotnet test Server/86JP.Server.slnx -c Release --no-build --logger "console;verbosity=detailed" --blame-hang-timeout 5m`。脚本 scratchpad `t34/formal.sh`。
-- 原始输出：`logs/task-34-build-test-raw.txt`（TASK-34 主控方裁定第 1 条）。摘要与判定：`logs/task-34-build-test.txt` 文首。
+- 命令：`dotnet build Server/86JP.Server.slnx -c Release --no-incremental`；`DFO_GAMEPLAY_ASSERTIONS=<证据目录> dotnet test Server/86JP.Server.slnx -c Release --no-build --logger "console;verbosity=detailed" --blame-hang-timeout 5m`。脚本 scratchpad `t34/formal.sh`（已复制为 `evidence/scripts/t34-formal.sh`）。
+- 原始输出：`logs/task-34-build-test-raw.txt`（TASK-34 主控方裁定第 1 条）。原始取证已复制到 `evidence/t34-formal-ev/`（TASK-35）。摘要与判定：`logs/task-34-build-test.txt` 文首。
 - 构建：0 警告、0 错误。
 - 运行：2026-10-23T23:43:47Z～23:46:48Z（UTC），181 s。开始时 swap 已用 9273.5／10240 MB，最大 RSS 11235803136 B。只作记录（F-69）。
 - 总数 8315 ＝ HttpApi 57 ＋ Pvf 80 ＋ Protocol 1752 ＋ Persistence 477 ＋ Infrastructure 970 ＋ Networking 188 ＋ Application 4594 ＋ Host 197，逐项目与 TASK-31 相同。逐步：57 ＋ 80 ＝ 137；＋ 1752 ＝ 1889；＋ 477 ＝ 2366；＋ 970 ＝ 3336；＋ 188 ＝ 3524；＋ 4594 ＝ 8118；＋ 197 ＝ 8315。
@@ -73,11 +74,20 @@
   - 结束后 `pgrep -x yes` 为 0。
 - 按处置第 2 条，栈根已追加进 `AGENTS.md`「判据偶发失败」一节的栈根表（现为四条）。这是本单元唯一一处在过渡态段落之外改动 `AGENTS.md`，授权出处是主控方处置第 2 条。
 
+### 2.3 TASK-35 第五个栈根：已裁定的偶发登记
+
+- 授权与处置：`tasks/TASK-35.md`「主控方处置（Blocker 之后，2026-10-24）」采用 (A)，按下列不归因依据登记第五个栈根，本单元不重跑正式全量；封存前仍须独立评审和新鲜最终核验。
+- 失败身份：`JoustIntegrationTests.Statistics_failure_rolls_back_mail_completion_and_accounting_marker_then_retry_counts_once` 抛出 `ObjectDisposedException: Cannot access a disposed object. Object name: 'SQLitePCL.sqlite3'`，位置 `sqlite3_prepare_v2`，栈根 `SqliteDatabaseParticipant.CommandAsync → SqliteConnection.BeginTransaction → SqliteCommand.ExecuteNonQuery`；由 `JoustDomainService.Write → SqliteEventPersistence.AcquireWriteAsync` 经 `JoustIntegrationTests.Fixture.Run` 进入。原始证据 `logs/task-35-build-test-raw.txt` 第 7832 行起。
+- 与失败路径无交集：TASK-35 相对 `9aeb638c` 未改 Persistence、`JoustDomainService.cs`、`JoustIntegrationTests.cs`、`TestGameplay.cs` 与 `GameplayExecutor.cs`；虽改了 `JoustMaintenanceService.cs` 的不可达 catch，该失败用例不经过它的 `ExecuteAsync`。这只支持本单元的失败路径无交集，不表示 A 的改动与可能触发源完全无关。
+- 复现 0／3：`Application.Tests` 整项目复跑三次，每次 4626 ＝ 4608 通过 ＋ 2 条基线失败 ＋ 16 跳过，输出中 `SQLitePCL.sqlite3` 为 0（`logs/task-35-build-test.txt` 末节）。此前日志中未见该栈根，故先裁定再登记，没有直接套用旧清单。
+- 触发机制仍是推断，未观测：进程级 `SqliteConnection.ClearAllPools()` 可能与并行测试类竞争；TASK-35 新增 28 个测试实例各经既有 `SqliteTestFiles.Delete` 调用一次（27 例经 `TimerSourceHost`，1 例自建宿主），可能提高出现概率。调用清池的文件数仍为 25；F-130 已补记这 28 次，交 B 首个单元优先修复测试基础设施。
+- `AGENTS.md` 已按裁定追加第五行。TASK-35 required check 4 据 RQ-083 判定为满足：8350 ＝ 8329 通过 ＋ 3 失败 ＋ 18 跳过，失败为两条基线与此条已登记偶发；原始失败及三次复跑证据保留，不宣称已证明清池竞争或已修复根因。
+
 ## 3. 测试数量加法（AC-020、RQ-083、R3-3「A 从基线加到 A 封存」）
 
 ### 3.1 逐段
 
-口径：按实际运行的例数计，Theory 按行计。N 是新增例数，D 是删除例数。改名不计入 N、D（TASK-31 裁定第 4 条 (b)）。每段的终点取该单元正式全量日志中 8 个项目总数之和（脚本 scratchpad `t34/counts.py`，`logs/task-34-test-counts.txt`）；没有自己正式全量的段写「未实测」，并注明出处。
+口径：按实际运行的例数计，Theory 按行计。N 是新增例数，D 是删除例数。改名不计入 N、D（TASK-31 裁定第 4 条 (b)）。每段的终点取该单元正式全量日志中 8 个项目总数之和（脚本 scratchpad `t34/counts.py`，已复制为 `evidence/scripts/t34-counts.py`；`logs/task-34-test-counts.txt`）；没有自己正式全量的段写「未实测」，并注明出处。
 
 | 区间 | 起点 | N | D | 终点 | 加法成立 | 日志中的逐项目总数 | 出处 |
 |---|---:|---:|---:|---:|---|---|---|
@@ -134,11 +144,11 @@
 
 ### 3.3 AC-009①：193 个方法、332 行（订正 TASK-33 的「331 行」）
 
-- `t34/protection.py` 就是 `t33/protection.py`，只把「通过」的来源换成本次原始输出。它选出 195 个方法：冻结点上同名 190 个、改名 3 个、删除 2 个；断言行多重集合相同 181 个、不同 12 个、删除 2 个。这些数都与 TASK-33 相同（`logs/task-34-protection-tests.txt`）。
+- `t34/protection.py` 就是 `t33/protection.py`（两者已复制为 `evidence/scripts/t34-protection.py`、`t33-protection.py`），只把「通过」的来源换成本次原始输出。它选出 195 个方法：冻结点上同名 190 个、改名 3 个、删除 2 个；断言行多重集合相同 181 个、不同 12 个、删除 2 个。这些数都与 TASK-33 相同（`logs/task-34-protection-tests.txt`）。
 - 193 个方法全部通过。脚本报 192 个通过、1 个找不到。找不到的那条是 `ItemPathFrameTests.AMoveOfARealRowAcknowledgesTheSameBytesAsBefore`：它的「已通过」与一个日志前缀挤在同一行（原始输出第 3932 行），脚本按行首匹配，所以看不到。
 - 行数是 332。两次运行脚本都读出 331，但两次各有恰好一行被挤掉：
   - 本次挤掉的是上面那条（1 行）；
-  - TASK-31 挤掉的是 `ReplayStateProjectionTests.Tower_replay_uses_current_memory_slots_and_late_replay_preserves_restored_slots(inTower: True)`（scratchpad `t31/formal-raw.txt:1700`）；
+  - TASK-31 挤掉的是 `ReplayStateProjectionTests.Tower_replay_uses_current_memory_slots_and_late_replay_preserves_restored_slots(inTower: True)`（scratchpad `t31/formal-raw.txt:1700`；该文件 3.9 MB 不随仓库保存，被引用的几行摘录在 `evidence/t31-formal-raw-excerpt.txt`）；
   - 所以两次实际通过的行数都是 331 ＋ 1 ＝ 332。
 - 订正：TASK-33 记的「193 个方法、331 行」（`logs/task-33-protection-tests.txt`、`t009-docs-and-appendices.md` §10）少算了这一行挤掉的结果，应为 332 行。已提交的 TASK-33 文件不改（主控方处置第 3 条）。
 
@@ -147,7 +157,7 @@
 ### 4.1 总览
 
 - `git diff --name-status a02bce46 2bdb1afd -- Server/tests`：新增 112，删除 7，修改 363（其中 `.cs` 356、`.csproj` 7）。全文在 `logs/task-34-test-files.txt`。
-- 脚本 scratchpad `t34/diffcheck34.py`：就是 `t07/diffcheck7.py`，只加了一处「跳过基准之后删除的文件」，否则原脚本打不开这 7 个文件。它在冻结点工作树上比对测试方法多重集合、断言行多重集合与白名单之外的残余片段。分类脚本 `t34/testfiles.py`。
+- 脚本 scratchpad `t34/diffcheck34.py`：就是 `t07/diffcheck7.py`（两者已复制进 `evidence/scripts/`），只加了一处「跳过基准之后删除的文件」，否则原脚本打不开这 7 个文件。它在冻结点工作树上比对测试方法多重集合、断言行多重集合与白名单之外的残余片段。分类脚本 `t34/testfiles.py`（`evidence/scripts/t34-testfiles.py`）。
 - 356 个修改的 `.cs` 文件：
   - a1：方法、断言都相同，残余只有白名单形状，218 个（名单在日志里）；
   - a2：方法、断言都相同，残余超出白名单，即准备数据、驱动方式或测试接缝的改动，67 个（§4.3）；
@@ -348,7 +358,7 @@
   - b1、b2 在基线上是带着「基线缺陷」的理由跳过的：它们表达 RQ-031(c) 的严格形式，基线做不到，由 T-006 开启。AC-019「在基线上通过」对这两条读作「在基线上记录为已知缺陷，断言不改」（TASK-34 主控方裁定第 6 条；`a-final-report.md` §4 的解读表）。
   - 附录 G 的差异逐条对应：表征的断言没有因任何一条 VC 而改动。VC-1 的证据是金样本 a 不变（`t006-closure.md` §4）。
 - 选角金样本 `tests/Dfo.Server.Protocol.Tests/Game/SelectCharacter/SelectCharacterAcceptedTranscriptTests.cs`：`a02bce46` → `2bdb1afd` 的 diff 为 0 行，本次通过。
-- codec 向量（`research/05-tests.md` 第 33 行的口径；按文件名 `*Codec*Tests.cs`、`*Payload*Tests.cs`、`*Frame*Tests.cs`、`*Transcript*Tests.cs` 选取，脚本 `t34/codec.py`）：
+- codec 向量（`research/05-tests.md` 第 33 行的口径；按文件名 `*Codec*Tests.cs`、`*Payload*Tests.cs`、`*Frame*Tests.cs`、`*Transcript*Tests.cs` 选取，脚本 `t34/codec.py`，`evidence/scripts/t34-codec.py`）：
   - 基准上 77 个文件：Protocol 63、Networking 13、Application 1。research 05 写的是「82 个文件」，用的是另一种选法，没有留下名单。差的 5 个按文件名选不出来，本单元不补；
   - 冻结点上未改 62 个；修改 15 个，其中 a1 5、a2 8、b 2（`PartyCommandCodecTests`：TASK-27 新增 VC-9 的边界用例，并删去访问方式断言，`t009-criteria.md` §3 第 7 行；`MarriageProposalCodecTests`：删 1 个以门为测试对象的方法，`t005-test-dispositions.md:33`）；c 0；
   - 调用 `ComposeAsync` 的 codec 文件，冻结点上有 7 个，都是 a1 或 a2，断言不变。research 05 写的是 9 个，另外 2 个的文件名不在上面的模式内。
@@ -359,17 +369,17 @@
 
 | 去向 | 条目 | 数 |
 |---|---|---:|
-| 子 Spec B | F-07、F-12（附录 C 一半）、F-34、F-58（复核一半）、F-69（续写）、F-86、F-88、F-93、F-109、F-110（结构保证，过渡机制 T6）、F-112、F-122（改名）、F-124、F-127、F-129（新增） | 15 |
+| 子 Spec B | F-07、F-12（附录 C 一半）、F-34、F-58（复核一半）、F-69（续写）、F-86、F-88、F-93、F-109、F-110（结构保证，过渡机制 T6）、F-112、F-122（改名）、F-124、F-127、F-129（新增）、F-130（TASK-35 改来，首个单元只改测试）、F-131（TASK-35 新增）、F-132（TASK-35 新增，前提提醒） | 18 |
 | 子 Spec B ＋ 交主控方另行立项 | F-128（① 子 Spec B；②③ 主控方） | 1 |
 | 后续性能优化（交主控方立项） | F-77、F-78、F-79、F-80、F-81、F-82、F-120 | 7 |
-| 交主控方另行立项 | F-01、F-113、F-114、F-116 (a)(b)、F-125（生产缺口）；测试基础设施与取证缺口 F-37、F-38、F-39、F-45、F-55、F-71、F-103、F-130（新增） | 13 |
+| 交主控方另行立项 | F-01、F-113、F-114、F-116 (a)(b)、F-125（生产缺口）；测试基础设施与取证缺口 F-37、F-38、F-39、F-45、F-55、F-71、F-103 | 12 |
 | 用户 | F-117 | 1 |
-| 外部审核（交审时说明的已接受偏离） | F-107、F-108 | 2 |
+| 外部审核（交审时说明的已接受偏离；完整交审重点见 `a-final-report.md` §10） | F-107、F-108 | 2 |
 | 信息（不需要动作） | F-40、F-41、F-42、F-44、F-46、F-70、F-95、F-96、F-100；条件触发的 F-06、F-43 | 11 |
 
-- 合计：15 ＋ 1 ＋ 7 ＋ 13 ＋ 1 ＋ 2 ＋ 11 ＝ 50 条未关闭（含部分关闭）。
-- 清单共 130 行 ＝ 已关闭 80 ＋ 未关闭 36 ＋ 信息 11 ＋ 部分关闭 3。80 ＋ 36 ＋ 11 ＋ 3 ＝ 130；36 ＋ 11 ＋ 3 ＝ 50。
-- 本单元关闭 F-05、F-10（各自的另一半已由 F-82 承接）与 F-69 的 A 一半；新增 F-129、F-130（F-130 是第 1 轮评审后按主控方处置第 4 条新增的）。
+- 合计（TASK-35 之后）：18 ＋ 1 ＋ 7 ＋ 12 ＋ 1 ＋ 2 ＋ 11 ＝ 52 条未关闭（含部分关闭）。TASK-34 时为 15 ＋ 1 ＋ 7 ＋ 13 ＋ 1 ＋ 2 ＋ 11 ＝ 50；差 2 ＝ 新增 F-131、F-132（F-130 只换了去向）。
+- 清单共 132 行 ＝ 已关闭 80 ＋ 未关闭 38 ＋ 信息 11 ＋ 部分关闭 3。80 ＋ 38 ＋ 11 ＋ 3 ＝ 132；38 ＋ 11 ＋ 3 ＝ 52。TASK-34 时为 130 行、未关闭 36。
+- 本单元关闭 F-05、F-10（各自的另一半已由 F-82 承接）与 F-69 的 A 一半；新增 F-129、F-130（F-130 是第 1 轮评审后按主控方处置第 4 条新增的）。TASK-35 新增 F-131、F-132，F-130 的去向改为子 Spec B 首个单元。
 - 另有三件没有 F 编号的移交：
   - 「扇出变长字段的上限约定没有判据守着（AGENTS.md 已写明），是否设判据交子 Spec B」。F-118 已在 TASK-33 关闭，按主控方处置第 4 条写成遗留问题，不另开编号；
   - F-33 的临时文件偏离：F-33 已关闭，与 F-107、F-108 同列，交审时说明；
@@ -383,16 +393,16 @@ Constraint 一栏逐条对照根契约 Constraints 的七条：顺序保证没�
 
 | SC | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|
-| SC-1 | satisfied | `a-final-report.md` §9（AC-001、AC-003、AC-004、AC-006）；`t009-docs-and-appendices.md` §3、§4；`t009-criteria.md` §1、§2 | none | aligned |
+| SC-1 | satisfied | `a-final-report.md` §9（AC-001、AC-003、AC-004、AC-006）；`t009-docs-and-appendices.md` §3、§4；`t009-criteria.md` §1、§2 | 附条件（TASK-35 统一口径）：AC-006 依赖 `a-final-report.md` §4.2 的「RQ-061」与「调度器排队中的运行合并」两条解读 | aligned |
 | SC-3 | satisfied | `a-final-report.md` §9（AC-007、AC-011、AC-012、AC-013，VC-10）；`t006-closure.md` §5、§6 | 附条件，都已有去向：AC-007、RQ-012「此前登记的消息」按连接计（外部审核时说明）；AC-011 线级第 3 条降到发送端层（F-108）；AC-012 的 XO-2～XO-7 由发送端通用用例承担、XO-6 是近似（VC-10）；AC-013 人群项的适用范围（F-113、F-114）；VC-10 第 3 句的衔接是读码 | aligned |
-| SC-4 | satisfied | `a-final-report.md` §9（AC-017）；`t005-closure.md` §2、§3；`t009-docs-and-appendices.md` §6；`transition-mechanisms.md` §3 S2、S3 | none。短 `lock` 与 PVF 内容缓存锁按根 Scope Out 第 2 项保留；A 在 Networking 新增的执行器外短锁已在 `transition-mechanisms.md` §3 列出 | aligned |
+| SC-4 | satisfied | `a-final-report.md` §9（AC-017）；`t005-closure.md` §2、§3；`t009-docs-and-appendices.md` §6；`transition-mechanisms.md` §3 S2、S3 | 附条件（TASK-35 统一口径）：AC-017 依赖 §4.2 的「RQ-061」与「附录 F 改为执行器内访问」两条解读。短 `lock` 与 PVF 内容缓存锁按根 Scope Out 第 2 项保留；A 在 Networking 新增的执行器外短锁已在 `transition-mechanisms.md` §3 列出 | aligned |
 | SC-5 | satisfied | `a-final-report.md` §9（AC-015）；`t004-closure.md` §3；`t005-closure.md` §5；`t007-closure.md` | none | aligned |
-| SC-6 | satisfied | `a-final-report.md` §9（AC-016，SC-6 记「满足，附条件」）；`t007-closure.md` §1 | 附条件：RQ-050 末句的实现精度。CMD 已登记关闭、发送端还没执行时，传输层先断开，这次断开仍按继承处理，与 RQ-050 末句的字面不符（TASK-29 主控方裁定第 5 条；`t007-closure.md` §3 第 5 条、§4 第 2 条）。去向：随子 Spec B 复核，或在主控方立项的发送端精度改进中处理；外部审核时说明 | aligned |
+| SC-6 | satisfied | `a-final-report.md` §9（AC-016，SC-6 记「满足，附条件」）；`t007-closure.md` §1 | 附条件：RQ-050 末句的实现精度。CMD 已登记关闭、发送端还没执行时，传输层先断开，这次断开仍按继承处理，与 RQ-050 末句的字面不符（TASK-29 主控方裁定第 5 条；`t007-closure.md` §3 第 5 条、§4 第 2 条）。去向：F-131，子 Spec B（TASK-35 定）；交审重点第 10 项 | aligned |
 | SC-7 | satisfied | `a-final-report.md` §3、§9（AC-014，VC-1～VC-10）；`t006-closure.md` §3、§4 | 附条件，已有去向：AC-014 的 DR-16 证据用占位作业代表进入序列；VC-10 的组合证据 | aligned |
-| SC-8 | satisfied | 本文 §2～§5；`a-final-report.md` §6；选角端到端证据 `SelectCharacterSuccessCharacterizationTests.Login_create_and_select_produce_the_recorded_transcript`（金样本 a） | none。新栈根已按主控方处置登记为偶发项（§2.2） | aligned |
-| SC-9 | satisfied | `measurement/m3-summary.md` §1；`a-final-report.md` §6 | 未达原目标值的项是后续性能优化（F-77～F-82、F-120），不阻断 | aligned |
-| SC-10 | satisfied | `t009-docs-and-appendices.md` §1、§11；`transition-mechanisms.md` §4 | F-128 ②③：RQ-100 点名范围之外的两份文档，交主控方 | aligned |
-| SC-11 | satisfied | `a-final-report.md`（§2 是三项默示决定的复述） | 外部审核在 B 完成后进行（根 RI-16），审核结论不是封存的前提 | aligned |
+| SC-8 | satisfied | 本文 §2～§5；`a-final-report.md` §6；选角端到端证据 `SelectCharacterSuccessCharacterizationTests.Login_create_and_select_produce_the_recorded_transcript`（金样本 a）；TASK-35 的正式全量（`logs/task-35-build-test.txt`） | 附条件（TASK-35 统一口径）：AC-019 依赖 §4.2「AC-019 的 b1、b2」，AC-020 依赖 §4.2「RQ-083 已登记的偶发项」（第四、第五栈根已按主控方处置登记，§2.2、§2.3） | aligned |
+| SC-9 | satisfied | `measurement/m3-summary.md` §1；`a-final-report.md` §6 | 附条件（TASK-35 统一口径）：判定口径依赖 §4.2「M-1～M-3 的判定口径」。未达原目标值的项是后续性能优化（F-77～F-82、F-120），不阻断 | aligned |
+| SC-10 | satisfied | `t009-docs-and-appendices.md` §1、§11；`transition-mechanisms.md` §4 | 附条件（TASK-35 统一口径）：AC-022 的检索范围按 §4.2；F-128 ②③：RQ-100 点名范围之外的两份文档，交主控方 | aligned |
+| SC-11 | satisfied | `a-final-report.md`（§2 是三项默示决定的复述；§10 是交外部审核重点的完整表） | 外部审核在 B 完成后进行（根 RI-16），审核结论不是封存的前提 | aligned |
 | SC-12 | satisfied | `transition-mechanisms.md`；`logs/task-34-transition.txt` | none | aligned |
 
 七条约束各自的依据（建议值，最终由主控方定）：
@@ -400,7 +410,7 @@ Constraint 一栏逐条对照根契约 Constraints 的七条：顺序保证没�
 | 根契约约束 | 依据 | 建议 |
 |---|---|---|
 | 顺序保证没有例外 | 执行器外开写工作单元、登记发件箱、调用玩法写入口都立即抛出，没有开关（RQ-061，`t009-criteria.md` §1）；作业内入队后等待与等待网络都是程序错误（AC-002）；本次正式全量取证 73 条，全在反例类与对照里，`exe:` 0（§2.1） | aligned |
-| 保住保护意图 | 附录 E 十七行逐行有承接与测试（`t006-closure.md` §3）；AC-009 的保护测试断言不变并通过（§3.3）；附条件只有 AC-014 的 DR-16，已写明 | aligned |
+| 保住保护意图 | 附录 E 十七行逐行有承接与测试（`t006-closure.md` §3）；AC-009 的保护测试断言不变并通过（§3.3）。附条件两项，都已写明：AC-014 的 DR-16；AC-009（A 一半）的 F-88、F-93——保留下来的当前性检查与 `DiscardExact`、`DemandCurrent(recipient)` 没有用例守着，B 迁移这些语句之前先补守护用例（TASK-35 更正） | aligned，附条件 |
 | 可见行为变化须列明 | 附录 G 的 VC-1～VC-10 逐条有证据用例与授权（`a-final-report.md` §3）；修改过的线级文件里没有未列明的可见变化（§4.4） | aligned |
 | 纯搬迁与语义改动分开提交 | T-004 拆成测试迁移、入口逐类迁入、语义翻转三段，翻转单独成单元（TASK-17）；删锁（T-005）、投递翻转（T-006）、调用链（T-007）各自成单元，每个单元都有能失败的证据（表征测试、变异系列，见各单元日志）。R3 之后保留的过渡机制是有意留下、逐项列明的，不是把搬迁与语义混在一起（`plan.md` R3、`transition-mechanisms.md`） | aligned |
 | 一次到位、删净 | 附录 F「删除」栏在 `Server/src` 检索为零（AC-017）；A 删除的 49 个名字只剩同名无关的命中（`transition-mechanisms.md` §3 S2）；A 封存时仍在的旧机制全部列入过渡机制清单 6 项，由 B 删除（SC-12） | aligned |
@@ -415,6 +425,17 @@ Constraint 一栏逐条对照根契约 Constraints 的七条：顺序保证没�
 
 ### 7.3 封存提交前要再核的事项
 
-- 冻结核对：`git diff 2bdb1afd -- Server Tool` 为空。
+- 冻结核对：`git diff 2bdb1afd -- Server Tool` 为空。**TASK-35 之后改为**：`git diff <TASK-35 的提交> -- Server Tool` 为空（TASK-35 改了生产代码与测试，冻结点前移）。
 - 工作区：`git status --short` 只有本单元 Owned boundary 的文件（`logs/task-34-boundary.txt` 末尾），加上主控方自己写的封存文件。
 - 本单元没有提交。提交时要把 `logs/task-34-build-test-raw.txt`（约 3.9 MB）一并纳入（主控方裁定第 1 条）。
+- （TASK-35 追加）按子路由决定，B 草案 `verification/reroute-t008-spec-002-draft.md` 在 A 封存后移出 `verification/`，激活时落到 `attempts/spec-002-protocol-level-cmd/`；封存提交前核对它仍在原处、且移交清单已按 §7.4 更新。
+- （TASK-35 追加）`verification/evidence/` 随封存提交一并纳入（T-3，约 0.3 MB，清单见 `logs/task-35-evidence.txt`）。
+
+### 7.4 `multi-spec-map.md` 的更新内容（TASK-35 准备，由主控方封存时落盘）
+
+`multi-spec-map.md`「Overall Direction」写的「`verification/follow-ups.md` 中标『→ 子 Spec B』的 11 项」已经过期。建议改为：
+
+> `verification/follow-ups.md` 中标「〔A 封存：→ 子 Spec B〕」的条目，A 封存时为 18 项：F-07、F-12（附录 C 一半）、F-34、F-58（复核一半）、F-69（续写）、F-86、F-88、F-93、F-109、F-110（结构保证）、F-112、F-122（改名）、F-124、F-127、F-129、F-130、F-131、F-132；另有 F-128 ①，以及一条无编号事项（扇出变长字段的上限约定是否设判据）。清单以 `verification/t009-closure.md` §6 为准。
+
+- 18 项逐条：原 11 项（F-07、F-12、F-34、F-58、F-86、F-88、F-93、F-109、F-110、F-112、F-122）＋ 改道后陆续定为 B 的 4 项（F-69、F-124、F-127、F-129）＋ TASK-35 的 3 项（F-130、F-131、F-132）；11 ＋ 4 ＋ 3 ＝ 18。
+- 同一步骤里，`Success Condition Progress` 各行按 §7.1 的建议值写；「保住保护意图」一条按 §7.1 末表写「aligned，附条件」。

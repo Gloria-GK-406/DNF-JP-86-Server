@@ -112,7 +112,7 @@ public sealed class LoginSessionMaintenanceExecutorTests
         IServiceProvider provider,
         LoginSessionRegistry sessions,
         TimeProvider clock) =>
-        new(sessions, clock, provider.GetRequiredService<IGameplayQueue>())
+        new(sessions, clock, provider.GetRequiredService<IGameplayQueue>(), NullLogger<LoginSessionMaintenanceService>.Instance)
         {
             SweepInterval = TimeSpan.FromMilliseconds(50),
         };

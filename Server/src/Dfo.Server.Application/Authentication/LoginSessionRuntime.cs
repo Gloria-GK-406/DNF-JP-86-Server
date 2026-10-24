@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Authentication;
 
@@ -27,7 +28,8 @@ internal sealed class LoginSessionConnectionObserver(LoginSessionRegistry sessio
 internal sealed class LoginSessionMaintenanceService(
     LoginSessionRegistry sessions,
     TimeProvider clock,
-    IGameplayQueue queue) : BackgroundService
+    IGameplayQueue queue,
+    ILogger<LoginSessionMaintenanceService> logger) : BackgroundService
 {
     private readonly CoalescingGameplaySource sweeps = new(queue);
 
@@ -38,15 +40,11 @@ internal sealed class LoginSessionMaintenanceService(
         using var timer = new PeriodicTimer(SweepInterval, clock);
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
-            await sweeps.TryRun(new GameplayWork(
-                GameplayShardKey.World,
-                GameplayCallChain.NewRoot(GameplayCallSource.Timer),
-                "timer:LoginSessionMaintenanceService",
-                _ =>
-                {
-                    sessions.SweepExpired();
-                    return ValueTask.CompletedTask;
-                }), stoppingToken).Completion.ConfigureAwait(false);
+            await GameplayTimerWork.TickAsync(sweeps, "timer:LoginSessionMaintenanceService", _ =>
+            {
+                sessions.SweepExpired();
+                return ValueTask.CompletedTask;
+            }, logger, stoppingToken).ConfigureAwait(false);
         }
     }
 }

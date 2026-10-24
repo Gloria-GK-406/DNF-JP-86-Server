@@ -5,6 +5,7 @@
 - 本清单是过渡机制的正式出处。`AGENTS.md` 中每一项各有一处写明「这是过渡形态」（§4）；两者不一致时以本清单为准，并改 `AGENTS.md`。
 - 「由 B 删除的方式」一栏只写起点建议（TASK-34 主控方裁定第 4 条），只引 `spec.md` R3-1、`plan.md` 共享决定和附录 H 的原文。B 的 Spec 可以改删除方式，但不能让清单中的任何一项在 B 封存时仍在。
 - 文件:行 指冻结点，路径相对 `Server/src/`。
+- TASK-35（2026-10-24）：`AGENTS.md` 的行号按 TASK-35 之后改写（「失败与日志」一段多了两行，写定时源经 `GameplayTimerWork.TickAsync` 吸收作业失败，见 `tasks/TASK-35.md`）。`Server/src` 的行号仍指冻结点 `2bdb1afd`；TASK-35 改过的生产文件不在本清单的位置栏里。新增 §5。
 
 ## 1. 清单（6 项）
 
@@ -15,7 +16,7 @@
 | 位置 | `Dfo.Server.Application/Commands/CommandBus.cs:30`（`if (GameplayJob.IsOnExecutor) return InlineAsync(...)`，作业内内联）、`:33-36`（执行器外包成 `bus:<命令类型名>` 作业入队并等待） |
 | 今天的行为 | 在作业里调用时内联执行：开 DI scope，按 `Order` 包装管线，再执行。在执行器外调用时，把命令包成 `bus:<命令类型名>` 作业入队，并等待它完成。生产代码里没有执行器外的调用方（`AGENTS.md:290-291`） |
 | 存在理由 | handler 今天在入站作业内经总线顺序派发细粒度命令（T2），内联是它们照常工作的前提。删除内联要等全部 handler 归并之后（R3-3「删除 `SendAsync` 过渡内联规则」一行，判定为 B） |
-| 新代码不要依赖 | 不要在执行器外调用总线来完成玩法动作（`AGENTS.md:354-356`）；命令处理器仍不得派发命令 |
+| 新代码不要依赖 | 不要在执行器外调用总线来完成玩法动作（`AGENTS.md:356-358`）；命令处理器仍不得派发命令 |
 | 由 B 删除的方式（起点建议） | Plan 共享决定原文：「这个过渡规则在第 7 步结束时删除……之后在执行器上调用就是 RQ-003 定义的程序错误」；R3-2：「内联规则本身是过渡机制（根 SC-12），由 B 删除」；原 Plan T-008 功能簇顺序的最后一步是「删除 `SendAsync` 过渡内联规则」 |
 | B 封存时的检索 | `grep -n "IsOnExecutor" Server/src/Dfo.Server.Application/Commands/CommandBus.cs` 为 0；`grep -rn '"bus:"' Server/src` 为 0（或改为程序错误路径，由 B 的判据证明） |
 
@@ -26,7 +27,7 @@
 | 位置 | 各协议切片的 `*Handler.cs` 经 `commandBus.SendAsync(...)` 顺序派发；命令注册在 `Dfo.Server.Protocol/ProtocolModule.cs`，冻结点共 204 条（Transactional 170、Direct 21、ReadOnly 9、Workflow 4，`t009-docs-and-appendices.md` §9）。多阶段的代表是 `Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterHandler.cs`：准备、补货、发布、PvP、任务、宠物各一条命令，失败时派发 `CompensateSelectedCharacterSessionCommand` |
 | 今天的行为 | 一个入站协议是一个作业。作业内 handler 按顺序派发多条细粒度命令，每条 Transactional 命令各是一个事务；跨命令的补偿由 handler 派发专用补偿命令 |
 | 存在理由 | 协议级 CMD 归并整体移交 B（R3-1：Scope In「协议 CMD 吸收 handler 的工作」、RQ-021、RQ-022 → B；RQ-024 → 跨）。A 只核对了自己期间没有合并或拆分提交点（RQ-024 的 A 一半，`t009-docs-and-appendices.md` §9） |
-| 新代码不要依赖 | 不要假设一个入站请求只有一个事务；跨命令的补偿仍由 handler 派发专用补偿命令（`AGENTS.md:380`） |
+| 新代码不要依赖 | 不要假设一个入站请求只有一个事务；跨命令的补偿仍由 handler 派发专用补偿命令（`AGENTS.md:382`） |
 | 由 B 删除的方式（起点建议） | 原 Plan T-008：「按功能簇把 handler、`*Delivery`、`*Coordinator` 的工作并入协议 CMD，细粒度命令并入、改成应用服务或删除……填写附录 C」；Plan 共享决定「工作单元」：「CMD 内用显式的工作单元作用域代替被并入的命令」；RQ-024 的 B 一半是附录 C 与 AC-010 |
 | B 封存时的检索 | `grep -rn "commandBus.SendAsync\|\.SendAsync(new " Server/src/Dfo.Server.Protocol --include='*Handler.cs'`：每个 handler 至多一处、只派发它自己的协议 CMD（判据由 B 的 RQ-070 (a)(c) 给出）；`ProtocolModule` 中细粒度命令注册条数与附录 C 对上 |
 
@@ -37,7 +38,7 @@
 | 位置 | 行为：`Dfo.Server.Application/Commands/Pipeline/` 下 5 个类，Order 0／45／58／60／100（`CommandLoggingBehavior.cs:10`、`SelectedSessionExecutionBehavior.cs:8`、`SelectedSessionSettlementBehavior.cs:9`、`UnitOfWorkBehavior.cs:20`、`CommandExecutionPolicyBehavior.cs:6`）。注册：`Dfo.Server.Application/Commands/CommandDispatchingExtensions.cs:34-42`。标记接口：`Dfo.Server.Application/Commands/CommandContracts.cs:27-40` 的 `ISelectedSessionCommand`、`IRequestSettlementCommand`、`IMultiSelectedSessionCommand`、`IAccountCommand`；读取它们的是 45 号行为（`SelectedSessionExecutionBehavior.cs:14-18`）与 `EffectOperationContext`（`Effects/EffectOperationContext.cs:58-98`，经 45 的 `BeginMain` 与 58 的 `Settled`／`Failed`） |
 | 今天的行为 | 每一条细粒度命令都套一遍这五层。45 与 58 按命令类型上的标记接口决定做什么：开主结算、复查账号与会话一致、逐个复查参与者、设置选中会话作用域、结果不确定时封锁 |
 | 存在理由 | 管线非锁职责的迁移移交 B（R3-1 附录 H 第 45 行「跨」、第 58、60、100 行「B」、第 0 行「跨」）。A 只删除了取锁部分（`t005-closure.md` §4）。标记接口与这几层是同一个动作：B 改为「CMD 声明自己的主结算工作单元」（附录 H 第 45 行去向）时，读标记接口的地方随之消失 |
-| 新代码不要依赖 | 不要依赖「一条命令一套管线」（`AGENTS.md:360-363`）。今天新命令要得到 45、58 号行为，仍须实现这些标记接口；B 归并后不再需要它们，不要假设它们在 B 之后仍然存在 |
+| 新代码不要依赖 | 不要依赖「一条命令一套管线」（`AGENTS.md:362-365`）。今天新命令要得到 45、58 号行为，仍须实现这些标记接口；B 归并后不再需要它们，不要假设它们在 B 之后仍然存在 |
 | 由 B 删除的方式（起点建议） | 附录 H 去向原文：45「取锁部分删除；其余在 CMD 内主结算所在的工作单元前后执行。主结算的识别方式由今天的『命令类型实现 `IRequestSettlementCommand`』改为『CMD 声明自己的主结算工作单元』，`EffectSettlementRegistrationTests` 按此重写」；58「在主结算工作单元提交前后执行，语义不变」；60「由工作单元作用域承担，语义不变」；100「授权检查并入 RQ-025；执行方式随工作单元模型改写」；0「由执行器对每条 CMD 记录，并带调用链（RQ-054）」 |
 | B 封存时的检索 | `grep -rn "ICommandPipelineBehavior<>" Server/src`：0 行，或只剩 B 的 Spec 明文保留、并已说明不再按细粒度命令包装的行为；`grep -rnw "ISelectedSessionCommand\|IRequestSettlementCommand\|IMultiSelectedSessionCommand\|IAccountCommand" Server/src` 为 0 |
 
@@ -59,7 +60,7 @@
 | 位置 | `Dfo.Server.Application/Commands/Pipeline/CommandLoggingBehavior.cs:34`（`logger.LogError(exception, "Command {CommandType} failed in handler ...")`）；执行器的作业失败日志 `Dfo.Server.Application/Execution/GameplayExecutor.cs:312`（RQ-054，`t007-closure.md` §1） |
 | 今天的行为 | 作业体失败时，执行器记一条带调用链的 `Error`。若失败发生在某条细粒度命令内，`CommandLoggingBehavior` 另记一条 `Error`。生产者与中间件那一层的重复已在 TASK-31 降级（F-30 的生产者一半） |
 | 存在理由 | TASK-31 主控方裁定第 5 条：F-30 的命令层一半留给 B，随 `CommandLoggingBehavior` 处置（附录 H 第 0 行「跨」：B 的一半是「`CommandLoggingBehavior` 随细粒度命令归并删除或改写」） |
-| 新代码不要依赖 | 读日志时，同一次失败今天可能有两条 `Error`（`AGENTS.md:324`） |
+| 新代码不要依赖 | 读日志时，同一次失败今天可能有两条 `Error`（`AGENTS.md:326`） |
 | 由 B 删除的方式（起点建议） | 附录 H 第 0 行：「由执行器对每条 CMD 记录，并带调用链（RQ-054）」；R3-1 附录 H 第 0 行：B「`CommandLoggingBehavior` 随细粒度命令归并删除或改写」 |
 | B 封存时的检索 | `grep -n "LogError" Server/src/Dfo.Server.Application/Commands/Pipeline/CommandLoggingBehavior.cs` 为 0（或文件已不存在）；B 的日志用例证明一次失败只有执行器那一条 `Error` |
 
@@ -70,7 +71,7 @@
 | 位置 | `Dfo.Server.Application/Execution/Outbox/GameplayOutbox.cs:238-239`（`if (failed && source is not null) flushed.Add(OutboundEntry.Close(source));`，只在这个作业已有发件箱时走到）；两个 dispatcher 在作业开始时打开发件箱：`Dfo.Server.Application/Dispatching/NetworkMessageDispatcher.cs:51`、`Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs:35`（`_ = outboxes.Current;`） |
 | 今天的行为 | 作业以未处理异常结束时，保留的条目照发，最后关闭来源连接。前提是这个作业已经打开过发件箱；今天带来源连接的两类作业都在一开始打开它 |
 | 存在理由 | F-110 的结构保证一半交 B（`follow-ups.md` F-110：「结构保证 → 子 Spec B；A 在 T-009 的文档中记为已知约定」）。B 把入口改为协议 CMD 时，结构保证可以放在 CMD 的入口处一次给出 |
-| 新代码不要依赖 | 新的带来源连接的作业要在开始时打开发件箱（读一次 `GameplayOutboxes.Current`），不要依赖别处替它打开（`AGENTS.md:332`） |
+| 新代码不要依赖 | 新的带来源连接的作业要在开始时打开发件箱（读一次 `GameplayOutboxes.Current`），不要依赖别处替它打开（`AGENTS.md:334`） |
 | 由 B 删除的方式（起点建议） | `follow-ups.md` F-110 的去向原文（结构保证归 B）；没有 Spec 原文，B 的 Spec 决定由谁保证「失败作业总有发件箱」 |
 | B 封存时的检索 | `grep -n "_ = outboxes.Current" Server/src/Dfo.Server.Application/Dispatching/NetworkMessageDispatcher.cs Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs` 为 0，且 B 的判据或用例证明：一个从未登记任何条目的作业失败时，它的来源连接仍被关闭。只查这两个 dispatcher；`OutboxAdapters.cs`、`NotificationBus.cs` 里另外 3 处同样的读取是登记点的守卫，属常设机制（§2），不要求为零 |
 
@@ -122,11 +123,17 @@
 
 | 项 | `AGENTS.md` 中写明「过渡形态」的位置 |
 |---|---|
-| T1 | 「命令执行总线」第 2 条（`:354-356`） |
-| T2 | 「命令执行总线」handler 一条（`:379-380`） |
-| T3 | 「命令执行总线」管线一条（`:360-363`） |
+| T1 | 「命令执行总线」第 2 条（`:356-358`） |
+| T2 | 「命令执行总线」handler 一条（`:381-382`） |
+| T3 | 「命令执行总线」管线一条（`:362-365`） |
 | T4 | 「玩法执行器、发件箱与发送端」请求级上下文一段（`:312-314`） |
-| T5 | 同一节「失败与日志」（`:321-324`） |
-| T6 | 同一节「发件箱」（`:326-332`） |
+| T5 | 同一节「失败与日志」（`:321-326`） |
+| T6 | 同一节「发件箱」（`:328-334`） |
 
 本清单比 TASK-33 交来的 T1～T6 多写了一件事：T3 包含 45、58 所依赖的四个命令标记接口。依据是 §6.1 末「拆或并以『B 删除时是不是同一个动作』为准」，它们随 45、58 的去向一起消失。`AGENTS.md` 的 T3 一条原来只写了五层的粒度，本单元按 TASK-33 主控方裁定第 9 条补上了这四个接口名，其余各节不改。`IAccountCommand` 在契约一条里写着「今天只用于检查它与所属会话的账号一致」，与 T3 一致。
+
+## 5. 给 B 的前提提醒（不是过渡机制，不进检索）
+
+- **提交后组装失败会被记成「已确认回滚」（F-132）**。工作单元内登记的组装在参与者提交之后才运行；它若抛出（今天只有取消会漏出，逐收件人的失败在 `Dfo.Server.Application/Execution/Outbox/GameplayOutbox.cs:453-462` 被吸收），`UnitOfWorkBehavior` 走回滚分支，`AbortAsync` 因事务已落定而空转，接着 `operations.RollbackConfirmed` 把主结算标为 `ConfirmedRollback`（`Dfo.Server.Application/Transactions/DomainTransaction.cs:150-181`、`Dfo.Server.Application/Commands/Pipeline/UnitOfWorkBehavior.cs:63-70`）。客户端重发同一序号时会被当作可重试。
+- 今天不可达：生产中 `GameplayOutbox.ComposeAsync` 没有调用方；`EventService.ProjectAsync` 禁止在未提交的可写事务里调用（`Dfo.Server.Application/DomainEvents/EventService.cs:69-70`），所以生产上的组装都在单元外、登记时完成；入站作业的令牌是 `CancellationToken.None`。
+- B 若开始在工作单元内登记组装（例如把投递并进协议 CMD 时），先把「提交后失败」与「回滚」分开，再改调用方。出处：spec-001 完整结果评审（代码维度）L4。

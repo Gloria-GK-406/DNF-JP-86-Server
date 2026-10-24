@@ -203,7 +203,7 @@ internal sealed class MarriageWeddingScheduler(IMarriageQueryDomainService marri
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1), clock);
         // One tick (every active wedding) is one timer CMD on the executor.
         while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
-            await GameplayTimerWork.TickAsync(ticks, "timer:MarriageWeddingScheduler", TickAsync, ct).ConfigureAwait(false);
+            await GameplayTimerWork.TickAsync(ticks, "timer:MarriageWeddingScheduler", TickAsync, logger, ct).ConfigureAwait(false);
     }
     private async ValueTask TickAsync(CancellationToken ct)
     {

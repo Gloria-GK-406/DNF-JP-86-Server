@@ -93,7 +93,7 @@ public sealed class PremiumDailyRefreshService(ISelectedSessionSnapshotQuery dir
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, stoppingToken).ConfigureAwait(false);
+                await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, logger, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }

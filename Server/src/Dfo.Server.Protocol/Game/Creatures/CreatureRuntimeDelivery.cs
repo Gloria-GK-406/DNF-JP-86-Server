@@ -143,7 +143,7 @@ public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures
         {
             // One tick (clock advance and projection drain) is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await GameplayTimerWork.TickAsync(ticks, "timer:CreatureClockService", TickAsync, stoppingToken)
+                await GameplayTimerWork.TickAsync(ticks, "timer:CreatureClockService", TickAsync, logger, stoppingToken)
                     .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

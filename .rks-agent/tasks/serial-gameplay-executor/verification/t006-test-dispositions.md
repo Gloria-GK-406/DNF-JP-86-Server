@@ -429,3 +429,18 @@ C2 门面在作业内读取时包含当前发件箱里尚未刷出的条目（�
 | 5 | M5 | 加跑 `OutboxWorkUnitTests`：2 条变红（`Of_two_writable_transactions_only_the_one_that_commits_is_flushed`、`Entries_of_a_transaction_whose_outcome_is_uncertain_are_dropped`），是 RQ-031(b) 的证据 | `logs/task-25-mutations.txt` round 4 |
 
 断言行：新增 3 行（#1），改写 3 行（#2 的三处 `DoesNotContain` → `Equal`）；方法不增不减。
+
+## TASK-35 更正：TASK-23 §2 R8、R12 的承接（只追加，原文不改）
+
+- 日期 2026-10-24，基准 `9aeb638c`。起因：spec-001 完整结果评审（测试与证据维度）T-1（`reviews/spec-001-final-review-tests.md`）。
+- 原文的问题：R8 写「未观察异常：`OutboundSender.Observe`，由 `OutboundSenderTests.A_send_that_ignores_its_cancellation_still_times_out` 走到」。那条用例的替身发送在放行后**成功完成**，`Observe` 只挂 `OnlyOnFaulted` 续体，走不到要守的分支。R8 与 R12 写「关闭失败只记警告：`OutboundSender.CloseAsync` 的 `catch`」，那是一处代码位置，不是用例；测试替身的关闭当时不会失败。这三项都是保留下来的行为，不属于规格消除，所以违反了文首「每条删除都写承接者（名字可检索）」。
+- 更正后的承接（TASK-35 新增，`Server/tests/Dfo.Server.Networking.Tests/Outbound/OutboundSenderTests.cs`）：
+
+| 原行 | 已删用例 | 承接者 | 区分力 |
+|---|---|---|---|
+| R8 | `ExecutorSendDeadlineTests.An_abandoned_send_that_fails_later_leaves_no_unobserved_exception` | `OutboundSenderTests.A_send_that_fails_after_its_deadline_leaves_no_unobserved_exception` | 变异 M5（删去超时分支的 `Observe(send)`）变红（`logs/task-35-mutations.txt`） |
+| R8 | `ExecutorSendDeadlineTests.A_failing_detached_close_is_logged_as_a_warning` | `OutboundSenderTests.A_close_that_throws_is_logged_once_as_a_warning_and_the_sender_goes_on` | 变异 M6（删去 `CloseAsync` 的 `catch`）变红 |
+| R12 | `DetachedCloseTests.A_failing_close_is_logged_as_a_warning_and_not_thrown_to_the_requester` | 同上一行 | 同上；「不抛给请求者」由同一条的「之后提交给另一连接的条目照常交付」与发送端的关闭在执行器外（R12 原文所列两条）共同承担 |
+
+- 两条承接用例在基准上就是绿：守的是保留行为，不是新行为。
+- R8、R12 其余各项的承接不变。

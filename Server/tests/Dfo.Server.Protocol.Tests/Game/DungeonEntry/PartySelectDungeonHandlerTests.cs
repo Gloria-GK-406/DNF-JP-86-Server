@@ -754,6 +754,48 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(EntryOf(outbound, Leader)));
     }
 
+    /// <summary>
+    /// XO-1 ends with the requester's batch: what the town departure sends next, to people still in town,
+    /// is not held behind a slow follower (it is in no ordered group).
+    /// </summary>
+    [Fact]
+    public async Task The_town_departure_after_a_party_entry_is_not_in_the_entry_group()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        var bystander = new NetworkConnectionId("bystander");
+        outbound.Connect(Leader, Member);
+        outbound.Connect(bystander);
+        await outbound.RunAsync(async () =>
+        {
+            var world = World(partyTownProjection: new BystanderTownProjection(outbound.Game, bystander), outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.NotNull(EntryOf(outbound, Member).Order);
+        Assert.NotNull(EntryOf(outbound, Leader).Order);
+        var departures = outbound.Recorder.Entries.Where(entry => entry.Connection.ConnectionId == bystander).ToList();
+        Assert.NotEmpty(departures);
+        Assert.All(departures, entry => Assert.Null(entry.Order));
+    }
+
+    /// <summary>A party projection that tells someone still in town that a member left it.</summary>
+    private sealed class BystanderTownProjection(IGameMessageSender game, NetworkConnectionId bystander)
+        : IPartyTownProjectionDelivery
+    {
+        public ValueTask RefreshObservedPartiesAsync(
+            IReadOnlyList<SelectedSessionIdentity> recipients,
+            IReadOnlyList<SelectedSessionIdentity> representedSessions,
+            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask RefreshMovedPartyAsync(
+            SelectedSessionIdentity mover,
+            PartyDirectoryScope? previousScope,
+            CancellationToken cancellationToken) =>
+            game.SendNotiAsync(bystander, new SupportTagNotification(), cancellationToken);
+    }
+
     /// <summary>The batch that carries the session's START_MAP.</summary>
     private static Dfo.Server.Abstractions.Execution.OutboundEntry EntryOf(
         Dfo.Server.Protocol.Tests.Outbox.XoDelivery outbound, SelectedSessionIdentity session) =>

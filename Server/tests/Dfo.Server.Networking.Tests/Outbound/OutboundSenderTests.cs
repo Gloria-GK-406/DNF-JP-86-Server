@@ -491,6 +491,93 @@ public sealed class OutboundSenderTests
         Assert.DoesNotContain(log.Entries, x => x.Message.Contains("already gone", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// A send abandoned at its deadline that fails later leaves no unobserved task exception behind
+    /// (<c>OutboundSender.Observe</c>).
+    /// </summary>
+    [Fact]
+    public async Task A_send_that_fails_after_its_deadline_leaves_no_unobserved_exception()
+    {
+        var late = new IOException("failed after the deadline " + Guid.NewGuid().ToString("N"));
+        var unobserved = 0;
+        void OnUnobserved(object? source, UnobservedTaskExceptionEventArgs e)
+        {
+            if (e.Exception.Flatten().InnerExceptions.Any(x => ReferenceEquals(x, late)))
+                Interlocked.Increment(ref unobserved);
+        }
+
+        TaskScheduler.UnobservedTaskException += OnUnobserved;
+        try
+        {
+            await SendThatFailsAfterItsDeadlineAsync(late);
+            for (var round = 0; round < 5; round++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                await Task.Delay(20);
+            }
+
+            Assert.Equal(0, Volatile.Read(ref unobserved));
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= OnUnobserved;
+        }
+    }
+
+    /// <summary>Kept out of line so nothing on the test's frame still holds the failed send.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private async Task SendThatFailsAfterItsDeadlineAsync(Exception late)
+    {
+        var a = Context("a");
+        var connection = transport.Add(a);
+        var release = new TaskCompletionSource();
+        connection.Gate = _ => release.Task;
+        await using var sender = Sender(transport, observer,
+            OutboundSendOptions.Default with { DeliveryTimeout = TimeSpan.FromMilliseconds(200) });
+        var first = Batch(a, "first");
+
+        sender.Submit([first]);
+        await observer.WaitForAsync(1);
+        Assert.Equal(OutboundOutcome.TimedOut, observer.OutcomeOf(first));
+        release.SetException(late);
+        await connection.Closed.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>
+    /// A close that throws is logged once as a Warning and goes no further: the sender serves the next entry
+    /// (<c>OutboundSender.CloseAsync</c>).
+    /// </summary>
+    [Fact]
+    public async Task A_close_that_throws_is_logged_once_as_a_warning_and_the_sender_goes_on()
+    {
+        var a = Context("a");
+        var b = Context("b");
+        var failing = transport.Add(a);
+        transport.Add(b);
+        failing.FailWith = new IOException("socket write failed");
+        failing.CloseFailWith = new IOException("close failed");
+        var log = new LevelLog();
+        await using var sender = Sender(transport, observer, logger: log);
+
+        sender.Submit([Batch(a, "first")]);
+        await failing.Closed.WaitAsync(TimeSpan.FromSeconds(5));
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (!log.Entries.Any(x => x.Message == "Closing an outbound connection failed"))
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException("The failed close was not logged.");
+            await Task.Delay(5);
+        }
+        var later = Batch(b, "later");
+        sender.Submit([later]);
+        await observer.WaitForAsync(2);
+
+        Assert.Equal(OutboundOutcome.Delivered, observer.OutcomeOf(later));
+        var close = Assert.Single(log.Entries, x => x.Message == "Closing an outbound connection failed");
+        Assert.Equal(LogLevel.Warning, close.Level);
+        Assert.DoesNotContain(log.Entries, x => x.Level >= LogLevel.Error);
+    }
+
     private async Task WaitForFailuresAsync(int count)
     {
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);

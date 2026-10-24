@@ -1,5 +1,6 @@
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Execution;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Execution;
 
@@ -32,12 +33,26 @@ public static class GameplayTimerWork
     }
 
     /// <summary>One tick of a periodic or wake-up loop, through the loop's own source (RQ-006).</summary>
-    public static Task TickAsync(CoalescingGameplaySource ticks, string commandType,
-        Func<CancellationToken, ValueTask> body, CancellationToken cancellationToken)
+    /// <remarks>
+    /// A tick whose CMD failed is absorbed, so the loop goes on to its next tick: the failure may be a
+    /// program error that stuck to the job after the body swallowed it (RQ-003), and a hosted service
+    /// that ends takes the host down with it. The executor has logged it with its chain; this logs one
+    /// Warning without the exception (F-30). A refusal and the caller's cancellation are still thrown.
+    /// </remarks>
+    public static async Task TickAsync(CoalescingGameplaySource ticks, string commandType,
+        Func<CancellationToken, ValueTask> body, ILogger logger, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(ticks);
+        ArgumentNullException.ThrowIfNull(logger);
         var run = new Run(commandType, body, cancellationToken, GameplayCallChain.NewRoot(GameplayCallSource.Timer));
-        return run.WaitAsync(ticks.TryRun(run.Work, CancellationToken.None).Completion);
+        try
+        {
+            await run.WaitAsync(ticks.TryRun(run.Work, CancellationToken.None).Completion).ConfigureAwait(false);
+        }
+        catch (Exception error) when (GameplayJob.EndedAJob(error))
+        {
+            logger.LogWarning("Timer {CommandType} failed; the hosted service continues with its next tick", commandType);
+        }
     }
 
     private sealed class Run

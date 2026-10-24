@@ -53,7 +53,7 @@ public sealed class AltarScheduler(IAltarDungeonDomainService altars, IDungeonRu
                     next = pending.Count == 0 ? (DateTimeOffset?)null : pending.Min(x => x.At);
                     // Failed or overdue actions back off; an empty scheduler sleeps until a command wakes it.
                     if (next is { } expired && expired <= clock.GetUtcNow()) next = clock.GetUtcNow().AddMilliseconds(100);
-                }, stoppingToken).ConfigureAwait(false);
+                }, logger, stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }
         }

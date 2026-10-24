@@ -22,7 +22,9 @@ internal sealed class TimerSourceHost : IAsyncDisposable
     private readonly ServiceProvider provider;
     private readonly List<IHostedService> started = [];
 
-    public TimerSourceHost(Action<IServiceCollection>? configure = null)
+    /// <param name="configure">Last registrations, after the modules.</param>
+    /// <param name="wrapQueue">Wraps the container's queue inside the recording one.</param>
+    public TimerSourceHost(Action<IServiceCollection>? configure = null, Func<IGameplayQueue, IGameplayQueue>? wrapQueue = null)
     {
         Directory.CreateDirectory(directory);
         var script = Path.Combine(directory, "channel_info.etc");
@@ -42,7 +44,10 @@ internal sealed class TimerSourceHost : IAsyncDisposable
         new ProtocolModule().ConfigureServices(services, configuration);
         services.AddSingleton<TimeProvider>(Clock);
         services.AddSingleton<IGameplayQueue>(sp =>
-            new RecordingGameplayQueue(new GameplayQueue(sp.GetRequiredService<GameplayShardSelector>())));
+        {
+            IGameplayQueue queue = new GameplayQueue(sp.GetRequiredService<GameplayShardSelector>());
+            return new RecordingGameplayQueue(wrapQueue is null ? queue : wrapQueue(queue));
+        });
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
         Queue = (RecordingGameplayQueue)provider.GetRequiredService<IGameplayQueue>();

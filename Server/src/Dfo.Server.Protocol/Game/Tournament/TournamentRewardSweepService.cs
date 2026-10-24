@@ -25,7 +25,7 @@ public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService
         {
             // One tick (the scan and every candidate) is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await GameplayTimerWork.TickAsync(ticks, "timer:TournamentRewardSweepService", TickAsync, stoppingToken)
+                await GameplayTimerWork.TickAsync(ticks, "timer:TournamentRewardSweepService", TickAsync, logger, stoppingToken)
                     .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

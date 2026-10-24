@@ -44,7 +44,7 @@ public sealed class AltarQuotaDailyRefreshService(ISelectedSessionSnapshotQuery 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
-        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, stoppingToken).ConfigureAwait(false); }
+        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, logger, stoppingToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }
 }

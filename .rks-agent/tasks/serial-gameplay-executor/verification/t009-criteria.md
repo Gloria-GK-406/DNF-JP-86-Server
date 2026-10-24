@@ -77,6 +77,13 @@ RQ-061 的正文不改。名单扩大使它的实际覆盖面变大（主控方�
 
 「反例」一栏写证明它会拒绝的用例；没有合成反例的写变异编号（本单元 `logs/task-30-mutations.txt` 的 MR 系列，或以往单元的日志）。
 
+**变异脚本的位置（TASK-35 补，2026-10-24）**：TASK-10～TASK-18 的变异日志只记了变异名与红灯结果，替换文本在当时的 scratchpad 脚本里。这些脚本已原样复制进 `evidence/mutation-scripts/`，下表引用 `logs/task-1x-mutations.txt` 的地方，变异编号在对应脚本里按同名键查到替换文本：
+- `logs/task-10-mutations.txt` → `evidence/mutation-scripts/task-10-mutate.py`；
+- `logs/task-11-mutations.txt` → `task-11-mutate.py`；`task-12` → `task-12-mutate.py`；`task-14` → `task-14-mutate.py`；`task-15` → `task-15-mut.py`；`task-16` → `task-16-mutate.py`；
+- `logs/task-17-mutations*.txt` → `task-17-mutate.py`、`task-17-mutate2.py`、`task-17-mutate3.py`（三轮各一个）；
+- `logs/task-18-mutations.txt` → `task-18-mutate.py`。
+- TASK-13 没有变异日志。TASK-19 起的日志已把脚本全文嵌进日志，不另复制。每个文件的来源与 SHA-256 前缀见 `logs/task-35-evidence.txt`。
+
 | # | 判据 | 它拒绝什么 | 反例 | 区分力证据 |
 |---|---|---|---|---|
 | N01 | `PasswordComputationLimiterTests.Domain_services_and_command_handlers_take_neither_the_hasher_nor_the_limiter` | 领域服务或命令处理器注入口令哈希或其限流器 | `PasswordComputationLimiterTests.A_domain_service_that_takes_the_hasher_is_refused`；本单元补 `PasswordComputationLimiterTests.A_command_handler_that_takes_the_limiter_is_refused`（另两支） | 变异 MU10b |

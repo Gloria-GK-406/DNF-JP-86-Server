@@ -70,10 +70,9 @@ internal sealed class JoustMaintenanceService(ICommandBus bus,IJoustDomainServic
         using var timer=new PeriodicTimer(TimeSpan.FromSeconds(1),clock);
         while(await timer.WaitForNextTickAsync(stoppingToken))
         {
-            try{await GameplayTimerWork.TickAsync(periodic,"timer:JoustMaintenanceService",t=>TickCoreAsync(t,false),stoppingToken);}
+            try{await GameplayTimerWork.TickAsync(periodic,"timer:JoustMaintenanceService",t=>TickCoreAsync(t,false),logger,stoppingToken);}
             catch(OperationCanceledException) when(stoppingToken.IsCancellationRequested){break;}
-            // The executor logged the tick CMD's own failure with its stack (F-30).
-            catch(Exception e) when(GameplayJob.EndedAJob(e)){logger.LogWarning("Joust advancement or projection failed; next tick re-evaluates persisted state.");}
+            // A failed tick CMD is absorbed by TickAsync; what reaches here is not one (F-30).
             catch(Exception e){logger.LogError(e,"Joust advancement or projection failed; next tick re-evaluates persisted state.");}
         }
     }

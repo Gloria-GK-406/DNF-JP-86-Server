@@ -56,7 +56,7 @@ public sealed class DungeonPartyWipeService(
         {
             // One tick (both scans and every return) is one timer CMD on the executor.
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await GameplayTimerWork.TickAsync(ticks, "timer:DungeonPartyWipeService", TickAsync, stoppingToken)
+                await GameplayTimerWork.TickAsync(ticks, "timer:DungeonPartyWipeService", TickAsync, logger, stoppingToken)
                     .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

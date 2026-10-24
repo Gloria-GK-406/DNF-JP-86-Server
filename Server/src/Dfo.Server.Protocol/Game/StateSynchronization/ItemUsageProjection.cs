@@ -121,7 +121,7 @@ public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery d
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
-        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, token).ConfigureAwait(false); }
+        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, logger, token).ConfigureAwait(false); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 }

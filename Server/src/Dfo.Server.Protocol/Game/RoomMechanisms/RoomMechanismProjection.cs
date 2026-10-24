@@ -106,7 +106,7 @@ internal sealed class RoomMechanismMaintenanceService(IDungeonRunDomainService r
                             if (next is null || retry < next) next = retry;
                         }
                     }
-                }, stoppingToken).ConfigureAwait(false);
+                }, logger, stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }
         }

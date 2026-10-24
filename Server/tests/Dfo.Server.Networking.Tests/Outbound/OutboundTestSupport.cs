@@ -65,11 +65,14 @@ internal sealed class FakeConnection(NetworkConnectionContext context, Concurren
         events.Enqueue($"{Name}:sent {text}");
     }
 
+    /// <summary>Thrown by <see cref="CloseAsync"/> after the connection is marked closed.</summary>
+    public Exception? CloseFailWith { get; set; }
+
     public ValueTask CloseAsync()
     {
         events.Enqueue($"{Name}:close");
         closed.TrySetResult();
-        return ValueTask.CompletedTask;
+        return CloseFailWith is { } failure ? ValueTask.FromException(failure) : ValueTask.CompletedTask;
     }
 }
 

@@ -320,7 +320,9 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 
 **失败与日志。** 作业体失败由执行器记一条 `Error`，带调用链与来源连接。生产者与中间件拿到失败时用
 `GameplayJob.EndedAJob` 认出这是作业体自己的失败，不再记 `Error`（降为 `Debug`，带额外事实的记不附异常的
-`Warning`）；新写的生产者照此写 catch。拒绝入队（执行器已停止、深度超限）不是作业体失败，照旧由生产者记。
+`Warning`）；新写的生产者照此写 catch。定时源的每一拍都经 `GameplayTimerWork.TickAsync`，作业失败在那里吸收，
+记一条不附异常的 `Warning`，服务继续下一拍；绕过它的定时循环一次作业失败就结束托管服务，宿主随之停下
+（`TimerSourceJobFailureTests` 按组合里的每个 `BackgroundService` 守着）。拒绝入队（执行器已停止、深度超限）不是作业体失败，照旧由生产者记。
 细粒度命令失败时 `CommandLoggingBehavior` 另记一条 `Error`。这是过渡形态：读日志时，同一次失败今天可能有两条 `Error`。
 
 **发件箱。** 作业内的一切出站——`IGameMessageSender`、`INetworkMessageSender`、`IEventService.ProjectAsync`、
@@ -830,7 +832,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 2. 复跑即绿（**要真的跑**——某些机器上三次全量能红两次）
 3. **栈根在下面这份清单内**
 
-已记录的栈根（四条）：
+已记录的栈根（五条）：
 
 | 栈根 | 见于 |
 |---|---|
@@ -838,6 +840,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 | `ItemPathFrameTests.Storage.ReadAsync → SqliteCommand.ExecuteReaderAsync` | 同名用例 |
 | `OneDatabaseOneParticipantTests.Fixture.ReadItemsAsync → SqliteCommand.ExecuteReaderAsync` | 同名用例 |
 | `AchievementTitleBookTests.Fixture.Sql → SqliteCommand.ExecuteNonQuery` | `AchievementTitleBookTests.Real_title_replaces_mirror_in_one_transaction_and_refusal_or_rollback_preserves_old_wear` |
+| `SqliteDatabaseParticipant.CommandAsync → SqliteConnection.BeginTransaction → SqliteCommand.ExecuteNonQuery` | `JoustIntegrationTests.Statistics_failure_rolls_back_mail_completion_and_accounting_marker_then_retry_counts_once` |
 
 **用例名不是判别依据**——第一条栈根已经在三个不同用例名上出现过。
 **栈根是**：清单外的新栈根**不得直接归入**，要另给不归因的明证（改动与该路径无交集等），

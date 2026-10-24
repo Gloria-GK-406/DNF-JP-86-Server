@@ -337,28 +337,31 @@ public sealed class DungeonEntryProjectionDelivery(
             // the requesting leader believing that the whole cohort entered successfully.
             // XO-1: their batches are delivered before the requester's; a follower whose delivery
             // fails is closed alone and the requester's batch still goes (BestEffort, VC-3).
-            using var order = ordering?.Begin("XO-1 party dungeon entry", OutboundDelivery.BestEffort);
-            var delivered = new List<SelectedSessionIdentity>();
-            foreach (var delivery in deliveries
-                .OrderBy(value => value.Session == requester ? 1 : 0))
+            // The group ends with the requester's batch, before the town departure below.
+            using (ordering?.Begin("XO-1 party dungeon entry", OutboundDelivery.BestEffort))
             {
-                try
+                var delivered = new List<SelectedSessionIdentity>();
+                foreach (var delivery in deliveries
+                    .OrderBy(value => value.Session == requester ? 1 : 0))
                 {
-                    await sender.SendExplicitAsync(
-                        delivery.Session.ConnectionId,
-                        new GameExplicitMessageDelivery(delivery.Frames, []),
-                        cancellationToken).ConfigureAwait(false);
-                    delivered.Add(delivery.Session);
-                }
-                catch
-                {
-                    // A batch already registered is still delivered when the job ends (RQ-031(c)).
-                    // If a later recipient's batch cannot be registered (its encoding or endpoint
-                    // check fails), isolate every generation that may already hold START_MAP so
-                    // none can continue against an aborted server instance.
-                    await IsolatePartialCohortAsync(
-                        [.. delivered, delivery.Session]).ConfigureAwait(false);
-                    throw;
+                    try
+                    {
+                        await sender.SendExplicitAsync(
+                            delivery.Session.ConnectionId,
+                            new GameExplicitMessageDelivery(delivery.Frames, []),
+                            cancellationToken).ConfigureAwait(false);
+                        delivered.Add(delivery.Session);
+                    }
+                    catch
+                    {
+                        // A batch already registered is still delivered when the job ends (RQ-031(c)).
+                        // If a later recipient's batch cannot be registered (its encoding or endpoint
+                        // check fails), isolate every generation that may already hold START_MAP so
+                        // none can continue against an aborted server instance.
+                        await IsolatePartialCohortAsync(
+                            [.. delivered, delivery.Session]).ConfigureAwait(false);
+                        throw;
+                    }
                 }
             }
         }
