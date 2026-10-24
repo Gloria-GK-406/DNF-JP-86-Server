@@ -252,3 +252,10 @@ B2只保Main后RequiredExplicit及replay普通Write后CurrentStateBatch的本次
 仅闭 message:65616／65562／65808 与 ReinforceItemCommand、NpcDisjointItemCommand、PortableDisjointItemCommand、EnchantByBeadCommand 四个原精确fine ID。三logical各唯一whole，原前置拒绝无Main/Pending→Rejected，原domain正常拒绝MainCommitted；原slot/provider顺序、三种帧序与SQL原子性不变。初购ICommandProjections复用NotiBus Failed隔离，直接拒绝ACK外抛默认保护；只既有committed replay出口。其它original/baseline/row不动。
 
 实际账：messages15closed/144pending/14retained，commands17closed/187pending，sources1closed/72pending/12retained、5protection/8transition pending。正式本轮为Release build+App/Protocol/Net三full+另外四actualcontrols，其余1793业务case只延续Task12，不称八full；Result/strict/selftest和workunit/capture/source证据见task-13-inspection。
+
+
+## TASK14 — 五消息／三个装备效果whole
+
+仅闭message:65937/65974/65975/65740/65741及MagicSealCommand/ForgingCommand/OutworldCommand三个原fine精确ID。MagicSeal2/Forging1/Outworld2 logical bindings分别归唯一whole；原早拒绝无Main/Rejected、domain普通拒绝MainCommitted、失败roll有receipt/扣材料、unseal拒绝无ACK和各自原帧序保持。成功原NotiBus普通Failed隔离，直接ACK默认保护，只既有committed replay许可。
+
+实际账messages20closed/139pending/14retained、commands20closed/184pending；source1closed/72pending/12retained，5protection/8transition pending。original/baseline/其它row不动。本轮正式为Release+三full/四actualcontrols，1793业务库存只延续Task12；最终八full/性能/Spec/legacy清除仍pending。证据/Result及strict/8bad见task-14-inspection。

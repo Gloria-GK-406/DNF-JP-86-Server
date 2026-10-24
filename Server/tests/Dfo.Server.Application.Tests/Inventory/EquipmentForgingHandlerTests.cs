@@ -96,12 +96,13 @@ public sealed class EquipmentForgingHandlerTests
         Assert.Equal(11, shop.Count(3326));
     }
 
-    private static ShopFixture Fixture(int roll) => new(services =>
+    internal static ShopFixture Fixture(int roll, Action<IServiceCollection>? configure = null) => new(services =>
     {
         services.AddSingleton<IEquipmentForgingContentSource>(new Content());
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Equipment());
         services.AddSingleton<IEquipmentDefinitionSource>(new Equipment());
         services.AddSingleton<IEquipmentForgingRollSource>(new Roll(roll));
+        configure?.Invoke(services);
     });
 
     private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1234)

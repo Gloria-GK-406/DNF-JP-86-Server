@@ -32,9 +32,7 @@ public sealed class EffectSettlementRegistrationTests
             wire.SelectMany(x => x.Productions).Distinct().Select(x => x.Name).Order());
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
         var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
-        Assert.Equal(new[] { "AvatarCompoundCommand", "AvatarPackageOpeningCommand", "CapsuleCommand", "ChargeRentPointCommand", "CollectionBoxCommand", "CompoundItemCommand", "EpicCraftCommand", "FinishQuestCommand", "ForgingCommand",
-            "HousingCommand", "IncreaseStatusCommand", "ItemSocketCommand", "JoustBetCommand", "LearnSkillCommand", "LotteryOpeningCommand", "MagicBoxBatchOpeningCommand", "MagicBoxSingleOpeningCommand", "MagicSealCommand",
-            "OutworldCommand", "PackageOpeningCommand", "QuestClearCouponCommand",
+        Assert.Equal(new[] { "AvatarCompoundCommand", "AvatarPackageOpeningCommand", "CapsuleCommand", "ChargeRentPointCommand", "CollectionBoxCommand", "CompoundItemCommand", "EpicCraftCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "ItemSocketCommand", "JoustBetCommand", "LearnSkillCommand", "LotteryOpeningCommand", "MagicBoxBatchOpeningCommand", "MagicBoxSingleOpeningCommand", "PackageOpeningCommand", "QuestClearCouponCommand",
             "RenameCreatureCommand", "RentEquipmentCommand", "ResetItemQualityCommand", "ResetRandomOptionCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WarehouseCommand", "WeddingLovePointCommand" },
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
@@ -56,6 +54,15 @@ public sealed class EffectSettlementRegistrationTests
             Assert.Equal(CommandExecutionKind.Direct, equipment.ExecutionKind);
             Assert.Single(equipment.ProtocolMessages!);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, equipment.RegistrationExits);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
+        }
+        foreach (var (type, count) in new[] { (typeof(Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand), 2), (typeof(Dfo.Server.Protocol.Game.Forging.GameForgingCommand), 1), (typeof(Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand), 2) })
+        {
+            var option = commandRegistry.GetRegistration(type);
+            Assert.Equal(CommandRouteKind.Protocol, option.Route);
+            Assert.Equal(CommandExecutionKind.Direct, option.ExecutionKind);
+            Assert.Equal(count, option.ProtocolMessages!.Count);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, option.RegistrationExits);
             Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
         }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)

@@ -34,6 +34,33 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Five_option_logicals_are_closed_to_three_wholes_with_two_one_two_exact_bindings()
+    {
+        using var provider = BuildProductionGraph();
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        var expected = new[]
+        {
+            (typeof(Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand), typeof(Dfo.Server.Protocol.Game.MagicSeal.MagicSealRequest), new[] { ClientMessageType.GameUnsealRandomOption, ClientMessageType.GameChangeRandomOption }),
+            (typeof(Dfo.Server.Protocol.Game.Forging.GameForgingCommand), typeof(Dfo.Server.Protocol.Game.Forging.ForgingRequest), new[] { ClientMessageType.GameSeparateUpgrade }),
+            (typeof(Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand), typeof(Dfo.Server.Protocol.Game.Outworld.OutworldRequest), new[] { ClientMessageType.GamePurifyItem, ClientMessageType.GameInvestAmplifyOption }),
+        };
+        foreach (var (command, input, logicals) in expected)
+        {
+            var row = Assert.Single(commands, row => row.CommandType == command);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
+            Assert.Equal(logicals.Select(logical => new ProtocolCommandMessageBinding(logical, input)), row.ProtocolMessages);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+            foreach (var logical in logicals)
+            {
+                Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
+                Assert.Equal(input, route.MessageClrType); Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
+            }
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "MagicSealCommand" or "ForgingCommand" or "OutworldCommand");
+    }
+
+    [Fact]
     public void Three_equipment_protocols_each_have_one_exact_whole_and_only_replay_permission()
     {
         using var provider = BuildProductionGraph();

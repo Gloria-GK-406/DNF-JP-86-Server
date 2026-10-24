@@ -667,9 +667,10 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<MagicSealCommand, EquipmentMagicSealResult,
-            MagicSealCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameMagicSealCommand, EquipmentMagicSealResult, GameMagicSealCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameUnsealRandomOption, typeof(MagicSealRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameChangeRandomOption, typeof(MagicSealRequest)));
         services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<AvatarCompoundCommand, AvatarCompoundResult, AvatarCompoundCommandHandler>(
@@ -682,12 +683,13 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<EpicCraftCommand, EpicCraftReceipt, EpicCraftCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<OutworldCommand, EquipmentOutworldResult,
-            OutworldCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ForgingCommand, EquipmentForgingResult,
-            ForgingCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameOutworldCommand, EquipmentOutworldResult, GameOutworldCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GamePurifyItem, typeof(OutworldRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameInvestAmplifyOption, typeof(OutworldRequest)));
+        services.AddProtocolCommandHandler<GameForgingCommand, EquipmentForgingResult, GameForgingCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSeparateUpgrade, typeof(ForgingRequest)));
         services.AddCommandHandler<SortLockCommand, SortLockResult, SortLockCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<WarehouseCommand, InventoryExpansionResult, WarehouseCommandHandler>(
@@ -970,8 +972,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);
         services.RegisterProtocolMessageHandler<EnchantByBeadHandler, EnchantByBeadRequest, GameEnchantByBeadCommand>(ClientMessageType.GameEnchantByBead);
         services.RegisterMessageHandler<TeleportHandler>(ClientMessageType.GameTeleport);
-        services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameUnsealRandomOption);
-        services.RegisterMessageHandler<MagicSealHandler>(ClientMessageType.GameChangeRandomOption);
+        services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameUnsealRandomOption);
+        services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameChangeRandomOption);
         services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
         services.RegisterMessageHandler<AvatarCompoundHandler>(ClientMessageType.GameAvatarCompound);
         services.RegisterMessageHandler<EpicCraftHandler>(ClientMessageType.GameEpicCraft);
@@ -981,9 +983,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ItemSocketHandler>(ClientMessageType.GameAvatarEmblem);
         services.RegisterMessageHandler<ResetItemQualityHandler>(ClientMessageType.GameResetItemQuality);
         services.RegisterMessageHandler<ResetRandomOptionHandler>(ClientMessageType.GameResetRandomOption);
-        services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GamePurifyItem);
-        services.RegisterMessageHandler<OutworldHandler>(ClientMessageType.GameInvestAmplifyOption);
-        services.RegisterMessageHandler<ForgingHandler>(ClientMessageType.GameSeparateUpgrade);
+        services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GamePurifyItem);
+        services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GameInvestAmplifyOption);
+        services.RegisterProtocolMessageHandler<ForgingHandler, ForgingRequest, GameForgingCommand>(ClientMessageType.GameSeparateUpgrade);
         services.RegisterMessageHandler<CrystalContractHandler>(ClientMessageType.GameCrystalContract);
         services.RegisterMessageHandler<DeleteItemHandler>(ClientMessageType.GameDeleteItem);
         services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);

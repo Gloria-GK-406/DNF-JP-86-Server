@@ -245,8 +245,7 @@ public sealed class CommonExperienceEffectTests
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
         string[] direct = ["ActivateClientHotkeyProfileCommand", "LeaveDungeonCommand"];
         string[] expected = ["ReadRentalRefreshCommand","RentEquipmentCommand","ChargeRentPointCommand","EnterBossTowerCommand","LoadBossTowerCommand","StartBossTowerCommand","KillBossTowerActorCommand","AdvanceBossTowerCommand","DieInBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","PickupBossTowerItemCommand","ReleaseBossTowerSelectionCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","ProcessMonsterDeathCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
-            "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","MagicSealCommand","OutworldCommand",
-            "ForgingCommand","MarriageCeremonyCommand", "MarriageProposalCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
+            "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","MarriageCeremonyCommand", "MarriageProposalCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
             "CapsuleCommand","CollectionBoxCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","SharedEffectCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
             "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
         var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
@@ -268,6 +267,15 @@ public sealed class CommonExperienceEffectTests
             Assert.Equal(CommandExecutionKind.Direct, equipment.ExecutionKind);
             Assert.Single(equipment.ProtocolMessages!);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, equipment.RegistrationExits);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
+        }
+        foreach (var (type, count) in new[] { (typeof(Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand), 2), (typeof(Dfo.Server.Protocol.Game.Forging.GameForgingCommand), 1), (typeof(Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand), 2) })
+        {
+            var option = registry.GetRegistration(type);
+            Assert.Equal(CommandRouteKind.Protocol, option.Route);
+            Assert.Equal(CommandExecutionKind.Direct, option.ExecutionKind);
+            Assert.Equal(count, option.ProtocolMessages!.Count);
+            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, option.RegistrationExits);
             Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
         }
         Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:direct.Contains(type.Name)?CommandExecutionKind.Direct:CommandExecutionKind.Transactional,

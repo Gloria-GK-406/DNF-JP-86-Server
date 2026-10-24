@@ -163,8 +163,11 @@ public sealed class MagicSealHandlerTests
         Assert.Equal(2, shop.Sender.Messages.Count);
     }
 
-    private static ShopFixture Fixture() => new(services =>
-        services.AddSingleton<IEquipmentMagicSealContentSource>(new Content()));
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(services =>
+    {
+        services.AddSingleton<IEquipmentMagicSealContentSource>(new Content());
+        configure?.Invoke(services);
+    });
 
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234);

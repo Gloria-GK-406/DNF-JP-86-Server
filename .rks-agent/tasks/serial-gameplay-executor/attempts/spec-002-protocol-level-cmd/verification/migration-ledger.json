@@ -6760,25 +6760,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingCommand.cs",
-          "line": 18,
-          "source_sha256": "6c2ccd771ed527d7b62fc314febf6ef19e9c4e704195dd3f37efe345a73fabd7"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingCommand.cs",
-          "line": 18,
-          "source_sha256": "6c2ccd771ed527d7b62fc314febf6ef19e9c4e704195dd3f37efe345a73fabd7"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original protocol now unique whole with direct domain calls"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Forging.ForgingCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Forging.ForgingCommand",
@@ -6804,32 +6815,60 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentForgingResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingCommand.cs",
-          "line": 18,
-          "source_sha256": "6c2ccd771ed527d7b62fc314febf6ef19e9c4e704195dd3f37efe345a73fabd7"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingCommand.cs",
-          "line": 18,
-          "source_sha256": "6c2ccd771ed527d7b62fc314febf6ef19e9c4e704195dd3f37efe345a73fabd7"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingCommand.cs",
-          "line": 18,
-          "source_sha256": "6c2ccd771ed527d7b62fc314febf6ef19e9c4e704195dd3f37efe345a73fabd7"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin ForgingHandler -> GameForgingCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+          "purpose": "complete Forging protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -8517,25 +8556,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealCommand.cs",
-          "line": 18,
-          "source_sha256": "971d6ae6d03cb242a536b85b5ed82f67e805a47a2b5fd3560b797bdc7029a613"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealCommand.cs",
-          "line": 18,
-          "source_sha256": "971d6ae6d03cb242a536b85b5ed82f67e805a47a2b5fd3560b797bdc7029a613"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original protocol now unique whole with direct domain calls"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MagicSeal.MagicSealCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MagicSeal.MagicSealCommand",
@@ -8561,32 +8611,60 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentMagicSealResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealCommand.cs",
-          "line": 18,
-          "source_sha256": "971d6ae6d03cb242a536b85b5ed82f67e805a47a2b5fd3560b797bdc7029a613"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealCommand.cs",
-          "line": 18,
-          "source_sha256": "971d6ae6d03cb242a536b85b5ed82f67e805a47a2b5fd3560b797bdc7029a613"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealCommand.cs",
-          "line": 18,
-          "source_sha256": "971d6ae6d03cb242a536b85b5ed82f67e805a47a2b5fd3560b797bdc7029a613"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin MagicSealHandler -> GameMagicSealCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+          "purpose": "complete MagicSeal protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -10101,25 +10179,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldCommand.cs",
-          "line": 19,
-          "source_sha256": "ff3e206b55fbebf0a60d2022670568610d36e899aa505542acdedd88965431c6"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldCommand.cs",
-          "line": 19,
-          "source_sha256": "ff3e206b55fbebf0a60d2022670568610d36e899aa505542acdedd88965431c6"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "old fine CLR/handler/registration deleted; original protocol now unique whole with direct domain calls"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Outworld.OutworldCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Outworld.OutworldCommand",
@@ -10145,32 +10234,60 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentOutworldResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldCommand.cs",
-          "line": 19,
-          "source_sha256": "ff3e206b55fbebf0a60d2022670568610d36e899aa505542acdedd88965431c6"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldCommand.cs",
-          "line": 19,
-          "source_sha256": "ff3e206b55fbebf0a60d2022670568610d36e899aa505542acdedd88965431c6"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldCommand.cs",
-          "line": 19,
-          "source_sha256": "ff3e206b55fbebf0a60d2022670568610d36e899aa505542acdedd88965431c6"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin OutworldHandler -> GameOutworldCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+          "purpose": "complete Outworld protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -21640,26 +21757,38 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "message:65740",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Outworld.OutworldHandler",
@@ -21681,57 +21810,97 @@
         "telemetry": false,
         "value": 65740
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin OutworldHandler -> GameOutworldCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Outworld.OutworldCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+          "purpose": "complete Outworld protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "message:65741",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Outworld.OutworldHandler",
@@ -21753,35 +21922,63 @@
         "telemetry": false,
         "value": 65741
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Outworld/OutworldHandler.cs",
-          "line": 14,
-          "source_sha256": "39a832aeeb128bf6a9a4d4061eab371476140f2021cc57c153dd941d2d2142e6"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin OutworldHandler -> GameOutworldCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOutworldHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Outworld.OutworldCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Outworld/GameOutworldCommand.cs",
+          "purpose": "complete Outworld protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -23422,26 +23619,38 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "message:65937",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MagicSeal.MagicSealHandler",
@@ -23463,35 +23672,63 @@
         "telemetry": false,
         "value": 65937
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin MagicSealHandler -> GameMagicSealCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.MagicSeal.MagicSealCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+          "purpose": "complete MagicSeal protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
       "actual_units": {
@@ -24007,26 +24244,38 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "message:65974",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MagicSeal.MagicSealHandler",
@@ -24048,57 +24297,97 @@
         "telemetry": false,
         "value": 65974
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/MagicSealHandler.cs",
-          "line": 14,
-          "source_sha256": "566d15a2f1ddcb65ae28826759cc680e33352c23d0e650d07c3a3b52f7083371"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin MagicSealHandler -> GameMagicSealCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/MagicSealHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.MagicSeal.MagicSealCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/MagicSeal/GameMagicSealCommand.cs",
+          "purpose": "complete MagicSeal protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingHandler.cs",
-          "line": 14,
-          "source_sha256": "ffec566c47e200eb5fcee07f7d3745c2d6f715485b243287745b0f4dca348171"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "valid fine Transactional; early refusal no fine/transaction; domain normal refusal normally commits, forging failed roll has receipt and consumes material",
+          "new": "one MainSettlement only at original valid branch with actual selected actor/unit.Footprint; noClaim Pending→Rejected; normal domain refusal MainCommitted minimumInventory; failedroll stillCommitted/receipt; SQL statement rollback ConfirmedRollback and sameentry/Ordinal retry",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingHandler.cs",
-          "line": 14,
-          "source_sha256": "ffec566c47e200eb5fcee07f7d3745c2d6f715485b243287745b0f4dca348171"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+        "command": "Dfo.Server.Protocol.Game.Forging.GameForgingCommand"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+      ],
       "id": "message:65975",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Forging.ForgingHandler",
@@ -24120,35 +24409,63 @@
         "telemetry": false,
         "value": 65975
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingHandler.cs",
-          "line": 14,
-          "source_sha256": "ffec566c47e200eb5fcee07f7d3745c2d6f715485b243287745b0f4dca348171"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingHandler.cs",
-          "line": 14,
-          "source_sha256": "ffec566c47e200eb5fcee07f7d3745c2d6f715485b243287745b0f4dca348171"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Forging/ForgingHandler.cs",
-          "line": 14,
-          "source_sha256": "ffec566c47e200eb5fcee07f7d3745c2d6f715485b243287745b0f4dca348171"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "original handler session/online/slot/sentinel/variant/action then corresponding fine; MagicSeal and Outworld each two logicals in one handler",
+          "new": "thin ForgingHandler -> GameForgingCommand exact Input/Dispatch, direct domain call, no fine forwarder/nested dispatch",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "one actor/account; SQLite facets share database-connection-string identity, no invented independent commit participants",
+          "new": "same captured exact reporter; actual statement triggers on shared fixture SQLite prove gold/material/equipment rollback, no unconditional claim for all configurations; initialRejected not upgraded by late selection",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "primary freeze/transaction rollback/current replay, original notification isolation and protocol-specific silence/ack/errors/frame order",
+          "new": "accepted explicit Main/Footprint/ledger/final failure core unchanged; initial notification ordinaryFailed normal via ICommandProjections, directACK actualencoder still typed/defaultfence; unseal noACK; only existing committed replay exit. Outworld badcontent Error/samecause observed in actual executor, not legacy pipeline",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentOptionProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/EquipmentForgingHandlerTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/formal-summary.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/capture-checks.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/source-checks-final.json",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-14-inspection/workunit-map.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Forging.ForgingCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-14.md",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Forging/GameForgingCommand.cs",
+          "purpose": "complete Forging protocol covering original logical branches and transaction/refusal/projection behavior"
+        }
+      ]
     },
     {
       "actual_units": {

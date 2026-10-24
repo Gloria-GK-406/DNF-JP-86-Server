@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.Commands.Pipeline;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Outworld;
@@ -203,11 +203,11 @@ public sealed class EquipmentOutworldHandlerTests
     [Fact]
     public async Task Invalid_equipment_content_logs_error_preserves_assets_and_emits_no_ack()
     {
-        var logger = new CaptureLogger<CommandLoggingBehavior<EquipmentOutworldResult>>();
+        var logger = new CaptureLogger<GameplayExecutor>();
         using var shop = Fixture(services =>
         {
             services.AddSingleton<IEquipmentDefinitionSource>(new BrokenEquipment());
-            services.AddSingleton<ILogger<CommandLoggingBehavior<EquipmentOutworldResult>>>(logger);
+            services.AddSingleton<ILogger<GameplayExecutor>>(logger);
         });
         var original = Piece(0);
         await shop.SeedCore(9, original);
@@ -249,7 +249,7 @@ public sealed class EquipmentOutworldHandlerTests
             Entries.Add((level, exception));
     }
 
-    private static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(services =>
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(services =>
     {
         services.AddSingleton<IEquipmentOutworldContentSource>(new Content());
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Equipment());
