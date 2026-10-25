@@ -304,7 +304,7 @@ public sealed partial class BossTowerDomainServiceTests
         });
     }
 
-    private static async Task<SelectedSessionIdentity> AddMember(ShopFixture f, int tickets)
+    internal static async Task<SelectedSessionIdentity> AddMember(ShopFixture f, int tickets)
     {
         f.Sql($"INSERT INTO accounts(account_id,m_id) VALUES(2,'boss2'); INSERT INTO characters(character_id,account_id,name,job,level,exp,slot_index) VALUES(3,2,'boss3',12,65,{f.ExperienceForLevel(65)},0); INSERT INTO character_stats(character_id,carried_gold) VALUES(3,100);");
         var registry = f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
