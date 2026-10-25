@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Reflection;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game.Joust;
@@ -811,14 +814,48 @@ public sealed class JoustIntegrationTests
         Assert.Equal(25,f.Count(490002916));Assert.Empty(f.Sender.Messages.OfType<JoustResponse>());Assert.Contains(f.Sender.Batches.SelectMany(b=>b.Frames),frame=>frame[0]==0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))==0x04BA && BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(17))==5);
         await dispatcher.DispatchAsync(new(f.Connection),Request(2),default);Assert.Equal(20,f.Count(490002916));
         await Assert.ThrowsAsync<InvalidDataException>(async()=>await dispatcher.DispatchAsync(new(f.Connection),Request(2,6),default));Assert.Equal(20,f.Count(490002916));
-        f.Sender.FailBatch=true;await Assert.ThrowsAsync<IOException>(async()=>await dispatcher.DispatchAsync(new(f.Connection),Request(3),default));Assert.Equal(15,f.Count(490002916));
-        f.Sender.FailBatch=false;await dispatcher.DispatchAsync(new(f.Connection),Request(3),default);Assert.Equal(15,f.Count(490002916));
+        await dispatcher.DispatchAsync(new(f.Connection),Request(3),default);Assert.Equal(15,f.Count(490002916));
+        var entry = JoustEntry(f, 3); var ordinal = entry.Ordinal;
+        await dispatcher.DispatchAsync(new(f.Connection),Request(3),default);Assert.Equal(15,f.Count(490002916));
+        Assert.Same(entry, JoustEntry(f, 3)); Assert.Equal(ordinal, entry.Ordinal);
+        Assert.Equal(EffectOperationState.Committed, entry.State);
         for(var seq=4;seq<=ushort.MaxValue;seq++)counter.Observe((ushort)seq);
         await dispatcher.DispatchAsync(new(f.Connection),Request(0,15),default);Assert.Equal(0,f.Count(490002916));
         f.Sender.Batches.Clear();await dispatcher.DispatchAsync(new(f.Connection),Request(0,15),default);Assert.Equal(0,f.Count(490002916));
         Assert.Contains(f.Sender.Batches.SelectMany(b=>b.Frames),frame=>frame[0]==0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))==0x000E);
         TestGameplay.Run(f.Services,()=>f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session));
         await dispatcher.DispatchAsync(new(f.Connection),Request(1),default);Assert.Equal(0,f.Count(490002916));Assert.Equal(6u,f.Sender.Messages.OfType<JoustResponse>().Last().Result);
+
+        // The failure now ends this physical request under VC-B40; the healthy replay/wrap chain above stays independent.
+        using var failed = new Fixture(); await failed.Enable(); await failed.AdvanceLifecycle(); await failed.Seed(121, 490002916, 10);
+        var faultState = await failed.GetState(); var body = new byte[23]; body[14] = (byte)faultState.Knights[0].Knight.Index;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(15), 121); BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(19), 5);
+        var faultRequest = new JoustBetRequest((new GameMessageMetadata(1, 0x04E7, 0, 1) { InboundOrdinal = 1, SequenceIsFresh = true }).WithRawBody(body), body[14], 121, 5);
+        var cause = new IOException("Joust actual prepared-batch encoding failed.");
+        failed.Sender.Outbound.FailAny(_ => failed.Sender.Outbound.BatchInFlight, () => cause);
+        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
+            await failed.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(failed.Connection), faultRequest, default));
+        Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, error.Reason);
+        Assert.Same(cause, error.InnerException);
+        Assert.Equal(5, failed.Count(490002916)); Assert.Equal(1, failed.Scalar("SELECT COUNT(*) FROM event_joust_bet"));
+        var committed = JoustEntry(failed, 1);
+        Assert.Equal(1, committed.Ordinal); Assert.Equal(EffectOperationState.Committed, committed.State);
+        Assert.True(failed.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(failed.Session)!.Fenced);
+        Assert.Contains(failed.Sender.Outbound.Entries, item => item.IsClose && ReferenceEquals(item.Connection, failed.Connection));
+        Assert.Empty(failed.Sender.Messages.OfType<JoustResponse>());
+        failed.Sender.Outbound.FailAny(_ => false, () => cause);
+        await failed.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(failed.Connection), faultRequest, default);
+        Assert.Equal(5, failed.Count(490002916)); Assert.Equal(1, failed.Scalar("SELECT COUNT(*) FROM event_joust_bet"));
+        Assert.Same(committed, JoustEntry(failed, 1)); Assert.Equal(1, committed.Ordinal);
+    }
+    private static EffectOperationEntry JoustEntry(Fixture fixture, ushort sequence)
+    {
+        var table = typeof(EffectOperationLedger).GetField("ledgers", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(fixture.Services.GetRequiredService<EffectOperationLedger>())!;
+        object?[] args = [fixture.Connection, null];
+        Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!);
+        var entries = (IDictionary)args[1]!.GetType().GetProperty("Entries")!.GetValue(args[1])!;
+        return entries.Values.Cast<EffectOperationEntry>().Single(entry => entry.Sequence == sequence);
     }
     [Fact]
     public async Task Native_query_holds_selection_lease_until_exact_physical_batch_is_sent()

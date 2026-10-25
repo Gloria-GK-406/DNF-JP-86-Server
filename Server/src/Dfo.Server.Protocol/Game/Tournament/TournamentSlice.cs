@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -102,19 +103,6 @@ internal sealed class TournamentSelectionDecoder : IGameMessageDecoder
 { public IClientNetworkMessage? Decode(GameMessageMetadata meta, ReadOnlySpan<byte> body) => body.Length == 2 ? new TournamentRewardRequest(meta, body[0], body[1]) : null; }
 
 public sealed record TournamentCommandResult(TournamentActionResult? Action);
-public sealed record BeginTournamentRewardsCommand(SelectedSessionIdentity Session, DungeonRunId RunId)
-    : ICommand<bool>, ISelectedSessionCommand, IAccountCommand
-{
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
-}
-public sealed class BeginTournamentRewardsCommandHandler(ITournamentDungeonDomainService tournaments)
-    : ICommandHandler<BeginTournamentRewardsCommand, bool>
-{
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, BeginTournamentRewardsCommand command, CancellationToken ct) =>
-        ValueTask.FromResult(tournaments.BeginRewardSelection(command.Session, command.RunId));
-}
-
 public sealed record SelectTournamentRewardCommand(SelectedSessionIdentity Session, DungeonRunId RunId, byte Row, byte Index)
     : ICommand<TournamentCommandResult>, ISelectedSessionCommand, IAccountCommand
 {
@@ -159,34 +147,8 @@ public sealed class TournamentProjectionDelivery(ITournamentDungeonDomainService
     }
 }
 
-public sealed class TournamentRewardHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
-    ITournamentDungeonDomainService tournaments, ICommandBus commands, IGameMessageSender sender,
-    TournamentProjectionDelivery projection) : ClientMessageHandler<TournamentRewardRequest>
+public sealed class TournamentRewardHandler(ICommandBus commands) : ClientMessageHandler<TournamentRewardRequest>, IProtocolCommandMessageHandler<GameTournamentRewardCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TournamentRewardRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null) return;
-        var run = runs.Find(session.CharacterId);
-        if (run is null)
-        {
-            if (message.Row is null) await sender.SendCmdAsync(session.ConnectionId, new TournamentStatusResponse(false, 0), ct).ConfigureAwait(false);
-            else await sender.SendCmdAsync(session.ConnectionId, new TournamentSelectionResponse(null, 0), ct).ConfigureAwait(false);
-            return;
-        }
-        if (!sessions.IsInWorld(session)) return;
-        var state = tournaments.Find(session.CharacterId);
-        var slot = run.Participant?.Slot ?? 0;
-        if (message.Row is null)
-        {
-            var started = await commands.SendAsync(new BeginTournamentRewardsCommand(session, run.RunId), ct).ConfigureAwait(false);
-            await sender.SendCmdAsync(session.ConnectionId, new TournamentStatusResponse(started, slot,
-                state is { Rewards.Count: > 1 } && state.Rewards[1].Count > 0), ct).ConfigureAwait(false);
-            return;
-        }
-        var action = (await commands.SendAsync(new SelectTournamentRewardCommand(session, run.RunId, message.Row.Value, message.Index!.Value), ct).ConfigureAwait(false)).Action;
-        var frames = action is null ? new List<IGameServerMessage>() : projection.CompletionFrames(action).ToList();
-        frames.Add(new TournamentSelectionResponse(action?.State, slot));
-        await sender.SendExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TournamentRewardRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameTournamentRewardCommand(context, message), ct).ConfigureAwait(false);
 }

@@ -762,19 +762,20 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public async Task JoustBetHandler_refuses_a_bet_off_the_executor_and_handles_it_in_a_job()
+    public async Task JoustBetCommandHandler_refuses_a_bet_off_the_executor_and_handles_it_in_a_job()
     {
         // The handler's static per-connection identity is its state; the dispatcher only runs it in a job.
-        var handler = Make<Dfo.Server.Protocol.Game.Joust.JoustBetHandler>();
+        var handler = Make<Dfo.Server.Protocol.Game.Joust.GameJoustBetCommandHandler>();
+        var execution = new Dfo.Server.Application.Commands.CommandExecutionContext(Guid.NewGuid(), typeof(Dfo.Server.Protocol.Game.Joust.GameJoustBetCommand), handler.GetType(), Dfo.Server.Application.Commands.CommandExecutionKind.Direct);
         var context = new NetworkDispatchContext(new NetworkConnectionContext(new NetworkConnectionId("joust"), NetworkEndpointKind.Game, 10011));
         var bet = new Dfo.Server.Protocol.Game.Joust.JoustBetRequest(new GameMessageMetadata(1, 2, 3, 4), 0, 0, 0);
         var seen = ViolationCapture.Attach();
 
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
-            await handler.HandleAsync(context, bet, CancellationToken.None));
+            await handler.HandleAsync(execution, new Dfo.Server.Protocol.Game.Joust.GameJoustBetCommand(context, bet), CancellationToken.None));
 
-        AssertOneViolation(seen, "JoustBetHandler.HandleMessageAsync");
-        await TestGameplay.RunAsync(async () => await handler.HandleAsync(context, bet, CancellationToken.None));
+        AssertOneViolation(seen, "GameJoustBetCommandHandler.HandleAsync");
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(execution, new Dfo.Server.Protocol.Game.Joust.GameJoustBetCommand(context, bet), CancellationToken.None));
     }
 
     private static Type ProtocolType(string name) =>

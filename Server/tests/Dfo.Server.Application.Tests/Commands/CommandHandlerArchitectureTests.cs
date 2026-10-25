@@ -38,6 +38,8 @@ public sealed class CommandHandlerArchitectureTests
             [typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl)] = "仅原翻牌生产者的固定两阶段与精确取消，不提供world或任意调度能力。",
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
+            [typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink)] = "仅Joust首次成功在独立当前态读取后登记Inventory与Joust快照；不嵌套派发或授raw。",
+            [typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery)] = "仅Joust按原采样点取得广播的精确选中集；只读、不调度或修改状态。",
             [typeof(ICommandWorkUnits)] = "当前CMD的显式事务边界，不派发其它CMD。",
             [typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox)] = "只登记当前CMD的消息，不等待传输。",
             [typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures)] = "只登记精确连接关闭。",
@@ -50,6 +52,7 @@ public sealed class CommandHandlerArchitectureTests
         };
 
     private interface IPretendOutbox;
+    private interface IPretendSnapshotQuery;
     private interface IPretendCardPresentationControl { void Cancel(); }
     private interface IPretendAltarSchedulerWakeSignal { void Wake(); }
 
@@ -119,7 +122,6 @@ public sealed class CommandHandlerArchitectureTests
     [Theory]
     [InlineData(typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionPositionPersistence))]
-    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
     [InlineData(typeof(ICommandBus))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.INetworkMessageSender))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.IGameMessageSender))]
@@ -128,6 +130,7 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Application.Execution.GameplayExecutor))]
     [InlineData(typeof(IServiceProvider))]
     [InlineData(typeof(IPretendOutbox))]
+    [InlineData(typeof(IPretendSnapshotQuery))]
     [InlineData(typeof(IPretendCardPresentationControl))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.CardReward.DungeonCardPresentationCoordinator))]
     [InlineData(typeof(IPretendAltarSchedulerWakeSignal))]
@@ -142,6 +145,8 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(IPartyService))]
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
     [InlineData(typeof(TimeProvider))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink))]
     [InlineData(typeof(ICommandWorkUnits))]
     [InlineData(typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]

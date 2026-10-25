@@ -136,7 +136,7 @@ public sealed class JoustQueryHandlerTests
             .AddSingleton<ISelectedSessionSnapshotQuery>(sessions)
             .AddSingleton<IOnlineUserQueryDomainService>(new Users(new(OnlineUserId.New(), connection,
                 session.AccountId, session.CharacterId, OnlineUserState.CharacterActive, 1)))
-            .AddSingleton<ICommandBus>(new Commands(state, history ?? []))
+            .AddSingleton<ICommandBus>(sp => new Commands(sp, state, history ?? []))
             .AddSingleton<IGameMessageSender>(sender)
             .AddSingleton<IEventService>(new Notices())
             .AddSingleton(sp => new SelectedSessionSafety(sp, NullLogger<SelectedSessionSafety>.Instance))
@@ -156,19 +156,28 @@ public sealed class JoustQueryHandlerTests
         return [.. replies];
     }
 
-    private sealed class Commands(JoustState state, JoustHistoryEntry[] history) : ICommandBus
+    private sealed class Commands(IServiceProvider services, JoustState state, JoustHistoryEntry[] history) : ICommandBus
     {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+        public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            object result = command switch
-            {
-                QueryJoustStateCommand => state,
-                QueryJoustHistoryCommand => history,
-                _ => throw new InvalidOperationException("Unexpected query command."),
-            };
-            return ValueTask.FromResult((TResult)result);
+            var query = Assert.IsType<GameJoustQueryCommand>(command);
+            var handler = new GameJoustQueryCommandHandler(services.GetRequiredService<ISelectedSessionDomainService>(),
+                services.GetRequiredService<IOnlineUserQueryDomainService>(), null!, TimeProvider.System,
+                new Units(state, history), (IGameCommandOutbox)services.GetRequiredService<IGameMessageSender>());
+            var execution = new CommandExecutionContext(Guid.NewGuid(), query.GetType(), handler.GetType(), CommandExecutionKind.Direct);
+            return (TResult)(object)await handler.HandleAsync(execution, query, cancellationToken);
         }
+    }
+    private sealed class Units(JoustState state, JoustHistoryEntry[] history) : ICommandWorkUnits
+    {
+        public ValueTask<TResult> ReadOnlyAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CancellationToken, ValueTask<TResult>> action, CancellationToken ct = default) where TResult : notnull =>
+            ValueTask.FromResult((TResult)(object)(typeof(TResult) == typeof(JoustState) ? (object)state : history));
+        public ValueTask<TResult> WriteAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken ct = default) where TResult : notnull => throw new InvalidOperationException("A query must be read-only.");
+        public ValueTask<CommandWriteResult<TResult>> WriteResultAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken ct = default) where TResult : notnull => throw new InvalidOperationException("A query must be read-only.");
     }
     private sealed class Sessions(SelectedSessionIdentity session) : ISelectedSessionDomainService, ISelectedSessionSnapshotQuery
     {
@@ -247,8 +256,12 @@ public sealed class JoustQueryHandlerTests
     /// in it); every call goes to the real protocol sender over it (TASK-25). An explicit delivery fails where it is
     /// registered, as the old double refused one.
     /// </summary>
-    private sealed class Sender : IGameMessageSender
+    private sealed class Sender : IGameMessageSender, IGameCommandOutbox
     {
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => SendCmdAsync(id, message, ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => SendNotiAsync(id, message, ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct) => SendBatchAsync(connection, messages, ct);
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) => SendExplicitAsync(id, delivery, ct);
         private readonly RecordedOutbound outbound = new();
         public Sender() => outbound.RefuseExplicit();
         public RecordedMessages<IGameServerMessage> Sent => outbound.MessagesAs<IGameServerMessage>();

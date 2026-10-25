@@ -8769,25 +8769,38 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 147,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "slot映射在Main前；单RequestSettlement Transactional Bet+footprint，后DetailsChanged→独立Transactional ReadReplayState→current→ACK。",
+          "new": "slot映射仍Main前；单WriteResult Main仅BetAsync业务catch确认回滚ACK6，guard/footprint不吞；后原广播→独立ordinary Write ReadReplayState→sink→current→ACK，无新raw。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 147,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Joust.JoustBetCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Joust.JoustBetCommand",
@@ -8814,52 +8827,86 @@
         "result": "Dfo.Server.Data.Events.JoustBetResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 147,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "mapping": "原Joust两个handler的三条fine实际调用归入whole，三fine类型/handler/注册已删除；首次成功刷新不再调用Legacy adapter，旧ReadReplayState仍由legacy ledger真消费，不假闭。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 147,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 147,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 143,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单ReadOnly GetHistory→单历史响应。",
+          "new": "单ReadOnly QueryJoustHistory，保原history-only与ACK0。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 143,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Joust.QueryJoustHistoryCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Joust.QueryJoustHistoryCommand",
@@ -8886,52 +8933,86 @@
         "result": "Dfo.Server.Data.Events.JoustHistoryEntry[]"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 143,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "mapping": "原Joust两个handler的三条fine实际调用归入whole，三fine类型/handler/注册已删除；首次成功刷新不再调用Legacy adapter，旧ReadReplayState仍由legacy ledger真消费，不假闭。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 143,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 143,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 139,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单ReadOnly GetState；Active ACK→Bets→Info，Inactive ACK6。",
+          "new": "单ReadOnly QueryJoustState，原消息与完整顺序保持，无阶段/结果公告。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 139,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Joust.QueryJoustStateCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Joust.QueryJoustStateCommand",
@@ -8958,31 +9039,52 @@
         "result": "Dfo.Server.Data.Events.JoustState"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 139,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "mapping": "原Joust两个handler的三条fine实际调用归入whole，三fine类型/handler/注册已删除；首次成功刷新不再调用Legacy adapter，旧ReadReplayState仍由legacy ledger真消费，不假闭。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 139,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 139,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -17874,25 +17976,38 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 111,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单Transactional BeginRewardSelection，读取state/slot在前，返回Status在提交后。",
+          "new": "单ordinary Write BeginTournamentRewards，预捕state/slot和期限提交、SecondRow与全9B响应保持。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 111,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Tournament.BeginTournamentRewardsCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Tournament.BeginTournamentRewardsCommand",
@@ -17919,31 +18034,52 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 111,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
+        "mapping": "原TournamentRewardHandler的Begin/Select领域动作归入whole，共享CompletionFrames继续复用；只有Begin fine类型/handler/注册已删除。SelectTournamentReward仍有Timer、EliminateTournament仍有PartyWipe真消费者，二者保pending。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 111,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 111,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -18015,7 +18151,10 @@
         "state": "pending"
       },
       "refs": [],
-      "state": "pending"
+      "state": "pending",
+      "notes": [
+        "TASK-59已迁协议入口；TournamentProjectionDelivery.EliminateAsync仍由PartyWipe来源消费，保持pending。"
+      ]
     },
     {
       "actual_units": {
@@ -18087,7 +18226,10 @@
         "state": "pending"
       },
       "refs": [],
-      "state": "pending"
+      "state": "pending",
+      "notes": [
+        "TASK-59已迁协议入口；TournamentRewardSweepService.SelectRewardAsync真实timer来源仍消费，未迁定时来源，保持pending。"
+      ]
     },
     {
       "actual_units": [
@@ -31264,26 +31406,39 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单Transactional BeginRewardSelection，读取state/slot在前，返回Status在提交后。",
+          "new": "单ordinary Write BeginTournamentRewards，预捕state/slot和期限提交、SecondRow与全9B响应保持。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "message:65994",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Tournament.TournamentRewardHandler",
@@ -31306,61 +31461,93 @@
         "value": 65994
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
+        "mapping": "原TournamentRewardHandler的Begin/Select领域动作归入whole，共享CompletionFrames继续复用；只有Begin fine类型/handler/注册已删除。SelectTournamentReward仍有Timer、EliminateTournament仍有PartyWipe真消费者，二者保pending。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.Tournament.BeginTournamentRewardsCommand",
-        "command:Dfo.Server.Protocol.Game.Tournament.EliminateTournamentCommand",
-        "command:Dfo.Server.Protocol.Game.Tournament.SelectTournamentRewardCommand"
+        "command:Dfo.Server.Protocol.Game.Tournament.BeginTournamentRewardsCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery",
         "TournamentProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单Transactional SelectReward，CompletionFrames后SelectionResponse。",
+          "new": "单ordinary Write SelectTournamentReward，保原两行奖励/重复/非法拒绝和CompletionFrames→SelectionResponse顺序。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "message:65995",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Tournament.TournamentRewardHandler",
@@ -31383,39 +31570,56 @@
         "value": 65995
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
+        "mapping": "原TournamentRewardHandler的Begin/Select领域动作归入whole，共享CompletionFrames继续复用；只有Begin fine类型/handler/注册已删除。SelectTournamentReward仍有Timer、EliminateTournament仍有PartyWipe真消费者，二者保pending。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
-          "line": 182,
-          "source_sha256": "d88ffa6600205f5e217ecc4476b4a6aae321598bf27626568504d9481dfedcb8"
-        },
-        "state": "pending"
-      },
-      "refs": [
-        "command:Dfo.Server.Protocol.Game.Tournament.BeginTournamentRewardsCommand",
-        "command:Dfo.Server.Protocol.Game.Tournament.EliminateTournamentCommand",
-        "command:Dfo.Server.Protocol.Game.Tournament.SelectTournamentRewardCommand"
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
       ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "refs": [],
       "shared_helper_candidates": [
         "GameInventoryDelivery",
         "TournamentProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -35955,26 +36159,39 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单ReadOnly GetState；Active ACK→Bets→Info，Inactive ACK6。",
+          "new": "单ReadOnly QueryJoustState，原消息与完整顺序保持，无阶段/结果公告。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "message:66790",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Joust.JoustQueryHandler",
@@ -35997,60 +36214,92 @@
         "value": 66790
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "mapping": "原Joust两个handler的三条fine实际调用归入whole，三fine类型/handler/注册已删除；首次成功刷新不再调用Legacy adapter，旧ReadReplayState仍由legacy ledger真消费，不假闭。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.Joust.JoustBetCommand",
-        "command:Dfo.Server.Protocol.Game.Joust.QueryJoustHistoryCommand",
         "command:Dfo.Server.Protocol.Game.Joust.QueryJoustStateCommand"
       ],
       "shared_helper_candidates": [
         "IReplayStateProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 172,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "slot映射在Main前；单RequestSettlement Transactional Bet+footprint，后DetailsChanged→独立Transactional ReadReplayState→current→ACK。",
+          "new": "slot映射仍Main前；单WriteResult Main仅BetAsync业务catch确认回滚ACK6，guard/footprint不吞；后原广播→独立ordinary Write ReadReplayState→sink→current→ACK，无新raw。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 172,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "message:66791",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Joust.JoustBetHandler",
@@ -36073,60 +36322,92 @@
         "value": 66791
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 172,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "mapping": "原Joust两个handler的三条fine实际调用归入whole，三fine类型/handler/注册已删除；首次成功刷新不再调用Legacy adapter，旧ReadReplayState仍由legacy ledger真消费，不假闭。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 172,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 172,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.Joust.JoustBetCommand",
-        "command:Dfo.Server.Protocol.Game.Joust.QueryJoustHistoryCommand",
-        "command:Dfo.Server.Protocol.Game.Joust.QueryJoustStateCommand"
+        "command:Dfo.Server.Protocol.Game.Joust.JoustBetCommand"
       ],
       "shared_helper_candidates": [
         "IReplayStateProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "单ReadOnly GetHistory→单历史响应。",
+          "new": "单ReadOnly QueryJoustHistory，保原history-only与ACK0。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-59.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+      ],
       "id": "message:66792",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Joust.JoustQueryHandler",
@@ -36149,38 +36430,57 @@
         "value": 66792
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
+        "mapping": "原Joust两个handler的三条fine实际调用归入whole，三fine类型/handler/注册已删除；首次成功刷新不再调用Legacy adapter，旧ReadReplayState仍由legacy ledger真消费，不假闭。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
-          "line": 155,
-          "source_sha256": "955ed8174ca2ba2227bcc2ed44ec35c65357ab44d047fcd7e43967ae829d9d4e"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "原精确selected actor与其物理连接/metadata；无session拒绝或silent，保持原world门。",
+          "new": "每个原读/写单元声明同一精确actor/physical/metadata；Joust Main用admission recipient，Joust广播仅采样原selected集，不为收件人新增参与者。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原current/world/physical校验、正常拒绝、事务和帧顺序。",
+          "new": "保持业务拒绝、持久幂等、资产、顺序与收件人；基础设施whole失败引用VC-B40，不补失败ACK；真实SQL ABORT确认回滚保ACK6和同frame重试。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task59-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/GameTournamentRewardCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Joust/JoustSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Events/JoustIntegrationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TournamentDungeonTests.cs"
+          ]
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.Joust.JoustBetCommand",
-        "command:Dfo.Server.Protocol.Game.Joust.QueryJoustHistoryCommand",
-        "command:Dfo.Server.Protocol.Game.Joust.QueryJoustStateCommand"
+        "command:Dfo.Server.Protocol.Game.Joust.QueryJoustHistoryCommand"
       ],
       "shared_helper_candidates": [
         "IReplayStateProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

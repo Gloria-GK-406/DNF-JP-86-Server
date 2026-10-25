@@ -153,9 +153,14 @@ public sealed class ProtocolModule : IServerModule
 
         services.AddEventDispatching();
 
-        services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustInfo);
-        services.RegisterMessageHandler<JoustQueryHandler>(ClientMessageType.GameJoustHistory);
-        services.RegisterMessageHandler<JoustBetHandler>(ClientMessageType.GameJoustBet);
+        services.RegisterProtocolMessageHandler<JoustQueryHandler, JoustQueryRequest, GameJoustQueryCommand>(ClientMessageType.GameJoustInfo);
+        services.AddProtocolCommandHandler<GameJoustQueryCommand, bool, GameJoustQueryCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameJoustInfo, typeof(JoustQueryRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameJoustHistory, typeof(JoustQueryRequest)));
+        services.RegisterProtocolMessageHandler<JoustQueryHandler, JoustQueryRequest, GameJoustQueryCommand>(ClientMessageType.GameJoustHistory);
+        services.RegisterProtocolMessageHandler<JoustBetHandler, JoustBetRequest, GameJoustBetCommand>(ClientMessageType.GameJoustBet);
+        services.AddProtocolCommandHandler<GameJoustBetCommand, bool, GameJoustBetCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameJoustBet, typeof(JoustBetRequest)));
         services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E6,ClientMessageType.GameJoustInfo);
         services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E8,ClientMessageType.GameJoustHistory);
         services.AddGameCmdMessageDecoder<JoustBetDecoder>(0x04E7,ClientMessageType.GameJoustBet);
@@ -166,9 +171,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustDetailsChanged,JoustDetailsChangedHandler>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustLifecycleNotification,JoustLifecycleNotificationHandler>();
-        services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly);
-        services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly);
-        services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler, Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand>(ClientMessageType.GameWeeklyAttendance);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand, bool, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameWeeklyAttendance, typeof(Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest)));
@@ -421,10 +423,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse>>();
         services.TryAddSingleton<TournamentRewardSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(sp => sp.GetRequiredService<TournamentRewardSweepService>());
-        services.AddCommandHandler<BeginTournamentRewardsCommand, bool, BeginTournamentRewardsCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentRewardStatus);
-        services.RegisterMessageHandler<TournamentRewardHandler>(ClientMessageType.GameTournamentSelectReward);
+        services.RegisterProtocolMessageHandler<TournamentRewardHandler, TournamentRewardRequest, GameTournamentRewardCommand>(ClientMessageType.GameTournamentRewardStatus);
+        services.AddProtocolCommandHandler<GameTournamentRewardCommand, bool, GameTournamentRewardCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentRewardStatus, typeof(TournamentRewardRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentSelectReward, typeof(TournamentRewardRequest)));
+        services.RegisterProtocolMessageHandler<TournamentRewardHandler, TournamentRewardRequest, GameTournamentRewardCommand>(ClientMessageType.GameTournamentSelectReward);
         services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(0x01CA, ClientMessageType.GameTournamentRewardStatus);
         services.AddGameCmdMessageDecoder<TournamentSelectionDecoder>(0x01CB, ClientMessageType.GameTournamentSelectReward);
         services.AddGameNotiMessageEncoder<TournamentInfoMessage, TournamentInfoEncoder>();

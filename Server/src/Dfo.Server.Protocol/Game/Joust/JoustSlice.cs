@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
@@ -134,66 +135,15 @@ public sealed record JoustResponse(ushort Type,uint Result,JoustHistoryEntry[]? 
 {public ServerMessageType MessageType=>ServerMessageType.GameStateSynchronization;}
 internal sealed class JoustResponseEncoder:GameCmdMessageEncoder<JoustResponse>
 {protected override IReadOnlyList<GameMessagePayload> EncodePayloads(JoustResponse m)=>OnePayload(m.Type,m.Type==0x04E8?JoustPayloadCodec.History(m.Result,m.History??[]):JoustPayloadCodec.Ack(m.Result));}
-public sealed record QueryJoustStateCommand(SelectedSessionIdentity Session):ICommand<JoustState>,IAccountCommand,ISelectedSessionCommand
-{public AccountId AccountId=>Session.AccountId;}
-public sealed class QueryJoustStateCommandHandler(IJoustDomainService joust,TimeProvider clock):ICommandHandler<QueryJoustStateCommand,JoustState>
-{public ValueTask<JoustState> HandleAsync(CommandExecutionContext c,QueryJoustStateCommand q,CancellationToken ct)=>joust.GetStateAsync(q.Session.CharacterId,clock.GetUtcNow(),ct);}
-public sealed record QueryJoustHistoryCommand(SelectedSessionIdentity Session):ICommand<JoustHistoryEntry[]>,IAccountCommand,ISelectedSessionCommand
-{public AccountId AccountId=>Session.AccountId;}
-public sealed class QueryJoustHistoryCommandHandler(IJoustDomainService joust):ICommandHandler<QueryJoustHistoryCommand,JoustHistoryEntry[]>
-{public ValueTask<JoustHistoryEntry[]> HandleAsync(CommandExecutionContext c,QueryJoustHistoryCommand q,CancellationToken ct)=>joust.GetHistoryAsync(ct);}
-public sealed record JoustBetCommand(OnlineUserId OnlineUserId,SelectedSessionIdentity Session,string RequestId,int KnightIndex,BusinessSlot Slot,int Amount):ICommand<JoustBetResult>,IRequestSettlementCommand,IAccountCommand,ISelectedSessionCommand
-{public AccountId AccountId=>Session.AccountId;}
-public sealed class JoustBetCommandHandler(IJoustDomainService joust,TimeProvider clock):ICommandHandler<JoustBetCommand,JoustBetResult>
+public sealed class JoustQueryHandler(ICommandBus commands) : ClientMessageHandler<JoustQueryRequest>, IProtocolCommandMessageHandler<GameJoustQueryCommand>
 {
-    public async ValueTask<JoustBetResult> HandleAsync(CommandExecutionContext c,JoustBetCommand q,CancellationToken ct)
-    {
-        var footprint=c.LegacyFootprint;
-        footprint.DemandActive(q.Session);
-        var result=await joust.BetAsync(q.Session,q.RequestId,q.KnightIndex,q.Slot,q.Amount,clock.GetUtcNow(),ct);
-        footprint.RecordInventorySlots(q.Session,result.Debits.Select(d=>d.Slot).ToArray());return result;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, JoustQueryRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameJoustQueryCommand(context, message), ct).ConfigureAwait(false);
 }
-public sealed class JoustQueryHandler(ISelectedSessionDomainService sessions,ICommandBus bus,IGameMessageSender sender,SelectedSessionSafety safety):ClientMessageHandler<JoustQueryRequest>
+public sealed class JoustBetHandler(ICommandBus commands) : ClientMessageHandler<JoustBetRequest>, IProtocolCommandMessageHandler<GameJoustBetCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c,JoustQueryRequest m,CancellationToken ct)
-    {
-        if(sessions.FindByConnection(c.Connection.ConnectionId) is not {} session){await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(m.Metadata.Type,6),ct);return;}
-        var recipient=safety.Capture(session);
-        if(!sessions.IsInWorld(session) || !ReferenceEquals(recipient.Connection,c.Connection))return;
-        safety.DemandCurrent(recipient);
-        if(m.Metadata.Type==0x04E8){var history=await bus.SendAsync(new QueryJoustHistoryCommand(session),ct);await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E8,0,history),ct);}
-        else
-        {
-            var state=await bus.SendAsync(new QueryJoustStateCommand(session),ct);
-            if(!state.Active)await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E6,6),ct);
-            else await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E6,0),..JoustPayloadCodec.Snapshot(state)],ct);
-        }
-    }
-}
-public sealed class JoustBetHandler(ISelectedSessionDomainService sessions,IOnlineUserQueryDomainService users,ICommandBus bus,
-    IEventService notices,IGameMessageSender sender,IReplayStateProjectionDelivery replay,ISelectedSessionSnapshotQuery selected,SelectedSessionSafety safety):ClientMessageHandler<JoustBetRequest>
-{
-    private sealed class PhysicalIdentity { public string Id {get;}=Guid.NewGuid().ToString("N"); }
-    private static readonly ConditionalWeakTable<NetworkConnectionContext,PhysicalIdentity> Identities=new();
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c,JoustBetRequest m,CancellationToken ct)
-    {
-        GameplayWriteAssertion.Writing(nameof(JoustBetHandler) + "." + nameof(HandleMessageAsync));
-        if(sessions.FindByConnection(c.Connection.ConnectionId) is not {} session || !users.TryGetByConnection(c.Connection.ConnectionId,out var user) || user is null || m.Metadata.InboundOrdinal is not >0)
-        {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
-        var recipient=safety.Capture(session);
-        if(!ReferenceEquals(recipient.Connection,c.Connection))return;
-        if(!sessions.IsInWorld(session))return;
-        safety.DemandCurrent(recipient);
-        JoustBetResult result;
-        try {result=await bus.SendAsync(new JoustBetCommand(user.OnlineUserId,session,$"joust:{Identities.GetOrCreateValue(c.Connection).Id}:{session.ConnectionGeneration}:{m.Metadata.InboundOrdinal}",m.KnightIndex,new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main,m.MaterialSlotIndex)),m.Amount),ct);}
-        catch(Exception e) when(e is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(e))
-        {await sender.SendCmdAsync(c.Connection.ConnectionId,new JoustResponse(0x04E7,6),ct);return;}
-        if(result.Succeeded)await notices.ProjectAsync(new NotificationAudience.TheseSessions(selected.Snapshot()),new JoustDetailsChanged(result.State.ServerTime),ct);
-        if(result.Succeeded)await replay.RefreshAsync(c.Connection,session,new(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Joust,result.Debits.Select(d=>d.Slot).ToImmutableArray()),m.Metadata,ct);
-        safety.DemandCurrent(recipient);
-        await sender.SendBatchAsync(c.Connection,[new JoustResponse(0x04E7,result.Succeeded?0u:6u)],ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, JoustBetRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameJoustBetCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed class JoustDetailsChangedHandler(IJoustProjectionDomainService joust):INotificationHandler<JoustDetailsChanged>
 {

@@ -33,7 +33,7 @@ public sealed class EffectSettlementRegistrationTests
             wire.SelectMany(x => x.Productions).Distinct().Select(x => x.Name).Order());
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
         var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
-        Assert.Equal(new[] { "CapsuleCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "JoustBetCommand", "LearnSkillCommand", "QuestClearCouponCommand",
+        Assert.Equal(new[] { "CapsuleCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "LearnSkillCommand", "QuestClearCouponCommand",
              "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "WeddingLovePointCommand" }.Where(name => !Migrated(name)),
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
@@ -82,8 +82,8 @@ public sealed class EffectSettlementRegistrationTests
         }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
-        Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand",   "BeginTournamentRewardsCommand", "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand", "EnterMarriageChurchCommand",
-            "MarriageCeremonyCommand", "MarriageProposalCommand", "PrepareMarriageChurchCommand",  "QueryJoustHistoryCommand", "QueryJoustStateCommand", "ReadReplayStateCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "SelectTournamentRewardCommand", "WeddingCommentCommand", "WeddingGiftCommand", "WeddingLetterCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
+        Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand",    "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand", "EnterMarriageChurchCommand",
+            "MarriageCeremonyCommand", "MarriageProposalCommand", "PrepareMarriageChurchCommand",   "ReadReplayStateCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "SelectTournamentRewardCommand", "WeddingCommentCommand", "WeddingGiftCommand", "WeddingLetterCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
         Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(), x => x.CommandType.Name.Contains("ReplayGuard"));
         Assert.NotNull(services.GetRequiredService<EffectOperationLedger>());
     }

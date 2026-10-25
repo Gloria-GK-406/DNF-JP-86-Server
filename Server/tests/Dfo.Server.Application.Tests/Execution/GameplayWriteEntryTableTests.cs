@@ -118,7 +118,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(PartyClientIdRegistry),
         typeof(BossTowerDepartureProjectionQueue),
         typeof(IllusionTowerDepartureProjectionQueue),
-        typeof(JoustBetHandler),
+        typeof(GameJoustBetCommandHandler),
     ];
 
     internal static readonly IReadOnlyDictionary<string, Entry> Table = new Dictionary<string, Entry>(StringComparer.Ordinal)
@@ -483,7 +483,7 @@ public sealed class GameplayWriteEntryTableTests
         ["IllusionTowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
         ["IllusionTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
 
-        // JoustBetHandler has no listed member: its protected HandleMessageAsync asserts.
+        ["GameJoustBetCommandHandler.HandleAsync(CommandExecutionContext, GameJoustBetCommand, CancellationToken)"] = W,
     };
 
     private const string StartupRow = "开始监听前的启动期工作";
