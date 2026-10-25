@@ -36,6 +36,29 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Coupon_three_branches_have_one_exact_whole_and_only_the_proven_replay_exit()
+    {
+        using var provider = BuildProductionGraph(); var rows = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row = Assert.Single(rows, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.QuestClearCoupon.GameQuestClearCouponCommand));
+        Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+        Assert.Equal(new[] { new ProtocolCommandMessageBinding(ClientMessageType.GameQuestClearCoupon, typeof(Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest)) }, row.ProtocolMessages);
+        Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
+        Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
+        var messages = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        Assert.True(messages.TryGet(ClientMessageType.GameQuestClearCoupon, out var route)); Assert.Equal(row.CommandType, route!.ProtocolCommandType);
+        Assert.Equal(new[] { typeof(Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest) }, route.AllowedMessageClrTypes);
+        foreach (var fine in new[] { "QuestClearCouponCommand", "UseFatiguePotionCommand", "UseEntryAllowanceCommand" })
+        {
+            Assert.DoesNotContain(rows, x => x.CommandType.Name == fine);
+            Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestClearCoupon." + fine));
+            Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestClearCoupon." + fine + "Handler"));
+        }
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestClearCoupon.FatiguePotionHandler"));
+        Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestClearCoupon.EntryAllowanceHandler"));
+        Assert.Equal(CommandExecutionKind.ReadOnly, Assert.Single(rows, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.StateSynchronization.ReadItemUsageSnapshotCommand)).ExecutionKind);
+    }
+
+    [Fact]
     public void Inventory_move_wire_has_one_exact_NonEffect_whole_and_a_reusable_non_command_domain_request()
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();

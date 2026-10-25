@@ -93,7 +93,7 @@ public sealed class EffectSettlementRegistrationTests
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ClientMessageHandler<>)) return type.GetGenericArguments()[0];
         throw new InvalidOperationException($"No typed request for {handler}.");
     }
-    private static bool Migrated(string name) => name == "FinishQuestCommand" && Dfo.Server.Application.Tests.Support.QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+    private static bool Migrated(string name) => name is "QuestClearCouponCommand" or "UseEntryAllowanceCommand" or "UseFatiguePotionCommand" || name == "FinishQuestCommand" && Dfo.Server.Application.Tests.Support.QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
         && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
 
 }

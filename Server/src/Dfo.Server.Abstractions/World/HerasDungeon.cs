@@ -36,6 +36,7 @@ public interface IHerasDungeonDomainService
 }
 public interface IEntryAllowanceItemDomainService
 {
+    bool Supports(int itemId);
     ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 public interface IEntryAllowanceItemRuleService

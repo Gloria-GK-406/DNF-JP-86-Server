@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Accounts;
@@ -88,18 +89,21 @@ public sealed class QuestClearCouponCodecTests
     }
 
     [Fact]
-    public async Task Unsupported_action_is_answered_without_reaching_any_session_or_command_dependency()
+    public async Task Handler_passes_the_exact_decoded_request_and_connection_to_the_whole()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var sender = new RecordingSender();
-            var handler = new QuestClearCouponHandler(null!, null!, null!, null!, null!, null!, null!,
-                null!, sender, NullLogger<QuestClearCouponHandler>.Instance);
-            var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,
-                Convert.FromHexString("450000000000004C0000000000000000000000"));
-            await handler.HandleAsync(NetworkDispatchContext.Unknown, request, CancellationToken.None);
-            Assert.Equal(new QuestClearCouponResponse(false, 69, 0), Assert.Single(sender.Sent));
-        });
+        var commands = new RecordingCommands();
+        var handler = new QuestClearCouponHandler(commands);
+        var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,
+            Convert.FromHexString("450000000000004C0000000000000000000000"));
+        await handler.HandleAsync(NetworkDispatchContext.Unknown, request, CancellationToken.None);
+        var command = Assert.IsType<GameQuestClearCouponCommand>(commands.Input);
+        Assert.Same(request, command.Input); Assert.Same(NetworkDispatchContext.Unknown.Connection, command.Dispatch.Connection);
+    }
+    private sealed class RecordingCommands : ICommandBus
+    {
+        internal object? Input;
+        public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
+        { Input = command; return ValueTask.FromResult((T)(object)false); }
     }
 
     [Fact]
@@ -159,24 +163,4 @@ public sealed class QuestClearCouponCodecTests
             Assert.IsType<AcceptedQuestProgressMessage>(messages[1]).Quests);
     }
 
-    /// <summary>
-    /// The CMDs a real registration adapter registered, read from its outbox; every call goes to the real protocol
-    /// sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, as the old double refused one.
-    /// </summary>
-    private sealed class RecordingSender : IGameMessageSender
-    {
-        private readonly RecordedOutbound outbound = new();
-        public RecordingSender()
-        {
-            outbound.RefuseExplicit();
-            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage, () => new NotSupportedException());
-        }
-        public List<IGameCmdMessage> Sent => [.. outbound.MessagesAs<IGameCmdMessage>()];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
-            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
-            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
-            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
-    }
 }

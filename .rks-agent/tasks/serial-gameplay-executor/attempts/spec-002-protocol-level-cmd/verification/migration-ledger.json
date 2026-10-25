@@ -13362,25 +13362,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 102,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "唯一whole只执行被选中的一个Main WriteResult；动作内同cause RequireRollback，原普通动作／native Commit确认回滚后映原拒绝；疲劳另ordinary ReadOnly、空participants／None。",
+          "old": "530c2a5f：三个互斥Transactional fine，实际物品先于Action；疲劳后另ReadOnly读取使用量。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-52.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 102,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponCommand",
@@ -13406,53 +13409,65 @@
         },
         "result": "Dfo.Server.Abstractions.Quests.QuestClearCouponResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 102,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 102,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 102,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "薄handler交唯一GameQuestClearCouponCommand；三fine及两个旧编排类型／注册／生产引用清零；共享ReadItemUsageSnapshot／Delivery仍给SelectCharacter与日切使用。",
+          "old": "530c2a5f：QuestClearCouponHandler及其仅本入口的EntryAllowance／Fatigue编排。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "同request.Recipient／session／physical和unit.Footprint；最低仍由原Action决定，不依实际物品或本次分支改写。",
+          "old": "IRequestSettlementCommand，精确selected actor／physical；最低Inventory|ItemUsage及Action58的Fatigue，动态quota／quests足迹。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "原分类门／帧／投影序与ordinary动作/native回滚恢复保持；scope及独立RO默认生命周期差异仅VC-B32。仅原committed-replay出口，无首次raw／Self／机制扩展。",
+          "old": "三原catch排除所有OCE及递归typed；Project Failed忽略，券两独立辅助catch。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/EntryAllowanceHandler.cs",
-          "line": 26,
-          "source_sha256": "7f8419ef8c4cd9fdc64057e361eb21bdea3b1b71b868add76b64b433d25011f6"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "唯一whole只执行被选中的一个Main WriteResult；动作内同cause RequireRollback，原普通动作／native Commit确认回滚后映原拒绝；疲劳另ordinary ReadOnly、空participants／None。",
+          "old": "530c2a5f：三个互斥Transactional fine，实际物品先于Action；疲劳后另ReadOnly读取使用量。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-52.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/EntryAllowanceHandler.cs",
-          "line": 26,
-          "source_sha256": "7f8419ef8c4cd9fdc64057e361eb21bdea3b1b71b868add76b64b433d25011f6"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestClearCoupon.UseEntryAllowanceCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestClearCoupon.UseEntryAllowanceCommand",
@@ -13478,53 +13493,65 @@
         },
         "result": "Dfo.Server.Data.Inventory.OpeningInventoryReceipt"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/EntryAllowanceHandler.cs",
-          "line": 26,
-          "source_sha256": "7f8419ef8c4cd9fdc64057e361eb21bdea3b1b71b868add76b64b433d25011f6"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/EntryAllowanceHandler.cs",
-          "line": 26,
-          "source_sha256": "7f8419ef8c4cd9fdc64057e361eb21bdea3b1b71b868add76b64b433d25011f6"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/EntryAllowanceHandler.cs",
-          "line": 26,
-          "source_sha256": "7f8419ef8c4cd9fdc64057e361eb21bdea3b1b71b868add76b64b433d25011f6"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "薄handler交唯一GameQuestClearCouponCommand；三fine及两个旧编排类型／注册／生产引用清零；共享ReadItemUsageSnapshot／Delivery仍给SelectCharacter与日切使用。",
+          "old": "530c2a5f：QuestClearCouponHandler及其仅本入口的EntryAllowance／Fatigue编排。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "同request.Recipient／session／physical和unit.Footprint；最低仍由原Action决定，不依实际物品或本次分支改写。",
+          "old": "IRequestSettlementCommand，精确selected actor／physical；最低Inventory|ItemUsage及Action58的Fatigue，动态quota／quests足迹。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "原分类门／帧／投影序与ordinary动作/native回滚恢复保持；scope及独立RO默认生命周期差异仅VC-B32。仅原committed-replay出口，无首次raw／Self／机制扩展。",
+          "old": "三原catch排除所有OCE及递归typed；Project Failed忽略，券两独立辅助catch。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/FatiguePotionHandler.cs",
-          "line": 26,
-          "source_sha256": "297685e8c2edd7f6784510bfeed2ed2f0a6c013a2e3a344bb3788e39c5113904"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "唯一whole只执行被选中的一个Main WriteResult；动作内同cause RequireRollback，原普通动作／native Commit确认回滚后映原拒绝；疲劳另ordinary ReadOnly、空participants／None。",
+          "old": "530c2a5f：三个互斥Transactional fine，实际物品先于Action；疲劳后另ReadOnly读取使用量。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-52.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/FatiguePotionHandler.cs",
-          "line": 26,
-          "source_sha256": "297685e8c2edd7f6784510bfeed2ed2f0a6c013a2e3a344bb3788e39c5113904"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestClearCoupon.UseFatiguePotionCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestClearCoupon.UseFatiguePotionCommand",
@@ -13550,32 +13577,41 @@
         },
         "result": "Dfo.Server.Data.Inventory.OpeningInventoryReceipt"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/FatiguePotionHandler.cs",
-          "line": 26,
-          "source_sha256": "297685e8c2edd7f6784510bfeed2ed2f0a6c013a2e3a344bb3788e39c5113904"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/FatiguePotionHandler.cs",
-          "line": 26,
-          "source_sha256": "297685e8c2edd7f6784510bfeed2ed2f0a6c013a2e3a344bb3788e39c5113904"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/FatiguePotionHandler.cs",
-          "line": 26,
-          "source_sha256": "297685e8c2edd7f6784510bfeed2ed2f0a6c013a2e3a344bb3788e39c5113904"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "薄handler交唯一GameQuestClearCouponCommand；三fine及两个旧编排类型／注册／生产引用清零；共享ReadItemUsageSnapshot／Delivery仍给SelectCharacter与日切使用。",
+          "old": "530c2a5f：QuestClearCouponHandler及其仅本入口的EntryAllowance／Fatigue编排。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "同request.Recipient／session／physical和unit.Footprint；最低仍由原Action决定，不依实际物品或本次分支改写。",
+          "old": "IRequestSettlementCommand，精确selected actor／physical；最低Inventory|ItemUsage及Action58的Fatigue，动态quota／quests足迹。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "原分类门／帧／投影序与ordinary动作/native回滚恢复保持；scope及独立RO默认生命周期差异仅VC-B32。仅原committed-replay出口，无首次raw／Self／机制扩展。",
+          "old": "三原catch排除所有OCE及递归typed；Project Failed忽略，券两独立辅助catch。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31007,26 +31043,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 128,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "唯一whole只执行被选中的一个Main WriteResult；动作内同cause RequireRollback，原普通动作／native Commit确认回滚后映原拒绝；疲劳另ordinary ReadOnly、空participants／None。",
+          "old": "530c2a5f：三个互斥Transactional fine，实际物品先于Action；疲劳后另ReadOnly读取使用量。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-52.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 128,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+      ],
       "id": "message:66052",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponHandler",
@@ -31048,35 +31087,46 @@
         "telemetry": false,
         "value": 66052
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 128,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 128,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/QuestClearCouponSlice.cs",
-          "line": 128,
-          "source_sha256": "4c178479032c861482271c371124f8cb6aaf72199ec3d11fa0f0b928059e2eda"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "薄handler交唯一GameQuestClearCouponCommand；三fine及两个旧编排类型／注册／生产引用清零；共享ReadItemUsageSnapshot／Delivery仍给SelectCharacter与日切使用。",
+          "old": "530c2a5f：QuestClearCouponHandler及其仅本入口的EntryAllowance／Fatigue编排。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "同request.Recipient／session／physical和unit.Footprint；最低仍由原Action决定，不依实际物品或本次分支改写。",
+          "old": "IRequestSettlementCommand，精确selected actor／physical；最低Inventory|ItemUsage及Action58的Fatigue，动态quota／quests足迹。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task52-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CouponProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs"
+          ],
+          "new": "原分类门／帧／投影序与ordinary动作/native回滚恢复保持；scope及独立RO默认生命周期差异仅VC-B32。仅原committed-replay出口，无首次raw／Self／机制扩展。",
+          "old": "三原catch排除所有OCE及递归typed；Project Failed忽略，券两独立辅助catch。"
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponCommand"
+        "command:Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponCommand",
+        "command:Dfo.Server.Protocol.Game.QuestClearCoupon.UseFatiguePotionCommand",
+        "command:Dfo.Server.Protocol.Game.QuestClearCoupon.UseEntryAllowanceCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

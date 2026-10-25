@@ -390,6 +390,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | GiveUpGame／EplpCommand | 普通退出保零事务，两塔选择与逐成员离场保原独立单元；[源码](Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs)。 |
 | ChangeSkillSlot／LearnSkill／IncreaseStatus／SwitchSkillBuild／LevelUpTicket／TutorialLevelUp | 技能与成长保三个 Main、三个空 selected 普通写；[源码](Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs)，`TASK-50`，默认生命周期边界见 Spec VC-B28／29。 |
 | AcceptQuest／GiveUpQuest／SetQuestTrigger／FinishQuest | 三普通空 selected 写与 Finish 单 Main；[源码](Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs)，`TASK-51`，默认生命周期边界见 Spec VC-B30／31。 |
+| QuestClearCoupon（三条消耗分支） | 实际物品优先分类，单 Main 后保原各投影；疲劳使用量另读普通 ReadOnly；[源码](Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs)。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

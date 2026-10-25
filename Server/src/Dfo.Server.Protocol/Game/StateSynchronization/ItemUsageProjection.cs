@@ -51,12 +51,18 @@ public sealed record ItemUsageSnapshotResult(IReadOnlyList<ItemUsageState> Items
 public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService usage, ISelectedSessionDomainService sessions, TimeProvider clock)
     : ICommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult>
 {
-    public async ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
-        ReadItemUsageSnapshotCommand command, CancellationToken token)
+    public ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
+        ReadItemUsageSnapshotCommand command, CancellationToken token) =>
+        ItemUsageSnapshotReader.ReadAsync(usage, sessions, clock, command.Session, token);
+}
+internal static class ItemUsageSnapshotReader
+{
+    internal static async ValueTask<ItemUsageSnapshotResult> ReadAsync(IItemUsageDomainService usage,
+        ISelectedSessionDomainService sessions, TimeProvider clock, SelectedSessionIdentity session, CancellationToken token)
     {
-        if (!sessions.IsInWorld(command.Session)) return new([], false);
+        if (!sessions.IsInWorld(session)) return new([], false);
         var at = clock.GetUtcNow();
-        return new(await usage.GetSnapshotAtAsync(command.Session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
+        return new(await usage.GetSnapshotAtAsync(session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
     }
 }
 public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedSessionDomainService sessions, IGameMessageSender sender)

@@ -18,6 +18,8 @@ internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleSer
     IItemUseEffectRuleService uses, ICharacterDomainService characters, IHerasDungeonDomainService heras,
     IOpeningInventoryDomainService inventory, TimeProvider clock) : IEntryAllowanceItemDomainService
 {
+    public bool Supports(int itemId) => definitions.Supports(itemId);
+
     public async ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));

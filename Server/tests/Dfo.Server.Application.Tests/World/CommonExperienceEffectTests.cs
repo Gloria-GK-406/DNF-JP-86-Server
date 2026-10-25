@@ -453,7 +453,7 @@ public sealed class CommonExperienceEffectTests
         public ValueTask CommitAsync(CancellationToken ct) => commit?.Invoke(ct) ?? ValueTask.CompletedTask;
         public ValueTask RollbackAsync(CancellationToken ct) => rollback?.Invoke(ct) ?? ValueTask.CompletedTask;
     }
-    private static bool Migrated(string name) => name == "FinishQuestCommand" && QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+    private static bool Migrated(string name) => name is "QuestClearCouponCommand" or "UseEntryAllowanceCommand" or "UseFatiguePotionCommand" || name == "FinishQuestCommand" && QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
         && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
 
 }
