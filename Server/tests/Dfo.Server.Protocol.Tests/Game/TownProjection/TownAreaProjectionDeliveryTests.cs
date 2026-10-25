@@ -173,8 +173,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var projection = new TownAreaProjectionDelivery(areas, sessions, views, notifications,
                 new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
             var room = new MarriageChurchRoom(7, Guid.NewGuid(), 11, 2, 12, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(5));
-            var handler = new WeddingChurchEnterHandler(sessions, new ChurchCommands(room), sender,
-                positions, areas, views, projection, NullLogger<WeddingChurchEnterHandler>.Instance);
+            var handler = MarriageChurchTestDriver.Create(sessions, sender, positions, areas, views, notifications, room);
             foreach (var session in new[] { first, second })
                 await handler.HandleAsync(new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011)),
                     new WeddingChurchEnterRequest(GameMessageMetadata.Empty, (uint)(session == first ? 2 : 1), room.AreaId, 0), default);
@@ -212,15 +211,6 @@ public sealed class TownAreaProjectionDeliveryTests
         });
     }
 
-    private sealed class ChurchCommands(MarriageChurchRoom room) : ICommandBus
-    {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct = default) where TResult : notnull
-        {
-            var entry = Assert.IsType<EnterMarriageChurchCommand>(command);
-            var snapshot = new MarriageChurchSnapshot(room, new((int)entry.Peer), "groom"u8.ToArray(), "bride"u8.ToArray(), new(2, 12, 250, 300));
-            return ValueTask.FromResult((TResult)(object)new MarriageChurchEntryResult(0, snapshot));
-        }
-    }
     [Fact]
     public async Task Returning_to_town_receives_existing_players_and_publishes_itself_to_them()
     {

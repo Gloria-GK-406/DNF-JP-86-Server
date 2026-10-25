@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MarriageProposal;
@@ -29,7 +30,8 @@ public sealed class MarriageProposalCodecTests
         foreach (var size in new[] { 0, 4, 17, 19, 32 }) Assert.Throws<InvalidDataException>(() => new WeddingLovePointDecoder().Decode(GameMessageMetadata.Empty, new byte[size]));
         Assert.Equal(Convert.FromHexString("01FEFFFFFF"), Assert.Single(new WeddingLovePointAckEncoder().Encode(new WeddingLovePointAck(-2)))[15..]);
         Assert.Equal(Convert.FromHexString("0800000011000000"), Assert.Single(new WeddingLovePointNotificationEncoder().Encode(new WeddingLovePointNotification(8, 17)))[15..]);
-        Assert.IsAssignableFrom<Dfo.Server.Application.Commands.IRequestSettlementCommand>(new WeddingLovePointCommand(SelectedSessionIdentity.Create(new(1), new(8), new("test"), 1, 10011), new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 16), [new(1), new(2)]));
+        Assert.IsAssignableFrom<Dfo.Server.Abstractions.Networking.IEffectSettlementRequest>(request);
+        Assert.Equal(ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.MarriageLovePoints, request.MinimumReplayNeeds);
     }
 
     [Fact]

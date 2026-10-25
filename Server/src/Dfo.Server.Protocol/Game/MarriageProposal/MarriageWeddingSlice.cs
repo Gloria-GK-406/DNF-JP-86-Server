@@ -126,43 +126,17 @@ public sealed class CompleteWeddingCleanupCommandHandler(IMarriageVenueDomainSer
     public async ValueTask<bool> HandleAsync(CommandExecutionContext c, CompleteWeddingCleanupCommand q, CancellationToken ct)
     { await venue.CompleteCleanupAsync(q.Ceremony, q.Actor.CharacterId, ct).ConfigureAwait(false); return true; }
 }
-public sealed record WeddingLetterCommand(SelectedSessionIdentity Actor, byte Mode, uint Target) : ICommand<MarriageWeddingLetterResult>, IAccountCommand, ISelectedSessionCommand
-{ public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
-public sealed class WeddingLetterCommandHandler(IMarriageVenueDomainService venue) : ICommandHandler<WeddingLetterCommand, MarriageWeddingLetterResult>
+
+
+internal sealed class WeddingLetterHandler(ICommandBus commands) : ClientMessageHandler<WeddingLetterRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingLetterCommand>
 {
-    public ValueTask<MarriageWeddingLetterResult> HandleAsync(CommandExecutionContext c, WeddingLetterCommand q, CancellationToken ct) => venue.InviteAsync(q.Actor, q.Mode, q.Target, ct);
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingLetterRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeddingLetterCommand(context, message), ct).ConfigureAwait(false);
 }
-public sealed record WeddingGiftCommand(SelectedSessionIdentity Actor, uint Key, int Gold) : ICommand<int>, IAccountCommand, ISelectedSessionCommand
-{ public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
-public sealed class WeddingGiftCommandHandler(IMarriageVenueDomainService venue) : ICommandHandler<WeddingGiftCommand, int>
+internal sealed class WeddingGiftHandler(ICommandBus commands) : ClientMessageHandler<WeddingGiftRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingGiftCommand>
 {
-    public ValueTask<int> HandleAsync(CommandExecutionContext c, WeddingGiftCommand q, CancellationToken ct) => venue.GiftAsync(q.Actor, q.Key, q.Gold, ct);
-}
-internal sealed class WeddingLetterHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender)
-    : ClientMessageHandler<WeddingLetterRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingLetterRequest m, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        var result = actor is null ? new MarriageWeddingLetterResult(-1, 0, [])
-            : await commands.SendAsync(new WeddingLetterCommand(actor, m.Mode, m.Target), ct).ConfigureAwait(false);
-        var messages = new List<IGameServerMessage> { new WeddingLetterAck(result.Status, result.Remaining) };
-        if (result.Status == 0) messages.Add(new WeddingInvitedGuestsNotification(result.Invited));
-        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages,
-            result.Letters.Select(x => new GameExplicitMessageTarget(x.Guest.ConnectionId, [new WeddingLetterNotification(x.Church, x.Key)])).ToArray()), ct).ConfigureAwait(false);
-    }
-}
-internal sealed class WeddingGiftHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender,
-    ICharacterDomainService characters, TimeProvider clock) : ClientMessageHandler<WeddingGiftRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingGiftRequest m, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        var result = actor is null ? -1 : await commands.SendAsync(new WeddingGiftCommand(actor, m.Key, m.Gold), ct).ConfigureAwait(false);
-        var messages = new List<IGameServerMessage> { new WeddingGiftAck(result, m.Key) };
-        if (result == 0 && actor is not null) messages.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(actor.CharacterId).GoldAsync(ct), clock.GetUtcNow()));
-        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingGiftRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeddingGiftCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed class MarriageWeddingProjection(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService views,
     IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService areas, TownAreaProjectionDelivery projection, IGameMessageSender sender)

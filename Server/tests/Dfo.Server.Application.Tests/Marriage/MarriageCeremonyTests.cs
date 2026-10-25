@@ -31,8 +31,6 @@ public sealed class MarriageCeremonyTests
         {
             services.AddSingleton<IMarriageCeremonyContentSource, Content>();
             services.AddSingleton<ICharacterQuestLogDomainService>(logs);
-            services.AddCommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult,
-                MarriageCeremonyCommandHandler>(CommandExecutionKind.Transactional);
             configure?.Invoke(services);
         });
         return (fixture, peer, logs, clock);
@@ -183,8 +181,8 @@ public sealed class MarriageCeremonyTests
         fixture.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=72");
         var bus = fixture.Services.GetRequiredService<ICommandBus>();
         var results = await Task.WhenAll(
-            bus.SendAsync(new MarriageCeremonyCommand(fixture.Session, peer, 0, 0, null)).AsTask(),
-            bus.SendAsync(new MarriageCeremonyCommand(peer, fixture.Session, 0, 0, null)).AsTask())
+            bus.SendAsync(new CeremonyTestCommand(fixture.Session, peer, 0, 0, null)).AsTask(),
+            bus.SendAsync(new CeremonyTestCommand(peer, fixture.Session, 0, 0, null)).AsTask())
             .WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Single(results, x => x.Succeeded);
         Assert.Single(results, x => x.Failure == MarriageCeremonyFailure.Occupied);

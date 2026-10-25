@@ -65,15 +65,13 @@ public sealed class MarriageEntityTests
 
         relations.Armed = true;
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            f.Services.GetRequiredService<ICommandBus>().SendAsync(new MarriageProposalCommand(peer, f.Session, 0), default).AsTask());
+            f.Services.GetRequiredService<ICommandBus>().SendAsync(new ProposalTestCommand(peer, f.Session, 0), default).AsTask());
         AssertStored(f, stage: 0, revision: 1);
         Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
 
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
             var handler = (IClientMessageHandler)ActivatorUtilities.CreateInstance(f.Services,
                 typeof(WeddingResponseRequest).Assembly.GetType("Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler")!);
-            var context = new NetworkDispatchContext(new(peer.ConnectionId, NetworkEndpointKind.Game, 10011));
+            var context = MarriageTestCommands.Dispatch(f.Services, peer);
             var accept = new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 1, 0, 0, 0);
             await Assert.ThrowsAsync<InvalidOperationException>(() => handler.HandleAsync(context, accept, default).AsTask());
             Assert.Empty(sender.Deliveries);
@@ -84,7 +82,6 @@ public sealed class MarriageEntityTests
             await handler.HandleAsync(context, accept, default);
             Assert.Equal(0, Assert.IsType<WeddingResponseAck>(Assert.Single(sender.Deliveries).RequiredDirectMessages[0]).Status);
             AssertStored(f, stage: 1, revision: 2);
-        });
     }
 
     private sealed class NoQuests : Dfo.Server.Abstractions.Content.IQuestDefinitionSource

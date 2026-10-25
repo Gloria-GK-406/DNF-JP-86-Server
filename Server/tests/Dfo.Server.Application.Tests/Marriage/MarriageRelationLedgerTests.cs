@@ -120,7 +120,7 @@ public sealed class MarriageRelationLedgerTests
 
         var bus = f.Services.GetRequiredService<ICommandBus>();
         var cancelled = await Request();
-        var accepted = await bus.SendAsync(new MarriageCeremonyCommand(peer, f.Session, 0, 0, 0));
+        var accepted = await bus.SendAsync(new CeremonyTestCommand(peer, f.Session, 0, 0, 0));
         Assert.Equal(2, accepted.Admissions.Count);
         await Expect(MarriageStage.Preparing, cancelled);
         Assert.Equal(1, WeddingRows(f, id, 0));
@@ -131,7 +131,7 @@ public sealed class MarriageRelationLedgerTests
 
         f.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=71");
         var completed = await Request();
-        var second = await bus.SendAsync(new MarriageCeremonyCommand(peer, f.Session, 0, 0, 0));
+        var second = await bus.SendAsync(new CeremonyTestCommand(peer, f.Session, 0, 0, 0));
         await Expect(MarriageStage.Preparing, completed);
         Assert.Equal(1, WeddingRows(f, id, 0));
         var room = second.Admissions[0].Church.Room;

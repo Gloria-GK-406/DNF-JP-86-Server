@@ -61,8 +61,6 @@ public sealed class MarriageChurchTests
         var (f, peer, logs, clock) = await Fixture(s =>
         {
             s.AddSingleton<ITownDefinitionSource, ChurchTestTowns>();
-            s.AddCommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult, PrepareMarriageChurchCommandHandler>(
-                CommandExecutionKind.Transactional);
             configure?.Invoke(s);
         });
         await MarriageCeremonyTests.MakeEligibleAsync(f, peer, logs);

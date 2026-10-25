@@ -108,28 +108,8 @@ internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartn
         OnePayload(GameProtocol.WeddingPartnerType, MarriageEngagementPayload.Partner(message.Partner));
 }
 
-internal sealed class WeddingPartnerHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
-    IGameMessageSender sender, ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>
+internal sealed class WeddingPartnerHandler(ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingPartnerCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingPartnerQuery message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        var snapshot = session is null || !sessions.IsInWorld(session) ? MarriageEngagementSnapshot.Empty
-            : await marriage.SnapshotAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        var peer = snapshot.Partner;
-        if (peer is not null && message.Target != 0 && message.Target != peer.CharacterId) peer = null;
-        var messages = new List<IGameServerMessage> { new WeddingPartnerAck(peer) };
-        if (peer is not null && snapshot.IsCeremonyReserved && session is not null)
-        {
-            var prepared = await commands.SendAsync(new PrepareMarriageChurchCommand(session), ct).ConfigureAwait(false);
-            if (prepared.Snapshot is { } church)
-            {
-                messages.Add(new WeddingChurchPreparationNotification(church, await marriage.RemainingInvitationsAsync(church.Room.CeremonyId, session.CharacterId, ct).ConfigureAwait(false)));
-                messages.Add(new WeddingInvitedGuestsNotification(await marriage.InvitedAsync(church.Room.CeremonyId, ct).ConfigureAwait(false)));
-            }
-        }
-        if (session is not null && await marriage.AppearanceAsync(session, ct).ConfigureAwait(false) is { } appearance)
-            messages.Add(new WeddingAvatarNotification(appearance));
-        await sender.SendExplicitAsync(context.Connection.ConnectionId, new(messages, []), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingPartnerQuery message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeddingPartnerCommand(context, message), ct).ConfigureAwait(false);
 }

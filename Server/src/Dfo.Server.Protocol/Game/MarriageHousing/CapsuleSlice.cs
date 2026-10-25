@@ -27,14 +27,7 @@ internal abstract class CapsuleDecoder(MarriageCapsuleAction action) : IGameMess
 internal sealed class CapsuleMakeDecoder() : CapsuleDecoder(MarriageCapsuleAction.Make);
 internal sealed class CapsuleGiveDecoder() : CapsuleDecoder(MarriageCapsuleAction.Give);
 internal sealed class CapsuleTakeDecoder() : CapsuleDecoder(MarriageCapsuleAction.Take);
-public sealed record CapsuleCommand(SelectedSessionIdentity Actor, MarriageCapsuleAction Action, IReadOnlyList<AccountId> AccountIds)
-    : ICommand<MarriageCapsuleResult>, IRequestSettlementCommand
-{ public SelectedSessionIdentity? Session => Actor; }
-public sealed class CapsuleCommandHandler(IMarriageCapsuleDomainService capsules) : ICommandHandler<CapsuleCommand, MarriageCapsuleResult>
-{
-    public ValueTask<MarriageCapsuleResult> HandleAsync(CommandExecutionContext context, CapsuleCommand command, CancellationToken ct) =>
-        capsules.CapsuleAsync(command.Actor, command.Action, command.AccountIds, context.LegacyFootprint, ct);
-}
+
 internal sealed record CapsuleAck(MarriageCapsuleAction Action, MarriageCapsuleResult Result) : IGameCmdMessage
 { public ServerMessageType MessageType => ServerMessageType.GameMarriageCapsule; }
 internal sealed class CapsuleAckEncoder : GameCmdMessageEncoder<CapsuleAck>
@@ -51,27 +44,10 @@ internal sealed class CapsuleAckEncoder : GameCmdMessageEncoder<CapsuleAck>
         return OnePayload(checked((ushort)(0x0404 + (int)m.Action)), GameCmdEnvelope.Accept(body));
     }
 }
-internal sealed class CapsuleHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
-    ICommandBus commands, IGameMessageSender sender, TimeProvider clock) : ClientMessageHandler<CapsuleRequest>
+internal sealed class CapsuleHandler(ICommandBus commands) : ClientMessageHandler<CapsuleRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameCapsuleCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CapsuleRequest message, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(context.Connection.ConnectionId); MarriageCapsuleResult result;
-        try { result = actor is null ? new(-1) : await commands.SendAsync(new CapsuleCommand(actor, message.Action,
-            await marriage.CoupleAccountsAsync(actor, ct).ConfigureAwait(false)), ct).ConfigureAwait(false); }
-        catch (MarriageCapsuleRejectedException e) { result = new(e.Status); }
-        if (result.Status == 0 && actor is not null)
-        {
-            var mapping = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService();
-            foreach (var item in result.Items)
-            {
-                var slot = mapping.ToGameSlot(item.Slot);
-                await sender.SendExplicitAsync(context.Connection.ConnectionId, new([GameInventoryDelivery.Notification(new(slot.Space,
-                    [new(item.Snapshot.ItemUid, slot.Index, item.Snapshot.ToCore(), item.Snapshot.AvatarDetail)], clock.GetUtcNow()))], []), ct).ConfigureAwait(false);
-            }
-        }
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new CapsuleAck(message.Action, result), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CapsuleRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameCapsuleCommand(context, message), ct).ConfigureAwait(false);
 }
 internal sealed record CapsuleRefresh(MarriageCapsuleSnapshot Snapshot) : INotification<CapsuleRefresh>;
 internal sealed class CapsuleRefreshHandler(ISelectedSessionDomainService sessions, IMarriageCapsuleQueryDomainService query) : INotificationHandler<CapsuleRefresh>

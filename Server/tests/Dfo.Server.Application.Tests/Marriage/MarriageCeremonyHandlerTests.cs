@@ -18,29 +18,29 @@ public sealed class MarriageCeremonyHandlerTests
     [Fact]
     public async Task Ordinary_reservation_request_acknowledges_and_notifies_the_invited_partner()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
             var sender = new RecordingSender();
             var (f, peer) = await MarriageProposalTests.Fixture(configure: s =>
             {
                 s.AddSingleton<IGameMessageSender>(sender);
+                s.AddSingleton<ISelectedCharacterCurrentViewDomainService, NoPublishedView>();
                 s.AddSingleton<IMarriageCeremonyContentSource, Content>();
                 s.AddSingleton<Dfo.Server.Abstractions.Content.ITownDefinitionSource, ChurchTestTowns>();
-                s.AddCommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult, PrepareMarriageChurchCommandHandler>(
-                    CommandExecutionKind.Transactional);
-                s.AddCommandHandler<MarriageCeremonyCommand, MarriageCeremonyResult, MarriageCeremonyCommandHandler>(
-                    CommandExecutionKind.Transactional);
             });
             await using var owned = f;
+            TestGameplay.Run(f.Services, () =>
+            {
             foreach (var actor in new[] { f.Session, peer })
             {
                 var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, 2, 1, 100, 200);
                 f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>().TransferExact(actor.CharacterId,
                     actor.TownAreaLease(), new(1, 2, 1), moved, true);
             }
+            });
             await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
             var engaged = await MarriageProposalTests.Run(f, x => x.RespondProposalAsync(peer, f.Session, 0, default));
             f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,1000000),(72,1000000);");
+            await TestGameplay.RunAsync(f.Services, async () =>
+            {
             await using (var tx = f.Scope.Begin())
             {
                 var bindings = f.Services.GetRequiredService<IMarriageQuestDomainStore>();
@@ -49,9 +49,10 @@ public sealed class MarriageCeremonyHandlerTests
                         await bindings.BindAsync(character, quest, engaged.Proposal!.Id, DateTimeOffset.UtcNow, default);
                 await tx.CommitAsync(default);
             }
+            });
             f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,20737,1),(71,20738,1),(72,20737,1),(72,20738,1);");
             var handler = (IClientMessageHandler)ActivatorUtilities.CreateInstance(f.Services, typeof(WeddingProposalRequest).Assembly.GetType("Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalHandler")!);
-            await handler.HandleAsync(new NetworkDispatchContext(new(f.Session.ConnectionId, NetworkEndpointKind.Game, 10011)),
+            await handler.HandleAsync(MarriageTestCommands.Dispatch(f.Services, f.Session),
                 new WeddingProposalRequest(GameMessageMetadata.Empty, peer.WireUserId, 2, 0, 0), default);
             var delivery = Assert.Single(sender.Deliveries);
             Assert.Equal(0, Assert.IsType<WeddingProposalAck>(Assert.Single(delivery.RequiredDirectMessages)).Status);
@@ -64,7 +65,7 @@ public sealed class MarriageCeremonyHandlerTests
 
             var response = (IClientMessageHandler)ActivatorUtilities.CreateInstance(f.Services,
                 typeof(WeddingProposalRequest).Assembly.GetType("Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler")!);
-            var peerContext = new NetworkDispatchContext(new(peer.ConnectionId, NetworkEndpointKind.Game, 10011));
+            var peerContext = MarriageTestCommands.Dispatch(f.Services, peer);
             await response.HandleAsync(peerContext, new WeddingResponseRequest(GameMessageMetadata.Empty,
                 f.Session.WireUserId + 100u, 2, 0, 0, 0), default);
             Assert.NotEqual(0, Assert.IsType<WeddingResponseAck>(Assert.Single(sender.Deliveries[^1].RequiredDirectMessages)).Status);
@@ -75,10 +76,10 @@ public sealed class MarriageCeremonyHandlerTests
             Assert.Equal(new WeddingResponseNotification(peer.WireUserId, 0, 2, -3),
                 Assert.Single(Assert.Single(sender.Deliveries[^1].BestEffortTargets).OrderedMessages));
             f.Sql("UPDATE character_stats SET carried_gold=1000000 WHERE character_id=71");
-            await handler.HandleAsync(new NetworkDispatchContext(new(f.Session.ConnectionId, NetworkEndpointKind.Game, 10011)),
+            await handler.HandleAsync(MarriageTestCommands.Dispatch(f.Services, f.Session),
                 new WeddingProposalRequest(GameMessageMetadata.Empty, peer.WireUserId, 2, 0, 0), default);
             await response.HandleAsync(peerContext, new WeddingResponseRequest(GameMessageMetadata.Empty, 0, 2, 0, 0, 0), default);
-            var accepted = sender.Deliveries[^1];
+            var accepted = sender.Deliveries.Last(x => x.RequiredDirectMessages.Any(m => m is WeddingResponseAck));
             Assert.Equal(0, Assert.IsType<WeddingResponseAck>(accepted.RequiredDirectMessages[0]).Status);
             Assert.Contains(accepted.RequiredDirectMessages, x => x.GetType().Name == "WeddingInfoMessage");
             Assert.Contains(Assert.Single(accepted.BestEffortTargets).OrderedMessages, x => x.GetType().Name == "WeddingInfoMessage");
@@ -90,7 +91,12 @@ public sealed class MarriageCeremonyHandlerTests
             Assert.Equal(0, Assert.IsType<WeddingResponseAck>(sender.Deliveries[^1].RequiredDirectMessages[0]).Status);
             Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_ceremonies WHERE state=1"));
             Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_ceremonies"));
-        });
+    }
+
+    private sealed class NoPublishedView : ISelectedCharacterCurrentViewDomainService
+    {
+        public ValueTask<Dfo.Server.Data.Game.SelectCharacterResult?> TryLoadAsync(Dfo.Server.Data.World.SelectedSessionIdentity session, CancellationToken ct) =>
+            ValueTask.FromResult<Dfo.Server.Data.Game.SelectCharacterResult?>(null);
     }
 
     private sealed class Content : IMarriageCeremonyContentSource

@@ -27,8 +27,7 @@ public sealed class MarriageProposalTests
         var f = new LearningFixture(configure: s =>
         {
             s.AddSingleton<IMarriageProposalContentSource, Content>();
-            s.AddCommandHandler<MarriageProposalCommand, MarriageProposalResult, MarriageProposalCommandHandler>(
-                CommandExecutionKind.Transactional);
+            MarriageTestCommands.Configure(s);
             if (clock is not null) s.AddSingleton<TimeProvider>(clock);
             configure?.Invoke(s);
         });
@@ -160,8 +159,8 @@ public sealed class MarriageProposalTests
         var (f, peer) = await Fixture(); await using var fixture = f;
         var bus = f.Services.GetRequiredService<ICommandBus>();
         var results = await Task.WhenAll(
-            bus.SendAsync(new MarriageProposalCommand(f.Session, peer, null)).AsTask(),
-            bus.SendAsync(new MarriageProposalCommand(peer, f.Session, null)).AsTask()).WaitAsync(TimeSpan.FromSeconds(5));
+            bus.SendAsync(new ProposalTestCommand(f.Session, peer, null)).AsTask(),
+            bus.SendAsync(new ProposalTestCommand(peer, f.Session, null)).AsTask()).WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Single(results, x => x.Succeeded);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_proposals"));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_proposal_participants WHERE active=1"));

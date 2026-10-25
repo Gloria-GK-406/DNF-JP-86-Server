@@ -72,39 +72,11 @@ internal sealed class HousingAckEncoder : GameCmdMessageEncoder<HousingAck>
         return OnePayload(m.Opcode, GameCmdEnvelope.Accept(b));
     }
 }
-public sealed record HousingCommand(SelectedSessionIdentity Actor, HousingRequest Request, IReadOnlyList<AccountId> AccountIds)
-    : ICommand<HousingResult>, IRequestSettlementCommand
-{ public SelectedSessionIdentity? Session => Actor; }
-public sealed class HousingCommandHandler(IMarriageHousingDomainService housing) : ICommandHandler<HousingCommand, HousingResult>
+
+internal sealed class HousingHandler(ICommandBus commands) : ClientMessageHandler<HousingNetworkRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameHousingCommand>
 {
-    public ValueTask<HousingResult> HandleAsync(CommandExecutionContext context, HousingCommand command, CancellationToken ct) =>
-        housing.ExecuteAsync(command.Actor, command.Request, command.AccountIds, context.LegacyFootprint, ct);
-}
-internal sealed class HousingHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
-    ICommandBus commands, IGameMessageSender sender, IEventService events, TimeProvider clock) : ClientMessageHandler<HousingNetworkRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, HousingNetworkRequest message, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(context.Connection.ConnectionId);
-        HousingResult result;
-        try
-        {
-            result = actor is null ? new HousingResult(-4) : await commands.SendAsync(new HousingCommand(actor, message.Request,
-                await marriage.CoupleAccountsAsync(actor, ct).ConfigureAwait(false)), ct).ConfigureAwait(false);
-        }
-        catch (HousingRejectedException error) { result = new(error.Status); }
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new HousingAck(message.Opcode, result.Status,
-            message.Request.Action == HousingAction.UpgradeRing ? result.RingLevel : message.Request.Action == HousingAction.Storage ? checked((byte)message.Request.Count) : (byte)0), ct).ConfigureAwait(false);
-        if (result.Status != 0 || actor is null) return;
-        if (result.ConsumedSlot is { } slot)
-        {
-            var wire = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService().ToGameSlot(slot);
-            await sender.SendExplicitAsync(context.Connection.ConnectionId, new([result.Remaining is { } item
-                ? GameInventoryDelivery.Notification(new(wire.Space, [new(item.ItemUid, wire.Index, item.ToCore(), item.AvatarDetail)], clock.GetUtcNow()))
-                : GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, clock.GetUtcNow())], []), ct).ConfigureAwait(false);
-        }
-        await events.ProjectAsync(new NotificationAudience.TheseCharacters(result.Audience), new HousingChanged(actor, message.Request, result), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, HousingNetworkRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameHousingCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed record HousingChanged(SelectedSessionIdentity Actor, HousingRequest Request, HousingResult Result) : INotification<HousingChanged>;
 internal sealed class HousingChangedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<HousingChanged>

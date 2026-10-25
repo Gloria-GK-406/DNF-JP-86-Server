@@ -57,24 +57,9 @@ internal sealed class WeddingCommentEncoder : GameCmdMessageEncoder<WeddingComme
             0x03FA => OnePayload(0x03FA, body), _ => throw new InvalidDataException("Unknown wedding comment response.") };
     }
 }
-public sealed record WeddingCommentCommand(SelectedSessionIdentity Actor, ushort Type, uint Key, uint Id, byte[] Text) : ICommand<MarriageGuestbookResult>, IAccountCommand, ISelectedSessionCommand
-{ public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
-public sealed class WeddingCommentCommandHandler(IMarriageVenueDomainService venue) : ICommandHandler<WeddingCommentCommand, MarriageGuestbookResult>
+
+internal sealed class WeddingCommentHandler(ICommandBus commands) : ClientMessageHandler<WeddingCommentRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingCommentCommand>
 {
-    public async ValueTask<MarriageGuestbookResult> HandleAsync(CommandExecutionContext c, WeddingCommentCommand q, CancellationToken ct) => q.Type switch
-    {
-        0x03FA => await venue.ReadGuestbookAsync(q.Actor, q.Key, ct).ConfigureAwait(false),
-        0x03F8 => new(await venue.PostGuestbookAsync(q.Actor, q.Key, q.Text, ct).ConfigureAwait(false), []),
-        0x03F9 => new(await venue.DeleteGuestbookAsync(q.Actor, q.Key, q.Id, ct).ConfigureAwait(false), []),
-        _ => new(-1, [])
-    };
-}
-internal sealed class WeddingCommentHandler(ISelectedSessionDomainService sessions, ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<WeddingCommentRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, WeddingCommentRequest m, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        var result = actor is null ? new MarriageGuestbookResult(-1, []) : await commands.SendAsync(new WeddingCommentCommand(actor, m.Type, m.Key, m.Id, m.Text), ct).ConfigureAwait(false);
-        await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new WeddingCommentAck(m.Type, m.Key, m.Id, result)], []), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingCommentRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeddingCommentCommand(context, message), ct).ConfigureAwait(false);
 }

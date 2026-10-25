@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Protocol.Game.MarriageProposal;
@@ -71,10 +72,14 @@ public sealed class EffectOperationReplayTests
         }
     }
 
-    [Fact]
-    public async Task Love_coupon_real_dispatcher_lost_ack_replays_current_inventory_and_points_without_second_deduction()
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Love_coupon_real_dispatcher_lost_ack_replays_current_inventory_and_points_without_second_deduction(bool encodingFailure)
     {
+        LossyLoveSender transport = null!;
         using var f = new ShopFixture(s => {
+            transport = new((IOutboundSender)s.Last(x => x.ServiceType == typeof(IOutboundSender)).ImplementationInstance!);
+            s.AddSingleton<IOutboundSender>(transport);
             s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((1000, ItemUseRules.Potion(0) with { Action = "[love point coupon]" })));
             s.AddSingleton<IMarriageCeremonyContentSource, LoveContent>();
         });
@@ -102,8 +107,23 @@ public sealed class EffectOperationReplayTests
             var (ordinal, fresh) = counter.Observe(1); var body = new byte[18]; BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(14), 69);
             return new((new GameMessageMetadata(1, 0x03F5, 0, 1) { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body), 69);
         }
-        var dispatcher = f.Services.GetRequiredService<INetworkMessageDispatcher>(); f.Sender.FailExplicit = true;
-        await Assert.ThrowsAsync<IOException>(async () => await dispatcher.DispatchAsync(new(f.Connection), Request(), default));
+        var dispatcher = f.Services.GetRequiredService<INetworkMessageDispatcher>();
+        if (encodingFailure)
+        {
+            f.Sender.FailExplicit = true;
+            var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await dispatcher.DispatchAsync(new(f.Connection), Request(), default));
+            Assert.IsType<IOException>(error.InnerException);
+            Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT points FROM marriage_personal_points WHERE character_id=1"));
+            Assert.True(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+            Assert.True(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+            Assert.Contains(f.Sender.Outbound.Entries, x => x.IsClose && ReferenceEquals(x.Connection, f.Connection));
+            Assert.Empty(f.Sender.Batches); return;
+        }
+        await dispatcher.DispatchAsync(new(f.Connection), Request(), default);
+        Assert.Single(transport.Dropped);
+        Assert.Same(f.Connection, transport.Dropped[0].Connection);
+        Assert.Contains(transport.Dropped[0].Messages, x => x.GetType().Name == "WeddingLovePointAck");
+        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT points FROM marriage_personal_points WHERE character_id=1"));
         await dispatcher.DispatchAsync(new(f.Connection), Request(), default);
         Assert.Equal(2, f.Count(1000)); Assert.Equal(1, f.Scalar("SELECT points FROM marriage_personal_points WHERE character_id=1"));
@@ -111,6 +131,21 @@ public sealed class EffectOperationReplayTests
         Assert.DoesNotContain(batch.Frames, frame => frame[0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x03F5);
         var points = Assert.Single(batch.Frames, frame => frame[0] == 0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x03D3);
         Assert.Equal(Convert.FromHexString("0100000001000000"), points[15..]);
+    }
+
+    private sealed class LossyLoveSender(IOutboundSender inner) : IOutboundSender
+    {
+        internal List<OutboundEntry> Dropped { get; } = [];
+        public void Submit(IReadOnlyList<OutboundEntry> entries)
+        {
+            var kept = new List<OutboundEntry>();
+            foreach (var entry in entries)
+            {
+                if (Dropped.Count == 0 && entry.Messages.Any(x => x.GetType().Name == "WeddingLovePointAck")) Dropped.Add(entry);
+                else kept.Add(entry);
+            }
+            inner.Submit(kept);
+        }
     }
 
     [Fact]

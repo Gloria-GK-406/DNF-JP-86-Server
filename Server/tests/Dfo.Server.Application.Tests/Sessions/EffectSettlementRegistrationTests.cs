@@ -82,8 +82,8 @@ public sealed class EffectSettlementRegistrationTests
         }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
-        Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand",    "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand", "EnterMarriageChurchCommand",
-            "MarriageCeremonyCommand", "MarriageProposalCommand", "PrepareMarriageChurchCommand",   "ReadReplayStateCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "SelectTournamentRewardCommand", "WeddingCommentCommand", "WeddingGiftCommand", "WeddingLetterCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
+        Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand",    "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand",
+               "ReadReplayStateCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "SelectTournamentRewardCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
         Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(), x => x.CommandType.Name.Contains("ReplayGuard"));
         Assert.NotNull(services.GetRequiredService<EffectOperationLedger>());
     }
@@ -93,7 +93,7 @@ public sealed class EffectSettlementRegistrationTests
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ClientMessageHandler<>)) return type.GetGenericArguments()[0];
         throw new InvalidOperationException($"No typed request for {handler}.");
     }
-    private static bool Migrated(string name) => name is "QuestClearCouponCommand" or "UseEntryAllowanceCommand" or "UseFatiguePotionCommand" || name == "FinishQuestCommand" && Dfo.Server.Application.Tests.Support.QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+    private static bool Migrated(string name) => name is "CapsuleCommand" or "HousingCommand" or "WeddingLovePointCommand" || name is "QuestClearCouponCommand" or "UseEntryAllowanceCommand" or "UseFatiguePotionCommand" || name == "FinishQuestCommand" && Dfo.Server.Application.Tests.Support.QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
         && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
 
 }

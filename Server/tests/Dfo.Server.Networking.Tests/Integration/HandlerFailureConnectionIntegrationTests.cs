@@ -137,7 +137,7 @@ public sealed class HandlerFailureConnectionIntegrationTests
             PostCommitFailureWireTests.Recording<ISelectedSessionDomainService>.Wrap(inner, (method, _) =>
             {
                 if (method.Name != nameof(ISelectedSessionDomainService.FindByConnection)
-                    || GameplayJob.Current is not { CommandType: "inbound:GameWeddingResponse" } chain
+                    || GameplayJob.Current is not { CommandType: "GameWeddingResponseCommand" } chain
                     || Interlocked.Exchange(ref armed, 0) == 0) return;
                 failedSource = chain.SourceConnection;
                 throw new InvalidOperationException("Injected inside the wedding response job.");
@@ -165,10 +165,10 @@ public sealed class HandlerFailureConnectionIntegrationTests
         finally { await host.StopAsync(CancellationToken.None); }
 
         Assert.NotNull(failedSource);
-        var failure = Assert.Single(logs.Entries, x => x.Message.StartsWith("Gameplay inbound:", StringComparison.Ordinal)
+        var failure = Assert.Single(logs.Entries, x => x.Message.StartsWith("Gameplay GameWeddingResponseCommand ", StringComparison.Ordinal)
             && x.Message.Contains(" failed: root", StringComparison.Ordinal));
         Assert.Equal(LogLevel.Error, failure.Level);
-        Assert.StartsWith("Gameplay inbound:GameWeddingResponse failed", failure.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Gameplay GameWeddingResponseCommand failed", failure.Message, StringComparison.Ordinal);
         Assert.Equal("Injected inside the wedding response job.", Assert.IsType<InvalidOperationException>(failure.Exception).Message);
         Assert.DoesNotContain(logs.Entries, x => x.Level >= LogLevel.Error && x.Message.StartsWith("Game handler failed", StringComparison.Ordinal));
         Assert.Equal(failedSource, failure.Fields["SourceConnection"]);
