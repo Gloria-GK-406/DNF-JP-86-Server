@@ -33,8 +33,7 @@ internal sealed class TownReturnCommandStages(
         VisibleParticipantsAsync(TownAreaSnapshot area, SelectedSessionIdentity viewer, CancellationToken token) => TownVisibleParticipantsAsync(area, viewer, token);
     protected override ValueTask PartyTownRefreshMovedPartyAsync(SelectedSessionIdentity mover, PartyDirectoryScope? previousScope,
         CancellationToken token) => partyTownProjection.RefreshMovedPartyAsync(mover, previousScope, token);
-    protected override ValueTask PartyTownRefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients,
-        IReadOnlyList<SelectedSessionIdentity> represented, CancellationToken token) => partyTownProjection.RefreshObservedPartiesAsync(recipients, represented, token);
+    protected override ValueTask PartyTownRefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken token) => partyTownProjection.RefreshObservedPartiesAsync(recipients, token);
     protected override Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? HousingSessions => housingSessions;
     protected override ValueTask TownRegisterNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken token) => noti is null ? base.TownRegisterNotiAsync(connection, message, token) : noti(connection, message, token);
     internal ValueTask RefuseAsync(NetworkConnectionId connection, SelectedSessionIdentity session, SelectCharacterResult result,

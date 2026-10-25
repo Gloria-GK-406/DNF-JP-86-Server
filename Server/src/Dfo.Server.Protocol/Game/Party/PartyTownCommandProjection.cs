@@ -19,7 +19,6 @@ internal sealed class PartyTownCommandProjection(IPartyService parties, ITownAre
 {
     public ValueTask RefreshMovedPartyAsync(SelectedSessionIdentity mover, PartyDirectoryScope? previousScope,
         CancellationToken token) => PartyTownRefreshMovedPartyAsync(mover, previousScope, token);
-    public ValueTask RefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients,
-        IReadOnlyList<SelectedSessionIdentity> represented, CancellationToken token) =>
-        PartyTownRefreshObservedPartiesAsync(recipients, represented, token);
+    public ValueTask RefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken token) =>
+        PartyTownRefreshObservedPartiesAsync(recipients, token);
 }

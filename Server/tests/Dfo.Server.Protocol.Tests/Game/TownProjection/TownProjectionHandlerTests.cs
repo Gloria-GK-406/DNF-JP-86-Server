@@ -67,14 +67,14 @@ public sealed class TownProjectionHandlerTests
             var notifications = new RecordingNotifications();
             var sessions = new OneSession(Identity);
             var runtimes = new OneRuntimeSession(Entry());
-            var handler = new SetUserAreaHandler(
+            var handler = TownMovementTestDriver.Area(
                 sessions,
                 runtimes,
                 positions,
                 presenceRegistry,
                 new OneChannel(transient),
                 new EveryTownDeclared(),
-                new TownAreaProjectionDelivery(
+                new TownMovementTestDriver.ProjectionInput(
                     presenceRegistry,
                     sessions,
                     runtimes,
@@ -139,9 +139,9 @@ public sealed class TownProjectionHandlerTests
             var sessions = new OneSession(Identity);
             var currentViews = new OneRuntimeSession(Entry());
             var towns = new EveryTownDeclared(allowEntry: false);
-            var handler = new SetUserAreaHandler(sessions, currentViews, positions, presence,
+            var handler = TownMovementTestDriver.Area(sessions, currentViews, positions, presence,
                 new OneChannel(saintHorn), towns,
-                new TownAreaProjectionDelivery(presence, sessions, currentViews, notifications,
+                new TownMovementTestDriver.ProjectionInput(presence, sessions, currentViews, notifications,
                     new NoopPartyTownProjectionDelivery(), sender, towns),
                 NullLogger<SetUserAreaHandler>.Instance, persistence);
             await handler.HandleAsync(Dispatch(), new SetUserAreaRequest(GameMessageMetadata.Empty,
@@ -256,14 +256,14 @@ public sealed class TownProjectionHandlerTests
             var sender = new RecordingSender(order);
             var notifications = new RecordingNotifications(order);
             var partyProjection = new RecordingPartyTownProjectionDelivery(order);
-            var handler = new SetUserAreaHandler(
+            var handler = TownMovementTestDriver.Area(
                 sessions,
                 currentViews,
                 positions,
                 presence,
                 new OneChannel(),
                 new EveryTownDeclared(),
-                new TownAreaProjectionDelivery(
+                new TownMovementTestDriver.ProjectionInput(
                     presence,
                     sessions,
                     currentViews,
@@ -332,8 +332,8 @@ public sealed class TownProjectionHandlerTests
                     "notify:TownAreaRosterReconciled",
                     "notify:TownAreaRosterReconciled",
                     "notify:TownParticipantPublished",
-                    "party:62<-60",
-                    "party:60<-62",
+                    "party:62",
+                    "party:60",
                     "party-move:60@10:3:6",
                 ],
                 order);
@@ -360,11 +360,11 @@ public sealed class TownProjectionHandlerTests
             var notifications = new RecordingNotifications();
             var sessions = new OneSession(Identity);
             var runtimes = new OneRuntimeSession(Entry());
-            var handler = new SetUserPositionHandler(
+            var handler = TownMovementTestDriver.Position(
                 sessions,
                 positions,
                 presence,
-                new TownAreaProjectionDelivery(
+                new TownMovementTestDriver.ProjectionInput(
                     presence,
                     sessions,
                     runtimes,
@@ -425,11 +425,11 @@ public sealed class TownProjectionHandlerTests
             var notifications = new RecordingNotifications();
             var sender = new RecordingSender();
             var runtimes = new OneRuntimeSession(Entry());
-            var handler = new SetUserPositionHandler(
+            var handler = TownMovementTestDriver.Position(
                 sessions,
                 positions,
                 presence,
-                new TownAreaProjectionDelivery(
+                new TownMovementTestDriver.ProjectionInput(
                     presence,
                     sessions,
                     runtimes,
@@ -488,11 +488,11 @@ public sealed class TownProjectionHandlerTests
             var notifications = new RecordingNotifications();
             var sender = new RecordingSender();
             var runtimes = new OneRuntimeSession(Entry());
-            var handler = new SetUserPositionHandler(
+            var handler = TownMovementTestDriver.Position(
                 sessions,
                 positions,
                 presence,
-                new TownAreaProjectionDelivery(
+                new TownMovementTestDriver.ProjectionInput(
                     presence,
                     sessions,
                     runtimes,
@@ -757,7 +757,7 @@ public sealed class TownProjectionHandlerTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class RecordingPersistence : ISelectedSessionPositionPersistence
+    private sealed class RecordingPersistence : ISelectedSessionPositionPersistence, ICharacterLocationDomainService
     {
         public CharacterPositionState? Saved { get; private set; }
         public bool Refuse { get; init; }
@@ -769,12 +769,14 @@ public sealed class TownProjectionHandlerTests
         }
     }
 
-    private sealed class OneChannel(bool transient = false) : IChannelEntryPolicy
+    private sealed class OneChannel(bool transient = false) : IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 new ChannelEntryIdentity(10, listenerPort, transient ? ChannelEntryKind.SaintHorn : ChannelEntryKind.General));
+
+        public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
 
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) =>
             throw new NotSupportedException("Crossing an area does not re-admit anyone.");
@@ -871,12 +873,10 @@ public sealed class TownProjectionHandlerTests
 
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken)
         {
             order.Add(
-                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}"
-                + $"<-{string.Join(',', representedSessions.Select(value => value.CharacterId.Value))}");
+                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}");
             return ValueTask.CompletedTask;
         }
     }
@@ -890,7 +890,6 @@ public sealed class TownProjectionHandlerTests
 
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }

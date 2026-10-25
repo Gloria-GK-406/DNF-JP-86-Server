@@ -135,7 +135,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         if (peerSessions.Length > 0)
         {
             await PartyTownRefreshObservedPartiesAsync(
-                [session], peerSessions, cancellationToken).ConfigureAwait(false);
+                [session], cancellationToken).ConfigureAwait(false);
         }
         if (changedArea)
         {

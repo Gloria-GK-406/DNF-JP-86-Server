@@ -16064,25 +16064,30 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 71,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "显式Main用原actor及unit.Footprint；正常拒绝空提交、真确认回滚及当前状态replay保持。",
+          "old": "Teleport为一个Transactional RequestSettlement fine。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 71,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "唯一Teleport whole吸收原fine；生产类型、注册与调用删除。"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Teleport.TeleportCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Teleport.TeleportCommand",
@@ -16108,32 +16113,45 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.TeleportConsumableResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 71,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 71,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 71,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "薄handler只入队本消息唯一CMD；共享Town/Party阶段在CMD partial，未迁调用方经窄适配复用同算法。",
+          "old": "原已注册decoder→dispatcher→handler；Teleport另调用唯一fine，Town无fine。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "Main仅selected.Recipient；不扩大队伍、observer或housing参与者。",
+          "old": "原effect精确actor与唯一物理账本。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "F-88在Main前保真实零Main/零帧；可编译去guard两种行为红后恢复；VC-B10仅首次batch/scope默认typed和原actor保护，replay有限owner保持原cause/entry/Ordinal/Committed。",
+          "old": "原wrong-generation不能开始结算，原提交点、拒绝、投影顺序与raw replay。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
     },
     {
       "actual_units": {
@@ -20922,26 +20940,31 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 412,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "无新工作单元；原内存动作和单NOTI登记保持。",
+          "old": "无SQLite事务；原StepTo→MoveExact→来源NOTI→同区通知。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 412,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+      ],
       "id": "message:65571",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TownProjection.SetUserPositionHandler",
@@ -20963,57 +20986,75 @@
         "telemetry": false,
         "value": 65571
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 412,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 412,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 412,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "薄handler只入队本消息唯一CMD；共享Town/Party阶段在CMD partial，未迁调用方经窄适配复用同算法。",
+          "old": "原已注册decoder→dispatcher→handler；Teleport另调用唯一fine，Town无fine。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "空Participants且无footprint，不新增选中session围栏。",
+          "old": "原无selected事务参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "原精确guard和失败不发布位置保持；F109只删无语义参数、保真实收件人顺序；Area提交后默认失败见VC-B10，仍空selected。",
+          "old": "原IsInWorld及Owns代次、频道/婚房/婚礼准入和当前位置投影。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 221,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "每个实际持久写对应ordinary Write([])；101目的跳过无意义单元，原先提交后记内存顺序保持。",
+          "old": "普通跨区Persist自开一次事务；进101先Persist普通返回位置提交→RememberReturn；101目的Persist无操作。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 221,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+      ],
       "id": "message:65572",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TownProjection.SetUserAreaHandler",
@@ -21035,35 +21076,48 @@
         "telemetry": false,
         "value": 65572
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 221,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 221,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TownProjection/TownProjectionSlice.cs",
-          "line": 221,
-          "source_sha256": "aae32ab49086a8f3ad99eaeff4c71e50575403858cdb344af3550348d1e67959"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "薄handler只入队本消息唯一CMD；共享Town/Party阶段在CMD partial，未迁调用方经窄适配复用同算法。",
+          "old": "原已注册decoder→dispatcher→handler；Teleport另调用唯一fine，Town无fine。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "空Participants且无footprint，不新增选中session围栏。",
+          "old": "原无selected事务参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "原精确guard和失败不发布位置保持；F109只删无语义参数、保真实收件人顺序；Area提交后默认失败见VC-B10，仍空selected。",
+          "old": "原IsInWorld及Owns代次、频道/婚房/婚礼准入和当前位置投影。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
     },
     {
       "actual_units": {
@@ -25826,26 +25880,31 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 78,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "显式Main用原actor及unit.Footprint；正常拒绝空提交、真确认回滚及当前状态replay保持。",
+          "old": "Teleport为一个Transactional RequestSettlement fine。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 78,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+      ],
       "id": "message:65773",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Teleport.TeleportHandler",
@@ -25867,30 +25926,42 @@
         "telemetry": false,
         "value": 65773
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 78,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 78,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
-          "line": 78,
-          "source_sha256": "60a0ed02af972629fee9bdb79f3be4666bc796894585ed2be0008dfbaf75e328"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "薄handler只入队本消息唯一CMD；共享Town/Party阶段在CMD partial，未迁调用方经窄适配复用同算法。",
+          "old": "原已注册decoder→dispatcher→handler；Teleport另调用唯一fine，Town无fine。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "Main仅selected.Recipient；不扩大队伍、observer或housing参与者。",
+          "old": "原effect精确actor与唯一物理账本。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Teleport/TeleportSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
+          ],
+          "new": "F-88在Main前保真实零Main/零帧；可编译去guard两种行为红后恢复；VC-B10仅首次batch/scope默认typed和原actor保护，replay有限owner保持原cause/entry/Ordinal/Committed。",
+          "old": "原wrong-generation不能开始结算，原提交点、拒绝、投影顺序与raw replay。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Teleport.TeleportCommand"
       ],
@@ -25898,7 +25969,8 @@
         "GameInventoryDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
     },
     {
       "actual_units": {
@@ -33774,11 +33846,14 @@
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-teleport-01.log",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-green-teleport-01.log",
-        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md"
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
       ],
       "id": "protection:F-88-teleport",
-      "new_owner": "pending",
-      "new_test_entry": "pending",
+      "new_owner": "GameTeleportCommandHandler.TeleportAsync: view/previous/Owns before mapping/channel/Main",
+      "new_test_entry": "Server/tests/Dfo.Server.Application.Tests/Inventory/TeleportConsumableTests.cs:A_previous_town_member_from_another_generation_cannot_start_a_teleport",
       "original": {
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-teleport-01.log",
@@ -33800,7 +33875,8 @@
         }
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
     },
     {
       "evidence": [

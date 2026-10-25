@@ -58,7 +58,6 @@ internal static class TownAreaProjectionTestFactory
     {
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RefreshMovedPartyAsync(

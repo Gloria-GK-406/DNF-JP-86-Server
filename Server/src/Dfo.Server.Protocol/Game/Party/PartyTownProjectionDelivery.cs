@@ -15,7 +15,6 @@ public interface IPartyTownProjectionDelivery
 {
     ValueTask RefreshObservedPartiesAsync(
         IReadOnlyList<SelectedSessionIdentity> recipients,
-        IReadOnlyList<SelectedSessionIdentity> representedSessions,
         CancellationToken cancellationToken);
 
     ValueTask RefreshMovedPartyAsync(
@@ -38,9 +37,8 @@ public sealed class PartyTownProjectionDelivery(
         PartyDirectoryScope? previousScope, CancellationToken cancellationToken) =>
         projection.RefreshMovedPartyAsync(mover, previousScope, cancellationToken);
 
-    public ValueTask RefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients,
-        IReadOnlyList<SelectedSessionIdentity> representedSessions, CancellationToken cancellationToken) =>
-        projection.RefreshObservedPartiesAsync(recipients, representedSessions, cancellationToken);
+    public ValueTask RefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken cancellationToken) =>
+        projection.RefreshObservedPartiesAsync(recipients, cancellationToken);
 }
 
 internal readonly record struct PartyExactNotificationDeliveryResult(

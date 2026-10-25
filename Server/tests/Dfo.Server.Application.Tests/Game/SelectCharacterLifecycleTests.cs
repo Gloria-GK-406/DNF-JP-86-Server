@@ -556,7 +556,7 @@ public sealed partial class SelectCharacterLifecycleTests
             var partySteps = fixture.Ledger
                 .Where(value => value.StartsWith("party:", StringComparison.Ordinal))
                 .ToArray();
-            Assert.Equal(["party:501<-4243", "party:4243<-501"], partySteps);
+            Assert.Equal(["party:501", "party:4243"], partySteps);
             var firstParty = fixture.Ledger.IndexOf(partySteps[0]);
             Assert.Equal("pre", fixture.Ledger[firstParty - 1]);
             Assert.Equal("target", fixture.Ledger[firstParty + 1]);
@@ -577,7 +577,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None);
 
             Assert.Equal(
-                ["party:501<-4243", "party:4243<-501"],
+                ["party:501", "party:4243"],
                 fixture.Ledger
                     .Where(value => value.StartsWith("party:", StringComparison.Ordinal)));
             Assert.Equal(2, fixture.Notifications.Published.Count);
@@ -1501,12 +1501,10 @@ public sealed partial class SelectCharacterLifecycleTests
 
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken)
         {
             ledger.Add(
-                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}"
-                + $"<-{string.Join(',', representedSessions.Select(value => value.CharacterId.Value))}");
+                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}");
             return ValueTask.CompletedTask;
         }
     }

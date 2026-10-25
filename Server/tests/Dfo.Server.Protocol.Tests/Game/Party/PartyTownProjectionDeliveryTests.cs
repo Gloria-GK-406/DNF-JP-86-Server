@@ -92,7 +92,6 @@ public sealed class PartyTownProjectionDeliveryTests
 
             await delivery.RefreshObservedPartiesAsync(
                 [Observer, Leader, Observer],
-                [Member, NoParty, Leader, Member],
                 CancellationToken.None);
 
             var publication = Assert.Single(bus.Publications);
@@ -121,7 +120,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 streams);
 
             await current.RefreshObservedPartiesAsync(
-                [Observer], [Leader], CancellationToken.None);
+                [Observer], CancellationToken.None);
 
             Assert.Single(currentBus.Publications);
 
@@ -135,7 +134,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 streams);
 
             await stale.RefreshObservedPartiesAsync(
-                [Observer], [Leader], CancellationToken.None);
+                [Observer], CancellationToken.None);
 
             Assert.Empty(staleBus.Publications);
         });
@@ -156,7 +155,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 new PartyProjectionStreamRegistry());
 
             await delivery.RefreshObservedPartiesAsync(
-                [Observer], [Leader], CancellationToken.None);
+                [Observer], CancellationToken.None);
 
             Assert.Equal(2, bus.Attempts);
             Assert.Equal(1, bus.Successes);

@@ -120,11 +120,9 @@ internal abstract partial class PartyMutationProtocolCommandHandler
 
     protected virtual async ValueTask PartyTownRefreshObservedPartiesAsync(
         IReadOnlyList<SelectedSessionIdentity> recipients,
-        IReadOnlyList<SelectedSessionIdentity> representedSessions,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(recipients);
-        ArgumentNullException.ThrowIfNull(representedSessions);
         cancellationToken.ThrowIfCancellationRequested();
 
         var exactRecipients = recipients.Distinct().ToArray();

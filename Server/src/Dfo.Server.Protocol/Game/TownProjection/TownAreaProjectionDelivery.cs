@@ -200,7 +200,7 @@ public sealed class TownAreaProjectionDelivery
         if (!selectedSessions.IsInWorld(session))
             return;
         await partyTownProjection.RefreshObservedPartiesAsync(
-            [session], publication.Audience, cancellationToken).ConfigureAwait(false);
+            [session], cancellationToken).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session))
             return;
         var registered = await PartyExactNotificationDelivery.PublishWithRetryAsync(
@@ -211,7 +211,7 @@ public sealed class TownAreaProjectionDelivery
         if (!registered.Registered.IsEmpty)
         {
             await partyTownProjection.RefreshObservedPartiesAsync(
-                registered.Registered, [session], cancellationToken).ConfigureAwait(false);
+                registered.Registered, cancellationToken).ConfigureAwait(false);
         }
     }
 

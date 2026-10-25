@@ -179,7 +179,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         if (peerSessions.Length > 0)
         {
             await PartyTownRefreshObservedPartiesAsync(
-                [admission.Entry.Session], peerSessions, cancellationToken).ConfigureAwait(false);
+                [admission.Entry.Session], cancellationToken).ConfigureAwait(false);
         }
         if (admission.Change.Kind != TownAreaMembershipChangeKind.Unchanged)
         {
@@ -202,7 +202,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         if (!publication.Registered.IsEmpty)
         {
             await PartyTownRefreshObservedPartiesAsync(
-                publication.Registered, [newcomer], cancellationToken).ConfigureAwait(false);
+                publication.Registered, cancellationToken).ConfigureAwait(false);
         }
     }
 

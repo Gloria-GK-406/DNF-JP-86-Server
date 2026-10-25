@@ -20,7 +20,7 @@ public sealed class TeleportConsumableTests
 {
     private static readonly CharacterPositionState Start = new(0, 0, 12, 34, 5);
     private static readonly CharacterPositionState Destination = new(11, 3, 474, 234, 0);
-    private static ShopFixture Fixture()
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null)
     {
         var f = new ShopFixture(s =>
         {
@@ -28,6 +28,7 @@ public sealed class TeleportConsumableTests
             s.AddSingleton<IItemUseRuleDefinitionSource>(new UseRules());
             s.AddSingleton<ITownDefinitionSource>(new Towns());
             s.AddSingleton<ISelectedCharacterCurrentViewDomainService>(new CurrentView());
+            configure?.Invoke(s);
         });
         f.SetLevel(2);
         TestGameplay.Run(f.Services, () =>
@@ -36,7 +37,7 @@ public sealed class TeleportConsumableTests
         });
         return f;
     }
-    private static ValueTask Send(ShopFixture f, ushort sequence = 7, short slot = 65, int item = 2000, byte town = 11,
+    internal static ValueTask Send(ShopFixture f, ushort sequence = 7, short slot = 65, int item = 2000, byte town = 11,
         byte reserved = 0, short x = short.MaxValue) => EffectRequestTransport.Send(f,
             new TeleportRequest(new(1, 0x00ED, 0, sequence), slot, item, reserved, town, 0, x, short.MaxValue));
 
@@ -126,7 +127,9 @@ public sealed class TeleportConsumableTests
     {
         using var f = Fixture(); await f.Seed(65, 2000, 2);
         f.Sender.FailBatch = true;
-        await Assert.ThrowsAsync<IOException>(() => Send(f).AsTask());
+        var failure = await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(() => Send(f).AsTask());
+        Assert.IsType<IOException>(failure.InnerException);
+        Assert.True(f.Services.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>().IsBlocked(f.Connection));
         TestGameplay.Run(f.Services, () =>
         {
             Assert.Equal(1, f.Count(2000)); Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
@@ -176,41 +179,38 @@ public sealed class TeleportConsumableTests
     [Fact]
     public async Task A_previous_town_member_from_another_generation_cannot_start_a_teleport()
     {
-        using var f = Fixture();
+        var writes = new TeleportProtocolCommandFlowTests.UnitTrace();
+        using var f = Fixture(services =>
+        {
+            var d = services.Last(x => x.ServiceType == typeof(Dfo.Server.Application.Commands.ICommandWorkUnits));
+            services.AddScoped<Dfo.Server.Application.Commands.ICommandWorkUnits>(p => new TeleportProtocolCommandFlowTests.ObserveUnits(
+                (Dfo.Server.Application.Commands.ICommandWorkUnits)(d.ImplementationFactory?.Invoke(p) ?? ActivatorUtilities.CreateInstance(p,d.ImplementationType!)), writes));
+        });
         await f.Seed(65, 2000, 2);
-        var bus = new RecordingTeleportBus();
+        TownAreaMember previous = null!;
         await TestGameplay.RunAsync(f.Services, async () =>
         {
             var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
             var replacement = f.Session with { ConnectionGeneration = f.Session.ConnectionGeneration + 1 };
             areas.Enter(new(f.Session.CharacterId, replacement.TownAreaLease(), new(1, 0, 0), Start, true));
-            var previous = Assert.IsType<TownAreaMember>(areas.Find(f.Session.CharacterId));
+            previous = Assert.IsType<TownAreaMember>(areas.Find(f.Session.CharacterId));
             Assert.False(f.Session.Owns(previous));
             var views = f.Services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>();
             Assert.NotNull(await views.TryLoadAsync(f.Session, default));
-            var handler = ActivatorUtilities.CreateInstance<TeleportHandler>(f.Services, bus);
-            await handler.HandleAsync(new(f.Connection),
-                new TeleportRequest(new(1, 0x00ED, 0, 7), 65, 2000, 0, 11, 0, short.MaxValue, short.MaxValue), default);
-            Assert.Equal(0, bus.Calls);
+        });
+        await Send(f);
+        TestGameplay.Run(f.Services, () =>
+        {
             Assert.Equal(Start, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
             Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(
                 f.Session.CharacterId, ItemCooldownKey.ForItem(2000)));
-            Assert.Equal(previous, areas.Find(f.Session.CharacterId));
+            Assert.Equal(previous, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId));
         });
-        Assert.Equal(2, f.Count(2000));
         Assert.Empty(f.Sender.Messages);
-    }
-
-    private sealed class RecordingTeleportBus : Dfo.Server.Application.Commands.ICommandBus
-    {
-        public int Calls { get; private set; }
-        public ValueTask<TResult> SendAsync<TResult>(Dfo.Server.Application.Commands.ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            Assert.IsType<TeleportCommand>(command);
-            Calls++;
-            return ValueTask.FromResult((TResult)(object)new TeleportConsumableResult(ItemUsability.NotAUsableItem));
-        }
+        Assert.Equal(0, writes.Main);
+        Assert.Equal(2, f.Count(2000));
+        Assert.Equal(0, f.Scalar("SELECT town_id FROM characters WHERE character_id=1"));
+        Assert.Empty(f.Sender.Messages);
     }
 
     private sealed class Definitions : ITeleportConsumableDefinitionSource

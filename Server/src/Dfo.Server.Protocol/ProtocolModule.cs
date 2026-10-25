@@ -683,8 +683,13 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem, typeof(SellItemRequest)));
         services.AddProtocolCommandHandler<GameRepairItemCommand, bool, GameRepairItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRepairItem, typeof(RepairItemRequest)));
-        services.AddCommandHandler<TeleportCommand, TeleportConsumableResult, TeleportCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameTeleportCommand, bool, GameTeleportCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameTeleport, typeof(TeleportRequest)));
+        services.AddProtocolCommandHandler<GameSetUserAreaCommand, bool, GameTownMovementCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetUserArea, typeof(SetUserAreaRequest)));
+        services.AddProtocolCommandHandler<GameSetUserPositionCommand, bool, GameTownMovementCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetUserPosition, typeof(SetUserPositionRequest)));
         services.AddProtocolCommandHandler<GameMagicSealCommand, EquipmentMagicSealResult, GameMagicSealCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUnsealRandomOption, typeof(MagicSealRequest)),
@@ -1005,7 +1010,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);
         services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);
         services.RegisterProtocolMessageHandler<EnchantByBeadHandler, EnchantByBeadRequest, GameEnchantByBeadCommand>(ClientMessageType.GameEnchantByBead);
-        services.RegisterMessageHandler<TeleportHandler>(ClientMessageType.GameTeleport);
+        services.RegisterProtocolMessageHandler<TeleportHandler, TeleportRequest, GameTeleportCommand>(ClientMessageType.GameTeleport);
         services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameChangeRandomOption);
         services.RegisterProtocolMessageHandler<CompoundItemHandler, CompoundItemRequest, GameCompoundItemCommand>(ClientMessageType.GameCompoundItem);
@@ -1026,8 +1031,8 @@ public sealed class ProtocolModule : IServerModule
 
         // Position and area: the only inputs that move a published character, and so the only
         // way the town its next entry reports can change.
-        services.RegisterMessageHandler<SetUserPositionHandler>(ClientMessageType.GameSetUserPosition);
-        services.RegisterMessageHandler<SetUserAreaHandler>(ClientMessageType.GameSetUserArea);
+        services.RegisterProtocolMessageHandler<SetUserPositionHandler, SetUserPositionRequest, GameSetUserPositionCommand>(ClientMessageType.GameSetUserPosition);
+        services.RegisterProtocolMessageHandler<SetUserAreaHandler, SetUserAreaRequest, GameSetUserAreaCommand>(ClientMessageType.GameSetUserArea);
     }
 
     /// <summary>
