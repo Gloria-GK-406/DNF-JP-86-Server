@@ -305,8 +305,8 @@ public sealed class ClientSettingsBlobTests
         await f.SeedAsync(); var origin = Origin(f);
         var commands = f.Services.GetRequiredService<ICommandBus>();
         Assert.True(await commands.SendAsync(new ActivateClientHotkeyProfileCommand(origin,0),default));
-        var dispatch = new NetworkDispatchContext(
-            new NetworkConnectionContext(origin.Connection.ConnectionId, NetworkEndpointKind.Game,10011));
+        Assert.True(f.Services.GetRequiredService<IOnlineUserQueryDomainService>().TryGetByConnection(origin.Connection.ConnectionId, out var current));
+        var dispatch = new NetworkDispatchContext(current!.Connection);
         var main=Enumerable.Range(0,150).Select(i=>(byte)i).ToArray();
         byte[] keys=[65,9,49,10,0]; var chat=Enumerable.Repeat((byte)99,300).ToArray();
         var dispatcher = f.Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkMessageDispatcher>();

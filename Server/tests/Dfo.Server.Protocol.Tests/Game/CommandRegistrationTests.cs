@@ -36,6 +36,39 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Settings_and_notice_uploads_have_six_exact_bindings_without_fine_or_extra_capabilities()
+    {
+        using var provider = BuildProductionGraph();
+        var rows = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        (ClientMessageType Message, Type Input, Type Command)[] expected = [
+            (ClientMessageType.GameSaveGameOption1, typeof(Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Request), typeof(Dfo.Server.Protocol.Game.SaveGameOption.GameSaveGameOption1Command)),
+            (ClientMessageType.GameSaveHotkeys, typeof(Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest), typeof(Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand)),
+            (ClientMessageType.GameSaveQuickChat, typeof(Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest), typeof(Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand)),
+            (ClientMessageType.GameSaveCharacterOption, typeof(Dfo.Server.Protocol.Game.SaveCharacterOption.SaveCharacterOptionRequest), typeof(Dfo.Server.Protocol.Game.SaveCharacterOption.GameSaveCharacterOptionCommand)),
+            (ClientMessageType.GameNoticeSeen, typeof(Dfo.Server.Protocol.Game.InformNotice.NoticeSeenRequest), typeof(Dfo.Server.Protocol.Game.InformNotice.GameNoticeSeenCommand)),
+            (ClientMessageType.GameInformNoticeSecond, typeof(Dfo.Server.Protocol.Game.InformNotice.InformNoticeSecondReport), typeof(Dfo.Server.Protocol.Game.InformNotice.GameNoticeSeenCommand))];
+        using var scope = provider.CreateScope();
+        foreach (var item in expected)
+        {
+            var row = Assert.Single(rows, x => x.CommandType == item.Command);
+            Assert.NotNull(scope.ServiceProvider.GetRequiredService(row.InvokerType));
+            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(expected.Where(x => x.Command == item.Command).Select(x => new ProtocolCommandMessageBinding(x.Message, x.Input)), row.ProtocolMessages);
+            Assert.True(row.RegistrationExits is null or { Count: 0 }); Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
+            Assert.True(registry.TryGet(item.Message, out var route)); Assert.Equal(item.Command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { item.Input }, route.AllowedMessageClrTypes);
+            Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(item.Input));
+        }
+        foreach (var fine in new[] { "SaveClientSettingsCommand", "SaveCharacterOptionCommand", "MarkNoticeSeenCommand" })
+        {
+            Assert.DoesNotContain(rows, x => x.CommandType.Name == fine);
+            Assert.DoesNotContain(typeof(ProtocolModule).Assembly.GetTypes(), x => x.Name == fine || x.Name == fine + "Handler");
+        }
+        Assert.Equal(CommandRouteKind.LegacyFineGrained, Assert.Single(rows, x => x.CommandType.Name == "ActivateClientHotkeyProfileCommand").Route);
+    }
+
+    [Fact]
     public void Coupon_three_branches_have_one_exact_whole_and_only_the_proven_replay_exit()
     {
         using var provider = BuildProductionGraph(); var rows = provider.GetServices<CommandHandlerRegistration>().ToArray();

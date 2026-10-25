@@ -7,30 +7,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game;
 
-public enum ClientSettingKind { Main, QuickChat, Hotkeys }
-
-public sealed record SaveClientSettingsCommand(ClientSettingsOrigin Origin, ClientSettingKind Kind,
-    byte[] Payload, byte Bank = 0, ClientHotkeyUploadContext? Hotkeys = null)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Origin.AccountId;
-    public SelectedSessionIdentity? Session => Origin.SelectedSession;
-}
-
-public sealed class SaveClientSettingsCommandHandler(IClientSettingsDomainService settings)
-    : ICommandHandler<SaveClientSettingsCommand, bool>
-{
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, SaveClientSettingsCommand command, CancellationToken ct) =>
-        command.Kind switch
-        {
-            ClientSettingKind.Main => settings.SaveMainAsync(command.Origin, command.Payload, ct),
-            ClientSettingKind.QuickChat => settings.SaveQuickChatAsync(command.Origin, command.Bank, command.Payload, ct),
-            ClientSettingKind.Hotkeys when command.Hotkeys is { } hotkeys && hotkeys.Origin == command.Origin =>
-                settings.SaveHotkeysAsync(hotkeys, command.Payload, ct),
-            _ => ValueTask.FromResult(false),
-        };
-}
-
 public sealed record ActivateClientHotkeyProfileCommand(ClientSettingsOrigin Origin, byte KeyType)
     : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
 {

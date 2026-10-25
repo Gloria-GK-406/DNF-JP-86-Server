@@ -824,16 +824,22 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<DeleteCharacterHandler, DeleteCharacterRequest, GameDeleteCharacterCommand>(ClientMessageType.GameDeleteCharacter);
         services.RegisterMessageHandler<MercenaryInfoHandler>(ClientMessageType.GameMercenaryInfo);
         services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
-        services.AddCommandHandler<SaveCharacterOptionCommand, bool, SaveCharacterOptionCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<SaveCharacterOptionHandler>(ClientMessageType.GameSaveCharacterOption);
+        services.AddProtocolCommandHandler<GameSaveCharacterOptionCommand, bool, GameSaveCharacterOptionCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveCharacterOption, typeof(SaveCharacterOptionRequest)));
+        services.RegisterProtocolMessageHandler<SaveCharacterOptionHandler, SaveCharacterOptionRequest, GameSaveCharacterOptionCommand>(ClientMessageType.GameSaveCharacterOption);
         services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
-        services.AddCommandHandler<SaveClientSettingsCommand, bool, SaveClientSettingsCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ActivateClientHotkeyProfileCommand, bool, ActivateClientHotkeyProfileCommandHandler>(CommandExecutionKind.Direct);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler>(ClientMessageType.GameSaveHotkeys);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler, Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand>(ClientMessageType.GameSaveHotkeys);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand, bool, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveHotkeys, typeof(Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest)));
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysDecoder>(0x00C6, ClientMessageType.GameSaveHotkeys);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler>(ClientMessageType.GameSaveQuickChat);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler, Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest, Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand>(ClientMessageType.GameSaveQuickChat);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand, bool, Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveQuickChat, typeof(Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest)));
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatDecoder>(0x0170, ClientMessageType.GameSaveQuickChat);
-        services.RegisterMessageHandler<SaveGameOption1Handler>(ClientMessageType.GameSaveGameOption1);
+        services.RegisterProtocolMessageHandler<SaveGameOption1Handler, SaveGameOption1Request, GameSaveGameOption1Command>(ClientMessageType.GameSaveGameOption1);
+        services.AddProtocolCommandHandler<GameSaveGameOption1Command, bool, GameSaveGameOption1CommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveGameOption1, typeof(SaveGameOption1Request)));
         services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
         services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
 
@@ -851,11 +857,12 @@ public sealed class ProtocolModule : IServerModule
 
         // One handler, the remaining wire keys in the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
-        services.RegisterMessageHandler<NoticeSeenHandler>(ClientMessageType.GameInformNoticeSecond);
-        services.RegisterMessageHandler<NoticeSeenHandler>(ClientMessageType.GameNoticeSeen);
+        services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport));
+        services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest));
         services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(0x01DE, ClientMessageType.GameNoticeSeen);
-        services.AddCommandHandler<MarkNoticeSeenCommand, bool, MarkNoticeSeenCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameNoticeSeenCommand, bool, GameNoticeSeenCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport)));
         services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.AddProtocolCommandHandler<GameEnterSelectDungeonCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEnterSelectDungeon, typeof(EnterSelectDungeonRequest)));

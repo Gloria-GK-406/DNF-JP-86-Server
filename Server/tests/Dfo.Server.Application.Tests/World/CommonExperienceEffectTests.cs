@@ -251,7 +251,7 @@ public sealed class CommonExperienceEffectTests
         string[] direct = ["ActivateClientHotkeyProfileCommand"];
         string[] expected = ["StartBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
-            "JoustBetCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
+            "JoustBetCommand"];
         var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
         Assert.Equal(expected.Where(name => !Migrated(name)).Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());

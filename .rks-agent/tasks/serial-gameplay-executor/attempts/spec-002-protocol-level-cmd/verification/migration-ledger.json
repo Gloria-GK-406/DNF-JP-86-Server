@@ -8186,25 +8186,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 67,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 67,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.InformNotice.MarkNoticeSeenCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.InformNotice.MarkNoticeSeenCommand",
@@ -8230,32 +8233,41 @@
         },
         "result": "System.Boolean"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 67,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 67,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 67,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -15186,25 +15198,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 30,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 30,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SaveCharacterOption.SaveCharacterOptionCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SaveCharacterOption.SaveCharacterOptionCommand",
@@ -15230,53 +15245,65 @@
         },
         "result": "System.Boolean"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 30,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 30,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 30,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSettingsCommands.cs",
-          "line": 20,
-          "source_sha256": "6dcfd8ce9a4f0d0ce4260a111e4b04e44ccb58bd18f7482322f6597666bbbbd3"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSettingsCommands.cs",
-          "line": 20,
-          "source_sha256": "6dcfd8ce9a4f0d0ce4260a111e4b04e44ccb58bd18f7482322f6597666bbbbd3"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SaveClientSettingsCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SaveClientSettingsCommand",
@@ -15302,32 +15329,41 @@
         },
         "result": "System.Boolean"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSettingsCommands.cs",
-          "line": 20,
-          "source_sha256": "6dcfd8ce9a4f0d0ce4260a111e4b04e44ccb58bd18f7482322f6597666bbbbd3"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSettingsCommands.cs",
-          "line": 20,
-          "source_sha256": "6dcfd8ce9a4f0d0ce4260a111e4b04e44ccb58bd18f7482322f6597666bbbbd3"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSettingsCommands.cs",
-          "line": 20,
-          "source_sha256": "6dcfd8ce9a4f0d0ce4260a111e4b04e44ccb58bd18f7482322f6597666bbbbd3"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -26452,26 +26488,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/SaveGameOption1Slice.cs",
-          "line": 25,
-          "source_sha256": "b4d14b998987abf496287908d5b49f8e64d480b725d82b2b1d7b0179910d0a67"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/SaveGameOption1Slice.cs",
-          "line": 25,
-          "source_sha256": "b4d14b998987abf496287908d5b49f8e64d480b725d82b2b1d7b0179910d0a67"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+      ],
       "id": "message:65733",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.SaveGameOption.SaveGameOption1Handler",
@@ -26493,57 +26532,69 @@
         "telemetry": false,
         "value": 65733
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/SaveGameOption1Slice.cs",
-          "line": 25,
-          "source_sha256": "b4d14b998987abf496287908d5b49f8e64d480b725d82b2b1d7b0179910d0a67"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/SaveGameOption1Slice.cs",
-          "line": 25,
-          "source_sha256": "b4d14b998987abf496287908d5b49f8e64d480b725d82b2b1d7b0179910d0a67"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/SaveGameOption1Slice.cs",
-          "line": 25,
-          "source_sha256": "b4d14b998987abf496287908d5b49f8e64d480b725d82b2b1d7b0179910d0a67"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveGameOption/GameSaveGameOption1Command.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.SaveClientSettingsCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/SaveHotkeysSlice.cs",
-          "line": 23,
-          "source_sha256": "2bfef29ac0638ea0ddba27973ca0c8d4c974918b6a7a8e4558b43c8f07c8f5ef"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/SaveHotkeysSlice.cs",
-          "line": 23,
-          "source_sha256": "2bfef29ac0638ea0ddba27973ca0c8d4c974918b6a7a8e4558b43c8f07c8f5ef"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs"
+      ],
       "id": "message:65734",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler",
@@ -26565,35 +26616,44 @@
         "telemetry": false,
         "value": 65734
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/SaveHotkeysSlice.cs",
-          "line": 23,
-          "source_sha256": "2bfef29ac0638ea0ddba27973ca0c8d4c974918b6a7a8e4558b43c8f07c8f5ef"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/SaveHotkeysSlice.cs",
-          "line": 23,
-          "source_sha256": "2bfef29ac0638ea0ddba27973ca0c8d4c974918b6a7a8e4558b43c8f07c8f5ef"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/SaveHotkeysSlice.cs",
-          "line": 23,
-          "source_sha256": "2bfef29ac0638ea0ddba27973ca0c8d4c974918b6a7a8e4558b43c8f07c8f5ef"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.SaveClientSettingsCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -29259,26 +29319,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/SaveQuickChatSlice.cs",
-          "line": 25,
-          "source_sha256": "cebadd78f48cde15fd1ef09c56e6d719351a13d6b1f9ad91b5ecfa58a7723c10"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/GameSaveQuickChatCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/SaveQuickChatSlice.cs",
-          "line": 25,
-          "source_sha256": "cebadd78f48cde15fd1ef09c56e6d719351a13d6b1f9ad91b5ecfa58a7723c10"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/GameSaveQuickChatCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/GameSaveQuickChatCommand.cs"
+      ],
       "id": "message:65904",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler",
@@ -29300,35 +29363,44 @@
         "telemetry": false,
         "value": 65904
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/SaveQuickChatSlice.cs",
-          "line": 25,
-          "source_sha256": "cebadd78f48cde15fd1ef09c56e6d719351a13d6b1f9ad91b5ecfa58a7723c10"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/SaveQuickChatSlice.cs",
-          "line": 25,
-          "source_sha256": "cebadd78f48cde15fd1ef09c56e6d719351a13d6b1f9ad91b5ecfa58a7723c10"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/SaveQuickChatSlice.cs",
-          "line": 25,
-          "source_sha256": "cebadd78f48cde15fd1ef09c56e6d719351a13d6b1f9ad91b5ecfa58a7723c10"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/GameSaveQuickChatCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/GameSaveQuickChatCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveQuickChat/GameSaveQuickChatCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.SaveClientSettingsCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -30500,26 +30572,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 35,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 35,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+      ],
       "id": "message:65984",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.SaveCharacterOption.SaveCharacterOptionHandler",
@@ -30541,35 +30616,44 @@
         "telemetry": false,
         "value": 65984
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 35,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 35,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/SaveCharacterOption.cs",
-          "line": 35,
-          "source_sha256": "dcf24b9630dc64672160e83121aba55e3cf61bc31b56e6aa454bc897d76ab105"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SaveCharacterOption/GameSaveCharacterOptionCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.SaveCharacterOption.SaveCharacterOptionCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -30945,26 +31029,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+      ],
       "id": "message:66014",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.InformNotice.NoticeSeenHandler",
@@ -30986,35 +31073,44 @@
         "telemetry": false,
         "value": 66014
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.InformNotice.MarkNoticeSeenCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31103,26 +31199,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "六唯一Protocol/Direct binding，五whole；各一个ordinary Write、None footprint，无Main／效果账本／raw／Self。",
+          "old": "ae0fd603：三个设置、CharacterOption、两Notice各经原fine一个Transactional；Hotkeys捕获在事务外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-54.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+      ],
       "id": "message:66040",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.InformNotice.NoticeSeenHandler",
@@ -31144,35 +31243,44 @@
         "telemetry": false,
         "value": 66040
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/InformNotice/InformNoticeSlice.cs",
-          "line": 74,
-          "source_sha256": "27ccf5dfa9da58b12891d620741d0282398b6960171308d77ae804b0f735a983"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "薄handler只交完整消息及精确context；三fine类型／handler／注册／生产引用删除，Activate与来源留T-009。",
+          "old": "六消息handler派三fine；ActivateClientHotkeyProfile另有真实登录／选角消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "三设置仅非null origin selected以本次physical／metadata参与；CharacterOption原actor；账号态三设置与两Notice均空participants，Secondary角色owner不新增actor。",
+          "old": "三设置ISelectedSession取origin nullable selected，CharacterOption原selected；两Notice仅IAccount，无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task54-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Accounts/SettingsProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/InformNotice/GameNoticeSeenCommand.cs"
+          ],
+          "new": "保原保存方法、捕获context与日志／无帧／无额外snapshot，无业务catch；action及native Commit回滚原cause传播。scope默认差异仅VC-B34，精确physical替换隔离；不改核心／允许名单。",
+          "old": "原blob长度／profile token及generation、exact connection／selected门；CharacterOption／Secondary Notice原领域InWorld及数据库owner检查，全部无ACK。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.InformNotice.MarkNoticeSeenCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

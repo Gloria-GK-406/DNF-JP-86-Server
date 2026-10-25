@@ -1,13 +1,8 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Abstractions.Notices;
-using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Notices;
-using Dfo.Server.Data.OnlineUsers;
-using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.InformNotice;
 
@@ -61,35 +56,11 @@ internal sealed class InformNoticeSecondDecoder : IGameMessageDecoder
         new InformNoticeSecondReport(metadata, NoticeStateCodec.DecodeId(body));
 }
 
-public sealed record MarkNoticeSeenCommand(GameSessionIdentity Session, AccountId AccountId,
-    NoticeOwner Owner, NoticeGroup Group, byte NoticeId) : ICommand<bool>, IAccountCommand;
-
-public sealed class MarkNoticeSeenCommandHandler(INoticeStateDomainService notices)
-    : ICommandHandler<MarkNoticeSeenCommand, bool>
+public sealed class NoticeSeenHandler(ICommandBus commands) : ClientMessageHandler<INoticeSeenReport>,
+    Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameNoticeSeenCommand>
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, MarkNoticeSeenCommand command, CancellationToken ct) =>
-        notices.MarkSeenAsync(command.Session, command.Owner, command.Group, command.NoticeId, ct);
-}
-
-public sealed class NoticeSeenHandler(IOnlineUserQueryDomainService users, ICommandBus commands,
-    ILogger<NoticeSeenHandler> logger) : ClientMessageHandler<INoticeSeenReport>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        INoticeSeenReport message, CancellationToken ct)
-    {
-        if (!users.TryGetByConnection(context.Connection.ConnectionId, out var user)
-            || user?.AccountId is not { } accountId) return;
-        if (message.Group == NoticeGroup.Secondary && user.CurrentCharacterId is null) return;
-        // Server policy, not a claim about the original game's persistence scope.
-        var owner = message.Group == NoticeGroup.Primary
-            ? NoticeOwner.ForAccount(accountId)
-            : NoticeOwner.ForCharacter(user.CurrentCharacterId!.Value);
-        var saved = await commands.SendAsync(new MarkNoticeSeenCommand(user.SessionIdentity, accountId,
-            owner, message.Group, checked((byte)message.Value)), ct);
-        logger.LogDebug("Seen notice owner={Owner} group={Group} id={NoticeId} saved={Saved}",
-            owner, message.Group, message.Value, saved);
-        // Client already inserted locally. No CMD ACK and no redundant snapshot.
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, INoticeSeenReport message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameNoticeSeenCommand(context, message), ct).ConfigureAwait(false);
 }
 
 /// <summary>Full replacement of the primary seen-notice set, delivered to the login connection.</summary>
