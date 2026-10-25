@@ -274,7 +274,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
         services.TryAddSingleton<IAltarSchedulerWakeSignal>(p => p.GetRequiredService<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>());
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
-        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
@@ -397,16 +396,20 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotificationEncoder>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
             Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>();
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler>(ClientMessageType.GameAltarPrepare);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler>(ClientMessageType.GameAltarDeathBatch);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler>(ClientMessageType.GameAltarDifficulty);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler, Dfo.Server.Protocol.Game.Altar.AltarPrepareRequest, Dfo.Server.Protocol.Game.Altar.GameAltarPrepareCommand>(ClientMessageType.GameAltarPrepare);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarPrepareCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAltarPrepare, typeof(Dfo.Server.Protocol.Game.Altar.AltarPrepareRequest)));
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler, Dfo.Server.Protocol.Game.Altar.AltarDeathBatchRequest, Dfo.Server.Protocol.Game.Altar.GameAltarDeathBatchCommand>(ClientMessageType.GameAltarDeathBatch);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarDeathBatchCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAltarDeathBatch, typeof(Dfo.Server.Protocol.Game.Altar.AltarDeathBatchRequest)));
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler, Dfo.Server.Protocol.Game.Altar.AltarDifficultyRequest, Dfo.Server.Protocol.Game.Altar.GameAltarDifficultyCommand>(ClientMessageType.GameAltarDifficulty);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarDifficultyCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAltarDifficulty, typeof(Dfo.Server.Protocol.Game.Altar.AltarDifficultyRequest)));
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarPrepareDecoder>(0x0102, ClientMessageType.GameAltarPrepare);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(0x00FF, ClientMessageType.GameAltarDeathBatch);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(0x013D, ClientMessageType.GameAltarDifficulty);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarActionCommand, Dfo.Server.Protocol.Game.Altar.AltarCommandResult,
             Dfo.Server.Protocol.Game.Altar.AltarActionCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand, IReadOnlyList<MonsterDeathSettlementResult>,
-            Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage>>();

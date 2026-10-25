@@ -3869,25 +3869,34 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
-          "line": 40,
-          "source_sha256": "c159421028447d4cd725b59baa3bb31ee9fb3558de997fced66de6484537cf8f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "单ordinary Write altar-death-batch，DeclaredNonRequest显式声明cohort效果owner；整个Distinct循环同一个原领域事务；无Main/账本/重放。",
+          "old": "原AltarDeathBatch单Transactional包Actors.Distinct顺序循环，无Main。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-58.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
-          "line": 40,
-          "source_sha256": "c159421028447d4cd725b59baa3bb31ee9fb3558de997fced66de6484537cf8f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand",
@@ -3914,31 +3923,46 @@
         "result": "System.Collections.Generic.IReadOnlyList`1[[Dfo.Server.Abstractions.World.MonsterDeathSettlementResult, Dfo.Server.Abstractions, Version=0.2.7.0, Culture=neutral, PublicKeyToken=null]]"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
-          "line": 40,
-          "source_sha256": "c159421028447d4cd725b59baa3bb31ee9fb3558de997fced66de6484537cf8f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+        ],
+        "mapping": "原三个handler经AltarProtocolCoordinator调用deathbatch或Delivery.Execute；现各自唯一whole。AltarDeathBatch旧类型/handler/注册和Coordinator已删；AltarAction仍由Scheduler及PartyWipe的Delivery.Fail真实消费，保pending。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
-          "line": 40,
-          "source_sha256": "c159421028447d4cd725b59baa3bb31ee9fb3558de997fced66de6484537cf8f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
-          "line": 40,
-          "source_sha256": "c159421028447d4cd725b59baa3bb31ee9fb3558de997fced66de6484537cf8f"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "显式保护完整精确cohort与原metadata，仅报告者捕当前在线用户实际physical；未盲全捕。死亡footprint owners同cohort，Ready/Difficulty不新增footprint。",
+          "old": "IMultiSelectedSessionCommand保护完整冻结cohort且报告者属于其中；原SelectedSessionSafety.Capture只捕报告者实际physical，其余selected在typed失败逐null physical保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "共享实质阶段保所有业务守卫、单事务/去重、EXP→death→quest→available顺序，Ready投影后逐原cohort配额，Difficulty先ACK且抑制手动0129；原Wake位置保持。基础设施失败统一VC-B40默认精确保护并关闭来源，无失败ACK。",
+          "old": "原session current/run/altar/cohort、死亡Fighting与RoomVersion守卫、actor去重、原投影收件人与Wake位置。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -28224,26 +28248,35 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 92,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "单ordinary Write altar-death-batch，DeclaredNonRequest显式声明cohort效果owner；整个Distinct循环同一个原领域事务；无Main/账本/重放。",
+          "old": "原AltarDeathBatch单Transactional包Actors.Distinct顺序循环，无Main。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-58.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 92,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+      ],
       "id": "message:65791",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler",
@@ -28266,29 +28299,44 @@
         "value": 65791
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 92,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+        ],
+        "mapping": "原三个handler经AltarProtocolCoordinator调用deathbatch或Delivery.Execute；现各自唯一whole。AltarDeathBatch旧类型/handler/注册和Coordinator已删；AltarAction仍由Scheduler及PartyWipe的Delivery.Fail真实消费，保pending。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 92,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 92,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "显式保护完整精确cohort与原metadata，仅报告者捕当前在线用户实际physical；未盲全捕。死亡footprint owners同cohort，Ready/Difficulty不新增footprint。",
+          "old": "IMultiSelectedSessionCommand保护完整冻结cohort且报告者属于其中；原SelectedSessionSafety.Capture只捕报告者实际physical，其余selected在typed失败逐null physical保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "共享实质阶段保所有业务守卫、单事务/去重、EXP→death→quest→available顺序，Ready投影后逐原cohort配额，Difficulty先ACK且抑制手动0129；原Wake位置保持。基础设施失败统一VC-B40默认精确保护并关闭来源，无失败ACK。",
+          "old": "原session current/run/altar/cohort、死亡Fighting与RoomVersion守卫、actor去重、原投影收件人与Wake位置。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand"
       ],
@@ -28297,29 +28345,38 @@
         "AltarProtocolCoordinator",
         "UsageQuotaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 87,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "单ordinary Write altar-action，原非null执行前提与正常null提交保持；Ready配额仍在投影之后直接Project，无额外读事务或嵌套bus。",
+          "old": "原Delivery.Execute在当前run/state与cohort核验后派一次AltarAction Transactional；即使业务返回null也正常提交。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-58.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 87,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+      ],
       "id": "message:65794",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler",
@@ -28342,29 +28399,44 @@
         "value": 65794
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 87,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+        ],
+        "mapping": "原三个handler经AltarProtocolCoordinator调用deathbatch或Delivery.Execute；现各自唯一whole。AltarDeathBatch旧类型/handler/注册和Coordinator已删；AltarAction仍由Scheduler及PartyWipe的Delivery.Fail真实消费，保pending。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 87,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 87,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "显式保护完整精确cohort与原metadata，仅报告者捕当前在线用户实际physical；未盲全捕。死亡footprint owners同cohort，Ready/Difficulty不新增footprint。",
+          "old": "IMultiSelectedSessionCommand保护完整冻结cohort且报告者属于其中；原SelectedSessionSafety.Capture只捕报告者实际physical，其余selected在typed失败逐null physical保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "共享实质阶段保所有业务守卫、单事务/去重、EXP→death→quest→available顺序，Ready投影后逐原cohort配额，Difficulty先ACK且抑制手动0129；原Wake位置保持。基础设施失败统一VC-B40默认精确保护并关闭来源，无失败ACK。",
+          "old": "原session current/run/altar/cohort、死亡Fighting与RoomVersion守卫、actor去重、原投影收件人与Wake位置。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand"
       ],
@@ -28373,7 +28445,7 @@
         "AltarProtocolCoordinator",
         "UsageQuotaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -29484,26 +29556,35 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 97,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "单ordinary Write altar-action，原非null执行前提与正常null提交保持；Ready配额仍在投影之后直接Project，无额外读事务或嵌套bus。",
+          "old": "原Delivery.Execute在当前run/state与cohort核验后派一次AltarAction Transactional；即使业务返回null也正常提交。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-58.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 97,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+      ],
       "id": "message:65853",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler",
@@ -29526,29 +29607,44 @@
         "value": 65853
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 97,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+          "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+        ],
+        "mapping": "原三个handler经AltarProtocolCoordinator调用deathbatch或Delivery.Execute；现各自唯一whole。AltarDeathBatch旧类型/handler/注册和Coordinator已删；AltarAction仍由Scheduler及PartyWipe的Delivery.Fail真实消费，保pending。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 97,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Altar/AltarHandlers.cs",
-          "line": 97,
-          "source_sha256": "5654af1fc0402edf3ae762a3df1afeee4f380016172f601a085c1c0c55d2df29"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "显式保护完整精确cohort与原metadata，仅报告者捕当前在线用户实际physical；未盲全捕。死亡footprint owners同cohort，Ready/Difficulty不新增footprint。",
+          "old": "IMultiSelectedSessionCommand保护完整冻结cohort且报告者属于其中；原SelectedSessionSafety.Capture只捕报告者实际physical，其余selected在typed失败逐null physical保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task58-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Altar/AltarCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/AltarProtocolFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs"
+          ],
+          "new": "共享实质阶段保所有业务守卫、单事务/去重、EXP→death→quest→available顺序，Ready投影后逐原cohort配额，Difficulty先ACK且抑制手动0129；原Wake位置保持。基础设施失败统一VC-B40默认精确保护并关闭来源，无失败ACK。",
+          "old": "原session current/run/altar/cohort、死亡Fighting与RoomVersion守卫、actor去重、原投影收件人与Wake位置。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Altar.AltarDeathBatchCommand"
       ],
@@ -29557,7 +29653,7 @@
         "AltarProtocolCoordinator",
         "UsageQuotaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

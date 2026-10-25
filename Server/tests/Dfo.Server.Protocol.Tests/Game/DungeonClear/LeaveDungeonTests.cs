@@ -505,8 +505,6 @@ public sealed class LeaveDungeonTests
             var altars = new AltarView(runs.RunId); var wake = new AltarWakeSignal(clock);
             var projection = new AltarProjectionDelivery(altars, runs, sessions, deliveries, commands,
                 new NoopNotificationBus(), clock, wake, null!, NullLogger<AltarProjectionDelivery>.Instance);
-            var coordinator = new AltarProtocolCoordinator(runs, sessions,
-                projection, commands, sender, null!);
             runs.BeforeEnd = () =>
             {
                 if (isAltar) Assert.Equal(AltarOperation.SettleParticipantBeforeExit,

@@ -249,7 +249,7 @@ public sealed class CommonExperienceEffectTests
     {
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand"];
         string[] direct = ["ActivateClientHotkeyProfileCommand"];
-        string[] expected = ["AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
+        string[] expected = ["AltarActionCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
             "JoustBetCommand"];
         var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();

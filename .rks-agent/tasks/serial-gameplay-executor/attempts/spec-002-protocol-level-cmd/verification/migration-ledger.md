@@ -408,3 +408,9 @@ restatement guard mutation导致真实物品逆向回65资产RED、fresh drag正
 五fine（StartBossTower、LeaveBossTower、SynchronizeBossTowerLeader、LeaveIllusionTower、SynchronizeIllusionTowerLeader）与两ReturnSweep来源共七行闭合，零消息；每塔四类Direct／Internal CMD，旧fine／Delivery／bus Coordinator清零，Refill保留。ordinary Write的owner与selected保护独立，原每member Tx及两塔取消差异保留；B9／P11具名交错、合法timer修复、whole累计physical及已commit取消默认typed见VC-B37～39与 `task57-verification.md`。
 
 仅本七行变化，全部original／行序／非target恒等；消息136/159、fine123/204、来源4/73（另12 retained），保护2/5、过渡0/8。最终主控旧回放及恢复后fresh八full9700pass＋原2fail＋18skip，实际八注册／同实例／五fine0、strict与八坏例通过；原日志和变更审计在 `evidence/task57`／`logs/task57-final-r2`。不以本Task关闭整个T-008／T-010或Spec B。
+
+## TASK-58：祭坛三消息与两塔余项核清
+
+本批仅闭合 message:65791／65794／65853 及旧 AltarDeathBatchCommand 共四行；三个 whole CMD 复用 AltarCommandPhases 实质阶段，死亡批次单事务与 Distinct、完整 cohort 与报告者 physical、Ready 后配额、Difficulty 先 ACK 且抑制重复0129、原 Wake 位置保持。罕见基础设施失败统一引用 VC-B40；没有新能力或注入类别。实际验证在 [task58-verification.md](task58-verification.md)。
+
+AltarActionCommand 仍由 AltarScheduler 及 DungeonPartyWipeService→AltarProjectionDelivery.Fail 消费，RefillOnlineBossTowerTicketCommand 仍由 SelectCharacterHandler 和 BossTowerDailyRefill 消费，保持 pending；两塔其他已闭行不重做，T-008 整簇仍开放。JSON 是唯一进度依据，original、原顺序及非本四行均保持。
