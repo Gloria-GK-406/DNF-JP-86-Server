@@ -602,8 +602,10 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(
             new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));
-        services.AddCommandHandler<IncreaseStatusCommand, IncreaseStatusResult, IncreaseStatusCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<IncreaseStatusHandler>(ClientMessageType.GameIncreaseStatus);
+        services.AddProtocolCommandHandler<GameIncreaseStatusCommand, IncreaseStatusResult, GameIncreaseStatusCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameIncreaseStatus, typeof(IncreaseStatusRequest)));
+        services.RegisterProtocolMessageHandler<IncreaseStatusHandler, IncreaseStatusRequest, GameIncreaseStatusCommand>(ClientMessageType.GameIncreaseStatus);
         services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
         services.AddGameCmdMessageEncoder<IncreaseStatusResponse, IncreaseStatusEncoder>();
         services.AddProtocolCommandHandler<GameHatchCreatureCommand, bool, GameHatchCreatureCommandHandler>(
@@ -643,23 +645,27 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageEncoder<TitleBookMutationResponse, TitleBookMutationEncoder>();
         services.AddGameCmdMessageEncoder<AchievementTriggerResponse, AchievementTriggerEncoder>();
         services.AddGameNotiMessageEncoder<TitleUnlockedMessage, GameNotiStateSynchronizationEncoder<TitleUnlockedMessage>>();
-        services.AddCommandHandler<UseLevelUpTicketCommand, LevelUpTicketResult, UseLevelUpTicketCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameLevelUpTicketCommand, bool, GameLevelUpTicketCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameLevelUpTicket, typeof(LevelUpTicketRequest)));
         services.AddCommandHandler<UseFatiguePotionCommand, OpeningInventoryReceipt, UseFatiguePotionCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddSingleton<FatiguePotionHandler>();
         services.AddCommandHandler<UseEntryAllowanceCommand, OpeningInventoryReceipt, UseEntryAllowanceCommandHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton<EntryAllowanceHandler>();
-        services.AddCommandHandler<ChangeSkillSlotCommand, bool, ChangeSkillSlotCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<ChangeSkillSlotHandler>(ClientMessageType.GameChangeSkillSlot);
+        services.AddProtocolCommandHandler<GameChangeSkillSlotCommand, bool, GameChangeSkillSlotCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameChangeSkillSlot, typeof(ChangeSkillSlotRequest)));
+        services.RegisterProtocolMessageHandler<ChangeSkillSlotHandler, ChangeSkillSlotRequest, GameChangeSkillSlotCommand>(ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageEncoder<ChangeSkillSlotResponse, ChangeSkillSlotEncoder>();
-        services.AddCommandHandler<SwitchSkillBuildCommand, SwitchSkillBuildResponse, SwitchSkillBuildCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<SwitchSkillBuildHandler>(ClientMessageType.GameSwitchSkillBuild);
+        services.AddProtocolCommandHandler<GameSwitchSkillBuildCommand, bool, GameSwitchSkillBuildCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSwitchSkillBuild, typeof(SwitchSkillBuildRequest)));
+        services.RegisterProtocolMessageHandler<SwitchSkillBuildHandler, SwitchSkillBuildRequest, GameSwitchSkillBuildCommand>(ClientMessageType.GameSwitchSkillBuild);
         services.AddGameCmdMessageDecoder<SwitchSkillBuildDecoder>(0x0104, ClientMessageType.GameSwitchSkillBuild);
         services.AddGameCmdMessageEncoder<SwitchSkillBuildResponse, SwitchSkillBuildEncoder>();
-        services.AddCommandHandler<LearnSkillCommand, CharacterSkillLearningResult, LearnSkillCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameLearnSkillCommand, CharacterSkillLearningResult, GameLearnSkillCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameLearnSkill, typeof(LearnSkillRequest)));
         services.AddProtocolCommandHandler<GameSellItemCommand, bool, GameSellItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem, typeof(SellItemRequest)));
         services.AddProtocolCommandHandler<GameRepairItemCommand, bool, GameRepairItemCommandHandler>(
@@ -758,9 +764,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameGetItemCommand, bool, GameGetItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGetItem, typeof(GetItemRequest)));
         // The tutorial's level: one row, written once, and the client is told what it now stands at.
-        services.AddCommandHandler<
-            GrantTutorialLevelCommand, TutorialLevelUpResult, GrantTutorialLevelCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameTutorialLevelUpCommand, bool, GameTutorialLevelUpCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameTutorialLevelUp, typeof(TutorialLevelUpRequest)));
         // Turning a card over now hands the piece behind it to the character's bag, which is the
         // moment the note left here foresaw: a claim on a run alone is memory, and a row in a bag
         // is not. Transactional from that change onwards, on the same reading the ground pick-up
@@ -907,7 +912,7 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
         services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);
         services.RegisterProtocolMessageHandler<GetItemHandler, GetItemRequest, GameGetItemCommand>(ClientMessageType.GameGetItem);
-        services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
+        services.RegisterProtocolMessageHandler<TutorialLevelUpHandler, TutorialLevelUpRequest, GameTutorialLevelUpCommand>(ClientMessageType.GameTutorialLevelUp);
         services.AddProtocolCommandHandler<GameSetPlayResultCommand, bool, GameSetPlayResultCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSetPlayResult, typeof(SetPlayResultRequest)));
         services.RegisterProtocolMessageHandler<SetPlayResultHandler, SetPlayResultRequest, GameSetPlayResultCommand>(ClientMessageType.GameSetPlayResult);
@@ -970,7 +975,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
         services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
-        services.RegisterMessageHandler<LevelUpTicketHandler>(ClientMessageType.GameLevelUpTicket);
+        services.RegisterProtocolMessageHandler<LevelUpTicketHandler, LevelUpTicketRequest, GameLevelUpTicketCommand>(ClientMessageType.GameLevelUpTicket);
         services.RegisterProtocolMessageHandler<BuyItemHandler, BuyItemRequest, GameBuyItemCommand>(ClientMessageType.GameBuyItem,
             typeof(BuyItemRequest), typeof(HousingBuyItemRequest));
         services.RegisterProtocolMessageHandler<CeraShopPurchaseHandler, CeraShopPurchaseRequest, GameCeraShopPurchaseCommand>(ClientMessageType.GameCeraShopPurchase);
@@ -981,7 +986,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<PackageOpeningHandler, PackageOpeningRequest, GamePackageOpeningCommand>(ClientMessageType.GamePackageOpening);
         services.RegisterProtocolMessageHandler<AvatarPackageOpeningHandler, AvatarPackageOpeningRequest, GameAvatarPackageOpeningCommand>(ClientMessageType.GameAvatarPackageOpening);
         services.RegisterProtocolMessageHandler<GenCeraTicketHandler, GenCeraTicketRequest, GameGenCeraTicketCommand>(ClientMessageType.GameGenCeraTicket);
-        services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
+        services.RegisterProtocolMessageHandler<LearnSkillHandler, LearnSkillRequest, GameLearnSkillCommand>(ClientMessageType.GameLearnSkill);
         services.RegisterProtocolMessageHandler<SellItemHandler, SellItemRequest, GameSellItemCommand>(ClientMessageType.GameSellItem);
         services.RegisterProtocolMessageHandler<RepairItemHandler, RepairItemRequest, GameRepairItemCommand>(ClientMessageType.GameRepairItem);
         services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);

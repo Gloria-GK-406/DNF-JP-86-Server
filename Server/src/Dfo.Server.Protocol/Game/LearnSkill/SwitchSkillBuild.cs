@@ -28,28 +28,8 @@ internal sealed class SwitchSkillBuildEncoder : GameCmdMessageEncoder<SwitchSkil
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SwitchSkillBuildResponse message) =>
         OnePayload(0x0104, message.Active is { } active ? new byte[] { 1, checked((byte)active) } : new byte[] { 0, 3 });
 }
-public sealed record SwitchSkillBuildCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, byte Current)
-    : ICommand<SwitchSkillBuildResponse>, IAccountCommand
+public sealed class SwitchSkillBuildHandler(ICommandBus commands) : ClientMessageHandler<SwitchSkillBuildRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameSwitchSkillBuildCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class SwitchSkillBuildCommandHandler(ICharacterSkillLearningDomainService learning)
-    : ICommandHandler<SwitchSkillBuildCommand, SwitchSkillBuildResponse>
-{
-    public async ValueTask<SwitchSkillBuildResponse> HandleAsync(CommandExecutionContext context, SwitchSkillBuildCommand command, CancellationToken ct) =>
-        new(await learning.SwitchAsync(command.Session, command.Current, 1 - command.Current, ct));
-}
-public sealed class SwitchSkillBuildHandler(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService users, ICommandBus commands, IGameMessageSender sender)
-    : ClientMessageHandler<SwitchSkillBuildRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SwitchSkillBuildRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        int? active = null;
-        if (session is not null && users.TryGetByConnection(context.Connection.ConnectionId, out var user) && user is not null)
-            active = (await commands.SendAsync(new SwitchSkillBuildCommand(user.OnlineUserId, session, message.Current), ct)).Active;
-        if (session is not null && !sessions.IsInWorld(session)) return;
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new SwitchSkillBuildResponse(active), ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SwitchSkillBuildRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameSwitchSkillBuildCommand(context,message),ct).ConfigureAwait(false);
 }

@@ -8090,25 +8090,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 56,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "唯一whole内一个Main Write；原正常拒绝不统一改回滚，Learn只映OpeningRejected，其余两路原窄action catch RequireRollback及既有WriteResult确认Commit回滚后映原ACK。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 56,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.IncreaseStatus.IncreaseStatusCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.IncreaseStatus.IncreaseStatusCommand",
@@ -8134,32 +8137,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.IncreaseStatus.IncreaseStatusResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 56,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 56,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 56,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "原fine类型／handler／注册／生产caller全部清零，原算法及编排归同名whole，不调用其他CMD／bus或新Domain转发。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "Main显式本次request.Selected的同一Recipient／session／physical／metadata，unit.Footprint；保原需求及单次settlement。",
+          "old": "IRequestSettlementCommand原精确selected效果owner与其physical；原MinimumReplayNeeds。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -9115,25 +9127,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 39,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "唯一whole内一个ordinary Write、空selected／None，原查询及投影仍在单元外，教程现查Progress并仅升到2，不增第二事务。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 39,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LearnSkill.ChangeSkillSlotCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.LearnSkill.ChangeSkillSlotCommand",
@@ -9159,53 +9174,65 @@
         },
         "result": "System.Boolean"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 39,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 39,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 39,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "原fine类型／handler／注册／生产caller全部清零，原算法及编排归同名whole，不调用其他CMD／bus或新Domain转发。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "ordinary []／CommandFootprintMode.None；Session字段不增加保护、Main／ledger／raw。",
+          "old": "换槽／切页仅IAccount marker，教程plain ICommand；原保护参与者空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillCommand.cs",
-          "line": 17,
-          "source_sha256": "94baf315028d320e9afaa49d5594a126a3c6d91992f2f8fcac56f24dabc9274c"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "唯一whole内一个Main Write；原正常拒绝不统一改回滚，Learn只映OpeningRejected，其余两路原窄action catch RequireRollback及既有WriteResult确认Commit回滚后映原ACK。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillCommand.cs",
-          "line": 17,
-          "source_sha256": "94baf315028d320e9afaa49d5594a126a3c6d91992f2f8fcac56f24dabc9274c"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LearnSkill.LearnSkillCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.LearnSkill.LearnSkillCommand",
@@ -9231,53 +9258,65 @@
         },
         "result": "Dfo.Server.Data.Characters.CharacterSkillLearningResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillCommand.cs",
-          "line": 17,
-          "source_sha256": "94baf315028d320e9afaa49d5594a126a3c6d91992f2f8fcac56f24dabc9274c"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillCommand.cs",
-          "line": 17,
-          "source_sha256": "94baf315028d320e9afaa49d5594a126a3c6d91992f2f8fcac56f24dabc9274c"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillCommand.cs",
-          "line": 17,
-          "source_sha256": "94baf315028d320e9afaa49d5594a126a3c6d91992f2f8fcac56f24dabc9274c"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "原fine类型／handler／注册／生产caller全部清零，原算法及编排归同名whole，不调用其他CMD／bus或新Domain转发。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "Main显式本次request.Selected的同一Recipient／session／physical／metadata，unit.Footprint；保原需求及单次settlement。",
+          "old": "IRequestSettlementCommand原精确selected效果owner与其physical；原MinimumReplayNeeds。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 36,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "唯一whole内一个ordinary Write、空selected／None，原查询及投影仍在单元外，教程现查Progress并仅升到2，不增第二事务。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 36,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LearnSkill.SwitchSkillBuildCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.LearnSkill.SwitchSkillBuildCommand",
@@ -9303,32 +9342,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.LearnSkill.SwitchSkillBuildResponse"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 36,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 36,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 36,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "原fine类型／handler／注册／生产caller全部清零，原算法及编排归同名whole，不调用其他CMD／bus或新Domain转发。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "ordinary []／CommandFootprintMode.None；Session字段不增加保护、Main／ledger／raw。",
+          "old": "换槽／切页仅IAccount marker，教程plain ICommand；原保护参与者空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -9475,25 +9523,28 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 70,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "唯一whole内一个Main Write；原正常拒绝不统一改回滚，Learn只映OpeningRejected，其余两路原窄action catch RequireRollback及既有WriteResult确认Commit回滚后映原ACK。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 70,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LevelUpTicket.UseLevelUpTicketCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.LevelUpTicket.UseLevelUpTicketCommand",
@@ -9519,32 +9570,41 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.LevelUpTicketResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 70,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 70,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 70,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "原fine类型／handler／注册／生产caller全部清零，原算法及编排归同名whole，不调用其他CMD／bus或新Domain转发。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "Main显式本次request.Selected的同一Recipient／session／physical／metadata，unit.Footprint；保原需求及单次settlement。",
+          "old": "IRequestSettlementCommand原精确selected效果owner与其physical；原MinimumReplayNeeds。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -17571,25 +17631,28 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 114,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "唯一whole内一个ordinary Write、空selected／None，原查询及投影仍在单元外，教程现查Progress并仅升到2，不增第二事务。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 114,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand",
@@ -17615,32 +17678,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 114,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 114,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 114,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "原fine类型／handler／注册／生产caller全部清零，原算法及编排归同名whole，不调用其他CMD／bus或新Domain转发。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "ordinary []／CommandFootprintMode.None；Session字段不增加保护、Main／ledger／raw。",
+          "old": "换槽／切页仅IAccount marker，教程plain ICommand；原保护参与者空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -21351,26 +21423,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 44,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "唯一whole内一个ordinary Write、空selected／None，原查询及投影仍在单元外，教程现查Progress并仅升到2，不增第二事务。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 44,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+      ],
       "id": "message:65564",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.LearnSkill.ChangeSkillSlotHandler",
@@ -21392,57 +21467,69 @@
         "telemetry": false,
         "value": 65564
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 44,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 44,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/ChangeSkillSlot.cs",
-          "line": 44,
-          "source_sha256": "fd7170fc2e086cc0277082d9a6e70d8b22734248cdb2ed043f7d727bbfa2a77e"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole与匹配薄handler。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "ordinary []／CommandFootprintMode.None；Session字段不增加保护、Main／ledger／raw。",
+          "old": "换槽／切页仅IAccount marker，教程plain ICommand；原保护参与者空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameChangeSkillSlotCommand.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.LearnSkill.ChangeSkillSlotCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillHandler.cs",
-          "line": 14,
-          "source_sha256": "2aa065959365fdd1717f6c04a061ce26ecde008dede760d1cdfa7a6e9834d15d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "唯一whole内一个Main Write；原正常拒绝不统一改回滚，Learn只映OpeningRejected，其余两路原窄action catch RequireRollback及既有WriteResult确认Commit回滚后映原ACK。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillHandler.cs",
-          "line": 14,
-          "source_sha256": "2aa065959365fdd1717f6c04a061ce26ecde008dede760d1cdfa7a6e9834d15d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+      ],
       "id": "message:65565",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.LearnSkill.LearnSkillHandler",
@@ -21464,57 +21551,69 @@
         "telemetry": false,
         "value": 65565
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillHandler.cs",
-          "line": 14,
-          "source_sha256": "2aa065959365fdd1717f6c04a061ce26ecde008dede760d1cdfa7a6e9834d15d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillHandler.cs",
-          "line": 14,
-          "source_sha256": "2aa065959365fdd1717f6c04a061ce26ecde008dede760d1cdfa7a6e9834d15d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/LearnSkillHandler.cs",
-          "line": 14,
-          "source_sha256": "2aa065959365fdd1717f6c04a061ce26ecde008dede760d1cdfa7a6e9834d15d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole与匹配薄handler。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "Main显式本次request.Selected的同一Recipient／session／physical／metadata，unit.Footprint；保原需求及单次settlement。",
+          "old": "IRequestSettlementCommand原精确selected效果owner与其physical；原MinimumReplayNeeds。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.LearnSkill.LearnSkillCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 78,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "唯一whole内一个Main Write；原正常拒绝不统一改回滚，Learn只映OpeningRejected，其余两路原窄action catch RequireRollback及既有WriteResult确认Commit回滚后映原ACK。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 78,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+      ],
       "id": "message:65566",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.IncreaseStatus.IncreaseStatusHandler",
@@ -21536,30 +21635,39 @@
         "telemetry": false,
         "value": 65566
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 78,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 78,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs",
-          "line": 78,
-          "source_sha256": "e1a86242b1431a5c020e0a304ddaeb77cb349b424bfbf69585e02ce86fd6449e"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole与匹配薄handler。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "Main显式本次request.Selected的同一Recipient／session／physical／metadata，unit.Footprint；保原需求及单次settlement。",
+          "old": "IRequestSettlementCommand原精确selected效果owner与其physical；原MinimumReplayNeeds。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/IncreaseStatus/IncreaseStatusSlice.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.IncreaseStatus.IncreaseStatusCommand"
       ],
@@ -21568,7 +21676,7 @@
         "GameExplicitMessageDelivery",
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -27641,26 +27749,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 42,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "唯一whole内一个ordinary Write、空selected／None，原查询及投影仍在单元外，教程现查Progress并仅升到2，不增第二事务。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 42,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+      ],
       "id": "message:65796",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.LearnSkill.SwitchSkillBuildHandler",
@@ -27682,35 +27793,44 @@
         "telemetry": false,
         "value": 65796
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 42,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 42,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LearnSkill/SwitchSkillBuild.cs",
-          "line": 42,
-          "source_sha256": "723bddd9418cce8e0fe677d767ce8f73ca29cba1ab993eb256a51210b0491a2d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole与匹配薄handler。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "ordinary []／CommandFootprintMode.None；Session字段不增加保护、Main／ledger／raw。",
+          "old": "换槽／切页仅IAccount marker，教程plain ICommand；原保护参与者空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameSwitchSkillBuildCommand.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.LearnSkill.SwitchSkillBuildCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -29496,26 +29616,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 78,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "唯一whole内一个Main Write；原正常拒绝不统一改回滚，Learn只映OpeningRejected，其余两路原窄action catch RequireRollback及既有WriteResult确认Commit回滚后映原ACK。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 78,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+      ],
       "id": "message:65954",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.LevelUpTicket.LevelUpTicketHandler",
@@ -29537,35 +29660,44 @@
         "telemetry": false,
         "value": 65954
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 78,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 78,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs",
-          "line": 78,
-          "source_sha256": "c7dc0f1661bef875d8cb147a41f3e6ee6cd339489b361b509cf5353ca0c394a3"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole与匹配薄handler。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "Main显式本次request.Selected的同一Recipient／session／physical／metadata，unit.Footprint；保原需求及单次settlement。",
+          "old": "IRequestSettlementCommand原精确selected效果owner与其physical；原MinimumReplayNeeds。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/LevelUpTicket/LevelUpTicketSlice.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.LevelUpTicket.UseLevelUpTicketCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -30621,26 +30753,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 148,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "唯一whole内一个ordinary Write、空selected／None，原查询及投影仍在单元外，教程现查Progress并仅升到2，不增第二事务。",
+          "old": "27e91df9：一个Transactional fine，原业务正常返回保提交，动作或原生Commit失败由旧管线回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-50.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 148,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+      ],
       "id": "message:66020",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpHandler",
@@ -30662,37 +30797,46 @@
         "telemetry": false,
         "value": 66020
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 148,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 148,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs",
-          "line": 148,
-          "source_sha256": "169aae272f68fbc42cc40a5a75a365f3df898889f9a1f1acac849ccba65a0561"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole与匹配薄handler。",
+          "old": "27e91df9：本消息handler唯一调用所属fine；无其它生产caller。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "ordinary []／CommandFootprintMode.None；Session字段不增加保护、Main／ledger／raw。",
+          "old": "换槽／切页仅IAccount marker，教程plain ICommand；原保护参与者空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task50-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/SkillGrowthProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TutorialLevelUp/TutorialLevelUpSlice.cs"
+          ],
+          "new": "原门、领域算法、ACK／投影次序和三个owner已提交重放raw保持，六scope与Learn直接ACK／Increase required首次encoder默认whole差异仅见VC-B28／29；Level与Learn有库存投影仍忽略原Failed，不扩首次raw／Self或恢复机制。",
+          "old": "原session／online／InWorld／槽位／技能与升级门；Main committed replay是原入口，scope在fine返回前结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand"
       ],
       "shared_helper_candidates": [
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
