@@ -25,6 +25,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly ICreatureRuntimeDomainService? creatures;
     private readonly IDungeonLifecycleDomainService? lifecycle;
     private readonly TimeProvider clock = TimeProvider.System;
+    private readonly IDungeonSettlementRuleService settlementRules = new DungeonSettlementRuleService();
+    public ValueTask<DungeonSettlementRules> SettlementRulesForAsync(Dfo.Server.Data.Accounts.AccountId account, CharacterId character,
+        DungeonRunState run, CancellationToken token) => settlementRules.ForAsync(account, character, run, token);
     private readonly object gate = new();
     private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
     private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
@@ -58,8 +61,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
         IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
         ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null,
-        ILogger<DungeonRunDomainService>? logger = null)
+        ILogger<DungeonRunDomainService>? logger = null, IDungeonSettlementRuleService? settlementRules = null)
     {
+        this.settlementRules = settlementRules ?? new DungeonSettlementRuleService();
         this.logger = logger ?? NullLogger<DungeonRunDomainService>.Instance;
         this.transactions = transactions;
         this.participation = participation;

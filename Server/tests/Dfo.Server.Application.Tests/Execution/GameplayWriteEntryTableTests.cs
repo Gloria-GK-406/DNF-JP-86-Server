@@ -168,6 +168,7 @@ public sealed class GameplayWriteEntryTableTests
         ["DungeonRunDomainService.CommitParticipantKillEffect(DungeonParticipantKillEffectClaim)"] = W,
         ["DungeonRunDomainService.CommitParticipantKillEffect(DungeonParticipantKillEffectClaim, ExperienceAward)"] = W,
         ["DungeonRunDomainService.CommitSettlement(DungeonSettlementClaim)"] = W,
+        ["DungeonRunDomainService.SettlementRulesForAsync(AccountId, CharacterId, DungeonRunState, CancellationToken)"] = R,
         ["DungeonRunDomainService.End(CharacterId)"] = W,
         ["DungeonRunDomainService.End(CharacterId, DungeonRunId)"] = W,
         ["DungeonRunDomainService.EndAsync(CharacterId, DungeonRunId)"] = W,
@@ -263,7 +264,7 @@ public sealed class GameplayWriteEntryTableTests
         ["DungeonCardPresentationCoordinator.Cancel(CharacterId, DungeonRunId)"] = W,
         ["DungeonCardPresentationCoordinator.Dispose()"] = Exempt(ProducerRow, "the stop step of DrainAsync (cancel the delays) without the wait, when the container is disposed after the drain"),
         ["DungeonCardPresentationCoordinator.DrainAsync(CancellationToken)"] = Exempt(ProducerRow, "a producer drain: cancels the card delays and waits for the timer CMDs already queued; GameplayExecutorLifetime runs it off the executor"),
-        ["DungeonCardPresentationCoordinator.OpenOnRequestAsync(SelectedSessionIdentity, DungeonRunId, CancellationToken)"] = W,
+        ["DungeonCardPresentationCoordinator.ScheduleAutoFlip(SelectedSessionIdentity, DungeonRunId)"] = W,
         ["DungeonCardPresentationCoordinator.ScheduleAfterSettlement(SelectedSessionIdentity, DungeonRunId)"] = W,
 
         // BossTowerDomainService

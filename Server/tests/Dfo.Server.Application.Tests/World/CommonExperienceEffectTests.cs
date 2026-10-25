@@ -28,10 +28,11 @@ public sealed class CommonExperienceEffectTests
     {
         using var shop = new ShopFixture(s =>
         {
+            s.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
             s.AddSingleton<IExperienceCalculationDomainService>(new Calculation { Earned = earned });
         });
-        var command = new GrantClearExperienceCommand(new(999), new(1), 144, new(3, 0, 1, 80, 10));
+        var command = new ClearExperienceAlgorithmInput(new(999), new(1), 144, new(3, 0, 1, 80, 10));
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await shop.Services.GetRequiredService<ICommandBus>().SendAsync(command));
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
@@ -249,9 +250,9 @@ public sealed class CommonExperienceEffectTests
         string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
         string[] direct = ["ActivateClientHotkeyProfileCommand", "LeaveDungeonCommand"];
         string[] expected = ["StartBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
-            "GrantClearExperienceCommand","MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
+            "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
             "JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
-        var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
+        var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
         Assert.Equal(expected.Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());
         var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
@@ -376,7 +377,7 @@ public sealed class CommonExperienceEffectTests
     private static void RegisterQueuedKill(IServiceCollection services) =>
         services.AddCommandHandler<QueuedKillDomainCommand,QueuedKillResult,QueuedKillDomainCommandHandler>(CommandExecutionKind.Transactional);
 
-    private static GrantClearExperienceCommand Clear(SelectedSessionIdentity? session) =>
+    private static ClearExperienceAlgorithmInput Clear(SelectedSessionIdentity? session) =>
         new(new(1), new(1), 144, new(3, 0, 1, 80, 10), session);
     private static Task<MonsterRewardResult> KillDomainAsync(ShopFixture shop, bool experienceOnly=false) =>
         TestGameplay.RunAsync(shop.Services, async () =>
@@ -395,6 +396,7 @@ public sealed class CommonExperienceEffectTests
     private static ShopFixture Shop(Calculation calculation, EffectTrace trace, Action<IServiceCollection>? configure = null) =>
         new(s =>
         {
+            s.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
             s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             s.AddSingleton<IExperienceCalculationDomainService>(sp => { calculation.Transactions = sp.GetRequiredService<IDomainTransactionAccessor>(); return calculation; });

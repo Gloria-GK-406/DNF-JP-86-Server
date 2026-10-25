@@ -81,54 +81,11 @@ internal sealed class BossDieCheckDecoder : IGameMessageDecoder
 /// ever say so.
 /// </para>
 /// </remarks>
-public sealed class BossDieCheckHandler(
-    ISelectedSessionDomainService selectedSessions,
-    IDungeonRunDomainService runs,
-    ILogger<BossDieCheckHandler> logger) : ClientMessageHandler<BossDieCheckRequest>
+public sealed class BossDieCheckHandler(Dfo.Server.Application.Commands.ICommandBus commands) : ClientMessageHandler<BossDieCheckRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameBossDieCheckCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        BossDieCheckRequest message,
-        CancellationToken cancellationToken)
-    {
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
-        {
-            logger.LogWarning(
-                "Boss die check {ConnectionId}: no published session, ignoring",
-                context.Connection.ConnectionId);
-            return ValueTask.CompletedTask;
-        }
-
-        var run = runs.Find(session.CharacterId);
-        if (run is null)
-        {
-            logger.LogWarning(
-                "Boss die check {ConnectionId} character={CharacterId}: no run in progress, "
-                    + "ignoring",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value);
-            return ValueTask.CompletedTask;
-        }
-
-        var agrees = run.CurrentCellState.FindActor(message.ReportedActorSequence)?.IsDead == true;
-
-        logger.LogInformation(
-            "Boss die check {ConnectionId} character={CharacterId}: actor {Actor} of room {RoomId} "
-                + "reported by user {User}; boss room={IsBossRoom} already dead here={Agrees}. "
-                + "Nothing answered, nothing changed",
-            context.Connection.ConnectionId,
-            session.CharacterId.Value,
-            message.ReportedActorSequence,
-            run.CurrentRoomMapId,
-            message.ReportedUserId,
-            run.IsBossRoom,
-            agrees);
-
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, BossDieCheckRequest message, CancellationToken token) =>
+        _ = await commands.SendAsync(new GameBossDieCheckCommand(context, message), token).ConfigureAwait(false);
 }
-
 /// <summary>
 /// CMD 0x0045 <c>SCORE_SCROLL_STATE</c>: the result scroll has finished drawing.
 /// </summary>
@@ -188,48 +145,8 @@ internal sealed class ScoreScrollStateResponseEncoder
 /// The fallback without the coordinator sends the same pair directly.
 /// </para>
 /// </remarks>
-public sealed class ScoreScrollStateHandler(
-    ISelectedSessionDomainService selectedSessions,
-    IGameMessageSender sender,
-    ILogger<ScoreScrollStateHandler> logger,
-    DungeonCardPresentationCoordinator? cardPresentation = null,
-    IDungeonRunDomainService? runs = null)
-    : ClientMessageHandler<ScoreScrollStateRequest>
+public sealed class ScoreScrollStateHandler(Dfo.Server.Application.Commands.ICommandBus commands) : ClientMessageHandler<ScoreScrollStateRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameScoreScrollStateCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ScoreScrollStateRequest message,
-        CancellationToken cancellationToken)
-    {
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-
-        if (session is not null
-            && runs?.Find(session.CharacterId) is { Layout.Despair: null } run
-            && cardPresentation is not null)
-        {
-            logger.LogInformation(
-                "Score scroll state {ConnectionId} character={CharacterId}: "
-                    + "routed through card presentation",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value);
-            await cardPresentation.OpenOnRequestAsync(
-                session, run.RunId, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-
-        logger.LogInformation(
-            "Score scroll state {ConnectionId} character={CharacterId}: acknowledged, "
-                + "card layout sent here={LayoutSentHere}",
-            context.Connection.ConnectionId,
-            session?.CharacterId.Value,
-            cardPresentation is null);
-
-        IReadOnlyList<IGameServerMessage> frames = cardPresentation is null
-            ? [new ScoreScrollStateResponse(), new CardSelectRightStateResponse()]
-            : [new ScoreScrollStateResponse()];
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(frames, []),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ScoreScrollStateRequest message, CancellationToken token) =>
+        _ = await commands.SendAsync(new GameScoreScrollStateCommand(context, message), token).ConfigureAwait(false);
 }

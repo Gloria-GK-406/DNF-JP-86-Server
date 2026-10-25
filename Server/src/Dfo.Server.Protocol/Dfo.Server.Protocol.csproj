@@ -9,5 +9,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Dfo.Server.Protocol.Tests" />
     <InternalsVisibleTo Include="Dfo.Server.Application.Tests" />
+    <InternalsVisibleTo Include="Dfo.Server.Host.Tests" />
   </ItemGroup>
 </Project>

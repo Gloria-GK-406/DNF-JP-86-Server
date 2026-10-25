@@ -4481,25 +4481,36 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
-          "line": 158,
-          "source_sha256": "a2c260020131542411c7690841104c2da0353b6f1d64b6c7fa59176705aaf369"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "一次ordinary Write，费用／gold／双奖励／inventory-then-mail／reservation同事务。",
+          "old": "SelectCard一段Transactional、plain ICommand。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
-          "line": 158,
-          "source_sha256": "a2c260020131542411c7690841104c2da0353b6f1d64b6c7fa59176705aaf369"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CardReward.SelectCardCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CardReward.SelectCardCommand",
@@ -4525,32 +4536,53 @@
         },
         "result": "Dfo.Server.Protocol.Game.CardReward.SelectCardResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
-          "line": 158,
-          "source_sha256": "a2c260020131542411c7690841104c2da0353b6f1d64b6c7fa59176705aaf369"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
-          "line": 158,
-          "source_sha256": "a2c260020131542411c7690841104c2da0353b6f1d64b6c7fa59176705aaf369"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/SelectCardCommand.cs",
-          "line": 158,
-          "source_sha256": "a2c260020131542411c7690841104c2da0353b6f1d64b6c7fa59176705aaf369"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中SelectCardHandler／auto→SelectCard fine"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "空selected／None；不把实际SQLite/预约参与者误作没有事务。",
+          "old": "原plain ICommand、空selected／无footprint；timer新根无source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原published／current run／InWorld／frozen；Free0／Paid价格及最后共享reveal、peer过滤。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -6920,25 +6952,36 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GrantClearExperienceCommand.cs",
-          "line": 36,
-          "source_sha256": "4b1ceb0ff4e1bb605d0957e2559074b75078d47f90dc75c6dd5eb5814613b26d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "一次ordinary Write、原Despair→Mirror→luckyStar→Exp→attendance→difficulty；cards/claim与提交后响应仍在外。",
+          "old": "Grant一段Transactional、cards/claim在外。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GrantClearExperienceCommand.cs",
-          "line": 36,
-          "source_sha256": "4b1ceb0ff4e1bb605d0957e2559074b75078d47f90dc75c6dd5eb5814613b26d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DungeonClear.GrantClearExperienceCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DungeonClear.GrantClearExperienceCommand",
@@ -6964,32 +7007,53 @@
         },
         "result": "Dfo.Server.Protocol.Game.DungeonClear.ClearExperienceResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GrantClearExperienceCommand.cs",
-          "line": 36,
-          "source_sha256": "4b1ceb0ff4e1bb605d0957e2559074b75078d47f90dc75c6dd5eb5814613b26d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GrantClearExperienceCommand.cs",
-          "line": 36,
-          "source_sha256": "4b1ceb0ff4e1bb605d0957e2559074b75078d47f90dc75c6dd5eb5814613b26d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GrantClearExperienceCommand.cs",
-          "line": 36,
-          "source_sha256": "4b1ceb0ff4e1bb605d0957e2559074b75078d47f90dc75c6dd5eb5814613b26d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中SetPlayResult→Grant fine"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "精确actor＋原physical＋显式metadata、NonRequest；不新增Main或raw。",
+          "old": "原ISelectedSession＋IAccount及NonRequest。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原currentview／rule／InWorld／claim→cards→durable→CommitSettlement→投影→成功调度。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -22791,26 +22855,37 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 740,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "一次ordinary Write、原Despair→Mirror→luckyStar→Exp→attendance→difficulty；cards/claim与提交后响应仍在外。",
+          "old": "Grant一段Transactional、cards/claim在外。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 740,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "message:65582",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonClear.SetPlayResultHandler",
@@ -22832,30 +22907,51 @@
         "telemetry": false,
         "value": 65582
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 740,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 740,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 740,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中SetPlayResult→Grant fine"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "精确actor＋原physical＋显式metadata、NonRequest；不新增Main或raw。",
+          "old": "原ISelectedSession＋IAccount及NonRequest。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原currentview／rule／InWorld／claim→cards→durable→CommitSettlement→投影→成功调度。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.DungeonClear.GrantClearExperienceCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand"
@@ -22870,7 +22966,7 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -23220,26 +23316,37 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 191,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "保零事务；布局与typed layout同算法，Boss仍只日志无帧。",
+          "old": "无事务的布局请求／Boss日志。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 191,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "message:65605",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonClear.ScoreScrollStateHandler",
@@ -23261,58 +23368,90 @@
         "telemetry": false,
         "value": 65605
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 191,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 191,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 191,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中本message原handler与共享card coordinator"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "保持无事务与相同只读／布局门。",
+          "old": "无selected事务保护参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原session/run与兼容fallback、TryOpen只一次；Boss不添回应。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "DungeonCardPresentationCoordinator",
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 24,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "保零事务；布局与typed layout同算法，Boss仍只日志无帧。",
+          "old": "无事务的布局请求／Boss日志。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 24,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "message:65606",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CardReward.CardSelectRightStateHandler",
@@ -23334,30 +23473,51 @@
         "telemetry": false,
         "value": 65606
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 24,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 24,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 24,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中本message原handler与共享card coordinator"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "保持无事务与相同只读／布局门。",
+          "old": "无selected事务保护参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原session/run与兼容fallback、TryOpen只一次；Boss不添回应。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CardReward.SelectCardCommand"
       ],
@@ -23368,29 +23528,40 @@
         "GameInventoryDelivery",
         "bonusDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 71,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "一次ordinary Write，费用／gold／双奖励／inventory-then-mail／reservation同事务。",
+          "old": "SelectCard一段Transactional、plain ICommand。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 71,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "message:65607",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CardReward.SelectCardHandler",
@@ -23412,30 +23583,51 @@
         "telemetry": false,
         "value": 65607
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 71,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 71,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/CardRewardHandlers.cs",
-          "line": 71,
-          "source_sha256": "ee42ff50413e3b14b17ee886279bcee899ed8ebf9923e76920f7aacf6510904a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中SelectCardHandler／auto→SelectCard fine"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "空selected／None；不把实际SQLite/预约参与者误作没有事务。",
+          "old": "原plain ICommand、空selected／无footprint；timer新根无source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原published／current run／InWorld／frozen；Free0／Paid价格及最后共享reveal、peer过滤。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CardReward.SelectCardCommand"
       ],
@@ -23446,7 +23638,7 @@
         "GameInventoryDelivery",
         "bonusDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -24547,26 +24739,37 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 84,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "保零事务；布局与typed layout同算法，Boss仍只日志无帧。",
+          "old": "无事务的布局请求／Boss日志。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 84,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameBossDieCheckCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "message:65653",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonClear.BossDieCheckHandler",
@@ -24588,36 +24791,57 @@
         "telemetry": false,
         "value": 65653
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 84,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 84,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/ResultScreenSlice.cs",
-          "line": 84,
-          "source_sha256": "ae6a0fb094e18293a91db64ae0735bd02e9c0ec2d3b9a22bafb214c6353ca93f"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "本message唯一whole；共享布局／award归同CMD家族，无CMD互调／fine转发，真实调用方与注册清零。",
+          "old": "d0dd43d2中本message原handler与共享card coordinator"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "保持无事务与相同只读／布局门。",
+          "old": "无selected事务保护参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原session/run与兼容fallback、TryOpen只一次；Boss不添回应。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "DungeonCardPresentationCoordinator",
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -35653,25 +35877,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
-          "line": 348,
-          "source_sha256": "f5c3d6984f4c4a2211733143dd5244b64054b62cf50cff5a36781e878a338917"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "两固定typed Internal；layout零unit，auto同家族一次ordinary Write。",
+          "old": "layout仅内存；auto队列body调用SelectCard Transactional。"
+        }
+      ],
       "classification": "delay",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-48.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
-          "line": 348,
-          "source_sha256": "f5c3d6984f4c4a2211733143dd5244b64054b62cf50cff5a36781e878a338917"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+      ],
       "id": "source:card-delay",
       "original": {
         "body": "leave job; wait clock delay; enqueue reveal/expire body; no world read in producer",
@@ -35688,25 +35923,39 @@
         "source_connection": "none",
         "target_input": "phase command label + wait + body closure over exact session/run/participant cancellation; body rechecks current run"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
-          "line": 348,
-          "source_sha256": "f5c3d6984f4c4a2211733143dd5244b64054b62cf50cff5a36781e878a338917"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
-          "line": 348,
-          "source_sha256": "f5c3d6984f4c4a2211733143dd5244b64054b62cf50cff5a36781e878a338917"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "空selected／None；不把实际SQLite/预约参与者误作没有事务。",
+          "old": "原plain ICommand、空selected／无footprint；timer新根无source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task48-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.Award.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameSetPlayResultCommandHandler.Grant.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CardSettlementLifecycleTests.cs"
+          ],
+          "new": "同原门和时点；仅默认whole生命周期与F86单次确认见VC-B23／24。",
+          "old": "原同pending token、2s/4s、替换取消、入队None／body token／drain。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

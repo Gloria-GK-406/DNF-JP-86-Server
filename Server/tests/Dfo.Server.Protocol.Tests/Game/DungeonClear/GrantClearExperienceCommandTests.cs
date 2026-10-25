@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -130,14 +131,14 @@ public sealed class GrantClearExperienceCommandTests
             var handler = Handler();
 
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await TestEffectFootprints.Invoke(handler,
+                await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(handler,
                     Context(CommandExecutionKind.Direct), Command(80, 5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), CancellationToken.None));
         });
     }
 
     private static async Task<ClearExperienceResult> Settle(
         int clientRankPoint, int basisLevel = 5) =>
-        await TestEffectFootprints.Invoke(Handler(),
+        await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(),
             Context(CommandExecutionKind.Transactional),
             Command(clientRankPoint, basisLevel), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null),
             CancellationToken.None);
@@ -150,14 +151,14 @@ public sealed class GrantClearExperienceCommandTests
         await TestGameplay.RunAsync(async () =>
         {
             var difficulties = new RecordingDifficulty();
-            var result = await TestEffectFootprints.Invoke(Handler(difficulties),Context(CommandExecutionKind.Transactional), Command(score,5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), default);
+            var result = await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(difficulties),Context(CommandExecutionKind.Transactional), Command(score,5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), default);
             Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
             Assert.Equal(new CharacterId(60), difficulties.Character);
             Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
         });
     }
 
-    private static GrantClearExperienceCommandHandler Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>
+    private static ClearExperienceAlgorithmDriver Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>
         new(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
@@ -188,11 +189,11 @@ public sealed class GrantClearExperienceCommandTests
 
     private static CommandExecutionContext Context(CommandExecutionKind kind) =>
         new(Guid.Empty,
-            typeof(GrantClearExperienceCommand),
-            typeof(GrantClearExperienceCommandHandler),
+            typeof(ClearExperienceAlgorithmInput),
+            typeof(ClearExperienceAlgorithmDriver),
             kind);
 
-    private static GrantClearExperienceCommand Command(int clientRankPoint, int basisLevel) =>
+    private static ClearExperienceAlgorithmInput Command(int clientRankPoint, int basisLevel) =>
         new(new AccountId(1),
             new CharacterId(60),
             CapturedDungeon,

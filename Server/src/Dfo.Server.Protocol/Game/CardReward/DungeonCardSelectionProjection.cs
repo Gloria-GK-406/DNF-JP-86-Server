@@ -10,20 +10,13 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.CardReward;
 
-/// <summary>Projects one committed shared card snapshot and the actor's private durable deltas.</summary>
-public sealed class DungeonCardSelectionProjectionDelivery(
-    ISelectedSessionDomainService selectedSessions,
-    IDungeonRunDomainService runs,
-    DungeonRunDeliveryRegistry deliveries,
-    IGameMessageSender sender,
-    DungeonPartyRecipients? partyRecipients = null)
+/// <summary>One shared projection of a committed card snapshot and the actor's private deltas.</summary>
+internal static class DungeonCardSelectionProjection
 {
-    public async ValueTask<int> DeliverAsync(
-        SelectedSessionIdentity actor,
-        SelectCardResult result,
-        DateTimeOffset preparedAt,
-        CancellationToken cancellationToken)
+    internal static GameExplicitMessageDelivery? CreateDelivery(ISelectedSessionDomainService selectedSessions,
+        IDungeonRunDomainService runs, IReadOnlyList<SelectedSessionIdentity> candidates, SelectedSessionIdentity actor, SelectCardResult result, DateTimeOffset preparedAt, out int recipientCount)
     {
+        recipientCount = 0;
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(result);
         var change = result.Change
@@ -31,15 +24,14 @@ public sealed class DungeonCardSelectionProjectionDelivery(
                 "A successful card projection requires its committed change.", nameof(result));
 
         var recipients = change.Recipients.ToHashSet();
-        var targets = (partyRecipients?.Find(actor, change.RunId)
-                ?? deliveries.Find(change.RunId))
+        var targets = candidates
             .Where(frozen => recipients.Contains(frozen.CharacterId))
             .Where(frozen => selectedSessions.IsInWorld(frozen))
             .Where(frozen => runs.Find(frozen.CharacterId) is { } run
                 && run.RunId == change.RunId)
             .ToArray();
         if (targets.Length == 0)
-            return 0;
+            return null;
 
         // A private confirmation has no shared board yet. Only the last free-card confirmation
         // carries the complete, party-ordered ownership snapshot.
@@ -83,11 +75,8 @@ public sealed class DungeonCardSelectionProjectionDelivery(
             .Select(target => new GameExplicitMessageTarget(target.ConnectionId, [shared!]))
             .ToArray();
         if (required.Count == 0 && secondary.Length == 0)
-            return 0;
-        await sender.SendExplicitAsync(
-            actor.ConnectionId,
-            new GameExplicitMessageDelivery(required, secondary),
-            cancellationToken).ConfigureAwait(false);
-        return targets.Length;
+            return null;
+        recipientCount = targets.Length;
+        return new GameExplicitMessageDelivery(required, secondary);
     }
 }

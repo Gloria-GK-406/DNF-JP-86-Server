@@ -39,16 +39,9 @@ internal sealed class SystemDungeonCardPresentationDelay(TimeProvider clock)
 /// timers in flight before the executor stops (RQ-009). Stopping takes no lock (TASK-10 ruling 5).
 /// </remarks>
 public sealed class DungeonCardPresentationCoordinator(
-    ISelectedSessionDomainService selectedSessions,
-    IDungeonRunDomainService runs,
-    ICommandBus commandBus,
-    IGameMessageSender sender,
-    DungeonCardSelectionProjectionDelivery projection,
-    TimeProvider clock,
-    IDungeonCardPresentationDelay delay,
-    ILogger<DungeonCardPresentationCoordinator> logger,
-    DungeonCardPresentationTiming timing,
-    IGameplayQueue queue) : IGameplayProducerDrain, IDisposable
+    ICommandBus commandBus, IDungeonCardPresentationDelay delay,
+    ILogger<DungeonCardPresentationCoordinator> logger, DungeonCardPresentationTiming timing)
+    : IDungeonCardPresentationControl, IGameplayProducerDrain, IDisposable
 {
     private readonly object gate = new();
     private readonly Dictionary<ParticipantKey, CancellationTokenSource> pending = [];
@@ -60,36 +53,19 @@ public sealed class DungeonCardPresentationCoordinator(
     public void ScheduleAfterSettlement(SelectedSessionIdentity session, DungeonRunId runId)
     {
         GameplayWriteAssertion.Writing(nameof(DungeonCardPresentationCoordinator) + "." + nameof(ScheduleAfterSettlement));
-        ArgumentNullException.ThrowIfNull(session);
-        const string commandType = "timer:DungeonCardPresentationCoordinator/layout";
-        if (this.TryReplace(session.CharacterId, runId) is not { } cancellation)
-        {
-            this.NotScheduled(commandType);
-            return;
-        }
-        this.StartDetached(() => this.RunTimerAsync(
-            commandType,
-            timing.LayoutDelay,
-            () => this.RunLayoutAsync(session, runId, cancellation.Token),
-            // A timer CMD's own failure was logged by the executor with its chain (F-30).
-            error => logger.Log(
-                GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error,
-                error,
-                "Dungeon card layout timer failed for character={CharacterId} run={RunId}",
-                session.CharacterId.Value,
-                runId.Value),
-            cancellation.Token));
+        Schedule(session, runId, false);
     }
-
-    public async ValueTask OpenOnRequestAsync(
-        SelectedSessionIdentity session,
-        DungeonRunId runId,
-        CancellationToken cancellationToken)
+    public void ScheduleAutoFlip(SelectedSessionIdentity session, DungeonRunId runId)
     {
-        GameplayWriteAssertion.Writing(nameof(DungeonCardPresentationCoordinator) + "." + nameof(OpenOnRequestAsync));
+        GameplayWriteAssertion.Writing(nameof(DungeonCardPresentationCoordinator) + "." + nameof(ScheduleAutoFlip));
+        Schedule(session, runId, true);
+    }
+    private void Schedule(SelectedSessionIdentity session, DungeonRunId runId, bool auto)
+    {
         ArgumentNullException.ThrowIfNull(session);
-        await this.OpenLayoutAsync(session, runId, cancellationToken)
-            .ConfigureAwait(false);
+        var commandType = auto ? "timer:DungeonCardPresentationCoordinator/auto-flip" : "timer:DungeonCardPresentationCoordinator/layout";
+        if (TryReplace(session.CharacterId, runId) is not { } cancellation) { NotScheduled(commandType); return; }
+        StartDetached(() => RunTimerAsync(session, runId, auto, commandType, cancellation.Token));
     }
 
     public void Cancel(CharacterId characterId, DungeonRunId runId)
@@ -141,152 +117,6 @@ public sealed class DungeonCardPresentationCoordinator(
             "{CommandType} was not scheduled: the card presentation coordinator has stopped",
             commandType);
 
-    private async Task RunLayoutAsync(
-        SelectedSessionIdentity session,
-        DungeonRunId runId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await this.OpenLayoutAsync(session, runId, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
-        {
-            logger.LogError(
-                exception,
-                "Dungeon card layout timer failed for character={CharacterId} run={RunId}",
-                session.CharacterId.Value,
-                runId.Value);
-        }
-        finally
-        {
-            this.Complete(session.CharacterId, runId, cancellationToken);
-        }
-    }
-
-    private async ValueTask OpenLayoutAsync(
-        SelectedSessionIdentity session,
-        DungeonRunId runId,
-        CancellationToken cancellationToken)
-    {
-        if (!this.IsCurrent(session, runId, out var run)
-            || run.ClearRewardCards is null
-            || !run.IsSettled)
-        {
-            this.Cancel(session.CharacterId, runId);
-            return;
-        }
-
-        if (runs.TryOpenCardLayout(session.CharacterId, runId) is null)
-            return;
-        if (!this.IsCurrent(session, runId, out _))
-        {
-            this.Cancel(session.CharacterId, runId);
-            return;
-        }
-
-        await sender.SendExplicitAsync(
-            session.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [
-                    new ScoreScrollStateResponse(),
-                    new CardSelectRightStateResponse(
-                        run.Participants
-                            .Where(participant => runs.Find(participant.CharacterId)?.RunId == runId)
-                            .Select(participant => participant.Slot)
-                            .ToArray()),
-                ],
-                []),
-            cancellationToken).ConfigureAwait(false);
-        if (runs.Find(session.CharacterId) is { } afterLayout
-            && afterLayout.RunId == runId
-            && afterLayout.CardSelections.Count > 0)
-        {
-            await sender.SendCmdAsync(
-                session.ConnectionId,
-                new SelectCardResponse(afterLayout.CardSelections),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        runs.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
-        const string commandType = "timer:DungeonCardPresentationCoordinator/auto-flip";
-        if (this.TryReplace(session.CharacterId, runId) is not { } cancellation)
-        {
-            this.NotScheduled(commandType);
-            return;
-        }
-        this.StartDetached(() => this.RunTimerAsync(
-            commandType,
-            timing.AutoFlipDelay,
-            () => this.RunAutoFlipAsync(session, runId, cancellation.Token),
-            error => logger.Log(
-                GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error,
-                error,
-                "Dungeon card auto flip failed for character={CharacterId} run={RunId}",
-                session.CharacterId.Value,
-                runId.Value),
-            cancellation.Token));
-    }
-
-    private async Task RunAutoFlipAsync(
-        SelectedSessionIdentity session,
-        DungeonRunId runId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            // A transient reservation conflict retries the same personal confirmation. It must
-            // never turn into a choice of another shared display column.
-            for (var attempt = 0; attempt < 3; attempt++)
-            {
-                if (!this.IsCurrent(session, runId, out var run)
-                    || !run.CardLayoutOpen
-                    || run.ClearRewardCards is not { } cards
-                    || cards.IsClaimed(ClearRewardCardKind.Free, 0))
-                    return;
-
-                var result = await commandBus.SendAsync(
-                    new SelectCardCommand(
-                        session.AccountId,
-                        session.CharacterId,
-                        ClearRewardCardKind.Free,
-                        0,
-                        runId),
-                    cancellationToken).ConfigureAwait(false);
-                if (result.Status is SelectCardStatus.Flipped && result.Change is not null)
-                {
-                    await projection.DeliverAsync(
-                        session, result, clock.GetUtcNow(), cancellationToken)
-                        .ConfigureAwait(false);
-                    return;
-                }
-                if (result.Status is not SelectCardStatus.AlreadyFlipped)
-                    return;
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception exception)
-        {
-            logger.LogError(
-                exception,
-                "Dungeon card auto flip failed for character={CharacterId} run={RunId}",
-                session.CharacterId.Value,
-                runId.Value);
-        }
-        finally
-        {
-            this.Complete(session.CharacterId, runId, cancellationToken);
-        }
-    }
-
     private void Complete(
         CharacterId characterId,
         DungeonRunId runId,
@@ -306,24 +136,6 @@ public sealed class DungeonCardPresentationCoordinator(
         completed?.Dispose();
     }
 
-    private bool IsCurrent(
-        SelectedSessionIdentity session,
-        DungeonRunId runId,
-        out DungeonRunState run)
-    {
-        var current = runs.Find(session.CharacterId);
-        if (selectedSessions.IsInWorld(session)
-            && current is not null
-            && current.RunId == runId)
-        {
-            run = current;
-            return true;
-        }
-
-        run = null!;
-        return false;
-    }
-
     /// <summary>
     /// Starts a timer under suppressed flow: it must not inherit the scheduling job's token or frames.
     /// </summary>
@@ -340,51 +152,33 @@ public sealed class DungeonCardPresentationCoordinator(
             _ = timer();
     }
 
-    /// <summary>
-    /// Waits out the delay, then runs <paramref name="body"/> as a timer CMD and waits for it. The
-    /// CMD is enqueued without the timer's token: once queued it runs, and the body, seeing a
-    /// cancelled token, does nothing.
-    /// </summary>
-    private async Task RunTimerAsync(
-        string commandType,
-        TimeSpan wait,
-        Func<Task> body,
-        Action<Exception> failed,
-        CancellationToken cancellationToken)
+    private async Task RunTimerAsync(SelectedSessionIdentity session, DungeonRunId runId, bool auto, string commandType, CancellationToken token)
     {
         try
         {
-            // Off the scheduling job's stack first: a delay that completes at once would otherwise
-            // enqueue from inside that job, which is a self-wait.
             await Task.Yield();
-            await delay.WaitAsync(wait, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            await queue.RunAsync(
-                new GameplayWork(
-                    GameplayShardKey.World,
-                    GameplayCallChain.NewRoot(GameplayCallSource.Timer),
-                    commandType,
-                    _ => new ValueTask(body())),
-                CancellationToken.None).ConfigureAwait(false);
+            await delay.WaitAsync(auto ? timing.AutoFlipDelay : timing.LayoutDelay, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            ICommand<bool> command = auto ? new DungeonCardAutoFlipCommand(session, runId, token) : new DungeonCardLayoutCommand(session, runId, token);
+            await commandBus.SendInternalAsync(command,
+                new InternalCommandOrigin(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer),
+                    commandType, InternalCommandCancellation.BodyOnly), CancellationToken.None).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (GameplayExecutorStoppedException stopped)
         {
-            // Only a stop that skipped the drain, such as disposing a container without a host. A cause is the
-            // executor's faulted consumption loop (F-31).
             logger.Log(stopped.InnerException is null ? LogLevel.Information : LogLevel.Warning, stopped,
                 "{CommandType} was not enqueued: the gameplay executor has stopped", commandType);
         }
-        catch (Exception exception)
+        catch (Exception error)
         {
-            failed(exception);
+            logger.Log(GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error, error,
+                "{CommandType} failed for character={CharacterId} run={RunId}", commandType, session.CharacterId.Value, runId.Value);
         }
         finally
         {
-            if (Interlocked.Decrement(ref this.inflight) == 0 && Volatile.Read(ref this.stopped) != 0)
-                this.idle.TrySetResult();
+            Complete(session.CharacterId, runId, token);
+            if (Interlocked.Decrement(ref this.inflight) == 0 && Volatile.Read(ref this.stopped) != 0) this.idle.TrySetResult();
         }
     }
 

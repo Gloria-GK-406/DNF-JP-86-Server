@@ -1,3 +1,5 @@
+using Dfo.Server.Protocol.Tests.Support;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
 using System.Buffers.Binary;
@@ -255,7 +257,7 @@ public sealed class CardRewardTests
         await TestGameplay.RunAsync(async () =>
         {
             var sender = new RecordingSender();
-            var handler = new ScoreScrollStateHandler(
+            var handler = new ScoreScrollDriver(
                 new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance);
 
             await handler.HandleAsync(
@@ -275,7 +277,7 @@ public sealed class CardRewardTests
         await TestGameplay.RunAsync(async () =>
         {
             var sender = new RecordingSender();
-            var handler = new CardSelectRightStateHandler(
+            var handler = new CardRightDriver(
                 new OneSession(Identity), sender, NullLogger<CardSelectRightStateHandler>.Instance);
 
             await handler.HandleAsync(
@@ -1185,14 +1187,30 @@ public sealed class CardRewardTests
         Assert.NotNull(provider.GetRequiredService<CardSelectRightStateHandler>());
         Assert.NotNull(provider.GetRequiredService<SelectCardHandler>());
         Assert.NotNull(provider.GetRequiredService<SetPlayResultHandler>());
-        // Transactional, not workflow. The flip puts a row in a bag, and the bag's own container
-        // refuses a write with no boundary open -- so this is not bookkeeping about which enum a
-        // registration carries, it is whether the arrival can happen at all. A claim marked taken
-        // whose piece never landed is the state the boundary exists to make impossible.
-        var registration = Assert.Single(
-            provider.GetServices<CommandHandlerRegistration>(),
-            value => value.CommandType == typeof(SelectCardCommand));
-        Assert.Equal(CommandExecutionKind.Transactional, registration.ExecutionKind);
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        foreach (var (type, message) in new[]
+        {
+            (typeof(GameSelectCardCommand), ClientMessageType.GameSelectCard),
+            (typeof(GameCardSelectRightStateCommand), ClientMessageType.GameCardSelectRightState),
+            (typeof(GameScoreScrollStateCommand), ClientMessageType.GameScoreScrollState),
+            (typeof(GameSetPlayResultCommand), ClientMessageType.GameSetPlayResult),
+            (typeof(GameBossDieCheckCommand), ClientMessageType.GameBossDieCheck),
+        })
+        {
+            var registration = Assert.Single(commands, row => row.CommandType == type);
+            Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
+            Assert.Equal(CommandRouteKind.Protocol, registration.Route);
+            Assert.Equal(message, Assert.Single(registration.ProtocolMessages!).MessageType);
+        }
+        foreach (var type in new[] { typeof(DungeonCardLayoutCommand), typeof(DungeonCardAutoFlipCommand) })
+        {
+            var registration = Assert.Single(commands, row => row.CommandType == type);
+            Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
+            Assert.Equal(CommandRouteKind.Internal, registration.Route);
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "SelectCardCommand" or "GrantClearExperienceCommand");
+        Assert.Same(provider.GetRequiredService<DungeonCardPresentationCoordinator>(), provider.GetRequiredService<IDungeonCardPresentationControl>());
+
     }
 
     // ---- fixtures --------------------------------------------------------------------------
@@ -1260,7 +1278,7 @@ public sealed class CardRewardTests
 
         private readonly DungeonRunDomainService _runs;
         private readonly RefusingRules _rules;
-        private readonly SelectCardCommandHandler _handler;
+        private readonly CardAwardAlgorithmDriver _handler;
 
         public World(
             bool inARun = true,
@@ -1278,7 +1296,7 @@ public sealed class CardRewardTests
             this.Gold = new CarriedGold(startingGold);
 
             ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs, new Dfo.Server.Protocol.Tests.Support.CardPremiums());
-            this._handler = new SelectCardCommandHandler(
+            this._handler = new CardAwardAlgorithmDriver(
                 cards,
                 this._runs,
                 new OnePlayingCharacter(this.Gold),
@@ -1330,7 +1348,7 @@ public sealed class CardRewardTests
         public int Flips { get; private set; }
 
         /// <summary>The last command that reached the handler, whoever built it.</summary>
-        public SelectCardCommand? LastCommand { get; private set; }
+        public CardAwardAlgorithmInput? LastCommand { get; private set; }
 
         public DungeonClearRewardCardClaim Reserve(ClearRewardCardKind kind, int index)
         {
@@ -1344,10 +1362,10 @@ public sealed class CardRewardTests
 
         public ValueTask<SelectCardResult> Flip(ClearRewardCardKind kind, int index) =>
             this.Send(
-                new SelectCardCommand(
+                new CardAwardAlgorithmInput(
                     Identity.AccountId, Identity.CharacterId, kind, index));
 
-        public async ValueTask<SelectCardResult> Send(SelectCardCommand command)
+        public async ValueTask<SelectCardResult> Send(CardAwardAlgorithmInput command)
         {
             return await TestGameplay.RunAsync(async () =>
             {
@@ -1356,8 +1374,8 @@ public sealed class CardRewardTests
                 return await this._handler.HandleAsync(
                     new CommandExecutionContext(
                         Guid.NewGuid(),
-                        typeof(SelectCardCommand),
-                        typeof(SelectCardCommandHandler),
+                        typeof(CardAwardAlgorithmInput),
+                        typeof(CardAwardAlgorithmDriver),
                         CommandExecutionKind.Workflow),
                     command,
                     CancellationToken.None);
@@ -1373,7 +1391,7 @@ public sealed class CardRewardTests
         {
             await TestGameplay.RunAsync(async () =>
             {
-                var handler = new SelectCardHandler(
+                var handler = new SelectCardDriver(
                     sessions ?? new OneSession(Identity),
                     runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
                     this._runs,
@@ -1409,7 +1427,7 @@ public sealed class CardRewardTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var flip = Assert.IsType<SelectCardCommand>(command);
+            var flip = Assert.IsType<CardAwardAlgorithmInput>(command);
             var result = await world.Send(flip);
             return (TResult)(object)result;
         }

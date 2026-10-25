@@ -35,6 +35,7 @@ public sealed class CardTimerShutdownTests
         var coordinator = provider.GetRequiredService<DungeonCardPresentationCoordinator>();
         var drain = Assert.Single(provider.GetServices<IGameplayProducerDrain>(), x => ReferenceEquals(x, coordinator));
         Assert.Same(coordinator, drain);
+        Assert.Same(coordinator, provider.GetRequiredService<IDungeonCardPresentationControl>());
     }
 
     [Fact]

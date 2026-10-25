@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -166,7 +167,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
         var sessions = new Sessions(current);
         var sender = new RecordingSender();
         return new World(
-            new DungeonCardSelectionProjectionDelivery(sessions, runs, registry, sender),
+            new CardSelectionProjectionFixture(sessions, runs, registry, sender),
             runs,
             run,
             sender);
@@ -181,7 +182,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
             10010);
 
     private sealed record World(
-        DungeonCardSelectionProjectionDelivery Projection,
+        CardSelectionProjectionFixture Projection,
         DungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender);

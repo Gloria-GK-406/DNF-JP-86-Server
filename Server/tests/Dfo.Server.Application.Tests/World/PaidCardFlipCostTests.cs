@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
@@ -382,7 +383,7 @@ public sealed class PaidCardFlipCostTests
 
         private readonly SqliteCharacterCarriedGoldTable _carried;
         private readonly CardRewardDomainService _cards;
-        private readonly SelectCardCommandHandler _handler;
+        private readonly CardAwardAlgorithmDriver _handler;
         private readonly string _path;
 
         /// <param name="settleAtLevel">
@@ -444,7 +445,7 @@ public sealed class PaidCardFlipCostTests
             Assert.NotNull(runs.CommitSettlement(settlement));
             Assert.NotNull(runs.TryOpenCardLayout(Character, run.RunId));
 
-            this._handler = new SelectCardCommandHandler(
+            this._handler = new CardAwardAlgorithmDriver(
                 this._cards,
                 runs,
                 new OneCharacter(new RealCarriedGold(this._carried)),
@@ -520,9 +521,9 @@ public sealed class PaidCardFlipCostTests
             update.Parameters.AddWithValue("@id", Character.Value);
             await update.ExecuteNonQueryAsync();
             return await this._handler.HandleAsync(
-                new CommandExecutionContext(Guid.NewGuid(), typeof(SelectCardCommand),
-                    typeof(SelectCardCommandHandler), CommandExecutionKind.Workflow),
-                new SelectCardCommand(Account, Character, kind, index), CancellationToken.None);
+                new CommandExecutionContext(Guid.NewGuid(), typeof(CardAwardAlgorithmInput),
+                    typeof(CardAwardAlgorithmDriver), CommandExecutionKind.Workflow),
+                new CardAwardAlgorithmInput(Account, Character, kind, index), CancellationToken.None);
         }
 
         /// <summary>What the settlement says a paid flip costs, asked at that level.</summary>

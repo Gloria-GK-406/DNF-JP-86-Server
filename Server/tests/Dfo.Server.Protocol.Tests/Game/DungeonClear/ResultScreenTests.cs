@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
@@ -170,7 +171,7 @@ public sealed class ResultScreenTests
         await TestGameplay.RunAsync(async () =>
         {
             var runs = new OneRun(deadActor: CapturedActorSequence);
-            var handler = new BossDieCheckHandler(
+            var handler = new BossDieCheckDriver(
                 new NoSession(), runs, NullLogger<BossDieCheckHandler>.Instance);
 
             await handler.HandleAsync(
@@ -236,7 +237,7 @@ public sealed class ResultScreenTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var handler = new BossDieCheckHandler(
+            var handler = new BossDieCheckDriver(
                 new OneSession(Identity), runs, NullLogger<BossDieCheckHandler>.Instance);
 
             for (var arrival = 0; arrival < arrivals; arrival++)
@@ -254,7 +255,7 @@ public sealed class ResultScreenTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var handler = new ScoreScrollStateHandler(
+            var handler = new ScoreScrollDriver(
                 sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance);
 
             await handler.HandleAsync(

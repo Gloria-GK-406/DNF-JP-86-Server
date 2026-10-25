@@ -318,9 +318,8 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task DungeonCardPresentationCoordinator_refuses_a_write_off_the_executor_and_lets_the_drain_and_disposal_run()
     {
-        var coordinator = new DungeonCardPresentationCoordinator(
-            null!, null!, null!, null!, null!, TimeProvider.System, null!,
-            NullLogger<DungeonCardPresentationCoordinator>.Instance, DungeonCardPresentationTiming.Production, null!);
+        var coordinator = new DungeonCardPresentationCoordinator(null!, null!,
+            NullLogger<DungeonCardPresentationCoordinator>.Instance, DungeonCardPresentationTiming.Production);
         var seen = ViolationCapture.Attach();
 
         Assert.Throws<GameplayOffExecutorException>(() => coordinator.Cancel(Character, DungeonRunId.New()));

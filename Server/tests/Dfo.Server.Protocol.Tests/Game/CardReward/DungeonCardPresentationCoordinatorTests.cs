@@ -1,3 +1,5 @@
+using Dfo.Server.Protocol.Tests.Support;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
@@ -78,7 +80,7 @@ public sealed partial class DungeonCardPresentationCoordinatorTests
             await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
 
             var result = await world.Bus.SendAsync(
-                new SelectCardCommand(
+                new CardAwardAlgorithmInput(
                     world.Session.AccountId,
                     world.Session.CharacterId,
                     ClearRewardCardKind.Free,
@@ -219,7 +221,7 @@ await TestGameplay.RunAsync(async () =>
             await WaitUntilAsync(() => world.Sender.For(world.Session.ConnectionId)
                 .Any(message => message is CardSelectRightStateResponse));
 
-            var handler = new ScoreScrollStateHandler(
+            var handler = new ScoreScrollDriver(
                 world.Sessions,
                 world.Sender,
                 NullLogger<ScoreScrollStateHandler>.Instance,
@@ -247,7 +249,7 @@ await TestGameplay.RunAsync(async () =>
             world.Coordinator.ScheduleAfterSettlement(world.Session, world.Run.RunId);
             await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(2)) == 1);
 
-            var handler = new ScoreScrollStateHandler(
+            var handler = new ScoreScrollDriver(
                 world.Sessions,
                 world.Sender,
                 NullLogger<ScoreScrollStateHandler>.Instance,
@@ -300,7 +302,7 @@ await TestGameplay.RunAsync(async () =>
     }
 
     [Fact]
-    public async Task Auto_flip_retries_the_same_personal_confirmation_after_a_transient_conflict()
+    public async Task Auto_flip_refusal_does_not_retry_or_choose_another_column()
     {
         using var world = TestGameplay.Run(() => Build(
             TimeSpan.FromSeconds(2),
@@ -312,12 +314,11 @@ await TestGameplay.RunAsync(async () =>
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(2));
         await WaitUntilAsync(() => world.Delay.Pending(TimeSpan.FromSeconds(4)) == 1);
         await world.Delay.ReleaseAsync(TimeSpan.FromSeconds(4));
-        await WaitUntilAsync(() => world.Bus.Selections == 1);
-        Assert.Equal(1, world.Bus.Selections);
+        await WaitUntilAsync(() => world.Bus.Attempts.Count == 1);
+        Assert.Equal(0, world.Bus.Selections);
 
-        Assert.Equal([0, 0], world.Bus.Attempts);
-        Assert.Equal(0, Assert.Single(
-            world.Runs.Find(world.Session.CharacterId)!.CardSelections).Index);
+        Assert.Equal([0], world.Bus.Attempts);
+        Assert.Empty(world.Runs.Find(world.Session.CharacterId)!.CardSelections);
     }
 
     private static World Build(
@@ -364,7 +365,7 @@ await TestGameplay.RunAsync(async () =>
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [session]);
         var sender = new RecordingSender();
-        var projection = new DungeonCardSelectionProjectionDelivery(
+        var projection = new CardSelectionProjectionFixture(
             sessions, runs, registry, sender);
         var bus = new CardCommandBus(
             runs,
@@ -374,7 +375,7 @@ await TestGameplay.RunAsync(async () =>
         var delay = new ControlledDelay();
         var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         var queue = new RecordingQueue(executor);
-        var coordinator = new DungeonCardPresentationCoordinator(
+        var coordinator = new CardPresentationFixture(
             sessions,
             runs,
             bus,
@@ -440,7 +441,7 @@ await TestGameplay.RunAsync(async () =>
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, participants);
         var sender = new RecordingSender();
-        var projection = new DungeonCardSelectionProjectionDelivery(
+        var projection = new CardSelectionProjectionFixture(
             sessions, runs, registry, sender);
         // Timer CMDs run one at a time, so a gate that waits for both first attempts would hold the
         // first one forever; it is only for a caller that drives the attempts concurrently itself.
@@ -448,7 +449,7 @@ await TestGameplay.RunAsync(async () =>
         var delay = new ControlledDelay();
         var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
         var queue = new RecordingQueue(executor);
-        var coordinator = new DungeonCardPresentationCoordinator(
+        var coordinator = new CardPresentationFixture(
             sessions,
             runs,
             bus,
@@ -480,10 +481,10 @@ await TestGameplay.RunAsync(async () =>
         DungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender,
-        DungeonCardSelectionProjectionDelivery Projection,
+        CardSelectionProjectionFixture Projection,
         CardCommandBus Bus,
         ControlledDelay Delay,
-        DungeonCardPresentationCoordinator Coordinator,
+        CardPresentationFixture Coordinator,
         // The timer CMDs run here. Never hand it to TestGameplay: a job polling for a timer effect
         // would then wait on the timer CMD queued behind it.
         GameplayExecutor Executor,
@@ -501,10 +502,10 @@ await TestGameplay.RunAsync(async () =>
         DungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender,
-        DungeonCardSelectionProjectionDelivery Projection,
+        CardSelectionProjectionFixture Projection,
         CardCommandBus Bus,
         ControlledDelay Delay,
-        DungeonCardPresentationCoordinator Coordinator,
+        CardPresentationFixture Coordinator,
         GameplayExecutor Executor,
         RecordingQueue Queue) : IDisposable
     {
@@ -533,7 +534,7 @@ await TestGameplay.RunAsync(async () =>
             CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var select = Assert.IsType<SelectCardCommand>(command);
+            var select = Assert.IsType<CardAwardAlgorithmInput>(command);
             this.Seen.Enqueue((GameplayJob.IsOnExecutor, GameplayJob.Current));
             this.Attempts.Add(select.Index);
             if (firstAttemptGate is not null)

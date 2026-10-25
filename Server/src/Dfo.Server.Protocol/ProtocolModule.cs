@@ -434,11 +434,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<EliminateTournamentCommand, TournamentCommandResult, EliminateTournamentCommandHandler>(
             CommandExecutionKind.Transactional);
         services.TryAddSingleton<DungeonClearProjectionDelivery>();
-        services.TryAddSingleton<DungeonCardSelectionProjectionDelivery>();
         services.TryAddSingleton(DungeonCardPresentationTiming.Production);
         services.TryAddSingleton<IDungeonCardPresentationDelay,
             SystemDungeonCardPresentationDelay>();
         services.TryAddSingleton<DungeonCardPresentationCoordinator>();
+        services.AddSingleton<IDungeonCardPresentationControl>(p => p.GetRequiredService<DungeonCardPresentationCoordinator>());
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(provider => provider.GetRequiredService<DungeonCardPresentationCoordinator>());
         services.TryAddSingleton<IDungeonRunProjectionDomainService>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());
@@ -542,8 +542,6 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameMonsterDeathCommand, bool, GameMonsterDeathCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameMonsterDeath, typeof(MonsterDeathRequest)));
-        services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
-            CommandExecutionKind.Transactional);
         services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
@@ -769,8 +767,6 @@ public sealed class ProtocolModule : IServerModule
         // was given -- the claim and the row are one change, and a position marked taken whose
         // piece never arrived anywhere is the thing to avoid. The bag's own container refuses a
         // write with no boundary open, so this is what makes the arrival possible at all.
-        services.AddCommandHandler<SelectCardCommand, SelectCardResult, SelectCardCommandHandler>(
-            CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameLeavePartyCommand, bool, GamePartyMutationCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameLeaveParty, typeof(LeavePartyRequest)));
         services.AddProtocolCommandHandler<GameRemovePartyMemberCommand, bool, GamePartyMutationCommandHandler>(
@@ -915,13 +911,23 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);
         services.RegisterProtocolMessageHandler<GetItemHandler, GetItemRequest, GameGetItemCommand>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
-        services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
-        services.RegisterMessageHandler<BossDieCheckHandler>(ClientMessageType.GameBossDieCheck);
-        services.RegisterMessageHandler<ScoreScrollStateHandler>(
-            ClientMessageType.GameScoreScrollState);
-        services.RegisterMessageHandler<CardSelectRightStateHandler>(
-            ClientMessageType.GameCardSelectRightState);
-        services.RegisterMessageHandler<SelectCardHandler>(ClientMessageType.GameSelectCard);
+        services.AddProtocolCommandHandler<GameSetPlayResultCommand, bool, GameSetPlayResultCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetPlayResult, typeof(SetPlayResultRequest)));
+        services.RegisterProtocolMessageHandler<SetPlayResultHandler, SetPlayResultRequest, GameSetPlayResultCommand>(ClientMessageType.GameSetPlayResult);
+        services.AddProtocolCommandHandler<GameBossDieCheckCommand, bool, GameBossDieCheckCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameBossDieCheck, typeof(BossDieCheckRequest)));
+        services.RegisterProtocolMessageHandler<BossDieCheckHandler, BossDieCheckRequest, GameBossDieCheckCommand>(ClientMessageType.GameBossDieCheck);
+        services.AddProtocolCommandHandler<GameScoreScrollStateCommand, bool, GameCardCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameScoreScrollState, typeof(ScoreScrollStateRequest)));
+        services.RegisterProtocolMessageHandler<ScoreScrollStateHandler, ScoreScrollStateRequest, GameScoreScrollStateCommand>(ClientMessageType.GameScoreScrollState);
+        services.AddProtocolCommandHandler<GameCardSelectRightStateCommand, bool, GameCardCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCardSelectRightState, typeof(CardSelectRightStateRequest)));
+        services.RegisterProtocolMessageHandler<CardSelectRightStateHandler, CardSelectRightStateRequest, GameCardSelectRightStateCommand>(ClientMessageType.GameCardSelectRightState);
+        services.AddProtocolCommandHandler<GameSelectCardCommand, bool, GameCardCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSelectCard, typeof(SelectCardRequest)));
+        services.RegisterProtocolMessageHandler<SelectCardHandler, SelectCardRequest, GameSelectCardCommand>(ClientMessageType.GameSelectCard);
+        services.AddInternalCommandHandler<DungeonCardLayoutCommand, bool, GameCardCommandHandler>();
+        services.AddInternalCommandHandler<DungeonCardAutoFlipCommand, bool, GameCardCommandHandler>();
         services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
         services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
             CommandExecutionKind.Direct);

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -207,7 +208,7 @@ public sealed partial class DungeonCardPresentationCoordinatorTests
     }
 
     /// <summary>A second coordinator over the same world whose log is kept.</summary>
-    private static DungeonCardPresentationCoordinator WithLogs(World world, CoordinatorLogs logs) =>
+    private static CardPresentationFixture WithLogs(World world, CoordinatorLogs logs) =>
         new(world.Sessions,
             world.Runs,
             world.Bus,
@@ -219,10 +220,10 @@ public sealed partial class DungeonCardPresentationCoordinatorTests
             new DungeonCardPresentationTiming(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)),
             world.Queue);
 
-    private static int Inflight(DungeonCardPresentationCoordinator coordinator) =>
+    private static int Inflight(CardPresentationFixture coordinator) =>
         Assert.IsType<int>(typeof(DungeonCardPresentationCoordinator)
             .GetField("inflight", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(coordinator));
+            .GetValue(coordinator.Producer));
 
     private sealed class CoordinatorLogs : ILogger<DungeonCardPresentationCoordinator>
     {
@@ -235,12 +236,12 @@ public sealed partial class DungeonCardPresentationCoordinatorTests
             this.Messages.Enqueue($"{logLevel} {formatter(state, exception)}");
     }
 
-    private static int PendingTimers(DungeonCardPresentationCoordinator coordinator)
+    private static int PendingTimers(CardPresentationFixture coordinator)
     {
         var field = typeof(DungeonCardPresentationCoordinator).GetField("pending", BindingFlags.Instance | BindingFlags.NonPublic);
         var gate = typeof(DungeonCardPresentationCoordinator).GetField("gate", BindingFlags.Instance | BindingFlags.NonPublic);
-        lock (Assert.IsType<object>(gate!.GetValue(coordinator)))
-            return Assert.IsAssignableFrom<ICollection>(field!.GetValue(coordinator)).Count;
+        lock (Assert.IsType<object>(gate!.GetValue(coordinator.Producer)))
+            return Assert.IsAssignableFrom<ICollection>(field!.GetValue(coordinator.Producer)).Count;
     }
 
     /// <summary>The world's own queue; it records the CMD type of every job enqueued on its executor.</summary>

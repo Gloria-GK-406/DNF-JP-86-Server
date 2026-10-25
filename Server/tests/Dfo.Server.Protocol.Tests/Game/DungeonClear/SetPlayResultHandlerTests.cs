@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -571,7 +572,7 @@ public sealed class SetPlayResultHandlerTests
         {
             var session = SelectedSessionIdentity.Create(
                 new AccountId(1), new CharacterId(60), connection, connectionGeneration: 1, listenerPort: 10010);
-            var handler = new SetPlayResultHandler(
+            var handler = new SetPlayResultDriver(
                 new OneSession(session),
                 new OneRuntimeSession(Entry()),
                 new OnePlayingCharacter(new SkillPointLedger(true)),
@@ -629,7 +630,7 @@ public sealed class SetPlayResultHandlerTests
             var runtime = new OneRuntimeSession(entry);
             var sender = new RecordingSender();
 
-            var handler = new SetPlayResultHandler(
+            var handler = new SetPlayResultDriver(
                 new OneSession(session),
                 runtime,
                 new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
@@ -700,7 +701,7 @@ public sealed class SetPlayResultHandlerTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var clear = Assert.IsType<GrantClearExperienceCommand>(command);
+            var clear = Assert.IsType<ClearExperienceAlgorithmInput>(command);
             Assert.Equal(SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010), clear.Session);
             this.TimesAsked++;
             if (this.remainingFailures-- > 0)

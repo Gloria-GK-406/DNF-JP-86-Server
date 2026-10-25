@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Inventory;
 using System.Net;
 using System.Net.Http.Json;
@@ -51,6 +52,7 @@ public sealed class GmEventsHttpTests
     }
     private static void Content(IServiceCollection services,Rules? rules=null)
     {
+        services.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
         services.AddSingleton<IWeeklyAttendanceDefinitionSource>(rules ?? new Rules());ConfigureDungeons(services);
         services.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional);
     }
@@ -291,7 +293,7 @@ public sealed class GmEventsHttpTests
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
         var bus=host.Services.GetRequiredService<ICommandBus>();var run=Guid.NewGuid();
-        var clear=new GrantClearExperienceCommand(new(1),new(1),1,new(86,0,1,50,1,1),Session:session,RunId:run,SettlementLevel:86);
+        var clear=new ClearExperienceAlgorithmInput(new(1),new(1),1,new(86,0,1,50,1,1),Session:session,RunId:run,SettlementLevel:86);
         Assert.True((await bus.SendAsync(clear)).AttendanceChanged);Assert.False((await bus.SendAsync(clear)).AttendanceChanged);await Clears(host,3);
         var decoderInfo=host.Services.GetServices<GameMessageDecoderRegistration>().Single(r=>r.Selector==1 && r.Type==0x0441);
         var request=((IGameMessageDecoder)host.Services.GetRequiredService(decoderInfo.DecoderType)).Decode(new(1,0x0441,0,1),Enumerable.Repeat((byte)0xFE,14).ToArray())!;

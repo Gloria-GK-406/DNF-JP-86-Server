@@ -386,6 +386,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | MonsterDeath（普通／物件／两塔击杀） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs)；`TASK-45`，祭坛仅具名纯唤醒接缝，Timer来源保持。 |
 | GetItem（普通／两塔地面拾取） | [源码](Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs)；`TASK-46`，默认whole生命周期与拾取精确关闭差异见 Spec VC-B19／20。 |
 | CharacterDeath／UseRevivalCoin（普通／两塔死亡与复活） | [源码](Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs)；`TASK-47`，普通死亡零事务，默认whole生命周期与两塔死亡精确关闭见 Spec VC-B21／22。 |
+| SetPlayResult／ScoreScrollState／CardSelectRightState／SelectCard／BossDieCheck | 结算、卡牌与两固定阶段 typed Timer；[源码](Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs)，`TASK-48`，默认生命周期／单次自动确认见 Spec VC-B23／24。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文
@@ -393,7 +394,7 @@ CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次�
 路由（声明种类与原调用链）；其余仍走 LegacyQueued／LegacyFineGrained，新 CMD 不得回调旧命令。
 协议 CMD 可注入领域服务／store，以及具名 `ICommandWorkUnits`、`ICommandMessageOutbox`、
 `ICommandConnectionClosures`、`ICommandProjections`、Protocol 的 `IGameCommandOutbox`、既有顺序／槽位映射
-与日志；`IAltarSchedulerWakeSignal`仅供原祭坛同步无参唤醒。禁止旧 sender／closer、总线、队列、执行器及动态服务解析。
+与日志；`IAltarSchedulerWakeSignal`仅供原祭坛同步无参唤醒，`IDungeonCardPresentationControl`仅同步请求原翻牌生产者的结算后布局／自动确认／精确取消三项固定阶段。禁止旧 sender／closer、总线、队列、执行器及动态服务解析。
 
 显式工作单元复用领域事务，不把整协议包成事务；空 selected 列表不表示没有 SQLite／内存参与者。
 普通 NonEffect 不取得 Main／操作账本／raw 许可，同序号仍按当前事实执行业务；需要效果的分支先显式

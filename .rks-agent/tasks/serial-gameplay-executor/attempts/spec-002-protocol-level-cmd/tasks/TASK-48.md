@@ -21,3 +21,32 @@
 ## Planning Gate Consumption R1
 
 主控完整读取唯一fresh Astra的`reviews/task-48-plan-review.md` R1：先Spec B8、再Plan P10／Task revision1均approved，无阻塞项。接受其实际旧调用点、同producer固定控制、Grant／SelectCard不同事务与保护、typed Internal来源及取消／drain判断；Grant scope／claim／资产旧新实证与F-86真实来源仍是实施验收，不提前声称结果。根／子／中心与其它能力不变，不追加挑战或取证Task。先形成仅五份规划文档的本地检查点，随后放行执行者在旧正式表征通过的基础上实施；最终Result仍交同一Astra，全部外部收尾门保持。
+
+## Result
+
+- Outcome: done
+- Changed: 五消息各唯一 whole 薄入口、两 typed Internal Timer；Grant 原一段改 ordinary Write＋精确 actor／physical／metadata／NonRequest，SelectCard 原一段改 ordinary `[]`／None。卡牌布局／选择／投影在同 CMD 家族真实共享，结算只供自己的算法归 own partial；两 fine、旧 producer 业务／sender／queue body、零生产 caller 旧 delivery 删除。原 singleton 只保固定阶段与取消／drain，窄 control 同实例及类型正反例守护；仅指定八行闭合，AGENTS 只加清单与一句能力边界。
+- Why: 结算规则收进已有 run 生命周期／claim owner 调原规则，未造伪 DomainService。真实预约与已排队 release 的三作业证明 F-86 三次尝试不能获得中间状态推进，故保 Free0 单次拒绝。旧 Grant scope 确有30→60重复支付；新 whole scope 已提交 claim 后只付30，默认失败与 Timer 原吞错差异具名 VC-B23／24，与 whole 归并不可分；独立纯准备补丁可分段。
+- Checks: 精确旧 d0dd43d2 最终 App334/334（313原＋21 oracle）、Protocol270/270，恢复后当前同334／270。实际 wire／Internal／SQL／encoder／outbox／physical 核资产、claim、付款和双奖励回滚重试、原 cause／Completion、scope／调度、取消／FIFO／drain；真实 auto2s＋4s ordinary `[]`／None一次支付。Release build0/0；八有效 fresh **9410＝9390pass＋2原Dimension＋18skip**，App r4 N24/D0、Protocol r3仅F-86 N1/D1、其余六r2 N0/D0。DFO74＝67反例＋7control，outside／exe／orphan0；runtime五唯一Protocol／两Internal／两fine0。八行外／original／行序、Result后strict／八坏例及含新文件diff-check通过，见[核验摘要](../verification/task48-verification.md)。
+- Remaining: 原两 Dimension仍7100／maze0／(1,0)／Left缺图。旧复验先被自动审批拒绝，经完整 recovery patch／固定46项manifest同动作安全重审后获准，finally全部恢复零错误；纯准备patch reverse-check通过。受控故障／transport不等于自然事故或A21；T-007／T-010整体未关闭，无外部操作。产品／测试及runner已停止，待同一Astra结果快审、主控接受与本地提交。
+
+## Independent Quick Review R1
+
+```yaml
+kind: rks-review
+verdict: approved
+```
+
+**当前 Result R1 的局部结果批准；未发现阻断项。** 审查 TASK-48 revision 1、已消费 B8／P10、VC-B23／24，以及 `58004de8` 工作区相对旧产品 `d0dd43d2` 的本 Task 未提交差异（含新增文件）；已收到执行者停写确认，最后只删除 BossDieCheck 文件末空行。按 `reviewing-work` Task Unit＋Code 判据与 process-reset 检查，不重跑测试、不改产品、不新增挑战。
+
+实际五个薄 handler／Protocol Direct 与两个 Internal Direct 注册、原两 fine 删除，与 runtime capture 一致；布局和选择由同 CMD 家族实际算法共享，结算 grant 是 own partial，测试 driver 只调用这些算法，不是生产 fine 转发。run 生命周期所有者调用既有结算规则；窄 control 精确类型正反例及 `CardRewardTests` 的同实例断言成立。生产者只保固定阶段、同 pending／token、取消与 drain；已核独立 Timer 根、无 source、None 入队、body token、替换 Complete 身份比较及异步排空，未迁退出路径仍用同 owner。
+
+Grant ordinary Write 的 actor／原 physical／metadata／NonRequest 与 Card 的 ordinary `[]`／None 对应旧边界；cards、settlement claim、发布位置未塞入新事务。抽查正式 `CardSettlementLifecycleTests` 的真实 decoder／bus／SQLite／encoder／scope 路径：旧 scope 的30→60与新30／claim不可再领有直接断言，scope前已调度、encoder失败不调度；实际付款 Prepare、第二奖励 SQL 回滚与新 physical 重试一次支付，及真实自动翻牌写库、queued cancel／FIFO／drain 均有证据。VC-B23明确默认生命周期及 Timer 原吞错变化，不冒称纯搬迁。F-86 的真实预约三作业证明、当前唯一预约消费方及事务提交／回滚实现支持 VC-B24；原 fake冲突→成功用例已按新单次拒绝语义替换。两项与本次 whole 归并不可分的说明接受。
+
+独立读取最终八项目 TRX并重算 display／status／重数：App N24/D0，Protocol N1/D1仅上述 F-86，其余六 N0/D0；合计9410＝9390通过＋2原 Dimension＋18skip，21个新 oracle全在 App正式全量内。旧最终334／270、恢复后当前重编译检查及 build-r3 0警告0错误与记录相符；DFO原分类74＝67反例＋7control，outside／exe／orphan均0。独立比较迁移账，只有五消息＋两fine＋card-delay八行变化，全部 original、行序和其它行保持；未闭合 T-007／T-010。旧源复验恢复记录 errors／mismatches均0；恢复后仅末尾空白差异不影响该历史结论或测试语义。
+
+批准只覆盖本 Task；受控故障不等于 A21 实机验收，原两项内容失败继续保留。主控消费后按既定纯准备／产品分段检查点推进；不据此封存 Spec 或进行外部收尾。评审者已停写。
+
+## Controller Consumption R1
+
+主控完整读取同一 Astra 的 Result R1，接受局部 approved，无阻断或需返工项。独立核实八份有效 TRX／逐用例差集、原 DFO 分类、实际注册与八行台账；最终旧334／270及46项完整恢复由主控实际执行并检查，恢复后当前334／270也通过。Result后另跑strict与八坏例均符合预期，纯准备cached-check通过；末尾空白修正不改变已验证业务。接受VC-B23／24及其不可分说明，先提交独立正式测试准备，再提交产品与结果记录；只作本地检查点，不关闭T-007／T-010或Spec，不触发任何外部收尾。
