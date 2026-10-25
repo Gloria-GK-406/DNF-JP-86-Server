@@ -10,6 +10,10 @@ state: ready
 
 ## Planning Choice
 
+本 Plan 当前为 **P10 ready R1**，承接待有界独立审查的 **Spec B8 ready R1**。TASK-48须一起消除五个结算／翻牌消息、两条旧fine与card-delay实际消费者；只有保留原固定调度／取消位置并将到期业务变为typed内部CMD，才能同时满足薄handler、无CMD嵌套和旧计时语义。新增能力仅`IDungeonCardPresentationControl`，同原生产者对象；T-010的card-delay因真实依赖提前迁入本Task，其余来源与功能簇次序不变。唯一TASK-48 Astra先审B8、通过后审P10，再审最终Result；主控消费并形成规划检查点前，执行者仅可阅读及补跑旧实现的正式测试，不实施能力／产品增量，无挑战。
+
+以下P9及更早段落保留为已接受规划的历史说明；TASK-45已消费B7／P9并完成，见其Task及独立评审。
+
 本 Plan 当前为 **P9 ready R2**，承接待独立审查的 **Spec B7 ready R1**。TASK-45核实：普通击杀成功投影之后原地唤醒AltarScheduler，但现有CMD封闭注入清单缺少该纯调度信号；移到薄handler会越过当前作业／scope边界。P9只补`IAltarSchedulerWakeSignal.Wake()`这一具名技术能力，复用原同一个AltarWakeSignal及其Channel；不新增事件系统、命令入队能力或领域服务转发门面。它跨T-007／T-008／T-010消费，故按process-reset §4做一次有界Plan补充。B7仅明确RQ-009的祭坛纯唤醒类别及AC-001对应验收，其他RQ／AC、根／子契约、中心方案、功能簇顺序不变；同TASK-45唯一独立Astra先审B7、通过后审本增量，最后审Result，无挑战。主控消费及规划检查点前不实施该接口／白名单增量。
 
 此前 **P8 ready R1** 已获批准。TASK-39 旧路径表征已通过；接入真实显式工作单元时发现，现有 `NonRequest` 只允许一个入站 actor，不能表达两塔离队对其他队员的效果调用。P8 仅补共享显式足迹的多 owner 声明，保留原事务点和独立的失败保护参与者集合；功能簇次序、Spec B6 及已追加变化表、根／子契约和中心方案不变。依据和详细执行范围见 TASK-39 下方的边界裁定。按 process-reset §4，仅重复受影响的独立 Plan review，无挑战；审查和主控消费前不实施该机制增量。以下 P7 段落保留为此前已接受规划的历史说明。
@@ -165,6 +169,7 @@ replay旧ReadReplayStateCommand的实际注册是Transactional，故新路径在
 | ICommandConnectionClosures | Abstractions/Networking / Application/Execution/Outbox | RequestCloseAsync只登记精确关闭；维持close总执行、链原因与F-131现状，不直接断socket |
 | ICommandProjections | Abstractions/DomainEvents / Application/DomainEvents | 仅ProjectAsync并返回登记结果；EventService同一实例实现此窄契约，不暴露Enqueue/Direct或重建第二事件系统。领域事实仍由实际领域服务记录 |
 | IAltarSchedulerWakeSignal | Abstractions/World / 原Protocol AltarWakeSignal | 仅无参数同步Wake，尝试写入原容量1、DropWrite Channel；不读写世界、不传callback／request、不入队CMD、不暴露Wait或任意调度。whole仅在原祭坛唤醒位置调用；Scheduler仍是原生产者，Wait／deadline／coalescing不变，同DI对象无第二Channel。 |
+| IDungeonCardPresentationControl | Abstractions/World / 原Protocol翻牌延时生产者 | 仅同步`ScheduleAfterSettlement(session,run)`、`ScheduleAutoFlip(session,run)`和`Cancel(character,run)`，两个固定阶段采用原生产者自己的2s／4s配置。复用同pending字典／token与drain；不读写世界、不接受callback／CMD／request／任意delay，不发送或直接入队／等待CMD。仅精确接口获具名判据，完整producer及相似接口继续拒绝。 |
 | IOutboundOrdering | 既有Abstractions/Execution / Application发件箱 | 仅显式跨收件人顺序组作用域；不改变Required/BestEffort/逐连接语义 |
 | IInventorySlotMappingRuleService | 既有Abstractions/Inventory / 原实现 | 仅协议槽位与BusinessSlot的固定地址换算这一既有例外，不允许任意规则服务 |
 | ILogger<T> | 原日志框架 | 业务拒绝/producer降级等原级别；不可重复记录执行器已负责的异常Error |
@@ -380,3 +385,18 @@ R1独立审查指出Spec RQ-009未包含纯唤醒类别，主控接受；本R2�
 新增Abstractions/World的`IAltarSchedulerWakeSignal`仅声明`void Wake()`。原Protocol/AltarWakeSignal实现它，ProtocolModule把接口alias到同singleton；原Scheduler仍持有原实例的Wait，未迁Delivery／Coordinator继续原调用。仅为此精确接口在构造器判据添加具名理由，任意相似接口、旧Delivery、完整signal具体类型与队列继续拒绝。新MonsterDeath whole在原body／try中、原先所有投影之后调用；不推迟到外层handler或发件箱发送，不提早到领域Commit。不新增Main／footprint／raw／Self／恢复或调度状态，不关闭Timer来源行。
 
 实现验收：正式旧新测试观察wake仍在当前job且在成功death／clear投影之后；相同scope故障前信号仍发生，投影先失败时不唤醒。验证interface与原signal／scheduler同一个实例，重复wake仍按原Channel合并、取消／deadline等待保持；保旧Altar调度器原正式用例。新增白名单正反例，不用接口命名绕过判据。冻结后Release build及八项目fresh full，原并行／5m／DFO与逐用例库存保持；此处仅规划，未冒执行通过。受影响Plan审查单独记录，主控批准规划检查点后才实施；最终同Task结果快审再次验证真实产品。
+
+
+### P10（2026-10-25）：翻牌固定阶段控制与typed延时来源
+
+**边界与归属。** B8先明确能力类别；接口`IDungeonCardPresentationControl`置Abstractions/World，三方法如§5，原`DungeonCardPresentationCoordinator`作为唯一状态所有者实现，DI alias同singleton。其名称可保持，职责必须缩为固定delay、pending替换／取消、typed提交与drain；剥离世界查询、布局／翻牌业务、旧fine dispatch和sender。CMD不得注入完整producer、queue／bus、delay／timing或用领域名转发该控制。原GiveUp／Eplp／PartyWipe未迁调用者可继续同producer的同步取消，不新增第二状态或推进其来源台账。
+
+**实际调用点。** SetPlayResult仍在原成功响应登记后、body内ScheduleAfterSettlement；此前投影失败不调度，whole清理失败发生前已调度。ScoreScroll／CardRight与到期layout共用真正的布局算法：当前session／run／settled／cards检查→TryOpenCardLayout→再检查→Score／CardRight／已选择快照登记→ScheduleClearReturn→ScheduleAutoFlip，原gate、布局只开一次与无run／Despair兼容分支保持。手动Free成功仍先Cancel再登记选择结果，拒绝或Paid不取消。逻辑不得挪到薄handler、发件箱传输或事务提交钩子。
+
+**生产者与来源。** 原pending键实际为(run, character)，替换取消旧token，Complete只移除token身份仍相同的条目；layout的finally不能删除已替换的autoflip。保StartDetached抑制执行上下文与先yield，原2s／4s delay、linked stop、inflight和Drain覆盖已入队工作。到期使用既有SendInternalAsync提交具名布局／自动确认CMD，Direct／Internal注册，Timer新根、无source connection、不继承结算者链。入队token仍None；输入可显式携带该待办的CancellationToken值，CMD入口按原取消策略无业务返回，不把取消源或可执行委托放输入。取消在delay、已入队未执行、执行中、替换及停机各阶段按旧路径表征；生产者只能组织已有输入、提交与等待，不读世界或带Func业务body入新CMD。完成／失败日志按既有执行器归属，不重复Error或将失败写成功。
+
+**业务与工作单元。** GrantClearExperience原ISelectedSession＋IAccount的一个Transactional段成为ordinary Write、精确actor保护与原NonRequest footprint；保Despair／Mirror／luckyStar／经验／attendance／difficulty顺序。card fixing、settlement claim、提交后发布与登记仍在原事务之外，不扩大事务。SelectCard原plain ICommand的一个Transactional段成为ordinary Write、空selected／None footprint；协议与自动确认真实共用该选择算法及投影，CMD间不调用、不借bus转发。只供单个CMD的编排归其自身，真实共享业务抽至具名领域／应用能力或同CMD家族共用算法，不能留仅转发旧fine的层。原`IDungeonSettlementRuleService.ForAsync`只按传入run判ClearOpen／QuestLinked，唯一handler消费点迁入真实结算领域能力或已有run领域能力，CMD不得直接注入规则服务或假Domain门面。时序与异常/claim释放不得借结构整理改变。
+
+**F-86与核验。** 先用实际单执行器／真实reservation与transaction路径核三次重试的冲突来源，现有fake bus首轮返回AlreadyFlipped不作业务依据；无可发生的中间状态推进则按已批准T-007决定删除循环，记录证据，不增跨作业重试。若发现真实业务来源，回主控裁定，不自行改调度或中心机制。正式旧新测试需覆盖结果提交／scope失败后claim与资产重试、即时encoder、付款／奖励／邮件回滚与一次性、手动与timer竞争、FIFO／根链／取消／drain、同实例及精确注入正反例。whole默认生命周期的有意可见差异追加VC表随Result评审，不扩raw／Self。冻结后Release solution build与八项目fresh full，原并行、5m、detailed／独立DFO和逐display／status／重数比较；仅本八行闭合，T-007／T-010整体不提前关闭。
+
+本P10仅为跨T-007／T-010的具名HOW，须同Task唯一独立Astra在B8批准后审查，主控消费及metadata-only检查点后实施；没有新通过主张。

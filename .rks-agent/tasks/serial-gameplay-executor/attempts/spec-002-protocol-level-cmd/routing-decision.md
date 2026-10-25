@@ -87,3 +87,13 @@ Plan P8 ready R1 的独立审核 `reviews/task-39-plan-review.md` 已 approved�
 ## TASK-45：B7／P9 受影响门（2026-10-25）
 
 独立 `reviews/task-45-plan-review.md` R1 指出 Spec RQ-009 未授权祭坛纯唤醒类别，主控接受并仅定点修订 B7；同一独立 Astra 在 R2 先批准 Spec B7 ready R1，再批准 Plan P9 ready R2。主控消费写在 TASK-45，先提交五份规划文档再实施接口／判据。当前受影响 spec-review 与 plan-review 均指向该文件的各自 R2 结论，旧门只保历史效力；按新流程无挑战、无额外取证 Task。根／子／中心不变，Timer 来源未闭合；此批准不代完整 Task 结果快审或最终八项目核验。
+
+
+## TASK-48：B8／P10受影响门待审（2026-10-25）
+
+主控依据实际card-delay仍调用SelectCard fine以及原作业内调度／取消时点，拟定Spec B8具名翻牌固定阶段生产者控制、Plan P10同实例／typed内部来源HOW，详见TASK-48。17RQ／11AC IDs、根／子和中心不变，按process-reset只做同Task唯一独立Astra的有界Spec→Plan审查，无挑战或只取证Task。当前仅ready待审；执行者可补跑旧正式测试，产品／接口／白名单在主控消费及规划检查点前禁止实施。结果快审仍由同一独立reviewer完成，用户外部收尾门保持。
+
+
+### TASK-48规划门消费 R1
+
+唯一独立`reviews/task-48-plan-review.md` R1先批准B8 ready R1，再批准P10 ready R1／Task48 revision1；主控已完整读取并接受，消费记录在Task48。当前受影响spec-review／plan-review均指向该文件各自结论，历史门保留效力。metadata-only检查点后放行产品／判据实施，最终Task结果尚未验收；不关闭其它来源、功能簇或外部收尾门。
