@@ -70,8 +70,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             Assert.NotNull(towers.Find(session));
             Assert.IsType<EplpCommandResponse>(Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages.Single());
 
-            var select = new EnterSelectDungeonHandler(null!, sessions, new NoViews(), null!, new Intents(), sender,
-                null!, NullLogger<EnterSelectDungeonHandler>.Instance, null!, bossTower: projection);
+            var select = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(null!, sessions, new NoViews(), null!, new Intents(), sender,
+                null!, NullLogger<EnterSelectDungeonHandler>.Instance, null!, bossTower: towers);
             await select.HandleAsync(Dispatch(session), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 3505), default);
             Assert.Null(towers.Find(session));
             Assert.Equal(3, commands.Tickets);
@@ -155,8 +155,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 case SelectBossTowerResultCommand choose:
                     ResultChoices++; var chosen = towers.Find(choose.Context.Session)! with { PendingResultChoice = choose.Option };
                     towers.Put(chosen); result = new BossTowerActionResult(true, chosen); break;
-                case ReleaseBossTowerSelectionCommand release:
-                    result = towers.Leave(release.Context.Session); break;
                 case EnterBossTowerCommand entry:
                     Tickets--; var entered = PartyRun(Guid.NewGuid(), entry.Leader); towers.Put(entered);
                     result = new BossTowerEntryResult(null, entered, []); break;

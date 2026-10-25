@@ -5786,24 +5786,39 @@
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 59,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "none_reason": "原Direct仅规则/角色任务读取及TryReplaceExact内存意图；新whole同样无ordinary Write、Main或持久事务。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-42.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 59,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "唯一旧生产调用已收入完整协议CMD，旧类型与注册均删除；实际零消费者。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionFailureBoundaryTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CycleDungeonEntry.PrepareCycleDungeonEntryCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CycleDungeonEntry.PrepareCycleDungeonEntryCommand",
@@ -5830,31 +5845,55 @@
         "result": "Dfo.Server.Abstractions.World.CycleDungeonPreparation"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 59,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "mapping": "旧调用与原顺序对照 bf1f070f；三handler只派唯一whole。CycleQuestFlow保原任务与入场强断言改whole；Boss选择释放唯一生产消费者删除，其他塔fine仍保留。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 59,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "none_reason": "原Direct无selected事务参与者与footprint；新不新增selected保护、Fence、Block或事务。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 59,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "old": "原session/run/stale消费位置、exact/leader/全roster当前性、意图一次性及原返回帧序；Cycle前后当前性及InvalidData内容拒绝。",
+          "new": "逐处保持原guard与写时点，Town/塔复用同partial算法。Cycle真实Dispose/ACK/物理替换差异按VC-B11；Boss Release后续编码及两塔Back scope默认typed/原参与者保护差异按三条真实旧新oracle列VC-B12，peer不自动物理关闭。不改raw/Self/恢复权限，不称其它塔fine或T008闭合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -13195,25 +13234,43 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 114,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Boss选择释放Transactional；Back Boss/Illusion Leave分别原事务，Boss提交后ready可独立Start；普通选择/返城及quota无新增事务。",
+          "new": "Boss释放ordinary Write无footprint；Leave复用同partial两个ordinary及原Start独立单元；Town/当前属性/ACK/逐成员quota只投影，普通End成功后同实例ParticipantDeparted。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-42.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 114,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "唯一旧生产调用已收入完整协议CMD，旧类型与注册均删除；实际零消费者。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionFailureBoundaryTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.ReleaseBossTowerSelectionCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.ReleaseBossTowerSelectionCommand",
@@ -13240,31 +13297,58 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 114,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "mapping": "旧调用与原顺序对照 bf1f070f；三handler只派唯一whole。CycleQuestFlow保原任务与入场强断言改whole；Boss选择释放唯一生产消费者删除，其他塔fine仍保留。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 114,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 114,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "Boss Release及Leave保护原run全员Sessions；Illusion Leave无selected集合。两塔Leave实际效果owner为原run全员，与selected参与者独立。",
+          "new": "Boss全run精确参与者：报告者捕获原物理context，其余原session；Illusion[]；Leave DeclaredNonRequest owners为原run全员，不把owner自动围栏。Release无footprint与Main。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原session/run/stale消费位置、exact/leader/全roster当前性、意图一次性及原返回帧序；Cycle前后当前性及InvalidData内容拒绝。",
+          "new": "逐处保持原guard与写时点，Town/塔复用同partial算法。Cycle真实Dispose/ACK/物理替换差异按VC-B11；Boss Release后续编码及两塔Back scope默认typed/原参与者保护差异按三条真实旧新oracle列VC-B12，peer不自动物理关闭。不改raw/Self/恢复权限，不称其它塔fine或T008闭合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -19031,26 +19115,44 @@
       "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 513,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Boss选择释放Transactional；Back Boss/Illusion Leave分别原事务，Boss提交后ready可独立Start；普通选择/返城及quota无新增事务。",
+          "new": "Boss释放ordinary Write无footprint；Leave复用同partial两个ordinary及原Start独立单元；Town/当前属性/ACK/逐成员quota只投影，普通End成功后同实例ParticipantDeparted。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-42.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 513,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionFailureBoundaryTests.cs"
+      ],
       "id": "message:65551",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonSelection.EnterSelectDungeonHandler",
@@ -19073,29 +19175,56 @@
         "value": 65551
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 513,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
+        "mapping": "旧调用与原顺序对照 bf1f070f；三handler只派唯一whole。CycleQuestFlow保原任务与入场强断言改whole；Boss选择释放唯一生产消费者删除，其他塔fine仍保留。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 513,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 513,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "Boss Release及Leave保护原run全员Sessions；Illusion Leave无selected集合。两塔Leave实际效果owner为原run全员，与selected参与者独立。",
+          "new": "Boss全run精确参与者：报告者捕获原物理context，其余原session；Illusion[]；Leave DeclaredNonRequest owners为原run全员，不把owner自动围栏。Release无footprint与Main。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原session/run/stale消费位置、exact/leader/全roster当前性、意图一次性及原返回帧序；Cycle前后当前性及InvalidData内容拒绝。",
+          "new": "逐处保持原guard与写时点，Town/塔复用同partial算法。Cycle真实Dispose/ACK/物理替换差异按VC-B11；Boss Release后续编码及两塔Back scope默认typed/原参与者保护差异按三条真实旧新oracle列VC-B12，peer不自动物理关闭。不改raw/Self/恢复权限，不称其它塔fine或T008闭合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "BossTowerProjectionDelivery",
@@ -19104,7 +19233,7 @@
         "TownAreaProjectionDelivery",
         "UsageQuotaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -23992,26 +24121,44 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 189,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "Boss选择释放Transactional；Back Boss/Illusion Leave分别原事务，Boss提交后ready可独立Start；普通选择/返城及quota无新增事务。",
+          "new": "Boss释放ordinary Write无footprint；Leave复用同partial两个ordinary及原Start独立单元；Town/当前属性/ACK/逐成员quota只投影，普通End成功后同实例ParticipantDeparted。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-42.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 189,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionFailureBoundaryTests.cs"
+      ],
       "id": "message:65668",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonSelection.BackToVillageHandler",
@@ -24034,29 +24181,56 @@
         "value": 65668
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 189,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
+        "mapping": "旧调用与原顺序对照 bf1f070f；三handler只派唯一whole。CycleQuestFlow保原任务与入场强断言改whole；Boss选择释放唯一生产消费者删除，其他塔fine仍保留。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 189,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionSlice.cs",
-          "line": 189,
-          "source_sha256": "2d4fdc81351f10eb1fa420af0a4845ca30b33f1fc583946f76fa726edbf0cc98"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "Boss Release及Leave保护原run全员Sessions；Illusion Leave无selected集合。两塔Leave实际效果owner为原run全员，与selected参与者独立。",
+          "new": "Boss全run精确参与者：报告者捕获原物理context，其余原session；Illusion[]；Leave DeclaredNonRequest owners为原run全员，不把owner自动围栏。Release无footprint与Main。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原session/run/stale消费位置、exact/leader/全roster当前性、意图一次性及原返回帧序；Cycle前后当前性及InvalidData内容拒绝。",
+          "new": "逐处保持原guard与写时点，Town/塔复用同partial算法。Cycle真实Dispose/ACK/物理替换差异按VC-B11；Boss Release后续编码及两塔Back scope默认typed/原参与者保护差异按三条真实旧新oracle列VC-B12，peer不自动物理关闭。不改raw/Self/恢复权限，不称其它塔fine或T008闭合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "BossTowerProjectionDelivery",
@@ -24065,7 +24239,7 @@
         "TownAreaProjectionDelivery",
         "UsageQuotaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31009,25 +31183,40 @@
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 67,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "none_reason": "原Direct仅规则/角色任务读取及TryReplaceExact内存意图；新whole同样无ordinary Write、Main或持久事务。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-42.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 67,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionFailureBoundaryTests.cs"
+      ],
       "id": "message:66312",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CycleDungeonEntry.PrepareCycleDungeonEntryHandler",
@@ -31050,34 +31239,58 @@
         "value": 66312
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 67,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "mapping": "旧调用与原顺序对照 bf1f070f；三handler只派唯一whole。CycleQuestFlow保原任务与入场强断言改whole；Boss选择释放唯一生产消费者删除，其他塔fine仍保留。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 67,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
+        "none_reason": "原Direct无selected事务参与者与footprint；新不新增selected保护、Fence、Block或事务。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+        ]
       },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "line": 67,
-          "source_sha256": "ac3692bb481790ad9aa0326488d904a1e0e0fb07016fd4d7a8ee2a48f17c4b39"
-        },
-        "state": "pending"
-      },
+      "protection_locations": [
+        {
+          "old": "原session/run/stale消费位置、exact/leader/全roster当前性、意图一次性及原返回帧序；Cycle前后当前性及InvalidData内容拒绝。",
+          "new": "逐处保持原guard与写时点，Town/塔复用同partial算法。Cycle真实Dispose/ACK/物理替换差异按VC-B11；Boss Release后续编码及两塔Back scope默认typed/原参与者保护差异按三条真实旧新oracle列VC-B12，peer不自动物理关闭。不改raw/Self/恢复权限，不称其它塔fine或T008闭合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task42-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CycleDungeonEntry.PrepareCycleDungeonEntryCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

@@ -34,9 +34,12 @@ public sealed class IllusionTowerPublicFlowTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Public_handlers_complete_real_pvf_tower_return_to_town_and_reenter()
     {
-        await TestGameplay.RunAsync(async () =>
+        var returnUnits = new List<Dfo.Server.Application.Commands.CommandWorkUnitDeclaration>();
+        using var fixture = CreateFixture(returnUnits: returnUnits);
+        var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+        IllusionTowerSnapshot firstRun = null!;
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            using var fixture = CreateFixture();
             await PrepareSelectedCharacterAsync(fixture, tickets: 1);
             var beforeExperience = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
             var beforeGold = fixture.Gold;
@@ -45,8 +48,7 @@ public sealed class IllusionTowerPublicFlowTests
 
             AssertEntryDebitPrecedesTowerMode(fixture.Sender.Messages);
 
-            var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-            var firstRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
+            firstRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
             Assert.Equal(0, fixture.Count(4183));
             Assert.Null(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
             Assert.Equal(
@@ -124,8 +126,16 @@ public sealed class IllusionTowerPublicFlowTests
                         or ServerMessageType.GameIllusionTowerReward or ServerMessageType.GameIllusionTowerContinue)
                     .Select(message => message.MessageType));
 
-            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
-                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default));
+        });
+        await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
+            new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
+        var returned = Assert.Single(returnUnits, unit => unit.Name == "party-leave-illusion-tower");
+        Assert.Equal(Dfo.Server.Application.Commands.CommandWorkUnitKind.Ordinary, returned.Kind);
+        Assert.Empty(returned.Participants);
+        Assert.Equal(Dfo.Server.Application.Commands.CommandFootprintMode.DeclaredNonRequest, returned.Footprint);
+        Assert.Equal(new[] { fixture.Session }, returned.FootprintOwners!);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
 
             Assert.Null(towers.Find(fixture.Session));
             Assert.NotNull(fixture.Services.GetRequiredService<ITownAreaDomainService>().Find(fixture.Session.CharacterId));
@@ -162,7 +172,7 @@ public sealed class IllusionTowerPublicFlowTests
         using var fixture = CreateFixture();
         await PrepareSelectedCharacterAsync(fixture, tickets: 1);
         var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-        var (replacement, messages, settlementFrames, experience, gold) = await TestGameplay.RunAsync(fixture.Services, async () =>
+        var oldRunId = await TestGameplay.RunAsync(fixture.Services, async () =>
         {
             await EnterAsync(fixture);
             await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
@@ -176,14 +186,18 @@ public sealed class IllusionTowerPublicFlowTests
             var due = Assert.IsType<DateTimeOffset>(oldRun.ReturnDueAt);
             if (due >= fixture.Clock.GetUtcNow()) fixture.Clock.Advance(due - fixture.Clock.GetUtcNow() + TimeSpan.FromSeconds(1));
 
-            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
-                new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default));
+            return oldRun.RunId;
+        });
+        await fixture.Services.GetRequiredService<BackToVillageHandler>().HandleAsync(
+            new(fixture.Connection), new BackToVillageRequest(GameMessageMetadata.Empty), default);
+        var (replacement, messages, settlementFrames, experience, gold) = await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
             await fixture.Seed(65, 4183, 1);
             fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>()
                 .Record(fixture.Session, DungeonEntryIntent.Interactive);
             await EnterAsync(fixture);
             var entered = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-            Assert.NotEqual(oldRun.RunId, entered.RunId);
+            Assert.NotEqual(oldRunId, entered.RunId);
             return (entered, fixture.Sender.Messages.Count, SettlementFrames(fixture),
                 fixture.Scalar("SELECT exp FROM characters WHERE character_id=1"), fixture.Gold);
         });
@@ -227,8 +241,9 @@ public sealed class IllusionTowerPublicFlowTests
         }
     }
 
-    private static ShopFixture CreateFixture(bool gateSweepFind = false) => new(services =>
+    private static ShopFixture CreateFixture(bool gateSweepFind = false, List<Dfo.Server.Application.Commands.CommandWorkUnitDeclaration>? returnUnits = null) => new(services =>
     {
+        if (returnUnits is not null) Task42UnitObserver.Install(services, returnUnits);
         services.AddSingleton<IDungeonExperienceProgressionPolicySource, PvfDungeonExperienceProgressionPolicySource>();
         services.RemoveAll<IItemPlacementDefinitionSource>();
         services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();

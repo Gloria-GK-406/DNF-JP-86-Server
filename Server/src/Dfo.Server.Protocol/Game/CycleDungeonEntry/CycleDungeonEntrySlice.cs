@@ -51,34 +51,22 @@ internal sealed class PrepareCycleDungeonEntryEncoder : GameCmdMessageEncoder<Pr
         OnePayload(0x0308, PrepareCycleDungeonEntryCodec.Encode(message));
 }
 
-public sealed record PrepareCycleDungeonEntryCommand(SelectedSessionIdentity Session, int DungeonId, int QuestId)
-    : ICommand<CycleDungeonPreparation>, IAccountCommand
+internal sealed class GamePrepareCycleDungeonEntryCommandHandler(ISelectedSessionDomainService sessions, ICycleDungeonEntryDomainService cycles,
+    IGameCommandOutbox outbox, ILogger<GamePrepareCycleDungeonEntryCommandHandler> logger)
+    : ICommandHandler<GamePrepareCycleDungeonEntryCommand, CycleDungeonPreparation>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class PrepareCycleDungeonEntryCommandHandler(ICycleDungeonEntryDomainService cycles)
-    : ICommandHandler<PrepareCycleDungeonEntryCommand, CycleDungeonPreparation>
-{
-    public ValueTask<CycleDungeonPreparation> HandleAsync(CommandExecutionContext context,
-        PrepareCycleDungeonEntryCommand command, CancellationToken cancellationToken) =>
-        cycles.PrepareAsync(command.Session, command.DungeonId, command.QuestId, cancellationToken);
-}
-
-public sealed class PrepareCycleDungeonEntryHandler(ISelectedSessionDomainService sessions, ICommandBus commands,
-    IGameMessageSender sender, ILogger<PrepareCycleDungeonEntryHandler> logger)
-    : ClientMessageHandler<PrepareCycleDungeonEntryRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        PrepareCycleDungeonEntryRequest message, CancellationToken cancellationToken)
+    public async ValueTask<CycleDungeonPreparation> HandleAsync(CommandExecutionContext execution,
+        GamePrepareCycleDungeonEntryCommand command, CancellationToken cancellationToken)
     {
+        var context = command.Dispatch;
+        var message = command.Input;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         var outcome = new CycleDungeonPreparation(false, Refusal: "Invalid request or no selected character.");
         if (session is not null && message.Valid && message.DungeonId > 0 && message.QuestId is > 0 and <= ushort.MaxValue)
         {
             try
             {
-                outcome = await commands.SendAsync(new PrepareCycleDungeonEntryCommand(session, message.DungeonId,
-                    message.QuestId), cancellationToken).ConfigureAwait(false);
+                outcome = await cycles.PrepareAsync(session, message.DungeonId, message.QuestId, cancellationToken).ConfigureAwait(false);
             }
             catch (InvalidDataException error)
             {
@@ -88,7 +76,23 @@ public sealed class PrepareCycleDungeonEntryHandler(ISelectedSessionDomainServic
         }
         logger.LogInformation("Cycle preparation character={Character} dungeon={Dungeon} quest={Quest} accepted={Accepted} reason={Reason}",
             session?.CharacterId, message.DungeonId, message.QuestId, outcome.Accepted, outcome.Refusal);
-        await sender.SendCmdAsync(context.Connection.ConnectionId,
+        await outbox.RegisterCmdAsync(context.Connection.ConnectionId,
             new PrepareCycleDungeonEntryResponse(outcome.Accepted, outcome.QuestId), cancellationToken).ConfigureAwait(false);
+        return outcome;
     }
+}
+
+public sealed record GamePrepareCycleDungeonEntryCommand(NetworkDispatchContext Dispatch, PrepareCycleDungeonEntryRequest Input)
+    : IProtocolCommand<CycleDungeonPreparation>
+{
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
+}
+
+public sealed class PrepareCycleDungeonEntryHandler(ICommandBus commands)
+    : ClientMessageHandler<PrepareCycleDungeonEntryRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GamePrepareCycleDungeonEntryCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        PrepareCycleDungeonEntryRequest message, CancellationToken token) =>
+        _ = await commands.SendAsync(new GamePrepareCycleDungeonEntryCommand(context, message), token).ConfigureAwait(false);
 }

@@ -603,7 +603,7 @@ public sealed class LeaveDungeonTests
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runs.RunId, [Identity]);
             var sender = new RecordingSender();
-            var handler = new BackToVillageHandler(
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Back(
                 new OneSession(Identity),
                 new RuntimeCurrentView(new OneRuntimeSession(Entry())),
                 new StandingWhereTheyAre(),

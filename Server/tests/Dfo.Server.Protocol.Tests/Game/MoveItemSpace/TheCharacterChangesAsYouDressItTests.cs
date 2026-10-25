@@ -530,7 +530,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         public async ValueTask<ExtendedUserStateMessage> OpenDungeonSelectionAsync(ICharacterStateProjectionDomainService? current = null)
         {
             Sender.Sent.Clear();
-            await new EnterSelectDungeonHandler(current ?? new UnchangedCurrentState(), new OneSession(), CurrentViews, new SelectionVisits(), new IgnoredEntryIntents(),
+            await Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(current ?? new UnchangedCurrentState(), new OneSession(), CurrentViews, new SelectionVisits(), new IgnoredEntryIntents(),
                 Sender,
                 TownAreaProjectionTestFactory.Create(new OneSession(), CurrentViews, Sender),
                 NullLogger<EnterSelectDungeonHandler>.Instance,

@@ -109,12 +109,3 @@ public sealed class PickupBossTowerItemCommandHandler(IBossTowerDomainService to
     public ValueTask<BossTowerPickupResult> HandleAsync(CommandExecutionContext context, PickupBossTowerItemCommand command, CancellationToken token) =>
         towers.PickupAsync(command.Context, command.GroundUid, token);
 }
-
-public sealed record ReleaseBossTowerSelectionCommand(BossTowerActionContext Context, int DungeonId) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
-public sealed class ReleaseBossTowerSelectionCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult>
-{
-    public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
-        ReleaseBossTowerSelectionCommand command, CancellationToken token) =>
-        towers.ReleaseForSelectionAsync(command.Context, command.DungeonId, token);
-}

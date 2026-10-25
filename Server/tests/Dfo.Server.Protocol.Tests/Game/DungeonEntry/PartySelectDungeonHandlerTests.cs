@@ -52,7 +52,7 @@ public sealed class PartySelectDungeonHandlerTests
             foreach (var member in new[] { Leader, Member })
                 intents.Record(member, DungeonEntryIntent.OrdinaryRechallenge(DungeonId));
             var sender = new Sender();
-            var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(new UnchangedState(), sessions,
                 new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
                 NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
@@ -74,7 +74,7 @@ public sealed class PartySelectDungeonHandlerTests
             var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader]);
             var intents = new Intents();
             var sender = new Sender();
-            var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(new UnchangedState(), sessions,
                 new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
                 NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
@@ -201,7 +201,7 @@ public sealed class PartySelectDungeonHandlerTests
             var snapshot = Snapshot();
             snapshot = snapshot with { Members = [.. snapshot.Members.Select(x => x with
                 { Slot = x.CharacterId == Leader.CharacterId ? leaderSlot : leaderSlot == 0 ? (byte)1 : (byte)0 })] };
-            var handler = new EnterSelectDungeonHandler(
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(
                 new UnchangedState(),
                 sessions,
                 new RuntimeCurrentView(runtime),
@@ -243,7 +243,7 @@ public sealed class PartySelectDungeonHandlerTests
             var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
             var intents = new Intents();
             var sender = new Sender();
-            var handler = new EnterSelectDungeonHandler(
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(
                 new UnchangedState(), sessions, new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
                 NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
@@ -300,7 +300,11 @@ public sealed class PartySelectDungeonHandlerTests
                 Assert.Equal(2, sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>().Count());
                 Assert.All(sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>(), x => Assert.Equal(SelectDungeonRefusal.InsufficientFatigue, x.ErrorCode));
             }
-            var handler = ActivatorUtilities.CreateInstance<BackToVillageHandler>(services);
+            var handler = DungeonSelectionTestDriver.Back(
+                services.GetRequiredService<ISelectedSessionDomainService>(), services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>(),
+                services.GetRequiredService<IOnlineCharacterRuntimeDomainService>(), services.GetRequiredService<IDungeonRunDomainService>(),
+                services.GetRequiredService<DungeonRunDeliveryRegistry>(), sender, services.GetRequiredService<TownAreaProjectionDelivery>(),
+                NullLogger<BackToVillageHandler>.Instance, services.GetRequiredService<IPartyService>(), entryIntents: intents);
 
             await handler.HandleAsync(
                 Dispatch(Leader),

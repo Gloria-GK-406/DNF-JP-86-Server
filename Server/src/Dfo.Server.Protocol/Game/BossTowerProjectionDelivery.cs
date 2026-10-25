@@ -378,19 +378,6 @@ public sealed class BossTowerProjectionDelivery(
         return true;
     }
 
-    /// <returns>True if a current Boss run consumed/rejected this request; false allows the ordinary selection projection.</returns>
-    public async ValueTask<bool> PrepareSelectionAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, int requestedDungeonId, CancellationToken token)
-    {
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        if (Stale(metadata)) return true;
-        if (!Exact(session, expected) || !expected.Members.Any(value => value.Session == session && value.IsLeader)) return true;
-        var released = await commands.SendAsync(new ReleaseBossTowerSelectionCommand(Context(expected, session), requestedDungeonId) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-        return !released.Changed;
-    }
-
     public bool HasRun(SelectedSessionIdentity session) => towers.Find(session) is not null;
 
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId connectionId,

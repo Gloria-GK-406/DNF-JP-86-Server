@@ -874,16 +874,17 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
-        services.RegisterMessageHandler<EnterSelectDungeonHandler>(ClientMessageType.GameEnterSelectDungeon);
+        services.AddProtocolCommandHandler<GameEnterSelectDungeonCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEnterSelectDungeon, typeof(EnterSelectDungeonRequest)));
+        services.RegisterProtocolMessageHandler<EnterSelectDungeonHandler, EnterSelectDungeonRequest, GameEnterSelectDungeonCommand>(ClientMessageType.GameEnterSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
         services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameMirrorDungeonEntry);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand, bool, Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
-        services.RegisterMessageHandler<PrepareCycleDungeonEntryHandler>(ClientMessageType.GamePrepareCycleDungeonEntry);
-        services.AddCommandHandler<PrepareCycleDungeonEntryCommand, CycleDungeonPreparation, PrepareCycleDungeonEntryCommandHandler>(
-            CommandExecutionKind.Direct);
+        services.RegisterProtocolMessageHandler<PrepareCycleDungeonEntryHandler, PrepareCycleDungeonEntryRequest, GamePrepareCycleDungeonEntryCommand>(ClientMessageType.GamePrepareCycleDungeonEntry);
+        services.AddProtocolCommandHandler<GamePrepareCycleDungeonEntryCommand, CycleDungeonPreparation, GamePrepareCycleDungeonEntryCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GamePrepareCycleDungeonEntry, typeof(PrepareCycleDungeonEntryRequest)));
         services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
         services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
@@ -910,7 +911,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ReleaseBossTowerSelectionCommand, BossTowerActionResult, ReleaseBossTowerSelectionCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
         services.TryAddSingleton<IllusionTowerPartyCoordinator>();
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
@@ -953,7 +953,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
             CommandExecutionKind.Direct);
         services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
-        services.RegisterMessageHandler<BackToVillageHandler>(ClientMessageType.GameBackToVillage);
+        services.AddProtocolCommandHandler<GameBackToVillageCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameBackToVillage, typeof(BackToVillageRequest)));
+        services.RegisterProtocolMessageHandler<BackToVillageHandler, BackToVillageRequest, GameBackToVillageCommand>(ClientMessageType.GameBackToVillage);
 
         // Known reports that this server intentionally does not answer. A durability request is
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
