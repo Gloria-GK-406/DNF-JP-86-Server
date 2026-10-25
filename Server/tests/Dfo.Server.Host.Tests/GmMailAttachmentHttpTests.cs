@@ -88,7 +88,7 @@ public sealed partial class GmOfficialMailHttpTests
             var mailbox = host.Services.GetRequiredService<IMailboxDomainService>();
             var message = Assert.Single(await mailbox.InboxAsync(new CharacterId(1)));
             var attachment = Assert.Single(message.Attachments);
-            var claimed = await host.Services.GetRequiredService<ICommandBus>().SendAsync(new MailboxCommand(user.OnlineUserId, session, MailboxOperation.Claim, attachment.Id));
+            var claimed = await MailboxWhole(host, user.Connection, new MailboxClaimRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty, checked(0x40000000u + (uint)attachment.Id)));
             var update = Assert.Single(claimed.Assets!.Updates);
             Assert.Equal((byte)10, update.Core.ReinforcementLevel);
             Assert.Equal((byte)3, update.Core.AmplifyType); Assert.Equal(expectedValue, update.Core.AmplifyValue);

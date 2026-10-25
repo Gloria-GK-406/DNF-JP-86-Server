@@ -84,6 +84,12 @@ internal sealed class DomainTransactionLease(DomainTransaction transaction) : IA
     internal TransactionFailureFact? CommitFailure => transaction.CommitFailure;
     internal Exception? GuardFailure => transaction.GuardFailure;
     internal IDomainTransaction Transaction => transaction;
+    internal GameplayOutboxUnit? OutboxUnit => transaction.OutboxUnit;
+    internal object ObserveAction() => transaction.ObserveAction();
+    internal DomainTransaction.DomainActionRollbackFact? OwnActionFact(object call) =>
+        transaction.ActionRollback is { } fact && ReferenceEquals(fact.Transaction, transaction) && ReferenceEquals(fact.Call, call) ? fact : null;
+    internal DomainTransaction.DomainActionRollbackFact? ConsumeAction(object call, Exception error) =>
+        transaction.ActionRollback is { } fact && fact.TryConsume(transaction, call, error) ? fact : null;
     internal ValueTask AbortAsync(Exception cause) => transaction.AbortAsync(cause);
 
     public ValueTask CommitAsync(CancellationToken cancellationToken) =>

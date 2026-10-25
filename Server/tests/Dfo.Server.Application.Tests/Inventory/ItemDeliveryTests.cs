@@ -12,6 +12,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Mailbox;
+using Dfo.Server.Application.Tests.Mail;
 using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
@@ -254,22 +255,14 @@ public sealed partial class ItemDeliveryTests
                 await tx.CommitAsync(default);
             }
         });
-        var inbox=(await f.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new MailboxCommand(f.OnlineUser,f.Session,MailboxOperation.Open))).Inbox!;
+        var inbox=(await MailboxTestWire.Command(f, new MailboxOpenRequest(GameMessageMetadata.Empty))).Result.Inbox!;
         var attachment=Assert.Single(Assert.Single(inbox.Messages).Attachments);
         Assert.Equal(wireKind,attachment.ItemKind);
         if(kind==8) Assert.Contains("JewelSocket",attachment.DetailJson);
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
-            await f.Services.GetRequiredService<MailboxOpenHandler>().HandleAsync(new(f.Connection),new MailboxOpenRequest(GameMessageMetadata.Empty),default);
-        });
+        await MailboxTestWire.Dispatch(f, new MailboxOpenRequest(GameMessageMetadata.Empty));
         foreach(var message in f.Sender.Messages) AssertEncodes(f,message);
         f.Sender.Messages.Clear();
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
-            await f.Services.GetRequiredService<MailboxClaimHandler>().HandleAsync(new(f.Connection),
-                new MailboxClaimRequest(GameMessageMetadata.Empty,checked(0x40000000u+(uint)attachment.AttachmentId)),default);
-        });
+        await MailboxTestWire.Dispatch(f, new MailboxClaimRequest(GameMessageMetadata.Empty,checked(0x40000000u+(uint)attachment.AttachmentId)));
         Assert.Equal(0,Assert.Single(f.Sender.Messages.OfType<MailboxClaimResponse>()).Error);
         foreach(var message in f.Sender.Messages) AssertEncodes(f,message);
         // Creature inventory and its independent runtime list are both projected before the ACK.

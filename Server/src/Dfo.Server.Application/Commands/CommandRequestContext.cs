@@ -33,6 +33,35 @@ public abstract class CommandRequestContext
     private readonly List<CommandRegistrationAttempt> attempts = [];
     private ScopeCleanupPhase? scopeCleanup;
     internal IReadOnlyCollection<CommandRegistrationExit> RegistrationExits { get; set; } = [];
+    internal CommandSelfSettlementCapability SelfSettlement { get; set; }
+    private object? pendingSelfSettlement;
+    internal void BeginSelfSettlement(object call)
+    {
+        DemandCurrent();
+        pendingSelfSettlement = call;
+    }
+    internal void DemandSelfSettlementCurrent(object? call)
+    {
+        var previous = failure;
+        try
+        {
+            DemandRegistrationCurrentCore();
+            if (!ReferenceEquals(pendingSelfSettlement, call))
+                throw new InvalidOperationException("The self-settlement handoff belongs to another operation.");
+            DemandNoIncompleteAttempt();
+        }
+        catch (Exception error)
+        {
+            // A real authority/current check throwing again is a new occurrence, even for the same object.
+            if (previous is null) FailedIndependent(error, new object());
+            throw;
+        }
+    }
+    internal void EndSelfSettlement(object call)
+    {
+        DemandSelfSettlementCurrent(call);
+        pendingSelfSettlement = null;
+    }
     private bool closed;
     private bool unitOpen;
     private readonly List<Task> operations = [];
@@ -45,6 +74,23 @@ public abstract class CommandRequestContext
         DemandNoIncompleteAttempt();
     }
     internal void DemandRegistrationCurrent()
+    {
+        if (pendingSelfSettlement is not null)
+        {
+            var error = new InvalidOperationException("Self settlement is pending complete cleanup.");
+            FailedIndependent(error, new object());
+            throw error;
+        }
+        var previous = failure;
+        try { DemandRegistrationCurrentCore(); }
+        catch (Exception error)
+        {
+            if (SelfSettlement == CommandSelfSettlementCapability.SelfSettledAction && previous is null)
+                FailedIndependent(error, new object());
+            throw;
+        }
+    }
+    private void DemandRegistrationCurrentCore()
     {
         if (closed || GameplayJob.Current?.Id != job)
             throw new InvalidOperationException("The command request is closed or belongs to another job.");

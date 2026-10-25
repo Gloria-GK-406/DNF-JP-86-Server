@@ -483,6 +483,35 @@ public sealed partial class MailboxCoreIntegrationTests
         Assert.True(expected == exception.Reason, $"Expected {expected}, got {exception.Reason}: {exception.Message}");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Real_SQL_plus_rollback_failure_retains_both_causes_without_network_recovery(bool ambient)
+    {
+        var trace = new Task31MailTrace { Mode = "rollback" };
+        using var fixture = new MailFixture(services => Task31DomainProxy.Decorate<IMailboxRepository>(services, trace));
+        fixture.Sql("CREATE TRIGGER t31_shared_fault BEFORE INSERT ON mailbox_messages BEGIN SELECT RAISE(ABORT,'task31 shared SQL');END;");
+        var before = Task31Assets.Read(fixture.Services);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            var scope = fixture.Services.GetRequiredService<DomainTransactionScope>();
+            await using var lease = ambient ? scope.Begin() : null;
+            if (ambient) await fixture.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (sql, ct) =>
+            { sql.CommandText = "UPDATE character_stats SET carried_gold=carried_gold+11 WHERE character_id=1"; await sql.ExecuteNonQueryAsync(ct); }, default);
+            var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(() => fixture.Mail.SendAsync(MailBuilder.FromSystem(Recipient).AddGold(7).Build()).AsTask());
+            Assert.Equal(TransactionUncertaintyReason.RollbackFailure, error.Reason);
+            var sqlCause = Assert.IsType<SqliteException>(trace.DomainFailure);
+            Assert.Equal(1811, sqlCause.SqliteExtendedErrorCode);
+            Assert.True(Dfo.Server.Application.Tests.Transactions.CommandSelfSettledWorkUnitsTests.Has(error, sqlCause));
+            Assert.True(Dfo.Server.Application.Tests.Transactions.CommandSelfSettledWorkUnitsTests.Has(error, trace.Second));
+            Assert.Equal(DomainTransactionCompletion.Uncertain, trace.Transaction!.Completion);
+            Assert.Null(trace.Transaction.ActionRollback); Assert.Empty(trace.Transaction.OutboxUnit!.SelfSettlementGuards);
+            Assert.Null(scope.Current);
+            if (ambient) await Assert.ThrowsAsync<InvalidOperationException>(() => lease!.CommitAsync(default).AsTask());
+        });
+        Assert.Equal(before, Task31Assets.Read(fixture.Services));
+    }
+
     private sealed class MailFixture : IDisposable
     {
         private readonly string directory;

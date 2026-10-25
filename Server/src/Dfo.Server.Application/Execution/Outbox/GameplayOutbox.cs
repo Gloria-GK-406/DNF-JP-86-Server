@@ -119,6 +119,19 @@ public sealed class GameplayOutbox
     private readonly ILogger logger;
     private readonly List<Slot> slots = [];
     private GameplayOutboxUnit? open;
+    private GameplayOutboxUnit? pendingSelfSettlement;
+    internal void PinSelfSettlement(GameplayOutboxUnit unit)
+    {
+        EnsureWritable();
+        if (!ReferenceEquals(open, unit)) throw new InvalidOperationException("Only the open unit may pin self settlement.");
+        pendingSelfSettlement = unit;
+    }
+    internal void ReleaseSelfSettlement(GameplayOutboxUnit unit)
+    {
+        if (!ReferenceEquals(pendingSelfSettlement, unit)) throw new InvalidOperationException("Foreign self-settlement owner.");
+        if (unit.SelfSettlementGuards.Count != 0) throw new InvalidOperationException("Self-settlement admission has failed.");
+        pendingSelfSettlement = null;
+    }
     private OrderedScope? ordered;
     private bool completed;
 
@@ -266,6 +279,12 @@ public sealed class GameplayOutbox
     private void EnsureWritable()
     {
         GameplayWriteAssertion.Writing(GameplayOutboxes.RegisterEntry);
+        if (pendingSelfSettlement is { } pending)
+        {
+            var error = new InvalidOperationException("Self settlement has pinned outbox admission.");
+            pending.RecordSelfSettlementGuard(error);
+            throw error;
+        }
         if (completed)
             throw new InvalidOperationException("The outbox of a finished gameplay job takes no more work.");
     }
@@ -343,6 +362,10 @@ public sealed class GameplayOutboxUnit : IDisposable
     internal GameplayOutboxUnit(GameplayOutbox outbox) => this.outbox = outbox;
 
     public GameplayOutboxUnitState State { get; private set; }
+    internal List<(object Occurrence, Exception Error)> SelfSettlementGuards { get; } = [];
+    internal void RecordSelfSettlementGuard(Exception error) => SelfSettlementGuards.Add((new object(), error));
+    internal void PinSelfSettlement() => outbox.PinSelfSettlement(this);
+    internal void ReleaseSelfSettlement() => outbox.ReleaseSelfSettlement(this);
 
     /// <summary>The unit's transaction has committed: compose its pending entries now (RQ-031(0)).</summary>
     public async ValueTask CommitAsync(CancellationToken cancellationToken)

@@ -174,6 +174,7 @@ internal sealed class CommandBus(
             else
                 request = new CommandRequestContext.TrustedInternal(origin ?? throw new InvalidOperationException("Missing internal origin."));
             request.RegistrationExits = registration.RegistrationExits ?? [];
+            request.SelfSettlement = registration.SelfSettlement;
             var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType,
                 registration.ExecutionKind) { Request = request };
             request.DemandCurrent();

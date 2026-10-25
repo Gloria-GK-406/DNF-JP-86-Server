@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Marriage;
@@ -194,6 +196,53 @@ public sealed class MarriageWeddingCharacterizationTests
         Assert.Empty(result.Standing);
         Assert.Equal(4, f.Scalar("SELECT COUNT(*) FROM marriage_wedding_cleanup"));
         Assert.Equal((ushort)0, await Query(f).RemainingInvitationsAsync(ceremony.Id, f.Session.CharacterId, default));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Late_settlement_mail_SQL_failure_keeps_positions_gifts_refunds_and_cleanup_atomic(bool complete)
+    {
+        var content = Tier0() with
+        {
+            Tiers = [new MarriageCeremonyTier(0, 500_000, 0, 10) { GiftItemId = 5001 }],
+            GuestRewards = [new(50_000, 0, 6001, 2)]
+        };
+        await using var w = await ChurchTownAsync(content, services => services.AddSingleton<IItemPlacementDefinitionSource, Task31RewardContent>()); var f = w.F;
+        var (ceremony, room) = await PreparedAsync(w);
+        var guest = AddCharacter(f, 3, 73, job: 0, gold: 100_000);
+        var outside = AddCharacter(f, 4, 74, job: 0, gold: 100_000);
+        await PaidGuestAsync(f, guest, await InviteAsync(f, f.Session, guest), 10_000, room);
+        await PaidGuestAsync(f, outside, await InviteAsync(f, f.Session, outside), 20_001);
+        Arrive(f, f.Session, room); Arrive(f, guest, room);
+        if (complete) Arrive(f, w.Peer, room);
+        w.Clock.Now = room.ReadyUntil;
+        f.Sql(complete
+            ? "CREATE TRIGGER t31_wedding_fault BEFORE INSERT ON mailbox_messages WHEN NEW.receiver_character_id=74 AND NEW.title='婚礼宾客回礼' AND (SELECT COUNT(*) FROM mailbox_messages WHERE title IN ('普通婚礼奖励','婚礼礼金','婚礼宾客回礼'))>=5 BEGIN SELECT RAISE(ABORT,'task31 second gift');END;"
+            : "CREATE TRIGGER t31_wedding_fault BEFORE INSERT ON mailbox_messages WHEN NEW.receiver_character_id=74 AND NEW.title='婚礼退款' BEGIN SELECT RAISE(ABORT,'task31 late refund');END;");
+        var before = Dfo.Server.Application.Tests.Mail.Task31Assets.Read(f.Services);
+        var cause = await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default)));
+        Assert.Equal(1811, cause.SqliteExtendedErrorCode);
+        Assert.Equal(before, Dfo.Server.Application.Tests.Mail.Task31Assets.Read(f.Services));
+        f.Sql("DROP TRIGGER t31_wedding_fault");
+        var settled = (await InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default)))!;
+        Assert.Equal(complete ? MarriageWeddingPhase.Completed : MarriageWeddingPhase.Cancelled, settled.Wedding.Phase);
+        Assert.True(f.Scalar("SELECT COUNT(*) FROM marriage_wedding_cleanup") > 0);
+        if (complete)
+        {
+            Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE title='普通婚礼奖励'"));
+            Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE title='婚礼宾客回礼'"));
+            Assert.Equal(6, f.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE title IN ('普通婚礼奖励','婚礼礼金','婚礼宾客回礼')"));
+        }
+        Assert.Equal(complete ? 2 : 3, f.Scalar(complete
+            ? "SELECT COUNT(*) FROM mailbox_messages WHERE title='婚礼礼金'"
+            : "SELECT COUNT(*) FROM mailbox_messages WHERE title='婚礼退款'"));
+    }
+
+    private sealed class Task31RewardContent : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) =>
+            ValueTask.FromResult<ItemPlacement?>(new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55)));
     }
 
     [Fact]

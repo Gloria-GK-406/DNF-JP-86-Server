@@ -1,5 +1,6 @@
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
@@ -8,6 +9,192 @@ namespace Dfo.Server.Application.Transactions;
 
 internal sealed class CommandWorkUnits(DomainTransactionScope transactions, SelectedSessionSafety safety) : ICommandWorkUnits
 {
+    public ValueTask<CommandSelfSettledWriteResult<TResult>> WriteSelfSettledResultAsync<TResult>(CommandExecutionContext context,
+        CommandWorkUnitDeclaration declaration, Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action,
+        CancellationToken cancellationToken = default) where TResult : notnull
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
+        var operation = RunSelfSettledAsync(context, declaration, action, cancellationToken).AsTask();
+        request.TrackOperation(operation);
+        return new(operation);
+    }
+
+    private async ValueTask<CommandSelfSettledWriteResult<TResult>> RunSelfSettledAsync<TResult>(CommandExecutionContext context,
+        CommandWorkUnitDeclaration declaration, Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action,
+        CancellationToken ct) where TResult : notnull
+    {
+        var request = context.Request!;
+        DomainTransactionLease? lease = null;
+        CommandWorkUnit? unit = null;
+        bool began = false;
+        Exception? failure = null;
+        CommandSelfSettledWriteResult<TResult>? candidate = null;
+        Exception? retained = null;
+        object? handoffCall = null;
+        DomainTransaction.DomainActionRollbackFact? actionFact = null;
+        var qualifyingHandoff = false;
+        try
+        {
+            ArgumentNullException.ThrowIfNull(declaration);
+            ArgumentNullException.ThrowIfNull(action);
+            request.DemandCurrent();
+            ArgumentException.ThrowIfNullOrWhiteSpace(declaration.Name);
+            if (request is not CommandRequestContext.ProtocolNonEffect
+                || request.SelfSettlement != CommandSelfSettlementCapability.SelfSettledAction
+                || declaration.Kind != CommandWorkUnitKind.Ordinary || declaration.Footprint != CommandFootprintMode.None
+                || declaration.Participants is not { Count: 0 })
+                throw new InvalidOperationException("Self settlement requires a permitted ordinary non-effect protocol write with no participants or footprint.");
+            request.BeginUnit(); began = true;
+            lease = transactions.Begin();
+            if (lease.OutboxUnit is null) throw new InvalidOperationException("Self settlement requires its original outbox unit.");
+            unit = new(lease.Transaction, request, selfLease: lease);
+            TResult result = default!;
+            try { result = await action(unit, ct).ConfigureAwait(false); }
+            catch (CommandSelfSettlementPropagationException signal) when (ReferenceEquals(signal, unit.Handoff)
+                && ReferenceEquals(signal.Unit, unit) && ReferenceEquals(signal.Call, unit.SelfCall))
+            {
+                actionFact = signal.Fact;
+                retained = signal.Fact.Cause;
+                handoffCall = signal.Call;
+                MergeAdmissionGuards();
+                request.DemandSelfSettlementCurrent(handoffCall);
+                qualifyingHandoff = true;
+                if (ct.IsCancellationRequested || retained is OperationCanceledException
+                    || TransactionOutcomeUncertainException.Contains(signal.Fact.Output)
+                    || signal.Fact.Completion != DomainTransactionCompletion.ConfirmedRollback
+                    || lease.Completion != DomainTransactionCompletion.ConfirmedRollback || lease.GuardFailure is not null)
+                    ExceptionDispatchInfo.Throw(signal.Fact.Output);
+                candidate = new CommandSelfSettledWriteResult<TResult>.ActionRolledBack(retained);
+            }
+            if (candidate is null)
+            {
+                if (unit.HasUnfinishedObservation)
+                {
+                    var unfinished = new InvalidOperationException("The action returned before its direct domain observation completed.");
+                    request.FailedIndependent(unfinished, new object());
+                    await unit.DrainObservationAsync().ConfigureAwait(false);
+                    throw unfinished;
+                }
+                // Completion alone does not prove the caller consumed a faulted direct observation.
+                await unit.DrainObservationAsync().ConfigureAwait(false);
+                request.DemandCurrent();
+                MergeAdmissionGuards();
+                if (lease.GuardFailure is { } guard) ExceptionDispatchInfo.Throw(guard);
+                if (lease.Transaction.IsRollbackOnly)
+                {
+                    retained = unit.RollbackCause;
+                    if (retained is not null) await lease.AbortAsync(retained).ConfigureAwait(false);
+                    else await lease.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    try { await lease.CommitAsync(ct).ConfigureAwait(false); }
+                    catch (Exception cause) when (!ct.IsCancellationRequested && cause is not OperationCanceledException
+                        && !TransactionOutcomeUncertainException.Contains(cause) && request.Failure is null
+                        && lease.Completion == DomainTransactionCompletion.ConfirmedRollback && lease.GuardFailure is null
+                        && lease.CommitFailure is { Kind: TransactionFailureKind.KnownStorage, Phase: TransactionFailurePhase.FallibleCommit } fact
+                        && ReferenceEquals(fact.Cause, cause))
+                    {
+                        retained = cause;
+                        candidate = new CommandSelfSettledWriteResult<TResult>.CommitRolledBack(cause);
+                    }
+                }
+                if (lease.Completion == DomainTransactionCompletion.Committed) request.ConfirmCommit([]);
+                candidate ??= new CommandSelfSettledWriteResult<TResult>.Returned(result);
+            }
+        }
+        catch (Exception error)
+        {
+            // A foreign/closed request must not let the active caller swallow this admission guard.
+            if (!began) GameplayJob.RecordProgramError(error);
+            // The qualified handoff's own output is still its signed occurrence, not a new outer failure.
+            var ownOutputPropagation = qualifyingHandoff && actionFact is not null
+                && ReferenceEquals(error, actionFact.Output);
+            if (unit?.HasObservation == true)
+            {
+                if (!ownOutputPropagation) request.Failed(error);
+                await unit.DrainObservationAsync().ConfigureAwait(false);
+            }
+            // A swallowed/replaced handoff cannot erase the already signed action occurrence.
+            actionFact ??= unit?.ObservedFact;
+            retained ??= actionFact?.Cause;
+            if (actionFact is not null)
+            {
+                if (request.Failure is null && !ownOutputPropagation)
+                    request.FailedIndependent(error, new object());
+                request.FailedIndependent(actionFact.Output, actionFact.Occurrence);
+            }
+            failure = request.Failure ?? error;
+            if (retained is not null && !Contains(failure, retained))
+                failure = new AggregateException("Self settlement was followed by another failure.", retained, failure);
+            if (lease is not null)
+            {
+                try { await lease.AbortAsync(failure).ConfigureAwait(false); }
+                catch (Exception cleanup) { failure = cleanup; }
+                if (lease.Completion == DomainTransactionCompletion.Committed) request.ConfirmCommit([]);
+                if (lease.Completion == DomainTransactionCompletion.Uncertain || TransactionOutcomeUncertainException.Contains(failure))
+                    request.Uncertain([]);
+            }
+            request.Failed(failure);
+        }
+        finally
+        {
+            try { unit?.Close(); }
+            catch (Exception cleanup) { RecordCleanup(cleanup, new object()); }
+            if (began)
+            {
+                try { request.EndUnit(); }
+                catch (Exception cleanup) { RecordCleanup(cleanup, new object()); }
+            }
+            if (lease is not null)
+            {
+                try { await lease.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception cleanup) { RecordCleanup(cleanup, new object()); }
+            }
+        }
+        MergeAdmissionGuards();
+        if (failure is null)
+        {
+            try
+            {
+                if (handoffCall is not null)
+                {
+                    request.DemandSelfSettlementCurrent(handoffCall);
+                    lease!.OutboxUnit!.ReleaseSelfSettlement();
+                    request.EndSelfSettlement(handoffCall);
+                }
+                else request.DemandCurrent();
+            }
+            catch (Exception validation)
+            {
+                if (actionFact is not null) request.FailedIndependent(actionFact.Output, actionFact.Occurrence);
+                failure = request.Failure ?? validation;
+                request.Failed(failure);
+            }
+        }
+        if (failure is not null) ExceptionDispatchInfo.Throw(request.Failure ?? failure);
+        return candidate ?? throw new InvalidOperationException("Self settlement produced no outcome.");
+
+        void MergeAdmissionGuards()
+        {
+            if (lease?.OutboxUnit is not { } outbox) return;
+            foreach (var (occurrence, error) in outbox.SelfSettlementGuards)
+                request.FailedIndependent(error, occurrence);
+        }
+        void RecordCleanup(Exception cleanup, object occurrence)
+        {
+            failure ??= retained is null ? cleanup : new AggregateException("Self settlement cleanup failed.", retained, cleanup);
+            if (request.Failure is null && retained is not null)
+                request.FailedIndependent(actionFact?.Output ?? retained, actionFact?.Occurrence ?? new object());
+            request.FailedIndependent(cleanup, occurrence);
+        }
+    }
+
+    private static bool Contains(Exception outer, Exception inner) => ReferenceEquals(outer, inner)
+        || outer is AggregateException aggregate && aggregate.InnerExceptions.Any(child => Contains(child, inner))
+        || outer.InnerException is { } cause && Contains(cause, inner);
+
     public ValueTask<CommandWriteResult<TResult>> WriteResultAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
         Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken cancellationToken = default)
         where TResult : notnull => StartAsync(context, declaration, action, readOnly: false, recoverCommit: true, cancellationToken);

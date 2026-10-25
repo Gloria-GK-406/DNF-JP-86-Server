@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Transactions;
 
+internal enum DomainActionRollbackPhase { DomainActionAbort }
 internal enum DomainTransactionCompletion { Open, ConfirmedRollback, Committed, Uncertain }
 
 
@@ -32,7 +33,7 @@ internal sealed class DomainTransaction(
     public bool IsRollbackOnly { get; private set; }
     public void RequireRollback()
     {
-        if (settled) throw new InvalidOperationException("The transaction is already settled.");
+        if (settled) throw SettledGuard("The transaction is already settled.");
         IsRollbackOnly = true;
     }
 
@@ -54,6 +55,62 @@ internal sealed class DomainTransaction(
     internal TransactionFailureFact? CommitFailure { get; private set; }
     internal Exception? GuardFailure => order.OfType<ITransactionFailureSource>()
         .Select(source => source.LastFailure).FirstOrDefault(fact => fact?.Kind == TransactionFailureKind.Guard)?.Cause;
+    private object? actionObservation;
+    internal DomainActionRollbackFact? ActionRollback { get; private set; }
+    internal GameplayOutboxUnit? OutboxUnit => unit;
+    private Exception SettledGuard(string message)
+    {
+        var error = new InvalidOperationException(message);
+        if (actionObservation is not null) unit?.RecordSelfSettlementGuard(error);
+        return error;
+    }
+    internal object ObserveAction()
+    {
+        if (settled || actionObservation is not null || unit is null)
+            throw new InvalidOperationException("A self-settling action requires its own open outbox unit and one observation.");
+        return actionObservation = new object();
+    }
+    internal ValueTask AbortActionAsync(Exception originalCause)
+    {
+        ArgumentNullException.ThrowIfNull(originalCause);
+        if (settled) return ValueTask.CompletedTask;
+        // Pin synchronously while this transaction and its original unit are still open.
+        if (actionObservation is not null) unit!.PinSelfSettlement();
+        settled = true;
+        afterCommit.Clear();
+        return CompleteActionAbortAsync(originalCause);
+    }
+    private async ValueTask CompleteActionAbortAsync(Exception originalCause)
+    {
+        Exception output = originalCause;
+        try { await RollbackEnlistedAsync(originalCause).ConfigureAwait(false); }
+        catch (Exception error) { output = error; throw; }
+        finally
+        {
+            if (actionObservation is { } call)
+                ActionRollback = new(this, call, new object(), originalCause, output, Completion);
+        }
+    }
+    internal sealed class DomainActionRollbackFact(DomainTransaction transaction, object call, object occurrence,
+        Exception cause, Exception output, DomainTransactionCompletion completion)
+    {
+        internal DomainActionRollbackPhase Phase { get; } = DomainActionRollbackPhase.DomainActionAbort;
+        internal DomainTransaction Transaction { get; } = transaction;
+        internal object Call { get; } = call;
+        internal object Occurrence { get; } = occurrence;
+        internal Exception Cause { get; } = cause;
+        internal Exception Output { get; } = output;
+        internal DomainTransactionCompletion Completion { get; } = completion;
+        internal bool Consumed { get; private set; }
+        internal bool TryConsume(DomainTransaction expected, object expectedCall, Exception error)
+        {
+            if (Consumed || Phase != DomainActionRollbackPhase.DomainActionAbort || !ReferenceEquals(Transaction, expected) || !ReferenceEquals(Call, expectedCall)
+                || !ReferenceEquals(Output, error)) return false;
+            Consumed = true;
+            return true;
+        }
+    }
+
     private async ValueTask InvokeParticipant(ITransactionParticipant participant, TransactionFailurePhase phase, CancellationToken ct)
     {
         var source = participant as ITransactionFailureSource;
@@ -80,8 +137,7 @@ internal sealed class DomainTransaction(
         ArgumentNullException.ThrowIfNull(create);
         if (this.settled)
         {
-            throw new InvalidOperationException(
-                "The transaction has already been settled and admits no further participant.");
+            throw SettledGuard("The transaction has already been settled and admits no further participant.");
         }
 
         if (this.enlisted.TryGetValue(identity, out var existing))

@@ -206,6 +206,30 @@ public sealed partial class MarriageHousingTests
     }
 
     [Fact]
+    public async Task Harvest_second_mail_SQL_failure_rolls_back_both_mails_record_and_tree_state()
+    {
+        await using var w = await MarriedAsync(); var f = w.F; var room = await Read(w);
+        Enter(w, f.Session, room.Instance); Enter(w, w.Peer, room.Instance);
+        var seed = await Give(w, 10002766, 2); var water = await Give(w, 10002765, 10);
+        Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.Plant, seed, 10002766))).Status);
+        Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.Water, water, 10002765))).Status);
+        Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.Water, water, 10002765))).Status);
+        w.Clock.Now += TimeSpan.FromDays(1);
+        Assert.Equal(0, (await Act(w, f.Session, new(HousingAction.Water, water, 10002765))).Status);
+        f.Sql("CREATE TRIGGER t31_harvest_fault BEFORE INSERT ON mailbox_messages WHEN NEW.receiver_character_id=72 BEGIN SELECT RAISE(ABORT,'task31 harvest second mail');END;");
+        var before = Dfo.Server.Application.Tests.Mail.Task31Assets.Read(f.Services);
+        var cause = await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => Act(w, w.Peer, new(HousingAction.Harvest)));
+        Assert.Equal(1811, cause.SqliteExtendedErrorCode);
+        Assert.Equal(before, Dfo.Server.Application.Tests.Mail.Task31Assets.Read(f.Services));
+        f.Sql("DROP TRIGGER t31_harvest_fault");
+        var count = f.Scalar("SELECT COUNT(*) FROM mailbox_messages");
+        Assert.Equal(0, (await Act(w, w.Peer, new(HousingAction.Harvest))).Status);
+        Assert.Equal(count + 2, f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_housing_harvests"));
+        Assert.Equal(1, (await Read(w)).Tree!.HarvestRound);
+    }
+
+    [Fact]
     public async Task Ring_consumes_only_actor_coupon_and_cannot_skip_or_consume_twice()
     {
         await using var w = await MarriedAsync(); var f = w.F; var slot = await Give(w, 10002611, 2);

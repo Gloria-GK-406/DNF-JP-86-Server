@@ -382,3 +382,16 @@ restatement guard mutation导致真实物品逆向回65资产RED、fresh drag正
 取证与具名跨 run 时间／GUID 校验、原子回滚、消费者 mutation、最终 full／DFO／capture／完整所有权及局限见 TASK-29 Result 和 `verification/evidence/task-29-inspection/`。仅这一逻辑消息与原 fine 两行闭合，其它 canonical 行不变；required 独立 review 与主控 checkpoint 后继，非 Spec002 整体完成。
 
 本单元具体证据文件：`verification/evidence/task-29-inspection/after-02/scope.json`（实际关闭链／出站次序）、`verification/evidence/task-29-inspection/mutation/result.json`（消费者变异与恢复）。原目录 locator 的 preclose01 拒绝保留；仅将两 Cera 行定位器修正为文件，运行时源码与正式全量 freeze01 相同，最终 freeze02 另记此治理差异。
+
+
+## TASK31 r1 — Mailbox 六logical／唯一whole
+
+| canonical ID | 本单元实际去向与边界 | 证据 |
+|---|---|---|
+| `command:Dfo.Server.Protocol.Game.Mailbox.MailboxCommand` | 旧 fine／handler／注册／caller删除，唯一 GameMailboxCommand；共享 domain 调用方保原事务。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |
+| `message:65630` | GameMailboxCommand／SelfSettledAction／Ordinary[] None；真实 Abort入口pin、单次fact、完整cleanup后恢复；不确定默认失败实际sourceclose。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |
+| `message:65631` | GameMailboxCommand／SelfSettledAction／Ordinary[] None；真实 Abort入口pin、单次fact、完整cleanup后恢复；不确定默认失败实际sourceclose。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |
+| `message:65632` | GameMailboxCommand／SelfSettledAction／Ordinary[] None；真实 Abort入口pin、单次fact、完整cleanup后恢复；不确定默认失败实际sourceclose。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |
+| `message:65670` | GameMailboxCommand／SelfSettledAction／Ordinary[] None；真实 Abort入口pin、单次fact、完整cleanup后恢复；不确定默认失败实际sourceclose。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |
+| `message:65851` | GameMailboxCommand／SelfSettledAction／Ordinary[] None；真实 Abort入口pin、单次fact、完整cleanup后恢复；不确定默认失败实际sourceclose。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |
+| `message:65860` | GameMailboxCommand／SelfSettledAction／Ordinary[] None；真实 Abort入口pin、单次fact、完整cleanup后恢复；不确定默认失败实际sourceclose。 | `tasks/TASK-31.md`、`verification/evidence/task-31-inspection/rework-r3/report.md`、`verification/evidence/task-31-inspection/checks-final.json` |

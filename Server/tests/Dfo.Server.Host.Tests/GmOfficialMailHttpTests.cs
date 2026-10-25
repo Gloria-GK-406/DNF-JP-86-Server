@@ -1,4 +1,5 @@
 using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Data.Networking;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -25,6 +26,16 @@ namespace Dfo.Server.Host.Tests;
 
 public sealed partial class GmOfficialMailHttpTests
 {
+    private static async Task<MailboxResult> MailboxWhole(GmTestHost host, NetworkConnectionContext connection, IClientNetworkMessage message)
+    {
+        var type = message is MailboxClaimRequest ? (ushort)0x005F : (ushort)0x0060;
+        byte[] body = message is MailboxClaimRequest claim ? BitConverter.GetBytes(claim.AttachmentId) : [];
+        var metadata = new GameMessageMetadata(1, type, 0, 1) { InboundOrdinal = 1, SequenceIsFresh = true };
+        metadata = metadata.WithRawBody(body);
+        var registration = host.Services.GetServices<GameMessageDecoderRegistration>().Single(row => row.Selector == 1 && row.Type == type);
+        var decoded = ((IGameMessageDecoder)host.Services.GetRequiredService(registration.DecoderType)).Decode(metadata, body) ?? throw new InvalidDataException("The registered mailbox decoder rejected the test body.");
+        return (await host.Services.GetRequiredService<ICommandBus>().SendAsync(new GameMailboxCommand(new(connection), decoded))).Result;
+    }
     private static object Payload(Guid id, int[]? recipients = null, string body = "测试金币", string title = "官方补偿", int gold = 100, object[]? items = null) =>
         new { requestId = id, title, body, recipientIds = recipients ?? [1], items = items ?? [], gold };
     private static async Task<(string Csrf, string Secret)> Login(GmTestHost host, string name = "operator")
@@ -289,7 +300,7 @@ public sealed partial class GmOfficialMailHttpTests
             var user = await GmPlayerDirectoryHttpTests.ConnectAsync(host, character.Value, 21011);
             var session = GmPlayerDirectoryHttpTests.Publish(host, user, character.Value, character.Value, 21011);
             var recipient = new NotificationRecipient(character, session.ConnectionId);
-            var opened = await commands.SendAsync(new MailboxCommand(user.OnlineUserId, session, MailboxOperation.Open));
+            var opened = await MailboxWhole(host, user.Connection, new MailboxOpenRequest(GameMessageMetadata.Empty));
             var projected = Assert.Single(opened.Inbox!.Messages);
             foreach (var attachment in projected.Attachments.Where(x => x.ItemTemplateId == 27312))
             {
@@ -310,7 +321,7 @@ public sealed partial class GmOfficialMailHttpTests
             Assert.Equal(5, mail.Attachments.Length);
             foreach (var attachment in mail.Attachments)
             {
-                var claimed = await commands.SendAsync(new MailboxCommand(user.OnlineUserId, session, MailboxOperation.Claim, attachment.Id));
+                var claimed = await MailboxWhole(host, user.Connection, new MailboxClaimRequest(GameMessageMetadata.Empty, checked(0x40000000u + (uint)attachment.Id)));
                 if (attachment.Asset is not MailAsset.Equipment equipment) continue;
                 var update = Assert.Single(claimed.Assets!.Updates);
                 Assert.Equal(equipment.Identity, update.Identity);
