@@ -7056,25 +7056,32 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "171384967a4cce6a6ad8156eb8f12ae283131fed901ab0e2f04e2489b3dd0e45"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "普通退出仍零unit／零事务；直接同家族End循环，保取消点。两塔共享Task39真实阶段；祭坛同原单写段。",
+          "old": "LeaveDungeon为Direct、多selected但零事务。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-49.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "171384967a4cce6a6ad8156eb8f12ae283131fed901ab0e2f04e2489b3dd0e45"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DungeonClear.LeaveDungeonCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DungeonClear.LeaveDungeonCommand",
@@ -7100,32 +7107,47 @@
         },
         "result": "Dfo.Server.Protocol.Game.DungeonClear.LeaveDungeonResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "171384967a4cce6a6ad8156eb8f12ae283131fed901ab0e2f04e2489b3dd0e45"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "171384967a4cce6a6ad8156eb8f12ae283131fed901ab0e2f04e2489b3dd0e45"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "171384967a4cce6a6ad8156eb8f12ae283131fed901ab0e2f04e2489b3dd0e45"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "该fine类型／注册／生产caller清零，实际算法归GameDungeonExitCommandHandler同家族。",
+          "old": "b0c4343e：EplpCommandHandler唯一调用LeaveDungeon。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "仍无unit／事务，逐成员保原取消点；失败不增加Fence／Block。",
+          "old": "IMultiSelectedSessionCommand，但Direct未开事务。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "同原门与取消位置；真实共享两塔／party／Town与祭坛投影。whole生命周期及祭坛来源physical保护差异见VC-B25～27，不新增raw／Main／Self。",
+          "old": "原stale／session／InWorld／run／leader／cohort／entry intent／town ownership，End／移除／ACK／Town顺序；scope在旧fine结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -15152,25 +15174,32 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 97,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "一次ordinary选择，ACK后每个Leave仍独立ordinary Write、CancellationToken.None，返城隔离不合并。",
+          "old": "Boss选择一段Transactional，ACK后option2逐成员另开Leave事务。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-49.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 97,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SelectBossTowerResultCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SelectBossTowerResultCommand",
@@ -15196,32 +15225,47 @@
         },
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 97,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 97,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 97,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "该fine类型／注册／生产caller清零，实际算法归GameDungeonExitCommandHandler同家族。",
+          "old": "b0c4343e：BossTowerProjectionDelivery.SelectReturnAsync唯一调用SelectBossTowerResult。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "选择ordinary全selected、仅报告者physical／None；后续Leave各自保原保护范围，使用DeclaredNonRequest声明真实owners。",
+          "old": "选择Transactional全selected，不传footprint。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "同原门与取消位置；真实共享两塔／party／Town与祭坛投影。whole生命周期及祭坛来源physical保护差异见VC-B25～27，不新增raw／Main／Self。",
+          "old": "原stale／session／InWorld／run／leader／cohort／entry intent／town ownership，End／移除／ACK／Town顺序；scope在旧fine结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -15944,25 +15988,32 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 85,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "一次ordinary Write、空selected／None。",
+          "old": "Illusion选择一段plain Transactional。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-49.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 85,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SelectIllusionTowerReturnCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SelectIllusionTowerReturnCommand",
@@ -15988,32 +16039,47 @@
         },
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 85,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 85,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 85,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "该fine类型／注册／生产caller清零，实际算法归GameDungeonExitCommandHandler同家族。",
+          "old": "b0c4343e：IllusionTowerProjectionDelivery.SelectReturnAsync唯一调用SelectIllusionTowerReturn。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "ordinary Write空selected／None，不扩大参与者。",
+          "old": "plain ICommand Transactional、无selected保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "同原门与取消位置；真实共享两塔／party／Town与祭坛投影。whole生命周期及祭坛来源physical保护差异见VC-B25～27，不新增raw／Main／Self。",
+          "old": "原stale／session／InWorld／run／leader／cohort／entry intent／town ownership，End／移除／ACK／Town顺序；scope在旧fine结束。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -22449,26 +22515,33 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 155,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "普通退出仍零unit／零事务；直接同家族End循环，保取消点。两塔共享Task39真实阶段；祭坛同原单写段。",
+          "old": "普通GiveUp直接End，无事务；两塔共享离场／祭坛有各自原写段。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-49.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 155,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+      ],
       "id": "message:65578",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonClear.GiveUpGameHandler",
@@ -22490,30 +22563,45 @@
         "telemetry": false,
         "value": 65578
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 155,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 155,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-          "line": 155,
-          "source_sha256": "67c569a1c2ff66949823a5d0b35ffc7085e438889182bbfa5c3966b444dadc43"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole；零生产调用旧退出coordinator方法删除。",
+          "old": "b0c4343e：GiveUpGameHandler调用两塔party coordinator／fallback delivery和祭坛SettleGiveUp。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "普通不添Write／ReadOnly；Boss每段保全selected且各段报告者physical，Leave显式DeclaredNonRequest owners含原run members；Illusion空selected／None；祭坛cohort与投影收件人重取规则保持、无footprint。",
+          "old": "普通Direct无事务参与者；Boss原全selected／报告者physical，Illusion plain空selected；祭坛multiselected无footprint。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "同原门与取消位置；真实共享两塔／party／Town与祭坛投影。whole生命周期及祭坛来源physical保护差异见VC-B25～27，不新增raw／Main／Self。",
+          "old": "原stale／session／InWorld／run／leader／cohort／entry intent／town ownership，End／移除／ACK／Town顺序；scope在旧fine结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.DungeonClear.GrantClearExperienceCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand"
@@ -22528,7 +22616,7 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -23641,26 +23729,33 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonSlice.cs",
-          "line": 93,
-          "source_sha256": "087f649555bfa7b291410a1dcc485e88cb0e7ab2dc05c8525fc9da80ff7bb343"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "唯一whole；普通零事务，两塔与祭坛原事务段不合并，全部后阶段投影仍在事务外。",
+          "old": "普通Eplp调用Direct Leave；两塔选择与祭坛按原事务段编排。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-49.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonSlice.cs",
-          "line": 93,
-          "source_sha256": "087f649555bfa7b291410a1dcc485e88cb0e7ab2dc05c8525fc9da80ff7bb343"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+      ],
       "id": "message:65608",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonClear.EplpCommandHandler",
@@ -23682,30 +23777,45 @@
         "telemetry": false,
         "value": 65608
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonSlice.cs",
-          "line": 93,
-          "source_sha256": "087f649555bfa7b291410a1dcc485e88cb0e7ab2dc05c8525fc9da80ff7bb343"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonSlice.cs",
-          "line": 93,
-          "source_sha256": "087f649555bfa7b291410a1dcc485e88cb0e7ab2dc05c8525fc9da80ff7bb343"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonClear/LeaveDungeonSlice.cs",
-          "line": 93,
-          "source_sha256": "087f649555bfa7b291410a1dcc485e88cb0e7ab2dc05c8525fc9da80ff7bb343"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "本消息唯一Protocol／Direct whole；零生产调用旧退出coordinator方法删除。",
+          "old": "b0c4343e：EplpCommandHandler调用两塔SelectReturn、普通Leave与祭坛SettleBeforeExit。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "普通不添Write／ReadOnly；Boss每段保全selected且各段报告者physical，Leave显式DeclaredNonRequest owners含原run members；Illusion空selected／None；祭坛cohort与投影收件人重取规则保持、无footprint。",
+          "old": "普通Direct无事务参与者；Boss原全selected／报告者physical，Illusion plain空selected；祭坛multiselected无footprint。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task49-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonExitCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/AltarTransitionProjection.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonExitLifecycleTests.cs"
+          ],
+          "new": "同原门与取消位置；真实共享两塔／party／Town与祭坛投影。whole生命周期及祭坛来源physical保护差异见VC-B25～27，不新增raw／Main／Self。",
+          "old": "原stale／session／InWorld／run／leader／cohort／entry intent／town ownership，End／移除／ACK／Town顺序；scope在旧fine结束。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.DungeonClear.LeaveDungeonCommand"
       ],
@@ -23718,7 +23828,7 @@
         "OutboundDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

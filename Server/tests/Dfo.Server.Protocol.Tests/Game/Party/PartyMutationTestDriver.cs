@@ -19,7 +19,7 @@ internal static class PartyMutationTestDriver
     internal static GamePartyMutationCommandHandler Handler(ISelectedSessionDomainService sessions, IPartyService parties,
         ITownAreaDomainService? town = null, IEventService? events = null, PartyProjectionStreamRegistry? streams = null,
         IGameMessageSender? sender = null, IDungeonRunDomainService? runs = null) =>
-        new(sessions, parties, town!, new PartyLegacyProjections(events!), streams ?? new(),
+        new(sessions, parties, town!, new LegacyCommandProjections(events!), streams ?? new(),
             NullLogger<GamePartyMutationCommandHandler>.Instance, outbox: sender is null ? null : new Outbox(sender), runs: runs);
 
     internal static ICommandBus Bus(GamePartyMutationCommandHandler handler, Action<ICommand>? observe = null) => new Driver(handler, observe);

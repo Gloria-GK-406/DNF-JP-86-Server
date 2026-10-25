@@ -632,20 +632,13 @@ public sealed class PartyNotificationDelivery(
         PartyNotificationPlan plan,
         PartyNotificationRecipientPlan recipients,
         CancellationToken cancellationToken) =>
-        new PartyLegacyProjection(new PartyLegacyProjections(notifications), streams.GetOrAdd,
+        new PartyLegacyProjection(new LegacyCommandProjections(notifications), streams.GetOrAdd,
             parties, ordering).DeliverAsync(plan, recipients, cancellationToken);
 
     public ValueTask DeliverRealtimeAsync(
         SelectedSessionIdentity requester,
         PartySnapshot snapshot,
         CancellationToken cancellationToken) =>
-        new PartyLegacyProjection(new PartyLegacyProjections(notifications), streams.GetOrAdd,
+        new PartyLegacyProjection(new LegacyCommandProjections(notifications), streams.GetOrAdd,
             parties, ordering).DeliverRealtimeAsync(requester, snapshot, cancellationToken);
-}
-
-internal sealed class PartyLegacyProjections(IEventService events) : ICommandProjections
-{
-    public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience,
-        T notification, CancellationToken cancellationToken = default)
-        where T : class, INotification<T> => events.ProjectAsync(audience, notification, cancellationToken);
 }

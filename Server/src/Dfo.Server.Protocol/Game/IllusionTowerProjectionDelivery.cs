@@ -59,40 +59,6 @@ public sealed class IllusionTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> SelectReturnAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        if (state != EplpCommandHandler.LeaveState) return true;
-        Exception? failure = null;
-        if (!Exact(session, expected)) return true;
-        var action = await commands.SendAsync(
-            new SelectIllusionTowerReturnCommand(Context(expected, session), option), token).ConfigureAwait(false);
-        if (action.Changed)
-        {
-            try
-            {
-                await sender.SendExplicitAsync(session.ConnectionId,
-                    new GameExplicitMessageDelivery([new EplpCommandResponse(state, option)], []), token)
-                    .ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception error)
-            {
-                failure = error;
-            }
-        }
-        if (failure is not null)
-            await CloseProjectionFailuresAsync([(session, failure)], expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {

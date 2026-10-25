@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using System.Buffers.Binary;
@@ -111,7 +112,7 @@ public sealed class PartySelectDungeonHandlerTests
             var sender = new Sender();
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runId, [Leader, Member]);
-            var handler = new EplpCommandHandler(
+            var handler = new EplpDriver(
                 sessions, runtime, new PartyPositions(), runs, deliveries, sender,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
                 NullLogger<EplpCommandHandler>.Instance);
@@ -170,7 +171,7 @@ public sealed class PartySelectDungeonHandlerTests
             var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runId, [Leader, Member]);
-            var handler = new EplpCommandHandler(
+            var handler = new EplpDriver(
                 sessions, runtime, new PartyPositions(), runs, deliveries, outbound.Game,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, outbound.Game),
                 NullLogger<EplpCommandHandler>.Instance, ordering: outbound.Ordering);

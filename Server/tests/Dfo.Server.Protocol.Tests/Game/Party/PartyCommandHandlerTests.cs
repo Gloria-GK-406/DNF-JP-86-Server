@@ -646,25 +646,25 @@ public sealed class PartyCommandHandlerTests
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
         new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,
-            town, commands.Domain, new FixedPartyMemberStatus(), new PartyLegacyProjections(projection.Events), projection.Streams,
+            town, commands.Domain, new FixedPartyMemberStatus(), new LegacyCommandProjections(projection.Events), projection.Streams,
             null!, NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
 
     private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
         new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,
-            town, commands.Domain, new PartyLegacyProjections(projection.Events), projection.Streams,
+            town, commands.Domain, new LegacyCommandProjections(projection.Events), projection.Streams,
             null!, NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
 
     private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
         new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,
-            town, commands.Domain, new PartyLegacyProjections(projection.Events), projection.Streams,
+            town, commands.Domain, new LegacyCommandProjections(projection.Events), projection.Streams,
             null!, NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
 
     private static CallPartyMemberRealtimeInfoHandler DriveCallPartyMemberRealtimeInfo(ISelectedSessionDomainService sessions,
         RecordingCommandBus commands, TestProjection projection, ILogger<CallPartyMemberRealtimeInfoHandler> _) =>
         new(new DirectBus<GameCallPartyMemberRealtimeInfoCommand>(new GameCallPartyMemberRealtimeInfoCommandHandler(sessions,
-            commands.Domain, new PartyLegacyProjections(projection.Events), projection.Streams,
+            commands.Domain, new LegacyCommandProjections(projection.Events), projection.Streams,
             null!, NullLogger<GameCallPartyMemberRealtimeInfoCommandHandler>.Instance), commands));
 
     private static SessionEndpoint Endpoint() => new(

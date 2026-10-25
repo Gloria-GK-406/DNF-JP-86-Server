@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
@@ -158,7 +159,7 @@ public sealed class LeaveDungeonTests
         });
     }
 
-    private static EplpCommandHandler StoryHandler(OneRun runs, RecordingSender sender,
+    private static EplpDriver StoryHandler(OneRun runs, RecordingSender sender,
         IDungeonEntryIntentDomainService? intents = null) => new(
         new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
         runs, new DungeonRunDeliveryRegistry(), sender,
@@ -215,13 +216,13 @@ public sealed class LeaveDungeonTests
         var runs = new OneRun();
         services.AddSingleton<IDungeonRunDomainService>(runs);
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
-        services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
+        services.AddCommandHandler<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
             CommandExecutionKind.Direct);
         await using var provider = services.BuildServiceProvider();
         await TestGameplay.RunAsync(provider, async () =>
         {
         var result = await provider.GetRequiredService<ICommandBus>().SendAsync(
-            new LeaveDungeonCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+            new LeaveDungeonAlgorithmCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal([Identity.CharacterId], result.EndedCharacters);
         Assert.True(runs.Ended);
         });
@@ -371,7 +372,7 @@ public sealed class LeaveDungeonTests
                 listenerPort: 10010);
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runs.RunId, [Identity, helper]);
-            var handler = new EplpCommandHandler(
+            var handler = new EplpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
                 new StandingWhereTheyAre(),
@@ -405,7 +406,7 @@ public sealed class LeaveDungeonTests
             deliveries.Register(runs.RunId, [Identity]);
             var sender = new RecordingSender();
             var parties = new RecordingPartyMutations();
-            var handler = new GiveUpGameHandler(
+            var handler = new GiveUpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
                 new StandingWhereTheyAre(),
@@ -454,7 +455,7 @@ public sealed class LeaveDungeonTests
         await TestGameplay.RunAsync(async () =>
         {
             var parties = new RecordingPartyMutations();
-            var handler = new GiveUpGameHandler(
+            var handler = new GiveUpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
                 new StandingWhereTheyAre(),
@@ -512,10 +513,11 @@ public sealed class LeaveDungeonTests
                     Assert.IsType<AltarActionCommand>(Assert.Single(trace.Commands)).Operation);
                 else Assert.Empty(trace.Commands);
             };
-            var handler = new GiveUpGameHandler(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
+            var handler = new GiveUpDriver(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
                 runs, deliveries, sender, TownAreaProjectionTestFactory.Create(sessions, new OneRuntimeSession(Entry()), sender),
                 NullLogger<GiveUpGameHandler>.Instance,
-                townAreas: new SessionPresenceDomainService(), parties: new RecordingPartyMutations(trace.PartyLeaves.Add), altars: coordinator);
+                townAreas: new SessionPresenceDomainService(), parties: new RecordingPartyMutations(trace.PartyLeaves.Add), altarExit: async (session, id, onlyCaller, ct) =>
+                    await projection.ProjectAsync(await projection.ExecuteAsync(session, id, onlyCaller ? AltarOperation.SettleParticipantBeforeExit : AltarOperation.SettleBeforeExit, 0, ct), ct));
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), deadline.Token)
                 .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
@@ -549,7 +551,7 @@ public sealed class LeaveDungeonTests
                 InboundOrdinal = 2,
                 SequenceIsFresh = false,
             };
-            var handler = new GiveUpGameHandler(
+            var handler = new GiveUpDriver(
                 null!, null!, null!, null!, null!, null!, null!, null!, null!);
 
             await handler.HandleAsync(
@@ -564,7 +566,7 @@ public sealed class LeaveDungeonTests
         await TestGameplay.RunAsync(async () =>
         {
             var sender = new RecordingSender();
-            var handler = new EplpCommandHandler(
+            var handler = new EplpDriver(
                 new NoSession(),
                 new NoRuntimeSession(),
                 new StandingNowhere(),
@@ -645,7 +647,7 @@ public sealed class LeaveDungeonTests
     private static async Task<IReadOnlyList<IGameServerMessage>> Leave(byte state, OneRun runs)
     {
         var sender = new RecordingSender();
-        var handler = new EplpCommandHandler(
+        var handler = new EplpDriver(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             new StandingWhereTheyAre(),

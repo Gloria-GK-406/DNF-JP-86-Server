@@ -33,7 +33,7 @@ internal static class TownMovementTestDriver
         IOnlineCharacterRuntimeDomainService online,ITownAreaDomainService areas,IChannelEntryDomainService channels,
         ITownMovementDomainService towns,ICharacterLocationDomainService persistence,ProjectionInput input)
         : GameTownMovementCommandHandler(sessions,views,online,areas,channels,towns,persistence,new Units(),
-            new PartyLegacyProjections(input.Events),new Outbox(input.Sender),null!,new PartyProjectionStreamRegistry(),NullLogger<GameTownMovementCommandHandler>.Instance)
+            new LegacyCommandProjections(input.Events),new Outbox(input.Sender),null!,new PartyProjectionStreamRegistry(),NullLogger<GameTownMovementCommandHandler>.Instance)
     {
         protected override ValueTask PartyTownRefreshMovedPartyAsync(SelectedSessionIdentity session,PartyDirectoryScope? scope,CancellationToken ct)=>input.Parties.RefreshMovedPartyAsync(session,scope,ct);
         protected override ValueTask PartyTownRefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients,CancellationToken ct)=>input.Parties.RefreshObservedPartiesAsync(recipients,ct);

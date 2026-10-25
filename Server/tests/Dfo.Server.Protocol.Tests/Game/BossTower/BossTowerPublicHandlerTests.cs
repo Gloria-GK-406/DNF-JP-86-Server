@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -56,8 +57,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var session = Session(1); var towers = new TowerDomain(Run(Guid.NewGuid(), session, 3, TowerRoomPhase.Cleared));
             var sender = new Sender(); var commands = new FlowCommands(towers);
             var sessions = new Sessions(session); var projection = Delivery(towers, sessions, commands, sender);
-            var handler = new EplpCommandHandler(sessions, new NoViews(), null!, null!, null!, sender, null!,
-                NullLogger<EplpCommandHandler>.Instance, bossTower: projection);
+            var handler = new EplpDriver(sessions, new NoViews(), null!, null!, null!, sender, null!,
+                NullLogger<EplpCommandHandler>.Instance, bossTower: towers, choose: commands.ChooseAsync);
 
             await handler.HandleAsync(Dispatch(session), new EplpCommandRequest(GameMessageMetadata.Empty, 2, 0), default);
             Assert.Equal(0, commands.ResultChoices);
@@ -158,6 +159,11 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 Phase = loading.Members.All(value => loaded.Contains(value.Session.CharacterId)) ? TowerRoomPhase.Ready : TowerRoomPhase.Loading } };
             towers.Put(loading); return new(true, loading);
         }
+        public ValueTask<BossTowerActionResult> ChooseAsync(BossTowerActionContext context, byte option, CancellationToken ct)
+        {
+            ResultChoices++; var chosen = towers.Find(context.Session)! with { PendingResultChoice = option };
+            towers.Put(chosen); return ValueTask.FromResult(new BossTowerActionResult(true, chosen));
+        }
         public int Starts { get; private set; }
         public int ResultChoices { get; private set; }
         public int Tickets { get; private set; } = 3;
@@ -170,9 +176,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                     Starts++; var started = towers.Find(start.Context.Session)!;
                     started = started with { Room = started.Room with { Phase = TowerRoomPhase.Fighting } }; towers.Put(started);
                     result = new BossTowerActionResult(true, started); break;
-                case SelectBossTowerResultCommand choose:
-                    ResultChoices++; var chosen = towers.Find(choose.Context.Session)! with { PendingResultChoice = choose.Option };
-                    towers.Put(chosen); result = new BossTowerActionResult(true, chosen); break;
                 case Dfo.Server.Protocol.Tests.Game.DungeonEntry.BossEntryRouteProbe entry:
                     Tickets--; var entered = PartyRun(Guid.NewGuid(), entry.Leader); towers.Put(entered);
                     result = new BossTowerEntryResult(null, entered, []); break;

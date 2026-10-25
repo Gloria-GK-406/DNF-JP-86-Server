@@ -31,7 +31,7 @@ public sealed class PartyTownProjectionDelivery(
     PartyProjectionStreamRegistry streams) : IPartyTownProjectionDelivery
 {
     private readonly PartyTownCommandProjection projection = new(parties, townAreas,
-        selectedSessions, new PartyLegacyProjections(notifications), generation => streams.GetOrAdd(generation));
+        selectedSessions, new LegacyCommandProjections(notifications), generation => streams.GetOrAdd(generation));
 
     public ValueTask RefreshMovedPartyAsync(SelectedSessionIdentity mover,
         PartyDirectoryScope? previousScope, CancellationToken cancellationToken) =>
@@ -51,7 +51,7 @@ internal static class PartyExactNotificationDelivery
         IEventService notifications, IEnumerable<SelectedSessionIdentity> intendedAudience,
         T notification, CancellationToken cancellationToken)
         where T : class, INotification<T> => PublishWithRetryAsync(
-            new PartyLegacyProjections(notifications), intendedAudience, notification, cancellationToken);
+            new LegacyCommandProjections(notifications), intendedAudience, notification, cancellationToken);
 
     // Party handlers deliberately have no detached NotificationBus retry. The causal owner retries
     // only exact recipients that failed, so a town 0x0002 retry can still be followed by its 0x0009

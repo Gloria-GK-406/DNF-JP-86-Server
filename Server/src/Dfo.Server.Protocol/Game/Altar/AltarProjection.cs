@@ -70,8 +70,7 @@ public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, I
     IEventService events, TimeProvider clock, AltarWakeSignal wake, SelectedSessionSafety safety, ILogger<AltarProjectionDelivery> logger)
 {
     public void Wake() => wake.Wake();
-    internal IReadOnlyList<SelectedSessionIdentity> Participants(DungeonRunId runId) => registry.Find(runId)
-        .Where(x => sessions.IsInWorld(x) && runs.Find(x.CharacterId)?.RunId == runId).ToArray();
+    internal IReadOnlyList<SelectedSessionIdentity> Participants(DungeonRunId runId) => AltarTransitionProjection.Participants(runs, sessions, registry, runId);
 
     internal async ValueTask<AltarActionResult?> ExecuteAsync(SelectedSessionIdentity requester,
         DungeonRunId runId, AltarOperation operation, byte difficulty, CancellationToken ct)
@@ -88,30 +87,19 @@ public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, I
     {
         if (action is null) return;
         var recipients = Participants(action.State.RunId);
-        if (recipients.Count > 0)
+        try
         {
-            try
-            {
-                var result = await events.ProjectAsync(new NotificationAudience.TheseSessions(recipients),
-                    new AltarStateChanged(action, clock.GetUtcNow()), ct).ConfigureAwait(false);
-                if (result.Attempts.Any(x => x.Outcome == NotificationOutcome.Failed))
-                    throw new InvalidOperationException("A committed altar transition could not be projected.");
-            }
-            catch (Exception error) when (!ct.IsCancellationRequested)
-            {
-                var uncertain = new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
-                    Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
-                    "Altar state committed but client publication failed.", error);
-                foreach (var recipient in recipients)
-                    await safety.BlockAsync(new(recipient, null), uncertain, nameof(AltarProjectionDelivery)).ConfigureAwait(false);
-                throw uncertain;
-            }
+            await AltarTransitionProjection.ProjectAsync(new LegacyCommandProjections(events), action, recipients,
+                clock, wake, logger, ct).ConfigureAwait(false);
         }
-        if (action.RoundStarted || action.Spawns.Count > 0 || action.DifficultyPrompt || action.ShowRanking || action.ShowRewards || action.Awards.Count > 0)
-            logger.LogInformation("Altar transition run={RunId} room={RoomVersion} round={Round} status={Status} waveActors={Actors} generation={Generation}",
-                action.State.RunId, action.State.RoomVersion, action.State.CompletedRounds, action.State.Status, action.Spawns.Count, action.State.Generation);
-        wake.Wake();
+        catch (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException uncertain) when (!ct.IsCancellationRequested)
+        {
+            foreach (var recipient in recipients)
+                await safety.BlockAsync(new(recipient, null), uncertain, nameof(AltarProjectionDelivery)).ConfigureAwait(false);
+            throw;
+        }
     }
+
     internal async ValueTask<bool> FailAsync(DungeonRunId runId, CancellationToken ct)
     {
         if (altars.Find(runId) is null) return false;
@@ -120,6 +108,4 @@ public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, I
         await ProjectAsync(await ExecuteAsync(requester, runId, AltarOperation.Fail, 0, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
         return true;
     }
-    internal async ValueTask SettleBeforeExitAsync(SelectedSessionIdentity requester, DungeonRunId runId, CancellationToken ct) =>
-        await ProjectAsync(await ExecuteAsync(requester, runId, AltarOperation.SettleBeforeExit, 0, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
 }

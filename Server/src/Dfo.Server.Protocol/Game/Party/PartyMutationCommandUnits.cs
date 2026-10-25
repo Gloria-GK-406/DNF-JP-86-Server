@@ -57,7 +57,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         return new(session, connection);
     }
 
-    private SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
+    protected SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
         SelectedSessionIdentity reporter) => participants.Select(session => session == reporter
             ? CaptureParticipant(session) : new SelectedSessionRecipient(session, null)).ToArray();
 

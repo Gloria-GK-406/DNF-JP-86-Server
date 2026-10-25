@@ -891,7 +891,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
         services.TryAddSingleton<IllusionTowerPartyCoordinator>();
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
@@ -904,8 +903,6 @@ public sealed class ProtocolModule : IServerModule
             LeaveIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeIllusionTowerLeaderCommand, TowerActionResult,
             SynchronizeIllusionTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SelectIllusionTowerReturnCommand, TowerActionResult,
-            SelectIllusionTowerReturnCommandHandler>(CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameIllusionTowerStageCommand, bool, GameMapLoadingCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
         services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);
@@ -928,10 +925,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<SelectCardHandler, SelectCardRequest, GameSelectCardCommand>(ClientMessageType.GameSelectCard);
         services.AddInternalCommandHandler<DungeonCardLayoutCommand, bool, GameCardCommandHandler>();
         services.AddInternalCommandHandler<DungeonCardAutoFlipCommand, bool, GameCardCommandHandler>();
-        services.RegisterMessageHandler<EplpCommandHandler>(ClientMessageType.GameEplpCommand);
-        services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.RegisterMessageHandler<GiveUpGameHandler>(ClientMessageType.GameGiveUpGame);
+        services.AddProtocolCommandHandler<GameEplpCommand, bool, GameDungeonExitCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEplpCommand, typeof(EplpCommandRequest)));
+        services.RegisterProtocolMessageHandler<EplpCommandHandler, EplpCommandRequest, GameEplpCommand>(ClientMessageType.GameEplpCommand);
+        services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, GameDungeonExitCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
+        services.RegisterProtocolMessageHandler<GiveUpGameHandler, GiveUpGameRequest, GameGiveUpGameCommand>(ClientMessageType.GameGiveUpGame);
         services.AddProtocolCommandHandler<GameBackToVillageCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameBackToVillage, typeof(BackToVillageRequest)));
         services.RegisterProtocolMessageHandler<BackToVillageHandler, BackToVillageRequest, GameBackToVillageCommand>(ClientMessageType.GameBackToVillage);
 

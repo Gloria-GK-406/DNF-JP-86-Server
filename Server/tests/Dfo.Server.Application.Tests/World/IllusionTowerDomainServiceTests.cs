@@ -119,29 +119,20 @@ public sealed partial class IllusionTowerDomainServiceTests
     [Fact]
     public async Task Option_three_has_no_return_deadline_and_is_acknowledged_immediately()
     {
-        await TestGameplay.RunAsync(async () =>
+        var closer = new RecordingCloser();
+        using var f = Fixture(rewards: true, configure: services => closer.Use(services));
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var closer = new RecordingCloser();
-            using var f = Fixture(rewards: true,
-                configure: services => closer.Use(services));
             await f.Seed(65, 4183, 1);
-            var tower = Tower(f);
-            var context = Context((await Enter(f)).Run!, f.Session);
-            await tower.LoadAsync(context, default);
-            await tower.StartAsync(context, default);
-            await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
-
-            var handled = await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
-                .SelectReturnAsync(f.Session.ConnectionId, GameMessageMetadata.Empty,
-                    EplpCommandHandler.LeaveState, 3, default);
-
-            Assert.True(handled);
-            Assert.Null(tower.Find(f.Session)!.ReturnDueAt);
-            var acknowledgement = Assert.Single(f.Sender.Messages.OfType<EplpCommandResponse>());
-            Assert.Equal(EplpCommandHandler.LeaveState, acknowledgement.State);
-            Assert.Equal(3, acknowledgement.Option);
-            Assert.Empty(closer.Closed);
+            var tower = Tower(f); var context = Context((await Enter(f)).Run!, f.Session);
+            await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
+            await TestEffectFootprints.Run([f.Session], cap => tower.DieAsync(context, cap, default));
         });
+        await DungeonExitLifecycleTests.WireOn(f, f.Connection, 0x48, [1, 3]);
+        TestGameplay.Run(f.Services, () => Assert.Null(Tower(f).Find(f.Session)!.ReturnDueAt));
+        var acknowledgement = Assert.Single(f.Sender.Messages.OfType<EplpCommandResponse>());
+        Assert.Equal(EplpCommandHandler.LeaveState, acknowledgement.State); Assert.Equal(3, acknowledgement.Option);
+        Assert.Empty(closer.Closed);
     }
 
     [Fact]

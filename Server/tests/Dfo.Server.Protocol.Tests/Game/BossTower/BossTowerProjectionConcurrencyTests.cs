@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -609,7 +610,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             positions.Begin(party.First, new CharacterPositionState(1, 1, 100, 100, 0), 100);
             var sender = new RecordingSender();
 
-            await new GiveUpGameHandler(party.Sessions, views, positions,
+            await new GiveUpDriver(party.Sessions, views, positions,
                     new DungeonRunDomainService(party.Parties), new DungeonRunDeliveryRegistry(), sender,
                     TownAreaProjectionTestFactory.Create(party.Sessions, views, sender),
                     NullLogger<GiveUpGameHandler>.Instance, bossParties: party.Coordinator)

@@ -181,7 +181,7 @@ public sealed class TownAreaProjectionDelivery
     }
 
     private TownReturnCommandStages ReturnStages => new(townAreas, selectedSessions, currentViews, towns, housing,
-        new PartyLegacyProjections(notifications), partyTownProjection, sender.SendExplicitAsync,
+        new LegacyCommandProjections(notifications), partyTownProjection, sender.SendExplicitAsync,
         weaknessProjection is null ? null : weaknessProjection.SendCurrentAsync, housingSessions, sender.SendNotiAsync);
 
     private ValueTask PublishArrivalCoreAsync(SelectedSessionIdentity newcomer, TownPresenceSynchronizationState state,

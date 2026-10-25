@@ -65,36 +65,6 @@ public sealed class BossTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> SelectReturnAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
-    {
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        if (Stale(metadata)) return true;
-        var failures = new List<(SelectedSessionIdentity Session, Exception Error)>();
-        if (!Exact(session, expected)) return true;
-        if (state == 2)
-        {
-            await sender.SendCmdAsync(connectionId, new EplpCommandResponse(state, option), token).ConfigureAwait(false);
-            return true;
-        }
-        if (state != 1 || option > 2) return true;
-        var action = await commands.SendAsync(new SelectBossTowerResultCommand(Context(expected, session), option) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-        if (!action.Changed || action.Run is not { } run) return true;
-        var frozen = ExactMembers(run);
-        failures.AddRange(await SendToExactAsync(run, _ => [new EplpCommandResponse(state, option)], token).ConfigureAwait(false));
-        // Native Boss module sends 000F then 0010 for buttons 0/1. Admission belongs to 0010.
-        if (option == 2)
-        {
-            foreach (var member in frozen)
-                _ = await commands.SendAsync(new LeaveBossTowerCommand(Context(run, member), false) { Sessions = Members(run) }, CancellationToken.None).ConfigureAwait(false);
-            await ReturnMembersIsolatedAsync(frozen, null, failures, CancellationToken.None, false).ConfigureAwait(false);
-        }
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public bool HasRun(SelectedSessionIdentity session) => towers.Find(session) is not null;
 
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId connectionId,

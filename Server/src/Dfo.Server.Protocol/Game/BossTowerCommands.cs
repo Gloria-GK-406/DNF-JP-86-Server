@@ -41,13 +41,3 @@ public sealed class SynchronizeBossTowerLeaderCommandHandler(IBossTowerDomainSer
         SynchronizeBossTowerLeaderCommand command, CancellationToken token) =>
         towers.SynchronizeLeaderAsync(command.Context, command.Leader, token);
 }
-
-public sealed record SelectBossTowerResultCommand(BossTowerActionContext Context, byte Option)
-    : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
-public sealed class SelectBossTowerResultCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<SelectBossTowerResultCommand, BossTowerActionResult>
-{
-    public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
-        SelectBossTowerResultCommand command, CancellationToken token) =>
-        towers.SelectResultAsync(command.Context, command.Option, token);
-}

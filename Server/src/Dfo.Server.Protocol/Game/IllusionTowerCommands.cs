@@ -25,13 +25,3 @@ public sealed class SynchronizeIllusionTowerLeaderCommandHandler(IIllusionTowerD
         SynchronizeIllusionTowerLeaderCommand command, CancellationToken token) =>
         towers.SynchronizeLeaderAsync(command.Context, command.Leader, token);
 }
-
-public sealed record SelectIllusionTowerReturnCommand(TowerActionContext Context, byte Option)
-    : ICommand<TowerActionResult>;
-public sealed class SelectIllusionTowerReturnCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<SelectIllusionTowerReturnCommand, TowerActionResult>
-{
-    public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
-        SelectIllusionTowerReturnCommand command, CancellationToken token) =>
-        towers.SelectReturnAsync(command.Context, command.Option, token);
-}

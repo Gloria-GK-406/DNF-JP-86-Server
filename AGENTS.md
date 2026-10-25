@@ -387,6 +387,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | GetItem（普通／两塔地面拾取） | [源码](Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs)；`TASK-46`，默认whole生命周期与拾取精确关闭差异见 Spec VC-B19／20。 |
 | CharacterDeath／UseRevivalCoin（普通／两塔死亡与复活） | [源码](Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs)；`TASK-47`，普通死亡零事务，默认whole生命周期与两塔死亡精确关闭见 Spec VC-B21／22。 |
 | SetPlayResult／ScoreScrollState／CardSelectRightState／SelectCard／BossDieCheck | 结算、卡牌与两固定阶段 typed Timer；[源码](Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs)，`TASK-48`，默认生命周期／单次自动确认见 Spec VC-B23／24。 |
+| GiveUpGame／EplpCommand | 普通退出保零事务，两塔选择与逐成员离场保原独立单元；[源码](Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs)。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

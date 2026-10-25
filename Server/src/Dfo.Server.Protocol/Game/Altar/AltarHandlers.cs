@@ -55,21 +55,6 @@ public sealed class AltarProtocolCoordinator(IDungeonRunDomainService runs,
         if (operation == AltarOperation.Ready)
             foreach (var member in cohort) _ = await quota.SendAsync(member, UsageQuotaFamily.AltarDungeon, ct).ConfigureAwait(false);
     }
-    public async ValueTask SettleBeforeExitAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct)
-    {
-        var run = runs.Find(session.CharacterId);
-        if (run?.RunId != runId || run.Layout.Altar is null || !sessions.IsInWorld(session)
-            || !run.Participants.Any(x => x.CharacterId == session.CharacterId && x.IsLeader)) return;
-        await delivery.ProjectAsync(await delivery.ExecuteAsync(session, runId, AltarOperation.SettleBeforeExit, 0, ct)
-            .ConfigureAwait(false), ct).ConfigureAwait(false);
-    }
-    /// <summary>A member abandoning the map receives only their own completed-progress reward.</summary>
-    public async ValueTask SettleGiveUpAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct)
-    {
-        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId)?.RunId != runId) return;
-        await delivery.ProjectAsync(await delivery.ExecuteAsync(session, runId, AltarOperation.SettleParticipantBeforeExit, 0, ct)
-            .ConfigureAwait(false), ct).ConfigureAwait(false);
-    }
     private static IReadOnlyList<IGameServerMessage> KillFrames(MonsterDeathParticipantResult participant, MonsterDeathNotification death)
     {
         var award = participant.Effects.Award;
