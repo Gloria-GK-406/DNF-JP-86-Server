@@ -532,14 +532,15 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.ChannelScript, typeof(ChannelScriptRequest)));
         services.AddProtocolCommandHandler<ChannelInfoCommand, ChannelInfoCompleted, ChannelInfoCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.ChannelInfo, typeof(ChannelInfoRequest)));
-        services.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<GiveUpQuestCommand, GiveUpQuestOutcome, GiveUpQuestCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SetQuestTriggerCommand, QuestTriggerOutcome, SetQuestTriggerCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameAcceptQuestCommand, QuestAcceptOutcome, GameAcceptQuestCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAcceptQuest, typeof(AcceptQuestRequest)));
+        services.AddProtocolCommandHandler<GameGiveUpQuestCommand, GiveUpQuestOutcome, GameGiveUpQuestCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpQuest, typeof(GiveUpQuestRequest)));
+        services.AddProtocolCommandHandler<GameSetQuestTriggerCommand, QuestTriggerOutcome, GameSetQuestTriggerCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetQuestTrigger, typeof(SetQuestTriggerRequest)));
+        services.AddProtocolCommandHandler<GameFinishQuestCommand, QuestFinishOutcome, GameFinishQuestCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameFinishQuest, typeof(FinishQuestRequest)));
         services.AddProtocolCommandHandler<GameMonsterDeathCommand, bool, GameMonsterDeathCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameMonsterDeath, typeof(MonsterDeathRequest)));
         services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
@@ -812,10 +813,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
         services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
         services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
-        services.RegisterMessageHandler<AcceptQuestHandler>(ClientMessageType.GameAcceptQuest);
-        services.RegisterMessageHandler<GiveUpQuestHandler>(ClientMessageType.GameGiveUpQuest);
-        services.RegisterMessageHandler<SetQuestTriggerHandler>(ClientMessageType.GameSetQuestTrigger);
-        services.RegisterMessageHandler<FinishQuestHandler>(ClientMessageType.GameFinishQuest);
+        services.RegisterProtocolMessageHandler<AcceptQuestHandler, AcceptQuestRequest, GameAcceptQuestCommand>(ClientMessageType.GameAcceptQuest);
+        services.RegisterProtocolMessageHandler<GiveUpQuestHandler, GiveUpQuestRequest, GameGiveUpQuestCommand>(ClientMessageType.GameGiveUpQuest);
+        services.RegisterProtocolMessageHandler<SetQuestTriggerHandler, SetQuestTriggerRequest, GameSetQuestTriggerCommand>(ClientMessageType.GameSetQuestTrigger);
+        services.RegisterProtocolMessageHandler<FinishQuestHandler, FinishQuestRequest, GameFinishQuestCommand>(ClientMessageType.GameFinishQuest);
         services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
         services.RegisterProtocolMessageHandler<CheckCharacterNameHandler, CheckCharacterNameRequest, GameCheckCharacterNameCommand>(ClientMessageType.GameCheckCharacterName);

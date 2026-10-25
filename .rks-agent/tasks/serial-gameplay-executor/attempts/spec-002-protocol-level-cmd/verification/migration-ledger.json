@@ -13278,25 +13278,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs",
-          "line": 83,
-          "source_sha256": "2b561f1318f6e249ba194bc15590bd159dd34c537e36daf838a85087da141a8e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "唯一whole内ordinary Write，[]／None；原正常拒绝（含Accept无主container先GiveUp）仍正常提交，不强制回滚。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs",
-          "line": 83,
-          "source_sha256": "2b561f1318f6e249ba194bc15590bd159dd34c537e36daf838a85087da141a8e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestCommand",
@@ -13322,32 +13325,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.QuestAcceptance.QuestAcceptOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs",
-          "line": 83,
-          "source_sha256": "2b561f1318f6e249ba194bc15590bd159dd34c537e36daf838a85087da141a8e"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs",
-          "line": 83,
-          "source_sha256": "2b561f1318f6e249ba194bc15590bd159dd34c537e36daf838a85087da141a8e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestCommand.cs",
-          "line": 83,
-          "source_sha256": "2b561f1318f6e249ba194bc15590bd159dd34c537e36daf838a85087da141a8e"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "空selected、CommandFootprintMode.None，无Main／ledger或额外owner。",
+          "old": "plain ICommand，无IAccount／Selected marker；带Account／Character字段不授selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -13566,25 +13578,28 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestCommand.cs",
-          "line": 99,
-          "source_sha256": "268159e64b4c0524983d23baa54da93b98daac0a03c6f8336620750e185b3739"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "唯一whole一个Main Write；动作内原专用包装以同cause RequireRollback，完整确认回滚后ACK22；native Commit异常仍默认传播，普通业务拒绝仍提交。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestCommand.cs",
-          "line": 99,
-          "source_sha256": "268159e64b4c0524983d23baa54da93b98daac0a03c6f8336620750e185b3739"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommand",
@@ -13610,53 +13625,65 @@
         },
         "result": "Dfo.Server.Protocol.Game.QuestCompletion.QuestFinishOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestCommand.cs",
-          "line": 99,
-          "source_sha256": "268159e64b4c0524983d23baa54da93b98daac0a03c6f8336620750e185b3739"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestCommand.cs",
-          "line": 99,
-          "source_sha256": "268159e64b4c0524983d23baa54da93b98daac0a03c6f8336620750e185b3739"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestCommand.cs",
-          "line": 99,
-          "source_sha256": "268159e64b4c0524983d23baa54da93b98daac0a03c6f8336620750e185b3739"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "原request的同一Recipient／session／physical／metadata；单Main与unit.Footprint，动态经验足迹保持，最低Inventory|Quests不扩大。",
+          "old": "IRequestSettlementCommand、实际handler总传原exact selected session；minimum Inventory|Quests。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestCommand.cs",
-          "line": 16,
-          "source_sha256": "1e5f82575807f98f0620e4aa010ff626b19b152c555f8292f9350365083a29fe"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "唯一whole内ordinary Write，[]／None；原正常拒绝（含Accept无主container先GiveUp）仍正常提交，不强制回滚。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestCommand.cs",
-          "line": 16,
-          "source_sha256": "1e5f82575807f98f0620e4aa010ff626b19b152c555f8292f9350365083a29fe"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestCommand",
@@ -13682,53 +13709,65 @@
         },
         "result": "Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestCommand.cs",
-          "line": 16,
-          "source_sha256": "1e5f82575807f98f0620e4aa010ff626b19b152c555f8292f9350365083a29fe"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestCommand.cs",
-          "line": 16,
-          "source_sha256": "1e5f82575807f98f0620e4aa010ff626b19b152c555f8292f9350365083a29fe"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestCommand.cs",
-          "line": 16,
-          "source_sha256": "1e5f82575807f98f0620e4aa010ff626b19b152c555f8292f9350365083a29fe"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "空selected、CommandFootprintMode.None，无Main／ledger或额外owner。",
+          "old": "plain ICommand，无IAccount／Selected marker；带Account／Character字段不授selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerCommand.cs",
-          "line": 63,
-          "source_sha256": "9da002e66893b67d741f1e01bb47525aa3ca4359c37bf849d9da9eddc1acf4da"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "唯一whole内ordinary Write，[]／None；原正常拒绝（含Accept无主container先GiveUp）仍正常提交，不强制回滚。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerCommand.cs",
-          "line": 63,
-          "source_sha256": "9da002e66893b67d741f1e01bb47525aa3ca4359c37bf849d9da9eddc1acf4da"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.QuestProgress.SetQuestTriggerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.QuestProgress.SetQuestTriggerCommand",
@@ -13754,32 +13793,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.QuestProgress.QuestTriggerOutcome"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerCommand.cs",
-          "line": 63,
-          "source_sha256": "9da002e66893b67d741f1e01bb47525aa3ca4359c37bf849d9da9eddc1acf4da"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerCommand.cs",
-          "line": 63,
-          "source_sha256": "9da002e66893b67d741f1e01bb47525aa3ca4359c37bf849d9da9eddc1acf4da"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerCommand.cs",
-          "line": 63,
-          "source_sha256": "9da002e66893b67d741f1e01bb47525aa3ca4359c37bf849d9da9eddc1acf4da"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "空selected、CommandFootprintMode.None，无Main／ledger或额外owner。",
+          "old": "plain ICommand，无IAccount／Selected marker；带Account／Character字段不授selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -21679,26 +21727,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
-          "line": 24,
-          "source_sha256": "b068fa7bd5fef00ab65672a6f4bfa62437ff9571213cfb7f025e034ccfd5e909"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "唯一whole内ordinary Write，[]／None；原正常拒绝（含Accept无主container先GiveUp）仍正常提交，不强制回滚。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
-          "line": 24,
-          "source_sha256": "b068fa7bd5fef00ab65672a6f4bfa62437ff9571213cfb7f025e034ccfd5e909"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+      ],
       "id": "message:65567",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestHandler",
@@ -21720,30 +21771,39 @@
         "telemetry": false,
         "value": 65567
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
-          "line": 24,
-          "source_sha256": "b068fa7bd5fef00ab65672a6f4bfa62437ff9571213cfb7f025e034ccfd5e909"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
-          "line": 24,
-          "source_sha256": "b068fa7bd5fef00ab65672a6f4bfa62437ff9571213cfb7f025e034ccfd5e909"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/AcceptQuestHandler.cs",
-          "line": 24,
-          "source_sha256": "b068fa7bd5fef00ab65672a6f4bfa62437ff9571213cfb7f025e034ccfd5e909"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "空selected、CommandFootprintMode.None，无Main／ledger或额外owner。",
+          "old": "plain ICommand，无IAccount／Selected marker；带Account／Character字段不授selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestAcceptance/GameAcceptQuestCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestCommand"
       ],
@@ -21751,29 +21811,32 @@
         "GameExplicitMessageDelivery",
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestHandler.cs",
-          "line": 13,
-          "source_sha256": "388d398175c3b65409957004589c81af5adc3c65e5ff813f66090d279200803d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "唯一whole内ordinary Write，[]／None；原正常拒绝（含Accept无主container先GiveUp）仍正常提交，不强制回滚。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestHandler.cs",
-          "line": 13,
-          "source_sha256": "388d398175c3b65409957004589c81af5adc3c65e5ff813f66090d279200803d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+      ],
       "id": "message:65568",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestHandler",
@@ -21795,59 +21858,71 @@
         "telemetry": false,
         "value": 65568
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestHandler.cs",
-          "line": 13,
-          "source_sha256": "388d398175c3b65409957004589c81af5adc3c65e5ff813f66090d279200803d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestHandler.cs",
-          "line": 13,
-          "source_sha256": "388d398175c3b65409957004589c81af5adc3c65e5ff813f66090d279200803d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GiveUpQuestHandler.cs",
-          "line": 13,
-          "source_sha256": "388d398175c3b65409957004589c81af5adc3c65e5ff813f66090d279200803d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "空selected、CommandFootprintMode.None，无Main／ledger或额外owner。",
+          "old": "plain ICommand，无IAccount／Selected marker；带Account／Character字段不授selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestGiveUp/GameGiveUpQuestCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestCommand"
       ],
       "shared_helper_candidates": [
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerHandler.cs",
-          "line": 23,
-          "source_sha256": "1fb5fccac7c55f2d876128d22f138d67d3f45e45a2ef8d37a26adfaa42c6c0e9"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "唯一whole内ordinary Write，[]／None；原正常拒绝（含Accept无主container先GiveUp）仍正常提交，不强制回滚。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerHandler.cs",
-          "line": 23,
-          "source_sha256": "1fb5fccac7c55f2d876128d22f138d67d3f45e45a2ef8d37a26adfaa42c6c0e9"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+      ],
       "id": "message:65569",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.QuestProgress.SetQuestTriggerHandler",
@@ -21869,59 +21944,71 @@
         "telemetry": false,
         "value": 65569
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerHandler.cs",
-          "line": 23,
-          "source_sha256": "1fb5fccac7c55f2d876128d22f138d67d3f45e45a2ef8d37a26adfaa42c6c0e9"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerHandler.cs",
-          "line": 23,
-          "source_sha256": "1fb5fccac7c55f2d876128d22f138d67d3f45e45a2ef8d37a26adfaa42c6c0e9"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestProgress/SetQuestTriggerHandler.cs",
-          "line": 23,
-          "source_sha256": "1fb5fccac7c55f2d876128d22f138d67d3f45e45a2ef8d37a26adfaa42c6c0e9"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "空selected、CommandFootprintMode.None，无Main／ledger或额外owner。",
+          "old": "plain ICommand，无IAccount／Selected marker；带Account／Character字段不授selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestProgress/GameSetQuestTriggerCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.QuestProgress.SetQuestTriggerCommand"
       ],
       "shared_helper_candidates": [
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestHandler.cs",
-          "line": 37,
-          "source_sha256": "e7b7ffb0b331fc6b664e262bee0f37b6868566ee5e5dd12ad83b1043ca58920d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "唯一whole一个Main Write；动作内原专用包装以同cause RequireRollback，完整确认回滚后ACK22；native Commit异常仍默认传播，普通业务拒绝仍提交。",
+          "old": "1788011a：一个Transactional fine；原正常拒绝保空提交，异常由旧UoW回滚。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-51.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestHandler.cs",
-          "line": 37,
-          "source_sha256": "e7b7ffb0b331fc6b664e262bee0f37b6868566ee5e5dd12ad83b1043ca58920d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+      ],
       "id": "message:65570",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestHandler",
@@ -21943,30 +22030,39 @@
         "telemetry": false,
         "value": 65570
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestHandler.cs",
-          "line": 37,
-          "source_sha256": "e7b7ffb0b331fc6b664e262bee0f37b6868566ee5e5dd12ad83b1043ca58920d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestHandler.cs",
-          "line": 37,
-          "source_sha256": "e7b7ffb0b331fc6b664e262bee0f37b6868566ee5e5dd12ad83b1043ca58920d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/FinishQuestHandler.cs",
-          "line": 37,
-          "source_sha256": "e7b7ffb0b331fc6b664e262bee0f37b6868566ee5e5dd12ad83b1043ca58920d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole和薄handler；四fine类型／handler／注册／生产引用清零。Finish用同实例既有run projection接口及原Weakness查询，不新增转发领域服务或共享状态。",
+          "old": "1788011a：对应handler是fine唯一生产调用方。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "原request的同一Recipient／session／physical／metadata；单Main与unit.Footprint，动态经验足迹保持，最低Inventory|Quests不扩大。",
+          "old": "IRequestSettlementCommand、实际handler总传原exact selected session；minimum Inventory|Quests。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task51-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Quests/QuestProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs"
+          ],
+          "new": "原算法与顺序保持；scope归入whole后的默认typed／已登记帧和首次encoder差异仅VC-B30／31。Finish保原committed-replay raw、原entry/Ordinal、精确physical替换隔离，不扩首次raw／Self或通用恢复。",
+          "old": "原领域门／拒绝／任务资产与ACK及投影次序，fine返回前Dispose，首次encoder未被whole接管。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommand"
       ],
@@ -21975,7 +22071,7 @@
         "GameInventoryDelivery",
         "WeaknessProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
