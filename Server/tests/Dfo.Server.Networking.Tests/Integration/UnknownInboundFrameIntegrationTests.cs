@@ -43,7 +43,7 @@ public sealed class UnknownInboundFrameIntegrationTests
             gamePort = GetAvailablePort();
         }
 
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true",
@@ -115,7 +115,7 @@ public sealed class UnknownInboundFrameIntegrationTests
     {
         var channelPort = GetAvailablePort(); var gamePort = GetAvailablePort();
         while (gamePort == channelPort) gamePort = GetAvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),
             ["Networking:GamePorts:0"] = gamePort.ToString(), ["Game:EndpointHost"] = "127.0.0.1",

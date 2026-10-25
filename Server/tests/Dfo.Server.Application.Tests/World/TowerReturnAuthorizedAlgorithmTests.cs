@@ -112,7 +112,7 @@ internal static class TowerReturnAuthorizedCases
             else
             {
                 Assert.Same(cause, first.Transaction.CommitFailure!.Cause);
-                Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!);
+                SqliteFailureAssertions.FromCommit(first.Transaction, cause);
             }
         }
         else if (mode == "uncertain")

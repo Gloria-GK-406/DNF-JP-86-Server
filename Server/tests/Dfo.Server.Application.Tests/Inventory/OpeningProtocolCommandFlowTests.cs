@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Sessions;
@@ -76,12 +77,12 @@ public sealed class OpeningProtocolCommandFlowTests(ITestOutputHelper output)
             Assert.NotNull(attempt.Receipt); Assert.Null(attempt.ActionFailure);
             Assert.Equal(2, attempt.RewardCount); Assert.True(attempt.DeferredChildren > 0);
             Assert.True(attempt.EventRows > before.Events); Assert.True(attempt.DeliveryRows > before.Deliveries);
-            Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal);
+            SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);
         }
         else
         {
             Assert.Null(attempt.Receipt); Assert.Same(cause, attempt.ActionFailure);
-            Assert.DoesNotContain("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal);
+            SqliteFailureAssertions.FromAction(attempt.Transaction, cause);
         }
         var entry = Entry(f); var ordinal = entry.Ordinal;
         Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);

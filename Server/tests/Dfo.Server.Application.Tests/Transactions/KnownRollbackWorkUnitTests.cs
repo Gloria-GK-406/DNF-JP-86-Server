@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -33,7 +34,7 @@ public sealed class KnownRollbackWorkUnitTests(ITestOutputHelper output)
             });
             var rollback = Assert.IsType<CommandWriteResult<int>.CommitRolledBack>(result);
             var cause = Assert.IsType<SqliteException>(rollback.Cause);
-            Assert.Equal(787, cause.SqliteExtendedErrorCode); Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!);
+            Assert.Equal(787, cause.SqliteExtendedErrorCode); SqliteFailureAssertions.FromCommit(failed!, cause);
             Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, failed!.Completion);
             Assert.Null(world.Services.GetRequiredService<IDomainTransactionAccessor>().Current);
             return await units.WriteAsync(context, new("later", []), async (_, ct) =>

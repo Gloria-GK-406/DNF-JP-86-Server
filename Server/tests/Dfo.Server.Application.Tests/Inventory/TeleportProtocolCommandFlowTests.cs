@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
@@ -80,10 +81,11 @@ public sealed class TeleportProtocolCommandFlowTests(ITestOutputHelper output)
     [Theory] [InlineData(false)] [InlineData(true)]
     public async Task Real_action_and_deferred_foreign_key_commit_failure_roll_back_all_assets(bool native)
     {
-        using var f=TeleportConsumableTests.Fixture(); await f.Seed(65,2000,2);
+        var transactions = new SqliteTransactionProbe();
+        using var f=TeleportConsumableTests.Fixture(transactions.Configure); await f.Seed(65,2000,2);
         f.Sql(native ? "CREATE TABLE task41_parent(id INTEGER PRIMARY KEY); CREATE TABLE task41_child(id INTEGER REFERENCES task41_parent(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER task41_fail AFTER UPDATE OF town_id ON characters BEGIN INSERT INTO task41_child VALUES(404); END" : "CREATE TRIGGER task41_fail BEFORE UPDATE OF town_id ON characters BEGIN SELECT RAISE(ABORT,'TASK41 action'); END");
         var failure=await Assert.ThrowsAsync<SqliteException>(()=>TeleportConsumableTests.Send(f).AsTask());
-        Assert.Equal(native?787:1811,failure.SqliteExtendedErrorCode); if(native) Assert.Contains("SqliteTransaction.Commit",failure.StackTrace!);
+        Assert.Equal(native?787:1811,failure.SqliteExtendedErrorCode); if(native) SqliteFailureAssertions.FromCommit(Assert.Single(transactions.Transactions), failure);
         Assert.Equal(2,f.Count(2000)); Assert.Equal(0,f.Scalar("SELECT town_id FROM characters WHERE character_id=1")); Assert.Empty(f.Sender.Messages);
         TestGameplay.Run(f.Services,()=> { Assert.Equal((byte)0,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session)!.TownId); Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000))); });
         f.Sql("DROP TRIGGER task41_fail"); await TeleportConsumableTests.Send(f); Assert.Equal(1,f.Count(2000));

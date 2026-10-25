@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Collections;
 using System.Reflection;
@@ -98,8 +99,8 @@ public sealed class CollectionBoxProtocolCommandFlowTests(ITestOutputHelper outp
         var thrown=await Record.ExceptionAsync(()=>SendRaw(f,trace,metadata,body).AsTask());
         var cause=Assert.IsType<SqliteException>(thrown);Assert.Equal(19,cause.SqliteErrorCode);Assert.Equal(native?787:1811,cause.SqliteExtendedErrorCode);
         var attempt=Assert.Single(trace.Attempts);Assert.Equal(1,attempt.ForeignKeys);Assert.Equal(native?1:0,attempt.Children);
-        Assert.Equal(native,attempt.Mutation is not null);if(native){Assert.Null(attempt.ActionFailure);Assert.Contains("SqliteTransaction.Commit",cause.StackTrace!,StringComparison.Ordinal);}
-        else {Assert.Same(cause,attempt.ActionFailure);Assert.DoesNotContain("SqliteTransaction.Commit",cause.StackTrace!,StringComparison.Ordinal);}
+        Assert.Equal(native,attempt.Mutation is not null);if(native){Assert.Null(attempt.ActionFailure);SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);}
+        else {Assert.Same(cause,attempt.ActionFailure);SqliteFailureAssertions.FromAction(attempt.Transaction, cause);}
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,attempt.Transaction.Completion);
         var entry=attempt.Entry;var ordinal=entry.Ordinal;Assert.Same(entry,Entry(f));Assert.Equal(EffectOperationState.ConfirmedRollback,entry.State);
         Assert.Equal(native,entry.Projection is not null);Assert.Equal(before,await Assets(f));

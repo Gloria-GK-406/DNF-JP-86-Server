@@ -23,7 +23,7 @@ public sealed class MagicSealFrameIntegrationTests
         var channelPort = GetAvailablePort();
         var gamePort = GetAvailablePort();
         while (gamePort == channelPort) gamePort = GetAvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Logging.AddProvider(logs);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>

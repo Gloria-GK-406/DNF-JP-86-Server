@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Reflection;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Data.Marriage;
@@ -52,10 +53,11 @@ public sealed class TownMovementProtocolCommandFlowTests
     public async Task Action_or_native_commit_failure_keeps_old_membership_and_position_without_frames(bool native)
     {
         await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
-        using var f=Fixture(delivery);var physical=delivery.Add(f.Connection);
+        var transactions = new SqliteTransactionProbe();
+        using var f=Fixture(delivery, transactions.Configure);var physical=delivery.Add(f.Connection);
         f.Sql(native?"CREATE TABLE task41_area_parent(id INTEGER PRIMARY KEY); CREATE TABLE task41_area_child(id INTEGER REFERENCES task41_area_parent(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER task41_area_fail AFTER UPDATE OF town_id ON characters BEGIN INSERT INTO task41_area_child VALUES(404); END":"CREATE TRIGGER task41_area_fail BEFORE UPDATE OF town_id ON characters BEGIN SELECT RAISE(ABORT,'area fail'); END");
         var failure=await Assert.ThrowsAsync<SqliteException>(()=>Area(f,11,3,123,456).AsTask());
-        Assert.Equal(native?787:1811,failure.SqliteExtendedErrorCode);if(native)Assert.Contains("SqliteTransaction.Commit",failure.StackTrace!);
+        Assert.Equal(native?787:1811,failure.SqliteExtendedErrorCode);if(native)SqliteFailureAssertions.FromCommit(Assert.Single(transactions.Transactions), failure);
         Assert.Equal(0,f.Scalar("SELECT town_id FROM characters WHERE character_id=1"));
         TestGameplay.Run(f.Services,()=>
         { Assert.Equal((byte)0,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session)!.TownId);Assert.Equal(0,f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Area.TownId); });
@@ -161,9 +163,10 @@ public sealed class TownMovementProtocolCommandFlowTests
         var registration=s.Single(d=>d.ServiceType==typeof(Dfo.Server.Application.Dispatching.MessageHandlerRegistration)&&d.ImplementationInstance is Dfo.Server.Application.Dispatching.MessageHandlerRegistration r&&r.MessageType==ClientMessageType.GameSetUserArea);
         s.Remove(registration);s.AddSingleton(new Dfo.Server.Application.Dispatching.MessageHandlerRegistration(ClientMessageType.GameSetUserArea,old));s.AddTransient(old);
     }
-    private static ShopFixture Fixture(RemainingOpeningProtocolCommandFlowTests.SenderProbe delivery)=>TeleportConsumableTests.Fixture(s=>
+    private static ShopFixture Fixture(RemainingOpeningProtocolCommandFlowTests.SenderProbe delivery, Action<IServiceCollection>? configure = null)=>TeleportConsumableTests.Fixture(s=>
     {
       ConfigureOldArea(s);
+      configure?.Invoke(s);
       s.AddSingleton<IOutboundSender>(delivery.Recorder);s.AddSingleton(p=>new GameplayOutboxes(p.GetRequiredService<IOutboundSender>(),p.GetRequiredService<Dfo.Server.Application.Execution.GameplayCloseCauses>(),p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GameplayOutbox>>())); });
     private static ValueTask Area(ShopFixture f,byte town,byte area,short x,short y,ushort sequence=7)=>Wire(f,0x24,[town,area,(byte)x,(byte)(x>>8),(byte)y,(byte)(y>>8)],sequence);
     private static ValueTask Wire(ShopFixture f,ushort type,byte[] body,ushort sequence)

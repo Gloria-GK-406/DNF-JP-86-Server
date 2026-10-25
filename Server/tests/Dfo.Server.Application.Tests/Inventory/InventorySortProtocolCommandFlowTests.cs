@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -85,8 +86,8 @@ public sealed class InventorySortProtocolCommandFlowTests(ITestOutputHelper outp
         var cause=Assert.IsType<SqliteException>(thrown);Assert.Equal(19,cause.SqliteErrorCode);Assert.Equal(native?787:1811,cause.SqliteExtendedErrorCode);
         var attempt=Assert.Single(trace.Attempts);Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,attempt.Transaction.Completion);
         Assert.Equal(1,attempt.ForeignKeys);Assert.Equal(native,attempt.SortCompleted);Assert.Equal(before,await Assets(f));
-        if(native){Assert.True(attempt.Children>0);Assert.Contains("SqliteTransaction.Commit",cause.StackTrace!,StringComparison.Ordinal);Assert.Same(cause,attempt.Transaction.CommitFailure!.Cause);Assert.Equal(new[]{"sort","character.load","account.load","clock"},attempt.Steps);}
-        else{Assert.Same(cause,attempt.ActionFailure);Assert.DoesNotContain("SqliteTransaction.Commit",cause.StackTrace!,StringComparison.Ordinal);}
+        if(native){Assert.True(attempt.Children>0);SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);Assert.Same(cause,attempt.Transaction.CommitFailure!.Cause);Assert.Equal(new[]{"sort","character.load","account.load","clock"},attempt.Steps);}
+        else{Assert.Same(cause,attempt.ActionFailure);SqliteFailureAssertions.FromAction(attempt.Transaction, cause);}
         Assert.Empty(f.Sender.Batches);Assert.Empty(f.Sender.Messages);Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         var close=Assert.Single(f.Sender.Outbound.Entries);Assert.True(close.IsClose);Assert.Same(f.Connection,close.Connection);AssertNoLedger(f);
         var fault=new{native,ddl,before,stage=attempt.Stage,attempt.ForeignKeys,attempt.Children,attempt.SortCompleted,steps=attempt.Steps,

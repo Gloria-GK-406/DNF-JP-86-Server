@@ -51,8 +51,8 @@ public sealed class WarehouseProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.Equal(native, attempt.Receipt is not null); Assert.Equal(native ? 1 : 0, attempt.Children);
         Assert.Equal(native && !main ? 100 : 0, attempt.CargoGold); Assert.Equal(native && !main ? 99900 : 100000, attempt.Gold);
         Assert.Equal(main && native ? 8 : 0, attempt.MainParameter); Assert.Equal(main ? 1 : 0, attempt.Tickets);
-        if (native) { Assert.Null(attempt.ActionFailure); Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal); }
-        else { Assert.Same(cause, attempt.ActionFailure); Assert.DoesNotContain("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal); }
+        if (native) { Assert.Null(attempt.ActionFailure); SqliteFailureAssertions.FromCommit(attempt.Transaction, cause); }
+        else { Assert.Same(cause, attempt.ActionFailure); SqliteFailureAssertions.FromAction(attempt.Transaction, cause); }
         var entry = Entry(f); var ordinal = entry.Ordinal; Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State); Assert.Equal(native, entry.Projection is not null);
         Assert.Equal(input.Metadata.Type, entry.Type); Assert.Equal(input.Metadata.Sequence, entry.Sequence); Assert.Equal(body.Length, entry.Length); Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)), entry.Hash, ignoreCase: true);
         Assert.Equal(before, await Assets(f)); Assert.Empty(f.Sender.Batches);

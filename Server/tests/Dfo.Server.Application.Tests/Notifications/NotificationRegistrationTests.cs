@@ -67,7 +67,7 @@ public sealed class NotificationRegistrationTests
     public async Task The_registry_is_asked_for_before_the_first_hosted_service_starts()
     {
         var probe = new ProbeListener();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Services.AddSingleton<IHostedService>(probe);
         // The retry loop is a timer source on the executor; production composes both.
         builder.Services.AddGameplayExecution();

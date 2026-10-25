@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Execution.Outbox;
 using System.Collections;
 using System.Reflection;
@@ -55,7 +56,7 @@ public sealed class CeraShopPurchaseProtocolCommandFlowTests(ITestOutputHelper o
         var tx = Assert.Single(t.Transactions); Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, tx.Completion);
         Assert.Equal(before, await Assets(f)); var sql = Assert.IsType<SqliteException>(t.Cause);
         Assert.Equal(19, sql.SqliteErrorCode); Assert.Equal(mode == "action" ? 1811 : 787, sql.SqliteExtendedErrorCode);
-        Assert.Equal(mode == "commit", sql.StackTrace!.Contains("SqliteTransaction.Commit", StringComparison.Ordinal));
+        if (mode == "commit") SqliteFailureAssertions.FromCommit(tx, sql); else SqliteFailureAssertions.FromAction(tx, sql);
         Assert.Equal(mode == "commit", t.Receipt); Assert.NotEqual(before, t.StagedAssets);
         Assert.Equal(mode == "commit" ? "CommitRolledBack" : "Returned", t.ResultKind);
         if (mode == "commit") { Assert.Equal(1, t.ForeignKeys); Assert.Equal(1, t.Children); Assert.Same(sql, tx.CommitFailure!.Cause); Assert.Equal(TransactionFailureKind.KnownStorage, tx.CommitFailure.Kind); }

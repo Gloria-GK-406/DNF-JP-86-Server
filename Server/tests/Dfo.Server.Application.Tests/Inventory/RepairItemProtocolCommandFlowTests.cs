@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -60,8 +61,8 @@ public sealed class RepairItemProtocolCommandFlowTests(ITestOutputHelper output)
         f.Sql(ddl);var error=await Record.ExceptionAsync(()=>RepairWire.Send(f,automatic?"auto":"single",sequence:7,trace:t).AsTask());var cause=Assert.IsType<SqliteException>(error);
         Assert.Equal(19,cause.SqliteErrorCode);Assert.Equal(native?787:1811,cause.SqliteExtendedErrorCode);var a=Assert.Single(t.Attempts);
         Assert.Equal(native,a.Completed);Assert.Equal(1,a.ForeignKeys);Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,a.Tx.Completion);Assert.Equal(before,await Assets(f));
-        if(native){Assert.True(a.Children>0);Assert.Same(cause,a.Tx.CommitFailure!.Cause);Assert.Contains("SqliteTransaction.Commit",cause.StackTrace!,StringComparison.Ordinal);Assert.Equal(automatic?100000:99887,a.StagedGold);Assert.Equal(45,a.StagedDurability);}
-        else{Assert.Same(cause,a.Failure);Assert.DoesNotContain("SqliteTransaction.Commit",cause.StackTrace!,StringComparison.Ordinal);}
+        if(native){Assert.True(a.Children>0);Assert.Same(cause,a.Tx.CommitFailure!.Cause);SqliteFailureAssertions.FromCommit(a.Tx, cause);Assert.Equal(automatic?100000:99887,a.StagedGold);Assert.Equal(45,a.StagedDurability);}
+        else{Assert.Same(cause,a.Failure);SqliteFailureAssertions.FromAction(a.Tx, cause);}
         if(automatic){Assert.Single(t.DirectFacts);Assert.Single(t.QuotaEvents);Assert.Equal(1,a.StagedUsage);}
         Assert.Empty(f.Sender.Batches);var close=Assert.Single(f.Sender.Outbound.Entries);Assert.True(close.IsClose);Assert.Same(f.Connection,close.Connection);Assert.True(GameplayJob.EndedAJob(cause));Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));AssertNoLedger(f);
         var fault=new{automatic,native,ddl,before,after=await Assets(f),attempts=Attempts(t),facts=t.DirectFacts.ToArray(),events=t.QuotaEvents.ToArray(),cause=cause.ToString(),causeSame=ReferenceEquals(cause,native?a.Tx.CommitFailure!.Cause:a.Failure),sourceCloseExact=ReferenceEquals(f.Connection,close.Connection),inputs=t.Inputs.ToArray()};

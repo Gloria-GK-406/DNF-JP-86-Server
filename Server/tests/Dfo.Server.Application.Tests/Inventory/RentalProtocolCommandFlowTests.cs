@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Collections;
 using System.Reflection;
@@ -59,14 +60,15 @@ public sealed class RentalProtocolCommandFlowTests(ITestOutputHelper output)
     public async Task Real_action_and_native_commit_failures_roll_back_without_ack_and_close(bool charge, bool native)
     {
         await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
-        using var owner = Create(delivery); var f = owner.Host; var physical = delivery.Add(f.Connection);
+        var transactions = new SqliteTransactionProbe();
+        using var owner = Create(delivery, transactions.Configure); var f = owner.Host; var physical = delivery.Add(f.Connection);
         var stars = await Stars(f); var gold = f.Gold;
         f.Sql(native ? "CREATE TABLE task37_parent(id INTEGER PRIMARY KEY); CREATE TABLE task37_child(id INTEGER REFERENCES task37_parent(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER task37_fail AFTER UPDATE OF lucky_star ON accounts BEGIN INSERT INTO task37_child VALUES(404); END"
             : "CREATE TRIGGER task37_fail BEFORE UPDATE OF lucky_star ON accounts BEGIN SELECT RAISE(ABORT,'TASK37 action'); END");
         var before=LuckyStarRentalWireTests.DatabaseRows(f);
         var cause = await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => Send(f, charge).AsTask());
         Assert.Equal(native ? 787 : 1811, cause.SqliteExtendedErrorCode);
-        if(native)Assert.Contains("SqliteTransaction.Commit",cause.StackTrace!);
+        if(native)SqliteFailureAssertions.FromCommit(Assert.Single(transactions.Transactions), cause);
         Assert.Equal(before,LuckyStarRentalWireTests.DatabaseRows(f));
         await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); await delivery.Settled();
         Assert.Equal(stars, await Stars(f)); Assert.Equal(gold, f.Gold); Assert.Equal(0, f.Count(401000037));

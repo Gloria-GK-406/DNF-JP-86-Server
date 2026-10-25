@@ -15,7 +15,7 @@ public sealed class ChannelSourcesTests
         try
         {
             await File.WriteAllBytesAsync(scriptPath, [0x10, 0x20, 0x30]);
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Channel:ScriptVersion"] = "66",

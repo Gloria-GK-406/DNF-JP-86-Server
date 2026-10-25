@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -53,9 +54,9 @@ public sealed class EquipmentQualityProtocolCommandFlowTests(ITestOutputHelper o
         {
             Assert.NotNull(attempt.Receipt); Assert.Null(attempt.ActionFailure); Assert.Equal(1, attempt.Material);
             Assert.True(attempt.Children > 0); Assert.NotEqual(before.Core, attempt.Core);
-            Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal);
+            SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);
         }
-        else { Assert.Null(attempt.Receipt); Assert.Same(cause, attempt.ActionFailure); Assert.DoesNotContain("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal); }
+        else { Assert.Null(attempt.Receipt); Assert.Same(cause, attempt.ActionFailure); SqliteFailureAssertions.FromAction(attempt.Transaction, cause); }
         var entry = Entry(f); var ordinal = entry.Ordinal;
         Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State); Assert.Equal(nativeCommit, entry.Projection is not null);
         Assert.Equal(request.Metadata.Type, entry.Type); Assert.Equal(request.Metadata.Selector, entry.Selector); Assert.Equal(request.Metadata.Sequence, entry.Sequence);

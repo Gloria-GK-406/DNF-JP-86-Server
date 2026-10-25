@@ -24,7 +24,7 @@ public sealed class PackageOpeningIntegrationTests
     {
         var channelPort = AvailablePort(); var gamePort = AvailablePort();
         while (gamePort == channelPort) gamePort = AvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),

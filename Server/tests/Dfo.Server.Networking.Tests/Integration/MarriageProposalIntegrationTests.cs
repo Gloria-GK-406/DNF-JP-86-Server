@@ -19,7 +19,7 @@ public sealed class MarriageProposalIntegrationTests
     public async Task Both_registered_requests_without_selection_return_typed_status_and_leave_socket_usable()
     {
         var channel = Port(); var game = Port(); while (game == channel) game = Port();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),

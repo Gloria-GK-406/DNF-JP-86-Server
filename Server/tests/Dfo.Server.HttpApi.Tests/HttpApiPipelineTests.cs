@@ -424,6 +424,7 @@ public sealed class HttpApiPipelineTests
         {
             var builder = WebApplication.CreateBuilder(new WebApplicationOptions
             {
+                Args = ["--hostBuilder:reloadConfigOnChange=false"],
                 EnvironmentName = "Development",
             });
             builder.Logging.ClearProviders();

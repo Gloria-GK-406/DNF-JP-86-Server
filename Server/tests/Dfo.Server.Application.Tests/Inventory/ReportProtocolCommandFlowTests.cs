@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.OnlineUsers;
 using System.Reflection;
 using System.Buffers.Binary;
@@ -54,7 +55,7 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
         var failure = await Record.ExceptionAsync(() => Send(f, protocol).AsTask());
         var tx = Assert.Single(trace.Transactions); var cause = Assert.IsType<SqliteException>(native ? tx.CommitFailure!.Cause : failure);
         Assert.Same(cause, failure); Assert.Equal(native ? 787 : 1811, cause.SqliteExtendedErrorCode);
-        if (native) Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!);
+        if (native) SqliteFailureAssertions.FromCommit(tx, cause);
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, tx.Completion); Assert.Empty(f.Sender.Outbound.Frames);
         if (protocol == 0) { Assert.Equal(0, f.Count(8474)); Assert.Equal(0, f.Scalar("SELECT tutorial_completed FROM characters WHERE character_id=1")); }
         if (protocol == 1) Assert.Equal((ushort)2, await f.Durability(InventoryContainerType.Equipment, 12));

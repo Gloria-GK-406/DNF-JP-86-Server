@@ -30,7 +30,7 @@ public sealed class HandlerFailureConnectionIntegrationTests
     public async Task Native_normal_party_edit_with_retained_target_keeps_the_connection_alive()
     {
         var channel = Port(); var game = Port(); while (game == channel) game = Port();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),
@@ -64,7 +64,7 @@ public sealed class HandlerFailureConnectionIntegrationTests
     public async Task A_frame_whose_handler_throws_gets_no_reply_and_its_connection_is_closed_while_others_are_served()
     {
         var channel = Port(); var game = Port(); while (game == channel) game = Port();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),
@@ -115,7 +115,7 @@ public sealed class HandlerFailureConnectionIntegrationTests
     public async Task A_handler_that_throws_inside_its_job_closes_only_its_connection_and_is_logged_once()
     {
         var channel = Port(); var game = Port(); while (game == channel) game = Port();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),

@@ -65,7 +65,7 @@ internal sealed class LifecycleWireHost : IAsyncDisposable
         var channel = Port(); var game = Port(); while (game == channel) game = Port();
         var recorder = new LifecycleRecorder();
         var log = new LifecycleLog();
-        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
+        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),

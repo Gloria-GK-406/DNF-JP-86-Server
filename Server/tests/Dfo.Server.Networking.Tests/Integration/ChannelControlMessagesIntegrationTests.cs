@@ -38,7 +38,7 @@ public sealed class ChannelControlMessagesIntegrationTests
                 gamePort = GetAvailablePort();
             }
 
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Networking:Enabled"] = "true",
@@ -124,7 +124,7 @@ public sealed class ChannelControlMessagesIntegrationTests
         while (gamePort == channelPort) gamePort = GetAvailablePort();
         var failure = new IOException("script version business probe");
         var capture = new FailureLogs();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Channel:ScriptVersion"] = "66", ["Channel:ScriptPath"] = scriptPath,

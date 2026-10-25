@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Sessions;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -43,8 +44,8 @@ public sealed class ItemSocketProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.DoesNotContain(errors, x => x.Category.Contains("CommandLoggingBehavior", StringComparison.Ordinal));
         Assert.Equal(19, cause.SqliteErrorCode); Assert.Equal(nativeCommit ? 787 : 1811, cause.SqliteExtendedErrorCode);
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, attempt.Transaction.Completion);
-        if (nativeCommit) { Assert.NotNull(attempt.Receipt); Assert.Null(attempt.ActionFailure); Assert.True(attempt.Children > 0); Assert.Equal(1, attempt.Material); Assert.NotEqual(before.Socket, attempt.Socket); Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal); }
-        else { Assert.Null(attempt.Receipt); Assert.Same(cause, attempt.ActionFailure); Assert.DoesNotContain("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal); }
+        if (nativeCommit) { Assert.NotNull(attempt.Receipt); Assert.Null(attempt.ActionFailure); Assert.True(attempt.Children > 0); Assert.Equal(1, attempt.Material); Assert.NotEqual(before.Socket, attempt.Socket); SqliteFailureAssertions.FromCommit(attempt.Transaction, cause); }
+        else { Assert.Null(attempt.Receipt); Assert.Same(cause, attempt.ActionFailure); SqliteFailureAssertions.FromAction(attempt.Transaction, cause); }
         var entry = Entry(f); var ordinal = entry.Ordinal; Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State); Assert.Equal(nativeCommit, entry.Projection is not null);
         Assert.Equal(input.Metadata.Type, entry.Type); Assert.Equal(input.Metadata.Sequence, entry.Sequence); Assert.Equal(body.Length, entry.Length); Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)), entry.Hash, ignoreCase: true);
         Assert.Equal(before, await Assets(f, protocol)); Assert.Empty(f.Sender.Batches); Assert.Single(f.Sender.Messages); Assert.Equal(new byte[] { 0, 4 }, Assert.Single(f.Sender.Outbound.Frames)[15..]);

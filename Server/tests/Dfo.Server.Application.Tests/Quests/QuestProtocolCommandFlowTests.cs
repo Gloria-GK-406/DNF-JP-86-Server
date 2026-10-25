@@ -133,7 +133,7 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
         var cause=Assert.IsType<SqliteException>(native?attempt.Transaction.CommitFailure!.Cause:attempt.Failure);
         Assert.Equal(native?787:1811,cause.SqliteExtendedErrorCode);Assert.Equal(native,attempt.Returned);Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,attempt.Transaction.Completion);Assert.Equal(before,Assets(f));
         var entry=Entry(f);var ordinal=entry.Ordinal;Assert.Equal(EffectOperationState.ConfirmedRollback,entry.State);
-        if(native){Assert.Same(cause,failure);Assert.Contains("SqliteTransaction.Commit",cause.StackTrace!);Assert.Empty(f.Sender.Messages);}
+        if(native){Assert.Same(cause,failure);SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);Assert.Empty(f.Sender.Messages);}
         else {Assert.Null(failure);Assert.Equal(new byte[]{0,22},Assert.Single(f.Sender.Outbound.Frames)[15..]);}
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         // Logical confirmed-rollback retry: no physically closed transport is presented as a new network request.

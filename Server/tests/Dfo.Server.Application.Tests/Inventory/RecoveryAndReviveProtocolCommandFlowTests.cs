@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
@@ -76,7 +77,7 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         Assert.Equal(0, f.Scalar("SELECT count(*) FROM character_daily_counters")); Assert.Equal(0, f.Scalar("SELECT coalesce(sum(count),0) FROM item_slots WHERE slot_index=1"));
         if (coin) { var sql = Assert.IsType<SqliteException>(error); Assert.Equal(native ? 787 : 1811, sql.SqliteExtendedErrorCode); await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); Assert.Equal(1,physical.CloseCalls); Assert.Empty(physical.Sends); AssertCloseChain(f,trace); }
         else { Assert.Null(error); await delivery.Settled(); Assert.Equal(new byte[] {0,4},Assert.Single(Split(physical.Sends))[15..]); Assert.Equal(0,physical.CloseCalls); Healthy(f); }
-        if (native) { var failure = Assert.IsType<SqliteException>(tx.CommitFailure!.Cause); Assert.Contains("SqliteTransaction.Commit", failure.StackTrace!); Assert.Equal(TransactionFailureKind.KnownStorage, tx.CommitFailure.Kind); }
+        if (native) { var failure = Assert.IsType<SqliteException>(tx.CommitFailure!.Cause); SqliteFailureAssertions.FromCommit(tx, failure); Assert.Equal(TransactionFailureKind.KnownStorage, tx.CommitFailure.Kind); }
         NoLedger(f); output.WriteLine($"coin={coin} native={native} completion={tx.Completion}");
     }
 

@@ -45,7 +45,7 @@ public sealed class CardTimerShutdownTests
         var delay = new UntilCancelled();
         var logs = new CapturedLogs();
         var observed = new AfterCoordinatorDrain();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Logging.ClearProviders();
         builder.Logging.AddProvider(logs);
         builder.Logging.SetMinimumLevel(LogLevel.Information);

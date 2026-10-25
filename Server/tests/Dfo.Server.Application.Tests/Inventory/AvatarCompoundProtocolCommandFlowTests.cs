@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Sessions;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -46,12 +47,12 @@ public sealed class AvatarCompoundProtocolCommandFlowTests(ITestOutputHelper out
         {
             Assert.NotNull(attempt.Receipt); Assert.Equal(2, attempt.Receipt.Outputs.Length); Assert.Null(attempt.ActionFailure);
             Assert.Equal(2, attempt.Children); Assert.Equal(2, attempt.AvatarRows); Assert.Equal(1, attempt.Material); Assert.Equal(2, attempt.AvatarSlots);
-            Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal);
+            SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);
         }
         else
         {
             Assert.Null(attempt.Receipt); Assert.Same(cause, attempt.ActionFailure); Assert.Equal(4, attempt.AvatarRows); Assert.Equal(2, attempt.Material);
-            Assert.Equal(2, attempt.AvatarSlots); Assert.DoesNotContain("SqliteTransaction.Commit", cause.StackTrace!, StringComparison.Ordinal);
+            Assert.Equal(2, attempt.AvatarSlots); SqliteFailureAssertions.FromAction(attempt.Transaction, cause);
         }
         var entry = Entry(f); var ordinal = entry.Ordinal; Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State); Assert.Equal(nativeCommit, entry.Projection is not null);
         Assert.Equal(input.Metadata.Type, entry.Type); Assert.Equal(input.Metadata.Sequence, entry.Sequence); Assert.Equal(body.Length, entry.Length); Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(body)), entry.Hash, ignoreCase: true);

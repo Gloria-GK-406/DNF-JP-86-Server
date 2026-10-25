@@ -87,7 +87,7 @@ public sealed class CardRewardReconnectIntegrationTests
                 gamePort = GetAvailablePort();
             }
 
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Networking:Enabled"] = "true",

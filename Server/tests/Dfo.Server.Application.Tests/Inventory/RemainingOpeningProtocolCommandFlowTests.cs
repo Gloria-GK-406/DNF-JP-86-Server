@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections;
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Execution;
@@ -44,11 +45,12 @@ public sealed class RemainingOpeningProtocolCommandFlowTests(ITestOutputHelper o
         await EffectRequestTransport.Send(f.Host, f.Input);
         var attempt = Assert.Single(f.Trace.Attempts);
         var cause = Assert.IsType<SqliteException>(native ? attempt.Transaction.CommitFailure!.Cause : attempt.Failure);
+        output.WriteLine($"SQLite failure native={native} sql={cause.SqliteErrorCode}/{cause.SqliteExtendedErrorCode} returned={attempt.Returned} children={attempt.Children} tx={attempt.Transaction.Completion} phase={attempt.Transaction.CommitFailure?.Phase} kind={attempt.Transaction.CommitFailure?.Kind} source={attempt.Transaction.CommitFailure?.Source.GetType().FullName} sameCause={ReferenceEquals(cause, attempt.Transaction.CommitFailure?.Cause)} cause={cause}");
         Assert.Equal(19, cause.SqliteErrorCode); Assert.Equal(native ? 787 : 1811, cause.SqliteExtendedErrorCode);
         Assert.Equal(1, attempt.ForeignKeys); Assert.Equal(native, attempt.Returned);
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, attempt.Transaction.Completion);
-        if (native) { Assert.True(attempt.Children > 0); Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!); }
-        else Assert.DoesNotContain("SqliteTransaction.Commit", cause.StackTrace!);
+        if (native) { Assert.True(attempt.Children > 0); SqliteFailureAssertions.FromCommit(attempt.Transaction, cause); }
+        else SqliteFailureAssertions.FromAction(attempt.Transaction, cause);
         Assert.Equal(before, Assets(f.Host));
         var entry = Entry(f.Host); var ordinal = entry.Ordinal;
         Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);

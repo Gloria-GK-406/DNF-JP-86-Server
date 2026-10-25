@@ -113,7 +113,7 @@ public sealed class GameplayExecutorLifetimeTests
                 ["Database:Path"] = Path.Combine(directory, "test.db"),
                 ["Channel:ScriptPath"] = script,
             }).Build();
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddConfiguration(configuration);
             builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
             new InfrastructureModule().ConfigureServices(builder.Services, configuration);

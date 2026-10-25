@@ -90,7 +90,7 @@ public sealed class SkillGrowthProtocolCommandFlowTests(ITestOutputHelper output
         var cause = Assert.IsType<SqliteException>(native ? attempt.Transaction.CommitFailure!.Cause : attempt.Failure);
         Assert.Equal(native ? 787 : 1811, cause.SqliteExtendedErrorCode);
         Assert.Equal(1,attempt.ForeignKeys);Assert.Equal(native,attempt.Returned);
-        if (native) Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!);
+        if (native) SqliteFailureAssertions.FromCommit(attempt.Transaction, cause);
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, attempt.Transaction.Completion); Assert.Equal(before, Assets(f));
         var entry = Entry(f); var ordinal = entry.Ordinal; Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);
         if (protocol == 0) { Assert.Same(cause, failure); Assert.Empty(f.Sender.Messages); }

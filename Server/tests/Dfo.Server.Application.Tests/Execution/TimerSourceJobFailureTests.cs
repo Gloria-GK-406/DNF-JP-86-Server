@@ -93,7 +93,7 @@ public sealed class TimerSourceJobFailureTests
             }).Build();
             var clock = new SchedulerClock();
             StickyFault? fault = null;
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddConfiguration(configuration);
             new InfrastructureModule().ConfigureServices(builder.Services, configuration);
             new PersistenceModule().ConfigureServices(builder.Services, configuration);

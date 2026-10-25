@@ -401,7 +401,7 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         public static async Task<Server> StartAsync()
         {
             var channel = Port(); var game = Port(); while (game == channel) game = Port();
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),

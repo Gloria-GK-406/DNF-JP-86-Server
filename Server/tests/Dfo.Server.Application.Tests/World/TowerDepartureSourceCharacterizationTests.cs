@@ -88,7 +88,7 @@ public sealed partial class BossTowerDomainServiceTests
             else
             {
                 Assert.Same(cause, failed.Transaction.CommitFailure!.Cause);
-                Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!);
+                SqliteFailureAssertions.FromCommit(failed.Transaction, cause);
             }
         }
         else if (failure == "uncertain")

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.World;
@@ -96,14 +97,15 @@ public sealed class CreatureAndEffectProtocolCommandFlowTests(ITestOutputHelper 
     [Theory] [InlineData(0, false)] [InlineData(0, true)] [InlineData(1, false)] [InlineData(1, true)] [InlineData(2, false)] [InlineData(2, true)]
     public async Task Actual_action_or_native_commit_failure_rolls_back_without_success_and_fresh_retry_succeeds(int protocol, bool native)
     {
-        using var f = await Create(protocol); var before = f.Scalar("SELECT sum(count) FROM item_slots");
+        var transactions = new SqliteTransactionProbe();
+        using var f = await Create(protocol, configure: transactions.Configure); var before = f.Scalar("SELECT sum(count) FROM item_slots");
         var table = protocol == 2 ? "item_slots" : "items";
         f.Sql(native
             ? $"CREATE TABLE task36_parent(id INTEGER PRIMARY KEY); CREATE TABLE task36_child(id INTEGER REFERENCES task36_parent(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER task36_fail AFTER UPDATE ON {table} BEGIN INSERT INTO task36_child VALUES(404); END"
             : $"CREATE TRIGGER task36_fail BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT,'TASK36 action failure'); END");
         var cause = await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(() => Send(f, protocol).AsTask());
         Assert.Equal(native ? 787 : 1811, cause.SqliteExtendedErrorCode);
-        if (native) Assert.Contains("SqliteTransaction.Commit", cause.StackTrace!);
+        if (native) SqliteFailureAssertions.FromCommit(Assert.Single(transactions.Transactions), cause);
         Assert.Equal(before, f.Scalar("SELECT sum(count) FROM item_slots")); Assert.Empty(f.Sender.Messages);
         f.Sql("DROP TRIGGER task36_fail"); await Send(f, protocol, sequence: 8);
         Assert.Contains(f.Sender.Outbound.Frames, x => x[0] == 1 && x[15] == 1);
