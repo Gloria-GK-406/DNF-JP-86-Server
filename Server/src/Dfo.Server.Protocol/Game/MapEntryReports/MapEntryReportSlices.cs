@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -106,7 +108,7 @@ internal sealed class RuntimeTingStatisticDecoder : IGameMessageDecoder
 
 /// <summary>
 /// Consumes the map-entry reports and logs them. One handler for the family: none of the ones it
-/// still owns has a response, a domain effect or a command, so several near-identical classes
+/// still owns has a response or a domain effect, so several near-identical classes
 /// would carry no information that this one does not.
 /// </summary>
 /// <remarks>
@@ -115,33 +117,12 @@ internal sealed class RuntimeTingStatisticDecoder : IGameMessageDecoder
 /// instead. Keeping it here would have meant giving the whole family a sender for one member's
 /// sake, and the family's point is that its members have no reply.
 /// </remarks>
-public sealed class MapEntryReportHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    ILogger<MapEntryReportHandler> logger)
-    : ClientMessageHandler<IMapEntryReport>
+public sealed class MapEntryReportHandler(ICommandBus commands)
+    : ClientMessageHandler<IMapEntryReport>, IProtocolCommandMessageHandler<GameMapEntryReportCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        IMapEntryReport message,
-        CancellationToken cancellationToken)
-    {
-        var attributed = onlineUsers.TryGetByConnection(
-            context.Connection.ConnectionId, out var onlineUser) && onlineUser is not null;
-        var detail = message switch
-        {
-            CeraQueryReport => "CERA (empty body)",
-            RuntimeTingStatisticReport report => $"STATICS_RUNTIME_TING value={report.Value}",
-            _ => message.GetType().Name,
-        };
-
-        logger.LogInformation(
-            "Map entry report {ConnectionId} {Attribution}: {Detail}",
-            context.Connection.ConnectionId,
-            attributed ? $"account={onlineUser!.AccountId}" : "unattributed",
-            detail);
-
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        IMapEntryReport message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameMapEntryReportCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>Answers CMD 0x0252 <c>SECURITY_STATUS</c> with the six zero bytes A21 expects.</summary>
@@ -169,23 +150,10 @@ internal sealed class SecurityStatusAcknowledgementEncoder
 }
 
 /// <summary>Logs the report and answers it.</summary>
-public sealed class SecurityStatusHandler(
-    IGameMessageSender sender,
-    ILogger<SecurityStatusHandler> logger)
-    : ClientMessageHandler<SecurityStatusReport>
+public sealed class SecurityStatusHandler(ICommandBus commands)
+    : ClientMessageHandler<SecurityStatusReport>, IProtocolCommandMessageHandler<GameSecurityStatusCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        SecurityStatusReport message,
-        CancellationToken cancellationToken)
-    {
-        logger.LogInformation(
-            "Security status {ConnectionId}: {Body}",
-            context.Connection.ConnectionId,
-            Convert.ToHexString(message.Body));
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new SecurityStatusAcknowledgement(),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        SecurityStatusReport message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameSecurityStatusCommand(context, message), cancellationToken).ConfigureAwait(false);
 }

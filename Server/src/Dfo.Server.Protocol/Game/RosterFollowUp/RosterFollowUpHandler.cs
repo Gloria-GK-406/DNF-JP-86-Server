@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -6,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.RosterFollowUp;
 
 /// <summary>
-/// Consumes the two-byte 0x02A8 report, logs it and answers it. No domain change, no command bus.
+/// Consumes the two-byte 0x02A8 report, logs it and answers it. No domain change.
 /// The client sends it immediately after receiving the character roster.
 /// </summary>
 /// <remarks>
@@ -14,37 +16,12 @@ namespace Dfo.Server.Protocol.Game.RosterFollowUp;
 /// sequence and diffed: it answers with two zero bytes. See <see cref="RosterFollowUpResponse"/>
 /// for why the earlier "no response" reading was circular.
 /// </remarks>
-public sealed class RosterFollowUpHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    IGameMessageSender sender,
-    ILogger<RosterFollowUpHandler> logger) : ClientMessageHandler<RosterFollowUpRequest>
+public sealed class RosterFollowUpHandler(ICommandBus commands)
+    : ClientMessageHandler<RosterFollowUpRequest>, IProtocolCommandMessageHandler<GameRosterFollowUpCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        RosterFollowUpRequest message,
-        CancellationToken cancellationToken)
-    {
-        var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            && onlineUser is not null;
-
-        logger.LogInformation(
-            "Roster follow-up {ConnectionId} {Attribution}: value={Value}",
-            context.Connection.ConnectionId,
-            attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
-            message.Value == RosterFollowUpDescriptor.ObservedSentinel
-                ? $"0x{message.Value:X4} (sentinel)"
-                : $"0x{message.Value:X4}");
-
-        // Not optional, and not merely "what the reference server happens to do". The client clears
-        // a readiness flag on the roster screen immediately before sending this request and only
-        // this reply sets it back; eighteen sites on that screen skip their work while it is clear.
-        // Withholding the reply leaves the screen permanently inert -- which is exactly what an A/B
-        // with this line removed produced. See protocol/game/client-to-server/0x02A8.md.
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new RosterFollowUpResponse(),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        RosterFollowUpRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameRosterFollowUpCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class RosterFollowUpResponseEncoder : GameCmdMessageEncoder<RosterFollowUpResponse>

@@ -16437,25 +16437,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 38,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 38,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.ShopPurchaseCount.QueryShopPurchaseCountsCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.ShopPurchaseCount.QueryShopPurchaseCountsCommand",
@@ -16481,32 +16484,41 @@
         },
         "result": "Dfo.Server.Data.Inventory.NpcShopPurchaseCountsResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 38,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 38,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 38,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -23537,26 +23549,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+      ],
       "id": "message:65599",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MapEntryReports.MapEntryReportHandler",
@@ -23578,33 +23593,42 @@
         "telemetry": false,
         "value": 65599
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -25083,26 +25107,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 47,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureResponseReportCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 47,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureResponseReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureResponseReportCommand.cs"
+      ],
       "id": "message:65637",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Creatures.CreatureResponseReportHandler",
@@ -25124,33 +25151,42 @@
         "telemetry": false,
         "value": 65637
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 47,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 47,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 47,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureResponseReportCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureResponseReportCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureResponseReportCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -25535,26 +25571,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 62,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureScriptMessageCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 62,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureScriptMessageCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureScriptMessageCommand.cs"
+      ],
       "id": "message:65658",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Creatures.CreatureScriptMessageReportHandler",
@@ -25576,33 +25615,42 @@
         "telemetry": false,
         "value": 65658
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 62,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 62,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/CreatureReports.cs",
-          "line": 62,
-          "source_sha256": "b36102bfd3ba471472c04f90e7fcd23d0efe6a0e7f7eba2c62b88b25041c563a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureScriptMessageCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureScriptMessageCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/GameCreatureScriptMessageCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -26336,26 +26384,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/ClientSpecStatisticHandler.cs",
-          "line": 15,
-          "source_sha256": "5220def71a6520ca039dfbb1d55c6411f1181aee9ebc880219749859205710ad"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/GameClientSpecStatisticCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/ClientSpecStatisticHandler.cs",
-          "line": 15,
-          "source_sha256": "5220def71a6520ca039dfbb1d55c6411f1181aee9ebc880219749859205710ad"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/GameClientSpecStatisticCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/GameClientSpecStatisticCommand.cs"
+      ],
       "id": "message:65707",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ClientSpecStatistic.ClientSpecStatisticHandler",
@@ -26377,55 +26428,67 @@
         "telemetry": false,
         "value": 65707
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/ClientSpecStatisticHandler.cs",
-          "line": 15,
-          "source_sha256": "5220def71a6520ca039dfbb1d55c6411f1181aee9ebc880219749859205710ad"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/ClientSpecStatisticHandler.cs",
-          "line": 15,
-          "source_sha256": "5220def71a6520ca039dfbb1d55c6411f1181aee9ebc880219749859205710ad"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/ClientSpecStatisticHandler.cs",
-          "line": 15,
-          "source_sha256": "5220def71a6520ca039dfbb1d55c6411f1181aee9ebc880219749859205710ad"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/GameClientSpecStatisticCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/GameClientSpecStatisticCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecStatistic/GameClientSpecStatisticCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StoryPause/StoryPauseSlice.cs",
-          "line": 89,
-          "source_sha256": "13e52877906b7df86407f493d8cf762d3dada39ea1e55f0d5c38d3f1e1afd9be"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StoryPause/GameStoryPauseCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StoryPause/StoryPauseSlice.cs",
-          "line": 89,
-          "source_sha256": "13e52877906b7df86407f493d8cf762d3dada39ea1e55f0d5c38d3f1e1afd9be"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/StoryPause/GameStoryPauseCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/StoryPause/GameStoryPauseCommand.cs"
+      ],
       "id": "message:65727",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.StoryPause.StoryPauseHandler",
@@ -26447,57 +26510,69 @@
         "telemetry": false,
         "value": 65727
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StoryPause/StoryPauseSlice.cs",
-          "line": 89,
-          "source_sha256": "13e52877906b7df86407f493d8cf762d3dada39ea1e55f0d5c38d3f1e1afd9be"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StoryPause/StoryPauseSlice.cs",
-          "line": 89,
-          "source_sha256": "13e52877906b7df86407f493d8cf762d3dada39ea1e55f0d5c38d3f1e1afd9be"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StoryPause/StoryPauseSlice.cs",
-          "line": 89,
-          "source_sha256": "13e52877906b7df86407f493d8cf762d3dada39ea1e55f0d5c38d3f1e1afd9be"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StoryPause/GameStoryPauseCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StoryPause/GameStoryPauseCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StoryPause/GameStoryPauseCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/ClientSpecProfileHandler.cs",
-          "line": 15,
-          "source_sha256": "39f168a320c5abef3686b681eba6bbf582bd3088504d1b58b2c0e09e7ad0ecb4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/GameClientSpecProfileCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/ClientSpecProfileHandler.cs",
-          "line": 15,
-          "source_sha256": "39f168a320c5abef3686b681eba6bbf582bd3088504d1b58b2c0e09e7ad0ecb4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/GameClientSpecProfileCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/GameClientSpecProfileCommand.cs"
+      ],
       "id": "message:65730",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ClientSpecProfile.ClientSpecProfileHandler",
@@ -26519,33 +26594,42 @@
         "telemetry": false,
         "value": 65730
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/ClientSpecProfileHandler.cs",
-          "line": 15,
-          "source_sha256": "39f168a320c5abef3686b681eba6bbf582bd3088504d1b58b2c0e09e7ad0ecb4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/ClientSpecProfileHandler.cs",
-          "line": 15,
-          "source_sha256": "39f168a320c5abef3686b681eba6bbf582bd3088504d1b58b2c0e09e7ad0ecb4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/ClientSpecProfileHandler.cs",
-          "line": 15,
-          "source_sha256": "39f168a320c5abef3686b681eba6bbf582bd3088504d1b58b2c0e09e7ad0ecb4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/GameClientSpecProfileCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/GameClientSpecProfileCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientSpecProfile/GameClientSpecProfileCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -27760,26 +27844,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/SessionMetricsHandler.cs",
-          "line": 12,
-          "source_sha256": "586b26d47182b848d26388149e90e0a97dbd857975bde547080350d16a5fdbf1"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/GameSessionMetricsCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/SessionMetricsHandler.cs",
-          "line": 12,
-          "source_sha256": "586b26d47182b848d26388149e90e0a97dbd857975bde547080350d16a5fdbf1"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/GameSessionMetricsCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/GameSessionMetricsCommand.cs"
+      ],
       "id": "message:65786",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.SessionMetrics.SessionMetricsHandler",
@@ -27801,33 +27888,42 @@
         "telemetry": false,
         "value": 65786
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/SessionMetricsHandler.cs",
-          "line": 12,
-          "source_sha256": "586b26d47182b848d26388149e90e0a97dbd857975bde547080350d16a5fdbf1"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/SessionMetricsHandler.cs",
-          "line": 12,
-          "source_sha256": "586b26d47182b848d26388149e90e0a97dbd857975bde547080350d16a5fdbf1"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/SessionMetricsHandler.cs",
-          "line": 12,
-          "source_sha256": "586b26d47182b848d26388149e90e0a97dbd857975bde547080350d16a5fdbf1"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/GameSessionMetricsCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/GameSessionMetricsCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/SessionMetrics/GameSessionMetricsCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -30562,26 +30658,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/MercenaryInfoSlice.cs",
-          "line": 26,
-          "source_sha256": "a6db0795ff16bce0802c71116da4f4c0c8ed37d539730f1d37c11faf3d1e687e"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/GameMercenaryInfoCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/MercenaryInfoSlice.cs",
-          "line": 26,
-          "source_sha256": "a6db0795ff16bce0802c71116da4f4c0c8ed37d539730f1d37c11faf3d1e687e"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/GameMercenaryInfoCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/GameMercenaryInfoCommand.cs"
+      ],
       "id": "message:65978",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoHandler",
@@ -30603,33 +30702,42 @@
         "telemetry": false,
         "value": 65978
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/MercenaryInfoSlice.cs",
-          "line": 26,
-          "source_sha256": "a6db0795ff16bce0802c71116da4f4c0c8ed37d539730f1d37c11faf3d1e687e"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/MercenaryInfoSlice.cs",
-          "line": 26,
-          "source_sha256": "a6db0795ff16bce0802c71116da4f4c0c8ed37d539730f1d37c11faf3d1e687e"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/MercenaryInfoSlice.cs",
-          "line": 26,
-          "source_sha256": "a6db0795ff16bce0802c71116da4f4c0c8ed37d539730f1d37c11faf3d1e687e"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/GameMercenaryInfoCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/GameMercenaryInfoCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MercenaryInfo/GameMercenaryInfoCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31019,26 +31127,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/ClientHardwareDetailHandler.cs",
-          "line": 15,
-          "source_sha256": "7a20a1f54b5f67de259b8b83f5bfe02e724b40047f334efdf76cc662dbade1f9"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/GameClientHardwareDetailCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/ClientHardwareDetailHandler.cs",
-          "line": 15,
-          "source_sha256": "7a20a1f54b5f67de259b8b83f5bfe02e724b40047f334efdf76cc662dbade1f9"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/GameClientHardwareDetailCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/GameClientHardwareDetailCommand.cs"
+      ],
       "id": "message:66013",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ClientHardwareDetail.ClientHardwareDetailHandler",
@@ -31060,33 +31171,42 @@
         "telemetry": false,
         "value": 66013
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/ClientHardwareDetailHandler.cs",
-          "line": 15,
-          "source_sha256": "7a20a1f54b5f67de259b8b83f5bfe02e724b40047f334efdf76cc662dbade1f9"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/ClientHardwareDetailHandler.cs",
-          "line": 15,
-          "source_sha256": "7a20a1f54b5f67de259b8b83f5bfe02e724b40047f334efdf76cc662dbade1f9"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/ClientHardwareDetailHandler.cs",
-          "line": 15,
-          "source_sha256": "7a20a1f54b5f67de259b8b83f5bfe02e724b40047f334efdf76cc662dbade1f9"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/GameClientHardwareDetailCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/GameClientHardwareDetailCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ClientHardwareDetail/GameClientHardwareDetailCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31915,26 +32035,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 172,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameSecurityStatusCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 172,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameSecurityStatusCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameSecurityStatusCommand.cs"
+      ],
       "id": "message:66130",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusHandler",
@@ -31956,33 +32079,42 @@
         "telemetry": false,
         "value": 66130
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 172,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 172,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 172,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameSecurityStatusCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameSecurityStatusCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameSecurityStatusCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -32054,26 +32186,29 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/RosterFollowUpHandler.cs",
-          "line": 17,
-          "source_sha256": "1889299c86c7576a6e333d448feded5b65a1f9be47c8657fe5954dffc4bc6ba6"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/GameRosterFollowUpCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/RosterFollowUpHandler.cs",
-          "line": 17,
-          "source_sha256": "1889299c86c7576a6e333d448feded5b65a1f9be47c8657fe5954dffc4bc6ba6"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/GameRosterFollowUpCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/GameRosterFollowUpCommand.cs"
+      ],
       "id": "message:66216",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.RosterFollowUp.RosterFollowUpHandler",
@@ -32095,55 +32230,67 @@
         "telemetry": false,
         "value": 66216
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/RosterFollowUpHandler.cs",
-          "line": 17,
-          "source_sha256": "1889299c86c7576a6e333d448feded5b65a1f9be47c8657fe5954dffc4bc6ba6"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/RosterFollowUpHandler.cs",
-          "line": 17,
-          "source_sha256": "1889299c86c7576a6e333d448feded5b65a1f9be47c8657fe5954dffc4bc6ba6"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/RosterFollowUpHandler.cs",
-          "line": 17,
-          "source_sha256": "1889299c86c7576a6e333d448feded5b65a1f9be47c8657fe5954dffc4bc6ba6"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/GameRosterFollowUpCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/GameRosterFollowUpCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/RosterFollowUp/GameRosterFollowUpCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+      ],
       "id": "message:66227",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MapEntryReports.MapEntryReportHandler",
@@ -32165,33 +32312,42 @@
         "telemetry": false,
         "value": 66227
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/MapEntryReportSlices.cs",
-          "line": 118,
-          "source_sha256": "6bf6005c9243325df1585439f80ab11d4189fef05d6695a24ea121098a7bf9d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MapEntryReports/GameMapEntryReportCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -32472,26 +32628,29 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/ContentsPlayInfoSlice.cs",
-          "line": 74,
-          "source_sha256": "cf7079a44c5ce0d16879bad89fd996489d56a129b521b224d854ab7511aa3ca3"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/GameContentsPlayInfoCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/ContentsPlayInfoSlice.cs",
-          "line": 74,
-          "source_sha256": "cf7079a44c5ce0d16879bad89fd996489d56a129b521b224d854ab7511aa3ca3"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/GameContentsPlayInfoCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/GameContentsPlayInfoCommand.cs"
+      ],
       "id": "message:66241",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ContentsPlayInfo.ContentsPlayInfoHandler",
@@ -32513,33 +32672,42 @@
         "telemetry": false,
         "value": 66241
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/ContentsPlayInfoSlice.cs",
-          "line": 74,
-          "source_sha256": "cf7079a44c5ce0d16879bad89fd996489d56a129b521b224d854ab7511aa3ca3"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/ContentsPlayInfoSlice.cs",
-          "line": 74,
-          "source_sha256": "cf7079a44c5ce0d16879bad89fd996489d56a129b521b224d854ab7511aa3ca3"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/ContentsPlayInfoSlice.cs",
-          "line": 74,
-          "source_sha256": "cf7079a44c5ce0d16879bad89fd996489d56a129b521b224d854ab7511aa3ca3"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/GameContentsPlayInfoCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/GameContentsPlayInfoCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ContentsPlayInfo/GameContentsPlayInfoCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -32856,26 +33024,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 46,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 46,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+      ],
       "id": "message:66252",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ShopPurchaseCount.ShopPurchaseCountHandler",
@@ -32897,35 +33068,44 @@
         "telemetry": false,
         "value": 66252
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 46,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 46,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/ShopPurchaseCountSlice.cs",
-          "line": 46,
-          "source_sha256": "67d0bb472b72053978f0f0e9ec1c6e1d4bf02224bd37367dc468d3dc5623ab23"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ShopPurchaseCount.QueryShopPurchaseCountsCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -35402,26 +35582,29 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/ConnectionCheckSlice.cs",
-          "line": 64,
-          "source_sha256": "dba41d72098a46fc2232de3774309c5f9c0385a321ec3b21b13c78913d93ccea"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/GameConnectionCheckCommand.cs"
+          ],
+          "new": "唯一Protocol／Direct whole，保直接读取、日志／静态应答与原即时投影；无Write／ReadOnly／Main。",
+          "old": "7275969e：原handler直接日志／静态响应；仅Shop经Direct fine读取，无事务。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-56.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/ConnectionCheckSlice.cs",
-          "line": 64,
-          "source_sha256": "dba41d72098a46fc2232de3774309c5f9c0385a321ec3b21b13c78913d93ccea"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/GameConnectionCheckCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/GameConnectionCheckCommand.cs"
+      ],
       "id": "message:66781",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ConnectionCheck.ConnectionCheckHandler",
@@ -35443,33 +35626,42 @@
         "telemetry": false,
         "value": 66781
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/ConnectionCheckSlice.cs",
-          "line": 64,
-          "source_sha256": "dba41d72098a46fc2232de3774309c5f9c0385a321ec3b21b13c78913d93ccea"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/ConnectionCheckSlice.cs",
-          "line": 64,
-          "source_sha256": "dba41d72098a46fc2232de3774309c5f9c0385a321ec3b21b13c78913d93ccea"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/ConnectionCheckSlice.cs",
-          "line": 64,
-          "source_sha256": "dba41d72098a46fc2232de3774309c5f9c0385a321ec3b21b13c78913d93ccea"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/GameConnectionCheckCommand.cs"
+          ],
+          "new": "薄handler只交原消息及精确Dispatch；Shop fine类型／handler／生产注册和调用删除。",
+          "old": "原消息handler直接执行，Shop另派QueryShopPurchaseCounts。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/GameConnectionCheckCommand.cs"
+          ],
+          "new": "不因日志归属、捕获selected或只读查询增加footprint／Self／raw或Fence。",
+          "old": "无事务及selected参与者保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task56-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LightweightProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/ConnectionCheck/GameConnectionCheckCommand.cs"
+          ],
+          "new": "原顺序与完整bytes／日志类别保持；Shop Direct fine scope时点仅VC-B36，原cause及same-ID精确physical隔离。",
+          "old": "原无账号静态回复、selected-only Story与Creature、Shop TheseCharacters再IsInWorld及Project Failed忽略。"
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

@@ -750,8 +750,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameAvatarPackageOpeningCommand, PackageOpeningResult, GameAvatarPackageOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarPackageOpening, typeof(AvatarPackageOpeningRequest)));
-        services.AddCommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult, QueryShopPurchaseCountsCommandHandler>(
-            CommandExecutionKind.Direct);
         // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
         // change, and a piece that left the floor without arriving anywhere is the thing to avoid.
         services.AddProtocolCommandHandler<GameGetItemCommand, bool, GameGetItemCommandHandler>(
@@ -804,20 +802,32 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<GetOtherCharacterDetailHandler, GetOtherCharacterDetailRequest, GameOtherCharacterDetailCommand>(
             ClientMessageType.GameGetOtherCharacterDetail);
         services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
-        services.RegisterMessageHandler<ClientSpecStatisticHandler>(ClientMessageType.GameClientSpecStatistic);
-        services.RegisterMessageHandler<ClientHardwareDetailHandler>(ClientMessageType.GameClientHardwareDetail);
-        services.RegisterMessageHandler<ClientSpecProfileHandler>(ClientMessageType.GameClientSpecProfile);
-        services.RegisterMessageHandler<SessionMetricsHandler>(ClientMessageType.GameSessionMetrics);
+        services.AddProtocolCommandHandler<GameClientSpecStatisticCommand, bool, GameClientSpecStatisticCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameClientSpecStatistic, typeof(ClientSpecStatisticReportRequest)));
+        services.RegisterProtocolMessageHandler<ClientSpecStatisticHandler, ClientSpecStatisticReportRequest, GameClientSpecStatisticCommand>(ClientMessageType.GameClientSpecStatistic);
+        services.AddProtocolCommandHandler<GameClientHardwareDetailCommand, bool, GameClientHardwareDetailCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameClientHardwareDetail, typeof(ClientHardwareDetailReportRequest)));
+        services.RegisterProtocolMessageHandler<ClientHardwareDetailHandler, ClientHardwareDetailReportRequest, GameClientHardwareDetailCommand>(ClientMessageType.GameClientHardwareDetail);
+        services.AddProtocolCommandHandler<GameClientSpecProfileCommand, bool, GameClientSpecProfileCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameClientSpecProfile, typeof(ClientSpecProfileReportRequest)));
+        services.RegisterProtocolMessageHandler<ClientSpecProfileHandler, ClientSpecProfileReportRequest, GameClientSpecProfileCommand>(ClientMessageType.GameClientSpecProfile);
+        services.AddProtocolCommandHandler<GameSessionMetricsCommand, bool, GameSessionMetricsCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSessionMetrics, typeof(SessionMetricsReportRequest)));
+        services.RegisterProtocolMessageHandler<SessionMetricsHandler, SessionMetricsReportRequest, GameSessionMetricsCommand>(ClientMessageType.GameSessionMetrics);
         services.RegisterProtocolMessageHandler<AcceptQuestHandler, AcceptQuestRequest, GameAcceptQuestCommand>(ClientMessageType.GameAcceptQuest);
         services.RegisterProtocolMessageHandler<GiveUpQuestHandler, GiveUpQuestRequest, GameGiveUpQuestCommand>(ClientMessageType.GameGiveUpQuest);
         services.RegisterProtocolMessageHandler<SetQuestTriggerHandler, SetQuestTriggerRequest, GameSetQuestTriggerCommand>(ClientMessageType.GameSetQuestTrigger);
         services.RegisterProtocolMessageHandler<FinishQuestHandler, FinishQuestRequest, GameFinishQuestCommand>(ClientMessageType.GameFinishQuest);
         services.RegisterProtocolMessageHandler<TaggedIdReportHandler, TaggedIdReportRequest, GameTaggedIdReportCommand>(ClientMessageType.GameTaggedIdReport);
-        services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
+        services.AddProtocolCommandHandler<GameRosterFollowUpCommand, bool, GameRosterFollowUpCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRosterFollowUp, typeof(RosterFollowUpRequest)));
+        services.RegisterProtocolMessageHandler<RosterFollowUpHandler, RosterFollowUpRequest, GameRosterFollowUpCommand>(ClientMessageType.GameRosterFollowUp);
         services.RegisterProtocolMessageHandler<CheckCharacterNameHandler, CheckCharacterNameRequest, GameCheckCharacterNameCommand>(ClientMessageType.GameCheckCharacterName);
         services.RegisterProtocolMessageHandler<CreateCharacterHandler, CreateCharacterRequest, GameCreateCharacterCommand>(ClientMessageType.GameCreateCharacter);
         services.RegisterProtocolMessageHandler<DeleteCharacterHandler, DeleteCharacterRequest, GameDeleteCharacterCommand>(ClientMessageType.GameDeleteCharacter);
-        services.RegisterMessageHandler<MercenaryInfoHandler>(ClientMessageType.GameMercenaryInfo);
+        services.AddProtocolCommandHandler<GameMercenaryInfoCommand, bool, GameMercenaryInfoCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMercenaryInfo, typeof(MercenaryInfoRequest)));
+        services.RegisterProtocolMessageHandler<MercenaryInfoHandler, MercenaryInfoRequest, GameMercenaryInfoCommand>(ClientMessageType.GameMercenaryInfo);
         services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
         services.AddProtocolCommandHandler<GameSaveCharacterOptionCommand, bool, GameSaveCharacterOptionCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveCharacterOption, typeof(SaveCharacterOptionRequest)));
@@ -835,8 +845,12 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<SaveGameOption1Handler, SaveGameOption1Request, GameSaveGameOption1Command>(ClientMessageType.GameSaveGameOption1);
         services.AddProtocolCommandHandler<GameSaveGameOption1Command, bool, GameSaveGameOption1CommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveGameOption1, typeof(SaveGameOption1Request)));
-        services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
-        services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
+        services.AddProtocolCommandHandler<GameContentsPlayInfoCommand, bool, GameContentsPlayInfoCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameContentsPlayInfo, typeof(ContentsPlayInfoRequest)));
+        services.RegisterProtocolMessageHandler<ContentsPlayInfoHandler, ContentsPlayInfoRequest, GameContentsPlayInfoCommand>(ClientMessageType.GameContentsPlayInfo);
+        services.AddProtocolCommandHandler<GameConnectionCheckCommand, bool, GameConnectionCheckCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameConnectionCheck, typeof(ConnectionCheckRequest)));
+        services.RegisterProtocolMessageHandler<ConnectionCheckHandler, ConnectionCheckRequest, GameConnectionCheckCommand>(ClientMessageType.GameConnectionCheck);
 
         services.RegisterProtocolMessageHandler<SetUdpIpPortHandler, SetUdpIpPortRequest, GameSetUdpIpPortCommand>(ClientMessageType.GameSetUdpIpPort);
         services.RegisterProtocolMessageHandler<RequestPeerHandler, RequestPeerRequest, GameRequestPeerCommand>(ClientMessageType.GameRequestPeer);
@@ -851,15 +865,20 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<SetPartyInfoHandler, SetPartyInfoRequest, GameSetPartyInfoCommand>(ClientMessageType.GameSetPartyInfo);
 
         // One handler, the remaining wire keys in the map-entry report family.
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);
+        services.AddProtocolCommandHandler<GameMapEntryReportCommand, bool, GameMapEntryReportCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCeraQuery, typeof(CeraQueryReport)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRuntimeTingStatistic, typeof(RuntimeTingStatisticReport)));
+        services.RegisterProtocolMessageHandler<MapEntryReportHandler, IMapEntryReport, GameMapEntryReportCommand>(ClientMessageType.GameCeraQuery, typeof(CeraQueryReport));
         services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport));
         services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest));
         services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(0x01DE, ClientMessageType.GameNoticeSeen);
         services.AddProtocolCommandHandler<GameNoticeSeenCommand, bool, GameNoticeSeenCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport)));
-        services.RegisterMessageHandler<SecurityStatusHandler>(ClientMessageType.GameSecurityStatus);
-        services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
+        services.AddProtocolCommandHandler<GameSecurityStatusCommand, bool, GameSecurityStatusCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSecurityStatus, typeof(SecurityStatusReport)));
+        services.RegisterProtocolMessageHandler<SecurityStatusHandler, SecurityStatusReport, GameSecurityStatusCommand>(ClientMessageType.GameSecurityStatus);
+        services.RegisterProtocolMessageHandler<MapEntryReportHandler, IMapEntryReport, GameMapEntryReportCommand>(ClientMessageType.GameRuntimeTingStatistic, typeof(RuntimeTingStatisticReport));
         services.AddProtocolCommandHandler<GameEnterSelectDungeonCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEnterSelectDungeon, typeof(EnterSelectDungeonRequest)));
         services.RegisterProtocolMessageHandler<EnterSelectDungeonHandler, EnterSelectDungeonRequest, GameEnterSelectDungeonCommand>(ClientMessageType.GameEnterSelectDungeon);
         services.AddProtocolCommandHandler<GameSelectDungeonCommand, bool, GameSelectDungeonCommandHandler>(
@@ -882,7 +901,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameMoveMapCommand, bool, GameMapLoadingCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameMoveMap, typeof(MoveMapRequest)));
         services.RegisterProtocolMessageHandler<MoveMapHandler, MoveMapRequest, GameMoveMapCommand>(ClientMessageType.GameMoveMap);
-        services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
+        services.AddProtocolCommandHandler<GameStoryPauseCommand, bool, GameStoryPauseCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameStoryPause, typeof(StoryPauseRequest)));
+        services.RegisterProtocolMessageHandler<StoryPauseHandler, StoryPauseRequest, GameStoryPauseCommand>(ClientMessageType.GameStoryPause);
         services.AddProtocolCommandHandler<GameUseRevivalCoinCommand, bool, GameUseRevivalCoinCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameUseRevivalCoin, typeof(UseRevivalCoinRequest)));
         services.RegisterProtocolMessageHandler<UseRevivalCoinHandler, UseRevivalCoinRequest, GameUseRevivalCoinCommand>(ClientMessageType.GameUseRevivalCoin);
@@ -975,8 +996,12 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<UseStackableHandler, UseStackableRequest, GameUseStackableCommand>(ClientMessageType.GameUseStackable);
         services.RegisterProtocolMessageHandler<RenameCreatureHandler, RenameCreatureRequest, GameRenameCreatureCommand>(ClientMessageType.GameRenameCreature);
         services.RegisterProtocolMessageHandler<HatchCreatureHandler, HatchCreatureRequest, GameHatchCreatureCommand>(ClientMessageType.GameHatchCreature);
-        services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
-        services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
+        services.AddProtocolCommandHandler<GameCreatureResponseReportCommand, bool, GameCreatureResponseReportCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCreatureResponseReport, typeof(CreatureResponseReport)));
+        services.RegisterProtocolMessageHandler<CreatureResponseReportHandler, CreatureResponseReport, GameCreatureResponseReportCommand>(ClientMessageType.GameCreatureResponseReport);
+        services.AddProtocolCommandHandler<GameCreatureScriptMessageCommand, bool, GameCreatureScriptMessageCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCreatureScriptMessage, typeof(CreatureScriptMessageReport)));
+        services.RegisterProtocolMessageHandler<CreatureScriptMessageReportHandler, CreatureScriptMessageReport, GameCreatureScriptMessageCommand>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterProtocolMessageHandler<QuestClearCouponHandler, QuestClearCouponRequest, GameQuestClearCouponCommand>(ClientMessageType.GameQuestClearCoupon);
         services.RegisterProtocolMessageHandler<LevelUpTicketHandler, LevelUpTicketRequest, GameLevelUpTicketCommand>(ClientMessageType.GameLevelUpTicket);
         services.RegisterProtocolMessageHandler<BuyItemHandler, BuyItemRequest, GameBuyItemCommand>(ClientMessageType.GameBuyItem,
@@ -1012,7 +1037,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<ForgingHandler, ForgingRequest, GameForgingCommand>(ClientMessageType.GameSeparateUpgrade);
         services.RegisterProtocolMessageHandler<CrystalContractHandler, CrystalContractRequest, GameCrystalContractCommand>(ClientMessageType.GameCrystalContract);
         services.RegisterProtocolMessageHandler<DeleteItemHandler, DeleteItemRequest, GameDeleteItemCommand>(ClientMessageType.GameDeleteItem);
-        services.RegisterMessageHandler<ShopPurchaseCountHandler>(ClientMessageType.GameShopPurchaseCount);
+        services.AddProtocolCommandHandler<GameShopPurchaseCountCommand, bool, GameShopPurchaseCountCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameShopPurchaseCount, typeof(ShopPurchaseCountRequest)));
+        services.RegisterProtocolMessageHandler<ShopPurchaseCountHandler, ShopPurchaseCountRequest, GameShopPurchaseCountCommand>(ClientMessageType.GameShopPurchaseCount);
 
         // Position and area: the only inputs that move a published character, and so the only
         // way the town its next entry reports can change.

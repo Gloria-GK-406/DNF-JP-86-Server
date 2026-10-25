@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -9,34 +11,14 @@ namespace Dfo.Server.Protocol.Game.ClientHardwareDetail;
 /// Consumes the CLIENT_HARDWARE_DETAIL (0x01DD) hardware report and logs it.
 /// The client sends it right after CLIENT_SPEC_STATISTIC (0x00AB) and expects no response, so this
 /// handler deliberately sends nothing. There is no storage consumer yet, so the report is only
-/// logged with its semantic decode; it does not mutate domain state and therefore does not go
-/// through the command bus.
+/// logged with its semantic decode; its protocol command does not mutate domain state.
 /// </summary>
-public sealed class ClientHardwareDetailHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    ILogger<ClientHardwareDetailHandler> logger) : ClientMessageHandler<ClientHardwareDetailReportRequest>
+public sealed class ClientHardwareDetailHandler(ICommandBus commands)
+    : ClientMessageHandler<ClientHardwareDetailReportRequest>, IProtocolCommandMessageHandler<GameClientHardwareDetailCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ClientHardwareDetailReportRequest message,
-        CancellationToken cancellationToken)
-    {
-        // The report follows LOGIN on the same connection; attribute it when possible but
-        // stay tolerant of unexpected ordering rather than dropping the telemetry.
-        var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            && onlineUser is not null;
-
-        logger.LogInformation(
-            "Client hardware detail {ConnectionId} {Attribution}: cpu={Cpu} gpu={Gpu} os={OperatingSystem} memory={Memory}",
-            context.Connection.ConnectionId,
-            attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
-            ClientHardwareDetailDescriptor.DescribeCpu(message),
-            ClientHardwareDetailDescriptor.DescribeGraphics(message),
-            ClientHardwareDetailDescriptor.DescribeOperatingSystem(message),
-            ClientHardwareDetailDescriptor.DescribeMemory(message));
-
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ClientHardwareDetailReportRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameClientHardwareDetailCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>

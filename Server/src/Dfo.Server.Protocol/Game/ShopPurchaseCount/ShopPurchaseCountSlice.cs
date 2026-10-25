@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
@@ -29,44 +30,12 @@ internal sealed class ShopPurchaseCountDecoder : IGameMessageDecoder
     }
 }
 
-public sealed record QueryShopPurchaseCountsCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int NpcId)
-    : ICommand<NpcShopPurchaseCountsResult>, IAccountCommand
+public sealed class ShopPurchaseCountHandler(ICommandBus commands)
+    : ClientMessageHandler<ShopPurchaseCountRequest>, IProtocolCommandMessageHandler<GameShopPurchaseCountCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-
-public sealed class QueryShopPurchaseCountsCommandHandler(INpcShopDomainService shops, TimeProvider clock)
-    : ICommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult>
-{
-    public ValueTask<NpcShopPurchaseCountsResult> HandleAsync(CommandExecutionContext context,
-        QueryShopPurchaseCountsCommand command, CancellationToken cancellationToken) =>
-        shops.PurchaseCountsAsync(command.Session, command.NpcId, clock.GetUtcNow(), cancellationToken);
-}
-
-public sealed class ShopPurchaseCountHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDomainService sessions,
-    ICommandBus commands,
-    IEventService notifications,
-    IGameMessageSender sender) : ClientMessageHandler<ShopPurchaseCountRequest>
-{
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context, ShopPurchaseCountRequest message, CancellationToken cancellationToken)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
-            || online is null)
-        {
-            await sender.SendCmdAsync(context.Connection.ConnectionId,
-                new ShopPurchaseCountResponse(new(NpcShopRejection.NoSession, [])), cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        var result = await commands.SendAsync(
-            new QueryShopPurchaseCountsCommand(online.OnlineUserId, session, message.NpcId), cancellationToken)
-            .ConfigureAwait(false);
-        await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-            new ShopPurchaseCountsReported(session, result), cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ShopPurchaseCountRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameShopPurchaseCountCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 public sealed record ShopPurchaseCountsReported(SelectedSessionIdentity Session, NpcShopPurchaseCountsResult Result)

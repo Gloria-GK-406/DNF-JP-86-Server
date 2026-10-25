@@ -394,6 +394,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | StoreTitle／WithdrawTitle／QueryTitleBook／SetTitleAppearance／AchievementTrigger／WeeklyAttendance | 五个 ordinary whole，Query 只读且仅保护请求者；[源码](Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs)，`TASK-53`；可靠事件与日切来源保留。 |
 | SaveGameOption1／SaveHotkeys／SaveQuickChat／SaveCharacterOption／NoticeSeen／InformNoticeSecond | 原 blob／profile 捕获与无 ACK，nullable selected 及通知空保护；[源码](Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs)，`TASK-54`。 |
 | TaggedIdReport／DecreaseDurability／PremiumServiceUsageReport | 三普通写与 Premium slot4 独立只读均空 selected；[源码](Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs)，`TASK-55`。 |
+| CeraQuery／RuntimeTingStatistic、CreatureResponseReport／CreatureScriptMessage、四硬件与会话报告、StoryPause、MercenaryInfo／SecurityStatus／RosterFollowUp／ContentsPlayInfo／ConnectionCheck、ShopPurchaseCount | 原直接读取、日志及静态应答，无事务或新增选中保护；[源码](Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs)。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文
@@ -918,9 +919,8 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 
 ### 其他与主设计的偏差（诚实清单）
 
-- `CLIENT_SPEC_STATISTIC`(0x00AB) 的 handler 直接打语义化日志，**不经过命令总线**
-  （无领域变更、无响应；见 protocol 记录的 Implementation mapping）。它注入了
-  `IOnlineUserQueryDomainService`，所以不算纯遥测，作为 `inbound:GameClientSpecStatistic` 作业在执行器上运行。
+- `CLIENT_SPEC_STATISTIC`(0x00AB) 经协议 CMD 查询在线归属并打语义化日志，无领域变更或响应；
+  这一在线查询使它不属于纯遥测。
   纯遥测的判据是「构造器只注入日志」：经 `RegisterTelemetryMessageHandler` 注册的 handler 留在收包回调里，
   构造器注入了日志以外的东西时 `MessageHandlerRegistry` 构造即抛。
   EXIT 与 Channel Connect 均为纯协议直接响应，不修改领域状态。
