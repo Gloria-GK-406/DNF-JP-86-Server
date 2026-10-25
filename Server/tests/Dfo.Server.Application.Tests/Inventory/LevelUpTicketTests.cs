@@ -10,6 +10,8 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Protocol.Game.LevelUpTicket;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Testing;
@@ -41,15 +43,19 @@ public sealed class LevelUpTicketTests
         await host.Seed(5, ItemId, 10);
         if (failLevel)
             host.Sql("CREATE TRIGGER fail_ticket BEFORE UPDATE OF exp ON characters BEGIN SELECT RAISE(ABORT,'level'); END");
-        async Task<LevelUpTicketResult> UseCommand() => await host.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new UseLevelUpTicketCommand(host.OnlineUser, host.Session, 5));
-        if (failLevel)
-            await Assert.ThrowsAsync<SqliteException>(UseCommand);
+        var legacy=typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LevelUpTicket.UseLevelUpTicketCommand");
+        if(legacy is not null)
+        {
+            async Task<LevelUpTicketResult> UseCommand()=>await host.Services.GetRequiredService<ICommandBus>().SendAsync((ICommand<LevelUpTicketResult>)Activator.CreateInstance(legacy,host.OnlineUser,host.Session,5)!);
+            if(failLevel) await Assert.ThrowsAsync<SqliteException>(UseCommand);
+            else {var result=await UseCommand();Assert.Equal((byte)86,result.Progress.Level);Assert.Equal(9,Assert.Single(result.Inventory.Updates).Core.ToCore().Value);}
+        }
         else
         {
-            var result = await UseCommand();
-            Assert.Equal((byte)86, result.Progress.Level);
-            Assert.Equal(9, Assert.Single(result.Inventory.Updates).Core.ToCore().Value);
+            await EffectRequestTransport.SendRaw(host,new(1,0x1A2,0,7),[5,0,0]);
+            var response=Assert.Single(host.Sender.Messages.OfType<LevelUpTicketResponse>());
+            Assert.Equal(failLevel ? (byte?)99 : null,response.ErrorCode);
+            if(!failLevel) Assert.Equal((byte)86,Assert.Single(host.Sender.Messages.OfType<Dfo.Server.Protocol.Game.MonsterDeath.ExperienceNotification>()).Level);
         }
         Assert.Equal(failLevel ? 10 : 9, host.Count(ItemId));
         Assert.Equal(failLevel ? 85 : 86, host.Scalar("SELECT level FROM characters WHERE character_id=1"));

@@ -139,11 +139,9 @@ public sealed class CurrentCharacterStateTests
             Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
             await using var fixture = new Fixture();
             await fixture.SeedAsync();
-            var handler = new GrantTutorialLevelCommandHandler(
-                fixture.Services.GetRequiredService<ICharacterDomainService>());
             await using var transaction = fixture.Scope.Begin();
             await fixture.SqlAsync($"UPDATE characters SET level=5,exp={fixture.ExpFor(5)} WHERE character_id=71;");
-            var result = await handler.HandleAsync(null!, new GrantTutorialLevelCommand(Id), default);
+            var result = await Dfo.Server.Application.Tests.Support.TutorialGrantDriver.Grant(fixture.Services.GetRequiredService<ICharacterDomainService>(),Id,default);
             Assert.Equal(TutorialLevelUpStatus.AlreadyPast, result.Status);
             Assert.Equal(new CharacterProgressionState(5, fixture.ExpFor(5)), await fixture.Character.ProgressAsync(default));
         });

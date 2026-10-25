@@ -253,7 +253,7 @@ public sealed class CommonExperienceEffectTests
             "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
             "JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
         var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
-        Assert.Equal(expected.Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
+        Assert.Equal(expected.Where(name => !Migrated(name)).Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());
         var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
         var use = registry.GetRegistration(typeof(Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand));
@@ -453,4 +453,7 @@ public sealed class CommonExperienceEffectTests
         public ValueTask CommitAsync(CancellationToken ct) => commit?.Invoke(ct) ?? ValueTask.CompletedTask;
         public ValueTask RollbackAsync(CancellationToken ct) => rollback?.Invoke(ct) ?? ValueTask.CompletedTask;
     }
+    private static bool Migrated(string name) => name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+        && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
+
 }

@@ -34,7 +34,7 @@ public sealed class EffectSettlementRegistrationTests
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
         var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
         Assert.Equal(new[] { "CapsuleCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "JoustBetCommand", "LearnSkillCommand", "QuestClearCouponCommand",
-             "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "WeddingLovePointCommand" },
+             "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "WeddingLovePointCommand" }.Where(name => !Migrated(name)),
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
             Assert.Same(x, commandRegistry.GetRegistration(x.CommandType));
@@ -93,4 +93,7 @@ public sealed class EffectSettlementRegistrationTests
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ClientMessageHandler<>)) return type.GetGenericArguments()[0];
         throw new InvalidOperationException($"No typed request for {handler}.");
     }
+    private static bool Migrated(string name) => name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+        && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
+
 }

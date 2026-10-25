@@ -281,12 +281,10 @@ public sealed class CharacterExperienceTests
     public async Task TutorialRequestWithStaleLevelNeverLowersCurrentProgress()
     {
         var row = new RecordingCharacterTable(level: 5, experience: 700);
-        var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(
+        var characters =
             new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
-                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!, experienceRules: new FixedProgression(Thresholds)), null!));
-        var result = await handler.HandleAsync(null!,
-            new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand(Character),
-            CancellationToken.None);
+                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!, experienceRules: new FixedProgression(Thresholds)), null!);
+        var result = await Dfo.Server.Application.Tests.Support.TutorialGrantDriver.Grant(characters,Character,CancellationToken.None);
         Assert.Equal(Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpStatus.AlreadyPast, result.Status);
         Assert.Equal(5, (await row.FindProgressAsync(Character, CancellationToken.None))!.Level);
         Assert.Null(row.LastWrite);
