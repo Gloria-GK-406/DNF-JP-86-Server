@@ -127,10 +127,13 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 });
             }
             var bus = host.Services.GetRequiredService<ICommandBus>();
-            var entered = await bus.SendAsync(
-                new EnterIllusionTowerCommand([new TowerEntryMember(selected, 0)], selected, 0x12345678, dungeonId),
-                timeout.Token);
-            var run = Assert.IsType<IllusionTowerSnapshot>(entered.Run);
+            await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var tx = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                Assert.NotNull((await host.Services.GetRequiredService<IIllusionTowerDomainService>().EnterAsync([new TowerEntryMember(selected, 0)], selected, 0x12345678, timeout.Token, dungeonId)).Run);
+                await tx.CommitAsync(timeout.Token);
+            });
+            var run = TestGameplay.Run(host.Services, () => host.Services.GetRequiredService<IIllusionTowerDomainService>().Find(selected)!);
             var loaded = await bus.SendAsync(
                 new LoadIllusionTowerCommand(new TowerActionContext(selected, run.RunId, run.Room.Version)),
                 timeout.Token);

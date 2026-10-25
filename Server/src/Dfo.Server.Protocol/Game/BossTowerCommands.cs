@@ -6,22 +6,6 @@ using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Protocol.Game;
 
-public sealed record EnterBossTowerCommand(
-    IReadOnlyList<TowerEntryMember> Members, SelectedSessionIdentity Leader, uint Seed, byte RequestMode, byte Difficulty, byte PracticeMode)
-    : ICommand<BossTowerEntryResult>, IMultiSelectedSessionCommand
-{
-    public SelectedSessionIdentity Session => Leader;
-    public IReadOnlyList<SelectedSessionIdentity> Sessions => Members.Select(value => value.Session).ToArray();
-}
-
-public sealed class EnterBossTowerCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<EnterBossTowerCommand, BossTowerEntryResult>
-{
-    public ValueTask<BossTowerEntryResult> HandleAsync(CommandExecutionContext context,
-        EnterBossTowerCommand command, CancellationToken token) =>
-        towers.EnterAsync(command.Members, command.Leader, command.Seed, token, command.RequestMode, command.Difficulty, command.PracticeMode);
-}
-
 public abstract record BossTowerActionCommand(BossTowerActionContext Context) : IMultiSelectedSessionCommand
 {
     public SelectedSessionIdentity Session => Context.Session;

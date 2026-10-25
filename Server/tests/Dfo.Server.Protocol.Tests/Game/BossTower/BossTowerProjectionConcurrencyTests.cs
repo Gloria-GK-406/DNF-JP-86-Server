@@ -687,7 +687,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var views = new NoViews();
         var town = new TownAreaProjectionDelivery(
             null!, sessions, views, null!, null!, sender, null!);
-        return new BossTowerProjectionDelivery(
+        return Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.BossLegacy(
             towers,
             commands,
             sessions,

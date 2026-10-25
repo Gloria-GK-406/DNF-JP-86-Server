@@ -90,7 +90,7 @@ public sealed class SelectDungeonHandlerTests
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            Assert.Equal(14299, Assert.IsType<EnterDungeonCommand>(command).Entry.MirrorQuestId);
+            Assert.Equal(14299, Assert.IsType<EntryRouteProbe>(command).Entry.MirrorQuestId);
             var layout = Tutorial with { Mirror = new(8000, 31, 14299) };
             var run = AtStart with { Layout = layout };
             return ValueTask.FromResult((TResult)(object)DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout,
@@ -174,7 +174,7 @@ public sealed class SelectDungeonHandlerTests
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
             CancellationToken cancellationToken = default) where TResult : notnull
         {
-            var entry = Assert.IsType<EnterDungeonCommand>(command);
+            var entry = Assert.IsType<EntryRouteProbe>(command);
             Assert.Equal((byte)1, entry.Entry.RequestMode);
             Calls++;
             return ValueTask.FromResult((TResult)(object)new DungeonEntryAttempt(
@@ -323,7 +323,7 @@ public sealed class SelectDungeonHandlerTests
         {
             var visits = new RecordingVisits();
             var sender = new RecordingSender();
-            var handler = new SelectDungeonHandler(
+            var handler = SelectDungeonDriver.Create(
                 Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
                 new UnchangedState(),
                 new OneSession(Identity),
@@ -361,7 +361,7 @@ public sealed class SelectDungeonHandlerTests
             var intents = new IntentStore(DungeonEntryIntent.Interactive);
             var sessions = new OneSession(Identity);
             var runtimes = new OneRuntimeSession(Entry());
-            var handler = new SelectDungeonHandler(
+            var handler = SelectDungeonDriver.Create(
                 Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
                 new UnchangedState(),
                 sessions,
@@ -526,7 +526,7 @@ public sealed class SelectDungeonHandlerTests
                 new NoopPartyTownProjection(),
                 sender,
                 SharedTownMovementDomainService.Instance);
-            var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            var handler = SelectDungeonDriver.Create(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
                 new UnchangedState(),
                 sessions,
                 new RuntimeCurrentView(runtime),
@@ -583,7 +583,7 @@ public sealed class SelectDungeonHandlerTests
                 Id = Identity.CharacterId,
                 Progress = null,
             };
-            var handler = new SelectDungeonHandler(
+            var handler = SelectDungeonDriver.Create(
                 Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(character),
                 new UnchangedState(),
                 sessions,
@@ -625,7 +625,7 @@ public sealed class SelectDungeonHandlerTests
         {
             var visits = new RecordingVisits();
             var fatigue = new RecordingFatigue();
-            var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            var handler = SelectDungeonDriver.Create(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
                 new UnchangedState(),
                 new NoSession(),
                 new RuntimeCurrentView(new OneRuntimeSession(Entry())),
@@ -663,7 +663,7 @@ public sealed class SelectDungeonHandlerTests
         {
             var visits = new RecordingVisits();
             var sender = new RecordingSender();
-            var handler = new SelectDungeonHandler(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
+            var handler = SelectDungeonDriver.Create(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
                 new UnchangedState(),
                 new NoSession(),
                 new RuntimeCurrentView(new OneRuntimeSession(Entry())),
@@ -710,7 +710,7 @@ public sealed class SelectDungeonHandlerTests
 
     private const DungeonDifficulty Difficulty = (DungeonDifficulty)3;
 
-    private static SelectDungeonHandler Handler(
+    private static EntryHandlerDriver Handler(
         RecordingVisits visits,
         RecordingSender? sender = null,
         OneLog? logs = null,
@@ -727,12 +727,12 @@ public sealed class SelectDungeonHandlerTests
         var runs = new NoopRuns();
         var registry = new DungeonRunDeliveryRegistry();
         var town = TownAreaProjectionTestFactory.Create(sessions, runtimes, actualSender);
-        var projection = commands is null ? null : new DungeonEntryProjectionDelivery(
+        var projection = commands is null ? null : new EntryProjectionOptions(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), new UnchangedState(),
             sessions, new RuntimeCurrentView(runtimes), runs, registry, intents, visits,
             actualFatigue, actualSender, new NoopConnectionCloser(), town,
-            NullLogger<DungeonEntryProjectionDelivery>.Instance, commands);
-        return new(
+            NullLogger<EntryProjectionOptions>.Instance, commands);
+        return SelectDungeonDriver.Create(
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
             new UnchangedState(),
             sessions,
@@ -755,9 +755,7 @@ public sealed class SelectDungeonHandlerTests
             NullLogger<SelectDungeonHandler>.Instance,
             entryProjection: projection,
             illusionTower: tower,
-            // Sentinel projection: the probe throws if the shortcut is even consulted.
-            illusionTowerProjection: tower is null ? null : new(tower, null!, null!, null!, null!, null!, null!,
-                null!, null!, null!, null!, null!, null!, null!));
+            illusionTowerProjection: null);
     }
 
     private static SelectDungeonRequest Request() =>

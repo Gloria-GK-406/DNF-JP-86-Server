@@ -36,7 +36,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(requester, member);
             var views = new EntryViews(requester, member);
             var roster = EntryRoster(requester, member);
-            var delivery = new BossTowerProjectionDelivery(
+            var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.Boss(
                 towers, new EntryCommands(towers, requester, member), sessions, new EntryParties(roster), views,
                 new SameState(), null!, null!, new Intents(), outbound.Game,
                 TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game), TimeProvider.System, outbound.Closer,
@@ -126,7 +126,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var run = PartyRun(Guid.NewGuid(), leaving, second, third);
             var towers = new TowerDomain(run with { Room = run.Room with { Phase = Dfo.Server.Abstractions.World.IllusionTower.TowerRoomPhase.Fighting } });
             var views = new NoViews();
-            var delivery = new BossTowerProjectionDelivery(
+            var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.BossLegacy(
                 towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
                 new Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery(null!, sessions, views, null!, null!, outbound.Game, null!),
                 TimeProvider.System, outbound.Closer, NullLogger<BossTowerProjectionDelivery>.Instance);
@@ -147,7 +147,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var sessions = new Sessions(requester, member);
         var views = new EntryViews(requester, member);
         var roster = EntryRoster(requester, member);
-        var delivery = new BossTowerProjectionDelivery(
+        var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.Boss(
             towers, new EntryCommands(towers, requester, member), sessions, new EntryParties(roster), views,
             new SameState(), null!, null!, new Intents(), outbound.Game,
             TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game), TimeProvider.System, outbound.Closer,
@@ -209,7 +209,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            if (command is not EnterBossTowerCommand)
+            if (command is not Dfo.Server.Protocol.Tests.Game.DungeonEntry.BossEntryRouteProbe)
                 throw new NotSupportedException(command.GetType().Name);
             var run = PartyRun(Guid.NewGuid(), members);
             towers.Put(run);

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -65,7 +66,7 @@ public sealed class HellDungeonEntryTests
         });
     }
     [Fact]
-    public async Task Registered_CMD_commits_manual_entry_and_ticket_debit_without_an_outer_transaction()
+    public async Task Production_routing_algorithm_commits_manual_entry_and_ticket_debit_without_an_outer_transaction()
     {
         await using var f = new LearningFixture(configure: services =>
         {
@@ -82,8 +83,7 @@ public sealed class HellDungeonEntryTests
         });
         await f.SeedAsync();
         await SeedTicket(f, new(71), 3330, 30, 0);
-        var result = await f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendAsync(
-            new Dfo.Server.Protocol.Game.DungeonEntry.EnterDungeonCommand(Context() with { Participants = [Party[0]] }), default);
+        var result = await DungeonEntryRouteDriver.EnterAsync(f.Services, Context() with { Participants = [Party[0]] });
         Assert.NotNull(result.Entry);
         TestGameplay.Run(f.Services, () =>
         {

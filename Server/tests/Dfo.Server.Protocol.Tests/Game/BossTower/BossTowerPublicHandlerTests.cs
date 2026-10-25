@@ -76,7 +76,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             Assert.Null(towers.Find(session));
             Assert.Equal(3, commands.Tickets);
             // The only new charge is the later admission, rather than the button or old-run release.
-            await commands.SendAsync(new EnterBossTowerCommand([new(session, 0)], session, 17, 0, 0, 0));
+            await commands.SendAsync(new Dfo.Server.Protocol.Tests.Game.DungeonEntry.BossEntryRouteProbe([new(session, 0)], session, 17, 0, 0, 0));
             Assert.Equal(2, commands.Tickets);
         });
     }
@@ -155,7 +155,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 case SelectBossTowerResultCommand choose:
                     ResultChoices++; var chosen = towers.Find(choose.Context.Session)! with { PendingResultChoice = choose.Option };
                     towers.Put(chosen); result = new BossTowerActionResult(true, chosen); break;
-                case EnterBossTowerCommand entry:
+                case Dfo.Server.Protocol.Tests.Game.DungeonEntry.BossEntryRouteProbe entry:
                     Tickets--; var entered = PartyRun(Guid.NewGuid(), entry.Leader); towers.Put(entered);
                     result = new BossTowerEntryResult(null, entered, []); break;
                 case AdvanceBossTowerCommand advance:

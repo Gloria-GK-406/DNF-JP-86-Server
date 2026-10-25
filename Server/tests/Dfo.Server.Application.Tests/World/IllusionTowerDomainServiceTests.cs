@@ -1091,14 +1091,10 @@ public sealed partial class IllusionTowerDomainServiceTests
             intents.Record(f.Session, DungeonEntryIntent.Interactive);
             intents.Record(other, DungeonEntryIntent.Interactive);
             Assert.NotNull(intents.Consume(f.Session));
-            var restored = false;
 
-            var handled = await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
-                .EnterAsync(f.Session.ConnectionId, f.Session, parties.FindParty(firstParty),
-                    DungeonEntryIntent.Interactive, () => restored = true, default);
+            var handled = await DungeonEntryRouteDriver.WholeBodyAsync(f.Services, f.Session);
 
             Assert.True(handled);
-            Assert.False(restored);
             Assert.Null(intents.Consume(other));
             Assert.Equal(Tower(f).Find(f.Session)!.RunId, Tower(f).Find(other)!.RunId);
             IllusionTowerPublicFlowTests.AssertEntryDebitPrecedesTowerMode(f.Sender.Messages, receivers: 2);
@@ -1137,11 +1133,9 @@ public sealed partial class IllusionTowerDomainServiceTests
             f.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(f.Session);
             f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
                 .Begin(f.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
-            var party = f.Services.GetRequiredService<IPartyService>().FindParty(PartyCharacter(f.Session));
             var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
 
-            Assert.True(await delivery.EnterAsync(f.Session.ConnectionId, f.Session, party,
-                DungeonEntryIntent.Interactive, () => Assert.Fail("Entry was refused."), default, dungeonId: 11000));
+            Assert.True(await DungeonEntryRouteDriver.WholeBodyAsync(f.Services, f.Session, 11000));
 
             Assert.DoesNotContain(f.Sender.Messages, message => message.GetType().Name == "InventoryFullSnapshotMessage");
             f.Sender.Messages.Clear();

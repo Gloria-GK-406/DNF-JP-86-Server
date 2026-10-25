@@ -538,7 +538,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(requester, member);
             var views = new EntryViews(requester, member);
             var roster = EntryRoster(requester, member);
-            var delivery = new IllusionTowerProjectionDelivery(
+            var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.Illusion(
                 towers, new EntryCommands(run), sessions, new EntryParties(roster), views,
                 new SameState(), null!, null!, new Intents(), outbound.Game,
                 Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
@@ -630,7 +630,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var run = PartyRun(Guid.NewGuid(), leaving, second, third);
             var towers = new TowerDomain(run with { Room = run.Room with { Phase = TowerRoomPhase.Fighting } });
             var views = new NoViews();
-            var delivery = new IllusionTowerProjectionDelivery(
+            var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.IllusionLegacy(
                 towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
                 new Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery(null!, sessions, views, null!, null!, outbound.Game, null!),
                 TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDelivery>.Instance);
@@ -652,7 +652,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var sessions = new Sessions(requester, member);
         var views = new EntryViews(requester, member);
         var roster = EntryRoster(requester, member);
-        var delivery = new IllusionTowerProjectionDelivery(
+        var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.Illusion(
             towers, new EntryCommands(run), sessions, new EntryParties(roster), views,
             new SameState(), null!, null!, new Intents(), outbound.Game,
             Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
@@ -712,7 +712,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     {
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull =>
-            command is EnterIllusionTowerCommand
+            command is Dfo.Server.Protocol.Tests.Game.DungeonEntry.IllusionEntryRouteProbe
                 ? ValueTask.FromResult((TResult)(object)new TowerEntryResult(null, run, []))
                 : throw new NotSupportedException(command.GetType().Name);
     }
@@ -724,7 +724,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var views = new NoViews();
         var town = new TownAreaProjectionDelivery(
             null!, sessions, views, null!, null!, sender, null!);
-        return new IllusionTowerProjectionDelivery(
+        return Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.IllusionLegacy(
             towers,
             commands,
             sessions,

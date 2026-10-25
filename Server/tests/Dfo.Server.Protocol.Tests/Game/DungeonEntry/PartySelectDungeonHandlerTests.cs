@@ -289,7 +289,7 @@ public sealed class PartySelectDungeonHandlerTests
             if (refusedForFatigue)
             {
                 var visits = new RefusedVisits();
-                var selection = new SelectDungeonHandler(CurrentCharacterStub.Domain(), new UnchangedState(),
+                var selection = SelectDungeonDriver.Create(CurrentCharacterStub.Domain(), new UnchangedState(),
                     sessions, new RuntimeCurrentView(runtime), new Parties(Snapshot()),
                     services.GetRequiredService<IDungeonRunDomainService>(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
                     intents, visits, new RecordingQuestLogs(), new Fatigue(), sender, new RecordingCloser(),
@@ -871,7 +871,7 @@ public sealed class PartySelectDungeonHandlerTests
                 ConnectionGeneration = Member.ConnectionGeneration + 1,
             });
         });
-        var handler = new SelectDungeonHandler(
+        var handler = SelectDungeonDriver.Create(
             CurrentCharacterStub.Domain(),
             state,
             sessions,
@@ -887,10 +887,10 @@ public sealed class PartySelectDungeonHandlerTests
             closing,
             townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
-            entryProjection: outbound is null ? null : new DungeonEntryProjectionDelivery(
+            entryProjection: outbound is null ? null : new EntryProjectionOptions(
                 CurrentCharacterStub.Domain(), state, sessions, new RuntimeCurrentView(runtime), runs, registry,
                 intents, visits, fatigue, game, closing, townProjection,
-                NullLogger<DungeonEntryProjectionDelivery>.Instance, ordering: outbound.Ordering));
+                NullLogger<EntryProjectionOptions>.Instance, ordering: outbound.Ordering));
         return new TestWorld(
             handler, visits, intents, registry, runs, fatigue, sender, closer, areas);
     }
@@ -944,7 +944,7 @@ public sealed class PartySelectDungeonHandlerTests
     private const DungeonDifficulty Difficulty = (DungeonDifficulty)3;
 
     private sealed record TestWorld(
-        SelectDungeonHandler Handler,
+        EntryHandlerDriver Handler,
         PartyVisits Visits,
         Intents Intents,
         DungeonRunDeliveryRegistry Registry,

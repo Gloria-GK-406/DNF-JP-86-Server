@@ -8,5 +8,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Dfo.Server.Protocol.Tests" />
+    <InternalsVisibleTo Include="Dfo.Server.Application.Tests" />
   </ItemGroup>
 </Project>

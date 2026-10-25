@@ -6940,25 +6940,42 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/EnterDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "b9cb470da56912e498a552529e4a38376179f655c5bc00645105b7c57024a4d1"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "EnterDungeon／EnterBossTower／EnterIllusionTower各自Transactional；仅当前实际分支执行一个原事务。",
+          "new": "同分支一个ordinary Write：dungeon-entry／boss-tower-entry／illusion-tower-entry；无Main／新足迹。正常拒绝保真实Committed或ConfirmedRollback，run撤销另为原#185逻辑。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-43.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/EnterDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "b9cb470da56912e498a552529e4a38376179f655c5bc00645105b7c57024a4d1"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "唯一真实生产入口已收入GameSelectDungeonCommand；三fine类型、注册与消费者删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DungeonEntry.EnterDungeonCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DungeonEntry.EnterDungeonCommand",
@@ -6985,31 +7002,58 @@
         "result": "Dfo.Server.Abstractions.World.DungeonEntryAttempt"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/EnterDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "b9cb470da56912e498a552529e4a38376179f655c5bc00645105b7c57024a4d1"
-        },
-        "state": "pending"
+        "mapping": "647a00ae SelectDungeonHandler→普通DungeonEntryProjectionDelivery或Boss/Illusion.EnterAsync→相应三fine；完整编排现收入同一CMD partial，旧Delivery仅保未迁塔入口。测试仅最小driver调用同算法，wire oracle另证生产链。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/EnterDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "b9cb470da56912e498a552529e4a38376179f655c5bc00645105b7c57024a4d1"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/EnterDungeonCommand.cs",
-          "line": 15,
-          "source_sha256": "b9cb470da56912e498a552529e4a38376179f655c5bc00645105b7c57024a4d1"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "普通与Boss全attachments selected保护；Illusion无selected参与者。三Enter均不消费legacy footprint。",
+          "new": "普通／Boss保护原全attachments，来源捕获原physical其余session；Illusion[]，不声明效果owner或Main。cleanup物理捕获独立于保护集合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原stale在Consume之前、当前代次／意图恢复／队长与全队校验，普通#185受众与revision防误abort，三XO followers-first及全部batch后TownLeaveMany。",
+          "new": "原guard／优先级／随机阶段／receiver-first及材料先于塔模式／#185原registry保持；VC-B13明列默认whole故障差异，VC-B14只修entry cleanup误关replacement并保窄precise-drop。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -7195,25 +7239,42 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 17,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "EnterDungeon／EnterBossTower／EnterIllusionTower各自Transactional；仅当前实际分支执行一个原事务。",
+          "new": "同分支一个ordinary Write：dungeon-entry／boss-tower-entry／illusion-tower-entry；无Main／新足迹。正常拒绝保真实Committed或ConfirmedRollback，run撤销另为原#185逻辑。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-43.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 17,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "唯一真实生产入口已收入GameSelectDungeonCommand；三fine类型、注册与消费者删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.EnterBossTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.EnterBossTowerCommand",
@@ -7240,52 +7301,96 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerEntryResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 17,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "mapping": "647a00ae SelectDungeonHandler→普通DungeonEntryProjectionDelivery或Boss/Illusion.EnterAsync→相应三fine；完整编排现收入同一CMD partial，旧Delivery仅保未迁塔入口。测试仅最小driver调用同算法，wire oracle另证生产链。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 17,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 17,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "普通与Boss全attachments selected保护；Illusion无selected参与者。三Enter均不消费legacy footprint。",
+          "new": "普通／Boss保护原全attachments，来源捕获原physical其余session；Illusion[]，不声明效果owner或Main。cleanup物理捕获独立于保护集合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原stale在Consume之前、当前代次／意图恢复／队长与全队校验，普通#185受众与revision防误abort，三XO followers-first及全部batch后TownLeaveMany。",
+          "new": "原guard／优先级／随机阶段／receiver-first及材料先于塔模式／#185原registry保持；VC-B13明列默认whole故障差异，VC-B14只修entry cleanup误关replacement并保窄precise-drop。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 11,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "EnterDungeon／EnterBossTower／EnterIllusionTower各自Transactional；仅当前实际分支执行一个原事务。",
+          "new": "同分支一个ordinary Write：dungeon-entry／boss-tower-entry／illusion-tower-entry；无Main／新足迹。正常拒绝保真实Committed或ConfirmedRollback，run撤销另为原#185逻辑。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-43.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 11,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "唯一真实生产入口已收入GameSelectDungeonCommand；三fine类型、注册与消费者删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.EnterIllusionTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.EnterIllusionTowerCommand",
@@ -7312,31 +7417,58 @@
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerEntryResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 11,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "mapping": "647a00ae SelectDungeonHandler→普通DungeonEntryProjectionDelivery或Boss/Illusion.EnterAsync→相应三fine；完整编排现收入同一CMD partial，旧Delivery仅保未迁塔入口。测试仅最小driver调用同算法，wire oracle另证生产链。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 11,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 11,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "普通与Boss全attachments selected保护；Illusion无selected参与者。三Enter均不消费legacy footprint。",
+          "new": "普通／Boss保护原全attachments，来源捕获原physical其余session；Illusion[]，不声明效果owner或Main。cleanup物理捕获独立于保护集合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原stale在Consume之前、当前代次／意图恢复／队长与全队校验，普通#185受众与revision防误abort，三XO followers-first及全部batch后TownLeaveMany。",
+          "new": "原guard／优先级／随机阶段／receiver-first及材料先于塔模式／#185原registry保持；VC-B13明列默认whole故障差异，VC-B14只修entry cleanup误关replacement并保窄precise-drop。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -19236,26 +19368,43 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "EnterDungeon／EnterBossTower／EnterIllusionTower各自Transactional；仅当前实际分支执行一个原事务。",
+          "new": "同分支一个ordinary Write：dungeon-entry／boss-tower-entry／illusion-tower-entry；无Main／新足迹。正常拒绝保真实Committed或ConfirmedRollback，run撤销另为原#185逻辑。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-43.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+      ],
       "id": "message:65552",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonEntry.SelectDungeonHandler",
@@ -19278,29 +19427,56 @@
         "value": 65552
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
+        "mapping": "647a00ae SelectDungeonHandler→普通DungeonEntryProjectionDelivery或Boss/Illusion.EnterAsync→相应三fine；完整编排现收入同一CMD partial，旧Delivery仅保未迁塔入口。测试仅最小driver调用同算法，wire oracle另证生产链。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "普通与Boss全attachments selected保护；Illusion无selected参与者。三Enter均不消费legacy footprint。",
+          "new": "普通／Boss保护原全attachments，来源捕获原physical其余session；Illusion[]，不声明效果owner或Main。cleanup物理捕获独立于保护集合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原stale在Consume之前、当前代次／意图恢复／队长与全队校验，普通#185受众与revision防误abort，三XO followers-first及全部batch后TownLeaveMany。",
+          "new": "原guard／优先级／随机阶段／receiver-first及材料先于塔模式／#185原registry保持；VC-B13明列默认whole故障差异，VC-B14只修entry cleanup误关replacement并保窄precise-drop。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "BossTowerProjectionDelivery",
@@ -19310,7 +19486,7 @@
         "IllusionTowerProjectionDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -30511,26 +30687,43 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "EnterDungeon／EnterBossTower／EnterIllusionTower各自Transactional；仅当前实际分支执行一个原事务。",
+          "new": "同分支一个ordinary Write：dungeon-entry／boss-tower-entry／illusion-tower-entry；无Main／新足迹。正常拒绝保真实Committed或ConfirmedRollback，run撤销另为原#185逻辑。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-43.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+      ],
       "id": "message:66230",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.DungeonEntry.SelectDungeonHandler",
@@ -30553,29 +30746,56 @@
         "value": 66230
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
+        "mapping": "647a00ae SelectDungeonHandler→普通DungeonEntryProjectionDelivery或Boss/Illusion.EnterAsync→相应三fine；完整编排现收入同一CMD partial，旧Delivery仅保未迁塔入口。测试仅最小driver调用同算法，wire oracle另证生产链。",
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+        ]
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntrySlice.cs",
-          "line": 425,
-          "source_sha256": "0b9e4b85f5a971618e76926e44eda39c3ef592fa510b8b1aa34493433535de8f"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "old": "普通与Boss全attachments selected保护；Illusion无selected参与者。三Enter均不消费legacy footprint。",
+          "new": "普通／Boss保护原全attachments，来源捕获原physical其余session；Illusion[]，不声明效果owner或Main。cleanup物理捕获独立于保护集合。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原stale在Consume之前、当前代次／意图恢复／队长与全队校验，普通#185受众与revision防误abort，三XO followers-first及全部batch后TownLeaveMany。",
+          "new": "原guard／优先级／随机阶段／receiver-first及材料先于塔模式／#185原registry保持；VC-B13明列默认whole故障差异，VC-B14只修entry cleanup误关replacement并保窄precise-drop。",
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task43-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/SelectDungeonCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
+          ]
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [
         "BossTowerProjectionDelivery",
@@ -30585,7 +30805,7 @@
         "IllusionTowerProjectionDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

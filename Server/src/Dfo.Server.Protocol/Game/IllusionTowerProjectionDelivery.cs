@@ -40,19 +40,15 @@ public sealed class IllusionTowerProjectionDelivery(
     IIllusionTowerDomainService towers,
     ICommandBus commands,
     ISelectedSessionDomainService sessions,
-    IPartyService parties,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterStateProjectionDomainService currentState,
     ICharacterDomainService characters,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
-    IDungeonEntryIntentDomainService entryIntents,
     IGameMessageSender sender,
     TownAreaProjectionDelivery townProjection,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<IllusionTowerProjectionDelivery> logger,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null)
+    ILogger<IllusionTowerProjectionDelivery> logger)
 {
     private ValueTask SendCommittedBatchAsync(IllusionTowerSnapshot run, SelectedSessionIdentity member,
         GameExplicitMessageDelivery batch, CancellationToken token) => PartyStages.SendCommittedBatchAsync(run, member, batch, token);
@@ -62,137 +58,6 @@ public sealed class IllusionTowerProjectionDelivery(
         session => connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None), logger, townProjection.EnterAsync);
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
-
-    public async ValueTask<bool> EnterAsync(
-        NetworkConnectionId requesterConnection,
-        SelectedSessionIdentity requester,
-        PartySnapshot roster,
-        DungeonEntryIntent intent,
-        Action restoreIntent,
-        CancellationToken token, int dungeonId = 11001)
-    {
-        var attachments = await ResolveAttachmentsAsync(requester, roster, token).ConfigureAwait(false);
-        if (attachments is null)
-        {
-            restoreIntent();
-            await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
-            return true;
-        }
-
-        Exception? deliveryFailure = null;
-        var committed = false;
-        var isolate = new List<SelectedSessionIdentity>();
-        try
-        {
-            if (!Current(attachments) || !PartyCurrent(requester, roster, attachments))
-            {
-                restoreIntent();
-                await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
-                return true;
-            }
-
-            var entered = await commands.SendAsync(new EnterIllusionTowerCommand(
-                attachments.Select(value => new TowerEntryMember(value.Session, value.Slot)).ToArray(),
-                requester, unchecked((uint)Random.Shared.Next()), dungeonId), token).ConfigureAwait(false);
-            if (entered.Run is null)
-            {
-                restoreIntent();
-                await RefuseAsync(requesterConnection,
-                    entered.Rejection switch
-                    {
-                        "LevelTooLow" => SelectDungeonRefusal.LevelTooLow,
-                        "InsufficientMaterial" => SelectDungeonRefusal.MissingRequiredItem,
-                        "InvalidParty" or "NoSession" or "AlreadyInDungeon" => SelectDungeonRefusal.InvalidSelectionState,
-                        _ => SelectDungeonRefusal.DungeonUnavailable,
-                    },
-                    token, entered.BlockedSlot ?? 0).ConfigureAwait(false);
-                return true;
-            }
-
-            committed = true;
-            isolate.AddRange(attachments.Select(value => value.Session));
-            var run = entered.Run;
-            if (!Current(attachments, run))
-                throw new InvalidOperationException("Tower cohort changed after committed admission.");
-
-            foreach (var member in attachments.Where(value => value.Session != requester))
-            {
-                if (sessions.IsInWorld(member.Session))
-                    entryIntents.Consume(member.Session);
-            }
-
-            var refreshed = new Dictionary<CharacterId, SelectCharacterResult>();
-            foreach (var member in attachments.OrderBy(value => value.Slot))
-            {
-                // The attachment was loaded before admission. Attribute refresh alone keeps
-                // its inventory snapshot, so reread after the temporary bindings commit.
-                var runtime = run.DungeonId == 11000
-                    ? await currentViews.TryLoadAsync(member.Session, token).ConfigureAwait(false)
-                        ?? throw new InvalidOperationException("Tower member view disappeared after admission.")
-                    : member.Runtime;
-                refreshed[member.Session.CharacterId] = await currentState.RefreshAsync(runtime, token).ConfigureAwait(false);
-            }
-
-            var ordered = attachments.OrderBy(value => value.Slot).ToArray();
-            var wireUsers = ordered.Select(value => value.Session.WireUserId).ToImmutableArray();
-            var hostSlot = ordered.Single(value => value.Session == requester).Slot;
-            var debits = entered.Debits.ToDictionary(value => value.Session);
-            var batches = new List<(SelectedSessionIdentity Session, IReadOnlyList<IGameServerMessage> Frames)>();
-            foreach (var receiver in ordered)
-            {
-                var frames = new List<IGameServerMessage>();
-                // A21 recalculates player attributes on DELETE_ITEM. Deliver the committed
-                // debit before 008E/008F switch it into tower mode, whose table can still be null.
-                if (debits.TryGetValue(receiver.Session, out var debit))
-                    foreach (var item in debit.Debits)
-                        AppendDebit(frames, item, clock.GetUtcNow());
-                foreach (var source in ordered
-                    .OrderBy(value => value.Session == receiver.Session ? 0 : 1)
-                    .ThenBy(value => value.Slot))
-                {
-                    var state = refreshed[source.Session.CharacterId];
-                    var equipment = state.CharacterInventory.Containers
-                        .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
-                    frames.Add(new ExtendedUserStateMessage(
-                        state.Character, state.CharacterEntry.Public, state.CharacterEntry.Skills,
-                        equipment, state.World.PreparedAt,
-                        source.Session == receiver.Session ? null : source.Session.WireUserId));
-                }
-                frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, receiver.Session, token).ConfigureAwait(false));
-                frames.Add(new EnterSelectDungeonAcknowledgement());
-                frames.Add(new UserStateNotification(wireUsers, 0x01));
-                frames.Add(new UdpHostNotification(hostSlot));
-                frames.Add(new SupportTagNotification());
-                frames.Add(new IllusionTowerInfoNotification(run.DungeonId, run.TotalLevels));
-                frames.Add(new IllusionTowerMapNotification(run.Room));
-                batches.Add((receiver.Session, frames));
-            }
-
-            // XO-4: every member's batch is delivered before the requester's, each BestEffort.
-            using (ordering?.Begin("XO-4 illusion tower entry", OutboundDelivery.BestEffort))
-            {
-                foreach (var batch in batches.OrderBy(value => value.Session == requester ? 1 : 0))
-                    await sender.SendExplicitAsync(batch.Session.ConnectionId,
-                        new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
-            }
-            await townProjection.LeaveManyAsync(ordered.Select(value => value.Session).ToArray(),
-                TownAreaDepartureReason.DungeonEntry, token).ConfigureAwait(false);
-        }
-        catch (Exception error) when (committed)
-        {
-            deliveryFailure = error;
-        }
-
-        if (deliveryFailure is not null)
-        {
-            logger.LogWarning(deliveryFailure,
-                "Illusion tower entry projection failed after commit; isolating {Count} exact sessions", isolate.Count);
-            foreach (var member in isolate.Distinct())
-                await CloseQuietlyAsync(member).ConfigureAwait(false);
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deliveryFailure).Throw();
-        }
-        return true;
-    }
 
     public async ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
@@ -480,45 +345,6 @@ public sealed class IllusionTowerProjectionDelivery(
         }
     }
 
-    private async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>?>
-        ResolveAttachmentsAsync(SelectedSessionIdentity requester, PartySnapshot roster, CancellationToken token)
-    {
-        var result = new List<(SelectedSessionIdentity, SelectCharacterResult, byte)>();
-        foreach (var member in roster.Members.OrderBy(value => value.Slot))
-        {
-            var current = sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
-            var runtime = current is null ? null : await currentViews.TryLoadAsync(current, token).ConfigureAwait(false);
-            if (current is null || runtime is null || current.AccountId != member.Character.AccountId
-                || current.WireUserId != member.WireUserId || member.Slot > 3
-                || result.Any(value => value.Item1.CharacterId == current.CharacterId
-                    || value.Item1.ConnectionId == current.ConnectionId || value.Item1.WireUserId == current.WireUserId))
-                return null;
-            result.Add((current, runtime, member.Slot));
-        }
-        return result.Any(value => value.Item1 == requester) ? result : null;
-    }
-
-    private bool Current(IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members,
-        IllusionTowerSnapshot? run = null) => members.All(value =>
-        sessions.IsInWorld(value.Session)
-        && (run is null || towers.Find(value.Session) is { } current
-            && current.RunId == run.RunId && current.Room.Version == run.Room.Version));
-
-    private bool PartyCurrent(SelectedSessionIdentity requester, PartySnapshot expected,
-        IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members)
-    {
-        var current = parties.FindParty(new PartyCharacterSnapshot(
-            requester.AccountId, requester.CharacterId, requester.WireUserId, null));
-        return current.Key == expected.Key
-            && current.Generation == expected.Generation
-            && current.Revision == expected.Revision
-            && current.LeaderWireUserId == requester.WireUserId
-            && current.Members.OrderBy(value => value.Slot)
-                .Select(value => (value.CharacterId, value.Slot))
-                .SequenceEqual(members.OrderBy(value => value.Slot)
-                    .Select(value => (value.Session.CharacterId, value.Slot)));
-    }
-
     private bool Exact(SelectedSessionIdentity session, IllusionTowerSnapshot expected) => PartyStages.Exact(session, expected);
 
     private IReadOnlyList<SelectedSessionIdentity> ExactMembers(IllusionTowerSnapshot run) => PartyStages.ExactMembers(run);
@@ -533,20 +359,6 @@ public sealed class IllusionTowerProjectionDelivery(
 
     public static bool Stale(GameMessageMetadata metadata) =>
         metadata.InboundOrdinal is > 0 && !metadata.SequenceIsFresh;
-
-    private static void AppendDebit(List<IGameServerMessage> frames, MaterialDebit debit, DateTimeOffset at)
-    {
-        var slot = SlotMappings.ToGameSlot(debit.Cost.Slot);
-        frames.Add(new DeleteItemResponse(slot, debit.Cost.Count, Success: true));
-        frames.Add(debit.Remaining is null
-            ? GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, at)
-            : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(slot.Space,
-                [new InventoryItemState(null, slot.Index, debit.Remaining)], at)));
-    }
-
-    private ValueTask RefuseAsync(NetworkConnectionId connection, byte code, CancellationToken token, byte context = 0) =>
-        sender.SendExplicitAsync(connection,
-            new GameExplicitMessageDelivery([new SelectDungeonRefusal(code, context)], []), token);
 
     private ValueTask CloseQuietlyAsync(SelectedSessionIdentity session) => PartyStages.CloseQuietlyAsync(session);
 

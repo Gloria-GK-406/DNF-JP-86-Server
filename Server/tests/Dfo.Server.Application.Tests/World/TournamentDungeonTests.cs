@@ -98,9 +98,7 @@ public sealed class TournamentDungeonTests
     private static async Task<DungeonEntryAttempt> Enter(LearningFixture f, DungeonEntryContext? context = null, bool commit = true)
     {
         await using var tx = f.Scope.Begin();
-        var result = await ActivatorUtilities.CreateInstance<EnterDungeonCommandHandler>(f.Services)
-            .HandleAsync(new(Guid.NewGuid(), typeof(EnterDungeonCommand), typeof(EnterDungeonCommandHandler), CommandExecutionKind.Transactional),
-                new(context ?? Entry()), default);
+        var result = await DungeonEntryRouteDriver.EnterAsync(f.Services, context ?? Entry());
         if (commit) await tx.CommitAsync(default);
         return result;
     }

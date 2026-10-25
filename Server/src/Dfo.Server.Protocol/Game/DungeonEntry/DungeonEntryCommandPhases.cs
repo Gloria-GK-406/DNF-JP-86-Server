@@ -17,37 +17,14 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Protocol.Game.Party;
+
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
 
-/// <summary>
-/// Maps a dungeon instance's stable character audience to the current transport generations and
-/// commits one receiver-specific entry projection for every valid participant.
-/// </summary>
-/// <remarks>
-/// The dungeon domain owns membership and the semantic recipient set. This boundary owns only
-/// volatile transport identities and wire messages; neither the handler nor the domain duplicates
-/// that mapping.
-/// </remarks>
-public sealed class DungeonEntryProjectionDelivery(
-    ICharacterDomainService characters,
-    ICharacterStateProjectionDomainService currentState,
-    ISelectedSessionDomainService selectedSessions,
-    ISelectedCharacterCurrentViewDomainService currentViews,
-    IDungeonRunDomainService runs,
-    DungeonRunDeliveryRegistry deliveryRegistry,
-    IDungeonEntryIntentDomainService entryIntents,
-    IDungeonVisitDomainService visits,
-    ICharacterFatigueDomainService fatigue,
-    IGameMessageSender sender,
-    INetworkConnectionCloser connectionCloser,
-    TownAreaProjectionDelivery townAreaProjection,
-    ILogger<DungeonEntryProjectionDelivery> logger,
-    ICommandBus? commands = null,
-    IInventorySlotProjectionDomainService? inventoryProjection = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null)
+internal partial class GameSelectDungeonCommandHandler
 {
-    public async ValueTask EnterAsync(
+    protected async ValueTask EnterOrdinaryAsync(
+        CommandExecutionContext execution,
         NetworkConnectionId requesterConnection,
         SelectedSessionIdentity requester,
         SelectCharacterResult requesterRuntime,
@@ -61,11 +38,11 @@ public sealed class DungeonEntryProjectionDelivery(
         ValueTask RefuseAsync(NetworkConnectionId connection, byte code, byte slot, CancellationToken ct) =>
             this.RefuseAsync(connection, code, slot, ct, mirror);
         ValueTask RefuseCurrentRequesterAsync(NetworkConnectionId connection, SelectedSessionIdentity owner, CancellationToken ct) =>
-            selectedSessions.IsInWorld(owner)
+            sessions.IsInWorld(owner)
                 ? RefuseAsync(connection, SelectDungeonRefusal.SelectionCohortUnavailable, 0, ct) : ValueTask.CompletedTask;
         void RestoreSelection()
         {
-            if (selectedSessions.IsInWorld(requester))
+            if (sessions.IsInWorld(requester))
                 entryIntents.RestoreIfAbsent(requester, intent);
         }
 
@@ -79,6 +56,7 @@ public sealed class DungeonEntryProjectionDelivery(
             return;
         }
 
+        var capturedConnections = attachments.Members.ToDictionary(value => value.Session, value => CaptureEntryConnection(value.Session));
         var participants = attachments.Members
             .Select(value => new DungeonRunParticipant(
                 value.Session.AccountId,
@@ -89,19 +67,11 @@ public sealed class DungeonEntryProjectionDelivery(
         var previousRuns = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
-        var command = new EnterDungeonCommand(new DungeonEntryContext(
-            message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId))
-        {
-            Session = requester,
-            Sessions = attachments.Members.Select(x => x.Session).ToArray(),
-        };
-        // Directly constructed protocol fixtures may supply their own visit service. They still
-        // execute the same CMD routing; the production composition always uses the command bus.
-        var attempt = commands is not null
-            ? await commands.SendAsync(command, cancellationToken).ConfigureAwait(false)
-            : await new EnterDungeonCommandHandler(new Dfo.Server.Application.World.DungeonEntryDecisionDomainService(), visits)
-                .HandleAsync(new(Guid.NewGuid(), typeof(EnterDungeonCommand), typeof(EnterDungeonCommandHandler),
-                    CommandExecutionKind.Workflow), command, cancellationToken).ConfigureAwait(false);
+        var entry = new DungeonEntryContext(message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId);
+        var protectedMembers = attachments.Members.Select(value => value.Session == requester
+            ? CaptureParticipant(value.Session) : new SelectedSessionRecipient(value.Session, null)).ToArray();
+        var attempt = await workUnits!.WriteAsync(execution, new("dungeon-entry", protectedMembers),
+            (_, ct) => RouteEntryAsync(entry, ct), cancellationToken).ConfigureAwait(false);
         var entered = attempt.Entry;
         if (entered is null)
         {
@@ -150,7 +120,7 @@ public sealed class DungeonEntryProjectionDelivery(
             if (previousRuns[participant.CharacterId] is { } previous
                 && previous.RunId != runId)
             {
-                deliveryRegistry.RemoveParticipant(previous.RunId, participant.CharacterId);
+                departureSink!.ParticipantDeparted(previous.RunId, participant.CharacterId);
             }
         }
 
@@ -171,7 +141,7 @@ public sealed class DungeonEntryProjectionDelivery(
         var deliveries = new List<(SelectedSessionIdentity Session, IReadOnlyList<IGameServerMessage> Frames)>();
         try
         {
-            deliveryRegistry.Register(runId, attachments.Members.Select(value => value.Session).ToArray());
+            departureSink!.Register(runId, attachments.Members.Select(value => value.Session).ToArray());
 
             var refreshed = new Dictionary<CharacterId, SelectCharacterResult>();
             foreach (var attachment in attachments.Members.OrderBy(value => value.Slot))
@@ -346,7 +316,7 @@ public sealed class DungeonEntryProjectionDelivery(
                 {
                     try
                     {
-                        await sender.SendExplicitAsync(
+                        await register(
                             delivery.Session.ConnectionId,
                             new GameExplicitMessageDelivery(delivery.Frames, []),
                             cancellationToken).ConfigureAwait(false);
@@ -359,7 +329,7 @@ public sealed class DungeonEntryProjectionDelivery(
                         // check fails), isolate every generation that may already hold START_MAP so
                         // none can continue against an aborted server instance.
                         await IsolatePartialCohortAsync(
-                            [.. delivered, delivery.Session]).ConfigureAwait(false);
+                            [.. delivered, delivery.Session], capturedConnections).ConfigureAwait(false);
                         throw;
                     }
                 }
@@ -372,7 +342,7 @@ public sealed class DungeonEntryProjectionDelivery(
         }
 
         // Town memberships are removed right after the dungeon delivery, before any other job runs.
-        await townAreaProjection.LeaveManyAsync(
+        await TownLeaveManyAsync(
             attachments.Members.Select(attachment => attachment.Session).ToArray(),
             TownAreaDepartureReason.DungeonEntry,
             cancellationToken).ConfigureAwait(false);
@@ -399,7 +369,7 @@ public sealed class DungeonEntryProjectionDelivery(
     {
         foreach (var member in members)
         {
-            if (!selectedSessions.IsInWorld(member.Session))
+            if (!sessions.IsInWorld(member.Session))
                 return new CohortObservation(CohortStatus.InvalidGeneration, null);
         }
 
@@ -444,7 +414,7 @@ public sealed class DungeonEntryProjectionDelivery(
         var members = new List<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)>();
         foreach (var member in roster.Members.OrderBy(value => value.Slot))
         {
-            var current = selectedSessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
+            var current = sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
             var runtime = current is null ? null
                 : await currentViews.TryLoadAsync(current, cancellationToken).ConfigureAwait(false);
             if (current is null
@@ -480,17 +450,16 @@ public sealed class DungeonEntryProjectionDelivery(
             return;
         foreach (var participant in participants)
         {
-            deliveryRegistry.RemoveParticipant(runId, participant.CharacterId);
+            departureSink!.ParticipantDeparted(runId, participant.CharacterId);
         }
     }
 
     private async ValueTask IsolatePartialCohortAsync(
-        IReadOnlyList<SelectedSessionIdentity> sessions)
+        IReadOnlyList<SelectedSessionIdentity> sessions, IReadOnlyDictionary<SelectedSessionIdentity, NetworkConnectionContext?> capturedConnections)
     {
         foreach (var session in sessions.Distinct())
         {
-            await connectionCloser.RequestCloseAsync(
-                session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
+            await CloseEntryAsync(session, capturedConnections[session]).ConfigureAwait(false);
         }
     }
 
@@ -498,7 +467,7 @@ public sealed class DungeonEntryProjectionDelivery(
         NetworkConnectionId connectionId,
         SelectedSessionIdentity requester,
         CancellationToken cancellationToken) =>
-        selectedSessions.IsInWorld(requester)
+        sessions.IsInWorld(requester)
             ? RefuseAsync(connectionId, SelectDungeonRefusal.SelectionCohortUnavailable, 0, cancellationToken)
             : ValueTask.CompletedTask;
 
@@ -507,7 +476,7 @@ public sealed class DungeonEntryProjectionDelivery(
         byte errorCode,
         byte context,
         CancellationToken cancellationToken, bool mirror = false) =>
-        sender.SendExplicitAsync(
+        register(
             connectionId,
             new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context, mirror)], []),
             cancellationToken);

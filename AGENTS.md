@@ -381,6 +381,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | RecoverStamina／DailyReviveCoin | 普通写、空保护参与者；Daily 仅声明原查询 session 为效果 owner；[源码](Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs)。 |
 | SetUserPosition／SetUserArea／Teleport | [源码](Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs)；`TASK-41`。 |
 | EnterSelectDungeon／BackToVillage／PrepareCycleDungeonEntry | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs)；`TASK-42`。 |
+| SelectDungeon／MirrorDungeonEntry（含Boss／Illusion入场） | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs)；`TASK-43`。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

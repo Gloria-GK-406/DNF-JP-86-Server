@@ -4,18 +4,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game;
 
-public sealed record EnterIllusionTowerCommand(
-    IReadOnlyList<TowerEntryMember> Members, SelectedSessionIdentity Leader, uint Seed, int DungeonId = 11001)
-    : ICommand<TowerEntryResult>;
-
-public sealed class EnterIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<EnterIllusionTowerCommand, TowerEntryResult>
-{
-    public ValueTask<TowerEntryResult> HandleAsync(CommandExecutionContext context,
-        EnterIllusionTowerCommand command, CancellationToken token) =>
-        towers.EnterAsync(command.Members, command.Leader, command.Seed, token, command.DungeonId);
-}
-
 public sealed record LoadIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
 public sealed class LoadIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
     : ICommandHandler<LoadIllusionTowerCommand, TowerActionResult>

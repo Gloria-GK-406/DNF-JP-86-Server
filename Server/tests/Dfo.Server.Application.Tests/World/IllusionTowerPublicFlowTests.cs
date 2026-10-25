@@ -286,11 +286,9 @@ public sealed class IllusionTowerPublicFlowTests
         });
     }
 
-    private static ValueTask EnterAsync(ShopFixture fixture) =>
-        fixture.Services.GetRequiredService<SelectDungeonHandler>().HandleAsync(
-            new(fixture.Connection),
-            new SelectDungeonRequest(GameMessageMetadata.Empty, 11001, DungeonDifficulty.Normal, 0, 0),
-            default);
+    // The fixture already owns an executor job; exercise the actual whole body without nested dispatch.
+    private static async ValueTask EnterAsync(ShopFixture fixture) =>
+        _ = await DungeonEntryRouteDriver.WholeBodyAsync(fixture.Services, fixture.Session);
 
     private sealed class SweepFindGate(IIllusionTowerDomainService inner) : IIllusionTowerDomainService
     {

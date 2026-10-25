@@ -270,7 +270,6 @@ public sealed class ProtocolModule : IServerModule
         var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
-        services.TryAddSingleton<DungeonEntryProjectionDelivery>();
         services.TryAddSingleton<TournamentProjectionDelivery>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
@@ -876,8 +875,11 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameRuntimeTingStatistic);
         services.AddProtocolCommandHandler<GameEnterSelectDungeonCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEnterSelectDungeon, typeof(EnterSelectDungeonRequest)));
         services.RegisterProtocolMessageHandler<EnterSelectDungeonHandler, EnterSelectDungeonRequest, GameEnterSelectDungeonCommand>(ClientMessageType.GameEnterSelectDungeon);
-        services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameSelectDungeon);
-        services.RegisterMessageHandler<SelectDungeonHandler>(ClientMessageType.GameMirrorDungeonEntry);
+        services.AddProtocolCommandHandler<GameSelectDungeonCommand, bool, GameSelectDungeonCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSelectDungeon, typeof(SelectDungeonRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMirrorDungeonEntry, typeof(SelectDungeonRequest)));
+        services.RegisterProtocolMessageHandler<SelectDungeonHandler, SelectDungeonRequest, GameSelectDungeonCommand>(ClientMessageType.GameSelectDungeon);
+        services.RegisterProtocolMessageHandler<SelectDungeonHandler, SelectDungeonRequest, GameSelectDungeonCommand>(ClientMessageType.GameMirrorDungeonEntry);
         services.AddCommandHandler<Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand, bool, Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
@@ -887,8 +889,6 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GamePrepareCycleDungeonEntry, typeof(PrepareCycleDungeonEntryRequest)));
         services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
-        services.AddCommandHandler<EnterDungeonCommand, DungeonEntryAttempt, EnterDungeonCommandHandler>(
-            CommandExecutionKind.Transactional);
         services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
         services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
@@ -901,7 +901,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
-        services.AddCommandHandler<EnterBossTowerCommand, BossTowerEntryResult, EnterBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LoadBossTowerCommand, BossTowerActionResult, LoadBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional);
@@ -919,8 +918,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<IllusionTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
-        services.AddCommandHandler<EnterIllusionTowerCommand, TowerEntryResult,
-            EnterIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LoadIllusionTowerCommand, TowerActionResult,
             LoadIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<StartIllusionTowerCommand, TowerActionResult,
