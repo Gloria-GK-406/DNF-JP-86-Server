@@ -911,27 +911,28 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameCharacterDeath, typeof(CharacterDeathRequest)));
         services.RegisterProtocolMessageHandler<CharacterDeathHandler, CharacterDeathRequest, GameCharacterDeathCommand>(ClientMessageType.GameCharacterDeath);
         services.RegisterProtocolMessageHandler<MonsterDeathHandler, MonsterDeathRequest, GameMonsterDeathCommand>(ClientMessageType.GameMonsterDeath);
-        services.TryAddSingleton<BossTowerProjectionDelivery>();
-        services.TryAddSingleton<BossTowerPartyCoordinator>();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
+        services.TryAddSingleton<IBossTowerDepartureProjectionDomainService>(p => p.GetRequiredService<BossTowerDepartureProjectionQueue>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
-        services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
-        services.TryAddSingleton<IllusionTowerProjectionDelivery>();
-        services.TryAddSingleton<IllusionTowerPartyCoordinator>();
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
+        services.TryAddSingleton<IIllusionTowerDepartureProjectionDomainService>(p => p.GetRequiredService<IllusionTowerDepartureProjectionQueue>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IIllusionTowerDepartureSink,
             IllusionTowerDepartureProjectionSink>());
         services.TryAddSingleton<IllusionTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
-        services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,
-            LeaveIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<SynchronizeIllusionTowerLeaderCommand, TowerActionResult,
-            SynchronizeIllusionTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(p => p.GetRequiredService<BossTowerReturnSweepService>());
+        services.AddInternalCommandHandler<CaptureBossTowerDeparturesCommand, System.Collections.Immutable.ImmutableArray<TowerDepartureEntryId>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<ProjectBossTowerDepartureCommand, bool, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<BossTowerActionContext>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<ReturnBossTowerRunCommand, bool, TowerReturnCommandHandler>();
+        services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(p => p.GetRequiredService<IllusionTowerReturnSweepService>());
+        services.AddInternalCommandHandler<CaptureIllusionTowerDeparturesCommand, System.Collections.Immutable.ImmutableArray<TowerDepartureEntryId>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<ProjectIllusionTowerDepartureCommand, bool, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<CaptureIllusionTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<ReturnIllusionTowerRunCommand, bool, TowerReturnCommandHandler>();
         services.AddProtocolCommandHandler<GameIllusionTowerStageCommand, bool, GameMapLoadingCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
         services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);

@@ -76,7 +76,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                         GameMessageMetadata.Empty, 2, []), default);
 
             f.Clock.Advance(TimeSpan.FromSeconds(30));
-            await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>().SweepAsync(f.Clock.GetUtcNow(), default);
+            await TowerTestAlgorithms.Illusion(f).SweepAsync(f.Clock.GetUtcNow(), default);
             Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
             Assert.Equal(TowerRoomPhase.Cleared, tower.Find(f.Session)!.Room.Phase);
             Assert.DoesNotContain(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
@@ -98,7 +98,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await tower.StartAsync(context, default);
             var killed = await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             var drop = Assert.Single(killed.Drops);
-            var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
+            var delivery = TowerTestAlgorithms.Illusion(f);
             f.Sender.Messages.Clear();
 
             Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
@@ -175,7 +175,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             f.Sender.Messages.Clear();
 
             var settled = tower.Find(f.Session)!;
-            await f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
+            await TowerTestAlgorithms.Illusion(f)
                 .ReprojectCompletionAsync(Context(settled, f.Session), default);
 
             var projectedTypes = f.Sender.Messages.Select(message => message.GetType().Name).ToArray();
@@ -1008,7 +1008,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await TestEffectFootprints.Run((tower.Find((second).Session)?.Members.Select(member => member.Session) ?? []).Append((second).Session), cap => tower.DieAsync(second, cap, default));
             f.Sql("CREATE TRIGGER fail_tower_settlement BEFORE UPDATE OF exp ON characters " +
                 "WHEN OLD.character_id=3 BEGIN SELECT RAISE(ABORT,'settlement failure'); END;");
-            var coordinator = f.Services.GetRequiredService<IllusionTowerPartyCoordinator>();
+            var coordinator = TowerTestAlgorithms.IllusionParty(f);
 
             await Assert.ThrowsAnyAsync<Exception>(() => TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => coordinator.TryLeaveAsync(
                 f.Session, allowVirtual: false, departureResponse: null, default)).AsTask());
@@ -1088,7 +1088,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             Assert.Equal(Tower(f).Find(f.Session)!.RunId, Tower(f).Find(other)!.RunId);
             IllusionTowerPublicFlowTests.AssertEntryDebitPrecedesTowerMode(f.Sender.Messages, receivers: 2);
 
-            var removed = await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => f.Services.GetRequiredService<IllusionTowerPartyCoordinator>()
+            var removed = await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => TowerTestAlgorithms.IllusionParty(f)
                 .TryRemoveAsync(f.Session, targetSlot: 1, default));
 
             Assert.True(removed.Result.Succeeded);
@@ -1122,7 +1122,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             f.Services.GetRequiredService<ISelectedSessionDomainService>().EnsureInWorld(f.Session);
             f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
                 .Begin(f.Session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
-            var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
+            var delivery = TowerTestAlgorithms.Illusion(f);
 
             Assert.True(await DungeonEntryRouteDriver.WholeBodyAsync(f.Services, f.Session, 11000));
 
@@ -1720,7 +1720,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
+            var delivery = TowerTestAlgorithms.Illusion(f);
             await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(f.Services, f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
             var drop = Assert.Single(tower.Find(f.Session)!.Room.Items);
             f.Sender.Messages.Clear();

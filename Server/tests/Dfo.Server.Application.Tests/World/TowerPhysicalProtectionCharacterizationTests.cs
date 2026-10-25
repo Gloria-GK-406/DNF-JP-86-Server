@@ -15,14 +15,44 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed partial class BossTowerDomainServiceTests
 {
     [Fact]
-    public async Task Current_whole_deduplication_keeps_an_earlier_session_only_entry_and_hides_a_later_declared_reporter_physical()
+    public async Task Whole_protection_preserves_later_declared_reporter_physical_after_session_only_entry()
     {
         using var fixture = Fixture(configure: TowerPhysicalProtectionProbe.Install);
         var observation = await TowerPhysicalProtectionProbe.RunAsync(fixture);
         Assert.True(observation.FirstBlocked);
-        Assert.False(observation.SecondBlocked);
-        Assert.Equal([fixture.Session.ConnectionId], fixture.Sender.Outbound.Closes);
+        Assert.True(observation.SecondBlocked);
+        Assert.Equal([fixture.Session.ConnectionId, observation.Second.ConnectionId], fixture.Sender.Outbound.Closes);
     }
+    [Fact]
+    public async Task Physical_enumeration_keeps_distinct_equal_value_references_and_first_metadata_without_adding_a_target()
+    {
+        using var fixture = Fixture();
+        var first = fixture.Connection;
+        var equalReference = first with { };
+        Assert.Equal(first, equalReference); Assert.NotSame(first, equalReference);
+        var firstMetadata = new GameMessageMetadata(1, 7, 0, 11);
+        var laterMetadata = new GameMessageMetadata(1, 7, 0, 12);
+        var declared = new SelectedSessionRecipient[]
+        {
+            new(fixture.Session, null), new(fixture.Session, first, firstMetadata),
+            new(fixture.Session, first, laterMetadata), new(fixture.Session, equalReference, laterMetadata),
+        };
+        var targets = Dfo.Server.Application.Transactions.CommandWorkUnits.ProtectionTargets(declared).ToArray();
+        Assert.Equal(2, targets.Length); Assert.Same(first, targets[0].Connection); Assert.Same(firstMetadata, targets[0].Metadata);
+        Assert.Same(equalReference, targets[1].Connection);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            fixture.Sender.Outbound.Connections.Remove(first.ConnectionId);
+            fixture.Sender.Outbound.Connections.Add(equalReference);
+            var safety = fixture.Services.GetRequiredService<SelectedSessionSafety>();
+            foreach (var target in targets) await safety.BlockAsync(target, new IOException("declared-target-control"), "reference-control");
+            Assert.True(safety.IsBlocked(first)); Assert.True(safety.IsBlocked(equalReference));
+            Assert.False(safety.IsBlocked(first with { }));
+        });
+        var close = Assert.Single(fixture.Sender.Outbound.Entries, entry => entry.IsClose);
+        Assert.Same(equalReference, close.Connection);
+    }
+
 }
 
 internal sealed record TowerPhysicalProtectionObservation(bool FirstBlocked, bool SecondBlocked,

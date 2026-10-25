@@ -40,7 +40,7 @@ public sealed class PartyTowerCharacterizationTests
     private static bool TowerMap(WireFrame frame) => frame.Is(0x00, 0x008F);
 
     /// <remarks>
-    /// The run seed is drawn by IllusionTowerProjectionDelivery itself (Random.Shared.Next(), passed
+    /// The run seed is drawn by IllusionTowerProjectionDriver itself (Random.Shared.Next(), passed
     /// into EnterIllusionTowerCommand), before any injectable service sees it. Pinning it would mean
     /// decorating the whole tower domain service, which is the code this refactor reshapes; the
     /// floor-one room it seeds has fixed actors, so only the seed itself shows on the wire.
@@ -48,7 +48,7 @@ public sealed class PartyTowerCharacterizationTests
     internal static readonly IReadOnlyList<FrameMask> TowerMasks =
     [
         new(0x00, 0x008F, WireFrame.HeaderLength + 2, 4,
-            "ILLUSION_TOWER_MAP, body 2..5: room.Seed, derived from the run seed IllusionTowerProjectionDelivery " +
+            "ILLUSION_TOWER_MAP, body 2..5: room.Seed, derived from the run seed IllusionTowerProjectionDriver " +
             "draws from Random.Shared (IllusionTowerMapPayloadCodec.Encode)."),
     ];
 

@@ -10,14 +10,16 @@ namespace Dfo.Server.Application.Effects;
 
 internal sealed class ExplicitDeclaredNonRequestFootprint : IEffectFootprintRecorder
 {
-    private readonly CommandRequestContext.ProtocolNonEffect request;
+    private readonly CommandRequestContext request;
     private readonly DomainTransaction transaction;
     private readonly FrozenSet<SelectedSessionIdentity> owners;
     private bool active = true;
 
-    internal ExplicitDeclaredNonRequestFootprint(CommandRequestContext.ProtocolNonEffect request,
+    internal ExplicitDeclaredNonRequestFootprint(CommandRequestContext request,
         IReadOnlyList<SelectedSessionIdentity> owners, DomainTransaction transaction)
     {
+        if (request is not (CommandRequestContext.ProtocolNonEffect or CommandRequestContext.TrustedInternal))
+            throw new InvalidOperationException("Declared owners require a non-effect protocol or trusted internal request.");
         this.request = request;
         this.transaction = transaction;
         this.owners = owners.ToFrozenSet();

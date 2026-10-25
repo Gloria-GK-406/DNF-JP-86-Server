@@ -153,8 +153,8 @@ public sealed class IllusionTowerRewardProjectionTests
     private static IIllusionTowerDomainService Tower(ShopFixture fixture) =>
         fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
 
-    private static IllusionTowerProjectionDelivery Delivery(ShopFixture fixture) =>
-        fixture.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
+    private static IllusionTowerProjectionDriver Delivery(ShopFixture fixture) =>
+        TowerTestAlgorithms.Illusion(fixture);
 
     private static SelectedSessionIdentity ReplaceSession(ShopFixture fixture)
     {

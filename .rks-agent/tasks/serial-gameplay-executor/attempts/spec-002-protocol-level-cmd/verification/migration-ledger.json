@@ -9415,25 +9415,40 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "相同领域动作与独立 ordinary Write 事务，不包整轮或整run事务、不嵌套CMD；Leave以本次冻结owner声明DeclaredNonRequest，保逐member提交与dead-first。",
+          "old": "独立 Transactional fine，每动作一个领域事务；旧真实 timer Leave 在 LegacyFootprint 获取处回滚，合法回城有业务RED；授权旧算法接缝另证实际业务事务。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "application-service",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LeaveBossTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.LeaveBossTowerCommand",
@@ -9460,52 +9475,91 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+        ],
+        "mapping": "真实两个 ReturnSweep 最后 Leave 消费迁入对应 ReturnRunCommand；已迁 party／其他协议复用同一领域阶段。 五fine类型／handler／注册／生产调用清零；Refill保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "Boss每段保同frozen session与仅本段reporter实际physical，whole累计只取已声明引用；不补capture别的run／连接。",
+          "old": "Boss每fine冻结session保护，reporter实际physical独立Capture；source metadata/null不代表physical为空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "保原门和各段Tx；VC-B37～39具名逐项CMD交错、合法timer修复、whole已commit后默认typed及累计physical引用去重。无恢复／Self／Main新权能。",
+          "old": "原exact/current/run/version门、事务提交／回滚与投影顺序；逐fine故障仅保护原fine声明。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 63,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "相同领域动作与独立 ordinary Write 事务，不包整轮或整run事务、不嵌套CMD；Leave以本次冻结owner声明DeclaredNonRequest，保逐member提交与dead-first。",
+          "old": "独立 Transactional fine，每动作一个领域事务；旧真实 timer Leave 在 LegacyFootprint 获取处回滚，合法回城有业务RED；授权旧算法接缝另证实际业务事务。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 63,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "application-service",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LeaveIllusionTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.LeaveIllusionTowerCommand",
@@ -9532,31 +9586,55 @@
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 63,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+        ],
+        "mapping": "真实两个 ReturnSweep 最后 Leave 消费迁入对应 ReturnRunCommand；已迁 party／其他协议复用同一领域阶段。 五fine类型／handler／注册／生产调用清零；Refill保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 63,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 63,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "Illusion ordinary unit仍[]selected；Leave owner集合独立于保护，未扩selected。",
+          "old": "Illusion fine没有selected参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "保原门和各段Tx；VC-B37～39具名逐项CMD交错、合法timer修复、whole已commit后默认typed及累计physical引用去重。无恢复／Self／Main新权能。",
+          "old": "原exact/current/run/version门、事务提交／回滚与投影顺序；逐fine故障仅保护原fine声明。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -16521,25 +16599,40 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 40,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "相同领域动作与独立 ordinary Write 事务，不包整轮或整run事务、不嵌套CMD；原动作直接入共享 work-unit 阶段，无新增footprint权限。",
+          "old": "独立 Transactional fine，每动作一个领域事务；独立 Start／Synchronize 事务点。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 40,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "application-service",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.StartBossTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.StartBossTowerCommand",
@@ -16566,31 +16659,55 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 40,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+        ],
+        "mapping": "真实 Boss departure Ready→Start 最后消费者迁入 ProjectBossTowerDepartureCommand；已迁 loading／party 继续复用同一 Start 领域阶段。 五fine类型／handler／注册／生产调用清零；Refill保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 40,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 40,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "Boss每段保同frozen session与仅本段reporter实际physical，whole累计只取已声明引用；不补capture别的run／连接。",
+          "old": "Boss每fine冻结session保护，reporter实际physical独立Capture；source metadata/null不代表physical为空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "保原门和各段Tx；VC-B37～39具名逐项CMD交错、合法timer修复、whole已commit后默认typed及累计physical引用去重。无恢复／Self／Main新权能。",
+          "old": "原exact/current/run/version门、事务提交／回滚与投影顺序；逐fine故障仅保护原fine声明。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -16917,25 +17034,40 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 87,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "相同领域动作与独立 ordinary Write 事务，不包整轮或整run事务、不嵌套CMD；原动作直接入共享 work-unit 阶段，无新增footprint权限。",
+          "old": "独立 Transactional fine，每动作一个领域事务；独立 Start／Synchronize 事务点。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 87,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "application-service",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SynchronizeBossTowerLeaderCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SynchronizeBossTowerLeaderCommand",
@@ -16962,52 +17094,91 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 87,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+        ],
+        "mapping": "最后旧 PartyCoordinator 仅注册与组件测试消费；移除旧 bus 编排，原同步阶段由已迁 party whole直接复用。 五fine类型／handler／注册／生产调用清零；Refill保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 87,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 87,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "Boss每段保同frozen session与仅本段reporter实际physical，whole累计只取已声明引用；不补capture别的run／连接。",
+          "old": "Boss每fine冻结session保护，reporter实际physical独立Capture；source metadata/null不代表physical为空。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "保原门和各段Tx；VC-B37～39具名逐项CMD交错、合法timer修复、whole已commit后默认typed及累计physical引用去重。无恢复／Self／Main新权能。",
+          "old": "原exact/current/run/version门、事务提交／回滚与投影顺序；逐fine故障仅保护原fine声明。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "相同领域动作与独立 ordinary Write 事务，不包整轮或整run事务、不嵌套CMD；原动作直接入共享 work-unit 阶段，无新增footprint权限。",
+          "old": "独立 Transactional fine，每动作一个领域事务；独立 Start／Synchronize 事务点。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "application-service",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.SynchronizeIllusionTowerLeaderCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.SynchronizeIllusionTowerLeaderCommand",
@@ -17034,31 +17205,55 @@
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+        ],
+        "mapping": "最后旧 PartyCoordinator 仅注册与组件测试消费；移除旧 bus 编排，原同步阶段由已迁 party whole直接复用。 五fine类型／handler／注册／生产调用清零；Refill保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 75,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "Illusion ordinary unit仍[]selected；Leave owner集合独立于保护，未扩selected。",
+          "old": "Illusion fine没有selected参与者。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs"
+          ],
+          "new": "保原门和各段Tx；VC-B37～39具名逐项CMD交错、合法timer修复、whole已commit后默认typed及累计physical引用去重。无恢复／Self／Main新权能。",
+          "old": "原exact/current/run/version门、事务提交／回滚与投影顺序；逐fine故障仅保护原fine声明。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -37095,25 +37290,46 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerProjectionDelivery.cs",
-          "line": 855,
-          "source_sha256": "3216fdd2c885ea63df10800e4bc734ac6660fe56b1d0b4342c569020a1e5e119"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+          ],
+          "new": "纯producer四类Direct/Internal CMD：不pop的entry快照→逐head claim投影→此时clock扫描→逐due-run完整CMD；每member保独立Write Tx，新增arrival下轮。",
+          "old": "每tick raw GameplayTimerWork：drain departure→读取clock→due sweep；旧真实timer Leave缺footprint回滚，不能将授权旧算法当真实来源。"
+        }
+      ],
       "classification": "timer",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerProjectionDelivery.cs",
-          "line": 855,
-          "source_sha256": "3216fdd2c885ea63df10800e4bc734ac6660fe56b1d0b4342c569020a1e5e119"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+      ],
       "id": "source:timer:BossTowerReturnSweepService",
       "original": {
         "body": "original timer body and manual entry below; exact domain arguments/commit points pending per cluster",
@@ -37213,25 +37429,49 @@
         "target_input": "caller cancellation only at timer/manual entry; original body reads current domain state; typed immutable CMD argument design pending",
         "topic_state": "pending: preserve topic original watermarks; quota families period-only, do not add balance fingerprint"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerProjectionDelivery.cs",
-          "line": 855,
-          "source_sha256": "3216fdd2c885ea63df10800e4bc734ac6660fe56b1d0b4342c569020a1e5e119"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerProjectionDelivery.cs",
-          "line": 855,
-          "source_sha256": "3216fdd2c885ea63df10800e4bc734ac6660fe56b1d0b4342c569020a1e5e119"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+          ],
+          "new": "所有origin Timer／BodyOnly／physical null；Boss各unit仅原reporter物理声明、累计引用保护，Illusion仍[]；owner独立。concrete/domain/sink同queueowner，concrete/hosted/drain同source。",
+          "old": "来源SourceConnection／metadata为空；Boss reporter可独立捕获实际physical，Illusion无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+          ],
+          "new": "显式新根departure扫描depth0；departure与due扫描depth1，run为due子depth2。hosted busy整轮、手工不合并，None admission已入队排空；真实body健康取消完整cleanup后搬出，拒绝不丢待办；已Commit后OCE默认typed按item隔离（Illusion VC-B39差异）。",
+          "old": "原producer取消在job完成后重抛，不记Executor Error；逐due／departure隔离；hosted合并、手工独立。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -37455,25 +37695,46 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerProjectionDelivery.cs",
-          "line": 806,
-          "source_sha256": "98712455d28c3e4721d7685d4a8e81cc5c081a0b443d98eecb42720a2c7b7686"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+          ],
+          "new": "纯producer四类Direct/Internal CMD：不pop的entry快照→逐head claim投影→此时clock扫描→逐due-run完整CMD；每member保独立Write Tx，新增arrival下轮。",
+          "old": "每tick raw GameplayTimerWork：drain departure→读取clock→due sweep；旧真实timer Leave缺footprint回滚，不能将授权旧算法当真实来源。"
+        }
+      ],
       "classification": "timer",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerProjectionDelivery.cs",
-          "line": 806,
-          "source_sha256": "98712455d28c3e4721d7685d4a8e81cc5c081a0b443d98eecb42720a2c7b7686"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+      ],
       "id": "source:timer:IllusionTowerReturnSweepService",
       "original": {
         "body": "original timer body and manual entry below; exact domain arguments/commit points pending per cluster",
@@ -37569,25 +37830,49 @@
         "target_input": "caller cancellation only at timer/manual entry; original body reads current domain state; typed immutable CMD argument design pending",
         "topic_state": "pending: preserve topic original watermarks; quota families period-only, do not add balance fingerprint"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerProjectionDelivery.cs",
-          "line": 806,
-          "source_sha256": "98712455d28c3e4721d7685d4a8e81cc5c081a0b443d98eecb42720a2c7b7686"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerProjectionDelivery.cs",
-          "line": 806,
-          "source_sha256": "98712455d28c3e4721d7685d4a8e81cc5c081a0b443d98eecb42720a2c7b7686"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+          ],
+          "new": "所有origin Timer／BodyOnly／physical null；Boss各unit仅原reporter物理声明、累计引用保护，Illusion仍[]；owner独立。concrete/domain/sink同queueowner，concrete/hosted/drain同source。",
+          "old": "来源SourceConnection／metadata为空；Boss reporter可独立捕获实际physical，Illusion无selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnFrozenContextTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerPhysicalProtectionRegressionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnRoundTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnCancellationPolicyTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnClockOrderTests.cs"
+          ],
+          "new": "显式新根departure扫描depth0；departure与due扫描depth1，run为due子depth2。hosted busy整轮、手工不合并，None admission已入队排空；真实body健康取消完整cleanup后搬出，拒绝不丢待办；已Commit后OCE默认typed按item隔离（Illusion VC-B39差异）。",
+          "old": "原producer取消在job完成后重抛，不记Executor Error；逐due／departure隔离；hosted合并、手工独立。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

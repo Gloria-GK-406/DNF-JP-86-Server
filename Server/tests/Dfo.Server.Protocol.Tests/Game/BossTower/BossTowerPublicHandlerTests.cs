@@ -144,7 +144,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             BossTowerSnapshot run, SelectedSessionIdentity actor, Func<CancellationToken, ValueTask<BossTowerActionResult>> action, CancellationToken token) => name switch
         {
             "load-boss-tower" => ValueTask.FromResult(commands.Load(new(actor, run.RunId, run.Room.Version))),
-            "start-boss-tower" => commands.SendAsync(new StartBossTowerCommand(new(actor, run.RunId, run.Room.Version)), token),
+            "start-boss-tower" => commands.Start(new(actor, run.RunId, run.Room.Version)),
             _ => ValueTask.FromResult(new BossTowerActionResult(false, run)),
         };
     }
@@ -164,6 +164,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             ResultChoices++; var chosen = towers.Find(context.Session)! with { PendingResultChoice = option };
             towers.Put(chosen); return ValueTask.FromResult(new BossTowerActionResult(true, chosen));
         }
+        public ValueTask<BossTowerActionResult> Start(BossTowerActionContext context)
+        {
+            Starts++; var started = towers.Find(context.Session)!;
+            started = started with { Room = started.Room with { Phase = TowerRoomPhase.Fighting } }; towers.Put(started);
+            return ValueTask.FromResult(new BossTowerActionResult(true, started));
+        }
         public int Starts { get; private set; }
         public int ResultChoices { get; private set; }
         public int Tickets { get; private set; } = 3;
@@ -172,10 +178,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             object result;
             switch (command)
             {
-                case StartBossTowerCommand start:
-                    Starts++; var started = towers.Find(start.Context.Session)!;
-                    started = started with { Room = started.Room with { Phase = TowerRoomPhase.Fighting } }; towers.Put(started);
-                    result = new BossTowerActionResult(true, started); break;
                 case Dfo.Server.Protocol.Tests.Game.DungeonEntry.BossEntryRouteProbe entry:
                     Tickets--; var entered = PartyRun(Guid.NewGuid(), entry.Leader); towers.Put(entered);
                     result = new BossTowerEntryResult(null, entered, []); break;

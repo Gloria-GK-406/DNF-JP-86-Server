@@ -136,8 +136,13 @@ public abstract class CommandRequestContext
         }
         FailedIndependent(error, new object());
     }
+    internal ProducerCancellationObservation? ProducerCancellation { get; set; }
+    internal bool OperationsCompleted => !unitOpen && operations.All(operation => operation.IsCompleted);
+    internal bool HasOnlyFailure(object source, Exception error) => failures.Count == 1
+        && ReferenceEquals(failures[0].Source, source) && ReferenceEquals(failures[0].Error, error);
     internal void FailedIndependent(Exception error, object source)
     {
+        ProducerCancellation?.FailureRecorded(source);
         if (failures.Any(item => ReferenceEquals(item.Source, source))) return;
         failures.Add((source, error));
         failure = failure is null ? error : new AggregateException("Independent command failures.", failure, error);
@@ -150,6 +155,7 @@ public abstract class CommandRequestContext
     internal void EndScopeCleanup() => scopeCleanup = null;
     private void FailedDuringScope(ScopeCleanupPhase phase, Exception error)
     {
+        ProducerCancellation?.Invalidate();
         // Only reports from this cleanup phase can establish propagation. A matching body cause
         // is still independent when disposal throws it again.
         if (phase.Reports.Any(known => Includes(known, error))) return;

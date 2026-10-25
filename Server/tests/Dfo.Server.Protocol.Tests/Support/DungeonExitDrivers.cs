@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
@@ -27,7 +28,7 @@ internal class DungeonExitDriver(ISelectedSessionDomainService selected, ISelect
     IGameMessageSender sender, TownAreaProjectionDelivery town, ILogger logger, ITownAreaDomainService? areas = null,
     IPartyService? parties = null, PartyNotificationDelivery? partyNotifications = null, IDungeonCardPresentationControl? cards = null,
     IDungeonEntryIntentDomainService? intents = null, IOutboundOrdering? ordering = null,
-    BossTowerPartyCoordinator? bossParties = null, IllusionTowerPartyCoordinator? towerParties = null,
+    BossTowerPartyDriver? bossParties = null, IllusionTowerPartyDriver? towerParties = null,
     Func<SelectedSessionIdentity, DungeonRunId, bool, CancellationToken, ValueTask>? altarExit = null,
     IBossTowerDomainService? boss = null, Func<BossTowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
     : GameDungeonExitCommandHandler(selected, views, positions, runs, registry, parties!, areas!, null!, null!,
@@ -64,9 +65,9 @@ internal sealed class GiveUpDriver(ISelectedSessionDomainService selectedSession
     IGameMessageSender sender, TownAreaProjectionDelivery townAreaProjection, ILogger<GiveUpGameHandler> logger,
     ITownAreaDomainService? townAreas = null, IPartyService? parties = null, PartyNotificationDelivery? partyNotifications = null,
     IDungeonCardPresentationControl? cardPresentation = null,
-    IllusionTowerPartyCoordinator? towerParties = null,
+    IllusionTowerPartyDriver? towerParties = null,
     Func<SelectedSessionIdentity, DungeonRunId, bool, CancellationToken, ValueTask>? altarExit = null,
-    BossTowerPartyCoordinator? bossParties = null)
+    BossTowerPartyDriver? bossParties = null)
     : DungeonExitDriver(selectedSessions, currentViews, onlineCharacters, runs, deliveries, sender, townAreaProjection, logger,
         townAreas, parties, partyNotifications, cardPresentation, bossParties: bossParties, towerParties: towerParties, altarExit: altarExit);
 

@@ -402,3 +402,9 @@ restatement guard mutation导致真实物品逆向回65资产RED、fresh drag正
 仅闭 SetUserPosition／SetUserArea／Teleport 三消息、旧 Teleport fine 与 F-88-teleport；原始行与非目标保持。F-109移除只做空值校验的 represented 参数，无单独canonical行，不伪造额外闭合数。消息76/159、fine61/204、来源1/73、保护2/5、过渡0/8，T-007仍未整体收口。
 
 原普通位置独立保存、婚房先提交返回位置再记内存、101目的无持久写及Teleport单Main保持；精确guard、真实受众和投影顺序在CMD内。唯一可见差异VC-B10与实际故障、纯准备patch、19新增用例和诊断边界见 [TASK-41](../tasks/TASK-41.md) 及 [核验摘要](task41-verification.md)。
+
+## TASK-57：两塔内部返回来源
+
+五fine（StartBossTower、LeaveBossTower、SynchronizeBossTowerLeader、LeaveIllusionTower、SynchronizeIllusionTowerLeader）与两ReturnSweep来源共七行闭合，零消息；每塔四类Direct／Internal CMD，旧fine／Delivery／bus Coordinator清零，Refill保留。ordinary Write的owner与selected保护独立，原每member Tx及两塔取消差异保留；B9／P11具名交错、合法timer修复、whole累计physical及已commit取消默认typed见VC-B37～39与 `task57-verification.md`。
+
+仅本七行变化，全部original／行序／非target恒等；消息136/159、fine123/204、来源4/73（另12 retained），保护2/5、过渡0/8。最终主控旧回放及恢复后fresh八full9700pass＋原2fail＋18skip，实际八注册／同实例／五fine0、strict与八坏例通过；原日志和变更审计在 `evidence/task57`／`logs/task57-final-r2`。不以本Task关闭整个T-008／T-010或Spec B。

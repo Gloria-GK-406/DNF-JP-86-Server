@@ -26,7 +26,7 @@ using Dfo.Server.Testing;
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 internal static class TowerProjectionTestFactory
 {
-    internal static BossTowerProjectionDelivery BossLegacy(
+    internal static BossTowerProjectionDriver BossLegacy(
     IBossTowerDomainService towers,
     ICommandBus commands,
     ISelectedSessionDomainService sessions,
@@ -40,9 +40,9 @@ internal static class TowerProjectionTestFactory
     TownAreaProjectionDelivery townProjection,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<BossTowerProjectionDelivery> logger,
+    ILogger<BossTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null) => new(towers,commands,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger);
+    IOutboundOrdering? ordering = null) => new(towers,commands as ITowerAlgorithmMutations,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger);
     internal static BossEntry Boss(
     IBossTowerDomainService towers,
     ICommandBus commands,
@@ -57,7 +57,7 @@ internal static class TowerProjectionTestFactory
     TownAreaProjectionDelivery townProjection,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<BossTowerProjectionDelivery> logger,
+    ILogger<BossTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
     IOutboundOrdering? ordering = null) => new(new EntryHandlerDriver(characters,currentState,sessions,currentViews,parties,null!,new DungeonRunDeliveryRegistry(),entryIntents,null!,null!,null!,sender,connections,townProjection,commands,
         null,towers,ordering:ordering,housing:housing));
@@ -65,7 +65,7 @@ internal static class TowerProjectionTestFactory
     {
         public ValueTask<bool> EnterAsync(NetworkConnectionId id,SelectedSessionIdentity requester,PartySnapshot roster,DungeonEntryIntent intent,Action restore,CancellationToken token, byte requestMode=0, byte difficulty=0, byte practiceMode=0) => handler.EnterBoss(id,requester,roster,intent,restore,token,requestMode,difficulty,practiceMode);
     }
-    internal static IllusionTowerProjectionDelivery IllusionLegacy(
+    internal static IllusionTowerProjectionDriver IllusionLegacy(
     IIllusionTowerDomainService towers,
     ICommandBus commands,
     ISelectedSessionDomainService sessions,
@@ -79,9 +79,9 @@ internal static class TowerProjectionTestFactory
     TownAreaProjectionDelivery townProjection,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<IllusionTowerProjectionDelivery> logger,
+    ILogger<IllusionTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null) => new(towers,commands,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger);
+    IOutboundOrdering? ordering = null) => new(towers,commands as ITowerAlgorithmMutations,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger);
     internal static IllusionEntry Illusion(
     IIllusionTowerDomainService towers,
     ICommandBus commands,
@@ -96,7 +96,7 @@ internal static class TowerProjectionTestFactory
     TownAreaProjectionDelivery townProjection,
     TimeProvider clock,
     INetworkConnectionCloser connections,
-    ILogger<IllusionTowerProjectionDelivery> logger,
+    ILogger<IllusionTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
     IOutboundOrdering? ordering = null) => new(new EntryHandlerDriver(characters,currentState,sessions,currentViews,parties,null!,new DungeonRunDeliveryRegistry(),entryIntents,null!,null!,null!,sender,connections,townProjection,commands,
         towers,null,ordering:ordering,housing:housing));

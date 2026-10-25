@@ -83,7 +83,7 @@ internal partial class GameDungeonSelectionCommandHandler : PartyMutationProtoco
         var run = session is null ? null : bossTowers?.Find(session);
         if (session is null || run is null) return false;
         // Selection checks for an attached run before consuming a stale request; return does the reverse.
-        if (IllusionTowerProjectionDelivery.Stale(metadata)) return true;
+        if (TowerProtocol.IsStale(metadata)) return true;
         if (!BossTowerExact(session, run) || !run.Members.Any(member => member.Session == session && member.IsLeader)) return true;
         var participants = run.Members.Select(member => member.Session == session
             ? CaptureParticipant(member.Session) : new SelectedSessionRecipient(member.Session, null)).ToArray();
@@ -96,7 +96,7 @@ internal partial class GameDungeonSelectionCommandHandler : PartyMutationProtoco
         NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
     {
         if (bossTowers is null) return false;
-        if (IllusionTowerProjectionDelivery.Stale(metadata)) return true;
+        if (TowerProtocol.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var run = session is null ? null : bossTowers.Find(session);
         if (session is null || run is null) return false;
@@ -112,7 +112,7 @@ internal partial class GameDungeonSelectionCommandHandler : PartyMutationProtoco
         NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
     {
         if (illusionTowers is null) return false;
-        if (IllusionTowerProjectionDelivery.Stale(metadata)) return true;
+        if (TowerProtocol.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var run = session is null ? null : illusionTowers.Find(session);
         if (session is null || run is null) return false;

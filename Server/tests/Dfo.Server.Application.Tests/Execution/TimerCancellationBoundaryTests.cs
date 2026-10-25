@@ -12,7 +12,7 @@ public sealed class TimerCancellationBoundaryTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Producer_cancellation_is_rethrown_after_completion_and_current_typed_entry_logs_it_as_a_job_failure(bool typed)
+    public async Task Producer_cancellation_is_rethrown_after_completion_and_typed_entry_keeps_the_original_nonfailure_policy(bool typed)
     {
         using var producer = new CancellationTokenSource();
         producer.Cancel();
@@ -40,8 +40,8 @@ public sealed class TimerCancellationBoundaryTests
 
         Assert.Same(cause, failure);
         Assert.Equal(1, world.Queue.Calls);
-        Assert.Equal(typed, GameplayJob.EndedAJob(cause));
-        Assert.Equal(typed ? 1 : 0, log.Entries.Count(entry => entry.Level == LogLevel.Error));
+        Assert.False(GameplayJob.EndedAJob(cause));
+        Assert.Equal(0, log.Entries.Count(entry => entry.Level == LogLevel.Error));
         if (typed)
         {
             Assert.True(Assert.Single(world.Settings.Resources).Disposed);

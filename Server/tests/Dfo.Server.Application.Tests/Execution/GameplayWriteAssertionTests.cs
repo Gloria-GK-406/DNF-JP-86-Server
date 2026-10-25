@@ -745,7 +745,7 @@ public sealed class GameplayWriteAssertionTests
 
         AssertOneViolation(seen, "BossTowerDepartureProjectionQueue.Enqueue");
         TestGameplay.Run(() => departures.Enqueue(new BossTowerActionResult(false, null)));
-        Assert.True((bool)TestGameplay.Run(() => Invoke(departures, "TryDequeue", new object?[] { null }))!);
+        Assert.True(TestGameplay.Run(() => departures.TryClaim(Assert.Single(departures.SnapshotPending()), out _)));
     }
 
     [Fact]
@@ -758,7 +758,7 @@ public sealed class GameplayWriteAssertionTests
 
         AssertOneViolation(seen, "IllusionTowerDepartureProjectionQueue.Enqueue");
         TestGameplay.Run(() => departures.Enqueue(new TowerActionResult(false, null)));
-        Assert.True((bool)TestGameplay.Run(() => Invoke(departures, "TryDequeue", new object?[] { null }))!);
+        Assert.True(TestGameplay.Run(() => departures.TryClaim(Assert.Single(departures.SnapshotPending()), out _)));
     }
 
     [Fact]

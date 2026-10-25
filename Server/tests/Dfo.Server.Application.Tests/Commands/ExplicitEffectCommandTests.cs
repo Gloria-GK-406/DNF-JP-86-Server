@@ -545,7 +545,7 @@ public sealed class ExplicitEffectCommandTests(Xunit.Abstractions.ITestOutputHel
                 var input=WholeUse.Input(new(InventoryContainerType.Main,69),1000);var command=new MatrixProbe(new(world.Connection),input,Mode.ParameterGuard);
                 var registry=world.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(typeof(MatrixProbe));
                 var method=typeof(CommandBus).GetMethod("ExplicitAsync",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.MakeGenericMethod(typeof(int));
-                var execution=(ValueTask<int>)method.Invoke(world.Services.GetRequiredService<ICommandBus>(),[command,registry,command,null,CancellationToken.None])!;
+                var execution=(ValueTask<int>)method.Invoke(world.Services.GetRequiredService<ICommandBus>(),[command,registry,command,null,CancellationToken.None,null])!;
                 try{await execution;}finally{caller=settings.Context!.Request;callerState=settings.State;callerJob=settings.JobId;}
             }));
         }

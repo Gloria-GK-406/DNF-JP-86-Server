@@ -43,7 +43,7 @@ internal partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        if (IllusionTowerProjectionDelivery.Stale(message.Metadata))
+        if (TowerProtocol.IsStale(message.Metadata))
         {
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: stale inbound sequence ignored before consuming intent",

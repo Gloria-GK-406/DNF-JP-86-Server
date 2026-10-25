@@ -64,7 +64,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var delivery = Delivery(tower, sessions, commands, sender, closer);
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower,
                 commands.Parties,
                 sessions,
@@ -73,7 +73,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 delivery,
                 closer,
                 town,
-                NullLogger<BossTowerPartyCoordinator>.Instance);
+                NullLogger<BossTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                 first, allowVirtual: false, departureResponse: null, request.Token);
@@ -107,12 +107,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<BossTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                 session, allowVirtual: true, new GiveUpGameResponse(), request.Token);
@@ -162,12 +162,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance, runs: ordinaryRuns);
+                closer, town, NullLogger<BossTowerPartyDriver>.Instance, runs: ordinaryRuns);
 
             var result = await coordinator.TryLeaveAsync(
                 external, allowVirtual: false, departureResponse: null, CancellationToken.None);
@@ -206,11 +206,11 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 tower, parties, request, throwAfterParty: true);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower, commands.Parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<BossTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                     first, allowVirtual: false, departureResponse: null, CancellationToken.None)
@@ -249,12 +249,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<BossTowerPartyDriver>.Instance);
 
             var toReturned = await coordinator.TryTransferAsync(
                 first, targetSlot: 2, CancellationToken.None);
@@ -298,12 +298,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<BossTowerPartyDriver>.Instance);
 
             var unauthorized = await coordinator.TryRemoveAsync(
                 member, targetSlot: 0, CancellationToken.None);
@@ -342,11 +342,11 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var commands = new CoordinatorCommands(tower, parties, request);
         var closer = new Closer();
         var town = new NoTown();
-        var coordinator = new BossTowerPartyCoordinator(
+        var coordinator = new BossTowerPartyDriver(
             tower, commands.Parties, sessions, commands,
             Notifications(parties, sessions, town),
             Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+            closer, town, NullLogger<BossTowerPartyDriver>.Instance);
         // The third member leaves in a CMD that completes before the transfer CMD runs.
         TestGameplay.Run(() =>
         {
@@ -505,11 +505,11 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new BossTowerPartyCoordinator(
+            var coordinator = new BossTowerPartyDriver(
                 tower, commands.Parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<BossTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                 first, allowVirtual: false, departureResponse: null, CancellationToken.None);
@@ -647,10 +647,10 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var projections = new RecordingProjections();
         var delivery = new PartyNotificationDelivery(projections, new PartyProjectionStreamRegistry(),
             sessions, town, parties);
-        var coordinator = new BossTowerPartyCoordinator(
+        var coordinator = new BossTowerPartyDriver(
             tower, commands.Parties, sessions, commands, delivery,
             Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<BossTowerPartyCoordinator>.Instance);
+            closer, town, NullLogger<BossTowerPartyDriver>.Instance);
         return new(first, second, third, sessions, parties, commands, town, projections, delivery, coordinator);
     }
 
@@ -664,7 +664,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         NoTown Town,
         RecordingProjections Projections,
         PartyNotificationDelivery Delivery,
-        BossTowerPartyCoordinator Coordinator);
+        BossTowerPartyDriver Coordinator);
 
     private sealed class RecordingProjections : Dfo.Server.Testing.ProjectionEventService
     {
@@ -680,7 +680,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         }
     }
 
-    private static BossTowerProjectionDelivery Delivery(
+    private static BossTowerProjectionDriver Delivery(
         TowerDomain towers, Sessions sessions, ICommandBus commands, Sender sender,
         INetworkConnectionCloser? closer = null)
     {
@@ -701,7 +701,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             town,
             TimeProvider.System,
             closer ?? new Closer(),
-            NullLogger<BossTowerProjectionDelivery>.Instance);
+            NullLogger<BossTowerProjectionDriver>.Instance);
     }
 
     private static SelectedSessionIdentity Session(int value) => SelectedSessionIdentity.Create(
@@ -880,26 +880,24 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public bool ReleaseExact(SelectedSessionIdentity session) => values.Remove(session);
     }
 
-    private sealed class Commands(Guid? failingRun = null) : ICommandBus
+    private sealed class Commands(Guid? failingRun = null) : ICommandBus, ITowerAlgorithmMutations
     {
         public List<Guid> Attempts { get; } = [];
 
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
+        public ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context)
         {
-            var leave = Assert.IsType<LeaveBossTowerCommand>(command);
-            Attempts.Add(leave.Context.RunId);
-            if (leave.Context.RunId == failingRun)
-                return ValueTask.FromException<TResult>(new IOException("closed recipient"));
-            return ValueTask.FromResult((TResult)(object)new BossTowerActionResult(false, null));
+            Attempts.Add(context.RunId);
+            return context.RunId == failingRun ? ValueTask.FromException<BossTowerActionResult>(new IOException("closed recipient")) : ValueTask.FromResult(new BossTowerActionResult(false, null));
         }
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken token = default) where TResult : notnull => throw new NotSupportedException(command.GetType().Name);
+
     }
 
     private sealed class CoordinatorCommands(
         TowerDomain towers,
         IPartyService parties,
         CancellationTokenSource request,
-        bool throwAfterParty = false) : ICommandBus
+        bool throwAfterParty = false) : ICommandBus, ITowerAlgorithmMutations
     {
         public CancellationToken PartyToken { get; private set; }
         public IPartyService Parties => new Dfo.Server.Protocol.Tests.Game.Party.PartyMutationProbe(parties,
@@ -907,31 +905,17 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public int PartyCalls { get; private set; }
         public int SynchronizeCalls { get; private set; }
 
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            object result = command switch
-            {
-                LeaveBossTowerCommand leave => LeaveTower(leave),
-                SynchronizeBossTowerLeaderCommand synchronize =>
-                    Synchronize(synchronize),
-                _ => throw new NotSupportedException(command.GetType().Name),
-            };
-            return ValueTask.FromResult((TResult)result);
-        }
-
-        private BossTowerActionResult Synchronize(
-            SynchronizeBossTowerLeaderCommand command)
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken token = default) where TResult : notnull => throw new NotSupportedException(command.GetType().Name);
+        public ValueTask<BossTowerActionResult> BossSynchronize(BossTowerActionContext context, SelectedSessionIdentity leader)
         {
             SynchronizeCalls++;
-            return towers.Synchronize(command.Leader);
+            return ValueTask.FromResult(towers.Synchronize(leader));
         }
-
-        private BossTowerActionResult LeaveTower(LeaveBossTowerCommand command)
+        public ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context)
         {
-            var result = towers.Leave(command.Context.Session);
+            var result = towers.Leave(context.Session);
             request.Cancel();
-            return result;
+            return ValueTask.FromResult(result);
         }
 
     }

@@ -17,15 +17,15 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed partial class BossTowerDomainServiceTests
 {
     [Fact]
-    public async Task Test_only_authorized_second_member_uncertainty_fences_the_frozen_set_but_closes_only_that_fines_reporter_physical()
+    public async Task Actual_typed_second_member_uncertainty_fences_the_frozen_set_but_preserves_both_actually_declared_reporter_physicals()
     {
         var trace = new TowerReturnSourceTrace { FailureMode = "uncertain" };
-        var log = new RecordingExecutionLogger<BossTowerProjectionDelivery>();
+        var log = new RecordingExecutionLogger<BossTowerProjectionDriver>();
         using var fixture = Fixture(configure: services =>
         {
             trace.Install(services);
             services.AddSingleton<ISelectedCharacterCurrentViewDomainService, Task39NoReturnView>();
-            services.AddSingleton<ILogger<BossTowerProjectionDelivery>>(log);
+            services.AddSingleton<ILogger<BossTowerProjectionDriver>>(log);
         });
         SelectedSessionIdentity peer = null!;
         NetworkConnectionContext peerPhysical = null!;
@@ -41,9 +41,7 @@ public sealed partial class BossTowerDomainServiceTests
         });
         trace.FaultSession = peer;
         fixture.Clock.Advance(TimeSpan.FromSeconds(121));
-        await TestGameplay.RunAsync(fixture.Services, async () =>
-            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, async () =>
-                await fixture.Services.GetRequiredService<BossTowerProjectionDelivery>().SweepAsync(fixture.Clock.GetUtcNow(), default)));
+        await TowerTestSources.Tick(fixture, true);
 
         Assert.Equal([fixture.Session, peer], trace.Attempts.Select(attempt => attempt.Session));
         Assert.Equal(DomainTransactionCompletion.Committed, trace.Attempts[0].Transaction.Completion);
@@ -52,9 +50,9 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.Equal(107, fixture.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=3"));
         Assert.All(trace.Attempts, attempt =>
         {
-            var command = Assert.IsType<LeaveBossTowerCommand>(attempt.Command);
-            Assert.Equal(expected.RunId, command.Context.RunId);
-            Assert.Equal(expected.Room.Version, command.Context.RoomVersion);
+            var command = Assert.IsType<TowerUnitObserved>(attempt.Command);
+            Assert.Equal(expected.RunId, command.RunId);
+            Assert.Equal(expected.Room.Version, command.RoomVersion);
             Assert.Equal([fixture.Session, peer], command.Sessions);
         });
         Assert.Same(fixture.Connection, trace.Attempts[0].Recipient!.Connection);
@@ -65,16 +63,16 @@ public sealed partial class BossTowerDomainServiceTests
             Assert.True(selected.StandingOf(fixture.Session)!.Fenced);
             Assert.True(selected.StandingOf(peer)!.Fenced);
             var safety = fixture.Services.GetRequiredService<SelectedSessionSafety>();
-            Assert.False(safety.IsBlocked(fixture.Connection));
+            Assert.True(safety.IsBlocked(fixture.Connection));
             Assert.True(safety.IsBlocked(peerPhysical));
         });
-        Assert.Equal([peer.ConnectionId], fixture.Sender.Outbound.Closes);
+        Assert.Equal([fixture.Session.ConnectionId, peer.ConnectionId], fixture.Sender.Outbound.Closes);
         Assert.Same(trace.Cause, Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(
-            Assert.Single(log.Entries, entry => entry.Level == LogLevel.Warning).Exception).InnerException);
+            Assert.Single(trace.ExecutorLog.Entries, entry => entry.Level == LogLevel.Error).Exception).InnerException);
     }
 
     [Fact]
-    public async Task Test_only_authorized_loading_timeout_removes_dead_member_first_with_the_original_frozen_member_set()
+    public async Task Actual_typed_loading_timeout_removes_dead_member_first_with_the_original_frozen_member_set()
     {
         var trace = new TowerReturnSourceTrace();
         using var fixture = Fixture(configure: services =>
@@ -103,16 +101,14 @@ public sealed partial class BossTowerDomainServiceTests
         var before = fixture.Scalar("SELECT exp FROM characters WHERE character_id=1");
         var peerBefore = fixture.Scalar("SELECT exp FROM characters WHERE character_id=3");
         fixture.Clock.Advance(TimeSpan.FromSeconds(121));
-        await TestGameplay.RunAsync(fixture.Services, async () =>
-            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, async () =>
-                await fixture.Services.GetRequiredService<BossTowerProjectionDelivery>().SweepAsync(fixture.Clock.GetUtcNow(), default)));
+        await TowerTestSources.Tick(fixture, true);
 
         Assert.Equal([peer, fixture.Session], trace.Attempts.Select(attempt => attempt.Session));
         Assert.All(trace.Attempts, attempt =>
         {
-            var command = Assert.IsType<LeaveBossTowerCommand>(attempt.Command);
-            Assert.Equal(expected.RunId, command.Context.RunId);
-            Assert.Equal(expected.Room.Version, command.Context.RoomVersion);
+            var command = Assert.IsType<TowerUnitObserved>(attempt.Command);
+            Assert.Equal(expected.RunId, command.RunId);
+            Assert.Equal(expected.Room.Version, command.RoomVersion);
             Assert.Equal(expected.Members.Select(member => member.Session), command.Sessions);
             Assert.Equal(DomainTransactionCompletion.Committed, attempt.Transaction.Completion);
             Assert.False(Assert.IsType<BossTowerActionResult>(attempt.Result).SettlementCreated);

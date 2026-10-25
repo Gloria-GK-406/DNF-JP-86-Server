@@ -44,7 +44,7 @@ public sealed partial class BossTowerDomainServiceTests
             await TestGameplay.RunAsync(f.Services, async () =>
                 await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, async () =>
                 {
-                    var result = await f.Services.GetRequiredService<BossTowerPartyCoordinator>().TryLeaveAsync(
+                    var result = await TowerTestAlgorithms.BossParty(f).TryLeaveAsync(
                         f.Session, false, null, default);
                     Assert.True(result.Handled); Assert.True(result.Result.Succeeded);
                 }));
@@ -168,7 +168,7 @@ public sealed partial class BossTowerDomainServiceTests
                 await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, async () =>
                 {
                     var departing = remove ? peer : f.Session;
-                    var old = await f.Services.GetRequiredService<ICommandBus>().SendAsync(new LeaveBossTowerCommand(Context(run, departing), false) { Sessions = [f.Session, peer] });
+                    var old = await new TowerTestAlgorithms.Mutations(f).BossLeave(Context(run, departing));
                     Assert.True(old.Changed);
                 }));
         }
@@ -221,7 +221,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await TestGameplay.RunAsync(f.Services, async () =>
                 await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, async () =>
                 {
-                    var result = await f.Services.GetRequiredService<IllusionTowerPartyCoordinator>().TryLeaveAsync(
+                    var result = await TowerTestAlgorithms.IllusionParty(f).TryLeaveAsync(
                         f.Session, false, null, default);
                     Assert.True(result.Handled); Assert.True(result.Result.Succeeded);
                 }));
@@ -343,7 +343,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, async () =>
                 {
                     var departing = remove ? peer : f.Session;
-                    var old = await f.Services.GetRequiredService<ICommandBus>().SendAsync(new LeaveIllusionTowerCommand(Context(run, departing), false));
+                    var old = await new TowerTestAlgorithms.Mutations(f).IllusionLeave(Context(run, departing));
                     Assert.True(old.Changed);
                 }));
         }

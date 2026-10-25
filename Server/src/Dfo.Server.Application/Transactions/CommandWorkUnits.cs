@@ -15,6 +15,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
     {
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
+        request.ProducerCancellation?.RunnerAttempted();
         var operation = RunSelfSettledAsync(context, declaration, action, cancellationToken).AsTask();
         request.TrackOperation(operation);
         return new(operation);
@@ -214,6 +215,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
     {
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
+        request.ProducerCancellation?.RunnerAttempted();
         var operation = RunAsync(context, declaration, action, readOnly, recoverCommit, ct).AsTask();
         request.TrackOperation(operation);
         return new(operation);
@@ -259,8 +261,8 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             if (declaration.Footprint == CommandFootprintMode.DeclaredNonRequest)
             {
                 if (readOnly || recoverCommit || declaration.Kind != CommandWorkUnitKind.Ordinary
-                    || request is not CommandRequestContext.ProtocolNonEffect)
-                    throw new InvalidOperationException("DeclaredNonRequest requires an ordinary writable non-effect protocol request.");
+                    || request is not (CommandRequestContext.ProtocolNonEffect or CommandRequestContext.TrustedInternal))
+                    throw new InvalidOperationException("DeclaredNonRequest requires an ordinary writable non-effect protocol or trusted internal request.");
                 owners = [.. declaration.FootprintOwners ?? throw new InvalidOperationException("DeclaredNonRequest requires explicit owners.")];
                 if (owners.Length == 0 || owners.Any(owner => owner is null) || owners.Distinct().Count() != owners.Length)
                     throw new InvalidOperationException("DeclaredNonRequest owners must be nonempty, exact and unique.");
@@ -280,12 +282,18 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                 footprint = nonRequest = new((CommandRequestContext.ProtocolNonEffect)request, participants[0],
                     (DomainTransaction)transaction.Transaction, safety);
             if (declaration.Footprint == CommandFootprintMode.DeclaredNonRequest)
-                footprint = declaredNonRequest = new((CommandRequestContext.ProtocolNonEffect)request, owners,
+                footprint = declaredNonRequest = new(request, owners,
                     (DomainTransaction)transaction.Transaction);
             unit = new CommandWorkUnit(transaction.Transaction, request, footprint);
             TResult result;
             stage = FailureStage.Action;
             try { result = await action(unit, ct).ConfigureAwait(false); stage = FailureStage.PostAction; }
+            catch (OperationCanceledException cancellation)
+            {
+                if (!readOnly && !recoverCommit && declaration.Kind == CommandWorkUnitKind.Ordinary)
+                    request.ProducerCancellation?.ObserveAction(request, lease, ct, cancellation);
+                throw;
+            }
             finally { nonRequest?.Close(); declaredNonRequest?.Close(); }
             request.DemandCurrent();
             foreach (var participant in participants) safety.DemandCurrent(participant);
@@ -347,7 +355,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             if (lease is not null)
             {
                 try { await lease.AbortAsync(error).ConfigureAwait(false); }
-                catch (Exception cleanup) { error = cleanup; }
+                catch (Exception cleanup) { request.ProducerCancellation?.Invalidate(); error = cleanup; }
                 if (!readOnly && lease.Completion == DomainTransactionCompletion.Committed)
                     request.ConfirmCommit(participants);
                 if (lease.Completion == DomainTransactionCompletion.Uncertain || TransactionOutcomeUncertainException.Contains(error))
@@ -369,9 +377,14 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             main?.EndMain();
             if (lease is not null)
             {
-                try { await lease.DisposeAsync().ConfigureAwait(false); }
+                try
+                {
+                    await lease.DisposeAsync().ConfigureAwait(false);
+                    request.ProducerCancellation?.CompleteAction(lease);
+                }
                 catch (Exception cleanup)
                 {
+                    request.ProducerCancellation?.Invalidate();
                     var retained = unit?.RollbackCause ?? commitRollbackCause;
                     var error = !recordedFailure && retained is not null
                         ? new AggregateException("Rollback completed but lease cleanup failed.", retained, cleanup) : cleanup;
@@ -384,6 +397,19 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
 
     private enum FailureStage { Setup, Action, PostAction, GuardPropagation, BusinessRollback, PostRollback, RecoveredValidation }
 
+    internal static IEnumerable<SelectedSessionRecipient> ProtectionTargets(IReadOnlyList<SelectedSessionRecipient> declared)
+    {
+        var physicalSessions = declared.Where(p => p.Connection is not null).Select(p => p.Session).ToHashSet();
+        var seen = new List<SelectedSessionRecipient>();
+        foreach (var target in declared)
+        {
+            if (target.Connection is null && physicalSessions.Contains(target.Session)) continue;
+            if (seen.Any(previous => previous.Session == target.Session && ReferenceEquals(previous.Connection, target.Connection))) continue;
+            seen.Add(target);
+            yield return target;
+        }
+    }
+
     internal static async ValueTask<Exception> FailAsync(CommandRequestContext request, Exception cause, SelectedSessionSafety safety, string operation)
     {
         request.Failed(cause);
@@ -392,7 +418,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         if (request.HasCommittedUnit && !TransactionOutcomeUncertainException.Contains(error))
             error = new TransactionOutcomeUncertainException(TransactionUncertaintyReason.PostCommitPublicationFailure,
                 "A command failed after a confirmed work-unit commit.", error);
-        foreach (var recipient in request.CommittedParticipants.DistinctBy(p => p.Session))
+        foreach (var recipient in ProtectionTargets(request.CommittedParticipants))
         {
             try { await safety.BlockAsync(recipient, error, operation).ConfigureAwait(false); }
             catch (Exception cleanup) { error = new AggregateException("Settlement fencing failed.", error, cleanup); }

@@ -99,7 +99,7 @@ internal partial class GameGetItemCommandHandler : PartyMutationProtocolCommandH
         // Boss lookup precedes stale; Illusion's stale gate below precedes lookup, even outside a tower.
         var session=sessions.FindByConnection(connectionId);var expected=session is null?null:bossTowers?.Find(session);
         if(session is null||expected is null)return false;
-        if(BossTowerProjectionDelivery.Stale(metadata))return true;
+        if(TowerProtocol.IsStale(metadata))return true;
         if(!BossTowerExact(session,expected))return true;
         var members=expected.Members.Select(member=>member.Session).ToArray();var captured=CaptureConnections(members);
         var participants=members.Select(member=>member==session?CaptureParticipant(member)with{Metadata=metadata}:new SelectedSessionRecipient(member,null,metadata)).ToArray();
@@ -137,7 +137,7 @@ internal partial class GameGetItemCommandHandler : PartyMutationProtocolCommandH
     private async ValueTask<bool> PickupIllusionAsync(CommandExecutionContext execution,NetworkConnectionId connectionId,
         GameMessageMetadata metadata,ushort groundUid,CancellationToken token)
     {
-        if(IllusionTowerProjectionDelivery.Stale(metadata))return true;
+        if(TowerProtocol.IsStale(metadata))return true;
         var session=sessions.FindByConnection(connectionId);var expected=session is null?null:illusionTowers?.Find(session);
         if(session is null||expected is null)return false;
         if(!IllusionTowerExact(session,expected))return true;

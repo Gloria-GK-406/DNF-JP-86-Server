@@ -76,7 +76,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
     {
         var request = execution.Request ?? throw new InvalidOperationException("A party protocol request is required.");
         request.DemandCurrent();
-        if (IllusionTowerProjectionDelivery.Stale(metadata)) return false;
+        if (TowerProtocol.IsStale(metadata)) return false;
         var caller = sessions.FindByConnection(dispatch.Connection.ConnectionId);
         if (caller is null) return false;
 

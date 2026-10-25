@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
@@ -24,11 +25,12 @@ public sealed partial class BossTowerDomainServiceTests
     public async Task Return_source_attempts_both_due_runs_with_real_bus_and_independent_transactions()
     {
         var trace = new TowerReturnSourceTrace();
-        var log = new RecordingExecutionLogger<BossTowerProjectionDelivery>();
+        var log = new RecordingExecutionLogger<BossTowerProjectionDriver>();
         using var f = Fixture(configure: services =>
         {
             trace.Install(services);
-            services.AddSingleton<ILogger<BossTowerProjectionDelivery>>(log);
+            services.AddSingleton<Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService, Task39NoReturnView>();
+            services.AddSingleton<ILogger<BossTowerProjectionDriver>>(log);
         });
         SelectedSessionIdentity peer = null!;
         await TestGameplay.RunAsync(f.Services, async () =>
@@ -47,8 +49,8 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.Equal(2, trace.Attempts.Select(attempt => attempt.Transaction).Distinct().Count());
         Assert.All(trace.Attempts, attempt =>
         {
-            Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, attempt.Transaction.Completion);
-            Assert.Equal("The legacy invocation has no explicit footprint source.", attempt.Error!.Message);
+            Assert.Equal(DomainTransactionCompletion.Committed, attempt.Transaction.Completion);
+            Assert.Null(attempt.Error);
             Assert.Null(attempt.Chain.SourceConnection);
             Assert.Equal(GameplayCallSource.Timer, attempt.Chain.Source);
             Assert.Null(attempt.Recipient!.Metadata);
@@ -56,11 +58,11 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.Same(f.Connection, trace.Attempts[0].Recipient!.Connection);
         Assert.All(log.Entries.Where(entry => entry.Level == LogLevel.Warning), entry =>
             Assert.Equal("The legacy invocation has no explicit footprint source.", entry.Exception!.Message));
-        Assert.Equal(2, log.Entries.Count(entry => entry.Level == LogLevel.Warning));
+        Assert.DoesNotContain(trace.ExecutorLog.Entries, entry => entry.Level == LogLevel.Error);
         TestGameplay.Run(f.Services, () =>
         {
-            Assert.NotNull(Tower(f).Find(f.Session));
-            Assert.NotNull(Tower(f).Find(peer));
+            Assert.Null(Tower(f).Find(f.Session));
+            Assert.Null(Tower(f).Find(peer));
         });
         Assert.Empty(f.Sender.Outbound.Entries);
     }
@@ -72,11 +74,12 @@ public sealed partial class IllusionTowerDomainServiceTests
     public async Task Return_source_attempts_both_due_runs_with_real_bus_and_independent_transactions()
     {
         var trace = new TowerReturnSourceTrace();
-        var log = new RecordingExecutionLogger<IllusionTowerProjectionDelivery>();
+        var log = new RecordingExecutionLogger<IllusionTowerProjectionDriver>();
         using var f = Fixture(configure: services =>
         {
             trace.Install(services);
-            services.AddSingleton<ILogger<IllusionTowerProjectionDelivery>>(log);
+            services.AddSingleton<Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService, Task39NoReturnView>();
+            services.AddSingleton<ILogger<IllusionTowerProjectionDriver>>(log);
         });
         SelectedSessionIdentity peer = null!;
         await TestGameplay.RunAsync(f.Services, async () =>
@@ -101,17 +104,17 @@ public sealed partial class IllusionTowerDomainServiceTests
         Assert.Equal(2, trace.Attempts.Select(attempt => attempt.Transaction).Distinct().Count());
         Assert.All(trace.Attempts, attempt =>
         {
-            Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, attempt.Transaction.Completion);
-            Assert.Equal("The legacy invocation has no explicit footprint source.", attempt.Error!.Message);
+            Assert.Equal(DomainTransactionCompletion.Committed, attempt.Transaction.Completion);
+            Assert.Null(attempt.Error);
             Assert.Null(attempt.Recipient);
             Assert.Null(attempt.Chain.SourceConnection);
             Assert.Equal(GameplayCallSource.Timer, attempt.Chain.Source);
         });
-        Assert.Equal(2, log.Entries.Count(entry => entry.Level == LogLevel.Warning));
+        Assert.DoesNotContain(trace.ExecutorLog.Entries, entry => entry.Level == LogLevel.Error);
         TestGameplay.Run(f.Services, () =>
         {
-            Assert.NotNull(Tower(f).Find(f.Session));
-            Assert.NotNull(Tower(f).Find(peer));
+            Assert.Null(Tower(f).Find(f.Session));
+            Assert.Null(Tower(f).Find(peer));
         });
         Assert.Empty(f.Sender.Outbound.Entries);
     }
@@ -120,6 +123,7 @@ public sealed partial class IllusionTowerDomainServiceTests
 internal sealed class TowerReturnSourceTrace
 {
     internal List<TowerReturnSourceAttempt> Attempts { get; } = [];
+    internal RecordingExecutionLogger<GameplayExecutor> ExecutorLog { get; } = new();
     internal string? FailureMode { get; set; }
     internal SelectedSessionIdentity? FaultSession { get; set; }
     internal IOException Cause { get; } = new("tower return controlled participant or scope failure");
@@ -130,7 +134,9 @@ internal sealed class TowerReturnSourceTrace
     {
         services.AddSingleton(this);
         services.AddScoped<TowerReturnScopeResource>();
-        services.AddScoped(typeof(ICommandPipelineBehavior<>), typeof(TowerReturnSourceObserver<>));
+        services.AddSingleton<CommandWorkUnits>();
+        services.AddScoped<ICommandWorkUnits, TowerReturnSourceObserver>();
+        services.AddSingleton<ILogger<GameplayExecutor>>(ExecutorLog);
     }
 }
 
@@ -138,50 +144,52 @@ internal sealed record TowerReturnSourceAttempt(SelectedSessionIdentity Session,
     GameplayCallChain Chain, SelectedSessionRecipient? Recipient)
 {
     internal Exception? Error { get; set; }
-    internal ICommand? Command { get; set; }
+    internal object? Command { get; set; }
     internal object? Result { get; set; }
     internal CancellationToken Token { get; set; }
 }
 
-internal sealed class TowerReturnSourceObserver<T>(TowerReturnSourceTrace trace, IDomainTransactionAccessor transactions,
-    SelectedSessionCommandScope selected, ICharacterDomainService characters, TowerReturnScopeResource resource) : ICommandPipelineBehavior<T> where T : notnull
+internal sealed record TowerUnitObserved(SelectedSessionIdentity Session, Guid RunId, long RoomVersion, IReadOnlyList<SelectedSessionIdentity> Sessions);
+internal sealed class TowerReturnSourceObserver(CommandWorkUnits actual, TowerReturnSourceTrace trace,
+    IDomainTransactionAccessor transactions, ICharacterDomainService characters, TowerReturnScopeResource resource) : ICommandWorkUnits
 {
-    public int Order => 61;
-    public async ValueTask<T> ExecuteAsync(CommandExecutionContext context, ICommand command,
-        CommandExecutionDelegate<T> next, CancellationToken token)
-    {
-        var session = command switch
+    public ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+        Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken token = default) where T : notnull =>
+        actual.WriteAsync(context, declaration, async (unit, ct) =>
         {
-            LeaveBossTowerCommand boss => boss.Context.Session,
-            LeaveIllusionTowerCommand illusion => illusion.Context.Session,
-            StartBossTowerCommand start => start.Context.Session,
-            _ => null,
-        };
-        if (session is null) return await next();
-        var attempt = new TowerReturnSourceAttempt(session, Assert.IsType<DomainTransaction>(transactions.Current),
-            GameplayJob.Current!.Value, selected.Current) { Command = command, Token = token };
-        trace.Attempts.Add(attempt);
-        trace.Steps.Add(command.GetType().Name);
-        try
-        {
-            var result = await next();
-            attempt.Result = result;
-            if (session == trace.CancelAfterSession && trace.CancelAfterCommit is { } cancellation)
-                attempt.Transaction.RegisterAfterCommit(new object(), _ => { cancellation.Cancel(); return ValueTask.CompletedTask; });
-            if (trace.FailureMode is not null)
+            trace.Steps.Add(declaration.Name);
+            var result = await action(unit, ct);
+            if (result is not BossTowerActionResult && result is not Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult) return result;
+            var owners = declaration.FootprintOwners ?? declaration.Participants.Select(p => p.Session).ToArray();
+            var remaining = result is BossTowerActionResult b ? b.Run!.Members : ((Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult)(object)result).Run!.Members;
+            var reporter = declaration.Participants.FirstOrDefault(p => p.Connection is not null);
+            var run = result is BossTowerActionResult boss ? (boss.Run!.RunId, boss.Run.Room.Version)
+                : (((Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult)(object)result).Run!.RunId, ((Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult)(object)result).Run!.Room.Version);
+            var prior = trace.Attempts.Where(previous => previous.Chain.Id == GameplayJob.Current!.Value.Id
+                && previous.Command is TowerUnitObserved observed && observed.RunId == run.Item1).Select(previous => previous.Session);
+            var session = reporter?.Session ?? owners.Except(remaining.Select(member => member.Session)).Except(prior).Single();
+            var attempt = new TowerReturnSourceAttempt(session, Assert.IsType<DomainTransaction>(transactions.Current), GameplayJob.Current!.Value, reporter)
+                { Command = new TowerUnitObserved(session, run.Item1, run.Item2, owners), Token = ct, Result = result };
+            trace.Attempts.Add(attempt);
+            try
             {
-                await characters.Get(session.CharacterId).AddGoldAsync(7, token);
-                if (session == trace.FaultSession)
+                if (session == trace.CancelAfterSession && trace.CancelAfterCommit is { } cancellation)
+                    attempt.Transaction.RegisterAfterCommit(new object(), _ => { cancellation.Cancel(); return ValueTask.CompletedTask; });
+                if (trace.FailureMode is not null)
                 {
-                    if (trace.FailureMode == "uncertain")
-                        attempt.Transaction.Enlist(new object(), () => new TowerReturnNonFallibleFailure(trace.Cause));
-                    if (trace.FailureMode == "scope") resource.Failure = trace.Cause;
+                    await characters.Get(session.CharacterId).AddGoldAsync(7, ct);
+                    if (session == trace.FaultSession)
+                    {
+                        if (trace.FailureMode == "uncertain") attempt.Transaction.Enlist(new object(), () => new TowerReturnNonFallibleFailure(trace.Cause));
+                        if (trace.FailureMode == "scope") resource.Failure = trace.Cause;
+                    }
                 }
+                return result;
             }
-            return result;
-        }
-        catch (Exception error) { attempt.Error = error; throw; }
-    }
+            catch (Exception error) { attempt.Error = error; throw; }
+        }, token);
+    public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => actual.WriteResultAsync(c, d, a, ct);
+    public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => actual.ReadOnlyAsync(c, d, a, ct);
 }
 
 internal sealed class TowerReturnScopeResource : IAsyncDisposable

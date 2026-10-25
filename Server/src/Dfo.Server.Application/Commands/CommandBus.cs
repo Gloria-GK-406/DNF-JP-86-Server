@@ -65,14 +65,35 @@ internal sealed class CommandBus(
         var registration = registry.GetRegistration(command.GetType());
         if (registration.Route != CommandRouteKind.Internal)
             return ValueTask.FromException<TResult>(new InvalidOperationException("Only an internal command accepts an internal origin."));
-        return queue.RunAsync(new GameplayWork<TResult>(GameplayShardKey.World, origin.Chain, origin.CommandType,
-            token => ExplicitAsync(command, registration, null, origin,
-                origin.Cancellation == InternalCommandCancellation.BodyOnly ? cancellationToken : token), origin.SourceConnection),
-            origin.Cancellation == InternalCommandCancellation.BodyOnly ? CancellationToken.None : cancellationToken);
+        ExceptionDispatchInfo? cancelled = null;
+        var bodyOnly = origin.Cancellation == InternalCommandCancellation.BodyOnly;
+        var queued = queue.RunAsync(new GameplayWork<TResult>(GameplayShardKey.World, origin.Chain, origin.CommandType,
+            async token =>
+            {
+                var observation = bodyOnly ? new ProducerCancellationObservation(cancellationToken) : null;
+                try
+                {
+                    return await ExplicitAsync(command, registration, null, origin,
+                        bodyOnly ? cancellationToken : token, observation).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException error) when (observation?.TryMarshal(error) == true)
+                {
+                    cancelled = ExceptionDispatchInfo.Capture(error);
+                    return default!;
+                }
+            }, origin.SourceConnection), bodyOnly ? CancellationToken.None : cancellationToken);
+        return bodyOnly ? new ValueTask<TResult>(CompleteAsync()) : queued;
+
+        async Task<TResult> CompleteAsync()
+        {
+            var result = await queued.ConfigureAwait(false);
+            cancelled?.Throw();
+            return result;
+        }
     }
 
     private async ValueTask<TResult> ExplicitAsync<TResult>(ICommand<TResult> command, CommandHandlerRegistration registration,
-        IProtocolCommand? protocol, InternalCommandOrigin? origin, CancellationToken ct) where TResult : notnull
+        IProtocolCommand? protocol, InternalCommandOrigin? origin, CancellationToken ct, ProducerCancellationObservation? cancellation = null) where TResult : notnull
     {
         entry.Begin();
         var previousDepth = DispatchDepth.Value;
@@ -121,7 +142,7 @@ internal sealed class CommandBus(
                 if (request is not null)
                 {
                     try { GameplayJob.DemandHealthy(); }
-                    catch (Exception error) { request.Failed(error); }
+                    catch (Exception error) { cancellation?.Invalidate(); request.Failed(error); }
                     failure = request.Failure ?? failure;
                 }
                 if (failure is not null && request is not null && safety is not null)
@@ -131,7 +152,11 @@ internal sealed class CommandBus(
             }
             finally { DispatchDepth.Value = previousDepth; }
         }
-        if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
+        if (failure is not null)
+        {
+            cancellation?.Finalize(request, failure);
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        }
         return result;
 
         async ValueTask<TResult> InvokeAsync(IServiceProvider services)
@@ -172,7 +197,12 @@ internal sealed class CommandBus(
                 else request = new CommandRequestContext.ProtocolNonEffect(protocol.Dispatch, protocol.Message, protocol.Frame, valid);
             }
             else
-                request = new CommandRequestContext.TrustedInternal(origin ?? throw new InvalidOperationException("Missing internal origin."));
+            {
+                var internalRequest = new CommandRequestContext.TrustedInternal(origin ?? throw new InvalidOperationException("Missing internal origin."));
+                request = internalRequest;
+                request.ProducerCancellation = cancellation;
+                cancellation?.Bind(internalRequest);
+            }
             request.RegistrationExits = registration.RegistrationExits ?? [];
             request.SelfSettlement = registration.SelfSettlement;
             var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType,
@@ -194,7 +224,15 @@ internal sealed class CommandBus(
                 return default!;
             }
             var invoker = (ICommandInvoker<TResult>)services.GetRequiredService(registration.InvokerType);
-            var result = await invoker.InvokeAsync(context, command, ct).ConfigureAwait(false);
+            TResult result;
+            try { result = await invoker.InvokeAsync(context, command, ct).ConfigureAwait(false); }
+            catch (OperationCanceledException error)
+            {
+                cancellation?.ObserveDirectBody(request, ct, error);
+                throw;
+            }
+            // Normal body return cannot attest propagation of a discarded or caught action failure.
+            cancellation?.Invalidate();
             request.DemandFinished();
             return result;
         }

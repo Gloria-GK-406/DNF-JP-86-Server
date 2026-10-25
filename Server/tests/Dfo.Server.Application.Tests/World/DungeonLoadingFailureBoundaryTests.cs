@@ -94,6 +94,8 @@ public sealed partial class BossTowerDomainServiceTests
         {
             Assert.Equal(new[] { "load-boss-tower", "start-boss-tower" }, probe.Declarations.Select(d => d.Name));
             Assert.All(probe.Declarations, d => { Assert.Equal(CommandWorkUnitKind.Ordinary, d.Kind); Assert.Equal(2, d.Participants.Count); Assert.Equal(CommandFootprintMode.None, d.Footprint); });
+            Assert.Null(probe.Declarations[0].Participants.Single(p => p.Session == f.Session).Connection);
+            Assert.Same(f.Connection, probe.Declarations[1].Participants.Single(p => p.Session == f.Session).Connection);
         }
         TestGameplay.Run(f.Services, () =>
         {
@@ -121,7 +123,8 @@ public sealed partial class BossTowerDomainServiceTests
         }
         if (fault == 2) await source.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Equal(fault != 0 ? 1 : 0, source.CloseCalls);
-        Assert.Equal(fault == 2 ? 1 : 0, leader.CloseCalls);
+        if (whole && fault == 1) await leader.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal(fault == 2 || whole && fault == 1 ? 1 : 0, leader.CloseCalls);
     }
 }
 

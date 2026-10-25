@@ -88,6 +88,10 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
     internal static readonly IReadOnlyDictionary<Type, Exemption> Exemptions = new Dictionary<Type, Exemption>
     {
         // E1: execution machinery and call-chain metadata.
+        [typeof(Dfo.Server.Protocol.Game.BossTowerReturnSweepService)] = new(Category.E1, ProducerRow,
+            "typed timer round admission, coalescing and producer drain; owns no tower world state"),
+        [typeof(Dfo.Server.Protocol.Game.IllusionTowerReturnSweepService)] = new(Category.E1, ProducerRow,
+            "typed timer round admission, coalescing and producer drain; owns no tower world state"),
         [typeof(Dfo.Server.Application.Execution.CoalescingGameplaySource)] = new(Category.E1, ProducerRow,
             "a timer source's one in-flight mark, named by the row; decides only whether a tick is enqueued"),
         [typeof(Dfo.Server.Application.Execution.GameplayExecutor)] = new(Category.E1, ProducerRow,

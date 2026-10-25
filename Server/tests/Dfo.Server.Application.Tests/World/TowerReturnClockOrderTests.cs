@@ -46,11 +46,11 @@ public sealed partial class BossTowerDomainServiceTests
 
         await fixture.Services.GetServices<IHostedService>().OfType<BossTowerReturnSweepService>().Single().TickAsync(default);
 
-        var leave = Assert.Single(trace.Attempts, attempt => attempt.Command is LeaveBossTowerCommand);
+        var leave = Assert.Single(trace.Attempts, attempt => attempt.Command is TowerUnitObserved observed && observed.Session == fixture.Session);
         Assert.Equal(fixture.Session, leave.Session);
-        Assert.Equal("The legacy invocation has no explicit footprint source.", leave.Error!.Message);
-        Assert.True(trace.Steps.IndexOf("departure-projection") < trace.Steps.IndexOf(nameof(StartBossTowerCommand)));
-        Assert.Equal("clock", trace.Steps[trace.Steps.IndexOf(nameof(LeaveBossTowerCommand)) - 1]);
+        Assert.Null(leave.Error);
+        Assert.True(trace.Steps.IndexOf("departure-projection") < trace.Steps.IndexOf("party-start-boss-tower"));
+        Assert.Equal("clock", trace.Steps[trace.Steps.IndexOf("party-leave-boss-tower") - 1]);
     }
 }
 
@@ -96,9 +96,9 @@ public sealed partial class IllusionTowerDomainServiceTests
 
         var leave = Assert.Single(trace.Attempts);
         Assert.Equal(fixture.Session, leave.Session);
-        Assert.Equal("The legacy invocation has no explicit footprint source.", leave.Error!.Message);
-        Assert.True(trace.Steps.IndexOf("departure-projection") < trace.Steps.IndexOf(nameof(LeaveIllusionTowerCommand)));
-        Assert.Equal("clock", trace.Steps[trace.Steps.IndexOf(nameof(LeaveIllusionTowerCommand)) - 1]);
+        Assert.Null(leave.Error);
+        Assert.True(trace.Steps.IndexOf("departure-projection") < trace.Steps.IndexOf("party-leave-illusion-tower"));
+        Assert.Equal("clock", trace.Steps[trace.Steps.IndexOf("party-leave-illusion-tower") - 1]);
     }
 }
 

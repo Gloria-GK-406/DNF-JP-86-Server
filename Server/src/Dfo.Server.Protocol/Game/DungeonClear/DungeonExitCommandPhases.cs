@@ -49,7 +49,7 @@ internal partial class GameDungeonExitCommandHandler
     {
         var expected = bossTowers?.Find(session);
         if (expected is null) return false;
-        if (BossTowerProjectionDelivery.Stale(metadata)) return true;
+        if (TowerProtocol.IsStale(metadata)) return true;
         if (!BossTowerExact(session, expected)) return true;
         if (state == 2)
         {
@@ -75,7 +75,7 @@ internal partial class GameDungeonExitCommandHandler
     protected virtual async ValueTask<bool> SelectIllusionReturnAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
     {
-        if (IllusionTowerProjectionDelivery.Stale(metadata)) return true;
+        if (TowerProtocol.IsStale(metadata)) return true;
         var expected = illusionTowers?.Find(session);
         if (expected is null) return false;
         if (state != EplpCommandHandler.LeaveState) return true;

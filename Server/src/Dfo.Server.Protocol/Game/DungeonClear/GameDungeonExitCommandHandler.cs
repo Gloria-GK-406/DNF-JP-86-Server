@@ -260,7 +260,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
         GiveUpGameRequest message,
         CancellationToken cancellationToken)
     {
-        if (IllusionTowerProjectionDelivery.Stale(message.Metadata))
+        if (TowerProtocol.IsStale(message.Metadata))
             return;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)

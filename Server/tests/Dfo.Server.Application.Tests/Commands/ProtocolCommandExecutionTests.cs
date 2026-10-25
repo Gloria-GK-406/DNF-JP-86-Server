@@ -433,11 +433,17 @@ public sealed class ProtocolCommandExecutionTests
         public ValueTask<int> Internal(InternalProbe command) => Bus.SendInternalAsync(command, Origin());
         public ValueTask DisposeAsync() => Services.DisposeAsync();
     }
-    internal sealed class ScopedResource : IDisposable
+    internal sealed class ScopedResource : IDisposable, IAsyncDisposable
     {
         private int disposed;
+        public Exception? CleanupFailure { get; set; }
         public bool Disposed => Volatile.Read(ref disposed) != 0;
         public void Dispose() => Volatile.Write(ref disposed, 1);
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return CleanupFailure is { } error ? ValueTask.FromException(error) : ValueTask.CompletedTask;
+        }
     }
     internal sealed class CountingQueue(IGameplayQueue inner) : IGameplayQueue
     {

@@ -476,10 +476,12 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyClientIdRegistry.Project(PartySnapshot)"] = W,
 
         // The two tower departure queues
+        ["BossTowerDepartureProjectionQueue.SnapshotPending()"] = R,
+        ["IllusionTowerDepartureProjectionQueue.SnapshotPending()"] = R,
         ["BossTowerDepartureProjectionQueue.Enqueue(BossTowerActionResult)"] = W,
-        ["BossTowerDepartureProjectionQueue.TryDequeue(BossTowerActionResult&)"] = W,
+        ["BossTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, BossTowerActionResult&)"] = W,
         ["IllusionTowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
-        ["IllusionTowerDepartureProjectionQueue.TryDequeue(TowerActionResult&)"] = W,
+        ["IllusionTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
 
         // JoustBetHandler has no listed member: its protected HandleMessageAsync asserts.
     };

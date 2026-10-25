@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed partial class BossTowerDomainServiceTests
 {
     [Fact]
-    public async Task Test_only_authorized_sweep_returns_members_with_None_after_final_leave_commit_cancels_the_producer()
+    public async Task Actual_typed_sweep_returns_members_with_None_after_final_leave_commit_cancels_the_producer()
     {
         var trace = new TowerReturnSourceTrace();
         var view = new TowerReturnCancellationView();
@@ -32,7 +32,7 @@ public sealed partial class BossTowerDomainServiceTests
 public sealed partial class IllusionTowerDomainServiceTests
 {
     [Fact]
-    public async Task Test_only_authorized_sweep_keeps_the_producer_token_for_return_after_final_leave_commit()
+    public async Task Actual_typed_sweep_keeps_the_producer_token_for_return_after_final_leave_commit()
     {
         var trace = new TowerReturnSourceTrace();
         var view = new TowerReturnCancellationView();
@@ -86,12 +86,7 @@ internal static class TowerReturnCancellationCases
         fixture.Clock.Advance(TimeSpan.FromMinutes(5));
         trace.CancelAfterCommit = producer;
         trace.CancelAfterSession = peer;
-        var failure = await Record.ExceptionAsync(() => TestGameplay.RunAsync(fixture.Services, async () =>
-            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, async () =>
-            {
-                if (boss) await fixture.Services.GetRequiredService<BossTowerProjectionDelivery>().SweepAsync(fixture.Clock.GetUtcNow(), producer.Token);
-                else await fixture.Services.GetRequiredService<IllusionTowerProjectionDelivery>().SweepAsync(fixture.Clock.GetUtcNow(), producer.Token);
-            })));
+        var failure = await Record.ExceptionAsync(() => TowerTestSources.Tick(fixture, boss, producer.Token));
 
         Assert.True(producer.IsCancellationRequested);
         Assert.Equal([fixture.Session, peer], trace.Attempts.Select(attempt => attempt.Session));
@@ -108,7 +103,9 @@ internal static class TowerReturnCancellationCases
         }
         else
         {
-            Assert.Equal(producer.Token, Assert.IsType<OperationCanceledException>(failure).CancellationToken);
+            Assert.Null(failure);
+            var error = Assert.Single(trace.ExecutorLog.Entries, entry => entry.Level == Microsoft.Extensions.Logging.LogLevel.Error).Exception;
+            Assert.Equal(producer.Token, Assert.IsType<OperationCanceledException>(Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(error).InnerException).CancellationToken);
             Assert.Equal(producer.Token, Assert.Single(view.Reads).Token);
         }
         TestGameplay.Run(fixture.Services, () =>

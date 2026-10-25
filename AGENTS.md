@@ -295,7 +295,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 **生产者只入队、等待。** 两个 dispatcher、定时源、事件组循环、GM／HTTP 路由过滤器与启动服务只组织作业、
 入队并等它完成，不读写玩法状态、不开写事务、不发包。入站 dispatcher 等作业完成之后传输才读这条连接的
 下一帧，所以一条连接在队列里至多有一个待执行的入站作业；同一个定时源的上一个作业没完成，不再入队
-（`CoalescingGameplaySource`）。经 `RegisterTelemetryMessageHandler` 注册的纯遥测 handler 是唯一留在收包回调里的 handler。
+（旧源由 `CoalescingGameplaySource` 合并，两塔 typed 来源合并完整扫描与逐项提交轮次；手工 Tick 不合并）。经 `RegisterTelemetryMessageHandler` 注册的纯遥测 handler 是唯一留在收包回调里的 handler。
 
 **玩法路径上不加门、信号量与「锁内复查、重试」循环**，串行只靠这条队列（`LockRemovalSourceTests` 按名字与文件守着）。
 短 `lock(sync)`、PVF 内容源与规则初始化的锁保留；执行器外的口令哈希限流保留它的信号量。
@@ -322,9 +322,9 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 **失败与日志。** 作业体失败由执行器记一条 `Error`，带调用链与来源连接。生产者与中间件拿到失败时用
 `GameplayJob.EndedAJob` 认出这是作业体自己的失败，不再记 `Error`（降为 `Debug`，带额外事实的记不附异常的
-`Warning`）；新写的生产者照此写 catch。定时源的每一拍都经 `GameplayTimerWork.TickAsync`，作业失败在那里吸收，
+`Warning`）；新写的生产者照此写 catch。旧定时源经 `GameplayTimerWork.TickAsync`，作业失败在那里吸收，
 记一条不附异常的 `Warning`，服务继续下一拍；绕过它的定时循环一次作业失败就结束托管服务，宿主随之停下
-（`TimerSourceJobFailureTests` 按组合里的每个 `BackgroundService` 守着）。拒绝入队（执行器已停止、深度超限）不是作业体失败，照旧由生产者记。
+（`TimerSourceJobFailureTests` 按组合里的每个 `BackgroundService` 守着）。两塔来源只提交 typed 内部 CMD：离场身份快照不出队，逐项精确领取后投影，再取时钟扫描并逐 run 返回；各项失败隔离，项间允许正常 FIFO 请求插入。来源 drain 等完整已接受轮次完成。拒绝入队（执行器已停止、深度超限）不是作业体失败，照旧由生产者记。
 细粒度命令失败时 `CommandLoggingBehavior` 另记一条 `Error`。这是过渡形态：读日志时，同一次失败今天可能有两条 `Error`。
 
 **发件箱。** 作业内的一切出站——`IGameMessageSender`、`INetworkMessageSender`、`IEventService.ProjectAsync`、
@@ -382,7 +382,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | SetUserPosition／SetUserArea／Teleport | [源码](Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs)；`TASK-41`。 |
 | EnterSelectDungeon／BackToVillage／PrepareCycleDungeonEntry | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs)；`TASK-42`。 |
 | SelectDungeon／MirrorDungeonEntry（含Boss／Illusion入场） | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs)；`TASK-43`。 |
-| FinishLoading／MoveMap／IllusionTowerStage（含两塔加载与换层） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.cs)；`TASK-44`，Boss Start离场消费者保留。 |
+| FinishLoading／MoveMap／IllusionTowerStage（含两塔加载与换层） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.cs)；`TASK-44`。 |
 | MonsterDeath（普通／物件／两塔击杀） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs)；`TASK-45`，祭坛仅具名纯唤醒接缝，Timer来源保持。 |
 | GetItem（普通／两塔地面拾取） | [源码](Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs)；`TASK-46`，默认whole生命周期与拾取精确关闭差异见 Spec VC-B19／20。 |
 | CharacterDeath／UseRevivalCoin（普通／两塔死亡与复活） | [源码](Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs)；`TASK-47`，普通死亡零事务，默认whole生命周期与两塔死亡精确关闭见 Spec VC-B21／22。 |
@@ -419,6 +419,7 @@ admission，前置拒绝不 claim Main，Pending 结束为 Rejected，不升权�
 提交后错误仍默认失败，旧 Write／ReadOnly 不取得此恢复；窄 action catch 只覆盖各协议原有的动作恢复范围
 （包括已有的普通存储异常映射），带 cause 回滚确认后才映原失败 ACK，不覆盖 guard／sticky／cleanup 失败。
 Mailbox 的领域自结算恢复另见上表，不扩成通用 catch 白名单。
+受信任内部 CMD 与普通 NonEffect 可在 ordinary Write 显式声明非空唯一 owner 集合，owner 与失败保护参与者分开；不会取得 Main、raw 或恢复许可。累计保护保留每个实际声明的精确 session／physical 引用，先前的 null 不能遮掉后续 physical，不查在线状态补充目标。BodyOnly 仅将已证明的单独原 body／健康 action 取消在完整清理和队列完成后重抛给 producer；独立 lease／scope、guard、typed 与已提交后错误仍是作业失败。
 `RequireRollback` 保留业务原因；独立 rollback／cleanup／后置 current 错误即使复用同一异常仍是独立发生，
 本层已签名失败的正常同栈传播则不得重复登记（[TASK-31](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-31.md)）。
 

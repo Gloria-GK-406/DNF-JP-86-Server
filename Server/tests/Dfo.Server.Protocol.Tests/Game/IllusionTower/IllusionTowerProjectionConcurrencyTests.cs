@@ -57,7 +57,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var delivery = Delivery(tower, sessions, commands, sender, closer);
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower,
                 commands.Parties,
                 sessions,
@@ -66,7 +66,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 delivery,
                 closer,
                 town,
-                NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                NullLogger<IllusionTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                 first, allowVirtual: false, departureResponse: null, request.Token);
@@ -100,12 +100,12 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<IllusionTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                 session, allowVirtual: true, new GiveUpGameResponse(), request.Token);
@@ -155,12 +155,12 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance, runs: ordinaryRuns);
+                closer, town, NullLogger<IllusionTowerPartyDriver>.Instance, runs: ordinaryRuns);
 
             var result = await coordinator.TryLeaveAsync(
                 external, allowVirtual: false, departureResponse: null, CancellationToken.None);
@@ -199,11 +199,11 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 tower, parties, request, throwAfterParty: true);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower, commands.Parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<IllusionTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                     first, allowVirtual: false, departureResponse: null, CancellationToken.None)
@@ -242,12 +242,12 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<IllusionTowerPartyDriver>.Instance);
 
             var toReturned = await coordinator.TryTransferAsync(
                 first, targetSlot: 2, CancellationToken.None);
@@ -291,12 +291,12 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<IllusionTowerPartyDriver>.Instance);
 
             var unauthorized = await coordinator.TryRemoveAsync(
                 member, targetSlot: 0, CancellationToken.None);
@@ -335,11 +335,11 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var commands = new CoordinatorCommands(tower, parties, request);
         var closer = new Closer();
         var town = new NoTown();
-        var coordinator = new IllusionTowerPartyCoordinator(
+        var coordinator = new IllusionTowerPartyDriver(
             tower, commands.Parties, sessions, commands,
             Notifications(parties, sessions, town),
             Delivery(tower, sessions, commands, new Sender(), closer),
-            closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+            closer, town, NullLogger<IllusionTowerPartyDriver>.Instance);
         // The third member leaves in a CMD that completes before the transfer CMD runs.
         TestGameplay.Run(() =>
         {
@@ -500,11 +500,11 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
-            var coordinator = new IllusionTowerPartyCoordinator(
+            var coordinator = new IllusionTowerPartyDriver(
                 tower, commands.Parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<IllusionTowerPartyDriver>.Instance);
 
             var result = await coordinator.TryLeaveAsync(
                 first, allowVirtual: false, departureResponse: null, CancellationToken.None);
@@ -542,7 +542,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 new SameState(), null!, null!, new Intents(), outbound.Game,
                 Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
                 TimeProvider.System, outbound.Closer,
-                NullLogger<IllusionTowerProjectionDelivery>.Instance, ordering: outbound.Ordering);
+                NullLogger<IllusionTowerProjectionDriver>.Instance, ordering: outbound.Ordering);
 
             Assert.True(await delivery.EnterAsync(
                 requester.ConnectionId, requester, roster, Dfo.Server.Abstractions.World.DungeonEntryIntent.Interactive,
@@ -632,7 +632,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.IllusionLegacy(
                 towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
                 new Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery(null!, sessions, views, null!, null!, outbound.Game, null!),
-                TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDelivery>.Instance);
+                TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDriver>.Instance);
             await delivery.ProjectCommittedDepartureAsync(towers.Leave(leaving), returning: null, response: null, CancellationToken.None);
         });
         await outbound.SettledAsync();
@@ -656,7 +656,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             new SameState(), null!, null!, new Intents(), outbound.Game,
             Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
             TimeProvider.System, outbound.Closer,
-            NullLogger<IllusionTowerProjectionDelivery>.Instance, ordering: outbound.Ordering);
+            NullLogger<IllusionTowerProjectionDriver>.Instance, ordering: outbound.Ordering);
         return await delivery.EnterAsync(
             requester.ConnectionId, requester, roster, Dfo.Server.Abstractions.World.DungeonEntryIntent.Interactive, () => { }, CancellationToken.None);
     }
@@ -716,7 +716,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 : throw new NotSupportedException(command.GetType().Name);
     }
 
-    private static IllusionTowerProjectionDelivery Delivery(
+    private static IllusionTowerProjectionDriver Delivery(
         TowerDomain towers, Sessions sessions, ICommandBus commands, Sender sender,
         INetworkConnectionCloser? closer = null)
     {
@@ -737,7 +737,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             town,
             TimeProvider.System,
             closer ?? new Closer(),
-            NullLogger<IllusionTowerProjectionDelivery>.Instance);
+            NullLogger<IllusionTowerProjectionDriver>.Instance);
     }
 
     private static SelectedSessionIdentity Session(int value) => SelectedSessionIdentity.Create(
@@ -910,26 +910,24 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         public bool ReleaseExact(SelectedSessionIdentity session) => values.Remove(session);
     }
 
-    private sealed class Commands(Guid? failingRun = null) : ICommandBus
+    private sealed class Commands(Guid? failingRun = null) : ICommandBus, ITowerAlgorithmMutations
     {
         public List<Guid> Attempts { get; } = [];
 
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
+        public ValueTask<TowerActionResult> IllusionLeave(TowerActionContext context)
         {
-            var leave = Assert.IsType<LeaveIllusionTowerCommand>(command);
-            Attempts.Add(leave.Context.RunId);
-            if (leave.Context.RunId == failingRun)
-                return ValueTask.FromException<TResult>(new IOException("closed recipient"));
-            return ValueTask.FromResult((TResult)(object)new TowerActionResult(false, null));
+            Attempts.Add(context.RunId);
+            return context.RunId == failingRun ? ValueTask.FromException<TowerActionResult>(new IOException("closed recipient")) : ValueTask.FromResult(new TowerActionResult(false, null));
         }
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken token = default) where TResult : notnull => throw new NotSupportedException(command.GetType().Name);
+
     }
 
     private sealed class CoordinatorCommands(
         TowerDomain towers,
         IPartyService parties,
         CancellationTokenSource request,
-        bool throwAfterParty = false) : ICommandBus
+        bool throwAfterParty = false) : ICommandBus, ITowerAlgorithmMutations
     {
         public CancellationToken PartyToken { get; private set; }
         public IPartyService Parties => new Dfo.Server.Protocol.Tests.Game.Party.PartyMutationProbe(parties,
@@ -937,31 +935,17 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         public int PartyCalls { get; private set; }
         public int SynchronizeCalls { get; private set; }
 
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            object result = command switch
-            {
-                LeaveIllusionTowerCommand leave => LeaveTower(leave),
-                SynchronizeIllusionTowerLeaderCommand synchronize =>
-                    Synchronize(synchronize),
-                _ => throw new NotSupportedException(command.GetType().Name),
-            };
-            return ValueTask.FromResult((TResult)result);
-        }
-
-        private TowerActionResult Synchronize(
-            SynchronizeIllusionTowerLeaderCommand command)
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken token = default) where TResult : notnull => throw new NotSupportedException(command.GetType().Name);
+        public ValueTask<TowerActionResult> IllusionSynchronize(TowerActionContext context, SelectedSessionIdentity leader)
         {
             SynchronizeCalls++;
-            return towers.Synchronize(command.Leader);
+            return ValueTask.FromResult(towers.Synchronize(leader));
         }
-
-        private TowerActionResult LeaveTower(LeaveIllusionTowerCommand command)
+        public ValueTask<TowerActionResult> IllusionLeave(TowerActionContext context)
         {
-            var result = towers.Leave(command.Context.Session);
+            var result = towers.Leave(context.Session);
             request.Cancel();
-            return result;
+            return ValueTask.FromResult(result);
         }
 
     }

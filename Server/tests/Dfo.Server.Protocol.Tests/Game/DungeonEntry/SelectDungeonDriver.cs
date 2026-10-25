@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -35,8 +36,8 @@ internal static class SelectDungeonDriver
     EntryProjectionOptions? entryProjection = null,
     ILogger<EntryProjectionOptions>? entryProjectionLogger = null,
     IIllusionTowerDomainService? illusionTower = null,
-    IllusionTowerProjectionDelivery? illusionTowerProjection = null, ISaoTowerDomainService? sao = null,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, BossTowerProjectionDelivery? bossProjection = null) => new(characters,currentState,selectedSessions,currentViews,parties,runs,deliveryRegistry,entryIntents,visits,questLogs,fatigue,sender,connectionCloser,townAreaProjection,
+    IllusionTowerProjectionDriver? illusionTowerProjection = null, ISaoTowerDomainService? sao = null,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, BossTowerProjectionDriver? bossProjection = null) => new(characters,currentState,selectedSessions,currentViews,parties,runs,deliveryRegistry,entryIntents,visits,questLogs,fatigue,sender,connectionCloser,townAreaProjection,
         entryProjection?.Commands, illusionTower,bossTower,sao,entryProjection?.Ordering,entryProjection?.Inventory);
 }
 internal sealed class EntryProjectionOptions

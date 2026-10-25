@@ -18,8 +18,9 @@ public sealed partial class ProtocolNonEffectFootprintTests
         IReadOnlyList<SelectedSessionRecipient>? participants = null) =>
         new("declared-nonrequest", participants ?? [], Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: owners);
 
-    [Fact]
-    public async Task Declared_owners_are_frozen_without_becoming_selected_safety_participants()
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Declared_owners_are_frozen_without_becoming_selected_safety_participants(bool internalSource)
     {
         using var world = World(out var state);
         var peer = state.Actor! with { AccountId = new(70), CharacterId = new(71), WireUserId = 71, ConnectionId = new("not-current") };
@@ -36,7 +37,7 @@ public sealed partial class ProtocolNonEffectFootprintTests
             cap.DemandEffects(new(inserted.AccountId, inserted.CharacterId, inserted));
             return ValueTask.FromResult(1);
         });
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Send(world, state, Mode.Declared).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => SendDeclaredVariant(world, state, internalSource).AsTask());
         Assert.True(reachedFrozenOwner);
         Assert.Equal(100000, world.Gold);
         Assert.False(world.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(state.Actor!)!.Fenced);
@@ -45,7 +46,7 @@ public sealed partial class ProtocolNonEffectFootprintTests
     public enum DeclaredSource { ReadOnly, Main, Internal, Selected, Rejected, MissingOwners, EmptyOwners, DuplicateOwners, OwnersWithoutMode, RecoverCommit, MissingRequest }
 
     [Theory]
-    [InlineData(DeclaredSource.ReadOnly)] [InlineData(DeclaredSource.Main)] [InlineData(DeclaredSource.Internal)]
+    [InlineData(DeclaredSource.ReadOnly)] [InlineData(DeclaredSource.Main)]
     [InlineData(DeclaredSource.Selected)] [InlineData(DeclaredSource.Rejected)] [InlineData(DeclaredSource.MissingOwners)]
     [InlineData(DeclaredSource.EmptyOwners)] [InlineData(DeclaredSource.DuplicateOwners)]
     [InlineData(DeclaredSource.OwnersWithoutMode)] [InlineData(DeclaredSource.RecoverCommit)] [InlineData(DeclaredSource.MissingRequest)]
@@ -179,8 +180,9 @@ public sealed partial class ProtocolNonEffectFootprintTests
         Assert.Equal(100000, world.Gold);
     }
 
-    [Fact]
-    public async Task A_declared_guard_on_a_foreign_job_fails_both_the_caller_job_and_the_real_owner_request()
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task A_declared_guard_on_a_foreign_job_fails_both_the_caller_job_and_the_real_owner_request(bool internalSource)
     {
         using var world = World(out var state);
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -190,7 +192,7 @@ public sealed partial class ProtocolNonEffectFootprintTests
         {
             cap = unit.Footprint; ready.TrySetResult(); await release.Task; return 1;
         });
-        var pending = Send(world, state, Mode.Declared).AsTask();
+        var pending = SendDeclaredVariant(world, state, internalSource).AsTask();
         await ready.Task.WaitAsync(TimeSpan.FromSeconds(5));
         try
         {
@@ -205,8 +207,9 @@ public sealed partial class ProtocolNonEffectFootprintTests
         Assert.Equal(100000, world.Gold);
     }
     [Theory]
-    [InlineData("after-action")] [InlineData("prepare")] [InlineData("next-unit")]
-    public async Task Declared_action_closes_before_prepare_or_any_later_unit(string phase)
+    [InlineData("after-action", false)] [InlineData("prepare", false)] [InlineData("next-unit", false)]
+    [InlineData("after-action", true)] [InlineData("prepare", true)] [InlineData("next-unit", true)]
+    public async Task Declared_action_closes_before_prepare_or_any_later_unit(string phase, bool internalSource)
     {
         using var world = World(out var state);
         state.DeclaredAction = async (ctx, units, characters) =>
@@ -230,7 +233,7 @@ public sealed partial class ProtocolNonEffectFootprintTests
             previous!.DemandActive(state.Actor!);
             return 1;
         };
-        var error = await Record.ExceptionAsync(() => Send(world, state, Mode.Declared).AsTask());
+        var error = await Record.ExceptionAsync(() => SendDeclaredVariant(world, state, internalSource).AsTask());
         if (phase == "prepare") Assert.IsType<InvalidOperationException>(error);
         else Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(error);
         Assert.Equal(phase == "prepare" ? 100000 : 99999, world.Gold);
@@ -273,5 +276,8 @@ public sealed partial class ProtocolNonEffectFootprintTests
         Assert.DoesNotContain(replacement.ConnectionId, world.Sender.Outbound.Closes);
         Assert.Contains(world.Connection.ConnectionId, world.Sender.Outbound.Closes);
     }
+    private static ValueTask<int> SendDeclaredVariant(Dfo.Server.Application.Tests.Inventory.ShopFixture world, Settings state, bool internalSource) => internalSource
+        ? world.Services.GetRequiredService<ICommandBus>().SendInternalAsync(new InternalCap(Mode.Declared), Dfo.Server.Application.Tests.Commands.ProtocolCommandExecutionTests.Origin())
+        : Send(world, state, Mode.Declared);
 
 }

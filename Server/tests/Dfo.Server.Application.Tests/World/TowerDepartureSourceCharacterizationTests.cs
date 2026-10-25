@@ -78,7 +78,7 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.Equal(107, f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=5"));
         Assert.Equal(failure is "action" or "commit" ? 100 : 107,
             f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=3"));
-        var warning = Assert.Single(log.Entries, entry => entry.Level == LogLevel.Warning);
+        var warning = Assert.Single(trace.ExecutorLog.Entries, entry => entry.Level == LogLevel.Error);
         if (failure is "action" or "commit")
         {
             var cause = Assert.IsType<SqliteException>(warning.Exception);
@@ -100,7 +100,7 @@ public sealed partial class BossTowerDomainServiceTests
         else
         {
             Assert.Equal(DomainTransactionCompletion.Committed, failed.Transaction.Completion);
-            Assert.Same(trace.Cause, warning.Exception);
+            Assert.Same(trace.Cause, Assert.IsType<TransactionOutcomeUncertainException>(warning.Exception).InnerException);
         }
         TestGameplay.Run(f.Services, () =>
         {
@@ -108,11 +108,11 @@ public sealed partial class BossTowerDomainServiceTests
                 Tower(f).Find(first)!.Room.Phase);
             Assert.Equal(TowerRoomPhase.Fighting, Tower(f).Find(second)!.Room.Phase);
             var selected = f.Services.GetRequiredService<ISelectedSessionDomainService>();
-            Assert.Equal(failure == "uncertain", selected.StandingOf(first)!.Fenced);
+            Assert.Equal(failure is "uncertain" or "scope", selected.StandingOf(first)!.Fenced);
             Assert.False(selected.StandingOf(second)!.Fenced);
         });
         Assert.Contains(f.Sender.Outbound.MessagesFor(second.ConnectionId), message => message is LoadingCompleteNotification);
-        Assert.Equal(failure == "uncertain" ? new[] { first.ConnectionId } : [], f.Sender.Outbound.Closes);
+        Assert.Equal(failure is "uncertain" or "scope" ? new[] { first.ConnectionId } : [], f.Sender.Outbound.Closes);
         Assert.Null(failed.Chain.SourceConnection);
         Assert.Null(failed.Recipient!.Metadata);
         Assert.NotNull(failed.Recipient.Connection);
