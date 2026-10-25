@@ -84,7 +84,7 @@ Only the final row may have an empty `Git result`; that row is the active child.
 
 | # | Attempt | TaskContract | Outcome | Affects | Result | Git result |
 |---:|---|---|---|---|---|---|
-| `1` | `spec-001` | `attempts/spec-001-executor-outbox-lock-removal/TaskContract.md` | 结果 A：单执行器、提交后发件箱与删锁（收编，Spec 基准 `a02bce46`） | `SC-1, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12` | `attempts/spec-001-executor-outbox-lock-removal/spec-result.md` | `e6f55558182800b656b14c4b863a52fe672ad921` |
+| `1` | `spec-001` | `attempts/spec-001-executor-outbox-lock-removal/TaskContract.md` | 结果 A：单执行器、提交后发件箱与删锁（收编，Spec 基准 `a02bce46`） | `SC-1, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12` | `attempts/spec-001-executor-outbox-lock-removal/spec-result.md` | `2079d98d179ffd423298f18dba358949cd7ae4f1`（改写前 `e6f55558`） |
 
 | `2` | `spec-002` | `attempts/spec-002-protocol-level-cmd/TaskContract.md` | 结果 B：协议级CMD、显式请求上下文、工作单元与过渡清零 | `SC-2, SC-8B, SC-9B, SC-10B, SC-11B, SC-13` | | |
 
@@ -101,3 +101,9 @@ Only the final row may have an empty `Git result`; that row is the active child.
 - ready子契约r1、同目录task-contract-review approved（精确路径/revision匹配）、Single子路由、父r4、canonical containment及depends_on空列表校验均通过，错误列表[]；激活前没有活动子行。
 - 激活后只有末行spec-002的Git result为空，A仍是sealed completed。B复用同工作区/分支，其Spec baseline由本激活map检查点给出、写入B路由Execution Configuration。
 - B制品在自己的目录；根原草案删除/子source-draft新增均属根输入迁移，A路径覆盖明确排除此文件，不是修改sealed A。该输入迁移与子契约/审查/路由由B规划检查点提交；此提交仅根map。
+
+## 历史改写与流程调整（2026-10-25）
+
+- 用户要求整理已提交的证据。`main..` 区间已改写：去掉本任务目录下的原始证据（14720 个文件，约 4.0 GB），并给 28 个提交补上任务前缀。代码与全部 Markdown 不变，逐提交核对通过。本节之前的记录写的是改写前的提交号，按 `history-rewrite-2026-10-25.md` 换算；Spec Attempts 表的 spec-001 Git result 已换成改写后的号。
+- 本节之后，`Derived progress consistency` 里的提交号都以改写后为准。根改道提交（foreign-commit 例外）改写后是 `f4ade320965d`，仍可以用本文件首次加入的那个提交唯一确定。
+- spec-002 自 TASK-33 起按 `process-reset-2026-10-25.md` 执行；它的执行配置调整记在 `attempts/spec-002-protocol-level-cmd/routing-decision.md` 末节。根契约、子契约和各条 SC 都不变。

@@ -67,3 +67,14 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
 ## B6／P7受影响gate消费（2026-10-25）
 
 主控完整消费当前Spec B6 ready R1／Plan P7 ready R1、各自fresh immutable challenge（均0high/0low）与分别fresh independent approved review，精确身份/边界见`verification/spec-b6-plan-p7-controller-consumption.md`。本轮仅六消息VC-B6及相关HOW：先独立NoRoom正常确认回滚记账修复，再按旧encoder oracle→新whole有用闭合，保各自恢复/独立刷新事务及默认精确保护/原链/存活帧；无新raw类别/Self/Compose。十实际WriteResult原consumer保留、后继仅四opening具名，Rental异常不恢复；其他owner/契约/A/baseline/profile/auto门保持。先amendment-only本地检查点固定，再详细规划Task33；未提前建Task/运行native/写产品/闭canonical。旧B5/P6消费只保历史，不替代本门，Astra/用户收尾及不pushPR等保持。
+
+
+## 执行配置调整（2026-10-25，主控方）
+
+根据用户 2026-10-25 的要求，自 TASK-33 起按 `../../process-reset-2026-10-25.md` 执行。controller（`sdd-governed`）、profile（`long-running`）、Spec 基准、契约和 17 RQ／11 AC 都不变；只改各个门在什么时候触发：
+
+- 保持原行为的迁移不修订 Spec／Plan。有意的可见行为变化，在 Spec 的有意变化表追加一行，随该 Task 的结果快审一起审。
+- Spec 正式修订只在验收边界、根契约约束或中心方案变化时才做，且只做一次独立评审；Plan 修订只在簇顺序或跨簇共享契约变化时才做。
+- 对抗挑战（spec-adversarial、plan-adversarial、change-adversarial）只在 spec-002 完成后的完整结果评审时做一次。
+- 不再有只取证的 Task；旧行为以正式测试钉住。原始证据不进 git。
+- Spec 基准改写后为 `51bd1e9cb7b4a6ace5b0b05b098e7e50adc1cdea`（原 `10a7218a`，见 `../../history-rewrite-2026-10-25.md`）。

@@ -1,0 +1,9 @@
+# 原始证据只留在本机，不进 git（规则见 process-reset-2026-10-25.md §2）。
+# 证据目录里只提交人写的 Markdown 摘要。
+**/verification/evidence/**
+!**/verification/evidence/**/
+!**/verification/evidence/**/*.md
+**/verification/logs/**
+!**/verification/logs/**/
+!**/verification/logs/**/*.md
+*.trx
