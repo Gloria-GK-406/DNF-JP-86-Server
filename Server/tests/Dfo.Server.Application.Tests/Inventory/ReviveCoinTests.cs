@@ -52,7 +52,7 @@ public sealed class ReviveCoinTests
         (await f.Host.Services.GetRequiredService<ICharacterContainerDomainService>().FindContainer(
             f.Host.Session.CharacterId, InventoryContainerType.Main)!.GetAsync(1, default))?.Count ?? 0;
     private static Task<DailyReviveCoinResult> Claim(CeraShopFixture f) => f.Host.Services.GetRequiredService<ICommandBus>()
-        .SendAsync(new ClaimDailyReviveCoinCommand(f.Host.OnlineUser, f.Host.Session)).AsTask();
+        .SendAsync(new GameDailyReviveCoinCommand(new(f.Host.Connection), new(GameMessageMetadata.Empty))).AsTask();
 
     [Fact]
     public async Task Free_claim_is_once_per_character_period_even_after_the_coin_is_spent()

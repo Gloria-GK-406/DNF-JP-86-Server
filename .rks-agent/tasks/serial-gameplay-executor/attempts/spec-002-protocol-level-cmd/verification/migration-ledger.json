@@ -12994,25 +12994,30 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 68,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "IAccountCommand 的单一 Transactional fine；handler catch 把动作／提交／清理失败映 Error4。",
+          "new": "一个无 footprint 的 ordinary WriteResult；窄普通 action 错误 RequireRollback(cause)，真实 KnownStorage commit-only 回滚映 Error4，正常拒绝空提交。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 68,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.RecoverStamina.RecoverStaminaCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.RecoverStamina.RecoverStaminaCommand",
@@ -13038,32 +13043,45 @@
         },
         "result": "Dfo.Server.Protocol.Game.RecoverStamina.RecoverStaminaResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 68,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 68,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 68,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "原 handler 调 fine；业务正式测试有 fine 直调。",
+          "new": "薄 handler 仅提交唯一 whole；原业务测试改 whole／dispatcher 驱动，生产 fine 类型、注册与调用均删除。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "无 selected marker，保护集合为空；精确 session 来自原连接查询。",
+          "new": "Participants=[] 且无 footprint，不移植 Cera actor 保护；前后 session／online／run／tower 判定保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原领域拒绝、资产原子性及投影／直接 ACK 顺序；fine scope 在投影之前结束。",
+          "new": "新 whole 保 F-88 selected-not-world 静默及两次 IsInWorld；按 VC-B9 不恢复取消／typed／Uncertain／独立错误，原健康 SQL/native 回滚与投影隔离保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
     },
     {
       "actual_units": [
@@ -14149,25 +14167,30 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 39,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "IAccountCommand 的单一 Transactional fine，正常拒绝空提交；Direct 记账与资产同事务。",
+          "new": "一个 ordinary Write，unit.Footprint 传原 ClaimAsync；原周期限领／钱包／Direct 记账同事务。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 39,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand",
@@ -14193,32 +14216,45 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.DailyReviveCoinResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 39,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 39,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 39,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "原 handler 调 fine；业务正式测试有 fine 直调。",
+          "new": "薄 handler 仅提交唯一 whole；原业务测试改 whole／dispatcher 驱动，生产 fine 类型、注册与调用均删除。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "无 selected marker，保护集合为空；精确 session 来自原连接查询。",
+          "new": "Participants=[]；DeclaredNonRequest owners=[原查询 session]，owner 不扩大为围栏，原 ClaimAsync.IsInWorld 拒绝保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原领域拒绝、资产原子性及投影／直接 ACK 顺序；fine scope 在投影之前结束。",
+          "new": "新 whole 与薄 handler 保业务／帧序；按 VC-B9 处理独立 scope 默认失败，来源关闭、链和替换物理身份隔离，空 selected 范围保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
     },
     {
       "actual_units": {
@@ -18389,26 +18425,31 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 130,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "IAccountCommand 的单一 Transactional fine；handler catch 把动作／提交／清理失败映 Error4。",
+          "new": "一个无 footprint 的 ordinary WriteResult；窄普通 action 错误 RequireRollback(cause)，真实 KnownStorage commit-only 回滚映 Error4，正常拒绝空提交。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 130,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+      ],
       "id": "message:65545",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.RecoverStamina.RecoverStaminaHandler",
@@ -18430,37 +18471,50 @@
         "telemetry": false,
         "value": 65545
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 130,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 130,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
-          "line": 130,
-          "source_sha256": "577bd76dfb540255398bbef363f26add913b149a0bfe0e45e76e03ad9a635629"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "原 handler 调 fine；业务正式测试有 fine 直调。",
+          "new": "薄 handler 仅提交唯一 whole；原业务测试改 whole／dispatcher 驱动，生产 fine 类型、注册与调用均删除。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "无 selected marker，保护集合为空；精确 session 来自原连接查询。",
+          "new": "Participants=[] 且无 footprint，不移植 Cera actor 保护；前后 session／online／run／tower 判定保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原领域拒绝、资产原子性及投影／直接 ACK 顺序；fine scope 在投影之前结束。",
+          "new": "新 whole 保 F-88 selected-not-world 静默及两次 IsInWorld；按 VC-B9 不恢复取消／typed／Uncertain／独立错误，原健康 SQL/native 回滚与投影隔离保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/RecoverStamina/RecoverStaminaSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.RecoverStamina.RecoverStaminaCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
     },
     {
       "actual_units": [
@@ -25353,26 +25407,31 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 45,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "IAccountCommand 的单一 Transactional fine，正常拒绝空提交；Direct 记账与资产同事务。",
+          "new": "一个 ordinary Write，unit.Footprint 传原 ClaimAsync；原周期限领／钱包／Direct 记账同事务。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 45,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+      ],
       "id": "message:65743",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler",
@@ -25394,37 +25453,50 @@
         "telemetry": false,
         "value": 65743
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 45,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 45,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
-          "line": 45,
-          "source_sha256": "945e0e28798fc181f7aa51c5541aff50c4c652595f3cf9d5c9101be30ffcd06a"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "原 handler 调 fine；业务正式测试有 fine 直调。",
+          "new": "薄 handler 仅提交唯一 whole；原业务测试改 whole／dispatcher 驱动，生产 fine 类型、注册与调用均删除。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "无 selected marker，保护集合为空；精确 session 来自原连接查询。",
+          "new": "Participants=[]；DeclaredNonRequest owners=[原查询 session]，owner 不扩大为围栏，原 ClaimAsync.IsInWorld 拒绝保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "原领域拒绝、资产原子性及投影／直接 ACK 顺序；fine scope 在投影之前结束。",
+          "new": "新 whole 与薄 handler 保业务／帧序；按 VC-B9 处理独立 scope 默认失败，来源关闭、链和替换物理身份隔离，空 selected 范围保持。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReviveCoinTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
     },
     {
       "actual_units": [
@@ -33666,11 +33738,14 @@
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-recover-01.log",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-green-recover-01.log",
-        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md"
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RecoveryAndReviveProtocolCommandFlowTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
       ],
       "id": "protection:F-88-recover",
-      "new_owner": "pending",
-      "new_test_entry": "pending",
+      "new_owner": "GameRecoverStaminaCommandHandler.HandleAsync / RecoverAsync",
+      "new_test_entry": "Server/tests/Dfo.Server.Application.Tests/Inventory/WeaknessGoldRecoveryTests.cs:A_selected_session_not_yet_in_world_is_silently_ignored_by_the_recovery_protocol",
       "original": {
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-recover-01.log",
@@ -33692,7 +33767,8 @@
         }
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-40.md"
     },
     {
       "evidence": [

@@ -218,8 +218,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.AddHostedService<DungeonPartyWipeService>();
-        services.AddCommandHandler<RecoverStaminaCommand, RecoverStaminaResult, RecoverStaminaCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult, GameRecoverStaminaCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRecoverStamina, typeof(RecoverStaminaRequest)));
         services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>();
         services.TryAddSingleton<FatigueProjectionDelivery>();
         services.AddHostedService<FatigueDailyRefreshService>();
@@ -814,7 +814,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
         services.RegisterMessageHandler<PremiumServiceUsageReportHandler>(ClientMessageType.GamePremiumServiceUsageReport);
-        services.RegisterMessageHandler<RecoverStaminaHandler>(ClientMessageType.GameRecoverStamina);
+        services.RegisterProtocolMessageHandler<RecoverStaminaHandler, RecoverStaminaRequest, GameRecoverStaminaCommand>(ClientMessageType.GameRecoverStamina);
         services.RegisterProtocolMessageHandler<GameLoginHandler, GameLoginRequest, GameLoginCommand>(ClientMessageType.GameLogin);
         services.RegisterProtocolMessageHandler<GetAccountCharacterRosterHandler, GetAccountCharacterRosterRequest, GameAccountRosterCommand>(ClientMessageType.GameGetAccountCharacterRoster);
         services.RegisterProtocolMessageHandler<GetOtherCharacterDetailHandler, GetOtherCharacterDetailRequest, GameOtherCharacterDetailCommand>(
@@ -1292,11 +1292,11 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
         services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
         services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler>(ClientMessageType.GameDailyReviveCoin);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinRequest, Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommand>(ClientMessageType.GameDailyReviveCoin);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(0x00CF, ClientMessageType.GameDailyReviveCoin);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinResponse, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.ClaimDailyReviveCoinCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameDailyReviveCoin, typeof(Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinRequest)));
         services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(

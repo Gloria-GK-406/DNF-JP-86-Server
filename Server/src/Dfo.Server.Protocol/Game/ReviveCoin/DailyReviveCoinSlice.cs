@@ -33,25 +33,25 @@ internal sealed class DailyReviveCoinEncoder : GameCmdMessageEncoder<DailyRevive
         return OnePayload(0x00CF, body);
     }
 }
-public sealed record ClaimDailyReviveCoinCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session)
-    : ICommand<DailyReviveCoinResult>, IAccountCommand
-{ public AccountId AccountId => Session.AccountId; }
-public sealed class ClaimDailyReviveCoinCommandHandler(IReviveCoinDomainService coins)
-    : ICommandHandler<ClaimDailyReviveCoinCommand, DailyReviveCoinResult>
+public sealed record GameDailyReviveCoinCommand(NetworkDispatchContext Dispatch, DailyReviveCoinRequest Input)
+    : IProtocolCommand<DailyReviveCoinResult>
 {
-    public ValueTask<DailyReviveCoinResult> HandleAsync(CommandExecutionContext context, ClaimDailyReviveCoinCommand command, CancellationToken ct) =>
-        coins.ClaimAsync(command.Session, context.LegacyFootprint, ct);
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal sealed class DailyReviveCoinHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IEventService events, IGameMessageSender sender, ILogger<DailyReviveCoinHandler> logger)
-    : ClientMessageHandler<DailyReviveCoinRequest>
+public sealed class GameDailyReviveCoinCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+    IReviveCoinDomainService coins, ICommandWorkUnits units, ICommandProjections events, IGameCommandOutbox outbox,
+    ILogger<GameDailyReviveCoinCommandHandler> logger) : ICommandHandler<GameDailyReviveCoinCommand, DailyReviveCoinResult>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, DailyReviveCoinRequest message, CancellationToken ct)
+    public async ValueTask<DailyReviveCoinResult> HandleAsync(CommandExecutionContext context,
+        GameDailyReviveCoinCommand command, CancellationToken ct)
     {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
         var result = new DailyReviveCoinResult(false, false);
         if (session is not null && users.TryGetByConnection(session.ConnectionId, out var online) && online is not null)
-            result = await commands.SendAsync(new ClaimDailyReviveCoinCommand(online.OnlineUserId, session), ct).ConfigureAwait(false);
+            result = await units.WriteAsync(context, new("DailyReviveCoin", [],
+                    Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: [session]),
+                (unit, token) => coins.ClaimAsync(session, unit.Footprint, token), ct).ConfigureAwait(false);
         logger.LogInformation("Daily revive coin character={Character} granted={Granted} claimed={Claimed}", session?.CharacterId, result.Granted, result.Claimed);
         if (result.Receipt is { } receipt)
             await events.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
@@ -62,7 +62,15 @@ internal sealed class DailyReviveCoinHandler(ISelectedSessionDomainService sessi
             if (result.Wallet is { } wallet && result.PreparedAt is { } at)
                 replies.Add(GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(null, 1, wallet)], at)));
             replies.Add(new DailyReviveCoinStateMessage(result.Claimed));
-            await sender.SendExplicitAsync(context.Connection.ConnectionId, new(replies, []), ct).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId, new(replies, []), ct).ConfigureAwait(false);
         }
+        return result;
     }
+}
+
+internal sealed class DailyReviveCoinHandler(ICommandBus commands)
+    : ClientMessageHandler<DailyReviveCoinRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameDailyReviveCoinCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, DailyReviveCoinRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameDailyReviveCoinCommand(context, message), ct).ConfigureAwait(false);
 }

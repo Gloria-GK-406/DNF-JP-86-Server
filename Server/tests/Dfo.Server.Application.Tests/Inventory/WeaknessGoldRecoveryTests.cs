@@ -335,15 +335,43 @@ public sealed class WeaknessGoldRecoveryTests
     [Fact]
     public async Task A_replaced_session_cannot_recover_the_old_character()
     {
-        using var shop = new ShopFixture();
+        Dfo.Server.Data.World.SelectedSessionIdentity? stale = null;
+        using var shop = new ShopFixture(services =>
+        {
+            var original = services.Last(x => x.ServiceType == typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService));
+            services.AddSingleton<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(provider =>
+                StaleSessionQuery.Wrap((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)(original.ImplementationInstance
+                    ?? original.ImplementationFactory?.Invoke(provider) ?? ActivatorUtilities.CreateInstance(provider, original.ImplementationType!)), () => stale));
+        });
         var state = await Weaken(shop);
         var old = shop.Session;
         shop.Select(2);
+        stale = old;
         var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new RecoverStaminaCommand(shop.OnlineUser, old, 0));
+            new GameRecoverStaminaCommand(new(shop.Connection), new(GameMessageMetadata.Empty, 0)));
         Assert.Equal(4, result.ErrorCode);
         Assert.Equal(10, state.Value);
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
+        Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=2"));
+    }
+
+    public class StaleSessionQuery : System.Reflection.DispatchProxy
+    {
+        private Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService actual = null!;
+        private Func<Dfo.Server.Data.World.SelectedSessionIdentity?> stale = null!;
+        internal static Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService Wrap(
+            Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService actual, Func<Dfo.Server.Data.World.SelectedSessionIdentity?> stale)
+        {
+            var proxy = Create<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService, StaleSessionQuery>();
+            ((StaleSessionQuery)proxy).actual = actual; ((StaleSessionQuery)proxy).stale = stale; return proxy;
+        }
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            if (method!.Name == "FindByConnection" && stale() is { } old) return old;
+            try { return method.Invoke(actual, args); }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException is { } cause)
+            { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(cause); throw; }
+        }
     }
 
     [Fact]
@@ -358,8 +386,8 @@ public sealed class WeaknessGoldRecoveryTests
             Assert.Null(sessions.Select(shop.Session));
             Assert.Equal(shop.Session, sessions.FindByConnection(shop.Connection.ConnectionId));
             Assert.False(sessions.IsInWorld(shop.Session));
-            await Recover(shop);
         });
+        await Recover(shop);
         Assert.Empty(shop.Sender.Messages);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal(10, state.Value);
@@ -374,7 +402,7 @@ public sealed class WeaknessGoldRecoveryTests
         return state;
     }
 
-    private static async ValueTask Recover(ShopFixture shop, ushort mode = 0) =>
-        await TestGameplay.RunAsync(shop.Services, async () => await shop.Services.GetRequiredService<RecoverStaminaHandler>().HandleAsync(new(shop.Connection),
-            new RecoverStaminaRequest(GameMessageMetadata.Empty, mode), default));
+    private static ValueTask Recover(ShopFixture shop, ushort mode = 0) =>
+        shop.Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkMessageDispatcher>().DispatchAsync(new(shop.Connection),
+            new RecoverStaminaRequest(GameMessageMetadata.Empty, mode), default);
 }

@@ -173,6 +173,21 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         output.WriteLine($"coin={coin} legacy={Legacy} directEncoderFailure={failure}");
     }
 
+    [Theory] [InlineData(false)] [InlineData(true)]
+    public async Task Independent_request_failure_cannot_be_recovered_as_an_ordinary_result(bool coin)
+    {
+        await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
+        var trace = new Trace(); using var f = await Create(coin, "sticky", delivery, trace); var physical = delivery.Add(f.Connection);
+        var failure = await Record.ExceptionAsync(() => Send(f, coin).AsTask());
+        Assert.NotNull(failure); Assert.True(Includes(failure, trace.Fault));
+        Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, Assert.Single(trace.Transactions).Completion);
+        Assert.Equal(100000, f.Gold); Assert.Equal(0, f.Scalar("SELECT count(*) FROM character_daily_counters"));
+        Assert.Equal(0, f.Scalar("SELECT coalesce(sum(count),0) FROM item_slots WHERE slot_index=1"));
+        await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); await delivery.Settled();
+        Assert.Empty(physical.Sends); Assert.Equal(1, physical.CloseCalls);
+        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection)); NoLedger(f);
+    }
+
     private static async Task<ShopFixture> Create(bool coin, string mode, RemainingOpeningProtocolCommandFlowTests.SenderProbe? delivery = null, Trace? trace = null)
     {
         trace ??= new Trace(); var t = trace; t.Coin = coin; t.Mode = mode;
