@@ -41,11 +41,11 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
   - final-review: auto
   - verification: auto
 - Bound methods: implementation: `test-driven-development`（先应用test-value gate；结构搬迁沿用行为测试/编译/结构判据，不制造编译失败当RED）。
-- Artifact path overrides（本次执行中B5/P6 amendment匹配的受影响gates已独立approved；旧B4/P5、B3/P4及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
-  - spec-adversarial: `reviews/spec-b5-challenges.md`
-  - spec-review: `reviews/spec-b5-review.md`
-  - plan-adversarial: `reviews/plan-p6-challenges.md`
-  - plan-review: `reviews/plan-p6-review.md`
+- Artifact path overrides（本次执行中B6/P7 amendment匹配的受影响gates已独立approved；旧B4/P5、B3/P4及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
+  - spec-adversarial: `reviews/spec-b6-challenges.md`
+  - spec-review: `reviews/spec-b6-review.md`
+  - plan-adversarial: `reviews/plan-p7-challenges.md`
+  - plan-review: `reviews/plan-p7-review.md`
 - Parent controller: `../../multi-spec-map.md`。
 - 继承任务授权覆盖普通实施和本地检查点，不再重复规划后人工停点；Astra及分支收尾仍是用户保留门。
 - 初始未提交输入仅B目录及原草案到source-draft的迁移，均为本Spec拥有，规划检查点纳入；不修改A封存文件。
@@ -62,3 +62,8 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
 ## B5／P6受影响gate消费（2026-10-25）
 
 主控完整消费当前Spec B5与Plan P6 ready R2及匹配fresh独立gate，精确身份/范围见`verification/spec-b5-plan-p6-controller-consumption.md`。Spec challenge0/0、独立review approved；Plan immutable CH-1在R1成立，主控据实际Unit.End/Close/Scope及下层proxy窗口作一次最小R2纠正，另一fresh reviewer确认充分并approved。旧R1Plan/amend逐bytes保留、挑战不改不重生。先以amendment-only本地检查点固定，再详细规划Task31；没有产品/native通过或提前Task。Mailbox保原即时自结算/共享原子性/健康确认回滚ACK，VC-B5默认失败/精确来源关闭和共享双因保留；正常disconnect照旧，不增Cera actor/footprint/Fence/Discard。self入口/来源/早pin admission/完整cleanup按P6，原五consumer/3raw/Compose禁用/A/Contract/baseline/profile/auto门保持。旧消费段仅历史，不代本次门；Astra及用户收尾/不pushPR限制不变。
+
+
+## B6／P7受影响gate消费（2026-10-25）
+
+主控完整消费当前Spec B6 ready R1／Plan P7 ready R1、各自fresh immutable challenge（均0high/0low）与分别fresh independent approved review，精确身份/边界见`verification/spec-b6-plan-p7-controller-consumption.md`。本轮仅六消息VC-B6及相关HOW：先独立NoRoom正常确认回滚记账修复，再按旧encoder oracle→新whole有用闭合，保各自恢复/独立刷新事务及默认精确保护/原链/存活帧；无新raw类别/Self/Compose。十实际WriteResult原consumer保留、后继仅四opening具名，Rental异常不恢复；其他owner/契约/A/baseline/profile/auto门保持。先amendment-only本地检查点固定，再详细规划Task33；未提前建Task/运行native/写产品/闭canonical。旧B5/P6消费只保历史，不替代本门，Astra/用户收尾及不pushPR等保持。
