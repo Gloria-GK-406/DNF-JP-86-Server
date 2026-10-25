@@ -25,6 +25,8 @@ internal sealed class TownReturnCommandStages(
         Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, currentViews: currentViews, towns: towns,
         housing: housing, register: register, weakness: weakness)
 {
+    internal ValueTask<IReadOnlyList<TownAreaMembershipChange>> LeaveManyAsync(IReadOnlyList<SelectedSessionIdentity> sessions,
+        TownAreaDepartureReason reason, CancellationToken token) => TownLeaveManyAsync(sessions, reason, token);
     internal ValueTask<int> EnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) => TownEnterAsync(entries, token);
     internal ValueTask PublishCurrentRosterCoreAsync(TownAreaKey key, CancellationToken token) => TownPublishCurrentRosterCoreAsync(key, token);
     internal ValueTask PublishArrivalCoreAsync(SelectedSessionIdentity newcomer, TownPresenceSynchronizationState state,
