@@ -493,8 +493,7 @@ internal sealed class ShopFixture : IDisposable
     public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
     public ValueTask Buy(int item, int count) => WholeBuy.Send(this, item, count);
-    public async ValueTask Query() => await TestGameplay.RunAsync(provider, async () => await provider.GetRequiredService<ShopPurchaseCountHandler>().HandleAsync(new(connection),
-        new ShopPurchaseCountRequest(GameMessageMetadata.Empty, 2), default));
+    public ValueTask Query() => EffectRequestTransport.SendRaw(this, new(1, 0x02CC, 0, 7), [2, 0, 0, 0]);
     public Task<BuyItemOutcome> Command(int item, int count) => WholeBuy.Command(this, item, count).AsTask();
     public async Task<BuyItemOutcome> DomainPurchase(int item, int count, SelectedSessionIdentity owner) =>
         await TestGameplay.RunAsync(provider, async () =>

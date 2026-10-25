@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -33,9 +34,9 @@ public sealed class ExitFlushHandlerTests
     public async Task SessionMetrics_ReportsNothingSampledForTheObservedAllZeroBody()
     {
         var logger = new RecordingLogger<SessionMetricsHandler>();
-        var handler = new SessionMetricsHandler(Attributed(out var context), logger);
+        var online = Attributed(out var context);
 
-        await handler.HandleAsync(context, AllZeroMetrics(), CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, AllZeroMetrics(), online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -50,15 +51,13 @@ public sealed class ExitFlushHandlerTests
     public async Task SessionMetrics_DistinguishesMeasuredMeansFromUnsampledOnes()
     {
         var logger = new RecordingLogger<SessionMetricsHandler>();
-        var handler = new SessionMetricsHandler(Unattributed(out var context), logger);
+        var online = Unattributed(out var context);
         var means = Enumerable.Range(0, 7)
             .Select(index => new SessionMetricMean((ushort)index, index == 2 ? 480u : 0u))
             .ToArray();
 
-        await handler.HandleAsync(
-            context,
-            new SessionMetricsReportRequest(GameMessageMetadata.Empty, means, [], []),
-            CancellationToken.None);
+        await LightweightMessageDispatch.Send(context,
+            new SessionMetricsReportRequest(new(1, 0x00FA, 0, 1), means, [], []), online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("unattributed", entry.Message);
@@ -69,14 +68,14 @@ public sealed class ExitFlushHandlerTests
     public async Task SessionMetrics_RendersPopulatedSections()
     {
         var logger = new RecordingLogger<SessionMetricsHandler>();
-        var handler = new SessionMetricsHandler(Unattributed(out var context), logger);
+        var online = Unattributed(out var context);
         var report = new SessionMetricsReportRequest(
-            GameMessageMetadata.Empty,
+            new(1, 0x00FA, 0, 1),
             [.. Enumerable.Range(0, 7).Select(index => new SessionMetricMean((ushort)index, 0))],
             [new SessionMetricRecord(1, 2, 3, 4, 5)],
             [new SessionMetricRecord(9, 8, 7, 6, 5), new SessionMetricRecord(0, 0, 0, 0, 1)]);
 
-        await handler.HandleAsync(context, report, CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, report, online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("section7=1/2/3/4/5", entry.Message);
@@ -194,20 +193,12 @@ public sealed class ExitFlushHandlerTests
     public async Task RosterFollowUp_FlagsTheSentinelButNotOtherValues()
     {
         var logger = new RecordingLogger<RosterFollowUpHandler>();
-        var sender = new CountingGameMessageSender();
-        var handler = new RosterFollowUpHandler(Attributed(out var context), sender, logger);
+        var online = Attributed(out var context);
 
-        await TestGameplay.RunAsync(async () =>
-        {
-            await handler.HandleAsync(
-                context,
-                new RosterFollowUpRequest(GameMessageMetadata.Empty, 0xFFFF),
-                CancellationToken.None);
-            await handler.HandleAsync(
-                context,
-                new RosterFollowUpRequest(GameMessageMetadata.Empty, 0x1234),
-                CancellationToken.None);
-        });
+        var first = await LightweightMessageDispatch.Send(context,
+            new RosterFollowUpRequest(new(1, 0x02A8, 0, 1), 0xFFFF), online, logger);
+        var second = await LightweightMessageDispatch.Send(context,
+            new RosterFollowUpRequest(new(1, 0x02A8, 0, 2), 0x1234), online, logger);
 
         Assert.Equal(2, logger.Entries.Count);
         Assert.Contains("0xFFFF (sentinel)", logger.Entries[0].Message);
@@ -216,7 +207,14 @@ public sealed class ExitFlushHandlerTests
 
         // Answered, not merely logged. Both values get a reply: the reference server's handler
         // does not look at the body at all.
-        Assert.Equal(2, sender.CmdCount);
+        var frames = first.Concat(second).ToArray();
+        Assert.Equal(2, frames.Length);
+        Assert.All(frames, frame =>
+        {
+            Assert.Equal(1, frame[0]);
+            Assert.Equal(0x02A8, BitConverter.ToUInt16(frame, 1));
+            Assert.Equal(new byte[] { 0, 0 }, frame[15..]);
+        });
     }
 
     private static TaggedIdReportHandler Report(IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
@@ -420,43 +418,6 @@ public sealed class ExitFlushHandlerTests
 
         public List<IGameServerMessage> Sent =>
             [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
-
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) =>
-            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
-    }
-
-    /// <summary>
-    /// Counts the CMDs a real registration adapter registered, read from its outbox; every call goes to the real
-    /// protocol sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, with the
-    /// exception the old double threw.
-    /// </summary>
-    private sealed class CountingGameMessageSender : IGameMessageSender
-    {
-        private readonly RecordedOutbound outbound = new();
-
-        public CountingGameMessageSender()
-        {
-            outbound.RefuseExplicit(() => new InvalidOperationException("This handler does not use explicit delivery."));
-            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
-                () => new InvalidOperationException("The roster follow-up answers with a CMD."));
-        }
-
-        public int CmdCount => outbound.Messages.Count(message => message is IGameCmdMessage);
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,

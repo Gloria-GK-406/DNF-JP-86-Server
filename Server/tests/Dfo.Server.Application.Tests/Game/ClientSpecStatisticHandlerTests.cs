@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
@@ -23,9 +24,9 @@ public sealed class ClientSpecStatisticHandlerTests
             State: OnlineUserState.Authenticated,
             Generation: 1));
         var logger = new RecordingLogger();
-        var handler = new ClientSpecStatisticHandler(onlineUsers, logger);
+        var online = onlineUsers;
 
-        await handler.HandleAsync(context, CreateReport(), CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, CreateReport(), online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -43,10 +44,10 @@ public sealed class ClientSpecStatisticHandlerTests
         var connectionId = new NetworkConnectionId("game-7");
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
-        var handler = new ClientSpecStatisticHandler(
-            new StubOnlineUserQueryDomainService(snapshot: null), new RecordingLogger());
+        var online = new StubOnlineUserQueryDomainService(snapshot: null);
+        var logger = new RecordingLogger();
 
-        await handler.HandleAsync(context, CreateReport(), CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, CreateReport(), online, logger);
     }
 
     private static ClientSpecStatisticReportRequest CreateReport() => new(
