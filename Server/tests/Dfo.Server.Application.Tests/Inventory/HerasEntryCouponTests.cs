@@ -175,9 +175,8 @@ public sealed class HerasEntryCouponTests
     {
         using var f = Fixture();
         await f.Host.Seed(69, Coupon, 2);
-        await TestGameplay.RunAsync(f.Host.Services, async () =>
-            await f.Host.Services.GetRequiredService<QuestClearCouponHandler>().HandleAsync(new(f.Host.Connection),
-                new QuestClearCouponRequest(GameMessageMetadata.Empty, 69, 0, reserved, action, 0, 0, true), default));
+        await EffectRequestTransport.Send(f.Host,
+            new QuestClearCouponRequest(new(1, 0x0204, 0, 1), 69, 0, reserved, action, 0, 0, true));
         Assert.False(Assert.Single(f.Host.Sender.Messages.OfType<QuestClearCouponResponse>()).Succeeded);
         Assert.Equal(2, f.Host.Count(Coupon));
         Assert.Equal(3, (await Quota(f)).Remaining);

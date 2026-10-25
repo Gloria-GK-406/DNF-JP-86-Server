@@ -130,6 +130,9 @@ internal static class EffectRequestTransport
                 writer.Write(x.Source); writer.Write(x.SourceMode); writer.Write(x.Count);
                 if (!x.Valid) { writer.Write((byte)1); writer.Write((byte)0); } break;
             case LotteryOpeningRequest x: writer.Write(x.Mode); writer.Write(x.Slot); break;
+            case Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest x:
+                writer.Write(x.SourceSlot); writer.Write(x.Container); writer.Write(x.Reserved1); writer.Write(x.Action); writer.Write(x.Reserved2); writer.Write(x.Reserved3);
+                if (!x.Complete) writer.Write((byte)1); break;
             case VendingMachineRequest x: writer.Write(x.MachineId); writer.Write(x.GroupId); writer.Write(x.Slot); break;
             default: throw new NotSupportedException($"Fixture has no raw encoder for {request.GetType().Name}.");
         }

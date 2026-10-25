@@ -23,29 +23,25 @@ public sealed class FatiguePotionTests
     [Fact]
     public async Task Actual_fatigue_handler_outer_exclusive_borrows_effect_lifecycle_and_commits_once()
     {
-        await TestGameplay.RunAsync(async () =>
+        var content = new Content();
+        using var shop = new ShopFixture(services =>
         {
-            var content = new Content();
-            using var shop = new ShopFixture(services =>
-            {
-                services.AddSingleton<IStackableActionDefinitionSource>(content);
-                services.AddSingleton<IItemUsageRuleSource>(content);
-                services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2600026,ItemUseRules.Potion(0))));
-            });
-            await shop.Seed(65,2600026,2);
-            await using (var tx = shop.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin())
-            {
-                await shop.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(shop.Session.CharacterId,50,default);
-                await tx.CommitAsync(default);
-            }
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var request = new Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest(
-                Dfo.Server.Data.Networking.GameMessageMetadata.Empty,65,0,0,58,0,0,true);
-            await TestEffectFootprints.Effect(shop.Services, shop.Session, request.Metadata, request.MinimumReplayNeeds,
-                () => shop.Services.GetRequiredService<Dfo.Server.Protocol.Game.QuestClearCoupon.FatiguePotionHandler>().HandleAsync(new(shop.Connection), request, timeout.Token));
-            Assert.Equal(1,shop.Count(2600026));
-            Assert.Contains(shop.Sender.Messages.OfType<Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponResponse>(),response => response.Succeeded);
+            services.AddSingleton<IStackableActionDefinitionSource>(content);
+            services.AddSingleton<IItemUsageRuleSource>(content);
+            services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2600026, ItemUseRules.Potion(0))));
         });
+        await shop.Seed(65, 2600026, 2);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var tx = shop.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            await shop.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(shop.Session.CharacterId, 50, default);
+            await tx.CommitAsync(default);
+        });
+        var request = new Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest(
+            new(1, 0x0204, 0, 1), 65, 0, 0, 58, 0, 0, true);
+        await EffectRequestTransport.Send(shop, request);
+        Assert.Equal(1, shop.Count(2600026));
+        Assert.Contains(shop.Sender.Messages.OfType<Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponResponse>(), response => response.Succeeded);
     }
 
     private static readonly DateTimeOffset Morning = new(2026, 9, 29, 9, 0, 0, TimeSpan.FromHours(8));
