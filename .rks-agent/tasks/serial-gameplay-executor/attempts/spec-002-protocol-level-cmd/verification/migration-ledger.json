@@ -13141,26 +13141,42 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 85,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "GameChargeRentPointCommand Main WriteAsync; same PurchaseAsync and minimum Inventory|Rental replay.",
+          "old": "Legacy Transactional Main for original exact selected actor; ordinary refusal commits empty and Rent NoRoom confirms rollback."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 85,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Rental.ChargeRentPointCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+          "purpose": "Unique GameRentEquipmentCommand or GameChargeRentPointCommand owner and independent ordinary refresh"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.Rental.ChargeRentPointCommand",
         "command_source": {
@@ -13185,54 +13201,88 @@
         },
         "result": "Dfo.Server.Abstractions.Rental.LuckyStarMutation"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 85,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 85,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 85,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Both thin handlers dispatch their unique whole; all three original fine types/registrations/callers removed. Shared panel/LuckyStarChanged domain consumers remain unchanged.",
+          "old": "Only RentEquipmentHandler and ChargeRentPointHandler call ReadRentalRefresh; each calls its matching action fine."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Original selected.Recipient including explicit metadata and physical context, same actor; ordinary refresh declares that same recipient, no new players.",
+          "old": "Original exact selected actor and shared SQLite participant."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "VC-B6 whole scope and independent refresh default protection; VC-B8 initial required encoder default typed/Block. Main Committed and frames survive by original completion, NoRoom plus scope remains ConfirmedRollback/raw/noBlock. Replay owner retains existing actual-encoder raw only. No WriteResult or self capability.",
+          "old": "Legacy fine scope before publication; committed replay actual encoder raw exit; action/native commit exceptions no ACK and source closes."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 93,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Each whole calls an independent ordinary WriteAsync for success refresh in original Panel/character/account/clock order; not ReadOnly or merged Main.",
+          "old": "Success-only separate Transactional ReadRentalRefreshCommand; Panel then character inventory then account inventory then clock."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 93,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Rental.ReadRentalRefreshCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+          "purpose": "Unique GameRentEquipmentCommand or GameChargeRentPointCommand owner and independent ordinary refresh"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.Rental.ReadRentalRefreshCommand",
         "command_source": {
@@ -13257,54 +13307,88 @@
         },
         "result": "Dfo.Server.Protocol.Game.Rental.RentalRefreshSnapshot"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 93,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 93,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 93,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Both thin handlers dispatch their unique whole; all three original fine types/registrations/callers removed. Shared panel/LuckyStarChanged domain consumers remain unchanged.",
+          "old": "Only RentEquipmentHandler and ChargeRentPointHandler call ReadRentalRefresh; each calls its matching action fine."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Original selected.Recipient including explicit metadata and physical context, same actor; ordinary refresh declares that same recipient, no new players.",
+          "old": "Original exact selected actor and shared SQLite participant."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "VC-B6 whole scope and independent refresh default protection; VC-B8 initial required encoder default typed/Block. Main Committed and frames survive by original completion, NoRoom plus scope remains ConfirmedRollback/raw/noBlock. Replay owner retains existing actual-encoder raw only. No WriteResult or self capability.",
+          "old": "Legacy fine scope before publication; committed replay actual encoder raw exit; action/native commit exceptions no ACK and source closes."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 74,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "GameRentEquipmentCommand Main WriteAsync; DemandActive before RentAsync and successful TouchedSlots recorded; original NoRoom confirmed rollback.",
+          "old": "Legacy Transactional Main for original exact selected actor; ordinary refusal commits empty and Rent NoRoom confirms rollback."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 74,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Rental.RentEquipmentCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+          "purpose": "Unique GameRentEquipmentCommand or GameChargeRentPointCommand owner and independent ordinary refresh"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.Rental.RentEquipmentCommand",
         "command_source": {
@@ -13329,32 +13413,50 @@
         },
         "result": "Dfo.Server.Abstractions.Rental.EquipmentRentalReceipt"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 74,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 74,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 74,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Both thin handlers dispatch their unique whole; all three original fine types/registrations/callers removed. Shared panel/LuckyStarChanged domain consumers remain unchanged.",
+          "old": "Only RentEquipmentHandler and ChargeRentPointHandler call ReadRentalRefresh; each calls its matching action fine."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Original selected.Recipient including explicit metadata and physical context, same actor; ordinary refresh declares that same recipient, no new players.",
+          "old": "Original exact selected actor and shared SQLite participant."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "VC-B6 whole scope and independent refresh default protection; VC-B8 initial required encoder default typed/Block. Main Committed and frames survive by original completion, NoRoom plus scope remains ConfirmedRollback/raw/noBlock. Replay owner retains existing actual-encoder raw only. No WriteResult or self capability.",
+          "old": "Legacy fine scope before publication; committed replay actual encoder raw exit; action/native commit exceptions no ACK and source closes."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31233,27 +31335,43 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 107,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "GameRentEquipmentCommand Main WriteAsync; DemandActive before RentAsync and successful TouchedSlots recorded; original NoRoom confirmed rollback.",
+          "old": "Legacy Transactional Main for original exact selected actor; ordinary refusal commits empty and Rent NoRoom confirms rollback."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 107,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+      ],
       "id": "message:66511",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+          "purpose": "Unique GameRentEquipmentCommand or GameChargeRentPointCommand owner and independent ordinary refresh"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Rental.RentEquipmentHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -31274,60 +31392,94 @@
         "telemetry": false,
         "value": 66511
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 107,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 107,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 107,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Both thin handlers dispatch their unique whole; all three original fine types/registrations/callers removed. Shared panel/LuckyStarChanged domain consumers remain unchanged.",
+          "old": "Only RentEquipmentHandler and ChargeRentPointHandler call ReadRentalRefresh; each calls its matching action fine."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Original selected.Recipient including explicit metadata and physical context, same actor; ordinary refresh declares that same recipient, no new players.",
+          "old": "Original exact selected actor and shared SQLite participant."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "VC-B6 whole scope and independent refresh default protection; VC-B8 initial required encoder default typed/Block. Main Committed and frames survive by original completion, NoRoom plus scope remains ConfirmedRollback/raw/noBlock. Replay owner retains existing actual-encoder raw only. No WriteResult or self capability.",
+          "old": "Legacy fine scope before publication; committed replay actual encoder raw exit; action/native commit exceptions no ACK and source closes."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Rental.ChargeRentPointCommand",
         "command:Dfo.Server.Protocol.Game.Rental.ReadRentalRefreshCommand",
         "command:Dfo.Server.Protocol.Game.Rental.RentEquipmentCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 138,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "GameChargeRentPointCommand Main WriteAsync; same PurchaseAsync and minimum Inventory|Rental replay.",
+          "old": "Legacy Transactional Main for original exact selected actor; ordinary refusal commits empty and Rent NoRoom confirms rollback."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 138,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+      ],
       "id": "message:66512",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+          "purpose": "Unique GameRentEquipmentCommand or GameChargeRentPointCommand owner and independent ordinary refresh"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Rental.ChargeRentPointHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -31348,37 +31500,55 @@
         "telemetry": false,
         "value": 66512
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 138,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 138,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
-          "line": 138,
-          "source_sha256": "237c235f91ed0f4258926ed76e74599326e58d67331d295929552aaab22a8061"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Both thin handlers dispatch their unique whole; all three original fine types/registrations/callers removed. Shared panel/LuckyStarChanged domain consumers remain unchanged.",
+          "old": "Only RentEquipmentHandler and ChargeRentPointHandler call ReadRentalRefresh; each calls its matching action fine."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "Original selected.Recipient including explicit metadata and physical context, same actor; ordinary refresh declares that same recipient, no new players.",
+          "old": "Original exact selected actor and shared SQLite participant."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RentalProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/LuckyStarRentalWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-37.md"
+          ],
+          "new": "VC-B6 whole scope and independent refresh default protection; VC-B8 initial required encoder default typed/Block. Main Committed and frames survive by original completion, NoRoom plus scope remains ConfirmedRollback/raw/noBlock. Replay owner retains existing actual-encoder raw only. No WriteResult or self capability.",
+          "old": "Legacy fine scope before publication; committed replay actual encoder raw exit; action/native commit exceptions no ACK and source closes."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Rental.ChargeRentPointCommand",
         "command:Dfo.Server.Protocol.Game.Rental.ReadRentalRefreshCommand",
         "command:Dfo.Server.Protocol.Game.Rental.RentEquipmentCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

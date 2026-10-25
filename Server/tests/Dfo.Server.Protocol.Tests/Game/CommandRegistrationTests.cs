@@ -557,6 +557,8 @@ public sealed class CommandRegistrationTests
         var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
         var routes = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
         (ClientMessageType Message, Type Command, Type Input, bool Replay)[] expected = [
+            (ClientMessageType.GameRentEquipment, typeof(Dfo.Server.Protocol.Game.Rental.GameRentEquipmentCommand), typeof(Dfo.Server.Protocol.Game.Rental.RentEquipmentRequest), true),
+            (ClientMessageType.GameChargeRentPoint, typeof(Dfo.Server.Protocol.Game.Rental.GameChargeRentPointCommand), typeof(Dfo.Server.Protocol.Game.Rental.ChargeRentPointRequest), true),
             (ClientMessageType.GameRenameCreature, typeof(Dfo.Server.Protocol.Game.Creatures.GameRenameCreatureCommand), typeof(Dfo.Server.Protocol.Game.Creatures.RenameCreatureRequest), true),
             (ClientMessageType.GameHatchCreature, typeof(Dfo.Server.Protocol.Game.Creatures.GameHatchCreatureCommand), typeof(Dfo.Server.Protocol.Game.Creatures.HatchCreatureRequest), false),
             (ClientMessageType.GameSharedEffect, typeof(Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommand), typeof(Dfo.Server.Protocol.Game.UseStackable.SharedEffectRequest), true),
@@ -572,7 +574,7 @@ public sealed class CommandRegistrationTests
             Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
             Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
         }
-        Assert.DoesNotContain(registrations, x => x.CommandType.Name is "RenameCreatureCommand" or "HatchCreatureCommand" or "SharedEffectCommand");
+        Assert.DoesNotContain(registrations, x => x.CommandType.Name is "RentEquipmentCommand" or "ChargeRentPointCommand" or "ReadRentalRefreshCommand" or "RenameCreatureCommand" or "HatchCreatureCommand" or "SharedEffectCommand");
     }
 
     private static ServiceProvider BuildProductionGraph()

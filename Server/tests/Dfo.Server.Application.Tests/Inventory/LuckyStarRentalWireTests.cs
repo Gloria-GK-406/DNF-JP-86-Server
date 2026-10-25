@@ -27,7 +27,10 @@ public sealed class LuckyStarRentalWireTests
             services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterSkillPointDomainService,
                 Dfo.Server.Application.Characters.CharacterSkillPointDomainService>();
             services.AddSingleton(observation);
-            services.AddTransient<ICommandPipelineBehavior<EquipmentRentalReceipt>, ObserveRental>();
+            var descriptor=services.Last(x=>x.ServiceType==typeof(IEquipmentRentalDomainService));
+            services.AddSingleton<IEquipmentRentalDomainService>(provider=>new ObserveRental(
+                (IEquipmentRentalDomainService)(descriptor.ImplementationInstance??descriptor.ImplementationFactory?.Invoke(provider)??ActivatorUtilities.CreateInstance(provider,descriptor.ImplementationType!)),
+                provider.GetRequiredService<IDomainTransactionAccessor>(),provider.GetRequiredService<IAccountLuckyStarDomainService>(),observation));
         });
         f.Host.Sql("UPDATE accounts SET lucky_star=100; UPDATE characters SET job=0; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
         for (var slot = 9; slot <= 40; slot++)
@@ -95,18 +98,15 @@ public sealed class LuckyStarRentalWireTests
         public DomainTransaction? Transaction;
         public int StagedStars;
     }
-    private sealed class ObserveRental(IDomainTransactionAccessor transactions,
-        IAccountLuckyStarDomainService stars, RollbackObservation observation)
-        : ICommandPipelineBehavior<EquipmentRentalReceipt>
+    private sealed class ObserveRental(IEquipmentRentalDomainService actual,IDomainTransactionAccessor transactions,
+        IAccountLuckyStarDomainService stars,RollbackObservation observation) : IEquipmentRentalDomainService
     {
-        public int Order => 61;
-        public async ValueTask<EquipmentRentalReceipt> ExecuteAsync(CommandExecutionContext context,
-            ICommand command,
-            CommandExecutionDelegate<EquipmentRentalReceipt> next, CancellationToken ct)
+        public ValueTask<EquipmentRentalPanel> PanelAsync(Dfo.Server.Data.Accounts.AccountId account,Dfo.Server.Data.Characters.CharacterId character,CancellationToken ct) => actual.PanelAsync(account,character,ct);
+        public async ValueTask<EquipmentRentalReceipt> RentAsync(Dfo.Server.Data.Accounts.AccountId account,Dfo.Server.Data.Characters.CharacterId character,int item,CancellationToken ct)
         {
-            var result = await next();
-            observation.Transaction = (DomainTransaction)transactions.Current!;
-            observation.StagedStars = await stars.BalanceAsync(new(1), ct);
+            var result=await actual.RentAsync(account,character,item,ct);
+            observation.Transaction=(DomainTransaction)transactions.Current!;
+            observation.StagedStars=await stars.BalanceAsync(account,ct);
             return result;
         }
     }
@@ -122,7 +122,7 @@ public sealed class LuckyStarRentalWireTests
         return Assert.Single(entries.Values.Cast<EffectOperationEntry>(), x => x.Sequence == sequence);
     }
 
-    private static string[] DatabaseRows(ShopFixture f)
+    internal static string[] DatabaseRows(ShopFixture f)
     {
         var connectionString = (string)typeof(ShopFixture).GetProperty("ConnectionString", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(f)!;
         using var connection = new Microsoft.Data.Sqlite.SqliteConnection(connectionString);

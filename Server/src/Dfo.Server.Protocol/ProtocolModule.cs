@@ -283,13 +283,16 @@ public sealed class ProtocolModule : IServerModule
         services.AddHostedService<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
         services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
         services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(0x03D0, ClientMessageType.GameChargeRentPoint);
-        services.RegisterMessageHandler<RentEquipmentHandler>(ClientMessageType.GameRentEquipment);
-        services.RegisterMessageHandler<ChargeRentPointHandler>(ClientMessageType.GameChargeRentPoint);
+        services.RegisterProtocolMessageHandler<RentEquipmentHandler,RentEquipmentRequest,GameRentEquipmentCommand>(ClientMessageType.GameRentEquipment);
+        services.RegisterProtocolMessageHandler<ChargeRentPointHandler,ChargeRentPointRequest,GameChargeRentPointCommand>(ClientMessageType.GameChargeRentPoint);
         services.AddGameCmdMessageEncoder<RentEquipmentResponse, RentEquipmentEncoder>();
         services.AddGameCmdMessageEncoder<ChargeRentPointResponse, ChargeRentPointEncoder>();
-        services.AddCommandHandler<RentEquipmentCommand, EquipmentRentalReceipt, RentEquipmentCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ChargeRentPointCommand, LuckyStarMutation, ChargeRentPointCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ReadRentalRefreshCommand, RentalRefreshSnapshot, ReadRentalRefreshCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameRentEquipmentCommand,bool,GameRentEquipmentCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRentEquipment,typeof(RentEquipmentRequest)));
+        services.AddProtocolCommandHandler<GameChargeRentPointCommand,bool,GameChargeRentPointCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameChargeRentPoint,typeof(ChargeRentPointRequest)));
         services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
