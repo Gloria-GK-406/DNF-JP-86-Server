@@ -169,7 +169,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<QueryJoustStateCommand,Dfo.Server.Data.Events.JoustState,QueryJoustStateCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<QueryJoustHistoryCommand,Dfo.Server.Data.Events.JoustHistoryEntry[],QueryJoustHistoryCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<JoustBetCommand,Dfo.Server.Data.Events.JoustBetResult,JoustBetCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler>(ClientMessageType.GameWeeklyAttendance);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler, Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand>(ClientMessageType.GameWeeklyAttendance);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand, bool, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameWeeklyAttendance, typeof(Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest)));
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
@@ -178,7 +180,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand,Dfo.Server.Data.Events.AttendanceClaimResult,Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommandHandler>(CommandExecutionKind.Transactional);
         services.RegisterProtocolMessageHandler<MailboxSendHandler, MailboxSendRequest, GameMailboxCommand>(ClientMessageType.GameMailboxSend);
         services.RegisterProtocolMessageHandler<MailboxSendHandler, MailboxSendRequest, GameMailboxCommand>(ClientMessageType.GameMailboxSendMulti);
         services.AddGameCmdMessageDecoder<MailboxSendDecoder>(0x005E, ClientMessageType.GameMailboxSend);
@@ -619,11 +620,15 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameQuestClearCouponCommand, bool, GameQuestClearCouponCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameQuestClearCoupon, typeof(QuestClearCouponRequest)));
-        services.AddCommandHandler<StoreTitleCommand, TitleBookMutationResult, StoreTitleCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<WithdrawTitleCommand, TitleBookMutationResult, WithdrawTitleCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult, EquipCarriedTitleReplacingMirrorCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ReconcileAchievementCommand, AchievementReconciliationResult, ReconcileAchievementCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<QueryTitleBookCommand, IReadOnlyList<CharacterTitleBookCategoryState>, QueryTitleBookCommandHandler>(CommandExecutionKind.ReadOnly);
+        services.AddProtocolCommandHandler<GameTitleBookMutationCommand, bool, GameTitleBookMutationCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameStoreTitle, typeof(TitleBookMutationRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameWithdrawTitle, typeof(TitleBookMutationRequest)));
+        services.AddProtocolCommandHandler<GameQueryTitleBookCommand, bool, GameQueryTitleBookCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameQueryTitleBook, typeof(QueryTitleBookRequest)));
+        services.AddProtocolCommandHandler<GameSetTitleAppearanceCommand, bool, GameSetTitleAppearanceCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetTitleAppearance, typeof(SetTitleAppearanceRequest)));
+        services.AddProtocolCommandHandler<GameAchievementTriggerCommand, bool, GameAchievementTriggerCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAchievementTrigger, typeof(AchievementTriggerRequest)));
         services.AddDomainSubscriber<AchievementProgressChanged, AchievementEventSubscriber>("achievement.noti", DomainEventDeliveryPolicy.LiveOnly, f => f.CharacterId.Value.ToString());
         services.AddDomainSubscriber<TitleUnlocked, TitleBookEventSubscriber>("title.noti-unlock", DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
@@ -631,15 +636,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>();
         services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>();
-        services.AddCommandHandler<SetTitleAppearanceCommand, bool, SetTitleAppearanceCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<SetTitleAppearanceHandler>(ClientMessageType.GameSetTitleAppearance);
+        services.RegisterProtocolMessageHandler<SetTitleAppearanceHandler, SetTitleAppearanceRequest, GameSetTitleAppearanceCommand>(ClientMessageType.GameSetTitleAppearance);
         services.AddGameCmdMessageDecoder<SetTitleAppearanceDecoder>(0x0239, ClientMessageType.GameSetTitleAppearance);
         services.AddGameCmdMessageEncoder<SetTitleAppearanceResponse, SetTitleAppearanceEncoder>();
         services.AddDomainSubscriber<TitleAppearanceChanged, TitleBookEventSubscriber>("title.noti-appearance", DomainEventDeliveryPolicy.LiveOnly);
-        services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameStoreTitle);
-        services.RegisterMessageHandler<TitleBookMutationHandler>(ClientMessageType.GameWithdrawTitle);
-        services.RegisterMessageHandler<AchievementTriggerHandler>(ClientMessageType.GameAchievementTrigger);
-        services.RegisterMessageHandler<QueryTitleBookHandler>(ClientMessageType.GameQueryTitleBook);
+        services.RegisterProtocolMessageHandler<TitleBookMutationHandler, TitleBookMutationRequest, GameTitleBookMutationCommand>(ClientMessageType.GameStoreTitle);
+        services.RegisterProtocolMessageHandler<TitleBookMutationHandler, TitleBookMutationRequest, GameTitleBookMutationCommand>(ClientMessageType.GameWithdrawTitle);
+        services.RegisterProtocolMessageHandler<AchievementTriggerHandler, AchievementTriggerRequest, GameAchievementTriggerCommand>(ClientMessageType.GameAchievementTrigger);
+        services.RegisterProtocolMessageHandler<QueryTitleBookHandler, QueryTitleBookRequest, GameQueryTitleBookCommand>(ClientMessageType.GameQueryTitleBook);
         services.AddGameCmdMessageDecoder<StoreTitleDecoder>(0x019C, ClientMessageType.GameStoreTitle);
         services.AddGameCmdMessageDecoder<WithdrawTitleDecoder>(0x019D, ClientMessageType.GameWithdrawTitle);
         services.AddGameCmdMessageDecoder<AchievementTriggerDecoder>(0x01A1, ClientMessageType.GameAchievementTrigger);

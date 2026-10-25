@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -89,10 +90,6 @@ internal sealed class WeeklyAttendanceResponseEncoder : GameCmdMessageEncoder<We
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeeklyAttendanceResponse message)
     { var bytes=new byte[4];BinaryPrimitives.WriteUInt32LittleEndian(bytes,message.Result);return OnePayload(0x0441,bytes); }
 }
-public sealed record ClaimWeeklyAttendanceCommand(SelectedSessionIdentity Session) : ICommand<AttendanceClaimResult>,IAccountCommand,ISelectedSessionCommand
-{ public Dfo.Server.Data.Accounts.AccountId AccountId=>Session.AccountId; }
-public sealed class ClaimWeeklyAttendanceCommandHandler(IWeeklyAttendanceDomainService attendance,TimeProvider clock) : ICommandHandler<ClaimWeeklyAttendanceCommand,AttendanceClaimResult>
-{ public ValueTask<AttendanceClaimResult> HandleAsync(CommandExecutionContext c,ClaimWeeklyAttendanceCommand q,CancellationToken ct)=>attendance.ClaimAsync(q.AccountId,q.Session.CharacterId,clock.GetUtcNow(),ct); }
 public sealed record AttendanceCompleted(SelectedSessionIdentity Session,bool Succeeded) : INotification<AttendanceCompleted>;
 public sealed class AttendanceCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<AttendanceCompleted>
 {
@@ -100,15 +97,10 @@ public sealed class AttendanceCompletedHandler(ISelectedSessionDomainService ses
         => ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(recipient.CharacterId==notice.Session.CharacterId
             && sessions.IsInWorld(notice.Session) ? [new WeeklyAttendanceResponse(notice.Succeeded ? 0u : 1u)] : []);
 }
-public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessions,ICommandBus commands,IEventService notices) : ClientMessageHandler<WeeklyAttendanceRequest>
+public sealed class WeeklyAttendanceHandler(ICommandBus commands) : ClientMessageHandler<WeeklyAttendanceRequest>, IProtocolCommandMessageHandler<GameWeeklyAttendanceCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,WeeklyAttendanceRequest message,CancellationToken ct)
-    {
-        if (sessions.FindByConnection(context.Connection.ConnectionId) is not { } session) return;
-        var result=await commands.SendAsync(new ClaimWeeklyAttendanceCommand(session),ct);
-        await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new AttendanceCompleted(session,result.Succeeded),ct);
-        await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new EventsChanged(),ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeeklyAttendanceRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeeklyAttendanceCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection,
     Dfo.Server.Abstractions.Characters.ICharacterDomainService? characters = null,

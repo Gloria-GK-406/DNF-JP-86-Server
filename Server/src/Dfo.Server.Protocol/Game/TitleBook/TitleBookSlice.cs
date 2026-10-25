@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -54,71 +55,10 @@ internal sealed class TitleBookMutationEncoder : GameCmdMessageEncoder<TitleBook
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TitleBookMutationResponse message) =>
         OnePayload(message.Store ? (ushort)0x019C : (ushort)0x019D, message.Body());
 }
-public sealed record StoreTitleCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IAccountCommand, ISelectedSessionCommand
+internal sealed class TitleBookMutationHandler(ICommandBus commands) : ClientMessageHandler<TitleBookMutationRequest>, IProtocolCommandMessageHandler<GameTitleBookMutationCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed record WithdrawTitleCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Destination, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class StoreTitleCommandHandler(ITitleBookDomainService titles) : ICommandHandler<StoreTitleCommand, TitleBookMutationResult>
-{
-    public ValueTask<TitleBookMutationResult> HandleAsync(CommandExecutionContext context, StoreTitleCommand command, CancellationToken ct) =>
-        titles.StoreAsync(command.Session.CharacterId, command.Source, command.ItemId, command.Category, command.Index, ct);
-}
-public sealed class WithdrawTitleCommandHandler(ITitleBookDomainService titles) : ICommandHandler<WithdrawTitleCommand, TitleBookMutationResult>
-{
-    public ValueTask<TitleBookMutationResult> HandleAsync(CommandExecutionContext context, WithdrawTitleCommand command, CancellationToken ct) =>
-        titles.WithdrawAsync(command.Session.CharacterId, command.Destination, command.ItemId, command.Category, command.Index, ct);
-}
-// TBM1-only request; native ACK shape is retained, but no physical book transfer occurs.
-public sealed record EquipCarriedTitleReplacingMirrorCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Source, int ItemId, int Category, int Index) : ICommand<TitleBookMutationResult>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class EquipCarriedTitleReplacingMirrorCommandHandler(ITitleBookDomainService titles)
-    : ICommandHandler<EquipCarriedTitleReplacingMirrorCommand, TitleBookMutationResult>
-{
-    public ValueTask<TitleBookMutationResult> HandleAsync(CommandExecutionContext context, EquipCarriedTitleReplacingMirrorCommand command, CancellationToken ct) =>
-        titles.EquipCarriedTitleReplacingMirrorAsync(command.Session.CharacterId, command.Source, command.ItemId, command.Category, command.Index, ct);
-}
-
-internal sealed class TitleBookMutationHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    IInventorySlotMappingRuleService mapping, ICommandBus commands, IGameMessageSender sender,
-    ILogger<TitleBookMutationHandler> logger) : ClientMessageHandler<TitleBookMutationRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TitleBookMutationRequest message, CancellationToken ct)
-    {
-        var replaceMirror = !message.Store && message.Space == 0x314D4254;
-        ValueTask Refuse() => sender.SendCmdAsync(context.Connection.ConnectionId,
-            new TitleBookMutationResponse(message.Store, replaceMirror ? 3 : message.Space, replaceMirror ? 13 : message.Slot, message.Category, message.Index, 0x0A), ct);
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (!message.Complete || (message.Space is not (0 or 3) && !replaceMirror) || message.Slot < 0 || message.Category is < 0 or > 4 || message.Index < 0
-            || session is null || !users.TryGetByConnection(context.Connection.ConnectionId, out var user) || user is null)
-        { await Refuse(); return; }
-        TitleBookMutationResult result;
-        try
-        {
-            var slot = mapping.ToBusinessSlot(new(replaceMirror ? InventoryContainerType.Main : (InventoryContainerType)message.Space, message.Slot));
-            result = replaceMirror
-                ? await commands.SendAsync(new EquipCarriedTitleReplacingMirrorCommand(user.OnlineUserId, session, slot, message.ItemId, message.Category, message.Index), ct).ConfigureAwait(false)
-                : message.Store
-                ? await commands.SendAsync(new StoreTitleCommand(user.OnlineUserId, session, slot, message.ItemId, message.Category, message.Index), ct).ConfigureAwait(false)
-                : await commands.SendAsync(new WithdrawTitleCommand(user.OnlineUserId, session, slot, message.ItemId, message.Category, message.Index), ct).ConfigureAwait(false);
-        }
-        catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogWarning(failure, "Title book request refused character={CharacterId} store={Store}", session.CharacterId, message.Store);
-            await Refuse(); return;
-        }
-        var actual = mapping.ToGameSlot(result.Slot);
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new TitleBookMutationResponse(message.Store,
-            (int)actual.Space, actual.Index, result.Category, result.Index, result.Success ? null : (byte)0x0A), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TitleBookMutationRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameTitleBookMutationCommand(context, message), ct).ConfigureAwait(false);
 }
 
 public sealed record QueryTitleBookRequest(GameMessageMetadata Metadata, ushort Owner, bool Complete) : IClientNetworkMessage
@@ -130,34 +70,10 @@ internal sealed class QueryTitleBookDecoder : IGameMessageDecoder
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
         new QueryTitleBookRequest(metadata, body.Length == 2 ? BinaryPrimitives.ReadUInt16LittleEndian(body) : ushort.MaxValue, body.Length == 2);
 }
-public sealed record QueryTitleBookCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    SelectedSessionIdentity Target) : ICommand<IReadOnlyList<CharacterTitleBookCategoryState>>, IAccountCommand, ISelectedSessionCommand
+public sealed class QueryTitleBookHandler(ICommandBus commands) : ClientMessageHandler<QueryTitleBookRequest>, IProtocolCommandMessageHandler<GameQueryTitleBookCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class QueryTitleBookCommandHandler(ITitleBookDomainService titles, ISelectedSessionDomainService sessions)
-    : ICommandHandler<QueryTitleBookCommand, IReadOnlyList<CharacterTitleBookCategoryState>>
-{
-    public async ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> HandleAsync(CommandExecutionContext context, QueryTitleBookCommand command, CancellationToken ct)
-    {
-        if (command.Target.ListenerPort != command.Session.ListenerPort || !sessions.IsInWorld(command.Target)) return [];
-        return await titles.GetAsync(command.Target.CharacterId, ct).ConfigureAwait(false);
-    }
-}
-public sealed class QueryTitleBookHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<QueryTitleBookRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, QueryTitleBookRequest message, CancellationToken ct)
-    {
-        if (!message.Complete || message.Owner == ushort.MaxValue) return;
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        var target = sessions.TryGetInWorld(message.Owner, out var inWorld) ? inWorld : null;
-        if (session is null || target is null || target.ListenerPort != session.ListenerPort
-            || !users.TryGetByConnection(context.Connection.ConnectionId, out var user) || user is null) return;
-        var rows = await commands.SendAsync(new QueryTitleBookCommand(user.OnlineUserId, session, target), ct).ConfigureAwait(false);
-        if (!sessions.IsInWorld(target) || !sessions.IsInWorld(session)) return;
-        await sender.SendExplicitAsync(session.ConnectionId, new([.. rows.Select(x => (IGameServerMessage)new TitleBookStateMessage(x with { InfoType = 1, OwnerId16 = target.WireUserId }))], []), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, QueryTitleBookRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameQueryTitleBookCommand(context, message), ct).ConfigureAwait(false);
 }
 
 internal sealed record TitleBookChanged(CharacterId Character, int? Category = null, TitleUnlocked? Unlock = null,

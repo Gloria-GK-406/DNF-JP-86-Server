@@ -247,11 +247,11 @@ public sealed class CommonExperienceEffectTests
     [Fact]
     public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
     {
-        string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
+        string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand"];
         string[] direct = ["ActivateClientHotkeyProfileCommand"];
-        string[] expected = ["StartBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
+        string[] expected = ["StartBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
-            "JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
+            "JoustBetCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
         var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
         Assert.Equal(expected.Where(name => !Migrated(name)).Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
         using var shop = Shop(new Calculation(),new EffectTrace());

@@ -3448,25 +3448,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 56,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 56,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Achievements.ReconcileAchievementCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Achievements.ReconcileAchievementCommand",
@@ -3492,32 +3495,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.Achievements.AchievementReconciliationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 56,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 56,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 56,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -17139,25 +17151,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 83,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 83,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TitleBook.EquipCarriedTitleReplacingMirrorCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TitleBook.EquipCarriedTitleReplacingMirrorCommand",
@@ -17183,53 +17198,65 @@
         },
         "result": "Dfo.Server.Abstractions.Achievements.TitleBookMutationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 83,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 83,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 83,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 138,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 138,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TitleBook.QueryTitleBookCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TitleBook.QueryTitleBookCommand",
@@ -17255,53 +17282,65 @@
         },
         "result": "System.Collections.Generic.IReadOnlyList`1[[Dfo.Server.Data.Characters.CharacterTitleBookCategoryState, Dfo.Server.Data, Version=0.2.7.0, Culture=neutral, PublicKeyToken=null]]"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 138,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 138,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 138,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 29,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 29,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TitleBook.SetTitleAppearanceCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TitleBook.SetTitleAppearanceCommand",
@@ -17327,53 +17366,65 @@
         },
         "result": "System.Boolean"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 29,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 29,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 29,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 67,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 67,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TitleBook.StoreTitleCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TitleBook.StoreTitleCommand",
@@ -17399,53 +17450,65 @@
         },
         "result": "Dfo.Server.Abstractions.Achievements.TitleBookMutationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 67,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 67,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 67,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 72,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 72,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TitleBook.WithdrawTitleCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TitleBook.WithdrawTitleCommand",
@@ -17471,32 +17534,41 @@
         },
         "result": "Dfo.Server.Abstractions.Achievements.TitleBookMutationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 72,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 72,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 72,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -18357,25 +18429,28 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 94,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 94,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand",
@@ -18401,32 +18476,41 @@
         },
         "result": "Dfo.Server.Data.Events.AttendanceClaimResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 94,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 94,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 94,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     }
   ],
   "messages": [
@@ -29526,26 +29610,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+      ],
       "id": "message:65948",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TitleBook.TitleBookMutationHandler",
@@ -29567,30 +29654,39 @@
         "telemetry": false,
         "value": 65948
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.TitleBook.EquipCarriedTitleReplacingMirrorCommand",
         "command:Dfo.Server.Protocol.Game.TitleBook.QueryTitleBookCommand",
@@ -29598,29 +29694,32 @@
         "command:Dfo.Server.Protocol.Game.TitleBook.WithdrawTitleCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+      ],
       "id": "message:65949",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TitleBook.TitleBookMutationHandler",
@@ -29642,30 +29741,39 @@
         "telemetry": false,
         "value": 65949
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 90,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.TitleBook.EquipCarriedTitleReplacingMirrorCommand",
         "command:Dfo.Server.Protocol.Game.TitleBook.QueryTitleBookCommand",
@@ -29673,29 +29781,32 @@
         "command:Dfo.Server.Protocol.Game.TitleBook.WithdrawTitleCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 62,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 62,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+      ],
       "id": "message:65953",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Achievements.AchievementTriggerHandler",
@@ -29717,35 +29828,44 @@
         "telemetry": false,
         "value": 65953
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 62,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 62,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Achievements/AchievementSlice.cs",
-          "line": 62,
-          "source_sha256": "0d650c4baf073dd13d78afa3abf7214aa1211e4c140abc6939c9c1a55acf5487"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Achievements/GameAchievementTriggerCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Achievements.ReconcileAchievementCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -29832,26 +29952,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 147,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 147,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+      ],
       "id": "message:65960",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TitleBook.QueryTitleBookHandler",
@@ -29873,30 +29996,39 @@
         "telemetry": false,
         "value": 65960
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 147,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 147,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleBookSlice.cs",
-          "line": 147,
-          "source_sha256": "7d9a87a34022f51f3ac36ca453420561f84c46e20cc60be34d550cd6b9f67194"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameQueryTitleBookCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.TitleBook.EquipCarriedTitleReplacingMirrorCommand",
         "command:Dfo.Server.Protocol.Game.TitleBook.QueryTitleBookCommand",
@@ -29904,7 +30036,7 @@
         "command:Dfo.Server.Protocol.Game.TitleBook.WithdrawTitleCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -31531,26 +31663,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 49,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 49,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+      ],
       "id": "message:66105",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TitleBook.SetTitleAppearanceHandler",
@@ -31572,35 +31707,44 @@
         "telemetry": false,
         "value": 66105
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 49,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 49,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TitleBook/TitleAppearanceSlice.cs",
-          "line": 49,
-          "source_sha256": "c373af15cf64f1620882c9cd7b68781b933270c61ead13df59ab1632e0c34497"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TitleBook/GameSetTitleAppearanceCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.TitleBook.SetTitleAppearanceCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -34704,26 +34848,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 103,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "唯一Protocol/Direct whole保原一个ordinary显式单元：Query ReadOnly，其余Write；称号／成就WriteResult只恢复健康确认回滚；None足迹，无Main或账本。",
+          "old": "2a9a09a6：Query为一个ReadOnly；其余原fine各一个Transactional，称号slot mapping在事务外，签到clock在事务内。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-53.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 103,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+      ],
       "id": "message:66625",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler",
@@ -34745,35 +34892,44 @@
         "telemetry": false,
         "value": 66625
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 103,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 103,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
-          "line": 103,
-          "source_sha256": "03a2c7183ced6c9c141401f41007eea19d866b4c3bbe2078dc7edf7c8063b035"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "六个薄消息入口只交唯一whole；七fine类型／handler／注册／生产引用删除。原title／achievement事件订阅和日切来源留T-010。",
+          "old": "原六消息handler派七fine；Store/Withdraw/TBM1三分支，事件订阅与日切另有来源。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "单元仅原requester session／本次physical／metadata；不将Query Target加参与者，无raw或Self权限。",
+          "old": "原IAccountCommand＋ISelectedSessionCommand保护精确请求者；Query Target只是被读对象。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task53-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Achievements/TitleProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/WeeklyAttendance/GameWeeklyAttendanceCommand.cs"
+          ],
+          "new": "保持原领域事实／完整称号实例与镜像、原ACK和投影序；Query真实Get的既有只读生命周期拒绝保持。whole默认scope/初次encoder/结果slot换算差异见VC-B33，Query无写不新增围栏；周签到两个Project Failed仍忽略。",
+          "old": "原完整包／地址门与业务拒绝、Query listener/双InWorld、客户端delta仅观察、签到claim与MailOnly同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.WeeklyAttendance.ClaimWeeklyAttendanceCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
