@@ -28,13 +28,10 @@ public sealed class SharedEffectProjectionTests
                 Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, s); areas.Enter(new(s.CharacterId, s.TownAreaLease(), new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
             }
             var actor = Add(1, 12, true); var peer = Add(2, 12, true); Add(3, 13, true); Add(4, 12, false);
-            var sender = new Sender(); var commands = new Commands(success);
             var request = new SharedEffectRequest(GameMessageMetadata.Empty, 10002625, 65);
             Assert.Equal(ReplayProjectionNeeds.Inventory, ((IEffectSettlementRequest)request).MinimumReplayNeeds);
-            await new SharedEffectHandler(sessions, new InventorySlotMappingRuleService(), areas, commands, sender)
-                .HandleAsync(new NetworkDispatchContext(new(actor.ConnectionId, NetworkEndpointKind.Game, 10011)), request, default);
-            var delivery = Assert.Single(sender.Items); Assert.Equal(success, Assert.IsType<SharedEffectAck>(delivery.RequiredDirectMessages[0]).Success);
-            Assert.Equal(1, commands.Count);
+            var delivery = SharedEffectProjection.Compose(actor, request, new SharedEffectUseResult(success), sessions, areas);
+            Assert.Equal(success, Assert.IsType<SharedEffectAck>(delivery.RequiredDirectMessages[0]).Success);
             if (success)
             {
                 var self = Assert.IsType<SharedEffectNotification>(delivery.RequiredDirectMessages[1]); Assert.Equal(actor.WireUserId, self.Actor);
@@ -42,28 +39,5 @@ public sealed class SharedEffectProjectionTests
             }
             else { Assert.Single(delivery.RequiredDirectMessages); Assert.Empty(delivery.BestEffortTargets); }
         });
-    }
-    private sealed class Commands(bool success) : ICommandBus
-    {
-        public int Count { get; private set; }
-        public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
-        { Assert.IsType<SharedEffectCommand>(command); Count++; return ValueTask.FromResult((T)(object)new SharedEffectUseResult(success)); }
-    }
-    /// <summary>
-    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
-    /// real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails where it is registered,
-    /// as the old double refused one.
-    /// </summary>
-    private sealed class Sender : IGameMessageSender
-    {
-        private readonly RecordedOutbound outbound = new();
-        public Sender() => outbound.RefuseOutsideExplicit();
-        public List<GameExplicitMessageDelivery> Items => [.. outbound.GameExplicits];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
-            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
-            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
-            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

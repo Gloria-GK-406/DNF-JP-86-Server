@@ -29,6 +29,14 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class EffectOperationReplayTests
 {
+    private sealed record LegacySettlementProbe(SelectedSessionIdentity Actor, BusinessSlot Slot, int ItemId)
+        : ICommand<SharedEffectUseResult>, IAccountCommand, IRequestSettlementCommand
+    { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity Session => Actor; }
+    private sealed class LegacySettlementProbeHandler(ISharedEffectDomainService effects) : ICommandHandler<LegacySettlementProbe, SharedEffectUseResult>
+    {
+        public ValueTask<SharedEffectUseResult> HandleAsync(CommandExecutionContext context, LegacySettlementProbe command, CancellationToken ct) =>
+            effects.UseAsync(command.Actor, command.Slot, command.ItemId, context.LegacyFootprint, ct);
+    }
     private sealed class LoveContent : IMarriageCeremonyContentSource
     { public MarriageCeremonyContent Load() => new([], []) { LovePointItems = new Dictionary<int, int> { [1000] = 1 }, MaximumLovePoints = 999 }; }
     [Theory]
@@ -45,7 +53,7 @@ public sealed class EffectOperationReplayTests
         var context = f.Services.GetRequiredService<EffectOperationContext>();
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = context.Enter(entry, f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        var command = new SharedEffectCommand(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
+        var command = new LegacySettlementProbe(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
         var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(object), CommandExecutionKind.Transactional);
         using var main = context.BeginMain(execution, command);
         if (started) context.TransactionStarted(execution, command);
@@ -318,7 +326,7 @@ public sealed class EffectOperationReplayTests
         var context = f.Services.GetRequiredService<EffectOperationContext>();
         var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
         using var operation = context.Enter(entry, f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        var command = new SharedEffectCommand(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
+        var command = new LegacySettlementProbe(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
         var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(object), CommandExecutionKind.Transactional);
         using var main = context.BeginMain(execution, command);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -402,13 +410,13 @@ public sealed class EffectOperationReplayTests
     [Fact]
     public async Task Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives()
     {
-        using var f = Fixture(); await f.Seed(69, 1000, 3);
+        using var f = new ShopFixture(s => s.AddCommandHandler<LegacySettlementProbe, SharedEffectUseResult, LegacySettlementProbeHandler>(CommandExecutionKind.Transactional)); await f.Seed(69, 1000, 3);
         TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session));
         // The selection arrives inside the refusal-only operation's own CMD, before it sends its command.
         var pending = TestGameplay.RunAsync(f.Services, () => f.Services.GetRequiredService<EffectOperationLedger>().DispatchAsync(f.Connection, new Stream().Request(1), async () => {
             f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
             f.Select(1);
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SharedEffectCommand(f.Session,
+            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new LegacySettlementProbe(f.Session,
                 new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
         }, default).AsTask());
         await Assert.ThrowsAsync<InvalidOperationException>(() => pending);

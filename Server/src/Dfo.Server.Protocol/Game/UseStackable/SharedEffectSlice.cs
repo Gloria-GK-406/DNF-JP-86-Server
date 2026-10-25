@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -43,25 +44,40 @@ internal sealed class SharedEffectNotificationEncoder : GameNotiMessageEncoder<S
         return OnePayload(0x00DB, b);
     }
 }
-public sealed record SharedEffectCommand(SelectedSessionIdentity Actor, BusinessSlot Slot, int ItemId) : ICommand<SharedEffectUseResult>, IAccountCommand, IRequestSettlementCommand
-{ public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity? Session => Actor; }
-public sealed class SharedEffectCommandHandler(ISharedEffectDomainService effects) : ICommandHandler<SharedEffectCommand, SharedEffectUseResult>
+public sealed record GameSharedEffectCommand(NetworkDispatchContext Dispatch, SharedEffectRequest Input) : IProtocolCommand<bool>
 {
-    public ValueTask<SharedEffectUseResult> HandleAsync(CommandExecutionContext c, SharedEffectCommand q, CancellationToken ct) => effects.UseAsync(q.Actor, q.Slot, q.ItemId, c.LegacyFootprint, ct);
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal sealed class SharedEffectHandler(ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService mappings,
-    ITownAreaDomainService areas, ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<SharedEffectRequest>
+public sealed class GameSharedEffectCommandHandler(ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService mappings,
+    ITownAreaDomainService areas, ISharedEffectDomainService effects, ICommandWorkUnits units, IGameCommandOutbox outbox) : ICommandHandler<GameSharedEffectCommand, bool>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, SharedEffectRequest m, CancellationToken ct)
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSharedEffectCommand command, CancellationToken ct)
     {
+        var c = command.Dispatch; var m = command.Input;
+        var request = execution.Request ?? throw new InvalidOperationException("SharedEffect requires its explicit request.");
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
         BusinessSlot slot;
         try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, m.Slot)); }
-        catch (ArgumentOutOfRangeException) { await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new SharedEffectAck(false, m.Slot)], []), ct).ConfigureAwait(false); return; }
-        var result = actor is null ? new SharedEffectUseResult(false) : await commands.SendAsync(new SharedEffectCommand(actor, slot, m.ItemId), ct).ConfigureAwait(false);
+        catch (ArgumentOutOfRangeException) { await outbox.RegisterExplicitAsync(c.Connection.ConnectionId, new([new SharedEffectAck(false, m.Slot)], []), ct).ConfigureAwait(false); return false; }
+        var result = new SharedEffectUseResult(false);
+        if (actor is not null && request is not CommandRequestContext.ProtocolEffectRejected)
+        {
+            if (request is not CommandRequestContext.ProtocolEffectSelected selected || selected.Recipient.Session != actor)
+                throw new InvalidOperationException("SharedEffect requires its originally selected actor.");
+            result = await units.WriteAsync(execution, new("SharedEffect", [selected.Recipient], CommandWorkUnitKind.MainSettlement),
+                (unit, token) => effects.UseAsync(actor, slot, m.ItemId, unit.Footprint, token), ct).ConfigureAwait(false);
+        }
         var delivery = SharedEffectProjection.Compose(actor, m, result, sessions, areas);
-        await sender.SendExplicitAsync(c.Connection.ConnectionId, delivery, ct).ConfigureAwait(false);
+        await outbox.RegisterExplicitAsync(c.Connection.ConnectionId, delivery, ct).ConfigureAwait(false);
+        return result.Succeeded;
     }
+}
+
+internal sealed class SharedEffectHandler(ICommandBus commands) : ClientMessageHandler<SharedEffectRequest>, IProtocolCommandMessageHandler<GameSharedEffectCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SharedEffectRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameSharedEffectCommand(context, message), ct).ConfigureAwait(false);
 }
 
 internal static class SharedEffectProjection

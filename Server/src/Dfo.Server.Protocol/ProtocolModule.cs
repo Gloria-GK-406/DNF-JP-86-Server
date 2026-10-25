@@ -293,10 +293,12 @@ public sealed class ProtocolModule : IServerModule
         services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
-        services.RegisterMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler>(ClientMessageType.GameSharedEffect);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler, Dfo.Server.Protocol.Game.UseStackable.SharedEffectRequest, Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommand>(ClientMessageType.GameSharedEffect);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotification, Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotificationEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand, Dfo.Server.Abstractions.Inventory.SharedEffectUseResult, Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommand, bool, Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSharedEffect, typeof(Dfo.Server.Protocol.Game.UseStackable.SharedEffectRequest)));
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentPostDecoder>(0x03F8, ClientMessageType.GameWeddingCommentPost);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentDeleteDecoder>(0x03F9, ClientMessageType.GameWeddingCommentDelete);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentReadDecoder>(0x03FA, ClientMessageType.GameWeddingCommentRead);
@@ -617,10 +619,13 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<IncreaseStatusHandler>(ClientMessageType.GameIncreaseStatus);
         services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
         services.AddGameCmdMessageEncoder<IncreaseStatusResponse, IncreaseStatusEncoder>();
-        services.AddCommandHandler<HatchCreatureCommand, HatchCreatureResult, HatchCreatureCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<RenameCreatureCommand, RenameCreatureResult, RenameCreatureCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameHatchCreatureCommand, bool, GameHatchCreatureCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameHatchCreature, typeof(HatchCreatureRequest)));
+        services.AddProtocolCommandHandler<GameRenameCreatureCommand, bool, GameRenameCreatureCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRenameCreature, typeof(RenameCreatureRequest)));
+        services.AddProtocolCommandHandler<GameGenCeraTicketCommand, bool, GameGenCeraTicketCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGenCeraTicket, typeof(GenCeraTicketRequest)));
         services.AddCommandHandler<QuestClearCouponCommand, QuestClearCouponResult, QuestClearCouponCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<StoreTitleCommand, TitleBookMutationResult, StoreTitleCommandHandler>(CommandExecutionKind.Transactional);
@@ -978,8 +983,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterProtocolMessageHandler<MoveItemSpaceHandler, MoveItemSpaceRequest, GameMoveItemSpaceCommand>(ClientMessageType.GameMoveItemSpace);
         services.RegisterProtocolMessageHandler<UseStackableHandler, UseStackableRequest, GameUseStackableCommand>(ClientMessageType.GameUseStackable);
-        services.RegisterMessageHandler<RenameCreatureHandler>(ClientMessageType.GameRenameCreature);
-        services.RegisterMessageHandler<HatchCreatureHandler>(ClientMessageType.GameHatchCreature);
+        services.RegisterProtocolMessageHandler<RenameCreatureHandler, RenameCreatureRequest, GameRenameCreatureCommand>(ClientMessageType.GameRenameCreature);
+        services.RegisterProtocolMessageHandler<HatchCreatureHandler, HatchCreatureRequest, GameHatchCreatureCommand>(ClientMessageType.GameHatchCreature);
         services.RegisterMessageHandler<CreatureResponseReportHandler>(ClientMessageType.GameCreatureResponseReport);
         services.RegisterMessageHandler<CreatureScriptMessageReportHandler>(ClientMessageType.GameCreatureScriptMessage);
         services.RegisterMessageHandler<QuestClearCouponHandler>(ClientMessageType.GameQuestClearCoupon);
@@ -993,7 +998,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<LotteryOpeningHandler, LotteryOpeningRequest, GameLotteryOpeningCommand>(ClientMessageType.GameLotteryOpening);
         services.RegisterProtocolMessageHandler<PackageOpeningHandler, PackageOpeningRequest, GamePackageOpeningCommand>(ClientMessageType.GamePackageOpening);
         services.RegisterProtocolMessageHandler<AvatarPackageOpeningHandler, AvatarPackageOpeningRequest, GameAvatarPackageOpeningCommand>(ClientMessageType.GameAvatarPackageOpening);
-        services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
+        services.RegisterProtocolMessageHandler<GenCeraTicketHandler, GenCeraTicketRequest, GameGenCeraTicketCommand>(ClientMessageType.GameGenCeraTicket);
         services.RegisterMessageHandler<LearnSkillHandler>(ClientMessageType.GameLearnSkill);
         services.RegisterProtocolMessageHandler<SellItemHandler, SellItemRequest, GameSellItemCommand>(ClientMessageType.GameSellItem);
         services.RegisterProtocolMessageHandler<RepairItemHandler, RepairItemRequest, GameRepairItemCommand>(ClientMessageType.GameRepairItem);

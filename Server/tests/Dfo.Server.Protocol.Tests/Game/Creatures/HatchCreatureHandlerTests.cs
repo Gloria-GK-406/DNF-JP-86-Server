@@ -1,4 +1,6 @@
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -37,8 +39,8 @@ public sealed class HatchCreatureHandlerTests
             await handler.HandleAsync(Context(), CreaturePayloadCodec.DecodeHatchRequest([7, 0, 0]), default);
 
             Assert.Equal(1, bus.Calls);
-            Assert.Equal(new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), bus.Command!.EggSlot);
-            Assert.Equal(Owner, bus.Command.Session);
+            Assert.Equal(new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), bus.EggSlot);
+            Assert.Equal(Owner, bus.Session);
             Assert.Collection(sender.Messages,
                 message => Assert.True(Assert.IsType<HatchCreatureResponse>(message).Success),
                 message =>
@@ -96,23 +98,55 @@ public sealed class HatchCreatureHandlerTests
         });
     }
 
-    private static HatchCreatureHandler Create(Bus bus, Sender sender) => new(
-        new Sessions(), new InventorySlotMappingRuleService(), bus, sender, TimeProvider.System);
+    private static HatchCreatureHandler Create(Bus bus, Sender sender) => new(new WholeDriver(new(new Sessions(), new InventorySlotMappingRuleService(), bus,
+            new Units(), new Outbox(sender), TimeProvider.System)));
     private static NetworkDispatchContext Context() => new(
         new NetworkConnectionContext(Owner.ConnectionId, NetworkEndpointKind.Game, 10011));
 
-    private sealed class Bus(CreatureTransformationReceipt? receipt) : ICommandBus
+    private sealed class Bus(CreatureTransformationReceipt? receipt) : ICreatureRuntimeDomainService
     {
         public bool Fail { get; init; }
         public int Calls { get; private set; }
-        public HatchCreatureCommand? Command { get; private set; }
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
+        public BusinessSlot EggSlot { get; private set; }
+        public SelectedSessionIdentity? Session { get; private set; }
+        public ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session, BusinessSlot egg, CancellationToken ct)
         {
-            Calls++; Command = Assert.IsType<HatchCreatureCommand>(command);
+            Calls++; Session = session; EggSlot = egg;
             if (Fail) throw new IOException("commit failed");
-            return ValueTask.FromResult((TResult)(object)new HatchCreatureResult(receipt));
+            return ValueTask.FromResult(receipt);
         }
+        public void Enter(SelectedSessionIdentity s) => throw new NotSupportedException();
+        public void DiscardExact(SelectedSessionIdentity s) => throw new NotSupportedException();
+        public ValueTask LeaveAsync(SelectedSessionIdentity s, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<CreatureRuntimeChange?> GainRoomExperienceAsync(SelectedSessionIdentity s, DungeonRunId r, MazeCell c, int n, CancellationToken ct) => throw new NotSupportedException();
+        public void Invalidate(CharacterId id) => throw new NotSupportedException();
+        public void ChangeCombat(CharacterId id, bool combat) => throw new NotSupportedException();
+        public bool IsEquipped(SelectedSessionIdentity s, int uid) => throw new NotSupportedException();
+        public IReadOnlyList<SelectedSessionIdentity> DueSessions() => throw new NotSupportedException();
+        public IReadOnlyList<CreaturePendingProjection> DrainProjections() => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceAsync(SelectedSessionIdentity s, CancellationToken ct, bool? combat = null) => throw new NotSupportedException();
+        public ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity s, int n, CancellationToken ct) => throw new NotSupportedException();
+        public void QueueRoomExperience(SelectedSessionIdentity s, DungeonRunId r, MazeCell c, int n) => throw new NotSupportedException();
+    }
+    private sealed class WholeDriver(GameHatchCreatureCommandHandler handler) : ICommandBus
+    {
+        public async ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull =>
+            (T)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(GameHatchCreatureCommand), typeof(GameHatchCreatureCommandHandler), CommandExecutionKind.Direct), Assert.IsType<GameHatchCreatureCommand>(command), ct);
+    }
+    // Local projection test driver; the Application tests exercise production work units and SQLite commits.
+    private sealed class Units : ICommandWorkUnits
+    {
+        public ValueTask<T> WriteAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
+        { Assert.Equal(CommandWorkUnitKind.Ordinary, d.Kind); Assert.Empty(d.Participants); return action(null!, ct); }
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+    }
+    private sealed class Outbox(Sender sender) : IGameCommandOutbox
+    {
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage m, CancellationToken ct) => sender.SendCmdAsync(id, m, ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage m, CancellationToken ct) => sender.SendNotiAsync(id, m, ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext c, IReadOnlyList<IGameServerMessage> m, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery d, CancellationToken ct) => sender.SendExplicitAsync(id, d, ct);
     }
 
     private sealed class Sessions : ISelectedSessionDomainService

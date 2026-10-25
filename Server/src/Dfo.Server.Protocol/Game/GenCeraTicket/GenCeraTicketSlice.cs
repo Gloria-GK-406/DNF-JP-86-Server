@@ -1,6 +1,8 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Application.Commands;
 
 namespace Dfo.Server.Protocol.Game.GenCeraTicket;
 
@@ -26,19 +28,32 @@ internal sealed class GenCeraTicketResponseEncoder : GameCmdMessageEncoder<GenCe
         OnePayload(0x0041, GameCmdEnvelope.Refuse(1));
 }
 
-public sealed class GenCeraTicketHandler(IGameMessageSender sender, ILogger<GenCeraTicketHandler> logger)
-    : ClientMessageHandler<GenCeraTicketRequest>
+public sealed record GameGenCeraTicketCommand(NetworkDispatchContext Dispatch, GenCeraTicketRequest Input) : IProtocolCommand<bool>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        GenCeraTicketRequest message, CancellationToken cancellationToken)
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
+}
+public sealed class GameGenCeraTicketCommandHandler(IGameCommandOutbox outbox, ILogger<GameGenCeraTicketCommandHandler> logger)
+    : ICommandHandler<GameGenCeraTicketCommand, bool>
+{
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext execution,
+        GameGenCeraTicketCommand command, CancellationToken cancellationToken)
     {
+        var context = command.Dispatch; var message = command.Input;
         logger.LogInformation("CERA web ticket {ConnectionId}: unavailable, request bytes={PayloadLength}",
             context.Connection.ConnectionId, message.PayloadLength);
         // A21 consumes only the result envelope on failure. It does not display a failure itself,
         // so a separate server notice supplies feedback without issuing a fabricated web ticket.
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new GenCeraTicketUnavailable(), cancellationToken)
+        await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new GenCeraTicketUnavailable(), cancellationToken)
             .ConfigureAwait(false);
-        await sender.SendNotiAsync(context.Connection.ConnectionId,
+        await outbox.RegisterNotiAsync(context.Connection.ConnectionId,
             new GameServerNoticeMessage("黑钻权益由服务器统一设置，无需购买。"), cancellationToken).ConfigureAwait(false);
+        return false;
     }
+}
+
+public sealed class GenCeraTicketHandler(ICommandBus commands) : ClientMessageHandler<GenCeraTicketRequest>, IProtocolCommandMessageHandler<GameGenCeraTicketCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, GenCeraTicketRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameGenCeraTicketCommand(context, message), ct).ConfigureAwait(false);
 }

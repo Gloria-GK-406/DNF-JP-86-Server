@@ -550,6 +550,31 @@ public sealed class CommandRegistrationTests
     /// perfectly in production.
     /// </para>
     /// </remarks>
+    [Fact]
+    public void Creature_effect_and_ticket_entries_have_unique_whole_commands_and_only_original_replay_permission()
+    {
+        using var provider = BuildProductionGraph();
+        var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var routes = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        (ClientMessageType Message, Type Command, Type Input, bool Replay)[] expected = [
+            (ClientMessageType.GameRenameCreature, typeof(Dfo.Server.Protocol.Game.Creatures.GameRenameCreatureCommand), typeof(Dfo.Server.Protocol.Game.Creatures.RenameCreatureRequest), true),
+            (ClientMessageType.GameHatchCreature, typeof(Dfo.Server.Protocol.Game.Creatures.GameHatchCreatureCommand), typeof(Dfo.Server.Protocol.Game.Creatures.HatchCreatureRequest), false),
+            (ClientMessageType.GameSharedEffect, typeof(Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommand), typeof(Dfo.Server.Protocol.Game.UseStackable.SharedEffectRequest), true),
+            (ClientMessageType.GameGenCeraTicket, typeof(Dfo.Server.Protocol.Game.GenCeraTicket.GameGenCeraTicketCommand), typeof(Dfo.Server.Protocol.Game.GenCeraTicket.GenCeraTicketRequest), false) ];
+        foreach (var (message, command, input, replay) in expected)
+        {
+            var row = Assert.Single(registrations, x => x.CommandType == command);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
+            var binding = Assert.Single(row.ProtocolMessages!); Assert.Equal(message, binding.MessageType); Assert.Equal(input, binding.MessageClrType);
+            Assert.True(routes.TryGet(message, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
+            Assert.Equal(replay ? new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch } : [], row.RegistrationExits ?? []);
+            Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
+        }
+        Assert.DoesNotContain(registrations, x => x.CommandType.Name is "RenameCreatureCommand" or "HatchCreatureCommand" or "SharedEffectCommand");
+    }
+
     private static ServiceProvider BuildProductionGraph()
     {
         var services = new ServiceCollection();

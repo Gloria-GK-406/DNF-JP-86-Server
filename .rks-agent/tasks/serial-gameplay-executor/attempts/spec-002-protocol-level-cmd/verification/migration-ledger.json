@@ -5427,26 +5427,40 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 20,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "One ordinary Write, no Main/no footprint; original HatchAsync then commit before ACK/inventory/pet details and original current-world gate.",
+          "old": "Legacy Transactional ordinary Write without Main/footprint."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 20,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Creatures.HatchCreatureCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+          "purpose": "Unique GameHatchCreatureCommand protocol owner"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.Creatures.HatchCreatureCommand",
         "command_source": {
@@ -5471,54 +5485,83 @@
         },
         "result": "Dfo.Server.Protocol.Game.Creatures.HatchCreatureResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 20,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 20,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 20,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameHatchCreatureCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler; fine driver only for domain action."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same original participants; no Main or new effect permission.",
+          "old": "No effect settlement participant; original HatchAsync domain participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 18,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Main with the same selected actor and live footprint; original card/name action then commit, visible notice before self ACK/inventory.",
+          "old": "Legacy Transactional Main and context.LegacyFootprint for the exact selected actor."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 18,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Creatures.RenameCreatureCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+          "purpose": "Unique GameRenameCreatureCommand protocol owner"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.Creatures.RenameCreatureCommand",
         "command_source": {
@@ -5543,32 +5586,47 @@
         },
         "result": "Dfo.Server.Protocol.Game.Creatures.RenameCreatureResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 18,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 18,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 18,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameRenameCreatureCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler; fine driver only for domain action."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same exact captured actor and original domain participants; no scene member becomes a settlement participant.",
+          "old": "Exact selected actor and original shared SQLite/effect participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -16480,26 +16538,40 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 48,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Main with same selected actor and live footprint; original UseAsync then commit before self ACK/absolute inventory/effect and visible exact peer delivery.",
+          "old": "Legacy Transactional Main and context.LegacyFootprint for the exact selected actor."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 48,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+          "purpose": "Unique GameSharedEffectCommand protocol owner"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand",
         "command_source": {
@@ -16524,32 +16596,47 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.SharedEffectUseResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 48,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 48,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 48,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameSharedEffectCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler; fine driver only for domain action."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same exact captured actor and original domain participants; no scene member becomes a settlement participant.",
+          "old": "Exact selected actor and original shared SQLite/effect participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -21688,27 +21775,41 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
-          "line": 29,
-          "source_sha256": "99f18426c1ef90d5cf13f74f4b09c170be71eab667a9ef936791519af6203704"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "No work unit/transaction/Main/footprint; original rejection then server notice.",
+          "old": "No transaction; old handler rejection followed by notice."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
-          "line": 29,
-          "source_sha256": "99f18426c1ef90d5cf13f74f4b09c170be71eab667a9ef936791519af6203704"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "message:65601",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
+          "purpose": "Unique GameGenCeraTicketCommand protocol owner"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.GenCeraTicket.GenCeraTicketHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -21729,33 +21830,48 @@
         "telemetry": false,
         "value": 65601
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
-          "line": 29,
-          "source_sha256": "99f18426c1ef90d5cf13f74f4b09c170be71eab667a9ef936791519af6203704"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
-          "line": 29,
-          "source_sha256": "99f18426c1ef90d5cf13f74f4b09c170be71eab667a9ef936791519af6203704"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
-          "line": 29,
-          "source_sha256": "99f18426c1ef90d5cf13f74f4b09c170be71eab667a9ef936791519af6203704"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameGenCeraTicketCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler, no fine command."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same original participants; no Main or new effect permission.",
+          "old": "No participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/GenCeraTicket/GenCeraTicketSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -22806,27 +22922,41 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 27,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Main with the same selected actor and live footprint; original card/name action then commit, visible notice before self ACK/inventory.",
+          "old": "Legacy Transactional Main and context.LegacyFootprint for the exact selected actor."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 27,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "message:65636",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+          "purpose": "Unique GameRenameCreatureCommand protocol owner"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Creatures.RenameCreatureHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -22847,30 +22977,45 @@
         "telemetry": false,
         "value": 65636
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 27,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 27,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
-          "line": 27,
-          "source_sha256": "479117588162fa08803a5040dd21aadf7035432de27fb94b0c176567d1158cdf"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameRenameCreatureCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler; fine driver only for domain action."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same exact captured actor and original domain participants; no scene member becomes a settlement participant.",
+          "old": "Exact selected actor and original shared SQLite/effect participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Creatures.RenameCreatureCommand"
       ],
@@ -22879,7 +23024,7 @@
         "GameExplicitMessageDelivery",
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -22952,27 +23097,41 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 28,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "One ordinary Write, no Main/no footprint; original HatchAsync then commit before ACK/inventory/pet details and original current-world gate.",
+          "old": "Legacy Transactional ordinary Write without Main/footprint."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 28,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "message:65638",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+          "purpose": "Unique GameHatchCreatureCommand protocol owner"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Creatures.HatchCreatureHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -22993,30 +23152,45 @@
         "telemetry": false,
         "value": 65638
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 28,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 28,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
-          "line": 28,
-          "source_sha256": "04ce36f538e37c7994b7deae206d1899de5ee958c81b47179b4c9196b44a24cf"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameHatchCreatureCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler; fine driver only for domain action."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same original participants; no Main or new effect permission.",
+          "old": "No effect settlement participant; original HatchAsync domain participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Creatures/HatchCreatureHandler.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Creatures.HatchCreatureCommand"
       ],
@@ -23024,7 +23198,7 @@
         "GameExplicitMessageDelivery",
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -25395,27 +25569,41 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 52,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Main with same selected actor and live footprint; original UseAsync then commit before self ACK/absolute inventory/effect and visible exact peer delivery.",
+          "old": "Legacy Transactional Main and context.LegacyFootprint for the exact selected actor."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 52,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+      ],
       "id": "message:65787",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+          "purpose": "Unique GameSharedEffectCommand protocol owner"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -25436,37 +25624,52 @@
         "telemetry": false,
         "value": 65787
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 52,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 52,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
-          "line": 52,
-          "source_sha256": "577cdaade114b73cf830f63e6ac51fb2b9dfecf92edc325e4b71362d0d136561"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Thin handler -> GameSharedEffectCommand -> original domain and protocol projections. Test-only LegacySettlementProbe preserves TASK33 matrix; no production fine forwarder.",
+          "old": "Original protocol handler; fine driver only for domain action."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Same exact captured actor and original domain participants; no scene member becomes a settlement participant.",
+          "old": "Exact selected actor and original shared SQLite/effect participants."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/UseStackable/SharedEffectSlice.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/CreatureAndEffectProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-36.md"
+          ],
+          "new": "Original gates and replay preserved. Three write scopes now dispose after protocol body: default whole typed failure; only Rename/Shared Main protects exact actor. Shared required initial explicit failure uses whole default protection. Rename per-target notice encoding catches still close only failed receiver and continue; committed replay retains only existing raw current-state-batch exit. No self/WriteResult/raw expansion.",
+          "old": "Original current-world/selected-session gates and legacy settlement/replay behavior; fine scope disposes before handler publication."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.UseStackable.SharedEffectCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

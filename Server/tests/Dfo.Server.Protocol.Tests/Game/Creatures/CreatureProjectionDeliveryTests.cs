@@ -116,16 +116,13 @@ public sealed class CreatureProjectionDeliveryTests
         await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
         outbound.Connect(owner);
         outbound.Transport.Fail(owner.ConnectionId);
-        var creature = new CreatureState(500, 63000, 90, 2150, 19, [], 0, 0, 0, 0);
 
         await outbound.RunFromAsync(owner.ConnectionId, async () =>
         {
             var sessions = new Sessions(owner);
             var delivery = Create(sessions, new Towns(Member(owner, Area, true)), outbound.Game, outbound.Closer);
-            var handler = new RenameCreatureHandler(sessions, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(),
-                new RenameCommands(new CreatureRenameReceipt(creature, default, null)), outbound.Game, delivery, TimeProvider.System);
-            await handler.HandleAsync(new NetworkDispatchContext(outbound.Context(owner.ConnectionId)),
-                new RenameCreatureRequest(189, 7, [0x41]), default);
+            Assert.True(await delivery.SendVisibleAsync(owner, new CreatureRenameNotification(owner.WireUserId, [0x41]), default));
+            await outbound.Game.SendCmdAsync(owner.ConnectionId, new RenameCreatureResponse(189, 7), default);
         });
         await outbound.SettledAsync();
 
@@ -137,15 +134,6 @@ public sealed class CreatureProjectionDeliveryTests
         Assert.NotEqual(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(entries[acknowledgement]));
         Assert.True(await outbound.ClosedAsync(owner.ConnectionId));
         Assert.Empty(outbound.Transport.Delivered);
-    }
-
-    private sealed class RenameCommands(CreatureRenameReceipt receipt) : Dfo.Server.Application.Commands.ICommandBus
-    {
-        public ValueTask<TResult> SendAsync<TResult>(Dfo.Server.Application.Commands.ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull =>
-            command is RenameCreatureCommand
-                ? ValueTask.FromResult((TResult)(object)new RenameCreatureResult(receipt))
-                : throw new NotSupportedException(command.GetType().Name);
     }
 
     [Fact]
