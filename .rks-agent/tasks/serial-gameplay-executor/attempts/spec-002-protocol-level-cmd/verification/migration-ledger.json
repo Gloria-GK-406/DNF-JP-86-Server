@@ -11734,25 +11734,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 310,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameResponsePeerCommand preserves AcceptInvite and post-action recipient capture, then original required stages; no work unit or Main.",
+          "old": "Current invitee/inviter capture, then Direct AcceptPartyInviteCommand calls AcceptInvite before recipient capture."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 310,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
@@ -11778,32 +11782,40 @@
         },
         "result": "Dfo.Server.Data.Parties.PartyOperationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 310,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 310,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 310,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin ResponsePeerHandler dispatches one bound GameResponsePeerCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "ResponsePeerHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -11878,25 +11890,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 388,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameCallPartyMemberRealtimeInfoCommand directly calls FindParty and inherited requester-only projection; no transaction, Main or idempotency.",
+          "old": "Direct QueryPartyRealtimeCommand calls FindParty; handler answers only requester without advancing full-state watermark."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 388,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.QueryPartyRealtimeCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.QueryPartyRealtimeCommand",
@@ -11922,32 +11938,40 @@
         },
         "result": "Dfo.Server.Protocol.Game.Party.PartyRealtimeQueryResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 388,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 388,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 388,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin CallPartyMemberRealtimeInfoHandler dispatches one bound GameCallPartyMemberRealtimeInfoCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "CallPartyMemberRealtimeInfoHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -12022,25 +12046,29 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 289,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameRequestPeerCommand keeps capture and display-source order, directly calls the domain and registers exact invitation; no work unit or Main.",
+          "old": "Current inviter/target capture, then Direct RequestPartyInviteCommand reads InvitationOfAsync and calls RequestInvite."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 289,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.RequestPartyInviteCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.RequestPartyInviteCommand",
@@ -12066,53 +12094,65 @@
         },
         "result": "Dfo.Server.Data.Parties.PartyOperationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 289,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 289,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 289,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin RequestPeerHandler dispatches one bound GameRequestPeerCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "RequestPeerHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 404,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameSetPartyInfoCommand preserves action/capture order and full-state promotion/watermark stages; no work unit or Main.",
+          "old": "Current town character capture, then Direct SetPartyInfoCommand calls CreateOrUpdateSettings before recipient capture."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 404,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.SetPartyInfoCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.SetPartyInfoCommand",
@@ -12138,32 +12178,40 @@
         },
         "result": "Dfo.Server.Data.Parties.PartyOperationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 404,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 404,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 404,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin SetPartyInfoHandler dispatches one bound GameSetPartyInfoCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "SetPartyInfoHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -17752,26 +17800,30 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 467,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameSetUdpIpPortCommand retains direct TryObserve and TCP-address normalization; no work unit, Main, ledger or idempotency.",
+          "old": "Authenticated handler observes session endpoint before selection; no fine command or transaction."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 467,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "message:65538",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.SetUdpIpPortHandler",
@@ -17793,30 +17845,38 @@
         "telemetry": false,
         "value": 65538
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 467,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 467,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 467,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin SetUdpIpPortHandler dispatches one bound GameSetUdpIpPortCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "SetUdpIpPortHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -17833,7 +17893,7 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -18343,26 +18403,30 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 548,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameRequestPeerCommand keeps capture and display-source order, directly calls the domain and registers exact invitation; no work unit or Main.",
+          "old": "Current inviter/target capture, then Direct RequestPartyInviteCommand reads InvitationOfAsync and calls RequestInvite."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 548,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "message:65546",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.RequestPeerHandler",
@@ -18384,30 +18448,38 @@
         "telemetry": false,
         "value": 65546
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 548,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 548,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 548,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin RequestPeerHandler dispatches one bound GameRequestPeerCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "RequestPeerHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -18424,29 +18496,33 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 607,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameResponsePeerCommand preserves AcceptInvite and post-action recipient capture, then original required stages; no work unit or Main.",
+          "old": "Current invitee/inviter capture, then Direct AcceptPartyInviteCommand calls AcceptInvite before recipient capture."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 607,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "message:65547",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.ResponsePeerHandler",
@@ -18468,30 +18544,38 @@
         "telemetry": false,
         "value": 65547
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 607,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 607,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 607,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin ResponsePeerHandler dispatches one bound GameResponsePeerCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "ResponsePeerHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -18508,29 +18592,33 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 990,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameSetPartyInfoCommand preserves action/capture order and full-state promotion/watermark stages; no work unit or Main.",
+          "old": "Current town character capture, then Direct SetPartyInfoCommand calls CreateOrUpdateSettings before recipient capture."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 990,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "message:65548",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.SetPartyInfoHandler",
@@ -18552,30 +18640,38 @@
         "telemetry": false,
         "value": 65548
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 990,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 990,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 990,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin SetPartyInfoHandler dispatches one bound GameSetPartyInfoCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "SetPartyInfoHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -18592,7 +18688,7 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -24153,26 +24249,30 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 954,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+          ],
+          "new": "GameCallPartyMemberRealtimeInfoCommand directly calls FindParty and inherited requester-only projection; no transaction, Main or idempotency.",
+          "old": "Direct QueryPartyRealtimeCommand calls FindParty; handler answers only requester without advancing full-state watermark."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 954,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
+      ],
       "id": "message:65702",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.CallPartyMemberRealtimeInfoHandler",
@@ -24194,30 +24294,38 @@
         "telemetry": false,
         "value": 65702
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 954,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 954,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 954,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ],
+          "new": "Thin CallPartyMemberRealtimeInfoHandler dispatches one bound GameCallPartyMemberRealtimeInfoCommand. Four fine CLR types and registrations removed. Shared CMD base owns projection stages; remaining legacy consumers adapt to the same stages and state without calling a new whole or copying loops.",
+          "old": "CallPartyMemberRealtimeInfoHandler in PartyCommandSlice; only matching handler calls each removed fine. Leave/Remove/Transfer and both tower coordinators are separate consumers."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Abstractions/Networking/IPartyProjectionStateDomainService.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs"
+          ],
+          "new": "Same domain actors and exact notification recipients; PartyProjectionStreamRegistry remains the unique generation stream owner. Networking state contract aliases that same instance, not a copy or delivery facade.",
+          "old": "No transaction participants; original caller and captured exact selected-session audiences. UDP belongs to authenticated GameSessionIdentity, not character selection."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
+          ],
+          "new": "Explicit current protocol request and original domain checks retained; same decoder/metadata and actual encoder/sender. Requester-only realtime does not advance full-state watermark; old/new consumers share FullStateMembers and disband tombstones. UDP TCP-address normalization and pre-selection observation remain.",
+          "old": "Current login/selected identity, missing target and non-party rejection, captured recipients, XO-6 required stages, two-attempt failed-target retry, full-state watermark and generation tombstone."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -24234,7 +24342,7 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

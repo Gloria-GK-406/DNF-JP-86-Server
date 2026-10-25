@@ -9,15 +9,17 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
-// Parameter-only projection algorithm shared by the legacy adapter and protocol CMDs.
-// It neither captures the current request nor resolves services or publishes domain facts.
-internal sealed class PartyStateProjection(
+// Shared protocol CMD stages. Legacy consumers adapt to these same stages until their migration.
+// The only retained state is the original generation stream owner.
+internal abstract class PartyProtocolCommandProjection(
     ICommandProjections notifications,
     Func<long, IPartyDeliveryStream> streamOf,
     IPartyService? parties,
     IOutboundOrdering? ordering)
 {
-    public async ValueTask DeliverAsync(
+    protected IPartyService? PartyService { get; } = parties;
+
+    protected async ValueTask DeliverPartyNotificationsAsync(
         PartyNotificationPlan plan,
         PartyNotificationRecipientPlan recipients,
         CancellationToken cancellationToken)
@@ -104,7 +106,7 @@ internal sealed class PartyStateProjection(
     /// roster revision, while equal revisions remain answerable because HP can change independently
     /// of party membership. A requester-only answer never advances the full-mutation watermark.
     /// </summary>
-    public async ValueTask DeliverRealtimeAsync(
+    protected async ValueTask DeliverPartyRealtimeAsync(
         SelectedSessionIdentity requester,
         PartySnapshot snapshot,
         CancellationToken cancellationToken)
@@ -225,9 +227,9 @@ internal sealed class PartyStateProjection(
             return true;
 
         if (plan.Snapshot is { } projected
-            && parties is not null
+            && PartyService is not null
             && projected.Members
-                .Select(member => parties.FindParty(member.Character))
+                .Select(member => PartyService.FindParty(member.Character))
                 .FirstOrDefault(current => !current.IsVirtual
                     && current.Generation == projected.Generation)
                 is { } latest
@@ -474,4 +476,15 @@ internal sealed class PartyStateProjection(
         return false;
     }
 
+}
+
+// Transitional adapter for remaining legacy consumers; owns no algorithm or state.
+internal sealed class PartyLegacyProjection(ICommandProjections projections,
+    Func<long, IPartyDeliveryStream> streamOf, IPartyService? parties, IOutboundOrdering? ordering)
+    : PartyProtocolCommandProjection(projections, streamOf, parties, ordering)
+{
+    internal ValueTask DeliverAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients,
+        CancellationToken cancellationToken) => DeliverPartyNotificationsAsync(plan, recipients, cancellationToken);
+    internal ValueTask DeliverRealtimeAsync(SelectedSessionIdentity requester, PartySnapshot snapshot,
+        CancellationToken cancellationToken) => DeliverPartyRealtimeAsync(requester, snapshot, cancellationToken);
 }

@@ -283,7 +283,7 @@ public sealed class PartyCommandCodecTests
     }
 
     [Fact]
-    public void Production_registers_all_eight_wire_keys_and_handlers_plus_seven_party_commands()
+    public void Production_registers_all_eight_wire_keys_and_handlers_plus_eight_party_commands()
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
@@ -331,15 +331,21 @@ public sealed class PartyCommandCodecTests
         Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetPartyInfo
             && value.HandlerType == typeof(SetPartyInfoHandler));
 
+        Type[] migratedHandlers = [typeof(SetUdpIpPortHandler), typeof(RequestPeerHandler),
+            typeof(ResponsePeerHandler), typeof(SetPartyInfoHandler), typeof(CallPartyMemberRealtimeInfoHandler)];
+        Assert.All(handlers.Where(value => migratedHandlers.Contains(value.HandlerType)),
+            value => Assert.Equal(MessageHandlerRouteKind.ProtocolCommand, value.Route));
+
         Type[] expectedCommands =
         [
-            typeof(RequestPartyInviteCommand),
-            typeof(AcceptPartyInviteCommand),
+            typeof(GameSetUdpIpPortCommand),
+            typeof(GameRequestPeerCommand),
+            typeof(GameResponsePeerCommand),
             typeof(LeavePartyCommand),
             typeof(TransferPartyLeadershipCommand),
             typeof(RemovePartyMemberCommand),
-            typeof(QueryPartyRealtimeCommand),
-            typeof(SetPartyInfoCommand),
+            typeof(GameCallPartyMemberRealtimeInfoCommand),
+            typeof(GameSetPartyInfoCommand),
         ];
         var commands = provider.GetServices<CommandHandlerRegistration>()
             .Where(value => expectedCommands.Contains(value.CommandType))

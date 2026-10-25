@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Content;
@@ -108,22 +110,24 @@ public sealed class PartyCommandHandlerTests
             var context = new CommandExecutionContext(
                 Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
 
-            await new RequestPartyInviteCommandHandler(domain, new FixedPartyMemberStatus()).HandleAsync(
-                context, new(Character(Inviter), Character(Invitee)), CancellationToken.None);
-            await new AcceptPartyInviteCommandHandler(domain).HandleAsync(
-                context, new(Character(Invitee), Character(Inviter)), CancellationToken.None);
+            var fixture = new RecordingCommandBus(domain: domain);
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            await DriveRequestPeer(sessions, Presence, fixture, Notifications, NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []), CancellationToken.None);
+            await DriveResponsePeer(sessions, Presence, fixture, Notifications, NullLogger<ResponsePeerHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []), CancellationToken.None);
             await new LeavePartyCommandHandler(domain).HandleAsync(
                 context, new(Invitee.CharacterId), CancellationToken.None);
             await new TransferPartyLeadershipCommandHandler(domain).HandleAsync(
                 context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
             await new RemovePartyMemberCommandHandler(domain).HandleAsync(
                 context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
-            await new QueryPartyRealtimeCommandHandler(domain).HandleAsync(
-                context, new(Character(Inviter)), CancellationToken.None);
+            await DriveCallPartyMemberRealtimeInfo(sessions, fixture, Notifications, NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), CancellationToken.None);
             var settings = Settings();
             var title = new PartyTitle([0x41]);
-            await new SetPartyInfoCommandHandler(domain).HandleAsync(
-                context, new(Character(Inviter), settings, title), CancellationToken.None);
+            await DriveSetPartyInfo(sessions, Presence, fixture, Notifications, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, settings, title), CancellationToken.None);
 
             Assert.Equal(
                 [
@@ -146,20 +150,20 @@ public sealed class PartyCommandHandlerTests
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
             var snapshot = Snapshot();
-            var commands = new RealtimeCommandBus(snapshot);
+            var commands = new RecordingCommandBus(snapshot: snapshot);
             var published = new RecordingNotificationBus();
 
-            await new CallPartyMemberRealtimeInfoHandler(
+            await DriveCallPartyMemberRealtimeInfo(
                     sessions,
                     commands,
-                    new PartyNotificationDelivery(published),
+                    new TestProjection(published),
                     NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
                 .HandleAsync(
                     Dispatch(Inviter),
                     new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty),
                     CancellationToken.None);
 
-            Assert.IsType<QueryPartyRealtimeCommand>(Assert.Single(commands.Commands));
+            Assert.IsType<GameCallPartyMemberRealtimeInfoCommand>(Assert.Single(commands.Commands));
             var publication = Assert.Single(published.Publications);
             Assert.IsType<PartyRealtimeChanged>(publication.Notification);
             var audience = Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience);
@@ -175,12 +179,12 @@ public sealed class PartyCommandHandlerTests
             var sessions = new SessionDirectory(Inviter, Invitee);
             var commands = new RecordingCommandBus();
 
-            await new RequestPeerHandler(sessions, Presence, commands, Notifications,
+            await DriveRequestPeer(sessions, Presence, commands, Notifications,
                     NullLogger<RequestPeerHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                     GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
                     CancellationToken.None);
-            await new ResponsePeerHandler(sessions, Presence, commands, Notifications,
+            await DriveResponsePeer(sessions, Presence, commands, Notifications,
                     NullLogger<ResponsePeerHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                     GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []),
@@ -202,7 +206,7 @@ public sealed class PartyCommandHandlerTests
                 .HandleAsync(Dispatch(Inviter),
                     new RemovePartyMemberRequest(GameMessageMetadata.Empty, 1),
                     CancellationToken.None);
-            await new SetPartyInfoHandler(sessions, Presence, commands, Notifications,
+            await DriveSetPartyInfo(sessions, Presence, commands, Notifications,
                     NullLogger<SetPartyInfoHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
                     GameMessageMetadata.Empty, Settings(), new PartyTitle([0x41])),
@@ -210,16 +214,16 @@ public sealed class PartyCommandHandlerTests
 
             Assert.Collection(
                 commands.Commands,
-                command => Assert.IsType<RequestPartyInviteCommand>(command),
-                command => Assert.IsType<AcceptPartyInviteCommand>(command),
+                command => Assert.IsType<GameRequestPeerCommand>(command),
+                command => Assert.IsType<GameResponsePeerCommand>(command),
                 command => Assert.IsType<LeavePartyCommand>(command),
                 command => Assert.IsType<TransferPartyLeadershipCommand>(command),
                 command => Assert.IsType<RemovePartyMemberCommand>(command),
                 command =>
                 {
-                    var set = Assert.IsType<SetPartyInfoCommand>(command);
-                    Assert.Equal(Settings(), set.Settings);
-                    Assert.Equal(new PartyTitle([0x41]), set.Title);
+                    var set = Assert.IsType<GameSetPartyInfoCommand>(command);
+                    Assert.Equal(Settings(), set.Input.Settings);
+                    Assert.Equal(new PartyTitle([0x41]), set.Input.Title);
                 });
         });
     }
@@ -260,7 +264,7 @@ public sealed class PartyCommandHandlerTests
             var online = AuthenticatedSession(connection);
             var endpoints = new RecordingSessionEndpoints();
 
-            await new SetUdpIpPortHandler(
+            await DriveSetUdpIpPort(
                     new FixedOnlineUsers(online),
                     endpoints,
                     NullLogger<SetUdpIpPortHandler>.Instance)
@@ -288,7 +292,7 @@ public sealed class PartyCommandHandlerTests
             var online = AuthenticatedSession(connection);
             var endpoints = new RecordingSessionEndpoints();
 
-            await new SetUdpIpPortHandler(
+            await DriveSetUdpIpPort(
                     new FixedOnlineUsers(online),
                     endpoints,
                     NullLogger<SetUdpIpPortHandler>.Instance)
@@ -331,25 +335,25 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Non_party_peer_types_never_dispatch_a_command()
+    public async Task Non_party_peer_types_never_write_domain_state()
     {
         await TestGameplay.RunAsync(async () =>
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
             var commands = new RecordingCommandBus();
 
-            await new RequestPeerHandler(sessions, Presence, commands, Notifications,
+            await DriveRequestPeer(sessions, Presence, commands, Notifications,
                     NullLogger<RequestPeerHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                     GameMessageMetadata.Empty, Invitee.WireUserId, 1, 90667, []),
                     CancellationToken.None);
-            await new ResponsePeerHandler(sessions, Presence, commands, Notifications,
+            await DriveResponsePeer(sessions, Presence, commands, Notifications,
                     NullLogger<ResponsePeerHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                     GameMessageMetadata.Empty, Inviter.WireUserId, 2, 64, []),
                     CancellationToken.None);
 
-            Assert.Empty(commands.Commands);
+            Assert.Empty(commands.Domain.Writes);
         });
     }
 
@@ -435,7 +439,7 @@ public sealed class PartyCommandHandlerTests
             var sessions = new SessionDirectory(Inviter);
             var commands = new RecordingCommandBus();
 
-            await new RequestPeerHandler(
+            await DriveRequestPeer(
                     sessions,
                     Presence,
                     commands,
@@ -446,7 +450,7 @@ public sealed class PartyCommandHandlerTests
                     CancellationToken.None);
 
             sessions.Select(Invitee);
-            Assert.Empty(commands.Commands);
+            Assert.Empty(commands.Domain.Writes);
         });
     }
 
@@ -457,7 +461,7 @@ public sealed class PartyCommandHandlerTests
         {
             var sessions = new SessionDirectory(Inviter, Invitee);
             var published = new CountingNotificationBus();
-            var delivery = new PartyNotificationDelivery(
+            var delivery = new TestProjection(
                 published,
                 new PartyProjectionStreamRegistry(),
                 sessions,
@@ -470,7 +474,7 @@ public sealed class PartyCommandHandlerTests
                         Inviter.WireUserId,
                         new PartyInviteDisplayState(64, 188, 0, 0)))));
 
-            await new RequestPeerHandler(
+            await DriveRequestPeer(
                     sessions,
                     Presence,
                     commands,
@@ -502,11 +506,11 @@ public sealed class PartyCommandHandlerTests
                     snapshot,
                     SettingsChange: PartySettingsChangeKind.Updated)));
 
-            await new SetPartyInfoHandler(
+            await DriveSetPartyInfo(
                     sessions,
                     Presence,
                     commands,
-                    new PartyNotificationDelivery(
+                    new TestProjection(
                         published,
                         new PartyProjectionStreamRegistry(),
                         sessions,
@@ -520,12 +524,128 @@ public sealed class PartyCommandHandlerTests
                 .AsTask()
                 .WaitAsync(TimeSpan.FromSeconds(2));
 
-            Assert.IsType<SetPartyInfoCommand>(Assert.Single(commands.Commands));
+            Assert.IsType<GameSetPartyInfoCommand>(Assert.Single(commands.Commands));
             // This isolated delivery has not observed a full baseline for the generation, so the
             // update is deliberately promoted to the three full-state phases.
             Assert.Equal(3, published.Count);
         });
     }
+
+    [Fact]
+    public async Task Missing_selected_session_never_writes_or_projects_from_any_new_party_cmd()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory();
+            var fixture = new RecordingCommandBus();
+            var events = new CountingNotificationBus();
+            var projection = new TestProjection(events);
+            await DriveRequestPeer(sessions, Presence, fixture, projection, NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []), default);
+            await DriveResponsePeer(sessions, Presence, fixture, projection, NullLogger<ResponsePeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new ResponsePeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 0, []), default);
+            await DriveSetPartyInfo(sessions, Presence, fixture, projection, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, Settings(), PartyTitle.Empty), default);
+            await DriveCallPartyMemberRealtimeInfo(sessions, fixture, projection, NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), default);
+            Assert.Equal(4, fixture.Commands.Count);
+            Assert.Empty(fixture.Domain.Writes);
+            Assert.Equal(0, events.Count);
+        });
+    }
+
+    [Fact]
+    public async Task New_cmd_and_legacy_consumers_share_full_state_watermark_and_disband_tombstone()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var published = new CountingNotificationBus();
+            var projection = new TestProjection(published, new PartyProjectionStreamRegistry(), sessions, Presence);
+            var first = Snapshot() with { Revision = 4 };
+            var fixture = new RecordingCommandBus(PartyOperationResult.Success(new PartyNotificationPlan(
+                [], first, SettingsChange: PartySettingsChangeKind.Created)));
+            await DriveSetPartyInfo(sessions, Presence, fixture, projection, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, first.Settings, first.Title), default);
+            Assert.Equal(3, published.Count);
+            var stream = ((IPartyProjectionStateDomainService)projection.Streams).StreamOf(first.Generation);
+            Assert.Same(projection.Streams.GetOrAdd(first.Generation), stream);
+            Assert.Equal(2, stream.FullStateMembers.Count);
+
+            PartyNotificationDelivery legacy = projection;
+            await legacy.DeliverAsync(new PartyNotificationPlan([], first with { Revision = 5 },
+                SettingsChange: PartySettingsChangeKind.Updated), default);
+            Assert.Equal(4, published.Count); // full baseline from new CMD avoids promotion in old consumer
+            Assert.Equal(5, stream.LatestRevision);
+            await DriveCallPartyMemberRealtimeInfo(sessions, new RecordingCommandBus(snapshot: first), projection,
+                    NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), default);
+            Assert.Equal(4, published.Count); // new query sees the old consumer's later watermark
+
+            await legacy.DeliverAsync(new PartyNotificationPlan([Inviter.CharacterId, Invitee.CharacterId],
+                ClearPartyId: first.PartyId, ClearPartyGeneration: first.Generation, ClearPartyRevision: 6), default);
+            Assert.Equal(6, stream.LatestRevision);
+            Assert.Empty(stream.CurrentMembers);
+            Assert.Empty(stream.FullStateMembers);
+            Assert.Equal(5, published.Count);
+            await DriveSetPartyInfo(sessions, Presence, fixture, projection, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, first.Settings, first.Title), default);
+            Assert.Equal(5, published.Count); // old disband tombstone suppresses a delayed new CMD projection
+            Assert.Equal(6, stream.LatestRevision);
+        });
+    }
+
+    private sealed class TestProjection(IEventService events, PartyProjectionStreamRegistry? streams = null,
+        ISelectedSessionDomainService? sessions = null, ITownAreaDomainService? town = null)
+    {
+        internal IEventService Events { get; } = events;
+        internal PartyProjectionStreamRegistry Streams { get; } = streams ?? new();
+        private ISelectedSessionDomainService? Sessions { get; } = sessions;
+        private ITownAreaDomainService? Town { get; } = town;
+        public static implicit operator PartyNotificationDelivery(TestProjection value) =>
+            new(value.Events, value.Streams, value.Sessions, value.Town);
+    }
+
+    private sealed class DirectBus<T>(ICommandHandler<T, bool> handler, RecordingCommandBus? recording = null) : ICommandBus
+        where T : class, IProtocolCommand<bool>
+    {
+        public async ValueTask<R> SendAsync<R>(ICommand<R> value, CancellationToken ct = default) where R : notnull
+        {
+            var command = Assert.IsType<T>(value);
+            recording?.Commands.Add(command);
+            var request = new CommandRequestContext.ProtocolNonEffect(command.Dispatch, command.Message, command.Frame, () => true);
+            return (R)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(T), handler.GetType(), CommandExecutionKind.Direct)
+                { Request = request }, command, ct);
+        }
+    }
+
+    private static SetUdpIpPortHandler DriveSetUdpIpPort(IOnlineUserQueryDomainService online,
+        IGameSessionEndpointDomainService endpoints, ILogger<SetUdpIpPortHandler> _) =>
+        new(new DirectBus<GameSetUdpIpPortCommand>(new GameSetUdpIpPortCommandHandler(online, endpoints, NullLogger<GameSetUdpIpPortCommandHandler>.Instance)));
+
+    private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
+        ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,
+            town, commands.Domain, new FixedPartyMemberStatus(), new PartyLegacyProjections(projection.Events), projection.Streams,
+            null!, NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
+
+    private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
+        ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
+        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,
+            town, commands.Domain, new PartyLegacyProjections(projection.Events), projection.Streams,
+            null!, NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
+
+    private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
+        ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
+        new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,
+            town, commands.Domain, new PartyLegacyProjections(projection.Events), projection.Streams,
+            null!, NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
+
+    private static CallPartyMemberRealtimeInfoHandler DriveCallPartyMemberRealtimeInfo(ISelectedSessionDomainService sessions,
+        RecordingCommandBus commands, TestProjection projection, ILogger<CallPartyMemberRealtimeInfoHandler> _) =>
+        new(new DirectBus<GameCallPartyMemberRealtimeInfoCommand>(new GameCallPartyMemberRealtimeInfoCommandHandler(sessions,
+            commands.Domain, new PartyLegacyProjections(projection.Events), projection.Streams,
+            null!, NullLogger<GameCallPartyMemberRealtimeInfoCommandHandler>.Instance), commands));
 
     private static SessionEndpoint Endpoint() => new(
         5,
@@ -576,7 +696,7 @@ public sealed class PartyCommandHandlerTests
     private static SelectedSessionIdentity Invitee { get; } = SelectedSessionIdentity.Create(
         new AccountId(2), new CharacterId(2), new NetworkConnectionId("invitee"), 1, 10011);
 
-    private static PartyNotificationDelivery Notifications { get; } =
+    private static TestProjection Notifications { get; } =
         new(new NoopNotificationBus());
 
     private static ISessionPresenceDomainService Presence { get; } =
@@ -667,8 +787,10 @@ public sealed class PartyCommandHandlerTests
     }
 
     private sealed class RecordingCommandBus(
-        PartyOperationResult? result = null) : ICommandBus
+        PartyOperationResult? result = null, PartySnapshot? snapshot = null, RecordingParties? domain = null) : ICommandBus
+
     {
+        public RecordingParties Domain { get; } = domain ?? new RecordingParties(result, snapshot);
         public List<ICommand> Commands { get; } = [];
 
         public ValueTask<TResult> SendAsync<TResult>(
@@ -679,21 +801,6 @@ public sealed class PartyCommandHandlerTests
             Commands.Add(command);
             return ValueTask.FromResult(
                 (TResult)(object)(result ?? PartyOperationResult.Success()));
-        }
-    }
-
-    private sealed class RealtimeCommandBus(PartySnapshot snapshot) : ICommandBus
-    {
-        public List<ICommand> Commands { get; } = [];
-
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            Commands.Add(command);
-            return ValueTask.FromResult(
-                (TResult)(object)new PartyRealtimeQueryResult(snapshot));
         }
     }
 
@@ -831,7 +938,7 @@ public sealed class PartyCommandHandlerTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private sealed class RecordingParties : IPartyService
+    private sealed class RecordingParties(PartyOperationResult? result = null, PartySnapshot? snapshot = null) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public List<string> Writes { get; } = [];
@@ -847,7 +954,7 @@ public sealed class PartyCommandHandlerTests
         {
             Writes.Add(
                 $"settings:{character.WireUserId}:{(byte)settings.Category}:{Convert.ToHexString(title.ToBytes())}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult RequestInvite(
@@ -856,7 +963,7 @@ public sealed class PartyCommandHandlerTests
             PartyInviteDisplayState display)
         {
             Writes.Add($"invite:{inviter.WireUserId}->{target.WireUserId}:{display.ReviveCoinCount}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult AcceptInvite(
@@ -864,7 +971,7 @@ public sealed class PartyCommandHandlerTests
             PartyCharacterSnapshot inviter)
         {
             Writes.Add($"accept:{invitee.WireUserId}<-{inviter.WireUserId}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult TransferLeadership(
@@ -872,7 +979,7 @@ public sealed class PartyCommandHandlerTests
             CharacterId nextLeaderCharacterId)
         {
             Writes.Add($"lead:{currentLeaderCharacterId.Value}->{nextLeaderCharacterId.Value}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult RemoveMember(
@@ -880,13 +987,13 @@ public sealed class PartyCommandHandlerTests
             CharacterId targetCharacterId)
         {
             Writes.Add($"remove:{currentLeaderCharacterId.Value}->{targetCharacterId.Value}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult LeaveParty(CharacterId characterId)
         {
             Writes.Add($"leave:{characterId.Value}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult CleanupCharacter(CharacterId characterId) =>
@@ -895,7 +1002,7 @@ public sealed class PartyCommandHandlerTests
         public PartySnapshot FindParty(PartyCharacterSnapshot character)
         {
             Writes.Add($"query:{character.CharacterId.Value}");
-            return Snapshot();
+            return snapshot ?? Snapshot();
         }
 
     }

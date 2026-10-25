@@ -782,12 +782,6 @@ public sealed class ProtocolModule : IServerModule
         // write with no boundary open, so this is what makes the arrival possible at all.
         services.AddCommandHandler<SelectCardCommand, SelectCardResult, SelectCardCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<
-            RequestPartyInviteCommand, PartyOperationResult, RequestPartyInviteCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<
-            AcceptPartyInviteCommand, PartyOperationResult, AcceptPartyInviteCommandHandler>(
-            CommandExecutionKind.Direct);
         services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, LeavePartyCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<
@@ -798,12 +792,16 @@ public sealed class ProtocolModule : IServerModule
             RemovePartyMemberCommand,
             PartyOperationResult,
             RemovePartyMemberCommandHandler>(CommandExecutionKind.Direct);
-        services.AddCommandHandler<
-            QueryPartyRealtimeCommand, PartyRealtimeQueryResult, QueryPartyRealtimeCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<
-            SetPartyInfoCommand, PartyOperationResult, SetPartyInfoCommandHandler>(
-            CommandExecutionKind.Direct);
+        services.AddProtocolCommandHandler<GameSetUdpIpPortCommand, bool, GameSetUdpIpPortCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetUdpIpPort, typeof(SetUdpIpPortRequest)));
+        services.AddProtocolCommandHandler<GameRequestPeerCommand, bool, GameRequestPeerCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRequestPeer, typeof(RequestPeerRequest)));
+        services.AddProtocolCommandHandler<GameResponsePeerCommand, bool, GameResponsePeerCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameResponsePeer, typeof(ResponsePeerRequest)));
+        services.AddProtocolCommandHandler<GameSetPartyInfoCommand, bool, GameSetPartyInfoCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSetPartyInfo, typeof(SetPartyInfoRequest)));
+        services.AddProtocolCommandHandler<GameCallPartyMemberRealtimeInfoCommand, bool, GameCallPartyMemberRealtimeInfoCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCallPartyMemberRealtimeInfo, typeof(CallPartyMemberRealtimeInfoRequest)));
         services.AddProtocolCommandHandler<GameOtherCharacterDetailCommand, GameOtherCharacterDetailCompleted, GameOtherCharacterDetailCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGetOtherCharacterDetail, typeof(GetOtherCharacterDetailRequest)));
     }
@@ -852,17 +850,17 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<ContentsPlayInfoHandler>(ClientMessageType.GameContentsPlayInfo);
         services.RegisterMessageHandler<ConnectionCheckHandler>(ClientMessageType.GameConnectionCheck);
 
-        services.RegisterMessageHandler<SetUdpIpPortHandler>(ClientMessageType.GameSetUdpIpPort);
-        services.RegisterMessageHandler<RequestPeerHandler>(ClientMessageType.GameRequestPeer);
-        services.RegisterMessageHandler<ResponsePeerHandler>(ClientMessageType.GameResponsePeer);
+        services.RegisterProtocolMessageHandler<SetUdpIpPortHandler, SetUdpIpPortRequest, GameSetUdpIpPortCommand>(ClientMessageType.GameSetUdpIpPort);
+        services.RegisterProtocolMessageHandler<RequestPeerHandler, RequestPeerRequest, GameRequestPeerCommand>(ClientMessageType.GameRequestPeer);
+        services.RegisterProtocolMessageHandler<ResponsePeerHandler, ResponsePeerRequest, GameResponsePeerCommand>(ClientMessageType.GameResponsePeer);
         services.RegisterMessageHandler<LeavePartyHandler>(ClientMessageType.GameLeaveParty);
         services.RegisterMessageHandler<RemovePartyMemberHandler>(
             ClientMessageType.GameRemovePartyMember);
         services.RegisterMessageHandler<ChangePartyLeaderHandler>(
             ClientMessageType.GameChangePartyLeader);
-        services.RegisterMessageHandler<CallPartyMemberRealtimeInfoHandler>(
+        services.RegisterProtocolMessageHandler<CallPartyMemberRealtimeInfoHandler, CallPartyMemberRealtimeInfoRequest, GameCallPartyMemberRealtimeInfoCommand>(
             ClientMessageType.GameCallPartyMemberRealtimeInfo);
-        services.RegisterMessageHandler<SetPartyInfoHandler>(ClientMessageType.GameSetPartyInfo);
+        services.RegisterProtocolMessageHandler<SetPartyInfoHandler, SetPartyInfoRequest, GameSetPartyInfoCommand>(ClientMessageType.GameSetPartyInfo);
 
         // One handler, the remaining wire keys in the map-entry report family.
         services.RegisterMessageHandler<MapEntryReportHandler>(ClientMessageType.GameCeraQuery);

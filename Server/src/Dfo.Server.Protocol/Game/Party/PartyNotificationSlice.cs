@@ -632,14 +632,14 @@ public sealed class PartyNotificationDelivery(
         PartyNotificationPlan plan,
         PartyNotificationRecipientPlan recipients,
         CancellationToken cancellationToken) =>
-        new PartyStateProjection(new PartyLegacyProjections(notifications), streams.GetOrAdd,
+        new PartyLegacyProjection(new PartyLegacyProjections(notifications), streams.GetOrAdd,
             parties, ordering).DeliverAsync(plan, recipients, cancellationToken);
 
     public ValueTask DeliverRealtimeAsync(
         SelectedSessionIdentity requester,
         PartySnapshot snapshot,
         CancellationToken cancellationToken) =>
-        new PartyStateProjection(new PartyLegacyProjections(notifications), streams.GetOrAdd,
+        new PartyLegacyProjection(new PartyLegacyProjections(notifications), streams.GetOrAdd,
             parties, ordering).DeliverRealtimeAsync(requester, snapshot, cancellationToken);
 }
 

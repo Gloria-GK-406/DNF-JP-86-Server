@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
@@ -282,41 +283,6 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
     }
 }
 
-public sealed record RequestPartyInviteCommand(
-    PartyCharacterSnapshot Inviter,
-    PartyCharacterSnapshot Target) : ICommand<PartyOperationResult>;
-
-public sealed class RequestPartyInviteCommandHandler(
-    IPartyService parties,
-    IPartyMemberStatusDomainService memberStatus)
-    : ICommandHandler<RequestPartyInviteCommand, PartyOperationResult>
-{
-    public async ValueTask<PartyOperationResult> HandleAsync(
-        CommandExecutionContext context,
-        RequestPartyInviteCommand command,
-        CancellationToken cancellationToken)
-    {
-        var display = await memberStatus
-            .InvitationOfAsync(command.Inviter, cancellationToken)
-            .ConfigureAwait(false);
-        return parties.RequestInvite(command.Inviter, command.Target, display);
-    }
-}
-
-public sealed record AcceptPartyInviteCommand(
-    PartyCharacterSnapshot Invitee,
-    PartyCharacterSnapshot Inviter) : ICommand<PartyOperationResult>;
-
-public sealed class AcceptPartyInviteCommandHandler(IPartyService parties)
-    : ICommandHandler<AcceptPartyInviteCommand, PartyOperationResult>
-{
-    public ValueTask<PartyOperationResult> HandleAsync(
-        CommandExecutionContext context,
-        AcceptPartyInviteCommand command,
-        CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.AcceptInvite(command.Invitee, command.Inviter));
-}
-
 public sealed record LeavePartyCommand(CharacterId CharacterId)
     : ICommand<PartyOperationResult>;
 
@@ -380,40 +346,6 @@ public sealed class RemovePartyMemberCommandHandler(
     }
 }
 
-public sealed record QueryPartyRealtimeCommand(PartyCharacterSnapshot Character)
-    : ICommand<PartyRealtimeQueryResult>;
-
-public sealed record PartyRealtimeQueryResult(PartySnapshot? Snapshot);
-
-public sealed class QueryPartyRealtimeCommandHandler(IPartyService parties)
-    : ICommandHandler<QueryPartyRealtimeCommand, PartyRealtimeQueryResult>
-{
-    public ValueTask<PartyRealtimeQueryResult> HandleAsync(
-        CommandExecutionContext context,
-        QueryPartyRealtimeCommand command,
-        CancellationToken cancellationToken) =>
-        ValueTask.FromResult(new PartyRealtimeQueryResult(
-            parties.FindParty(command.Character)));
-}
-
-public sealed record SetPartyInfoCommand(
-    PartyCharacterSnapshot Character,
-    PartySettings Settings,
-    PartyTitle Title) : ICommand<PartyOperationResult>;
-
-public sealed class SetPartyInfoCommandHandler(IPartyService parties)
-    : ICommandHandler<SetPartyInfoCommand, PartyOperationResult>
-{
-    public ValueTask<PartyOperationResult> HandleAsync(
-        CommandExecutionContext context,
-        SetPartyInfoCommand command,
-        CancellationToken cancellationToken) =>
-        ValueTask.FromResult(parties.CreateOrUpdateSettings(
-            command.Character,
-            command.Settings,
-            command.Title));
-}
-
 internal static class PartyTransitionExecution
 {
     public static async ValueTask<PartyCommandExecution> RunPartyAsync(
@@ -464,41 +396,12 @@ internal static class PartyCharacterProjection
     }
 }
 
-public sealed class SetUdpIpPortHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    IGameSessionEndpointDomainService endpoints,
-    ILogger<SetUdpIpPortHandler> logger) : ClientMessageHandler<SetUdpIpPortRequest>
+internal sealed class SetUdpIpPortHandler(ICommandBus commands)
+    : ClientMessageHandler<SetUdpIpPortRequest>, IProtocolCommandMessageHandler<GameSetUdpIpPortCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        SetUdpIpPortRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var session)
-            || session is null
-            || session.AccountId is null)
-        {
-            logger.LogInformation("SET_UDP_IP_PORT ignored for unauthenticated connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return ValueTask.CompletedTask;
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        var accepted = endpoints.TryObserve(
-            session.SessionIdentity,
-            SessionEndpointObservation.FromConnection(
-                message.Endpoint, context.Connection.RemoteAddress));
-        logger.LogInformation(
-            "SET_UDP_IP_PORT session={SessionId} accepted={Accepted} "
-                + "reported={ReportedInner}/{ReportedOuter}:{Port} observed={ObservedAddress}",
-            session.SessionIdentity,
-            accepted,
-            message.Endpoint.InnerAddress,
-            message.Endpoint.OuterAddress,
-            message.Endpoint.Port,
-            context.Connection.RemoteAddress);
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        SetUdpIpPortRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameSetUdpIpPortCommand(context, message), cancellationToken);
 }
 
 internal static class SessionEndpointObservation
@@ -545,121 +448,20 @@ internal static class SessionEndpointObservation
     }
 }
 
-public sealed class RequestPeerHandler(
-    ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas,
-    ICommandBus commands,
-    PartyNotificationDelivery notifications,
-    ILogger<RequestPeerHandler> logger) : ClientMessageHandler<RequestPeerRequest>
+internal sealed class RequestPeerHandler(ICommandBus commands)
+    : ClientMessageHandler<RequestPeerRequest>, IProtocolCommandMessageHandler<GameRequestPeerCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        RequestPeerRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (message.RequestType != 0)
-        {
-            logger.LogInformation(
-                "REQUEST_PEER type={RequestType} is outside party scope; state unchanged",
-                message.RequestType);
-            return;
-        }
-
-        var inviter = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (inviter is null)
-        {
-            logger.LogInformation("REQUEST_PEER ignored for non-current connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        if (!sessions.TryGetInWorld(message.TargetWireUserId, out var target))
-        {
-            logger.LogInformation(
-                "REQUEST_PEER target={Target} is not a current selected session",
-                message.TargetWireUserId);
-            return;
-        }
-
-        var execution = await PartyTransitionExecution.RunPartyAsync(
-            sessions,
-            townAreas,
-            () => sessions.IsInWorld(inviter)
-                && sessions.IsInWorld(target)
-                && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
-                && PartyCharacterProjection.TryCapture(target, townAreas, out var targetCharacter)
-                    ? commands.SendAsync(new RequestPartyInviteCommand(
-                        inviterCharacter, targetCharacter), cancellationToken)
-                    : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
-        var result = execution.Result;
-        if (result.Succeeded)
-            await notifications.DeliverAsync(
-                    result.Notifications, execution.Recipients, cancellationToken)
-                .ConfigureAwait(false);
-        logger.LogInformation(
-            "REQUEST_PEER inviter={Inviter} target={Target} clientReportedReviveCoins={ReviveCoins} accepted={Accepted} failure={Failure}",
-            inviter.WireUserId, message.TargetWireUserId, message.PeerValue,
-            result.Succeeded, result.Failure);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        RequestPeerRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameRequestPeerCommand(context, message), cancellationToken);
 }
 
-public sealed class ResponsePeerHandler(
-    ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas,
-    ICommandBus commands,
-    PartyNotificationDelivery notifications,
-    ILogger<ResponsePeerHandler> logger) : ClientMessageHandler<ResponsePeerRequest>
+internal sealed class ResponsePeerHandler(ICommandBus commands)
+    : ClientMessageHandler<ResponsePeerRequest>, IProtocolCommandMessageHandler<GameResponsePeerCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ResponsePeerRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (message.RequestType != 0)
-        {
-            logger.LogInformation(
-                "RESPONSE_PEER type={RequestType} is outside party scope; state unchanged",
-                message.RequestType);
-            return;
-        }
-
-        var invitee = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (invitee is null)
-        {
-            logger.LogInformation("RESPONSE_PEER ignored for non-current connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        if (!sessions.TryGetInWorld(message.InviterWireUserId, out var inviter))
-        {
-            logger.LogInformation(
-                "RESPONSE_PEER inviter={Inviter} is not a current selected session",
-                message.InviterWireUserId);
-            return;
-        }
-
-        var execution = await PartyTransitionExecution.RunPartyAsync(
-            sessions,
-            townAreas,
-            () => sessions.IsInWorld(invitee)
-                && sessions.IsInWorld(inviter)
-                && PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
-                && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
-                    ? commands.SendAsync(new AcceptPartyInviteCommand(
-                        inviteeCharacter, inviterCharacter), cancellationToken)
-                    : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
-        var result = execution.Result;
-        if (result.Succeeded)
-            await notifications.DeliverAsync(
-                    result.Notifications, execution.Recipients, cancellationToken)
-                .ConfigureAwait(false);
-        logger.LogInformation(
-            "RESPONSE_PEER invitee={Invitee} inviter={Inviter} accepted={Accepted} failure={Failure}",
-            invitee.WireUserId, message.InviterWireUserId, result.Succeeded, result.Failure);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ResponsePeerRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameResponsePeerCommand(context, message), cancellationToken);
 }
 
 public sealed class LeavePartyHandler(
@@ -951,85 +753,18 @@ public sealed class RemovePartyMemberHandler(
         new(session.AccountId, session.CharacterId, session.WireUserId, null);
 }
 
-public sealed class CallPartyMemberRealtimeInfoHandler(
-    ISelectedSessionDomainService sessions,
-    ICommandBus commands,
-    PartyNotificationDelivery notifications,
-    ILogger<CallPartyMemberRealtimeInfoHandler> logger)
-    : ClientMessageHandler<CallPartyMemberRealtimeInfoRequest>
+internal sealed class CallPartyMemberRealtimeInfoHandler(ICommandBus commands)
+    : ClientMessageHandler<CallPartyMemberRealtimeInfoRequest>, IProtocolCommandMessageHandler<GameCallPartyMemberRealtimeInfoCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        CallPartyMemberRealtimeInfoRequest message,
-        CancellationToken cancellationToken)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
-        {
-            logger.LogInformation(
-                "CALL_PARTY_MEMBER_REALTIME_INFO ignored for non-current connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        var result = await (sessions.IsInWorld(session)
-            ? commands.SendAsync(new QueryPartyRealtimeCommand(new PartyCharacterSnapshot(
-                session.AccountId, session.CharacterId, session.WireUserId, null)), cancellationToken)
-            : ValueTask.FromResult(new PartyRealtimeQueryResult(null))).ConfigureAwait(false);
-        if (result.Snapshot is { IsVirtual: false } snapshot)
-        {
-            await notifications.DeliverRealtimeAsync(session, snapshot, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        logger.LogInformation(
-            "CALL_PARTY_MEMBER_REALTIME_INFO character={CharacterId} inParty={InParty}",
-            session.CharacterId, result.Snapshot is { IsVirtual: false });
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        CallPartyMemberRealtimeInfoRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameCallPartyMemberRealtimeInfoCommand(context, message), cancellationToken);
 }
 
-public sealed class SetPartyInfoHandler(
-    ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas,
-    ICommandBus commands,
-    PartyNotificationDelivery notifications,
-    ILogger<SetPartyInfoHandler> logger) : ClientMessageHandler<SetPartyInfoRequest>
+internal sealed class SetPartyInfoHandler(ICommandBus commands)
+    : ClientMessageHandler<SetPartyInfoRequest>, IProtocolCommandMessageHandler<GameSetPartyInfoCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        SetPartyInfoRequest message,
-        CancellationToken cancellationToken)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
-        {
-            logger.LogInformation(
-                "SET_PARTY_INFO ignored for non-current connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        var execution = await PartyTransitionExecution.RunPartyAsync(
-            sessions,
-            townAreas,
-            () => sessions.IsInWorld(session)
-                && PartyCharacterProjection.TryCapture(session, townAreas, out var character)
-                ? commands.SendAsync(new SetPartyInfoCommand(
-                    character,
-                    message.Settings,
-                    message.Title), cancellationToken)
-                : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
-        var result = execution.Result;
-        if (result.Succeeded)
-        {
-            await notifications.DeliverAsync(
-                    result.Notifications, execution.Recipients, cancellationToken)
-                .ConfigureAwait(false);
-        }
-        logger.LogInformation(
-            "SET_PARTY_INFO character={CharacterId} accepted={Accepted} failure={Failure}",
-            session.CharacterId,
-            result.Succeeded,
-            result.Failure);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        SetPartyInfoRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameSetPartyInfoCommand(context, message), cancellationToken);
 }
