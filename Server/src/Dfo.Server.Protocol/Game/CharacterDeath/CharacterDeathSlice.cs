@@ -65,62 +65,9 @@ internal sealed class CharacterLifeStateEncoder : GameNotiMessageEncoder<Charact
     }
 }
 
-public sealed record MarkDungeonParticipantDeadCommand(
-    CharacterId CharacterId, DungeonRunId RunId, long RoomVersion) : ICommand<MarkDungeonParticipantDeadResult>;
-
-public sealed record MarkDungeonParticipantDeadResult(DungeonRunState? Run);
-
-public sealed class MarkDungeonParticipantDeadCommandHandler(IDungeonRunDomainService runs)
-    : ICommandHandler<MarkDungeonParticipantDeadCommand, MarkDungeonParticipantDeadResult>
+public sealed class CharacterDeathHandler(ICommandBus commands)
+    : ClientMessageHandler<CharacterDeathRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameCharacterDeathCommand>
 {
-    public ValueTask<MarkDungeonParticipantDeadResult> HandleAsync(
-        CommandExecutionContext context, MarkDungeonParticipantDeadCommand command,
-        CancellationToken cancellationToken) => ValueTask.FromResult(new MarkDungeonParticipantDeadResult(
-            runs.TryMarkParticipantDead(command.CharacterId, command.RunId, command.RoomVersion)));
-}
-
-public sealed class CharacterDeathHandler(
-    ISelectedSessionDomainService selectedSessions,
-    IDungeonRunDomainService runs,
-    DungeonRunDeliveryRegistry deliveryRegistry,
-    ICommandBus commands,
-    IGameMessageSender sender,
-    ILogger<CharacterDeathHandler> logger,
-    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null) : ClientMessageHandler<CharacterDeathRequest>
-{
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context, CharacterDeathRequest message, CancellationToken cancellationToken)
-    {
-        var connectionId = context.Connection.ConnectionId;
-        var session = selectedSessions.FindByConnection(connectionId);
-        if (session is null) return;
-        if (bossTower is not null && await bossTower.DieAsync(connectionId, message.Metadata, cancellationToken).ConfigureAwait(false)) return;
-        if (illusionTower is not null
-            && await illusionTower.DieAsync(connectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
-            return;
-        var expected = runs.Find(session.CharacterId);
-        if (expected is null) return;
-
-        if (!selectedSessions.IsInWorld(session)
-            || deliveryRegistry.Find(expected.RunId).SingleOrDefault(x => x.CharacterId == session.CharacterId) != session)
-            return;
-
-        var result = await commands.SendAsync(new MarkDungeonParticipantDeadCommand(
-            session.CharacterId, expected.RunId, expected.RoomVersion), cancellationToken).ConfigureAwait(false);
-        if (result.Run is not { } committed) return;
-
-        var notification = new CharacterLifeStateNotification(session.WireUserId);
-        var secondary = deliveryRegistry.Find(committed.RunId)
-            .Where(x => x.CharacterId != session.CharacterId)
-            .Where(x => committed.Participants.Any(p => p.CharacterId == x.CharacterId))
-            .Where(x => selectedSessions.IsInWorld(x))
-            .Where(x => runs.Find(x.CharacterId)?.RunId == committed.RunId)
-            .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [notification])).ToArray();
-        await sender.SendExplicitAsync(connectionId,
-            new GameExplicitMessageDelivery([new CharacterDeathResponse(), notification], secondary), cancellationToken).ConfigureAwait(false);
-        logger.LogInformation(
-            "Character death user={WireUserId} character={CharacterId} run={RunId}: CMD 0028 ACK + NOTI 0020 sent; dead={DeadCount}/{MemberCount}, report=({First},{Second},{Third})",
-            session.WireUserId, session.CharacterId, committed.RunId,
-            committed.DeadParticipants.Count, committed.Participants.Count, message.First, message.Second, message.Third);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CharacterDeathRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameCharacterDeathCommand(context, message), ct).ConfigureAwait(false);
 }

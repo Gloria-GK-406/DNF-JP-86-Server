@@ -59,25 +59,6 @@ public sealed class IllusionTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> DieAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!Exact(session, expected)) return true;
-        var action = await commands.SendAsync(
-            new DieInIllusionTowerCommand(Context(expected, session)), token).ConfigureAwait(false);
-        if (!action.Changed || action.Run is null) return true;
-        failures = await ProjectActionAsync(
-            action, new CharacterLifeStateNotification(session.WireUserId), token,
-            requester: session, requesterResponse: new CharacterDeathResponse()).ConfigureAwait(false);
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<bool> SelectReturnAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
     {

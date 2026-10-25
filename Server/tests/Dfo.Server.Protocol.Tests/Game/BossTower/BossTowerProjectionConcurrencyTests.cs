@@ -472,10 +472,9 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var towers = new TowerDomain(run);
             var sessions = new Sessions(session);
             var sender = new Sender();
-            var delivery = Delivery(towers, sessions, new ResultCommands(action), sender);
+            var delivery = new Dfo.Server.Protocol.Tests.Game.CharacterDeath.DeathProjectionDriver(sessions,sender,towers,null);
 
-            Assert.True(await delivery.DieAsync(
-                session.ConnectionId, GameMessageMetadata.Empty, CancellationToken.None));
+            Assert.Empty(await delivery.BossAsync(action,session,CancellationToken.None));
 
             var frames = Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages;
             Assert.Equal(expectsSettlementFrames,
@@ -892,16 +891,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             if (leave.Context.RunId == failingRun)
                 return ValueTask.FromException<TResult>(new IOException("closed recipient"));
             return ValueTask.FromResult((TResult)(object)new BossTowerActionResult(false, null));
-        }
-    }
-
-    private sealed class ResultCommands(BossTowerActionResult result) : ICommandBus
-    {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            Assert.IsType<DieInBossTowerCommand>(command);
-            return ValueTask.FromResult((TResult)(object)result);
         }
     }
 

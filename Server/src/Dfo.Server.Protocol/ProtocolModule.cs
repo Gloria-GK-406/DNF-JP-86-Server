@@ -520,13 +520,9 @@ public sealed class ProtocolModule : IServerModule
     /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
     private static void RegisterCommands(IServiceCollection services)
     {
-        services.AddCommandHandler<UseRevivalCoinCommand, DungeonRevivalResult, UseRevivalCoinCommandHandler>(
-            CommandExecutionKind.Transactional);
         services.AddCommandHandler<EndClearReturnCommand, EndPartyWipeResult, EndClearReturnCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<EndPartyWipeCommand, EndPartyWipeResult, EndPartyWipeCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<MarkDungeonParticipantDeadCommand, MarkDungeonParticipantDeadResult, MarkDungeonParticipantDeadCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddProtocolCommandHandler<ChannelConnectCommand, ChannelConnectCompleted, ChannelConnectCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(ChannelConnectRequest)));
@@ -883,8 +879,12 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameMoveMap, typeof(MoveMapRequest)));
         services.RegisterProtocolMessageHandler<MoveMapHandler, MoveMapRequest, GameMoveMapCommand>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
-        services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
-        services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
+        services.AddProtocolCommandHandler<GameUseRevivalCoinCommand, bool, GameUseRevivalCoinCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameUseRevivalCoin, typeof(UseRevivalCoinRequest)));
+        services.RegisterProtocolMessageHandler<UseRevivalCoinHandler, UseRevivalCoinRequest, GameUseRevivalCoinCommand>(ClientMessageType.GameUseRevivalCoin);
+        services.AddProtocolCommandHandler<GameCharacterDeathCommand, bool, GameCharacterDeathCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCharacterDeath, typeof(CharacterDeathRequest)));
+        services.RegisterProtocolMessageHandler<CharacterDeathHandler, CharacterDeathRequest, GameCharacterDeathCommand>(ClientMessageType.GameCharacterDeath);
         services.RegisterProtocolMessageHandler<MonsterDeathHandler, MonsterDeathRequest, GameMonsterDeathCommand>(ClientMessageType.GameMonsterDeath);
         services.TryAddSingleton<BossTowerProjectionDelivery>();
         services.TryAddSingleton<BossTowerPartyCoordinator>();
@@ -893,7 +893,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
         services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional);
@@ -905,8 +904,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<IllusionTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
-        services.AddCommandHandler<DieInIllusionTowerCommand, TowerActionResult,
-            DieInIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,
             LeaveIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeIllusionTowerLeaderCommand, TowerActionResult,

@@ -49,8 +49,8 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture();
         await shop.Seed(1, 1, coins, 0);
         var run = EnterDead(shop);
-        var command = new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var command = new RevivalInput(shop.Session, shop.Session.CharacterId, run);
+        var bus = new RevivalDriver(shop.Services);
         Assert.True((await bus.SendAsync(command)).Succeeded);
         Assert.Equal(coins - 1, (await Coins(shop)));
         TestGameplay.Run(shop.Services, () =>
@@ -85,8 +85,8 @@ public sealed class DungeonRevivalTests
             runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
             return run;
         });
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, target, run.RunId));
+        var result = await new RevivalDriver(shop.Services).SendAsync(
+            new RevivalInput(shop.Session, target, run.RunId));
         Assert.True(result.Succeeded);
         Assert.Equal(9, await Coins(shop));
         TestGameplay.Run(shop.Services, () =>
@@ -106,8 +106,8 @@ public sealed class DungeonRevivalTests
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop);
         shop.Sql("CREATE TRIGGER refuse_coin BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
-        await Assert.ThrowsAsync<SqliteException>(async () => await shop.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run)));
+        await Assert.ThrowsAsync<SqliteException>(async () => await new RevivalDriver(shop.Services)
+            .SendAsync(new RevivalInput(shop.Session, shop.Session.CharacterId, run)));
         Assert.Equal(10, (await Coins(shop)));
         TestGameplay.Run(shop.Services, () =>
         {
@@ -123,8 +123,8 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture();
         if (foreignTarget) await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new UseRevivalCoinCommand(
-            shop.OnlineUser, shop.Session, foreignTarget ? new(999) : shop.Session.CharacterId, run));
+        var result = await new RevivalDriver(shop.Services).SendAsync(new RevivalInput(
+            shop.Session, foreignTarget ? new(999) : shop.Session.CharacterId, run));
         Assert.False(result.Succeeded);
         Assert.Equal(foreignTarget ? 10 : 0, (await Coins(shop)));
         TestGameplay.Run(shop.Services, () =>
@@ -140,8 +140,8 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture(services => services.AddSingleton<ITournamentDungeonDomainService>(tournament));
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop, tournament: true);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run));
+        var result = await new RevivalDriver(shop.Services).SendAsync(
+            new RevivalInput(shop.Session, shop.Session.CharacterId, run));
         Assert.False(result.Succeeded);
         Assert.Equal(10, await Coins(shop));
         Assert.Equal(0, tournament.Revivals);
@@ -162,8 +162,8 @@ public sealed class DungeonRevivalTests
         }));
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop, tournament: true);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
-        var command = new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run);
+        var bus = new RevivalDriver(shop.Services);
+        var command = new RevivalInput(shop.Session, shop.Session.CharacterId, run);
         shop.Sql("CREATE TRIGGER refuse_coin BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(async () => await bus.SendAsync(command));
         Assert.Equal(10, await Coins(shop));
@@ -178,6 +178,27 @@ public sealed class DungeonRevivalTests
         Assert.Equal(1, tournament.Revivals);
         Assert.False((await bus.SendAsync(command)).Succeeded);
         Assert.Equal(9, await Coins(shop));
+    }
+
+    // These existing domain/transaction fixtures invoke the owning CMD settlement algorithm;
+    // real inbound scope/physical failure evidence belongs to CharacterDeathFailureBoundaryTests.
+    private sealed record RevivalInput(SelectedSessionIdentity Payer, Dfo.Server.Data.Characters.CharacterId Target, DungeonRunId Run);
+    private sealed class RevivalDriver(IServiceProvider services) : GameUseRevivalCoinCommandHandler(null!,null!,null!,null!,
+        services.GetRequiredService<IDungeonRevivalDomainService>(),services.GetRequiredService<ICommandWorkUnits>(),null!,
+        services.GetRequiredService<TimeProvider>(),Microsoft.Extensions.Logging.Abstractions.NullLogger<GameUseRevivalCoinCommandHandler>.Instance,null!)
+    {
+        public async ValueTask<DungeonRevivalResult> SendAsync(RevivalInput input)
+        {
+            return await TestGameplay.RunAsync(services,async()=>
+            {
+            var dispatch=new Dfo.Server.Data.Networking.NetworkDispatchContext(new Dfo.Server.Data.Networking.NetworkConnectionContext(input.Payer.ConnectionId,Dfo.Server.Data.Networking.NetworkEndpointKind.Game,10011));
+            var message=new UseRevivalCoinRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty,input.Payer.WireUserId);
+            var command=new GameUseRevivalCoinCommand(dispatch,message);
+            var request=new CommandRequestContext.ProtocolNonEffect(dispatch,message,command.Frame,()=>true);
+            var context=new CommandExecutionContext(Guid.NewGuid(),command.GetType(),GetType(),CommandExecutionKind.Direct){Request=request};
+            try{return await ReviveAsync(context,input.Payer,input.Target,input.Run,default);}finally{await request.DrainOperationsAsync();request.Close();}
+            });
+        }
     }
 
     private sealed class TournamentRevival : ITournamentDungeonDomainService

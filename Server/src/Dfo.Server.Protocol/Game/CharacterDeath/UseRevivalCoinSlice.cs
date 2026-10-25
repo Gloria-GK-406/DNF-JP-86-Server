@@ -16,16 +16,17 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CharacterDeath;
 
 public sealed record RevivalOptions(byte AckFlag);
-public sealed record UseRevivalCoinRequest(GameMessageMetadata Metadata, ushort TargetActorId) : IClientNetworkMessage
+// AckFlag is a non-wire input from the existing immutable startup RevivalOptions; C2S remains one u16.
+public sealed record UseRevivalCoinRequest(GameMessageMetadata Metadata, ushort TargetActorId, byte AckFlag = 1) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameUseRevivalCoin;
 }
-internal sealed class UseRevivalCoinDecoder : IGameMessageDecoder
+internal sealed class UseRevivalCoinDecoder(RevivalOptions? options = null) : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         if (body.Length != 2) throw new InvalidDataException("USE_COIN requires one u16 target.");
-        return new UseRevivalCoinRequest(metadata, BinaryPrimitives.ReadUInt16LittleEndian(body));
+        return new UseRevivalCoinRequest(metadata, BinaryPrimitives.ReadUInt16LittleEndian(body), options?.AckFlag ?? 1);
     }
 }
 internal sealed record UseRevivalCoinResponse(bool Succeeded, ushort TargetActorId, byte Flag) : IGameCmdMessage
@@ -45,71 +46,9 @@ internal sealed class UseRevivalCoinEncoder : GameCmdMessageEncoder<UseRevivalCo
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UseRevivalCoinResponse message)
         => OnePayload(0x0029, EncodeBody(message));
 }
-public sealed record UseRevivalCoinCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Payer,
-    CharacterId Target, DungeonRunId RunId) : ICommand<DungeonRevivalResult>, IAccountCommand
+public sealed class UseRevivalCoinHandler(ICommandBus commands)
+    : ClientMessageHandler<UseRevivalCoinRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameUseRevivalCoinCommand>
 {
-    public AccountId AccountId => Payer.AccountId;
-}
-public sealed class UseRevivalCoinCommandHandler(IDungeonRevivalDomainService revival)
-    : ICommandHandler<UseRevivalCoinCommand, DungeonRevivalResult>
-{
-    public ValueTask<DungeonRevivalResult> HandleAsync(CommandExecutionContext context,
-        UseRevivalCoinCommand command, CancellationToken cancellationToken) =>
-        revival.ReviveAsync(command.Payer, command.Target, command.RunId, cancellationToken);
-}
-
-public sealed class UseRevivalCoinHandler(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, IDungeonRunDomainService runs,
-    DungeonRunDeliveryRegistry registry,
-    ICommandBus commands, IGameMessageSender sender,
-    RevivalOptions options, TimeProvider clock, ILogger<UseRevivalCoinHandler> logger,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null)
-    : ClientMessageHandler<UseRevivalCoinRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        UseRevivalCoinRequest message, CancellationToken cancellationToken)
-    {
-        var payer = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (payer is null) return;
-        if (bossTower?.Find(payer) is not null)
-        {
-            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        if (runs.Find(payer.CharacterId) is not { } expected) return;
-        var frozen = registry.Find(expected.RunId);
-        if (!frozen.Contains(payer) || !sessions.IsInWorld(payer)) return;
-        var target = frozen.SingleOrDefault(x => x.WireUserId == message.TargetActorId);
-        if (target is null || !sessions.IsInWorld(target)
-            || runs.Find(target.CharacterId)?.RunId != expected.RunId
-            || !onlineUsers.TryGetByConnection(payer.ConnectionId, out var online) || online is null)
-        {
-            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        var result = await commands.SendAsync(new UseRevivalCoinCommand(online.OnlineUserId,
-            payer, target.CharacterId, expected.RunId), cancellationToken).ConfigureAwait(false);
-        if (!result.Succeeded)
-        {
-            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        var noti = new CharacterLifeStateNotification(target.WireUserId, State: 1);
-        var secondary = frozen.Where(x => x != payer
-                && sessions.IsInWorld(x)
-                && runs.Find(x.CharacterId)?.RunId == expected.RunId)
-            .Select(x => new GameExplicitMessageTarget(x.ConnectionId, [noti])).ToArray();
-        // The payer receives life state before ACK; only its coin counter is updated.
-        await sender.SendExplicitAsync(payer.ConnectionId, new GameExplicitMessageDelivery(
-            [noti, new UseRevivalCoinResponse(true, target.WireUserId, options.AckFlag),
-             new InventoryDeltaMessage(InventoryContainerType.Main,
-                [new InventoryItemState(null, 1, result.RemainingCoin!)], clock.GetUtcNow())], secondary), cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Revival payer={Payer} target={Target} run={RunId} coins={Coins} ackFlag={Flag}",
-            payer.CharacterId, target.CharacterId, expected.RunId, result.RemainingCoin!.Value, options.AckFlag);
-    }
-    private ValueTask RefuseAsync(SelectedSessionIdentity payer, UseRevivalCoinRequest message, CancellationToken ct)
-    {
-        logger.LogInformation("Revival refused payer={Payer} targetActor={Target}; no coin consumed", payer.CharacterId, message.TargetActorId);
-        return sender.SendCmdAsync(payer.ConnectionId, new UseRevivalCoinResponse(false, message.TargetActorId, options.AckFlag), ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, UseRevivalCoinRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameUseRevivalCoinCommand(context, message), ct).ConfigureAwait(false);
 }

@@ -60,9 +60,7 @@ public sealed class CharacterDeathHandlerTests
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(run.RunId, [Current, Other]);
             var sender = new Sender();
-            var handler = new CharacterDeathHandler(sessions, runs, registry,
-                new Commands(runs),
-                sender, NullLogger<CharacterDeathHandler>.Instance);
+            var handler = new DeathDriver(sessions,runs,registry,sender);
             var context = new NetworkDispatchContext(new NetworkConnectionContext(Current.ConnectionId, NetworkEndpointKind.Game, 10011));
             var request = new CharacterDeathRequest(GameMessageMetadata.Empty, 612, 294, 0);
             await handler.HandleAsync(context, request, CancellationToken.None);
@@ -135,14 +133,18 @@ public sealed class CharacterDeathHandlerTests
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => throw new NotSupportedException();
         public bool ReleaseExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
-    private sealed class Commands(Runs runs) : ICommandBus
+    // Same whole body in an existing gameplay fixture; this does not prove inbound scope lifecycle.
+    private sealed class DeathDriver(Sessions selected,Runs runs,DungeonRunDeliveryRegistry registry,Sender sender)
+        : GameCharacterDeathCommandHandler(selected,runs,registry,null!,null!,null!,null!,null!,new DeathOutbox(sender),null!,TimeProvider.System,NullLogger<GameCharacterDeathCommandHandler>.Instance)
     {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            var death = Assert.IsType<MarkDungeonParticipantDeadCommand>(command);
-            return ValueTask.FromResult((TResult)(object)new MarkDungeonParticipantDeadResult(
-                runs.TryMarkParticipantDead(death.CharacterId, death.RunId, death.RoomVersion)));
-        }
+        public ValueTask<bool> HandleAsync(NetworkDispatchContext dispatch,CharacterDeathRequest input,CancellationToken ct)=>base.HandleAsync(null!,new(dispatch,input),ct);
+    }
+    private sealed class DeathOutbox(IGameMessageSender sender):IGameCommandOutbox
+    {
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery delivery,CancellationToken ct)=>sender.SendExplicitAsync(id,delivery,ct);
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id,IGameCmdMessage message,CancellationToken ct)=>sender.SendCmdAsync(id,message,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id,IGameNotiMessage message,CancellationToken ct)=>sender.SendNotiAsync(id,message,ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext c,IReadOnlyList<IGameServerMessage> m,CancellationToken ct)=>sender.SendExplicitAsync(c.ConnectionId,new(m,[]),ct);
     }
     /// <summary>
     /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the

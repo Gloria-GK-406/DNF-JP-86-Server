@@ -4803,25 +4803,32 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 73,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "直接原TryMarkParticipantDead，零工作单元／零事务。",
+          "old": "普通死亡Direct立即内存修改、零事务。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-47.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 73,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CharacterDeath.MarkDungeonParticipantDeadCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CharacterDeath.MarkDungeonParticipantDeadCommand",
@@ -4848,52 +4855,71 @@
         "result": "Dfo.Server.Protocol.Game.CharacterDeath.MarkDungeonParticipantDeadResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 73,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+        ],
+        "mapping": "fff95b5d CharacterDeath→普通MarkDead／Boss Die／Illusion Die与UseRevivalCoin闭包归两个whole；四fine及两塔Die适配段删除；PartyWipe／ClearReturn／Timer／Leave及共享Party投影保持。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 73,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 73,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "保持原selected／physical／metadata和owners边界；不增加current门或将owners当围栏。",
+          "old": "普通无selected／footprint；Boss全selected仅报告者physical原metadata；Illusion空selected；两塔原run members是奖励owners。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "同门与结果顺序；默认生命周期仅VC-B21、两塔死亡精确physical cleanup仅VC-B22；复活拒绝／静默边界不增额外world gate。",
+          "old": "原session／run／frozen registry／InWorld／same-run准入及两塔stale-before-lookup；提交点与逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 53,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "一次ordinary Write，原领域币／life／限额／Mirror事实同事务；无Main或footprint。",
+          "old": "复活一次Transactional、正常拒绝空提交，不RequireRollback。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-47.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 53,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CharacterDeath.UseRevivalCoinCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.CharacterDeath.UseRevivalCoinCommand",
@@ -4920,31 +4946,43 @@
         "result": "Dfo.Server.Abstractions.World.DungeonRevivalResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 53,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+        ],
+        "mapping": "fff95b5d CharacterDeath→普通MarkDead／Boss Die／Illusion Die与UseRevivalCoin闭包归两个whole；四fine及两塔Die适配段删除；PartyWipe／ClearReturn／Timer／Leave及共享Party投影保持。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 53,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 53,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "保持原selected／physical／metadata和owners边界；不增加current门或将owners当围栏。",
+          "old": "原fine仅IAccountCommand，空selected且无footprint。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "同门与结果顺序；默认生命周期仅VC-B21、两塔死亡精确physical cleanup仅VC-B22；复活拒绝／静默边界不增额外world gate。",
+          "old": "原session／run／frozen registry／InWorld／same-run准入及两塔stale-before-lookup；提交点与逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -6478,25 +6516,32 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 66,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "一次ordinary Write，DeclaredNonRequest原run members owners；奖励／clone提交顺序保持。",
+          "old": "Boss死亡一次Transactional RewardingMutation。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-47.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 66,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DieInBossTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DieInBossTowerCommand",
@@ -6523,52 +6568,71 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 66,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+        ],
+        "mapping": "fff95b5d CharacterDeath→普通MarkDead／Boss Die／Illusion Die与UseRevivalCoin闭包归两个whole；四fine及两塔Die适配段删除；PartyWipe／ClearReturn／Timer／Leave及共享Party投影保持。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 66,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 66,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "保持原selected／physical／metadata和owners边界；不增加current门或将owners当围栏。",
+          "old": "原IMultiSelectedSession全run selected、仅报告者physical、原metadata；owners是原run members。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "同门与结果顺序；默认生命周期仅VC-B21、两塔死亡精确physical cleanup仅VC-B22；复活拒绝／静默边界不增额外world gate。",
+          "old": "原session／run／frozen registry／InWorld／same-run准入及两塔stale-before-lookup；提交点与逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 54,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "一次ordinary Write，DeclaredNonRequest原run members owners；奖励／clone提交顺序保持。",
+          "old": "Illusion死亡一次Transactional RewardingMutation。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-47.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 54,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.DieInIllusionTowerCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.DieInIllusionTowerCommand",
@@ -6595,31 +6659,43 @@
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 54,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+        ],
+        "mapping": "fff95b5d CharacterDeath→普通MarkDead／Boss Die／Illusion Die与UseRevivalCoin闭包归两个whole；四fine及两塔Die适配段删除；PartyWipe／ClearReturn／Timer／Leave及共享Party投影保持。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 54,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 54,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "保持原selected／physical／metadata和owners边界；不增加current门或将owners当围栏。",
+          "old": "空selected；owners是原run members，不等同保护集合。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "同门与结果顺序；默认生命周期仅VC-B21、两塔死亡精确physical cleanup仅VC-B22；复活拒绝／静默边界不增额外world gate。",
+          "old": "原session／run／frozen registry／InWorld／same-run准入及两塔stale-before-lookup；提交点与逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -22119,26 +22195,33 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 82,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "普通直接原内存修改零unit；两塔各一次ordinary Write和原members DeclaredNonRequest owners，不新增Main。",
+          "old": "普通Direct零事务；Boss／Illusion死亡各一次Transactional RewardingMutation。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-47.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 82,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+      ],
       "id": "message:65576",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CharacterDeath.CharacterDeathHandler",
@@ -22161,60 +22244,81 @@
         "value": 65576
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 82,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+        ],
+        "mapping": "fff95b5d CharacterDeath→普通MarkDead／Boss Die／Illusion Die与UseRevivalCoin闭包归两个whole；四fine及两塔Die适配段删除；PartyWipe／ClearReturn／Timer／Leave及共享Party投影保持。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 82,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/CharacterDeathSlice.cs",
-          "line": 82,
-          "source_sha256": "4b894e0edddd949b7d401b8bfa85c57ebe6e505e0547d148650a5d980a3a3e8d"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "保持原selected／physical／metadata和owners边界；不增加current门或将owners当围栏。",
+          "old": "普通无selected／footprint；Boss全selected仅报告者physical原metadata；Illusion空selected；两塔原run members是奖励owners。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "同门与结果顺序；默认生命周期仅VC-B21、两塔死亡精确physical cleanup仅VC-B22；复活拒绝／静默边界不增额外world gate。",
+          "old": "原session／run／frozen registry／InWorld／same-run准入及两塔stale-before-lookup；提交点与逐成员catch继续。"
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.CharacterDeath.MarkDungeonParticipantDeadCommand"
+        "command:Dfo.Server.Protocol.Game.CharacterDeath.MarkDungeonParticipantDeadCommand",
+        "command:Dfo.Server.Protocol.Game.DieInBossTowerCommand",
+        "command:Dfo.Server.Protocol.Game.DieInIllusionTowerCommand"
       ],
       "shared_helper_candidates": [
         "BossTowerProjectionDelivery",
         "GameExplicitMessageDelivery",
         "IllusionTowerProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 61,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "一次ordinary Write，原领域币／life／限额／Mirror事实同事务；无Main或footprint。",
+          "old": "复活一次Transactional、正常拒绝空提交，不RequireRollback。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-47.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 61,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+      ],
       "id": "message:65577",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CharacterDeath.UseRevivalCoinHandler",
@@ -22237,36 +22341,48 @@
         "value": 65577
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 61,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+        ],
+        "mapping": "fff95b5d CharacterDeath→普通MarkDead／Boss Die／Illusion Die与UseRevivalCoin闭包归两个whole；四fine及两塔Die适配段删除；PartyWipe／ClearReturn／Timer／Leave及共享Party投影保持。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 61,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/UseRevivalCoinSlice.cs",
-          "line": 61,
-          "source_sha256": "d409e3f54ab8e90808f9e04e001cdbcd964e6ac8ca870f9a0370b893eda130b2"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "保持原selected／physical／metadata和owners边界；不增加current门或将owners当围栏。",
+          "old": "原fine仅IAccountCommand，空selected且无footprint。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task47-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameUseRevivalCoinCommandHandler.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/CharacterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CharacterDeath/CharacterDeathCodecTests.cs"
+          ],
+          "new": "同门与结果顺序；默认生命周期仅VC-B21、两塔死亡精确physical cleanup仅VC-B22；复活拒绝／静默边界不增额外world gate。",
+          "old": "原session／run／frozen registry／InWorld／same-run准入及两塔stale-before-lookup；提交点与逐成员catch继续。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CharacterDeath.UseRevivalCoinCommand"
       ],
       "shared_helper_candidates": [
         "GameExplicitMessageDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

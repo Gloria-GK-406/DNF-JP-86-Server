@@ -466,10 +466,9 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var towers = new TowerDomain(run);
             var sessions = new Sessions(session);
             var sender = new Sender();
-            var delivery = Delivery(towers, sessions, new ResultCommands(action), sender);
+            var delivery = new Dfo.Server.Protocol.Tests.Game.CharacterDeath.DeathProjectionDriver(sessions,sender,null,towers);
 
-            Assert.True(await delivery.DieAsync(
-                session.ConnectionId, GameMessageMetadata.Empty, CancellationToken.None));
+            Assert.Empty(await delivery.IllusionAsync(action,session,CancellationToken.None));
 
             var frames = Assert.Single(sender.Deliveries).Delivery.RequiredDirectMessages;
             Assert.Equal(expectsSettlementFrames,
@@ -923,16 +922,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             if (leave.Context.RunId == failingRun)
                 return ValueTask.FromException<TResult>(new IOException("closed recipient"));
             return ValueTask.FromResult((TResult)(object)new TowerActionResult(false, null));
-        }
-    }
-
-    private sealed class ResultCommands(TowerActionResult result) : ICommandBus
-    {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            Assert.IsType<DieInIllusionTowerCommand>(command);
-            return ValueTask.FromResult((TResult)(object)result);
         }
     }
 

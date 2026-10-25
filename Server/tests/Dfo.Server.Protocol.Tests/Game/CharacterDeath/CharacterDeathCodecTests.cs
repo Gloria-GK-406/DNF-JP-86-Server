@@ -1,4 +1,6 @@
 using Dfo.Server.Data.Networking;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 
 namespace Dfo.Server.Protocol.Tests.Game.CharacterDeath;
@@ -6,13 +8,35 @@ namespace Dfo.Server.Protocol.Tests.Game.CharacterDeath;
 public sealed class CharacterDeathCodecTests
 {
     [Theory]
+    [InlineData(null,1)] [InlineData("0",0)] [InlineData("1",1)]
+    public void Revival_decoder_uses_the_same_validated_startup_shape(string? configured,byte expected)
+    {
+        var services=new ServiceCollection().AddLogging();
+        var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{["Dungeon:RevivalAckFlag"]=configured}).Build();
+        new Dfo.Server.Protocol.ProtocolModule().ConfigureServices(services,config);
+        using var provider=services.BuildServiceProvider();
+        var options=provider.GetRequiredService<RevivalOptions>();Assert.Equal(expected,options.AckFlag);
+        var decoder=provider.GetRequiredService<UseRevivalCoinDecoder>();
+        Assert.Equal(expected,Assert.IsType<UseRevivalCoinRequest>(decoder.Decode(GameMessageMetadata.Empty,new byte[2])).AckFlag);
+    }
+    [Theory]
+    [InlineData("2")] [InlineData("255")]
+    public void Revival_startup_rejects_unsupported_ack_flags(string configured)
+    {
+        var services=new ServiceCollection().AddLogging();
+        var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{["Dungeon:RevivalAckFlag"]=configured}).Build();
+        Assert.Throws<InvalidOperationException>(()=>new Dfo.Server.Protocol.ProtocolModule().ConfigureServices(services,config));
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     public void Revival_ack_preserves_target_and_explicit_flag(byte flag)
     {
-        var request = Assert.IsType<UseRevivalCoinRequest>(new UseRevivalCoinDecoder().Decode(
+        var request = Assert.IsType<UseRevivalCoinRequest>(new UseRevivalCoinDecoder(new RevivalOptions(flag)).Decode(
             GameMessageMetadata.Empty, Convert.FromHexString("3412")));
         Assert.Equal((ushort)0x1234, request.TargetActorId);
+        Assert.Equal(flag,request.AckFlag);
         Assert.Equal(new byte[] { 1, 0x34, 0x12, flag },
             UseRevivalCoinEncoder.EncodeBody(new(true, request.TargetActorId, flag)));
     }

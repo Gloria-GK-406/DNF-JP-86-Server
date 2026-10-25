@@ -177,8 +177,8 @@ public sealed class IllusionTowerPublicFlowTests
                 new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
             await MapLoadingRouteDriver.RunAsync(fixture.Services,
                 new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
-            await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<CharacterDeathHandler>().HandleAsync(
-                new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default));
+            await CharacterDeathRouteDriver.RunAsync(fixture.Services,
+                new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default);
             var oldRun = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
             Assert.True(oldRun.Completion!.Settled);
             var due = Assert.IsType<DateTimeOffset>(oldRun.ReturnDueAt);

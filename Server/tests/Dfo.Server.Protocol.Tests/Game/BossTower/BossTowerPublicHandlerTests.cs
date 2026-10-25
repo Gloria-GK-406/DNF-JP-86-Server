@@ -113,8 +113,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var run = PartyRun(Guid.NewGuid(), first, second) with
             { Completion = new(TowerEndReason.Defeated, 0, 1, true, Now, receipt) };
             var towers = new TowerDomain(run); var sender = new Sender();
-            var projection = Delivery(towers, new Sessions(first, second), new ResultCommands(new(true, run) { SettlementCreated = true }), sender);
-            await projection.DieAsync(first.ConnectionId, GameMessageMetadata.Empty, default);
+            var projection = new Dfo.Server.Protocol.Tests.Game.CharacterDeath.DeathProjectionDriver(new Sessions(first,second),sender,towers,null);
+            Assert.Empty(await projection.BossAsync(new(true,run){SettlementCreated=true},first,default));
             Assert.Equal(2, sender.Deliveries.Count);
             foreach (var delivery in sender.Deliveries)
             {

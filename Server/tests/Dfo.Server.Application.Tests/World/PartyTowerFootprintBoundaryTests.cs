@@ -119,7 +119,7 @@ public sealed partial class BossTowerDomainServiceTests
             await Tower(f).StartAsync(Context(run, f.Session), default);
             await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, async () =>
             {
-                var dead = await f.Services.GetRequiredService<ICommandBus>().SendAsync(new DieInBossTowerCommand(Context(run, peer)) { Sessions = [f.Session, peer] });
+                var dead = await TestEffectFootprints.Run(new[]{f.Session,peer},cap=>Tower(f).DieAsync(Context(run,peer),cap,default));
                 Assert.Null(dead.Run!.Completion);
                 Assert.True(dead.Run.Members.Single(member => member.Session == peer).Dead);
             });
@@ -296,7 +296,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await Tower(f).StartAsync(Context(run, f.Session), default);
             await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, async () =>
             {
-                var dead = await f.Services.GetRequiredService<ICommandBus>().SendAsync(new DieInIllusionTowerCommand(Context(run, peer)));
+                var dead = await TestEffectFootprints.Run(new[]{f.Session,peer},cap=>Tower(f).DieAsync(Context(run,peer),cap,default));
                 Assert.Null(dead.Run!.Completion);
                 Assert.True(dead.Run.Members.Single(member => member.Session == peer).Dead);
             });
