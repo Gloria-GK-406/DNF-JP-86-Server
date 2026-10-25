@@ -248,13 +248,14 @@ public sealed partial class IllusionTowerDomainServiceTests
         });
     }
 }
-internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool ordinary = false) : IAsyncDisposable
+internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool ordinary = false, string? commandOverride = null) : IAsyncDisposable
 {
     internal static bool Legacy => typeof(EnterSelectDungeonHandler).Assembly.GetType("Dfo.Server.Protocol.Game.DungeonEntry.GameSelectDungeonCommand") is null;
     internal readonly RemainingOpeningProtocolCommandFlowTests.SenderProbe Sender = new();
     internal readonly Exception Cause = new IOException("TASK43 committed entry boundary");
     internal readonly List<DomainTransaction> Transactions = [];
     internal GameplayCallChain Chain;
+    internal readonly List<CommandWorkUnitDeclaration> Declarations = [];
     internal Action? BeforeDispose;
     internal bool PeerContextsReplaced;
     internal NetworkConnectionContext? PeerContext;
@@ -267,10 +268,21 @@ internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool o
         services.AddSingleton<IOutboundSender>(Sender.Recorder);
         services.AddSingleton(p => new GameplayOutboxes(p.GetRequiredService<IOutboundSender>(), p.GetRequiredService<GameplayCloseCauses>(), p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GameplayOutbox>>()));
         services.AddSingleton<ISelectedCharacterCurrentViewDomainService, Task39NoReturnView>();
-        var command = Legacy ? ordinary ? "EnterDungeonCommand" : illusion ? "EnterIllusionTowerCommand" : "EnterBossTowerCommand" : "GameSelectDungeonCommand";
-        var descriptor = services.Single(value => value.ServiceType.IsGenericType && value.ServiceType.GetGenericTypeDefinition() == typeof(ICommandHandler<,>) && value.ServiceType.GenericTypeArguments[0].Name == command);
-        services.Remove(descriptor);
-        services.AddScoped(descriptor.ServiceType, p => Activator.CreateInstance(typeof(Scope<,>).MakeGenericType(descriptor.ServiceType.GenericTypeArguments), ActivatorUtilities.CreateInstance(p, descriptor.ImplementationType!), p, this, scopeFailure)!);
+        var command = commandOverride ?? (Legacy ? ordinary ? "EnterDungeonCommand" : illusion ? "EnterIllusionTowerCommand" : "EnterBossTowerCommand" : "GameSelectDungeonCommand");
+        if (command == "LegacyMove")
+            services.AddScoped<Microsoft.Extensions.Logging.ILogger<Dfo.Server.Protocol.Game.DungeonEntry.MoveMapHandler>>(_ => new MovementScopeLogger(this, scopeFailure));
+        else
+        {
+        var descriptors = services.Where(value => value.ServiceType.IsGenericType && value.ServiceType.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)
+            && (command == "BossLoading" ? value.ServiceType.GenericTypeArguments[0].Name is "LoadBossTowerCommand" or "StartBossTowerCommand" : value.ServiceType.GenericTypeArguments[0].Name == command)).ToArray();
+        Assert.NotEmpty(descriptors);
+        foreach (var descriptor in descriptors)
+        {
+            services.Remove(descriptor);
+            var disposeFailure = scopeFailure && (command != "BossLoading" || descriptor.ServiceType.GenericTypeArguments[0].Name == "LoadBossTowerCommand");
+            services.AddScoped(descriptor.ServiceType, p => Activator.CreateInstance(typeof(Scope<,>).MakeGenericType(descriptor.ServiceType.GenericTypeArguments), ActivatorUtilities.CreateInstance(p, descriptor.ImplementationType!), p, this, disposeFailure)!);
+        }
+        }
         var units = services.Last(value => value.ServiceType == typeof(ICommandWorkUnits));
         services.Remove(units);
         services.AddScoped<ICommandWorkUnits>(p => new Units((ICommandWorkUnits)(units.ImplementationFactory?.Invoke(p) ?? ActivatorUtilities.CreateInstance(p, units.ImplementationType!)), p, this));
@@ -356,6 +368,13 @@ internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool o
         }
     }
 
+    private sealed class MovementScopeLogger(EntryFailureProbe trace, bool fail) : Microsoft.Extensions.Logging.ILogger<Dfo.Server.Protocol.Game.DungeonEntry.MoveMapHandler>, IDisposable
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel level) => true;
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel level, Microsoft.Extensions.Logging.EventId id, TState state, Exception? e, Func<TState, Exception?, string> formatter) => trace.Chain = GameplayJob.Current!.Value;
+        public void Dispose() { if (fail) throw trace.Cause; }
+    }
     private sealed class Scope<TCommand, TResult>(object actual, IServiceProvider provider, EntryFailureProbe trace, bool fail) : ICommandHandler<TCommand, TResult>, IDisposable
         where TCommand : class, ICommand<TResult> where TResult : notnull
     {
@@ -370,7 +389,7 @@ internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool o
     private sealed class Units(ICommandWorkUnits actual, IServiceProvider provider, EntryFailureProbe trace) : ICommandWorkUnits
     {
         public ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken token = default) where T : notnull =>
-            actual.WriteAsync(context, declaration, (unit, ct) => { trace.Transactions.Add(Assert.IsType<DomainTransaction>(provider.GetRequiredService<IDomainTransactionAccessor>().Current)); return action(unit, ct); }, token);
+            actual.WriteAsync(context, declaration, (unit, ct) => { trace.Transactions.Add(Assert.IsType<DomainTransaction>(provider.GetRequiredService<IDomainTransactionAccessor>().Current)); trace.Declarations.Add(declaration); return action(unit, ct); }, token);
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => actual.WriteResultAsync(c, d, a, ct);
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => actual.ReadOnlyAsync(c, d, a, ct);
     }
