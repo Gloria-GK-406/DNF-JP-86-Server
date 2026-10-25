@@ -254,6 +254,7 @@ internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool o
     internal readonly RemainingOpeningProtocolCommandFlowTests.SenderProbe Sender = new();
     internal readonly Exception Cause = new IOException("TASK43 committed entry boundary");
     internal readonly List<DomainTransaction> Transactions = [];
+    internal readonly List<CommandExecutionContext> Executions = [];
     internal GameplayCallChain Chain;
     internal readonly List<CommandWorkUnitDeclaration> Declarations = [];
     internal Action? BeforeDispose;
@@ -381,6 +382,7 @@ internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool o
         public ValueTask<TResult> HandleAsync(CommandExecutionContext context, TCommand command, CancellationToken token)
         {
             trace.Chain = GameplayJob.Current!.Value;
+            trace.Executions.Add(context);
             if (provider.GetRequiredService<IDomainTransactionAccessor>().Current is DomainTransaction transaction) trace.Transactions.Add(transaction);
             return ((ICommandHandler<TCommand, TResult>)actual).HandleAsync(context, command, token);
         }
