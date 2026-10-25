@@ -41,11 +41,11 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
   - final-review: auto
   - verification: auto
 - Bound methods: implementation: `test-driven-development`（先应用test-value gate；结构搬迁沿用行为测试/编译/结构判据，不制造编译失败当RED）。
-- Artifact path overrides（本次执行中B4/P5 amendment匹配的受影响gates已独立approved；旧B3/P4及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
-  - spec-adversarial: `reviews/spec-b4-challenges.md`
-  - spec-review: `reviews/spec-b4-review.md`
-  - plan-adversarial: `reviews/plan-p5-challenges.md`
-  - plan-review: `reviews/plan-p5-review.md`
+- Artifact path overrides（本次执行中B5/P6 amendment匹配的受影响gates已独立approved；旧B4/P5、B3/P4及更早审查原文留存，不改变controller/profile/gate强度/契约或baseline；其余制品仍使用共享composer默认路径）:
+  - spec-adversarial: `reviews/spec-b5-challenges.md`
+  - spec-review: `reviews/spec-b5-review.md`
+  - plan-adversarial: `reviews/plan-p6-challenges.md`
+  - plan-review: `reviews/plan-p6-review.md`
 - Parent controller: `../../multi-spec-map.md`。
 - 继承任务授权覆盖普通实施和本地检查点，不再重复规划后人工停点；Astra及分支收尾仍是用户保留门。
 - 初始未提交输入仅B目录及原草案到source-draft的迁移，均为本Spec拥有，规划检查点纳入；不修改A封存文件。
@@ -58,3 +58,7 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
 ## B4／P5受影响gate消费（2026-10-25）
 
 主控完整消费当前Spec B4 ready R2／Plan P5及匹配fresh独立gate，详见`verification/spec-b4-plan-p5-controller-consumption.md`。本轮仅Cera：原正常和健康确认回滚响应保持；新增VC-B4明确默认失败下单精确买家的足迹／参与者、Fence／精确连接阻断／DiscardExact／来源关闭及既有出站次序。Spec CH-1在R1成立，R2一次最小纠正后独立approved；Plan fresh挑战0/0且独立approved。先以amendment-only本地检查点固定这组门，再指定Task29；没有当前产品／测试改动或未来通过主张。baseline、Contract、A封存、controller/profile/auto门强度及三个raw出口保持，旧B3/P4消费段仅保历史。
+
+## B5／P6受影响gate消费（2026-10-25）
+
+主控完整消费当前Spec B5与Plan P6 ready R2及匹配fresh独立gate，精确身份/范围见`verification/spec-b5-plan-p6-controller-consumption.md`。Spec challenge0/0、独立review approved；Plan immutable CH-1在R1成立，主控据实际Unit.End/Close/Scope及下层proxy窗口作一次最小R2纠正，另一fresh reviewer确认充分并approved。旧R1Plan/amend逐bytes保留、挑战不改不重生。先以amendment-only本地检查点固定，再详细规划Task31；没有产品/native通过或提前Task。Mailbox保原即时自结算/共享原子性/健康确认回滚ACK，VC-B5默认失败/精确来源关闭和共享双因保留；正常disconnect照旧，不增Cera actor/footprint/Fence/Discard。self入口/来源/早pin admission/完整cleanup按P6，原五consumer/3raw/Compose禁用/A/Contract/baseline/profile/auto门保持。旧消费段仅历史，不代本次门；Astra及用户收尾/不pushPR限制不变。
