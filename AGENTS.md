@@ -350,125 +350,105 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 2) 命令执行总线（Application/Commands）
 
-协议级路由当前接线了 Channel Connect／ScriptVersion／Script／Info、LOGIN，以及名册／查名／创建／删除角色、OtherCharacterDetail、完整 UseStackable、BuyItem、Reinforce／Disjoint／EnchantByBead、MagicSeal／Forging／Outworld、PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening、ResetItemQuality／ResetRandomOption、Socket四logical、AvatarCompound、Warehouse六logical、CollectionBox一个logical／四wire、InventorySort三logical／两whole、SellItem、DeleteItem三操作、RepairItem普通／自动修理、CrystalContract选择、MoveItemSpace移动：消息 handler 只把原消息、精确连接上下文交给同一 CommandBus；GM 启动初始化走显式内部路由，声明种类与原调用链。新路由由总线入队一次，在身份检查前建立作业发件箱；其请求上下文是方法数据，结束即关闭，不通过 DI、AsyncLocal 或 job slot 取得“当前请求”。其余业务仍走 LegacyQueued／LegacyFineGrained 过渡路径，不得让新 CMD 回调旧命令。
+**新协议级路由与旧细命令路线并存。** 下表是已走同一 `CommandBus` 的完整协议入口；清单以
+[实际注册](Server/src/Dfo.Server.Protocol/ProtocolModule.cs)与[迁移账](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/migration-ledger.md)为准，后续迁移只增清单，共同规则变化才改正文；表中 `TASK-NN` 均指[本轮任务目录](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks)的同名文件。
 
-直接 slots／rental 足迹现由六个受迁领域入口和三个细粒度 handler 显式接收 `IEffectFootprintRecorder`，不再经旧请求投影接口注入。仅真实 LegacyFineGrained 最内层调用在主结算与事务已进入后捕获旧 frame／execution／rejection 引用；每次调用的能力绑定精确 context、注册、作业 ID 和关闭租约，记录时只检查捕获引用。网络来源按 dispatcher 实际消息分 Effect／NonEffect／Unknown；真正执行器外总线分支才可声明 Standalone，缺帧、TestGameplay 和连接信息不补权。新 Protocol／Internal 的旧能力入口拒绝后保持请求失败。
+| 已迁协议 | 特有边界与出处 |
+|---|---|
+| Channel Connect／ScriptVersion／Script／Info | 无工作单元；[源码](Server/src/Dfo.Server.Protocol/Channel)。 |
+| LOGIN、名册／查名／创建／删除角色 | 只保兑换／创建／删除的原写段，创建 ACK 后刷新名册，其余只读；[源码](Server/src/Dfo.Server.Protocol/ProtocolModule.cs)。 |
+| OtherCharacterDetail | 领域执行／投影时复查当前目标代次与精确收件人；[源码](Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs)。 |
+| UseStackable | 无 selected 仅 Silent ACK、不 Main；[源码](Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs)。 |
+| BuyItem（普通／Housing） | 双精确 CLR，普通 NonRequest／Housing Main，couple audience 不扩参与者；[源码](Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs)。 |
+| Reinforce／Disjoint（NPC／Portable）／EnchantByBead | 仅原有效领域分支 Main；`TASK-13`。 |
+| MagicSeal／Forging／Outworld（含 twist） | unseal 拒绝静默、失败 roll 提交材料、action2 早拒绝；`TASK-14`。 |
+| PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening | 仅此四 opening，Freeze 后确认回滚可保投影；`TASK-15`。 |
+| ResetItemQuality／ResetRandomOption | 无 domain footprint，reseal 返回 null 才回落 quality；`TASK-16`。 |
+| Socket（四 logical） | 零消耗仍验证 pile，保 target／物料槽足迹；`TASK-17`。 |
+| AvatarCompound | 先建新 UID 再扣输入，重放 UI Recovery＋当前库存；`TASK-18`。 |
+| Warehouse（六 logical） | 首成功用事务内 receipt，01AF 只有 Main NOTI／全结果无 ACK；`TASK-19`。 |
+| CollectionBox（一个 logical／四 wire） | Main 内记槽位，Main 后逐条 clock，拒绝无首成功许可；`TASK-20`。 |
+| InventorySort（排序／锁定／解锁、两个 CMD） | 两库存 Load／clock／装备归一仍同事务；`TASK-21`。 |
+| SellItem／DeleteItem（三操作）／RepairItem（普通／自动）／CrystalContract（选择） | 保原单写与投影顺序；`TASK-22`～`TASK-25`。 |
+| MoveItemSpace | 两处仓库／外观／Housing 降级保已追加帧；[源码](Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs)。 |
+| CeraShopPurchase | 普通 WriteResult＋唯一买家 NonRequest，无 Main／账本／重放／raw；`TASK-29`。 |
+| Mailbox（Send／SendMulti／Claim／Action／Open／Query） | 保原领域自结算与封闭恢复；`TASK-31`。 |
 
-`EffectExecutionContext.Footprint` 现在是必需的非空调用能力。`ApplyEffectsDomainService` 不再注入可选的 `EffectOperationContext`，也不隐式查当前请求；效果到投影的原完整映射由每次调用的 recorder 显式记录；legacy frame 与新 selected 请求各持独立 accumulator，映射只保留一份。17 处生产构造与 Opening、普通 XP、装备／任务等实际调用链均传入本次能力。XP 多参与者和普通 CERA／每日复活币请求使用明确 NonRequest 来源，不能把有 Session 等同于 selected effect，也不能把报告者的 selected 能力借给其他成员。
+**共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
+CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文
+是显式方法数据，结束关闭，不从 DI、AsyncLocal 或 job slot 查“当前请求”。GM 启动初始化是显式 Internal
+路由（声明种类与原调用链）；其余仍走 LegacyQueued／LegacyFineGrained，新 CMD 不得回调旧命令。
+协议 CMD 可注入领域服务／store，以及具名 `ICommandWorkUnits`、`ICommandMessageOutbox`、
+`ICommandConnectionClosures`、`ICommandProjections`、Protocol 的 `IGameCommandOutbox`、既有顺序／槽位映射
+与日志；禁止旧 sender／closer、总线、队列、执行器及动态服务解析。
 
-受迁入口及其自身写入／业务委托前校验能力，Apply 在归属、Preview、逐 Validate 等 await 后复验；消费 handler 在真实容器读取后、Consume 前也复验；Heras 的拥有服务在额度验证 await 后、发布 Direct 额度事实前复验。各效果 handler 只对其拥有的实际变更／委托边界作保证，未继续传能力的下层服务内部 await 不据此称为全部保护。Quest／Mirror 的 Prepare 在同一次 Finish 中接收相同能力，只 Preview，不记录或结算。AccountId／CharacterId／At／Session 是普通事实，租约关闭后仍可由既有事务 commit callback 读取；冷却、药剂及城镇的合法延迟提交不重新索取结算权威。
+显式工作单元复用领域事务，不把整协议包成事务；空 selected 列表不表示没有 SQLite／内存参与者。
+普通 NonEffect 不取得 Main／操作账本／raw 许可，同序号仍按当前事实执行业务；需要效果的分支先显式
+admission，前置拒绝不 claim Main，Pending 结束为 Rejected，不升权。Main 只允许一次写结算，footprint
+绑定请求、作业、owner、活跃事务；正常领域拒绝是否提交沿原边界，不能一概改回滚。新旧入口共用唯一
+物理连接账本，确认回滚重试不延长原 entry.Ordinal 窗口。成功／拒绝投影保原帧序、时钟和精确收件人，
+`ICommandProjections` 保原通知逐目标 Warning／Failed 隔离；直接 ACK 登记外抛默认保护，不因能重放而授予首成功 raw。
 
-断线 observer 的 cleanup 是唯一使用临时 `ILifecycleEffectFootprintSource` 的生产入口：明确 Lifecycle origin、当前原 chain 和空物理 SourceConnection，验证健康作业并关闭每次租约。能力经 cleanup、两塔离场奖励传到 XP，保留原清理与异常收集顺序；不把被关闭目标当作根来源连接，不给 CMD 注入面新增豁免。该适配由真正 Internal CMD 迁移时删除，来源与过渡账仍 pending。UseStackable 已采用显式效果 admission 与 MainSettlement；旧请求级 ambient 只保留其它 legacy 消费方，其最终删除责任保持。
+`ICommandWorkUnits` 的确认回滚、提交与不确定是不同完成状态，`IsSettled` 不代表提交成功；未等待的已启动
+单元须在请求关闭／scope 释放前全部收口，再一次裁决失败，提交后失败默认围栏全部精确参与者。
+具名 `WriteResultAsync` 的 `Returned` 包含正常 `RequireRollback(cause)`；只有实际 CommitAsync span 中新鲜的
+同 participant／phase／原 cause 的已知 SQLite 存储失败，在确认回滚、无 guard／sticky 且 cleanup 全完成后
+才可返回 `CommitRolledBack`。未知参与者／来源、custody／绑定／版本／facet guard、取消、typed、不确定或
+提交后错误仍默认失败，旧 Write／ReadOnly 不取得此恢复；窄 action catch 只覆盖各协议原有的动作恢复范围
+（包括已有的普通存储异常映射），带 cause 回滚确认后才映原失败 ACK，不覆盖 guard／sticky／cleanup 失败。
+Mailbox 的领域自结算恢复另见上表，不扩成通用 catch 白名单。
+`RequireRollback` 保留业务原因；独立 rollback／cleanup／后置 current 错误即使复用同一异常仍是独立发生，
+本层已签名失败的正常同栈传播则不得重复登记（[TASK-31](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-31.md)）。
 
-OtherCharacterDetail CMD 直接调用原领域查询后登记 typed 即时投影，不新增事务；请求者与目标的当前性、listener 和精确收件人仍由原查询与 composer 复查。同一 wire ID 的目标在领域执行时重新解析，不冻结前置查到的代次。
+`EffectExecutionContext.Footprint` 是必需非空的每次调用能力，Apply 不再隐式查请求；legacy frame 与新 selected
+请求各持 accumulator、共用唯一映射。受迁入口在自身写入／业务委托前校验，Apply 在 owner／Preview／逐
+Validate 的 await 后复验，消费在读容器后 Consume 前复验，Heras 在额度验证后发布 Direct 前复验；未传能力
+的下层内部 await 不宣称全保护。Quest／Mirror Prepare 在同次 Finish 用相同能力，只 Preview 不结算；
+AccountId／CharacterId／At／Session 是普通事实，合法 commit callback 在租约关闭后仍可读取。
+普通 XP 多参与者、CERA／每日复活币用明确 NonRequest，不以 Session 推 selected 或借报告者能力给其他成员。
+直接 slots／rental 的受迁入口和仍存细 handler 显式收 recorder；仅真实 LegacyFineGrained 最内层在主结算／
+事务进入后捕获旧 frame／execution／rejection，能力绑定精确 context、注册、job 与关闭租约，只检查捕获引用。
+网络来源按实际消息分 Effect／NonEffect／Unknown，只有真正执行器外分支可 Standalone；缺帧、TestGameplay
+与连接信息不补权，Protocol／Internal 调旧能力遭拒后请求保持失败。
 
-协议级 CMD 可注入领域服务／store，以及具名的 `ICommandWorkUnits`、`ICommandMessageOutbox`、`ICommandConnectionClosures`、`ICommandProjections`、Protocol 所有的 `IGameCommandOutbox`、既有顺序／槽位映射能力和日志；旧 sender／closer、总线、队列、执行器和动态服务解析仍禁止。新消息 handler 的构造器只允许总线和日志，注册闭合检查绑定消息 CLR 类型、handler 与协议 CMD。
+仅三个具名即时登记出口保留原 raw 编码失败：UseStackable Main Settled 后 `RequiredExplicit`、committed replay
+普通 Write 后 `CurrentStateBatch`、CollectionBox 首成功 Main 后 `SettledInitialBatch`。本次精确物理目标的 opaque
+attempt 必须贯通 actual encoder，最终仅单一原 cause、无 typed 不确定性或独立 cleanup 错误才保持 Committed
+且不新增 participant fence；callback、业务、lookup、登记守卫及其它来源仍默认保护，源连接按发件箱原序关闭。
+重放 reader 显式带 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus；
+`LegacyReplayStateProjectionDelivery` 仍服务旧 ledger／Joust，ReadReplayStateCommand 与旧 ambient 尚未删除，
+事务内延迟 Compose 禁止生产调用。断线 cleanup 是唯一临时 `ILifecycleEffectFootprintSource` 生产入口：Lifecycle
+origin、原 chain、空物理 SourceConnection，健康 job 与每次关闭租约；经 cleanup／两塔奖励传到 XP，保原异常
+收集顺序，不拿被关闭目标冒充根来源，不给 CMD 注入新增豁免，真正 Internal 迁移时删除，来源／过渡账仍 pending。
 
-`ICommandWorkUnits` 的普通写、只读和正常拒绝回滚复用现有领域事务；明确的完成状态区分确认回滚、已提交与不确定，`IsSettled` 不代表提交成功。已启动而未等待的单元必须在请求关闭及 scope 释放前全部收口，随后一次裁决失败；默认提交后失败按全部精确参与者围栏。UseStackable 的 selected 请求在原主事务内完成判断，普通拒绝也提交最低 Inventory 投影；无 selected 请求只发原 Silent ACK，不取得 Main。Main 只允许一次写结算，显式 footprint 绑定本次请求、作业、owner 与活跃事务。新旧入口共用唯一物理连接账本，确认回滚重试不延长原 entry.Ordinal 窗口。 四 opening、Quality／RandomOption、Socket、AvatarCompound 和 Warehouse 已使用具名 `WriteResultAsync`：`Returned` 包含正常 RequireRollback；仅实际 CommitAsync span 的新鲜、同 participant／phase／原 cause 的已知 SQLite 存储失败，在确认回滚、无 guard／sticky 且全部 cleanup 完成后返回 `CommitRolledBack`。未知参与者／来源、custody／绑定／版本／facet guard、取消、typed、不确定或已提交后的错误仍走默认失败；旧 Write／ReadOnly 不取得此恢复。`RequireRollback(cause)` 保留本次业务原因，独立 rollback／cleanup／后置 current 错误即使复用同一异常对象也保留两次发生。
+**仍在消费的旧细命令机制。** 以下契约／管线只描述 legacy，不授权新协议沿用：
 
-BuyItem 的普通 `BuyItemRequest` 与 `HousingBuyItemRequest` 是同一 logical、唯一 `GameBuyItemCommand` 的有限精确 CLR 家族；启动时双向闭合，dispatcher 与总线都拒绝未知派生。普通购买的 ordinary Write 显式声明 NonRequest footprint，只授予本次 ProtocolNonEffect 的唯一精确 actor，action 结束／prepare 前关闭；Housing 使用本次 selected Main，couple audience 不扩大事务参与者。两旧 Buy fine 已删除。具名购买拒绝在 action 内 RequireRollback，确认回滚后才发拒绝 ACK；成功投影经 `ICommandProjections` 保留 NotificationBus 的逐目标 Failed 隔离。普通拒绝 ACK 直接登记的外抛故障仍用默认保护，新 Buy 只声明既有 committed replay 出口，没有初购 raw 许可。
+- `ICommand<TResult>` 以 CLR 为身份；`ISelectedSessionCommand` 携精确会话（null 为可信离线工作），
+  `IRequestSettlementCommand` 标唯一主结算，`IMultiSelectedSessionCommand` 带参与者集合，
+  `IAccountCommand` 只校验所属账号；Kind = Direct／Transactional／Workflow／ReadOnly，无访问方式或租约。
+- `SendAsync` 作业内新 scope 内联执行，作业外包装 `bus:<类型名>` 入队等待（过渡入口，新玩法不要依赖）；
+  legacy handler 可顺序派多条，每条 Transactional 各一事务，跨阶段补偿仍由 handler 派专用命令。
+  **所有命令处理器禁止嵌套或间接 dispatch**，共享业务放领域服务；玩法串行由执行器保证。
+- 管线从外到内：Logging（0）→ SelectedSessionExecution（45，主结算、账号／参与者／接收者当前性与选中作用域）
+  → SelectedSessionSettlement（58，复查授权／接收者及 Settled／Failed）→ UnitOfWork（60）→ Policy（100）。
+  45／58 按标记接口工作，结果不确定分别围栏参与者／接收者；UoW 的 Order 严格在 58 与 100 间，
+  Transactional 正常提交、RequireRollback 正常拒绝先回滚再返回、异常回滚，ReadOnly 开只读事务；
+  Direct／Workflow 无总线回滚，未知 Kind 抛异常，Policy 复查授权。
+- 旧路线凡持久写须 Transactional，例如 SelectCharacter 的 Prepare／DailyRefill／Quests／Pet 与
+  GrantTutorialReward；已迁的 LOGIN／创建／删除／MoveItemSpace 等不再列作旧 fine。Workflow 仍是
+  Publish／PvpReady／Compensate／CompleteReturnToSelection；Compensate 逐项收集失败，不能整段事务撤销
+  已成功补偿，离场位置无环境事务时由 `SelectedSessionPositionPersistence.PersistAsync` 自开边界。
+  机制在 Application，具体注册在 ProtocolModule／ApplicationModule；旧命令表无枚举启动完备性检查，
+  未知命令 dispatch 才失败，区别于新协议路由闭合检查。
 
-Reinforce、Disjoint（NPC／Portable）与 EnchantByBead 已分别迁为唯一协议 CMD，四个旧 fine 删除；只在原领域调用分支进入一次 Main，原前置拒绝不 claim Main、Pending 结束为 Rejected，域内正常拒绝仍提交最低 Inventory。三领域沿原显式 footprint／Preview／ApplyEffects；通知保原各自帧序，经 `ICommandProjections` 复用逐目标 Failed 隔离。直接拒绝 ACK 外抛仍默认保护，三协议只声明既有 committed replay 出口，没有首购 raw 许可。
-
-MagicSeal（unseal／change）、Forging、Outworld（purify／invest含twist）的五logical已各由所属三个whole CMD接管，三个旧fine删除；前置拒绝不Main、domain正常拒绝仍MainCommitted。unseal拒绝保持静默，change才发拒绝ACK；Forging失败roll有receipt且提交材料消耗，Outworld action2仍早拒绝不事务。各原通知顺序及Failed隔离保持，直接拒绝ACK仍默认保护，只复用既有committed replay许可。
-
-四 opening 的旧 Transactional fine 已删除，每个 logical／精确请求形状归所属 whole。仅原有效 domain 分支 claim 一次 Main，前置 InvalidRequest／NoSession 不 Main、初始 Rejected 不升权；原领域拒绝经窄 action catch、带 cause 回滚完成后才映原失败 ACK。成功 ACK／Avatar popup 及绝对库存顺序、通知逐目标 Failed 隔离保持，仅复用既有 committed replay 许可；Freeze 后的确认回滚可保留 projection，重试仍同 entry 与原 Ordinal。
-
-CollectionBox 的四 wire 共用精确 CollectionBoxRequest 与唯一 GameCollectionBoxCommand，旧 fine 已删除。原一次 Main 内保 mandatory footprint、领域调用及实际库存变化槽位记录，具名拒绝带 cause 回滚后登记，普通 SQL 仍外抛；Main 后逐条 clock 组库存、完整 boxes／selected 重复及 ACK，一次登记原精确物理目标。拒绝 batch 无初次成功许可。
-
-InventorySort 的排序、锁定、解锁由两个完整 NonEffect CMD 接管，旧两个 fine 已删除。各保原一个 ordinary Write 与空选中会话参与者集合，原 world／online／cargo 正常拒绝仍在事务内；Sort 后两库存 Load 与 clock 保同事务，包含旧装备归一写入。成功仍复用原单接收人 prepared batch 投影与 Warning＋Failed 隔离；同序号继续执行业务，无 Main、足迹、账本或 raw 许可。
-
-SellItem 由完整 NonEffect CMD 接管，旧 fine 已删除。原一个 ordinary Write 保空选中参与者、clock 和领域调用的位置；正常领域拒绝仍提交，仅原 ItemSaleRejected 异常路带 cause 回滚完成后才映失败 ACK。成功继续单 ACK 的原投影与 Warning＋Failed 隔离；同序号重新执行业务，无 Main、足迹、账本或 raw 许可。
-
-DeleteItem 的丢弃、技能材料与效果材料由一个完整 NonEffect CMD 接管，旧三个 fine 已删除。各有效分支保原一次 ordinary Write 和空选中参与者；丢弃的 clock、任务物品重算及材料扣款、MaterialConsumed 仍在原事务内，材料投影时间仍在事务外取 UTC。正常领域拒绝继续提交，异常回滚外抛；原 ACK → 库存／共享资源 → 任务变化的单批投影及 Warning＋Failed 隔离保持，同序号按当前资产重新执行，无 Main、足迹、账本或 raw 许可。
-
-RepairItem 的普通与具名自动修理由一个完整 NonEffect CMD 接管，旧 fine 已删除。有效修理分支保一次 ordinary Write 和空选中参与者；自动修理次数的 Direct 事实、额度写入与装备耐久仍同事务，正常拒绝继续提交，SQL／提交异常仍回滚外抛。成功后 clock 再准备原 ACK → 可选 Premium 状态的单批投影，保 Warning＋Failed 隔离；同序号按当前损坏与额度重新判断，无 Main、足迹、账本或 raw 许可。
-
-CrystalContract 选择由完整 NonEffect CMD 接管，旧 fine 已删除；mode 是 UI 来源标记。原一次 ordinary Write 保空选中参与者，正常拒绝仍提交，选择只保存当前角色两列；保存完成后按原序记录日志、复核 world 当前性，再投影 ACK → CubeProgression 单批消息或原失败 ACK。通知保持 Warning＋Failed 隔离，同序号继续按当前事实保存，无 Main、足迹、账本或 raw 许可。
-
-MoveItemSpace 的移动算法归 `IInventoryMoveDomainService`，协议 whole 保原一次 ordinary Write 和空选中参与者；正常拒绝继续提交。事务后按原位置读取仓库／外观／Housing，原两条降级 catch 保已追加帧，Housing 失败时已准备的外观仍保留；最后一次 explicit 登记 ACK 与投影。同序号继续原业务身份重述判定，无 Main、足迹、账本或 raw 许可。
-
-仅三个具名即时登记出口保留原 raw 编码失败：UseStackable Main 已 Settled 后的 RequiredExplicit，committed replay 的普通 Write 结束后的 CurrentStateBatch，以及 CollectionBox 首次成功 Main 完成后的 SettledInitialBatch。许可须经本次精确物理目标的 opaque attempt 贯通至 actual encoder；只有最终单一原 cause、没有 typed 不确定性或独立 cleanup 错误，才保持 Committed 且不新增 participant fence。callback、业务、lookup、登记守卫及其它来源仍用默认保护；来源连接关闭仍由原作业发件箱排序完成。重放 reader 必需显式 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus。`LegacyReplayStateProjectionDelivery` 只服务仍在迁移的旧 ledger／Joust 路线，相关 ReadReplayStateCommand 和旧 ambient 仍 pending；事务内延迟 Compose 仍禁止生产调用。
-
-- 契约（`CommandContracts.cs`）：`ICommand<TResult>`（CLR 类型即身份）；
-  `ISelectedSessionCommand` 带它所属的精确选中会话（null 表示可信的离线工作），
-  `IRequestSettlementCommand` 标出一次效果网络请求唯一的主结算，
-  `IMultiSelectedSessionCommand` 再带参与者集合（逐个复查当前性、结果不确定时逐个封锁），
-  `IAccountCommand` 带账号 id（今天只用于检查它与所属会话的账号一致）；
-  `CommandExecutionKind` = Direct / Transactional / Workflow / ReadOnly。命令没有访问方式，也不取租约。
-- `CommandBus.SendAsync` 在作业里调用时内联执行：开新 DI scope → 查 `CommandHandlerRegistry` →
-  按 `Order` 排序管线行为、从外到内包装 → 执行；在执行器外调用时，把命令包成 `bus:<命令类型名>` 作业入队并等待。
-  这是过渡形态：新代码不要在执行器外调用总线来完成玩法动作。
-  协议 handler 可以按顺序调用多次 `SendAsync`；**命令处理器禁止嵌套
-  dispatch**，不得在 `ICommandHandler` 内递归或间接调用 `ICommandBus`。
-  共享业务逻辑抽成应用服务，由命令处理器直接调用。
-- 管线（`Pipeline/`，Order 从小到大为外到内）。这五层今天包在每一条细粒度命令外，
-  45 与 58 按命令类型上的标记接口（`ISelectedSessionCommand`、`IRequestSettlementCommand`、
-  `IMultiSelectedSessionCommand`、`IAccountCommand`）决定做什么；
-  这个粒度与这几个标记接口是过渡形态，新代码不要依赖「一条命令一套管线」：
-  1. `CommandLoggingBehavior`（0）：计时 + 成功/失败日志
-  2. `SelectedSessionExecutionBehavior`（45）：开启本请求的主结算（效果账本）、检查命令账号与会话一致、
-     参与者集合须含报告会话、逐个复查接收者与参与者的当前性、设置选中会话作用域；事务结果不确定时逐个封锁参与者
-  3. `SelectedSessionSettlementBehavior`（58）：复查授权与接收者，记主结算 Settled/Failed；结果不确定时封锁接收者
-  4. `UnitOfWorkBehavior`（60）：Transactional 命令在此开领域事务，命令正常返回
-     后提交；显式标记 `RequireRollback()` 的正常拒绝结果也先回滚再返回，其他失败出路回滚；
-     ReadOnly 命令在此开只读事务；其余执行方式原样放行。**Order 必须落在 58 与 100 之间**：
-     读结果的结算包住事务，事务又整个包住 handler
-  5. `CommandExecutionPolicyBehavior`（100）：复查授权，Direct/ReadOnly/Workflow/Transactional 均放行；
-     未知执行方式抛异常
-- 玩法路径上没有门与租约：命令之间的串行由执行器保证。
-- 错误语义：异常直接上抛。Direct/Workflow **总线级无回滚**；Transactional 由
-  `UnitOfWorkBehavior` 回滚本次登记的全部参与者，但只回滚参与者，不回滚
-  参与者之外的副作用。跨阶段补偿仍由协议 handler 派发专用补偿命令，
-  命令 handler 只执行单一领域动作。
-- handler 今天在入站作业内经总线顺序派发多条细粒度命令，每条 Transactional 命令各是一个事务。
-  这是过渡形态：新代码不要假设一个入站请求只有一个事务；跨命令的补偿仍由 handler 派发专用补偿命令。
-- 领域事务（`Abstractions/Transactions/`、`Application/Transactions/`）：参与者声明
-  `CommitCanFail`；提交分三段——全体 `PrepareAsync` → 唯一可失败者 `CommitAsync`
-  → 其余 `CommitAsync`。**一次事务只收一个 `CommitCanFail` 参与者**，第二个在
-  `Enlist` 时抛；这是「不做两阶段提交」的代价与前提。登记按 identity 去重，
-  而 SQLite 侧的 identity 是**连接字符串**，即**一个数据库一个参与者**——物品、
-  人物、任务与暗骑连招页是同一个参与者的**四**个面（`ISqliteStoreFacet`），不是四个参与者。
-  这是被上一条逼出来的：若各自入伙，第二个可失败参与者会被拒，一次用例就永远无法同时改物品与
-  人物。同一数据库在一次用例里因此只参与一次，其读能看见自己未提交的写。
-  环境事务经 `IDomainTransactionAccessor` 暴露（`AsyncLocal`），因为存储是单例、
-  容器按角色持有，两者都拿不到注入。
-- 载体协议（`Abstractions/Transactions/DomainStores.cs`）：`IDomainStore<TSession>`
-  给出载体身份、是否持久、以事务换取会话；`IDomainStoreSession<TPlace,TKey,TValue>` 是
-  「按位置读、按位置写、按位置清空」的共享词汇。今天有**四**个 session：
-  `IItemDomainStoreSession` 与 `IDarkKnightComboDomainStoreSession` 直接就是它的具名实例
-  （后者是 `IDomainStoreSession<OwnedCharacterId, byte, DarkKnightComboEntryState>`，一张按页号
-  寻址的齐次表）；`ICharacterDomainStoreSession` 与 `IQuestDomainStoreSession` 不是——人物和任务都不像
-  容器那样是一张齐次的表，所以各是若干具名分区的组合：人物那边 `Creatures` 是钉死类型参数的
-  `IDomainStoreSession`，一角色一行的位置分区另给三个成员；任务那边 `Carried`、`Cleared`、
-  `Tracked` 三个分区都是。两种形状共享同一套词汇，
-  类型一个不丢。业务代码经
-  `AmbientStoreAccess` 触达：边界内用环境事务，边界外读放行、持久写拒绝、易失写
-  自开一次性边界并当场落定。
-- 注册（`ProtocolModule.cs`，与协议接线同处）：旧细命令路线中，**凡能触达持久写的命令一律
-  `Transactional`**——只有它会让 `UnitOfWorkBehavior` 开领域事务，没有那个事务，
-  持久化就没有边界可加入，写会各自落定且无人能收回。据此（旧细命令路线）：SelectCharacter 的 Prepare、DailyRefill、
-  Quests、Pet，加上 MoveItemSpace、GrantTutorialReward，均为
-  **Transactional**。LOGIN 已 opt-in 同总线的 `GameLoginCommand` Protocol 路线，
-  仅认证兑换段用普通 `ICommandWorkUnits.WriteAsync` 开显式事务；创建与删除各保留一个普通写段。创建提交后先登记 ACK，再读取带外观名册并登记刷新；删除只登记 ACK。空 selected-session 列表不表示没有 SQLite 或内存参与者，不把整协议包成事务。
-  Workflow 只有四条：只动内存注册表的 Publish、PvpReady，以及执行拆除清理的
-  **Compensate** 与 CompleteReturnToSelection。Compensate 是刻意的——补偿逐个收集失败并继续，
-  最后把收集到的抛出，边界会把此前每一处成功一并撤销，正是它的反面。拆除清理唯一的持久写
-  （离场位置）经 `SelectedSessionPositionPersistence.PersistAsync`：没有环境事务时自开一次性边界当场落定。
-  名册与查名协议 CMD 沿原 Direct 读取，不新增事务；Channel 的 ScriptVersion、Script、Info = Direct；
-  ReadOnly 由 `UnitOfWorkBehavior` 开只读事务（`Server/src` 中 9 条注册）。
-  机制在 Application（`AddCommandDispatching()`）；具体命令多数在切片里、由 `ProtocolModule` 注册，
-  Application 自己的命令由 `ApplicationModule` 注册（该文件中 `AddCommandHandler<` 36 处）。
-- 命令注册表**没有**启动完备性检查（未知命令 dispatch 时才报错）——与消息
-  注册表相反。
-
-Quality（wax reseal／quality reroll）与 RandomOption（magic-seal grade）已各由唯一 whole 接管，两旧 fine 删除；沿原 domain 无 footprint 参数，最低 Inventory Main 足够。只有 reseal 返回 null 才回落 quality，原 ushort option 完整传入领域；正常领域拒绝仍 MainCommitted，真实 action 异常确认回滚或已证 CommitRolledBack 后才发原 0x13 ACK。原两种成功帧序与通知 Failed 隔离不变，直接 ACK 外抛仍默认保护，仅复用既有 committed replay 许可。
-
-Socket 四 logical 共用唯一 GameItemSocketCommand，原 ItemSocketCommand fine 删除。原领域分支 Main 传活跃 unit.Footprint，保所有原 DemandActive 及 target／验证物料槽足迹；正常领域拒绝仍 MainCommitted。共享 pile 按组消费、AvatarDefaults 零消耗仍验证 pile，原 ACK→materials→target 的 current 读取顺序保持；真实 action／已证 Commit 确认回滚后才发原 04，直接 ACK 故障仍默认保护，仅既有 committed replay 许可。
-
-AvatarCompound 已由唯一 GameAvatarCompoundCommand 接管，旧 fine 删除；原有效领域分支用活跃 unit.Footprint 进入 Main，正常领域拒绝仍提交 Inventory | AvatarCompound 最低投影。保先创建独立新 UID 输出、后消费两输入和材料的事务顺序；首成功仅原 89／131B ACK，重放只先 26B UI Recovery 再当前库存，不重复扣减／授予。真实 action／已证 Commit 确认回滚后才发原 17，通知 Failed 隔离与直接 ACK 默认保护保持，仅既有 committed replay 许可。
-
-Warehouse 六 logical 共用唯一 GameWarehouseCommand，旧 WarehouseCommand fine 已删除；唯一 Main 保留最低 Inventory 投影，不新增足迹能力或额外事务边界。首成功仍使用原事务内 SnapshotAsync／ApplyDecidedWrites 的 receipt：ACK→Main→Account／Personal，01AF 只有 Main NOTI，所有结果均无 ACK；重放读取当前库存。真实 action／已证 Commit 确认回滚后才映原错误，具名 mapping／InventoryExpansionException 保原拒绝分类，直接 ACK 默认保护与 NotiBus Failed 隔离保持，仅既有 committed replay 许可。
+**两条路线共用的领域事务／载体。** 参与者按 identity 去重，全部 Prepare → 唯一可失败者 Commit → 其余
+Commit；一次事务只允许一个 `CommitCanFail`，第二个 Enlist 即拒，回滚只涵盖已登记参与者。SQLite identity
+是连接字符串，一个数据库一个参与者，物品／人物／任务／暗骑页是同一个参与者的四个 `ISqliteStoreFacet`，
+可读本次未提交写。`IDomainTransactionAccessor` 用 AsyncLocal 暴露事务，不能用它取得当前请求。
+`IDomainStore<TSession>` 给出载体身份、持久性与事务会话；`IDomainStoreSession<TPlace,TKey,TValue>` 共享
+按位置读／写／清空的类型词汇：Item 与 DarkKnightCombo 是具名齐次 session；Character 的 Creatures 与其余
+具名分区、Quest 的 Carried／Cleared／Tracked 分区组合成各自 session。`AmbientStoreAccess` 边界内用环境事务，
+边界外读放行、持久写拒绝、易失写自开一次性边界；实例／快照不因共享词汇丢失类型。
 
 ### 3) Socket 层：handler 驱动领域命令
 
