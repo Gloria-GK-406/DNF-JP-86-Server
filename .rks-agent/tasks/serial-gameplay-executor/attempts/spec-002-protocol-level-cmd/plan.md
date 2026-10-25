@@ -10,6 +10,8 @@ state: ready
 
 ## Planning Choice
 
+本 Plan 当前为 **P11 ready R1**，承接已获唯一 Astra approved 并由主控消费的 **Spec B9 ready R1**（`reviews/spec-b9-review.md`、TASK-57 Controller Consumption）。P11 只补两塔内部来源迁移需要的共享 HOW：TrustedInternal 的显式 owner 声明、BodyOnly 取消发生证明、累计物理连接的引用去重，以及整轮 producer 排空。两条 T-010 来源因真实依赖随 T-008 的五条旧命令迁入 TASK-57，其余路线不变。下文 P11 是本轮权威增量；P10 及更早说明保留为历史。P11 尚待同一 Astra 方法审查、主控消费与 metadata 检查点，产品仍关闭，无挑战。
+
 本 Plan 当前为 **P10 ready R1**，承接待有界独立审查的 **Spec B8 ready R1**。TASK-48须一起消除五个结算／翻牌消息、两条旧fine与card-delay实际消费者；只有保留原固定调度／取消位置并将到期业务变为typed内部CMD，才能同时满足薄handler、无CMD嵌套和旧计时语义。新增能力仅`IDungeonCardPresentationControl`，同原生产者对象；T-010的card-delay因真实依赖提前迁入本Task，其余来源与功能簇次序不变。唯一TASK-48 Astra先审B8、通过后审P10，再审最终Result；主控消费并形成规划检查点前，执行者仅可阅读及补跑旧实现的正式测试，不实施能力／产品增量，无挑战。
 
 以下P9及更早段落保留为已接受规划的历史说明；TASK-45已消费B7／P9并完成，见其Task及独立评审。
@@ -400,3 +402,34 @@ R1独立审查指出Spec RQ-009未包含纯唤醒类别，主控接受；本R2�
 **F-86与核验。** 先用实际单执行器／真实reservation与transaction路径核三次重试的冲突来源，现有fake bus首轮返回AlreadyFlipped不作业务依据；无可发生的中间状态推进则按已批准T-007决定删除循环，记录证据，不增跨作业重试。若发现真实业务来源，回主控裁定，不自行改调度或中心机制。正式旧新测试需覆盖结果提交／scope失败后claim与资产重试、即时encoder、付款／奖励／邮件回滚与一次性、手动与timer竞争、FIFO／根链／取消／drain、同实例及精确注入正反例。whole默认生命周期的有意可见差异追加VC表随Result评审，不扩raw／Self。冻结后Release solution build与八项目fresh full，原并行、5m、detailed／独立DFO和逐display／status／重数比较；仅本八行闭合，T-007／T-010整体不提前关闭。
 
 本P10仅为跨T-007／T-010的具名HOW，须同Task唯一独立Astra在B8批准后审查，主控消费及metadata-only检查点后实施；没有新通过主张。
+
+
+### P11（2026-10-26）：两塔内部逐项 CMD 与精确失败边界
+
+**前置与范围。** B9 已批准；本节落实 RQ-002／004～009／014 与 VC-B37～39，不重审 A、不改根／子契约或中心方案。旧准备最终 App 289／Protocol 43 全绿，合法内部回城两项及累计 physical 漏保护一项有正式 RED。旧授权 sweep 算法与真实 timer 缺陷的证据不能混用。Task 的具体搬迁、用例及结果归 TASK-57；本节拥有跨簇机制约定，不增加 raw、Self、Main、恢复名单或 legacy 回落。
+
+**内部 CMD 与唯一状态所有者。** 每塔新增四种 Direct／Internal 命令：捕获待投影离场身份、领取并投影单个离场、捕获到期 run、处理单个完整 run。均无协议消息绑定、RegistrationExits 为空、SelfSettlement=None。原队列实现 Abstractions 的窄 `IBossTowerDepartureProjectionDomainService`／`IIllusionTowerDepartureProjectionDomainService`，具体类、接口与 sink alias 同一状态所有者，不另建转发服务或队列。原 ConcurrentQueue 元素变成不透明唯一 EntryId 与原 action 的配对；每次 Enqueue 产生新身份。`SnapshotPending()` 只返回不可变身份数组，`TryClaim(expected, out action)` 只允许当前队首精确匹配时取出，头不匹配不得跳过。复合 peek／dequeue 在唯一执行器内完成，Enqueue／claim 保原写判据；世界快照也只在 CMD 里读取。
+
+生产者只按值顺序提交并等待：离场快照→逐 entry CMD→到期扫描→逐 run CMD。到期扫描处理完本轮捕获的离场后才读原 TimeProvider，返回不可变 CapturedAt 与原精确 run context；不把服务、Func、可变世界对象或预读资产放输入。run CMD 重读当前事实，核 RunId／RoomVersion／原到期条件与成员当前性，再冻结本项 expected／Members；同 run 的原 dead-first、成员顺序、各成员独立事务和回城投影仍在一个 CMD 内。单项不再调用旧 bus；不得在 sticky 后继续下一 member。真实共享阶段归既有两塔实质算法，旧 Delivery／Coordinator 的 bus 编排与五 fine 在最后消费者迁完时清零，不能以静态 Stale helper 为由留下空业务壳。
+
+**显式链、失败与 producer 生命周期。** 每轮的离场扫描为一个 Timer 新根；逐离场与到期扫描为该根的子；逐 run 为到期扫描的子。构造子链前对实际父 label 调 `ForCommand`，深度分别 0／1／2，不读 ambient 或继承玩家链。每个 origin 明确 Timer、BodyOnly、SourceConnection=null；所有步骤以 None 入队，body 使用原 producer token，不增加提前取消检查。已执行单项失败由执行器记一条带链 Error，producer 用 EndedAJob 辨认后记不含异常的 Warning并继续后项；扫描失败结束本轮，hosted 可按原规则等待下一 tick。拒绝入队及纯 producer 取消继续向外传播，不能被视作已执行项失败。领取前失败不丢 entry，领取后原投影失败消费 entry；新 arrival 延后、手工轮次重叠不重投及正常 FIFO 插入按 B9 验收。
+
+500ms hosted 周期保留；同源 busy 标志覆盖整轮并在 finally 释放，手工 Tick 不合并。两来源实现既有 `IGameplayProducerDrain`：首次 await 前登记轮次，Drain 关闭新轮次入口并等待已接受的手工／hosted 轮次完成，不能只等当前一条子 CMD。登记与 Drain 的短生命周期同步只保护 producer 状态，不构成玩法锁，也不取消未被取消的手工 token。复用 `GameplayExecutorLifetime.StoppedAsync` 已有的先 drain 后 stop 次序，不改全局生命周期。concrete source、IHostedService、drain 必须同 singleton。不得新增收任意 Func／GameplayWork 的 coalescing API，或把 typed bus 再包回 raw timer job。
+
+**受信任来源的 owner 声明。** ordinary Write runner 与 `ExplicitDeclaredNonRequestFootprint` 明确只接受 ProtocolNonEffect 或真正 TrustedInternal；能力内部可保存基类引用，但构造与 runner 都核此封闭集合。继续要求 ordinary、writable、recoverCommit=false、非空唯一的完整 owner 集合；NonRequest 单 protocol actor 不变，Main／ReadOnly／WriteResult／Self、effect selected/rejected、缺请求和未知形状不获许可。每次能力调用核当前 request／job／健康／未关闭、action 活跃、原 writable transaction 未结束，以及 owner 账号／角色／完整 session 与冻结集合相符；action finally 关闭能力，不动态增加 owner，不查在线状态推断权限。
+
+owner 集合独立于失败保护。Leave 使用原冻结成员事实声明 owner；Boss 每段保原 frozen sessions，只为本段 reporter 捕获原实际 physical和显式 metadata 精度，不预先为每个队员补 physical。Start 保原保护声明；Illusion 保空 selected。来源 physical 为空不能推导 Boss reporter 为空。已提交各段声明的累计保护差异按 VC-B39 核验。
+
+**BodyOnly 的发生证明。** 仅真实 TrustedInternal／BodyOnly 请求由 bus 建立内部 `ProducerCancellationObservation`，绑定 request、当前 job、原 producer token；不新增 public CMD 能力、AsyncLocal 或 job-slot 请求。记录 Empty→ActionObserved→Qualified→Finalized→Marshalled 与不可逆 Invalid，以及 AnyRunnerAttempted。实际 Write／ReadOnly／WriteResult／Self 入口先记录尝试；本轮只有 ordinary Write 的真实 Action await 窄 catch 可以签发工作单元候选。候选要求 action 前健康、真实 OCE、原 producer token 已取消且该 runner 使用本次 token；不新增 OCE.CancellationToken 与 producer token 相等条件。只有 Abort 健康 ConfirmedRollback、无 guard／typed／rollback错误、unit 已关且实际 lease Dispose 完成后才 Qualified，不能在初次 catch 里提前签发。
+
+另一候选只来自已完成 handler DI resolve 后的 invoker body await 窄 catch：该 request 从未尝试 runner、此前无 Failure，且原 token 已取消。scope 建立、DI、请求初始化、DemandFinished 和外层 Invoke catch 都不能冒 body 来源。ReadOnly／WriteResult／Self 的失败不得借此无单元分支漏获资格；它们的现有取消行为不改，若后续真实来源需要新增许可另作主控裁定。
+
+候选必须以实际调用 occurrence 绑定现有失败记录，而不是只比较异常引用或失败数量。unit→body→drain 的正常传播是同一次；任何独立 unit／lease／scope 清理、guard／sticky、未 await操作、typed／aggregate／未知来源都撤销资格，即使独立清理复用同一个 cause。request.Failure 不清除，也不允许已取消 body 继续 Write 或登记。完整 drain→Close request→真实 scope Dispose→DemandHealthy→FailAsync 后，只有最后仍为该单独已签发发生、清理完整、无额外失败且无已提交后 typed 包装，才能 Finalized。主控要求机制实现集中于已有 bus／request／runner 接缝，不靠异常栈文字判断来源。
+
+bus 私有完成桥仅处理 typed command／已校验 origin。ExplicitAsync 完整收口后，队列 body 可暂存 Finalized 取消的 EDI 并返回内部占位值；调用方先 await queue completion，再向 producer 重抛同一 cause，占位值不能对外返回。没有该事实一律按原失败出队。拒绝入队不经过搬运，scope-only／lease-only OCE、body加独立同 cause cleanup、producer未取消、已Commit后OCE均保原 Error／EndedAJob／typed保护。纯取消的原无 Error口径不以清 sticky 或业务恢复实现。
+
+**累计 physical 去重。** `FailAsync` 只修已声明参与者枚举，不补查 online、不增加 capture。先求本请求曾声明真实 Connection 的 exact session 集合，再按原顺序保留每个 `(exact Session, Connection引用)` 的首次声明；同 pair 保首次 metadata。某 session 从未声明真实 physical 时才保第一个 null；早期 null 不遮后续 physical，也不多造一次 null关闭。不同引用即使 NetworkConnectionContext record 值相等，也不能折叠；使用引用 comparer。实际 Fence／DiscardExact／RequestCloseExact 仍走 SelectedSessionSafety，不能将别的 run、未声明目标或同 ID 替换连接推入集合。raw三个出口和已有默认保因规则不变。
+
+**实施与验证。** 门后恢复正式 RED 并迁移旧强例；pipeline 测试 observer 改为真实显式工作单元／领域观察，不留旧 fine 给测试。受控同事务 AddGold marker、真实 DI scope和实际 encoder 与自然生产证据分开。必须覆盖：真实内部回城新绿、持续首项故障后项完成、领取前拒绝／取消不丢、并行手工轮次、晚到 entry、时钟与 run/version/成员冻结、原报文顺序与两塔取消位置、整轮合并／排空、精确父链，以及两段累计 physical正式 RED转GREEN和同值不同引用／替换／跨run反例。取消机制直接核 Error、EndedAJob、cause引用、request/lease/scope完整结束与队列排空；能力各来源、owner、action、事务、request、foreign job／leak与catch guard后继续均有拒绝反例。P8、card-delay及现有 raw／Main／WriteResult／Self 强例保留。
+
+冻结后主控独占完成最终旧源码回放与finally恢复验证，再由执行者 fresh Release solution --no-incremental 零警告错误及八项目严格串行 full，原类并行、5m、detailed、独立DFO和自然结束/真实child exit不改。逐display／outcome／重数核对原两条Dimension失败、18 skip与新增删改；原DFO parser/controls、runtime真实注册与同实例、五fine清零、七行ledger及strict八坏例、untracked whitespace全部收口。纯旧测试准备与产品语义改动分提交；不能分离的结构/缺陷修正在Result说明，不虚称纯搬迁。本节无新实现通过主张；同TASK-57唯一Astra审P11、主控消费及metadata检查点后才实施，最终仍由同一Astra审Result。

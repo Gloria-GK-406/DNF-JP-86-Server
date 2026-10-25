@@ -97,3 +97,9 @@ Plan P8 ready R1 的独立审核 `reviews/task-39-plan-review.md` 已 approved�
 ### TASK-48规划门消费 R1
 
 唯一独立`reviews/task-48-plan-review.md` R1先批准B8 ready R1，再批准P10 ready R1／Task48 revision1；主控已完整读取并接受，消费记录在Task48。当前受影响spec-review／plan-review均指向该文件各自结论，历史门保留效力。metadata-only检查点后放行产品／判据实施，最终Task结果尚未验收；不关闭其它来源、功能簇或外部收尾门。
+
+## TASK-57：B9／P11 规划门消费（2026-10-26）
+
+同一唯一 Astra 已分别在 `reviews/spec-b9-review.md` 与 `reviews/task-57-plan-review.md` 批准 B9 ready R1、P11 ready R1；主控已全文消费，记录在 TASK-57。当前受影响 spec-review／plan-review 指向这两份文件，旧门保留历史效力，无挑战。两塔来源分解依据根 Goal 的经审查有意变化出口、SC-8B 例外和本次独立核定，不借 F-07 自动授权；根／子／中心方案、单执行器与禁止 CMD 嵌套不变。
+
+本次补显式内部 owner、纯取消的真实发生证明、累计已声明 physical 的引用去重和整轮 producer 排空；B9 明列调度／失败边界与旧缺陷修正。metadata-only 检查点后才放行产品，最终七行迁移、八项目全量与 Task Result 尚待完成。其余功能簇与来源不提前闭合，外部 Astra 与用户分支收尾门保持。

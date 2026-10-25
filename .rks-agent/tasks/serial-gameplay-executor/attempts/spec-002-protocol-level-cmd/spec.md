@@ -32,7 +32,7 @@ F-130 与 F-127 按既有约定进入 B 首个单元。F-88/F-93 的守护证据
 | ID | Requirement |
 |---|---|
 | RQ-001 | 对全部**已注册**非遥测入站消息，`ClientMessageType → 协议 CMD 类型` 是单值全映射；一 CMD 可处理多个消息号。未注册的枚举成员不要求补接线，未注册帧的静默丢弃语义不变。网络 handler 只交付解包消息及精确连接身份、入队、等待；不得注入领域服务、登记能力、发送器、门或关闭器。纯遥测例外沿用 A 的14消息/2 handler，只注入日志且不改状态、不写库、不发包。 |
-| RQ-002 | 生命周期、定时/延时、事件消费/重试、GM/HTTP 和启动等非协议来源采用同样的 CMD 执行形状，以自己的显式输入进入唯一执行器；不由外部生产者直接改世界或登记出站。保留来源合并、FIFO、链继承、深度上限、停机排空及入队拒绝语义；事件的 Direct 订阅仍在调用方 CMD 内执行。 |
+| RQ-002 | 生命周期、定时/延时、事件消费/重试、GM/HTTP 和启动等非协议来源采用同样的 CMD 执行形状，以自己的显式输入进入唯一执行器；不由外部生产者直接改世界或登记出站。保留来源合并、FIFO、链继承、深度上限、停机排空及入队拒绝语义；事件的 Direct 订阅仍在调用方 CMD 内执行。 两塔返回来源仅按下文 B9 专节，将一轮批处理分成扫描和逐离场／逐副本 CMD；明确允许项间请求交错、分项发件箱交付及新增离场延后，不将该许可扩到其他来源。 |
 | RQ-003 | 协议 CMD 吸收原 handler、Delivery、Coordinator/Coordination 中的具名判定、领域调用、各段工作单元、投影登记、补偿和回滚。CMD 不直接或间接调用另一个 CMD；共用业务收进领域服务或应用服务。旧细粒度命令并入、改成真正共用的应用能力或删除，不留仅转发旧命令的最终结构。纯帧辅助及真实状态所有者不因名字含 Delivery 而删除。 |
 | RQ-004 | 请求上下文是本次 CMD 的显式数据，在执行器上、CMD 开始时建立：物理连接、入站元数据、捕获权威、选中接收者及适用的效果账本状态。封锁/被顶替检查与权威捕获在此执行，过期旧连接保持 A 的拒绝/静默丢弃行为。不得依赖请求 AsyncLocal、隐式“当前请求”、单例可变字段，或借环境事务重新隐藏请求状态。把 singleton 换成 scoped 本身不构成完成；所有消费方都须拿到正确的本次输入。 |
 | RQ-005 | 协议请求的三种合法状态按下表区分；效果结算缺应有的状态是程序错误，不能“没有帧就放行”。受信任内部来源须明确由内部入口建立，不能用缺少网络上下文推断；已失效请求或泄漏续体不得降级为受信任内部 CMD。上下文结束后不能继续使用其结算权威。 |
@@ -68,6 +68,22 @@ B8另具名增加翻牌延时生产者的固定阶段控制能力。CMD只可在
 | 协议：效果请求、未选中会话 | 显式的“可拒绝、不可结算”状态 | 发送原拒绝结果 | 不能开始主结算或写出效果 |
 | 协议：效果请求、已选中会话 | 精确接收者、账本条目、序号与主结算状态 | 一次主结算；已提交请求重放 | 缺上下文、重复主结算、旧会话或非法序号不得放行 |
 | 受信任内部来源 | 内部入口明确建立自己的执行输入；不伪造网络请求 | 保持各来源既有业务 | 不能因请求结束、帧缺失或续体泄漏而自动获得信任 |
+
+### 两塔返回来源的逐项执行边界（B9，RQ-002／005～009／014）
+
+本节只适用于 BossTowerReturnSweepService 与 IllusionTowerReturnSweepService。当前真实来源已有缺陷：定时作业内的旧 Leave 无显式 footprint 来源，在实际领域动作前回滚，导致到期 run 不能离场。迁移后由真正的受信任内部入口建立显式请求，并在原普通写中声明精确 owner，使合法内部回城能完成；不伪造网络帧、不凭缺网络上下文获得权限，也不把 test-only NonEffect 授权当生产来源。
+
+**一轮与单项。** 一轮先捕获当前待投影离场项的不可变身份，逐项以完整内部 CMD 领取并投影；处理完这份快照后，才在扫描 CMD 内读取当前时钟和到期 run 身份，再逐 run 以完整内部 CMD 执行。一个 run 的成员冻结、原成员顺序、各段事务与回城投影仍在同一个 CMD 内，不拆成逐成员入队，也不在 CMD 中调用或等待另一个 CMD。生产者只提交显式值并等待，不读取世界、领取队列或登记出站。
+
+快照本身不移除离场项。单项 CMD 只有在实际队首仍是其精确项身份时才领取；已被另一手工轮次领取或不再匹配的输入无投影、无旁路删除。并发手工轮次不得把同一项投影两次。入队被拒绝或执行在领取前因失败／取消而结束时，待办不能丢失；领取后的投影失败仍按旧路径消费该项。快照之后新增的离场项留到后续轮次，不把这一变化隐藏为原整批原子性。扫描得到的 run 身份只用于定位和验旧，执行时仍复核原 run／房间版本／到期条件和精确成员，不能凭扫描快照覆盖当前事实。
+
+**可见调度变化。** CMD 之间允许按正常 FIFO 插入请求，发件箱按各 CMD 的既有完成边界交付；同一 CMD 内的原消息次序、事务点与提交后内存临界序列保持。hosted 同源最多一轮未结束，合并覆盖整轮；手工 Tick 保持原不合并。每轮有独立 Timer 根；由该轮扫描产生的后续 CMD 显式继承相应父链与原深度上限，不读取 ambient 请求。来源 physical／metadata 为空不代表 Boss 参与者 physical 为空，后者继续按各原声明捕获；Illusion 原空 selected 保护保持。
+
+**故障隔离与取消。** 已执行的单项失败只结束该 CMD，按执行器的一条带链 Error 收口；生产者只记不携异常的 Warning，并可继续后项，既不清除 sticky 失败，也不让另一 run 进入前项的请求／围栏集合。扫描失败或未入队拒绝结束本轮，不能冒作可忽略的已执行单项失败。BodyOnly 仍让已入队 CMD 排空，body 使用原生产者 token且不新增提前取消点；仅当错误确实来自本次 body 的取消（包括工作单元原 action 取消后健康确认回滚）、原生产者 token 已取消，且完整请求／工作单元／scope 收口后仍只保留这一取消事实时，才在作业正常完成后向生产者重抛，保持纯取消不记执行器 Error。不能只按 OCE 类型或同一对象认定来源：scope-only、工作单元／lease独立清理、guard／sticky、typed 不确定及聚合错误均不取得这一处理；与body复用同一cause的独立清理也不能被吞掉。
+
+原 fine scope 收入逐项 whole 后，已提交后的 scope／非豁免发布失败按该项 whole 默认规则保 cause 与实际已登记帧、保护该项声明的累计精确参与者（VC-B39）。多个单元先记录 session-only、后记录同精确 session 的真实 physical 时，不得以首次 session-only 遮掉后续已声明的物理保护；同 ID 的替换连接仍按引用身份隔离，不重新查询或推断未声明的收件人。这个约束不扩大到其它 run，也不增加 raw／Self／恢复权限。
+
+**验收区分。** 必须同时保留当前真实来源缺陷的旧红／新绿、真实 Boss departure 的旧故障隔离，以及明确标注的“test-only 授权旧 sweep 算法”对照。受控同事务 SQL marker 的回滚／提交证据不冒自然生产 SQL；旧 fake bus 的 Attempts 不作真实事务证据。新真实来源须证明首项持续失败仍处理后项、领取前取消／拒绝不丢、重叠轮次不重复、项间 FIFO 请求插入、旧 run／版本不写、原时钟和两塔取消位置、同源整轮合并／排空与精确物理保护；多单元 session-only／physical 另有会红的机制回归。A 封存结果不回写，本节为 B 的有界来源分解和已证旧缺陷修正。
 
 ### 即时登记失败的等价边界（RQ-006）
 
@@ -237,7 +253,10 @@ VC-B6 仅改变表中 NoRoom 缺口和 scope／独立刷新失败边界。C1 dur
 | VC-B34 | 仅设置／已读六入口的 fine scope.Dispose 归入 whole：旧保存已 Committed 后抛原 IOException，新保同 cause 为默认 PostCommitPublicationFailure；仍无 ACK／snapshot／任何出站帧，精确来源关闭。三个账号设置仅 origin.SelectedSession 非空时及 CharacterOption 保原精确 actor 的默认 Fence／physical Block／DiscardExact；账号态三设置及两 Notice 始终不新增 selected 保护，Secondary 的角色 owner 不构成 actor。普通动作与 native Commit 健康确认回滚仍传播原 cause、无 ACK，不改原资产与 profile／归属门。 | TASK-54 `SettingsProtocolCommandFlowTests`旧新正式 decoder／dispatcher、SQLite、真实 DI Dispose、production outbox／受控 physical 对照，直接核完整 blob／双 profile／双 bank／两 owner、actual Completion、精确 actor／None footprint、原 cause／Fence／Block／实际 DiscardExact 和 same-ID physical 替换隔离。无 ACK 路径不虚构 encoder 失败；无新 Main／ledger／raw／Self 能力。 |
 | VC-B35 | 仅 TaggedIdReport／DecreaseDurability／Premium slot3 的已提交 fine scope.Dispose 归入 whole：旧原 IOException 且无响应，新保已登记原 ACK／状态帧后默认 PostCommitPublicationFailure，保同 cause 并关闭精确来源；三普通写仍空 selected／None，不增 Fence／Block。Tagged 与 slot3 首次实际 encoder 失败由原 cause 改默认 typed；Durability 的 Project Failed 仍忽略，无新增关闭。Premium slot4 仍独立 ReadOnly，scope／encoder 继续原 cause、无 Fence，scope 时点由旧无帧改为新状态帧已登记后失败。 | TASK-55 `ReportProtocolCommandFlowTests` 真实 decoder／dispatcher、SQLite／run participant、实际 DI Dispose、生产 outbox／actual encoder／受控 physical 旧新表征；action 与 native Commit 确认回滚分开，精确来源及 same-ID physical 替换隔离直接断言。无新 Main／raw／Self 或 selected 保护。 |
 | VC-B36 | 仅 ShopPurchaseCount 的原 Direct fine scope.Dispose 归入 whole：旧查询完成后抛同一原 cause、尚无帧，新保同 cause 且原查询响应已登记，按发件箱顺序发送后关闭精确来源；没有事务、typed 提交结果或新增 selected 保护。其余十四轻量入口的原日志／静态响应、首 encoder 与日志／查询异常原 cause，以及 Shop 的 Project Failed 忽略均保持。 | TASK-56 `LightweightProtocolCommandFlowTests` 同一真实 decoder／dispatcher、实际 DI Dispose、生产 encoder／outbox／physical 旧新正式表征；十五入口完整响应字节、原日志类别／语义、身份有无及 selected-not-world、无环境事务和 same-ID physical 替换隔离直接断言。无新 Write／ReadOnly／Main／raw／Self 或权限。 |
-| 其余 | 除 VC-B1～B36 明列范围外，不新增协议字段/字节/帧序/关闭/持久化结果变化；A的VC-1～VC-10原有结果保持。RQ-006三个具名即时编码登记出口的 raw 原因对象、Committed、无新增参与者围栏、原 source close 及当前投影重放属于原行为保留，不新增 VC | 表征/Golden/线级及工作单元对照；AC-003的具名登记故障及默认保护对照 |
+| VC-B37 | 两塔真实定时回城由旧 Leave 在领域动作前因缺显式 footprint 来源回滚，改为真正 TrustedInternal 请求下的原普通写与精确 owner 声明，合法到期 run 能离场并释放占用。不得伪帧、legacy 回落或扩大效果／恢复权限。 | TASK-57 当前真实 Tick 旧表征两例与 `Legal_internal_timeout_return_removes_the_actual_run_and_releases_its_occupancy` 两个业务断言 RED；迁移后须同一实际来源 GREEN及当前性／footprint拒绝反例，未完成前不称已修。 |
+| VC-B38 | 仅两塔返回一轮改为扫描与逐离场／逐 run CMD：允许项间正常FIFO请求插入、每CMD发件箱交付、快照后新离场延后、显式子链；保整轮hosted合并、手工不合并、领取前待办不丢和逐项故障隔离。单项失败由执行器Error及生产者无异常Warning记录，不能保持旧fine日志形状而重引重复Error。 | B9专节；TASK-57真实旧departure与授权旧算法矩阵先证旧隔离，新来源须验证完整领取／FIFO／链／取消／排空、持续首项失败及后项资产和状态，不能仅比CMD调用次数。 |
+| VC-B39 | 仅两塔内部逐项 fine scope 收入 whole 的默认已提交失败边界：保原 cause、实际资产／域状态与已登记帧，scope在完整投影后收口，失败不再作为原fine的raw scope错误；Boss只保护该项各工作单元实际声明的累计精确参与者与捕获physical，Illusion仍空selected，不误伤另一run或替换连接。多成员时不能丢掉后续已声明physical，也不凭可查询性新增参与者。 | TASK-57实际旧Boss departure scope／uncertain及明确授权的旧sweep算法对照；新逐项actual DI scope、真实投影故障、多成员后单元失败与物理替换必须验证。范围仅本节，raw三出口及其他默认／保留边界不变。 |
+| 其余 | 除 VC-B1～B39 明列范围外，不新增协议字段/字节/帧序/关闭/持久化结果变化；A的VC-1～VC-10原有结果保持。RQ-006三个具名即时编码登记出口的 raw 原因对象、Committed、无新增参与者围栏、原 source close 及当前投影重放属于原行为保留，不新增 VC | 表征/Golden/线级及工作单元对照；AC-003的具名登记故障及默认保护对照 |
 
 F-131维持现状不是相对A的新变化。若实施需改变本表之外的可见结果，先记录主控裁定并修订本Spec、重过受影响评审，不能在最终汇报里事后冒称纯搬迁。
 
@@ -252,7 +271,7 @@ F-131维持现状不是相对A的新变化。若实施需改变本表之外的�
 | AC-005 | RQ-009、012、014 | 两单元中第二回滚只刷第一；提交后异常不撤销已提交写或误记可重试（组装故障按RQ-008条件：采用则验证提交后组装失败/重发，未采用记录禁用/不可达、不称已修；不豁免其他既有提交后业务失败的围栏和不重复结算）；未登记任何消息就失败仍关闭来源。RQ-006三个具名即时登记保留（含CollectionBox原成功batch）另按AC-003验收；不放宽本条默认不确定保护及额外独立错误的围栏。执行器外登记/写、等待网络、自我等待及不确定围栏判据和反例照常通过，CMD/NOTI类型边界不变。Cera 的 VC-B4 须以受控非 fallible 违约、真实 SQL 加回滚第二错误及独立 CMD scope 清理故障作区分：实际提交／回滚／Uncertain 不混同，原 cause 与附加 cause 引用保留，不再转 StorageFailure ACK 或正常结束；本次精确买家在 Committed／Uncertain 默认失败条件下的 Fence、对应精确连接阻断、DiscardExact及来源关闭／继承链均有直接证据；对照正常成功、正常拒绝及健康的确认回滚无新增围栏／关闭，并证明替换后的会话和其他玩家／队伍不受影响。已登记条目及其实际次序按原机制验证。scope 故障须记录其发生前已登记的真实消息及最终发送／关闭顺序，不把“无普通失败 ACK”误写为“零帧”，不靠清 sticky／撤消息或扩 raw 求过。Mailbox 的 VC-B5 须分别证明 C1 durable Uncertain、C2 实际 SQL 加 Rollback 第二因、C3 从旧 fine scope 对应到 whole 的真实 DI scope 错误均不作普通 ACK 恢复或正常结束；精确来源实际 CloseAsync／原链、空 selected 及无新增 actor／Fence／DiscardExact 有直接证据。C2 的最终 typed 错误图须包含原 action 与 Rollback 两 cause 同对象，既有独立错误事实也不丢；该精度同样覆盖触达共享 RunAsync 的 standalone／ambient 调用。以原共享强用例和所触 caller 验证保持原子性／即时结算，未动态覆盖的 caller 故障须明确。取消／未知来源或完成／旧 sticky／guard／失效 request／独立 unit／lease 清理及同对象独立二次错误不能获得恢复，不放宽既有 Write／ReadOnly／WriteResult 十个实际 consumer 的默认保护。健康成功／拒绝／完整确认回滚为无新增关闭对照；记录 whole scope 故障前已登记的原 success／normal refusal 帧、按原 unit 状态保留的实际发送顺序及置后关闭，不由旧 C3 slots=[] 推零帧。VC-B6 以旧 fine／新真实 whole scope 及 Main 后独立 premium／refresh 故障对照，直接证明专节的 cause／独立发生、实际 Completion、默认保护和实际发送→关闭／原链；真实替换 session／不同物理连接与无关玩家不受误伤。对照纯 ConfirmedRollback 后第二普通错误及健康 NoRoom，不能统一伪称 Uncertain／增围栏或由旧响应前故障推新零帧。根纯搬迁／语义分离由实现检查点及逐条差异核验。 |
 | AC-006 | RQ-010、011 | App清理检索不再有ClearAllPools，按自有规范化数据库实际写/只读池清理；不改类并行/期限/Skip。写端完成的真实传输失败按Info记录、普通故障Warning，Failed/关闭/observer及其他连接结果不变，不能由Resolve整体降级导致Stale绕过。 |
 | AC-007 | RQ-012 | 对T1～T6及B临时机制逐项检索并检查实际职责，最终命中为零；常设两处AsyncLocal与登记守卫有明确归类。无转发层或Obsolete属性，不能靠改名字通过。 |
-| AC-008 | RQ-002、013 | 每项交接有已实现证据或契约允许的具名裁定；F-07按VC-B3验收实际FIFO位置与允许的请求插入，扫描只捕获周期/精确session IDs，producer仅入队；子CMD重新读当前事实，旧周期/旧session无登记无水位推进，下一次扫描覆盖正确新周期。保持日切/登记水位正确性和单连接条目顺序，不要求原整批不交错；事件Reliable同事务及LiveOnly先后不变。F-122/F-124/F-129和F-131明确保留结论都有对应证据。未做项如实留后继，不以转交代替本Spec义务。 |
+| AC-008 | RQ-002、013 | 每项交接有已实现证据或契约允许的具名裁定；F-07按VC-B3验收实际FIFO位置与允许的请求插入，扫描只捕获周期/精确session IDs，producer仅入队；子CMD重新读当前事实，旧周期/旧session无登记无水位推进，下一次扫描覆盖正确新周期。保持日切/登记水位正确性和单连接条目顺序，不要求原整批不交错；事件Reliable同事务及LiveOnly先后不变。两塔返回另按B9／VC-B37～B39验收真实内部回城、逐项事务／故障隔离、整轮合并、待办精确领取、项间FIFO交错、链／拒绝／排空／取消及各塔当前性与物理保护；来源为空不等于参与者physical为空。F-122/F-124/F-129和F-131明确保留结论都有对应证据。未做项如实留后继，不以转交代替本Spec义务。 |
 | AC-009 | RQ-014、015 | 新鲜完整Release构建0警告0错误；八测试项目全量数量闭合、失败身份逐项判定，表征10通过0跳过，线级/codec/Golden原断言保持。相对8350的测试增减和断言/驱动变化可追踪；取证七程序集正对照齐，反例类/对照外0，保留exe0的观察边界。 |
 | AC-010 | RQ-016 | 冻结状态按A工具和同口径完成测量并和A对照；单条CMD max≤2秒，原目标未达只记录为优化，数量级异常按根约定处置；合成负载与未实机局限明示。 |
 | AC-011 | RQ-013、017 | 文档示例/依赖/新增协议步骤与最终实现一致；最终汇报含结果、VC-B1/B2/B3/B4/B5/B6及其余不变、遗留/保留与证据、原性能口径、Astra待审和不推送不PR状态。A封存资料无修改。 |
@@ -328,3 +347,11 @@ TASK-45 的 P9 独立规划审查指出，既有 RQ-009 的封闭技术注入类
 ### B8（2026-10-25）：翻牌延时生产者控制的明确边界
 
 TASK-48开工前核实：`DungeonClearSlice.cs`的成功结果投影后要在原作业内ScheduleAfterSettlement；`CardRewardHandlers.cs`的手动免费确认成功后、投影前要Cancel；`DungeonCardPresentationCoordinator.cs`的布局发送后要替换为自动确认，且自动确认仍是旧SelectCard细粒度命令的实际消费者（均以`d0dd43d2`为依据）。B7无参Wake明确不授权这些固定阶段／取消动作，封闭注入表也不能靠重命名DomainService或可执行消息输入绕过。主控按既有保行为及裁定授权，仅在RQ-009、注入说明与AC-001补此具名能力，交TASK-48唯一独立Astra先审本增量，再审P10及最终结果；不做挑战。根／子契约、单执行器与薄handler中心方案、17RQ／11AC IDs及其它边界不变。本文ready待受影响独立门与主控消费，不授权提前实施新接口或白名单。
+
+### B9（2026-10-26）：两塔返回的真实内部来源与逐项隔离
+
+TASK-57 以 `94746fe1` 为产品基线，真实旧来源表征证实两塔 Leave 在领域动作前因缺显式来源被拒；合法回城两个目标用例为业务断言 RED。真实 Boss departure（Start后追加受控同事务marker）在 action SQL1811、native Commit787、nonfallible违约与实际DI scope故障后仍处理后一cohort；另有明确test-only NonEffect授权的两塔sweep算法对照，不能冒实际生产可达性。旧准备 `task57-old-preparation-r2` 286通过，证据只证明旧状态，未证明新方案完成。
+
+主控依据保留隔离的实际证据选择上述有界分解：不把全tick首错停止和其它cohort围栏扩张冒作纯搬迁，也不新开恢复能力。修改只涉及RQ-002、专节、AC-008和VC-B37～B39，17个RQ／11个AC身份及其它要求不变；根／子契约、单执行器、薄handler、CMD不嵌套、显式工作单元中心方案均拟保持，A封存资料不变。根中A“一次定时触发一个作业”的历史形状与本次B来源分解的边界须由独立审查明确核定，不能借F07的既有批准自动放行两塔；若审查判定需改根／子／中心，按既定用户门停止。
+
+本稿为 B9 ready R1，待 TASK-57 唯一 fresh Astra 有界独立Spec审查；通过并由主控消费后才形成P11方法和受影响Plan审查，同一Astra最终审Result。无挑战，不复制来源当证据，不授权任何产品／core变更；当前只有正式旧测试准备。
