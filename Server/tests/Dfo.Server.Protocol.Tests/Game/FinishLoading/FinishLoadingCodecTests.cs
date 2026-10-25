@@ -92,9 +92,8 @@ public sealed class FinishLoadingCodecTests
         await TestGameplay.RunAsync(async () =>
         {
             var sender = new RecordingSender();
-            var handler = new FinishLoadingHandler(
+            var handler = new Dfo.Server.Protocol.Tests.Game.DungeonEntry.FinishLoadingAlgorithmDriver(
                 sender,
-                NullLogger<FinishLoadingHandler>.Instance,
                 new RecordingProjection(accept: true));
             var context = new NetworkDispatchContext(
                 new NetworkConnectionContext(new NetworkConnectionId("game-1"), NetworkEndpointKind.Game, 20011));
@@ -116,9 +115,8 @@ public sealed class FinishLoadingCodecTests
         {
             var sender = new RecordingSender();
             var projection = new RecordingProjection(accept: true);
-            var handler = new FinishLoadingHandler(
+            var handler = new Dfo.Server.Protocol.Tests.Game.DungeonEntry.FinishLoadingAlgorithmDriver(
                 sender,
-                NullLogger<FinishLoadingHandler>.Instance,
                 projection);
             var connection = new NetworkConnectionId("game-current");
 
@@ -140,9 +138,8 @@ public sealed class FinishLoadingCodecTests
         {
             var sender = new RecordingSender();
             var projection = new RecordingProjection(accept: false);
-            var handler = new FinishLoadingHandler(
+            var handler = new Dfo.Server.Protocol.Tests.Game.DungeonEntry.FinishLoadingAlgorithmDriver(
                 sender,
-                NullLogger<FinishLoadingHandler>.Instance,
                 projection);
 
             await handler.HandleAsync(
@@ -155,7 +152,7 @@ public sealed class FinishLoadingCodecTests
         });
     }
 
-    private sealed class RecordingProjection(bool accept) : IDungeonLoadingProjectionDelivery
+    private sealed class RecordingProjection(bool accept) : Dfo.Server.Protocol.Tests.Game.DungeonEntry.ILoadingAlgorithm
     {
         public List<NetworkConnectionId> Connections { get; } = [];
 

@@ -33,7 +33,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var towers = new TowerDomain(initial); var sender = new Sender();
             var commands = new FlowCommands(towers);
             var projection = Delivery(towers, new Sessions(first, second), commands, sender);
-            var handler = new FinishLoadingHandler(sender, NullLogger<FinishLoadingHandler>.Instance, null!, bossTower: projection);
+            var handler = new LoadingFlow(towers, new Sessions(first, second), commands, sender);
 
             await handler.HandleAsync(Dispatch(first), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
             Assert.Empty(sender.Deliveries);
@@ -89,14 +89,13 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var session = Session(1); var current = PartyRun(Guid.NewGuid(), session);
             var towers = new TowerDomain(current); var sessions = new Sessions(session); var sender = new Sender();
             var commands = new FlowCommands(towers); var projection = Delivery(towers, sessions, commands, sender);
-            var move = new MoveMapHandler(sessions, null!, null!, null!, sender,
-                NullLogger<MoveMapHandler>.Instance, bossTower: projection);
+            var move = new LoadingFlow(towers, sessions, commands, sender);
             await move.HandleAsync(Dispatch(session), new MoveMapRequest(GameMessageMetadata.Empty, 9, 9, 0, 0), default);
             Assert.Empty(sender.Deliveries);
             Assert.Equal(1, towers.Find(session)!.CurrentStage);
             var replacement = session with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
             sessions.Replace(replacement);
-            Assert.False(await projection.CompleteLoadingAsync(replacement.ConnectionId, GameMessageMetadata.Empty, default));
+            Assert.False(await move.CompleteLoadingAsync(replacement.ConnectionId, GameMessageMetadata.Empty, default));
             Assert.Equal(0, commands.Starts);
         });
     }
@@ -130,8 +129,35 @@ public sealed partial class BossTowerProjectionConcurrencyTests
     private static NetworkDispatchContext Dispatch(SelectedSessionIdentity session) =>
         new(new NetworkConnectionContext(session.ConnectionId, NetworkEndpointKind.Game, 10011));
 
+    // Same production phase body; fake domain actions below intentionally do not prove bus/scope behavior.
+    private sealed class LoadingFlow(TowerDomain towers, Sessions selected, FlowCommands commands, Sender sender)
+        : GameMapLoadingCommandHandler(selected, null!, null!, null!, null!, null!, null!, towers, null!, null!,
+            new Dfo.Server.Protocol.Tests.Game.DungeonEntry.LoadingOutbox(sender), null!, null!, null!, NullLogger<GameMapLoadingCommandHandler>.Instance)
+    {
+        public ValueTask HandleAsync(NetworkDispatchContext dispatch, FinishLoadingRequest input, CancellationToken token) =>
+            new(CompleteBossLoadingAsync(null!, dispatch.Connection.ConnectionId, input.Metadata, token).AsTask());
+        public ValueTask HandleAsync(NetworkDispatchContext dispatch, MoveMapRequest input, CancellationToken token) =>
+            new(AdvanceBossAsync(null!, dispatch.Connection.ConnectionId, input.Metadata, input.NextX, input.NextY, token).AsTask());
+        public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, GameMessageMetadata metadata, CancellationToken token) => CompleteBossLoadingAsync(null!, id, metadata, token);
+        protected override ValueTask<BossTowerActionResult> BossLoadingUnitAsync(CommandExecutionContext execution, string name,
+            BossTowerSnapshot run, SelectedSessionIdentity actor, Func<CancellationToken, ValueTask<BossTowerActionResult>> action, CancellationToken token) => name switch
+        {
+            "load-boss-tower" => ValueTask.FromResult(commands.Load(new(actor, run.RunId, run.Room.Version))),
+            "start-boss-tower" => commands.SendAsync(new StartBossTowerCommand(new(actor, run.RunId, run.Room.Version)), token),
+            _ => ValueTask.FromResult(new BossTowerActionResult(false, run)),
+        };
+    }
     private sealed class FlowCommands(TowerDomain towers) : ICommandBus
     {
+        public BossTowerActionResult Load(Dfo.Server.Abstractions.World.BossTower.BossTowerActionContext context)
+        {
+            var loading = towers.Find(context.Session)!;
+            if (loading.Room.Phase != TowerRoomPhase.Loading) return new(false, loading);
+            var loaded = loading.Room.LoadedMembers.Add(context.Session.CharacterId);
+            loading = loading with { Room = loading.Room with { LoadedMembers = loaded,
+                Phase = loading.Members.All(value => loaded.Contains(value.Session.CharacterId)) ? TowerRoomPhase.Ready : TowerRoomPhase.Loading } };
+            towers.Put(loading); return new(true, loading);
+        }
         public int Starts { get; private set; }
         public int ResultChoices { get; private set; }
         public int Tickets { get; private set; } = 3;
@@ -140,14 +166,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             object result;
             switch (command)
             {
-                case LoadBossTowerCommand load:
-                    var loading = towers.Find(load.Context.Session)!;
-                    var loaded = loading.Room.LoadedMembers.Add(load.Context.Session.CharacterId);
-                    var room = loading.Room with { LoadedMembers = loaded,
-                        Phase = loading.Members.All(value => loaded.Contains(value.Session.CharacterId)) ? TowerRoomPhase.Ready : TowerRoomPhase.Loading };
-                    if (loading.Room.Phase != TowerRoomPhase.Loading) { result = new BossTowerActionResult(false, loading); break; }
-                    loading = loading with { Room = room }; towers.Put(loading);
-                    result = new BossTowerActionResult(true, loading); break;
                 case StartBossTowerCommand start:
                     Starts++; var started = towers.Find(start.Context.Session)!;
                     started = started with { Room = started.Room with { Phase = TowerRoomPhase.Fighting } }; towers.Put(started);
@@ -158,8 +176,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 case Dfo.Server.Protocol.Tests.Game.DungeonEntry.BossEntryRouteProbe entry:
                     Tickets--; var entered = PartyRun(Guid.NewGuid(), entry.Leader); towers.Put(entered);
                     result = new BossTowerEntryResult(null, entered, []); break;
-                case AdvanceBossTowerCommand advance:
-                    result = new BossTowerActionResult(false, towers.Find(advance.Context.Session)); break;
+
                 default: throw new NotSupportedException(command.GetType().Name);
             }
             return ValueTask.FromResult((TResult)result);

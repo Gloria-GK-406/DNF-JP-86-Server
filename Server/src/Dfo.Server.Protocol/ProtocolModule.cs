@@ -441,7 +441,6 @@ public sealed class ProtocolModule : IServerModule
             SystemDungeonCardPresentationDelay>();
         services.TryAddSingleton<DungeonCardPresentationCoordinator>();
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(provider => provider.GetRequiredService<DungeonCardPresentationCoordinator>());
-        services.TryAddSingleton<IDungeonLoadingProjectionDelivery, DungeonLoadingProjectionDelivery>();
         services.TryAddSingleton<IDungeonRunProjectionDomainService>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());
         services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
@@ -529,8 +528,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<EndPartyWipeCommand, EndPartyWipeResult, EndPartyWipeCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddCommandHandler<MarkDungeonParticipantDeadCommand, MarkDungeonParticipantDeadResult, MarkDungeonParticipantDeadCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<MarkDungeonParticipantReadyCommand, MarkDungeonParticipantReadyResult, MarkDungeonParticipantReadyCommandHandler>(
             CommandExecutionKind.Direct);
         services.AddProtocolCommandHandler<ChannelConnectCommand, ChannelConnectCompleted, ChannelConnectCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(ChannelConnectRequest)));
@@ -889,8 +886,12 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GamePrepareCycleDungeonEntry, typeof(PrepareCycleDungeonEntryRequest)));
         services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
-        services.RegisterMessageHandler<FinishLoadingHandler>(ClientMessageType.GameFinishLoading);
-        services.RegisterMessageHandler<MoveMapHandler>(ClientMessageType.GameMoveMap);
+        services.AddProtocolCommandHandler<GameFinishLoadingCommand, bool, GameMapLoadingCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameFinishLoading, typeof(FinishLoadingRequest)));
+        services.RegisterProtocolMessageHandler<FinishLoadingHandler, FinishLoadingRequest, GameFinishLoadingCommand>(ClientMessageType.GameFinishLoading);
+        services.AddProtocolCommandHandler<GameMoveMapCommand, bool, GameMapLoadingCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMoveMap, typeof(MoveMapRequest)));
+        services.RegisterProtocolMessageHandler<MoveMapHandler, MoveMapRequest, GameMoveMapCommand>(ClientMessageType.GameMoveMap);
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
@@ -901,10 +902,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
-        services.AddCommandHandler<LoadBossTowerCommand, BossTowerActionResult, LoadBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<AdvanceBossTowerCommand, BossTowerActionResult, AdvanceBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
@@ -918,16 +917,10 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<IllusionTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
-        services.AddCommandHandler<LoadIllusionTowerCommand, TowerActionResult,
-            LoadIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<StartIllusionTowerCommand, TowerActionResult,
-            StartIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<PickupTowerItemCommand, TowerPickupResult,
             PickupTowerItemCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<KillIllusionTowerActorCommand, TowerActionResult,
             KillIllusionTowerActorCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<AdvanceIllusionTowerCommand, TowerActionResult,
-            AdvanceIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DieInIllusionTowerCommand, TowerActionResult,
             DieInIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,
@@ -936,7 +929,9 @@ public sealed class ProtocolModule : IServerModule
             SynchronizeIllusionTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SelectIllusionTowerReturnCommand, TowerActionResult,
             SelectIllusionTowerReturnCommandHandler>(CommandExecutionKind.Transactional);
-        services.RegisterMessageHandler<IllusionTowerStageHandler>(ClientMessageType.GameIllusionTowerStage);
+        services.AddProtocolCommandHandler<GameIllusionTowerStageCommand, bool, GameMapLoadingCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
+        services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);
         services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);

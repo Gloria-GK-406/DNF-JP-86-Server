@@ -12,14 +12,6 @@ public abstract record BossTowerActionCommand(BossTowerActionContext Context) : 
     public IReadOnlyList<SelectedSessionIdentity> Sessions { get; init; } = [Context.Session];
 }
 
-public sealed record LoadBossTowerCommand(BossTowerActionContext Context) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
-public sealed class LoadBossTowerCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<LoadBossTowerCommand, BossTowerActionResult>
-{
-    public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
-        LoadBossTowerCommand command, CancellationToken token) => towers.LoadAsync(command.Context, token);
-}
-
 public sealed record StartBossTowerCommand(BossTowerActionContext Context) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
 public sealed class StartBossTowerCommandHandler(IBossTowerDomainService towers)
     : ICommandHandler<StartBossTowerCommand, BossTowerActionResult>
@@ -36,14 +28,6 @@ public sealed class KillBossTowerActorCommandHandler(IBossTowerDomainService tow
     public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
         KillBossTowerActorCommand command, CancellationToken token) =>
         towers.KillAsync(command.Context, command.ActorUid, context.LegacyFootprint, token);
-}
-
-public sealed record AdvanceBossTowerCommand(BossTowerActionContext Context, byte TargetX, byte TargetY) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
-public sealed class AdvanceBossTowerCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<AdvanceBossTowerCommand, BossTowerActionResult>
-{
-    public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
-        AdvanceBossTowerCommand command, CancellationToken token) => towers.NextLevelAsync(command.Context, command.TargetX, command.TargetY, token);
 }
 
 public sealed record DieInBossTowerCommand(BossTowerActionContext Context) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;

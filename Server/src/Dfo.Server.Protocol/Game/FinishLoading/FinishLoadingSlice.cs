@@ -99,48 +99,9 @@ internal sealed class LoadingCompleteEncoder : GameNotiMessageEncoder<LoadingCom
 /// experience-progress push, which is a growth-capsule concern and is not part of releasing the
 /// screen.
 /// </remarks>
-public sealed class FinishLoadingHandler(
-    IGameMessageSender sender,
-    ILogger<FinishLoadingHandler> logger,
-    IDungeonLoadingProjectionDelivery entryProjection,
-    IllusionTowerProjectionDelivery? illusionTower = null, BossTowerProjectionDelivery? bossTower = null)
-    : ClientMessageHandler<FinishLoadingRequest>
+public sealed class FinishLoadingHandler(Dfo.Server.Application.Commands.ICommandBus commands) : ClientMessageHandler<FinishLoadingRequest>,
+    Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<Dfo.Server.Protocol.Game.FinishLoading.GameFinishLoadingCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        FinishLoadingRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (bossTower is not null && await bossTower.CompleteLoadingAsync(context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false)) return;
-
-        if (illusionTower is not null
-            && await illusionTower.CompleteLoadingAsync(
-                context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
-            return;
-
-        if (!await entryProjection.CompleteLoadingAsync(
-                context.Connection.ConnectionId,
-                token => sender.SendExplicitAsync(
-                    context.Connection.ConnectionId,
-                    new GameExplicitMessageDelivery(
-                        [new LoadingCompleteNotification()],
-                        []),
-                    token),
-                cancellationToken).ConfigureAwait(false))
-        {
-            logger.LogWarning(
-                "Finish loading {ConnectionId}: stale or missing selected-session generation",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        logger.LogInformation(
-            "Finish loading {ConnectionId}: releasing the current map ({First},{Second})",
-            context.Connection.ConnectionId,
-            message.First,
-            message.Second);
-
-        // A21 answers with only NOTI 0x001E. The shared coordinator delivered it while the exact
-        // selected-session generation was still leased; no CMD acknowledgement precedes it.
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, FinishLoadingRequest message, CancellationToken token) =>
+        _ = await commands.SendAsync(new Dfo.Server.Protocol.Game.FinishLoading.GameFinishLoadingCommand(context, message), token).ConfigureAwait(false);
 }

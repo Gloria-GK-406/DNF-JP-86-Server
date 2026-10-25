@@ -67,15 +67,15 @@ public sealed class IllusionTowerPublicFlowTests
                 Assert.NotEmpty(loading.Room.Actors);
                 visitedMaps.Add(loading.Room.MapId);
 
-                await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
+                await MapLoadingRouteDriver.RunAsync(fixture.Services,
                     new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-                await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                await MapLoadingRouteDriver.RunAsync(fixture.Services,
                     new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
 
                 if (floor == 1)
                 {
                     var fighting = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
-                    await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                    await MapLoadingRouteDriver.RunAsync(fixture.Services,
                         new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
                     var refused = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));
                     Assert.Equal(fighting.Room.Version, refused.Room.Version);
@@ -98,10 +98,10 @@ public sealed class IllusionTowerPublicFlowTests
                 }
 
                 Assert.Equal(TowerRoomPhase.Cleared, cleared.Room.Phase);
-                await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+                await MapLoadingRouteDriver.RunAsync(fixture.Services,
                     new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 2, []), default);
                 Assert.Equal(floor, towers.Find(fixture.Session)!.Room.Level);
-                await fixture.Services.GetRequiredService<MoveMapHandler>().HandleAsync(
+                await MapLoadingRouteDriver.RunAsync(fixture.Services,
                     new(fixture.Connection), new MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
                 Assert.Equal(floor + 1, towers.Find(fixture.Session)!.Room.Level);
             }
@@ -175,9 +175,9 @@ public sealed class IllusionTowerPublicFlowTests
         var oldRunId = await TestGameplay.RunAsync(fixture.Services, async () =>
         {
             await EnterAsync(fixture);
-            await fixture.Services.GetRequiredService<FinishLoadingHandler>().HandleAsync(
+            await MapLoadingRouteDriver.RunAsync(fixture.Services,
                 new(fixture.Connection), new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0), default);
-            await fixture.Services.GetRequiredService<IllusionTowerStageHandler>().HandleAsync(
+            await MapLoadingRouteDriver.RunAsync(fixture.Services,
                 new(fixture.Connection), new IllusionTowerStageRequest(GameMessageMetadata.Empty, 1, []), default);
             await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<CharacterDeathHandler>().HandleAsync(
                 new(fixture.Connection), new CharacterDeathRequest(GameMessageMetadata.Empty, 0, 0, null), default));

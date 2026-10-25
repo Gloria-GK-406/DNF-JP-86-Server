@@ -134,10 +134,13 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 await tx.CommitAsync(timeout.Token);
             });
             var run = TestGameplay.Run(host.Services, () => host.Services.GetRequiredService<IIllusionTowerDomainService>().Find(selected)!);
-            var loaded = await bus.SendAsync(
-                new LoadIllusionTowerCommand(new TowerActionContext(selected, run.RunId, run.Room.Version)),
-                timeout.Token);
-            Assert.Equal(TowerRoomPhase.Ready, loaded.Run?.Room.Phase);
+            await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var tx = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var loaded = await host.Services.GetRequiredService<IIllusionTowerDomainService>().LoadAsync(new(selected, run.RunId, run.Room.Version), timeout.Token);
+                Assert.Equal(TowerRoomPhase.Ready, loaded.Run?.Room.Phase);
+                await tx.CommitAsync(timeout.Token);
+            });
 
             await stream.WriteAsync(ClientFrame(0x009F, [1], sequence: 1), timeout.Token);
 

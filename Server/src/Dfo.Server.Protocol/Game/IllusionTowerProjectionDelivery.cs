@@ -59,55 +59,6 @@ public sealed class IllusionTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!Exact(session, expected)) return true;
-        var action = await commands.SendAsync(
-            new LoadIllusionTowerCommand(Context(expected, session)), token).ConfigureAwait(false);
-        if (action.Run is not { Room.Phase: TowerRoomPhase.Ready } run) return true;
-        failures = await SendToExactAsync(
-            run, _ => [new LoadingCompleteNotification()], token).ConfigureAwait(false);
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
-    public async ValueTask<bool> StartAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        if (Exact(session, expected))
-            _ = await commands.SendAsync(
-                new StartIllusionTowerCommand(Context(expected, session)), token).ConfigureAwait(false);
-        return true;
-    }
-
-    public async ValueTask<bool> AdvanceAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!Exact(session, expected)) return true;
-        var action = await commands.SendAsync(
-            new AdvanceIllusionTowerCommand(Context(expected, session)), token).ConfigureAwait(false);
-        if (action.Changed && action.Run is { } run)
-            failures = await SendToExactAsync(
-                run, _ => [new IllusionTowerMapNotification(run.Room)], token).ConfigureAwait(false);
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<bool> KillAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, ushort actorUid, ushort killerUid, CancellationToken token)
     {

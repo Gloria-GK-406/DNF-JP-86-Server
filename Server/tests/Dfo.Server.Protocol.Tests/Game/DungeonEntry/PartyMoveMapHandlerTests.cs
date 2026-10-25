@@ -31,7 +31,7 @@ public sealed class PartyMoveMapHandlerTests
             var visits = new Visits();
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
+            var handler = new MoveMapAlgorithmDriver(new Sessions(Leader, Member), new Runs(visits.Start), visits,
                 registry, sender, logger);
 
             await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
@@ -61,7 +61,7 @@ public sealed class PartyMoveMapHandlerTests
             var visits = new Visits();
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(new Sessions(Leader, Member), new Runs(visits.Start), visits,
+            var handler = new MoveMapAlgorithmDriver(new Sessions(Leader, Member), new Runs(visits.Start), visits,
                 registry, sender, logger);
 
             var observed = await Assert.ThrowsAsync<IOException>(() =>
@@ -85,7 +85,7 @@ public sealed class PartyMoveMapHandlerTests
             var visits = new Visits();
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(
+            var handler = new MoveMapAlgorithmDriver(
                 new Sessions(Leader, Member),
                 new Runs(visits.Start),
                 visits,
@@ -119,7 +119,7 @@ public sealed class PartyMoveMapHandlerTests
             var visits = new Visits();
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(
+            var handler = new MoveMapAlgorithmDriver(
                 new Sessions(Leader, replacement),
                 new Runs(visits.Start),
                 visits,
@@ -144,7 +144,7 @@ public sealed class PartyMoveMapHandlerTests
             var visits = new Visits();
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(
+            var handler = new MoveMapAlgorithmDriver(
                 new Sessions(Leader, Member),
                 new Runs(visits.StartFor(Member.CharacterId)),
                 visits,
@@ -177,7 +177,7 @@ public sealed class PartyMoveMapHandlerTests
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
             var logger = new RecordingLogger(LogLevel.Debug);
-            var handler = new MoveMapHandler(
+            var handler = new MoveMapAlgorithmDriver(
                 sessions,
                 new Runs(visits.Start),
                 visits,
@@ -211,7 +211,7 @@ public sealed class PartyMoveMapHandlerTests
             var runs = new Runs(visits.Start);
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(
+            var handler = new MoveMapAlgorithmDriver(
                 sessions, runs, visits, registry, sender,
                 NullLogger<MoveMapHandler>.Instance,
                 new DungeonPartyRecipients(
@@ -240,7 +240,7 @@ public sealed class PartyMoveMapHandlerTests
             var visits = new Visits(() => sessions.Replace(Leader.CharacterId, replacement));
             var registry = new DungeonRunDeliveryRegistry();
             registry.Register(visits.RunId, [Leader, Member]);
-            var handler = new MoveMapHandler(
+            var handler = new MoveMapAlgorithmDriver(
                 sessions,
                 new Runs(visits.Start),
                 visits,

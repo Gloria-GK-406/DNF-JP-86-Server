@@ -71,8 +71,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.KillAsync(context, run.Room.Actors[0].Uid, cap, default));
             f.Sender.Messages.Clear();
 
-            await new Dfo.Server.Protocol.Game.IllusionTowerStage.IllusionTowerStageHandler(
-                f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()).HandleAsync(
+            await Dfo.Server.Application.Tests.Support.MapLoadingRouteDriver.RunAsync(f.Services,
                     new(f.Connection), new Dfo.Server.Protocol.Game.IllusionTowerStage.IllusionTowerStageRequest(
                         GameMessageMetadata.Empty, 2, []), default);
 
@@ -110,9 +109,9 @@ public sealed partial class IllusionTowerDomainServiceTests
             Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
             Assert.DoesNotContain(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
 
-            await delivery.AdvanceAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, default);
+            await Dfo.Server.Application.Tests.Support.MapLoadingRouteDriver.RunAsync(f.Services, new(f.Connection), new Dfo.Server.Protocol.Game.DungeonEntry.MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
             Assert.Equal(2, tower.Find(f.Session)!.Room.Level);
-            await delivery.AdvanceAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, default);
+            await Dfo.Server.Application.Tests.Support.MapLoadingRouteDriver.RunAsync(f.Services, new(f.Connection), new Dfo.Server.Protocol.Game.DungeonEntry.MoveMapRequest(GameMessageMetadata.Empty, 0, 0, 0, 0), default);
             Assert.Single(f.Sender.Messages, message => message.MessageType == ServerMessageType.GameIllusionTowerMap);
         });
     }

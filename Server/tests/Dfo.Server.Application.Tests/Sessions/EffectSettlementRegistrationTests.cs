@@ -71,10 +71,18 @@ public sealed class EffectSettlementRegistrationTests
             Assert.Equal(CommandRouteKind.Protocol, opening.Route); Assert.Equal(CommandExecutionKind.Direct, opening.ExecutionKind);
             Assert.Single(opening.ProtocolMessages!); Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, opening.RegistrationExits);
         }
+        foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.FinishLoading.GameFinishLoadingCommand), typeof(Dfo.Server.Protocol.Game.DungeonEntry.GameMoveMapCommand), typeof(Dfo.Server.Protocol.Game.IllusionTowerStage.GameIllusionTowerStageCommand) })
+        {
+            var loading = commandRegistry.GetRegistration(type);
+            Assert.Equal(CommandRouteKind.Protocol, loading.Route); Assert.Equal(CommandExecutionKind.Direct, loading.ExecutionKind);
+            Assert.Single(loading.ProtocolMessages!); Assert.Empty(loading.RegistrationExits ?? []);
+            Assert.False(typeof(ISelectedSessionCommand).IsAssignableFrom(type));
+            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
+        }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
         Assert.Equal(new[] { "ActivateClientHotkeyProfileCommand", "AltarActionCommand", "AltarDeathBatchCommand", "ApplyMonsterKillCommand", "BeginTournamentRewardsCommand", "ClaimWeeklyAttendanceCommand", "CleanupOnlineExpiredItemsCommand", "CompleteWeddingCleanupCommand", "EliminateTournamentCommand", "EnterMarriageChurchCommand", "EquipCarriedTitleReplacingMirrorCommand", "GrantClearExperienceCommand", "GrantKillExperienceCommand",
-            "MarriageCeremonyCommand", "MarriageProposalCommand", "PrepareMarriageChurchCommand", "ProcessMonsterDeathCommand", "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QueryTitleBookCommand", "ReadReplayStateCommand", "ReconcileAchievementCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "SaveCharacterOptionCommand", "SaveClientSettingsCommand", "SelectTournamentRewardCommand", "SetTitleAppearanceCommand", "StoreTitleCommand", "WeddingCommentCommand", "WeddingGiftCommand", "WeddingLetterCommand", "WithdrawTitleCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "LeaveDungeonCommand", "LoadBossTowerCommand","StartBossTowerCommand","KillBossTowerActorCommand","AdvanceBossTowerCommand","DieInBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","PickupBossTowerItemCommand","RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
+            "MarriageCeremonyCommand", "MarriageProposalCommand", "PrepareMarriageChurchCommand", "ProcessMonsterDeathCommand", "QueryJoustHistoryCommand", "QueryJoustStateCommand", "QueryTitleBookCommand", "ReadReplayStateCommand", "ReconcileAchievementCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "SaveCharacterOptionCommand", "SaveClientSettingsCommand", "SelectTournamentRewardCommand", "SetTitleAppearanceCommand", "StoreTitleCommand", "WeddingCommentCommand", "WeddingGiftCommand", "WeddingLetterCommand", "WithdrawTitleCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "LeaveDungeonCommand", "StartBossTowerCommand","KillBossTowerActorCommand","DieInBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","PickupBossTowerItemCommand","RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
         Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(), x => x.CommandType.Name.Contains("ReplayGuard"));
         Assert.NotNull(services.GetRequiredService<EffectOperationLedger>());
     }

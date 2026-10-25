@@ -4,22 +4,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game;
 
-public sealed record LoadIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
-public sealed class LoadIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<LoadIllusionTowerCommand, TowerActionResult>
-{
-    public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
-        LoadIllusionTowerCommand command, CancellationToken token) => towers.LoadAsync(command.Context, token);
-}
-
-public sealed record StartIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
-public sealed class StartIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<StartIllusionTowerCommand, TowerActionResult>
-{
-    public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
-        StartIllusionTowerCommand command, CancellationToken token) => towers.StartAsync(command.Context, token);
-}
-
 public sealed record KillIllusionTowerActorCommand(TowerActionContext Context, ushort ActorUid)
     : ICommand<TowerActionResult>;
 public sealed class KillIllusionTowerActorCommandHandler(IIllusionTowerDomainService towers)
@@ -28,14 +12,6 @@ public sealed class KillIllusionTowerActorCommandHandler(IIllusionTowerDomainSer
     public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
         KillIllusionTowerActorCommand command, CancellationToken token) =>
         towers.KillAsync(command.Context, command.ActorUid, context.LegacyFootprint, token);
-}
-
-public sealed record AdvanceIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
-public sealed class AdvanceIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<AdvanceIllusionTowerCommand, TowerActionResult>
-{
-    public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
-        AdvanceIllusionTowerCommand command, CancellationToken token) => towers.NextLevelAsync(command.Context, token);
 }
 
 public sealed record DieInIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;

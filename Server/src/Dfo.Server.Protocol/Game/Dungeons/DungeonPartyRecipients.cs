@@ -17,7 +17,12 @@ public sealed class DungeonPartyRecipients(
 {
     public IReadOnlyList<SelectedSessionIdentity> Find(
         SelectedSessionIdentity actor,
-        DungeonRunId runId)
+        DungeonRunId runId) => FindCurrent(parties, sessions, runs, runGenerations, actor, runId);
+
+    internal static IReadOnlyList<SelectedSessionIdentity> FindCurrent(
+        IPartyService parties, ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+        Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService runGenerations,
+        SelectedSessionIdentity actor, DungeonRunId runId)
     {
         ArgumentNullException.ThrowIfNull(actor);
         var run = runs.Find(runId);

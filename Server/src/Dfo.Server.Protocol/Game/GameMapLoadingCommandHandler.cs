@@ -1,0 +1,100 @@
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.IllusionTowerStage;
+using Dfo.Server.Protocol.Game.BossTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.Dungeons;
+using Microsoft.Extensions.Logging;
+namespace Dfo.Server.Protocol.Game;
+internal partial class GameMapLoadingCommandHandler : PartyMutationProtocolCommandHandler,
+    ICommandHandler<GameFinishLoadingCommand, bool>, ICommandHandler<GameMoveMapCommand, bool>,
+    ICommandHandler<GameIllusionTowerStageCommand, bool>
+{
+    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonVisitDomainService visits;
+    private readonly IDungeonRunProjectionDomainService registry;
+    private readonly ICharacterFatigueDomainService fatigue;
+    private readonly IWeaknessDomainService weaknessState;
+    private readonly ICommandConnectionClosures closures;
+    private readonly IGameCommandOutbox mapOutbox;
+    public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+        IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
+        ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
+        IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
+        ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
+        ILogger<GameMapLoadingCommandHandler> logger)
+        : base(sessions, parties, null, projections, null!, null, logger,
+            bossTowers: bossTowers, illusionTowers: illusionTowers, register: outbox.RegisterExplicitAsync,
+            workUnits: units, onlineUsers: onlineUsers)
+    {
+        this.runs = runs; this.visits = visits; this.registry = registry;
+        this.fatigue = fatigue; this.weaknessState = weaknessState; this.closures = closures; this.mapOutbox = outbox;
+    }
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameFinishLoadingCommand command, CancellationToken token)
+    {
+        var id = command.Dispatch.Connection.ConnectionId;
+        if (await CompleteBossLoadingAsync(execution, id, command.Input.Metadata, token).ConfigureAwait(false)) return true;
+        if (await CompleteIllusionLoadingAsync(execution, id, command.Input.Metadata, token).ConfigureAwait(false)) return true;
+        return await CompleteOrdinaryLoadingAsync(id, ct => register(id, new([new LoadingCompleteNotification()], []), ct), token).ConfigureAwait(false);
+    }
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMoveMapCommand command, CancellationToken token)
+    {
+        await MoveOrdinaryAsync(execution, command.Dispatch, command.Input, token).ConfigureAwait(false); return true;
+    }
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameIllusionTowerStageCommand command, CancellationToken token)
+    {
+        // Mode 2 reports clear before dialogue; actor deaths own clear, MOVE_MAP alone advances.
+        if (command.Input.Mode == 1)
+            _ = await StartIllusionAsync(execution, command.Dispatch.Connection.ConnectionId, command.Input.Metadata, token).ConfigureAwait(false);
+        return true;
+    }
+    protected virtual ValueTask LoadingReadyAsync(SelectedSessionIdentity session, DungeonRunState expected, CancellationToken token)
+    { _ = runs.TryMarkParticipantReady(session.CharacterId, expected.RunId, expected.RoomVersion); return ValueTask.CompletedTask; }
+    private bool IsCurrentSession(SelectedSessionIdentity session, NetworkConnectionId id) => session.ConnectionId == id && sessions.IsInWorld(session);
+    protected virtual IReadOnlyList<SelectedSessionIdentity> FindMoveRecipients(SelectedSessionIdentity actor, DungeonRunId id) =>
+        DungeonPartyRecipients.FindCurrent(PartyService!, sessions, runs, registry, actor, id);
+    protected virtual ValueTask<DungeonMoveAttempt> MoveRoomAsync(CommandExecutionContext execution,
+        SelectedSessionIdentity session, DungeonRunState current, MazeCell target, CancellationToken token) =>
+        workUnits!.WriteAsync(execution, new("move-dungeon-room", []),
+            (_, ct) => visits.TryMoveAsync(session.CharacterId, current, target, ct), token);
+    protected virtual async ValueTask MoveFatigueAsync(SelectedSessionIdentity session, CancellationToken token)
+    {
+        var balance = await fatigue.BalanceOfAsync(session.CharacterId, token).ConfigureAwait(false);
+        if (sessions.IsInWorld(session))
+            await RegisterNotiAsync(session.ConnectionId, new Fatigue.FatigueNotification(balance), token).ConfigureAwait(false);
+    }
+    protected virtual ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken token) => mapOutbox.RegisterNotiAsync(id, message, token);
+    protected virtual ValueTask LoadingWeaknessAsync(SelectedSessionIdentity session, CancellationToken token) => sessions.IsInWorld(session)
+        ? RegisterNotiAsync(session.ConnectionId, new Weakness.WeaknessProjectionNotification(weaknessState.For(session.CharacterId).Value), token)
+        : ValueTask.CompletedTask;
+    protected virtual ValueTask<NotificationDelivery> LoadingQuotaAsync(SelectedSessionIdentity session, UsageQuotaFamily family, CancellationToken token) =>
+        projections.ProjectAsync(new NotificationAudience.TheseSessions([session]), new UsageQuotaViewChanged(session.CharacterId, family), token);
+    protected virtual async ValueTask LoadingMechanismsAsync(SelectedSessionIdentity session, DungeonRunState current, CancellationToken token)
+    {
+        var states = current.CurrentCellState.Mechanisms;
+        if (states.Count == 0 || states.Any(state => state.StartedAt is null)) return;
+        var audience = sessions.FindByCharacter(session.CharacterId) is { } recipient ? new[] { recipient } : [];
+        var result = await projections.ProjectAsync(new NotificationAudience.TheseSessions(audience),
+            new DungeonRoomMechanismsNotification(new(current.RunId, current.CurrentCell, current.RoomVersion, states, [session.CharacterId])), token).ConfigureAwait(false);
+        if (result.Attempts.Any(attempt => attempt.Outcome == NotificationOutcome.Failed))
+            throw new IOException("Room mechanism projection failed; the current snapshot will be retried.");
+    }
+}

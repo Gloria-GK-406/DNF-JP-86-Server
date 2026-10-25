@@ -15,6 +15,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Testing;
+using Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
 namespace Dfo.Server.Protocol.Tests.Game.Dungeons;
 
@@ -146,11 +147,11 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         registry.Register(run.RunId, [Current]);
         var commands = new ReadyCommandBus(runs, enteredCommand, releaseCommand);
         var sender = new WeaknessSender();
-        var delivery = new DungeonLoadingProjectionDelivery(
+        var delivery = new DungeonLoadingAlgorithmDriver(
             sessions,
             runs,
             registry,
-            commands,
+            commands.ReadyAsync,
             new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender), quotaProjection);
         return new TestWorld(delivery, sessions, runs, commands, sender);
     }
@@ -165,7 +166,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     };
 
     private sealed record TestWorld(
-        DungeonLoadingProjectionDelivery Delivery,
+        DungeonLoadingAlgorithmDriver Delivery,
         Sessions Sessions,
         Runs Runs,
         ReadyCommandBus Commands,
@@ -356,23 +357,16 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     private sealed class ReadyCommandBus(
         Runs runs,
         TaskCompletionSource? entered,
-        TaskCompletionSource? release) : ICommandBus
+        TaskCompletionSource? release)
     {
         public int Submissions { get; private set; }
 
-        public async ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull
+        public async ValueTask ReadyAsync(CharacterId characterId, DungeonRunId runId, long roomVersion, CancellationToken cancellationToken)
         {
-            var ready = Assert.IsType<MarkDungeonParticipantReadyCommand>(command);
             Submissions++;
             entered?.SetResult();
-            if (release is not null)
-                await release.Task.WaitAsync(cancellationToken);
-            object result = new MarkDungeonParticipantReadyResult(
-                runs.MarkReady(ready.CharacterId, ready.RunId, ready.RoomVersion));
-            return (TResult)result;
+            if (release is not null) await release.Task.WaitAsync(cancellationToken);
+            _ = runs.MarkReady(characterId, runId, roomVersion);
         }
     }
 }
