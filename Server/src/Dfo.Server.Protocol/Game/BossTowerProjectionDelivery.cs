@@ -60,6 +60,13 @@ public sealed class BossTowerProjectionDelivery(
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
     IOutboundOrdering? ordering = null)
 {
+    private ValueTask SendCommittedBatchAsync(BossTowerSnapshot run, SelectedSessionIdentity member,
+        GameExplicitMessageDelivery batch, CancellationToken token) => PartyStages.SendCommittedBatchAsync(run, member, batch, token);
+
+    private BossTowerPartyCommandStages PartyStages => new(towers, sessions, currentViews, currentState, characters,
+        onlineCharacters, clock, sender.SendExplicitAsync,
+        session => connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None), logger, commands, townProjection.EnterAsync);
+
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
     public async ValueTask<bool> EnterAsync(
@@ -440,53 +447,10 @@ public sealed class BossTowerProjectionDelivery(
     public ValueTask ProjectDisconnectedActionAsync(BossTowerActionResult action, CancellationToken token) =>
         ProjectCommittedDepartureAsync(action, null, null, token);
 
-    public async ValueTask ProjectCommittedDepartureAsync(BossTowerActionResult action,
-        SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token)
-    {
-        if (!action.Changed || action.Run is null) return;
-        var captured = action.Run;
-        var failures = new List<(SelectedSessionIdentity, Exception)>();
-        var participants = captured.Members.Select(member => member.Session)
-            .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
-        var exact = ExactMembers(captured);
-        var current = CurrentRun(captured);
-        if (exact.Count > 0 && current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
-        {
-            failures.AddRange(await SendToExactAsync(
-                current, _ => [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
-        }
-        current = CurrentRun(captured);
-        if (current is not null && ExactMembers(current).Count == current.Members.Length
-            && current.Room.Phase == TowerRoomPhase.Ready
-            && current.Members.SingleOrDefault(member => member.IsLeader) is { } readyLeader)
-        {
-            var start = await commands.SendAsync(new StartBossTowerCommand(Context(current, readyLeader.Session)) { Sessions = Members(current) }, token).ConfigureAwait(false);
-            if (start.Run is { Room.Phase: TowerRoomPhase.Fighting } fighting)
-                failures.AddRange(await SendToExactAsync(fighting, _ => [new LoadingCompleteNotification()], token).ConfigureAwait(false));
-        }
-        if (exact.Count > 0 && action.SettlementCreated && captured.Completion is { Settled: true })
-            failures.AddRange(await ProjectActionAsync(action, null, token).ConfigureAwait(false));
-        if (returning is not null
-            && sessions.IsInWorld(returning)
-            && !towers.IsInTower(returning.CharacterId))
-            await ReturnMembersIsolatedAsync([returning], response, failures, token, false).ConfigureAwait(false);
-        await CloseProjectionFailuresAsync(failures, captured.RunId).ConfigureAwait(false);
-    }
+    public ValueTask ProjectCommittedDepartureAsync(BossTowerActionResult action, SelectedSessionIdentity? returning,
+        IGameServerMessage? response, CancellationToken token) => PartyStages.ProjectCommittedDepartureAsync(action, returning, response, token);
 
-    public async ValueTask ProjectCurrentHostAsync(
-        BossTowerSnapshot captured, CancellationToken token)
-    {
-        if (captured.Members.IsEmpty)
-            return;
-        var failures = new List<(SelectedSessionIdentity, Exception)>();
-        var current = CurrentRun(captured);
-        if (current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
-        {
-            failures.AddRange(await SendToExactAsync(
-                current, _ => [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
-        }
-        await CloseProjectionFailuresAsync(failures, captured.RunId).ConfigureAwait(false);
-    }
+    public ValueTask ProjectCurrentHostAsync(BossTowerSnapshot captured, CancellationToken token) => PartyStages.ProjectCurrentHostAsync(captured, token);
 
     public async ValueTask ReprojectCompletionAsync(BossTowerActionContext context, CancellationToken token)
     {
@@ -522,160 +486,28 @@ public sealed class BossTowerProjectionDelivery(
         return failures;
     }
 
-    private async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> ProjectActionAsync(
-        BossTowerActionResult action, IGameServerMessage? shared,
-        CancellationToken token, SelectedSessionIdentity? requester = null, IGameServerMessage? requesterResponse = null)
-    {
-        var failures = new List<(SelectedSessionIdentity, Exception)>();
-        var run = action.Run!;
-        foreach (var member in ExactMembers(run))
-        {
-            try
-            {
-                var frames = new List<IGameServerMessage>();
-                var kill = action.KillRewards.SingleOrDefault(value => value.Session == member);
-                if (kill is not null)
-                {
-                    await AppendExperienceAsync(frames, member, kill.Award, token).ConfigureAwait(false);
-                    AppendInventory(frames, kill.InventoryUpdates, clock.GetUtcNow());
-                    AppendQuest(frames, kill.QuestProgress);
-                }
-                if (requesterResponse is not null && member == requester) frames.Add(requesterResponse);
-                if (shared is not null) frames.Add(shared);
-                if (action.SettlementCreated
-                    && run.Completion is { Settled: true, Receipt: { } receipt }
-                    && receipt.Members.SingleOrDefault(value => value.Session == member) is { } settlement)
-                    await AppendSettlementAsync(frames, run, settlement, receipt, member, token).ConfigureAwait(false);
-                if (frames.Count > 0)
-                    await SendCommittedBatchAsync(run, member,
-                        new GameExplicitMessageDelivery(frames, []), token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception error)
-            {
-                failures.Add((member, error));
-            }
-        }
-        return failures;
-    }
+    private ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> ProjectActionAsync(
+        BossTowerActionResult action, IGameServerMessage? shared, CancellationToken token,
+        SelectedSessionIdentity? requester = null, IGameServerMessage? requesterResponse = null) =>
+        PartyStages.ProjectActionAsync(action, shared, token, requester, requesterResponse);
 
-    private async ValueTask SendCommittedBatchAsync(BossTowerSnapshot run,
-        SelectedSessionIdentity member, GameExplicitMessageDelivery batch, CancellationToken token)
-    {
-        try
-        {
-            await sender.SendExplicitAsync(member.ConnectionId, batch, token).ConfigureAwait(false);
-        }
-        catch (Exception) when (!token.IsCancellationRequested)
-        {
-            // The first attempt may have sent part of the batch. Only replay these committed
-            // projections; never execute the reward again.
-            if (!Exact(member, run)
-                || !Equals(towers.Find(member)?.Completion?.Receipt, run.Completion?.Receipt))
-                throw;
-            await sender.SendExplicitAsync(member.ConnectionId, batch, token).ConfigureAwait(false);
-        }
-    }
 
-    private async ValueTask AppendSettlementAsync(List<IGameServerMessage> frames,
-        BossTowerSnapshot run, TowerMemberSettlementReceipt member, TowerSettlementReceipt receipt,
-        SelectedSessionIdentity session, CancellationToken token)
-    {
-        if (member.Award is { } award)
-        {
-            await AppendExperienceAsync(frames, session, award, token).ConfigureAwait(false);
-            AppendQuest(frames, member.QuestProgress);
-        }
-        else
-            AppendQuest(frames, member.QuestProgress);
-        foreach (var group in member.InventoryUpdates.GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
-        {
-            frames.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(
-                group.Key,
-                group.Select(update =>
-                {
-                    var slot = SlotMappings.ToGameSlot(update.Slot);
-                    return new InventoryItemState(update.Item.ItemUid, slot.Index, update.Item.ToCore());
-                }).ToArray(), run.Completion!.CompletedAt)));
-        }
-        if (member.Gold > 0)
-            frames.Add(GameInventoryDelivery.CarriedGoldNotification(member.GoldBalance, run.Completion!.CompletedAt));
-        frames.Add(new BossTowerRewardNotification(member.Experience,
-            receipt.Members.Where(value => value.Slot < 8)
-                .ToDictionary(value => value.Slot, value => value.Candidates)));
-        frames.Add(new BossTowerContinueNotification(
-            await towers.CanRetryAsync(Context(run, session), token).ConfigureAwait(false)));
-    }
 
-    private async ValueTask AppendExperienceAsync(List<IGameServerMessage> frames,
-        SelectedSessionIdentity session, ExperienceAward award, CancellationToken token)
-    {
-        var skillPoints = await characters.Get(session.CharacterId)
-            .RemainingSkillPointsAsync(token).ConfigureAwait(false);
-        if (skillPoints is not null)
-            frames.Add(new ExperienceNotification(award.Level, award.NotificationTotal, skillPoints,
-                AccountHonorLevel.Initial, ExperienceBonusLines.Of(award)));
-    }
 
-    private static void AppendInventory(List<IGameServerMessage> frames,
-        IReadOnlyList<TowerInventoryUpdate> updates, DateTimeOffset at)
-    {
-        foreach (var group in updates.GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
-            frames.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
-                group.Select(update =>
-                {
-                    var slot = SlotMappings.ToGameSlot(update.Slot);
-                    return new InventoryItemState(update.Item.ItemUid, slot.Index, update.Item.ToCore());
-                }).ToArray(), at)));
-    }
 
-    private static void AppendQuest(List<IGameServerMessage> frames,
-        Dfo.Server.Abstractions.Quests.QuestProgressSnapshot? progress)
-    {
-        if (progress is null) return;
-        frames.Add(new AcceptedQuestProgressMessage(
-            [.. progress.Quests.OrderBy(quest => quest.Slot)
-                .Select(quest => new AcceptedQuestProgressState(
-                    checked((ushort)quest.QuestId), unchecked((uint)quest.TriggerValue)))]));
-    }
+    private ValueTask AppendExperienceAsync(List<IGameServerMessage> frames, SelectedSessionIdentity session,
+        ExperienceAward award, CancellationToken token) => PartyStages.AppendExperienceAsync(frames, session, award, token);
+
+    private static void AppendInventory(List<IGameServerMessage> frames, IReadOnlyList<TowerInventoryUpdate> updates, DateTimeOffset at) =>
+        BossTowerPartyCommandStages.AppendInventory(frames, updates, at);
+
+    private static void AppendQuest(List<IGameServerMessage> frames, Dfo.Server.Abstractions.Quests.QuestProgressSnapshot? progress) =>
+        BossTowerPartyCommandStages.AppendQuest(frames, progress);
 
     private async ValueTask ReturnMembersIsolatedAsync(IReadOnlyList<SelectedSessionIdentity> returning,
-        IGameServerMessage? response, List<(SelectedSessionIdentity, Exception)> failures,
-        CancellationToken token, bool restoreInventory)
+        IGameServerMessage? response, List<(SelectedSessionIdentity, Exception)> failures, CancellationToken token, bool restoreInventory)
     {
-        var entries = new List<TownAreaEntry>();
-        foreach (var member in returning.Distinct())
-        {
-            if (!sessions.IsInWorld(member)) continue;
-            try
-            {
-                var runtime = await currentViews.TryLoadAsync(member, token).ConfigureAwait(false);
-                var position = onlineCharacters.PositionOf(member);
-                if (runtime is null || position is null) continue;
-                if (response is not null)
-                    await sender.SendExplicitAsync(member.ConnectionId,
-                        new GameExplicitMessageDelivery([response], []), token).ConfigureAwait(false);
-                if (restoreInventory)
-                {
-                    var restored = await currentState.RefreshAsync(runtime, token).ConfigureAwait(false);
-                    await sender.SendExplicitAsync(member.ConnectionId, new GameExplicitMessageDelivery([
-                        new InventoryFullSnapshotMessage(restored.CharacterInventory.Containers.Single(value => value.ContainerType == InventoryContainerType.Main),
-                            restored.CharacterInventory, restored.AccountInventory, restored.World.PreparedAt)], []), token).ConfigureAwait(false);
-                }
-                entries.Add(new TownAreaEntry(member, runtime, position));
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception error)
-            {
-                failures.Add((member, error));
-            }
-        }
+        var entries = await PartyStages.CaptureReturnEntriesAsync(returning, response, failures, token, restoreInventory).ConfigureAwait(false);
         if (entries.Count == 0) return;
         try
         {
@@ -731,62 +563,19 @@ public sealed class BossTowerProjectionDelivery(
                     .Select(value => (value.Session.CharacterId, value.Slot)));
     }
 
-    private bool Exact(SelectedSessionIdentity session, BossTowerSnapshot expected) =>
-        sessions.IsInWorld(session)
-        && towers.Find(session) is { } current
-        && current.RunId == expected.RunId && current.Room.Version == expected.Room.Version;
+    private bool Exact(SelectedSessionIdentity session, BossTowerSnapshot expected) => PartyStages.Exact(session, expected);
 
-    private IReadOnlyList<SelectedSessionIdentity> ExactMembers(BossTowerSnapshot run) =>
-        run.Members.OrderBy(value => value.Slot).Select(value => value.Session)
-            .Where(member => sessions.IsInWorld(member)
-                && towers.Find(member) is { } current
-                && current.RunId == run.RunId
-                && current.Room.Version == run.Room.Version).ToArray();
+    private IReadOnlyList<SelectedSessionIdentity> ExactMembers(BossTowerSnapshot run) => PartyStages.ExactMembers(run);
 
-    private BossTowerSnapshot? CurrentRun(BossTowerSnapshot captured)
-    {
-        foreach (var member in captured.Members.OrderBy(value => value.Slot))
-        {
-            if (!sessions.IsInWorld(member.Session))
-                continue;
-            if (towers.Find(member.Session) is { } current
-                && current.RunId == captured.RunId
-                && current.Room.Version == captured.Room.Version)
-            {
-                return current;
-            }
-        }
-        return null;
-    }
+    private BossTowerSnapshot? CurrentRun(BossTowerSnapshot run) => PartyStages.CurrentRun(run);
 
-    private async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> SendToExactAsync(
-        BossTowerSnapshot run,
-        Func<SelectedSessionIdentity, IReadOnlyList<IGameServerMessage>> frames, CancellationToken token)
-    {
-        var failures = new List<(SelectedSessionIdentity, Exception)>();
-        foreach (var member in ExactMembers(run))
-        {
-            try
-            {
-                await sender.SendExplicitAsync(member.ConnectionId,
-                    new GameExplicitMessageDelivery(frames(member), []), token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception error)
-            {
-                failures.Add((member, error));
-            }
-        }
-        return failures;
-    }
+    private ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> SendToExactAsync(BossTowerSnapshot run,
+        Func<SelectedSessionIdentity, IReadOnlyList<IGameServerMessage>> frames, CancellationToken token) => PartyStages.SendToExactAsync(run, frames, token);
 
-    private static SelectedSessionIdentity[] Members(BossTowerSnapshot run) => run.Members.Select(value => value.Session).ToArray();
+    private static SelectedSessionIdentity[] Members(BossTowerSnapshot run) => BossTowerPartyCommandStages.Members(run);
 
     private static BossTowerActionContext Context(BossTowerSnapshot run, SelectedSessionIdentity session) =>
-        new(session, run.RunId, run.Room.Version);
+        BossTowerPartyCommandStages.Context(run, session);
 
     public static bool Stale(GameMessageMetadata metadata) =>
         metadata.InboundOrdinal is > 0 && !metadata.SequenceIsFresh;
@@ -804,24 +593,10 @@ public sealed class BossTowerProjectionDelivery(
         sender.SendExplicitAsync(connection,
             new GameExplicitMessageDelivery([new SelectDungeonRefusal(code, context)], []), token);
 
-    private async ValueTask CloseQuietlyAsync(SelectedSessionIdentity session)
-    {
-        if (!sessions.IsInWorld(session))
-            return;
-        await connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None).ConfigureAwait(false);
-    }
+    private ValueTask CloseQuietlyAsync(SelectedSessionIdentity session) => PartyStages.CloseQuietlyAsync(session);
 
-    private async ValueTask CloseProjectionFailuresAsync(
-        IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures, Guid runId)
-    {
-        foreach (var (session, error) in failures.DistinctBy(value => value.Session))
-        {
-            logger.LogWarning(error,
-                "Boss tower post-commit projection failed for exact session {ConnectionId} in run {RunId}",
-                session.ConnectionId, runId);
-            await CloseQuietlyAsync(session).ConfigureAwait(false);
-        }
-    }
+    private ValueTask CloseProjectionFailuresAsync(IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures, Guid runId) =>
+        PartyStages.CloseProjectionFailuresAsync(failures, runId);
 }
 
 public sealed class BossTowerDepartureProjectionQueue
