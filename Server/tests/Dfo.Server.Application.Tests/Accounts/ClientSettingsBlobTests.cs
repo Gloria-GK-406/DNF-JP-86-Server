@@ -309,12 +309,10 @@ public sealed class ClientSettingsBlobTests
             new NetworkConnectionContext(origin.Connection.ConnectionId, NetworkEndpointKind.Game,10011));
         var main=Enumerable.Range(0,150).Select(i=>(byte)i).ToArray();
         byte[] keys=[65,9,49,10,0]; var chat=Enumerable.Repeat((byte)99,300).ToArray();
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
-            await f.Services.GetRequiredService<SaveGameOption1Handler>().HandleAsync(dispatch,new SaveGameOption1Request(GameMessageMetadata.Empty,main),default);
-            await f.Services.GetRequiredService<SaveQuickChatHandler>().HandleAsync(dispatch,new SaveQuickChatRequest(GameMessageMetadata.Empty,1,chat),default);
-            await f.Services.GetRequiredService<SaveHotkeysHandler>().HandleAsync(dispatch,new SaveHotkeysRequest(GameMessageMetadata.Empty,keys),default);
-        });
+        var dispatcher = f.Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkMessageDispatcher>();
+        await dispatcher.DispatchAsync(dispatch,new SaveGameOption1Request(GameMessageMetadata.Empty,main),default);
+        await dispatcher.DispatchAsync(dispatch,new SaveQuickChatRequest(GameMessageMetadata.Empty,1,chat),default);
+        await dispatcher.DispatchAsync(dispatch,new SaveHotkeysRequest(GameMessageMetadata.Empty,keys),default);
         var state=await f.Services.GetRequiredService<IAccountEntryStateDomainService>().LoadSettingsAsync(new(1),default);
         Assert.Equal(main,state.MainGameOptions); Assert.Equal(chat,state.QuickChatBank1);
         Assert.Equal(keys,Assert.Single(state.HotkeyProfiles).Payload);
