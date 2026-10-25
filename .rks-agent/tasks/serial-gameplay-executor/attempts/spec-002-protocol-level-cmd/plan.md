@@ -10,7 +10,9 @@ state: ready
 
 ## Planning Choice
 
-本 Plan 当前为 **P8 ready R1**。TASK-39 旧路径表征已通过；接入真实显式工作单元时发现，现有 `NonRequest` 只允许一个入站 actor，不能表达两塔离队对其他队员的效果调用。P8 仅补共享显式足迹的多 owner 声明，保留原事务点和独立的失败保护参与者集合；功能簇次序、Spec B6 及已追加变化表、根／子契约和中心方案不变。依据和详细执行范围见 TASK-39 下方的边界裁定。按 process-reset §4，仅重复受影响的独立 Plan review，无挑战；审查和主控消费前不实施该机制增量。以下 P7 段落保留为此前已接受规划的历史说明。
+本 Plan 当前为 **P9 ready R2**，承接待独立审查的 **Spec B7 ready R1**。TASK-45核实：普通击杀成功投影之后原地唤醒AltarScheduler，但现有CMD封闭注入清单缺少该纯调度信号；移到薄handler会越过当前作业／scope边界。P9只补`IAltarSchedulerWakeSignal.Wake()`这一具名技术能力，复用原同一个AltarWakeSignal及其Channel；不新增事件系统、命令入队能力或领域服务转发门面。它跨T-007／T-008／T-010消费，故按process-reset §4做一次有界Plan补充。B7仅明确RQ-009的祭坛纯唤醒类别及AC-001对应验收，其他RQ／AC、根／子契约、中心方案、功能簇顺序不变；同TASK-45唯一独立Astra先审B7、通过后审本增量，最后审Result，无挑战。主控消费及规划检查点前不实施该接口／白名单增量。
+
+此前 **P8 ready R1** 已获批准。TASK-39 旧路径表征已通过；接入真实显式工作单元时发现，现有 `NonRequest` 只允许一个入站 actor，不能表达两塔离队对其他队员的效果调用。P8 仅补共享显式足迹的多 owner 声明，保留原事务点和独立的失败保护参与者集合；功能簇次序、Spec B6 及已追加变化表、根／子契约和中心方案不变。依据和详细执行范围见 TASK-39 下方的边界裁定。按 process-reset §4，仅重复受影响的独立 Plan review，无挑战；审查和主控消费前不实施该机制增量。以下 P7 段落保留为此前已接受规划的历史说明。
 
 本Plan P7 ready R1承接Contract r1及fresh independent approved的Spec B6（reviews/spec-b6-review.md；匹配immutable reviews/spec-b6-challenges.md high0/low0），主控已在verification/spec-b6-plan-p7-controller-consumption.md消费Spec门。baseline仍为10a7218a779493494b138bd6b43cc0fc1a84aa6a，当前HEAD为TASK-32检查点17d924a06b1237ca2b4f5997983c0a4923dfc050。Task31已交Mailbox，Task32只交四remaining opening与Rental旧边界调查；T-004/T-005仍未全闭。本次落实B6 HOW：先单独修旧正常确认回滚记账/NoRoom，再逐具名补旧encoder oracle并迁四opening及Rental whole，保各自恢复/提交点和显式足迹，明列whole scope/独立刷新默认保护。现十个WriteResult消费者/原三个raw类型及其他owner、Mailbox唯一self能力、默认sticky、Compose禁用/F-132保持。依据和原P6逐bytes快照见verification/plan-p7-amendment.md及verification/evidence/plan-p7-amendment/plan-p6-before.md。17RQ/11AC、根/child、A、task-units/on-drift及T-006～012责任不变；VC-B6由approved B6拥有。本ready仅表示高层路线可审，须本P7 fresh challenge、另一fresh独立Plan review、主控消费及amendment-only本地检查点后，才详细规划下一Task；writer不自批、不改routing、不建Task、不运行native或写产品/正式测试。
 
@@ -162,6 +164,7 @@ replay旧ReadReplayStateCommand的实际注册是Transactional，故新路径在
 | IGameCommandOutbox | Protocol/Game / Protocol/Game | RegisterCmdAsync、RegisterNotiAsync及typed batch/explicit；沿现有attempt重载将同一opaque对象传至前项，原typed转换在encoder来源catch之外，保CMD/NOTI类型和exact physical connection，不签发/改phase或包装任意业务Func。Application不知道CollectionBox等协议类型 |
 | ICommandConnectionClosures | Abstractions/Networking / Application/Execution/Outbox | RequestCloseAsync只登记精确关闭；维持close总执行、链原因与F-131现状，不直接断socket |
 | ICommandProjections | Abstractions/DomainEvents / Application/DomainEvents | 仅ProjectAsync并返回登记结果；EventService同一实例实现此窄契约，不暴露Enqueue/Direct或重建第二事件系统。领域事实仍由实际领域服务记录 |
+| IAltarSchedulerWakeSignal | Abstractions/World / 原Protocol AltarWakeSignal | 仅无参数同步Wake，尝试写入原容量1、DropWrite Channel；不读写世界、不传callback／request、不入队CMD、不暴露Wait或任意调度。whole仅在原祭坛唤醒位置调用；Scheduler仍是原生产者，Wait／deadline／coalescing不变，同DI对象无第二Channel。 |
 | IOutboundOrdering | 既有Abstractions/Execution / Application发件箱 | 仅显式跨收件人顺序组作用域；不改变Required/BestEffort/逐连接语义 |
 | IInventorySlotMappingRuleService | 既有Abstractions/Inventory / 原实现 | 仅协议槽位与BusinessSlot的固定地址换算这一既有例外，不允许任意规则服务 |
 | ILogger<T> | 原日志框架 | 业务拒绝/producer降级等原级别；不可重复记录执行器已负责的异常Error |
@@ -367,3 +370,13 @@ P7（2026-10-25，Task32检查点之后）：消费fresh approved B6，先独立
 ### P8（2026-10-25）：TASK-39 多 owner 无账本足迹
 
 补齐既定显式足迹方案对非入站队员效果的表达能力，新增独立声明模式，保留单 actor NonRequest 及独立失败保护集合。只改变跨簇共享 HOW；不改 RQ／AC、中心方案、原保护范围或外部授权。受影响审查见 `reviews/task-39-plan-review.md`，未批准前不实施机制增量。
+
+### P9（2026-10-25）：TASK-45 祭坛纯唤醒接缝
+
+R1独立审查指出Spec RQ-009未包含纯唤醒类别，主控接受；本R2以B7的具名能力及验收边界为前置，不再由Plan自行扩张封闭清单。
+
+实际依据：`MonsterDeathSlice.cs @ cc212b99`在成功death／clear投影后调用`AltarProjectionDelivery.Wake`，其唯一动作是`AltarWakeSignal.Wake`写原bounded Channel。`NetworkMessageDispatcher.DispatchProtocolAsync`的薄handler在执行器外；把wake放在SendAsync返回之后会改变FIFO机会以及whole scope失败时是否发出信号，不能作为等价迁移。也不能把Action／signal塞进command输入、假借DomainService名称或扩ICommandProjections.Direct绕过边界。
+
+新增Abstractions/World的`IAltarSchedulerWakeSignal`仅声明`void Wake()`。原Protocol/AltarWakeSignal实现它，ProtocolModule把接口alias到同singleton；原Scheduler仍持有原实例的Wait，未迁Delivery／Coordinator继续原调用。仅为此精确接口在构造器判据添加具名理由，任意相似接口、旧Delivery、完整signal具体类型与队列继续拒绝。新MonsterDeath whole在原body／try中、原先所有投影之后调用；不推迟到外层handler或发件箱发送，不提早到领域Commit。不新增Main／footprint／raw／Self／恢复或调度状态，不关闭Timer来源行。
+
+实现验收：正式旧新测试观察wake仍在当前job且在成功death／clear投影之后；相同scope故障前信号仍发生，投影先失败时不唤醒。验证interface与原signal／scheduler同一个实例，重复wake仍按原Channel合并、取消／deadline等待保持；保旧Altar调度器原正式用例。新增白名单正反例，不用接口命名绕过判据。冻结后Release build及八项目fresh full，原并行／5m／DFO与逐用例库存保持；此处仅规划，未冒执行通过。受影响Plan审查单独记录，主控批准规划检查点后才实施；最终同Task结果快审再次验证真实产品。

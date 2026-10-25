@@ -82,3 +82,8 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
 ## TASK-39：P8 受影响 Plan 门（2026-10-25）
 
 Plan P8 ready R1 的独立审核 `reviews/task-39-plan-review.md` 已 approved，主控消费记在 TASK-39。增量只补两塔所需的显式多 owner 无账本足迹，并与原失败保护 Participants 分离；Cera 单 actor、原保护范围、根／子、Spec 和中心方案保持。按新流程不生成挑战、不建取证 Task；既有执行者继续，唯一独立 reviewer 后续复核完整 Task 结果。当前 plan-review override 为 `reviews/task-39-plan-review.md`，旧 P7 门保留历史效力；本次结果／全量尚未完成。
+
+
+## TASK-45：B7／P9 受影响门（2026-10-25）
+
+独立 `reviews/task-45-plan-review.md` R1 指出 Spec RQ-009 未授权祭坛纯唤醒类别，主控接受并仅定点修订 B7；同一独立 Astra 在 R2 先批准 Spec B7 ready R1，再批准 Plan P9 ready R2。主控消费写在 TASK-45，先提交五份规划文档再实施接口／判据。当前受影响 spec-review 与 plan-review 均指向该文件的各自 R2 结论，旧门只保历史效力；按新流程无挑战、无额外取证 Task。根／子／中心不变，Timer 来源未闭合；此批准不代完整 Task 结果快审或最终八项目核验。
