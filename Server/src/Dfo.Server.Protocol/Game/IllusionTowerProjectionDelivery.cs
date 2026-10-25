@@ -59,43 +59,6 @@ public sealed class IllusionTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> PickupAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, ushort groundUid, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        var failures = new List<(SelectedSessionIdentity, Exception)>();
-        if (!Exact(session, expected)) return true;
-        var picked = await commands.SendAsync(new PickupTowerItemCommand(Context(expected, session), groundUid), token).ConfigureAwait(false);
-        if (!picked.Action.Changed || picked.Action.Run is not { } run || picked.Update is not { } update)
-        {
-            if (picked.NoRoom) await sender.SendExplicitAsync(connectionId,
-                new GameExplicitMessageDelivery([new GetItemResponse(false)], []), token).ConfigureAwait(false);
-            return true;
-        }
-        foreach (var member in ExactMembers(run))
-        {
-            try
-            {
-                var frames = new List<IGameServerMessage>();
-                if (member == session)
-                {
-                    frames.Add(new GetItemResponse(true));
-                }
-                frames.Add(new GroundPickupNotification(groundUid, session.WireUserId,
-                    checked((ushort)SlotMappings.ToGameSlot(update.Slot).Index)));
-                if (member == session) AppendInventory(frames, [update], clock.GetUtcNow());
-                await SendCommittedBatchAsync(run, member, new GameExplicitMessageDelivery(frames, []), token).ConfigureAwait(false);
-            }
-            catch (Exception error) when (error is not OperationCanceledException || !token.IsCancellationRequested)
-            { failures.Add((member, error)); }
-        }
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<bool> DieAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
     {

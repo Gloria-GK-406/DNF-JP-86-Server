@@ -20,13 +20,17 @@ public sealed class MarriageCapsuleItemUseTests
         var run=f.InTransaction(()=>runs.PreparePartyEntry([new(f.Session.AccountId,f.Session.CharacterId,0,true)],layout,0,
             new(cell,1,1,[],[new(7,10002915,1,0,false,Dfo.Server.Abstractions.World.DungeonGroundItemSource.FromActor(1))]),
             Dfo.Server.Abstractions.World.DungeonRunId.New(),DateTimeOffset.UtcNow)).Run;
-        var commands=f.Services.GetRequiredService<ICommandBus>();
+        async ValueTask<Dfo.Server.Protocol.Game.GroundPickup.GroundPickupResult> PickUp(ushort drop) => await Dfo.Server.Testing.TestGameplay.RunAsync(f.Services,async()=>
+        {
+            await using var scope=((Dfo.Server.Application.Transactions.DomainTransactionScope)f.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>()).Begin();
+            var result=await ActivatorUtilities.CreateInstance<Dfo.Server.Application.Tests.Support.GroundPickupAlgorithmDriver>(f.Services).PickUpAsync(new(f.Session.AccountId,f.Session.CharacterId,drop,run.RunId,run.RoomVersion),default);
+            await scope.CommitAsync(default);return result;
+        });
         var number=Assert.Single(run.CurrentCellState.GroundItems).Number;
-        var request=new Dfo.Server.Protocol.Game.GroundPickup.PickUpGroundDropCommand(f.Session.AccountId,f.Session.CharacterId,number,run.RunId,run.RoomVersion);
-        var result=await commands.SendAsync(request);
+        var result=await PickUp(number);
         Assert.Equal(Dfo.Server.Protocol.Game.GroundPickup.GroundPickupStatus.PickedUp,result.Status);
         Assert.Equal(1,f.Count(10002915));Assert.Null(runs.Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(number));
-        Assert.NotEqual(Dfo.Server.Protocol.Game.GroundPickup.GroundPickupStatus.PickedUp,(await commands.SendAsync(request)).Status);
+        Assert.NotEqual(Dfo.Server.Protocol.Game.GroundPickup.GroundPickupStatus.PickedUp,(await PickUp(number)).Status);
         Assert.Equal(1,f.Count(10002915));
     }
     [SkippableFact]

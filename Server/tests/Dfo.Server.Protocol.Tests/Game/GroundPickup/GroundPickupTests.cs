@@ -12,6 +12,7 @@ using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Testing;
+using Dfo.Server.Protocol.Tests.Support;
 
 namespace Dfo.Server.Protocol.Tests.Game.GroundPickup;
 
@@ -51,18 +52,18 @@ public sealed class GroundPickupTests
         },
         BasisLevel: 86);
 
-    private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
+    private static (GroundPickupAlgorithmDriver Handler, DungeonRunDomainService Runs,
         FakeContainer Bag, CarriedGold Carried) Build()
         => Build(new NoSeekingProgress());
 
-    private static (PickUpGroundDropCommandHandler Handler, DungeonRunDomainService Runs,
+    private static (GroundPickupAlgorithmDriver Handler, DungeonRunDomainService Runs,
         FakeContainer Bag, CarriedGold Carried) Build(
         ISeekingQuestProgressDomainService seeking)
     {
         var runs = new DungeonRunDomainService();
         var bag = new FakeContainer();
         var carried = new CarriedGold(0);
-        var handler = new PickUpGroundDropCommandHandler(
+        var handler = new GroundPickupAlgorithmDriver(
             runs,
             new GroundPickupDomainService(),
             new StubContainers(bag),
@@ -73,10 +74,9 @@ public sealed class GroundPickupTests
     }
 
     private static ValueTask<GroundPickupResult> PickUp(
-        PickUpGroundDropCommandHandler handler, ushort number) =>
-        handler.HandleAsync(
-            default!,
-            new PickUpGroundDropCommand(Account, Character, number),
+        GroundPickupAlgorithmDriver handler, ushort number) =>
+        handler.PickUpAsync(
+            new GroundPickupInput(Account, Character, number),
             CancellationToken.None);
 
     /// <summary>What 铁脊蛇矛's own file declares.</summary>
@@ -169,9 +169,8 @@ public sealed class GroundPickupTests
                 1, 30001, TheWeapon() with { OwnerCharacterId = Character });
             _ = BeginWithItems(runs, [dropped], party);
 
-            var refused = await handler.HandleAsync(
-                default!,
-                new PickUpGroundDropCommand(HelperAccount, Helper, dropped.Number),
+            var refused = await handler.PickUpAsync(
+                new GroundPickupInput(HelperAccount, Helper, dropped.Number),
                 CancellationToken.None);
 
             Assert.Equal(GroundPickupStatus.NotOwner, refused.Status);
@@ -474,7 +473,7 @@ public sealed class GroundPickupTests
             var physical = new Dfo.Server.Protocol.Tests.Support.LifecycleTestContainer(InventoryContainerType.Pet, Character, fixture);
             var bag = new BusinessItemContainer(BusinessInventorySpace.CreatureInventory, physical);
             var runs = new DungeonRunDomainService();
-            var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(),
+            var handler = new GroundPickupAlgorithmDriver(runs, new GroundPickupDomainService(),
                 new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
                 new QuestProgressFromSeeking(new NoSeekingProgress()), new CreatureDropGrant(fixture, bag));
             const ushort actor = 30001;
@@ -527,7 +526,7 @@ public sealed class GroundPickupTests
                 }
                 var runs = new DungeonRunDomainService(scope);
                 var bag = new FakeContainer { IsFull = true };
-                var handler = new PickUpGroundDropCommandHandler(runs, new GroundPickupDomainService(), new StubContainers(bag),
+                var handler = new GroundPickupAlgorithmDriver(runs, new GroundPickupDomainService(), new StubContainers(bag),
                     new OnePlayingCharacter(new CarriedGold(0)), new QuestProgressFromSeeking(new NoSeekingProgress()),
                     new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), book);
                 BeginWithItems(runs, [MonsterItem(1, 30001, new(piece, 3, DropRarity.Epic, DropItemKind.Stackable, 0)),

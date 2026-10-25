@@ -102,9 +102,9 @@ public sealed class QuestClearVerticalTests
                     new ItemLifecycleDomainService(itemStore,
                         provider.GetRequiredService<IDomainTransactionAccessor>(), PlacementRules())));
             services.AddCommandHandler<
-                PickUpGroundDropCommand,
+                GroundPickupDomainCommand,
                 GroundPickupResult,
-                PickUpGroundDropCommandHandler>(CommandExecutionKind.Transactional);
+                GroundPickupDomainCommandHandler>(CommandExecutionKind.Transactional);
             await using var provider = services.BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
@@ -157,7 +157,7 @@ public sealed class QuestClearVerticalTests
 
             var drop = Assert.Single(afterDeath.CurrentCellState.GroundItems);
             var pickup = await provider.GetRequiredService<ICommandBus>().SendAsync(
-                new PickUpGroundDropCommand(
+                new GroundPickupDomainCommand(
                     LeaderAccount,
                     Leader,
                     drop.Number,
@@ -181,9 +181,9 @@ public sealed class QuestClearVerticalTests
                 var registry = new DungeonRunDeliveryRegistry();
                 registry.Register(run.RunId, [LeaderSession, HelperSession]);
                 var sender = new RecordingSender();
-                var projection = new DungeonPickupProjectionDelivery(
+                var projection = new PickupProjectionDriver(
                     sessions, registry, sender, TimeProvider.System);
-                var postCommit = new DungeonPickupPostCommitCoordinator(
+                var postCommit = new PickupClearDriver(
                     clear,
                     new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
                 Assert.Null(await postCommit.EvaluateAsync(LeaderSession, pickup));

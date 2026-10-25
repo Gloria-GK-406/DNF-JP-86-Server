@@ -59,11 +59,3 @@ public sealed class SelectBossTowerResultCommandHandler(IBossTowerDomainService 
         SelectBossTowerResultCommand command, CancellationToken token) =>
         towers.SelectResultAsync(command.Context, command.Option, token);
 }
-
-public sealed record PickupBossTowerItemCommand(BossTowerActionContext Context, ushort GroundUid) : BossTowerActionCommand(Context), ICommand<BossTowerPickupResult>;
-public sealed class PickupBossTowerItemCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult>
-{
-    public ValueTask<BossTowerPickupResult> HandleAsync(CommandExecutionContext context, PickupBossTowerItemCommand command, CancellationToken token) =>
-        towers.PickupAsync(command.Context, command.GroundUid, token);
-}

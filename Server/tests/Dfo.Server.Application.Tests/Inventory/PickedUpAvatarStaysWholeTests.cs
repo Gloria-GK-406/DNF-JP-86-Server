@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.GroundPickup;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Testing;
+using Dfo.Server.Application.Tests.Support;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -321,10 +322,9 @@ public sealed class PickedUpAvatarStaysWholeTests
     }
 
     private static ValueTask<GroundPickupResult> PickUp(
-        PickUpGroundDropCommandHandler handler, ushort number, CancellationToken cancellationToken) =>
-        handler.HandleAsync(
-            default!,
-            new PickUpGroundDropCommand(new AccountId(Account), Who, number),
+        GroundPickupAlgorithmDriver handler, ushort number, CancellationToken cancellationToken) =>
+        handler.PickUpAsync(
+            new GroundPickupInput(new AccountId(Account), Who, number),
             cancellationToken);
 
     private static IItemContainer Bag(InventorySide side,
@@ -353,7 +353,7 @@ public sealed class PickedUpAvatarStaysWholeTests
     /// </remarks>
     private static async Task WithASeededCharacterAsync(
         ServiceProvider content,
-        Func<InventorySide, PickUpGroundDropCommandHandler, DungeonRunDomainService, Task> body)
+        Func<InventorySide, GroundPickupAlgorithmDriver, DungeonRunDomainService, Task> body)
     {
         var placements = content.GetRequiredService<IItemPlacementDefinitionSource>();
         var path = Path.Combine(Path.GetTempPath(), $"dfo-picked-avatar-{Guid.NewGuid():N}.db");
@@ -376,7 +376,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             side.BindList(InventoryContainerType.Avatar, Character, placements: placements);
 
             var runs = new DungeonRunDomainService();
-            var handler = new PickUpGroundDropCommandHandler(
+            var handler = new GroundPickupAlgorithmDriver(
                 runs,
                 new GroundPickupDomainService(),
                 side.Containers,

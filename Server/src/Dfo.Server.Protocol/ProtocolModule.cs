@@ -433,8 +433,6 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<EliminateTournamentCommand, TournamentCommandResult, EliminateTournamentCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.TryAddSingleton<DungeonPickupProjectionDelivery>();
-        services.TryAddSingleton<DungeonPickupPostCommitCoordinator>();
         services.TryAddSingleton<DungeonClearProjectionDelivery>();
         services.TryAddSingleton<DungeonCardSelectionProjectionDelivery>();
         services.TryAddSingleton(DungeonCardPresentationTiming.Production);
@@ -763,9 +761,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
         // change, and a piece that left the floor without arriving anywhere is the thing to avoid.
-        services.AddCommandHandler<
-            PickUpGroundDropCommand, GroundPickupResult, PickUpGroundDropCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameGetItemCommand, bool, GameGetItemCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGetItem, typeof(GetItemRequest)));
         // The tutorial's level: one row, written once, and the client is told what it now stands at.
         services.AddCommandHandler<
             GrantTutorialLevelCommand, TutorialLevelUpResult, GrantTutorialLevelCommandHandler>(
@@ -900,7 +897,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SelectBossTowerResultCommand, BossTowerActionResult, SelectBossTowerResultCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<PickupBossTowerItemCommand, BossTowerPickupResult, PickupBossTowerItemCommandHandler>(CommandExecutionKind.Transactional);
         services.TryAddSingleton<IllusionTowerProjectionDelivery>();
         services.TryAddSingleton<IllusionTowerPartyCoordinator>();
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
@@ -909,8 +905,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<IllusionTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
-        services.AddCommandHandler<PickupTowerItemCommand, TowerPickupResult,
-            PickupTowerItemCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DieInIllusionTowerCommand, TowerActionResult,
             DieInIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,
@@ -922,7 +916,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameIllusionTowerStageCommand, bool, GameMapLoadingCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
         services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);
-        services.RegisterMessageHandler<GetItemHandler>(ClientMessageType.GameGetItem);
+        services.RegisterProtocolMessageHandler<GetItemHandler, GetItemRequest, GameGetItemCommand>(ClientMessageType.GameGetItem);
         services.RegisterMessageHandler<TutorialLevelUpHandler>(ClientMessageType.GameTutorialLevelUp);
         services.RegisterMessageHandler<SetPlayResultHandler>(ClientMessageType.GameSetPlayResult);
         services.RegisterMessageHandler<BossDieCheckHandler>(ClientMessageType.GameBossDieCheck);

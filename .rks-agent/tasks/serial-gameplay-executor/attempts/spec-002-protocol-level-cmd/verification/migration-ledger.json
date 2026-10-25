@@ -7832,25 +7832,34 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 290,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write，直接同私有算法／原塔领域；无Main、raw、Self或footprint。",
+          "old": "普通、Boss与Illusion拾取各一次原Transactional；不把拒绝改为RequireRollback。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-46.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 290,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.GroundPickup.PickUpGroundDropCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.GroundPickup.PickUpGroundDropCommand",
@@ -7877,31 +7886,46 @@
         "result": "Dfo.Server.Protocol.Game.GroundPickup.GroundPickupResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 290,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+        ],
+        "mapping": "c20f4878 GetItem普通与两塔Pickup闭包全部归whole；仅该入口/DI的两拾取编排与塔Pickup段删除，Die/Leave/Timer和共享clear仍保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 290,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 290,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "保原集合与metadata；Boss全部成员仍保护，普通和Illusion仍空，不套Kill owners。",
+          "old": "普通和Illusion空selected；Boss全run selected且仅报告者physical，原metadata。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "同事实与顺序；whole默认生命周期仅VC-B19，两塔拾取精确physical cleanup仅VC-B20；共享closer及contexts准入不变。",
+          "old": "claim/run/version/account/current门、原SQLite与资产、Evaluate先于current投影、两塔逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -12840,25 +12864,34 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 106,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write，直接同私有算法／原塔领域；无Main、raw、Self或footprint。",
+          "old": "普通、Boss与Illusion拾取各一次原Transactional；不把拒绝改为RequireRollback。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-46.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 106,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.PickupBossTowerItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.PickupBossTowerItemCommand",
@@ -12885,52 +12918,76 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerPickupResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 106,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+        ],
+        "mapping": "c20f4878 GetItem普通与两塔Pickup闭包全部归whole；仅该入口/DI的两拾取编排与塔Pickup段删除，Die/Leave/Timer和共享clear仍保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 106,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 106,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "保原集合与metadata；Boss全部成员仍保护，普通和Illusion仍空，不套Kill owners。",
+          "old": "普通和Illusion空selected；Boss全run selected且仅报告者physical，原metadata。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "同事实与顺序；whole默认生命周期仅VC-B19，两塔拾取精确physical cleanup仅VC-B20；共享closer及contexts准入不变。",
+          "old": "claim/run/version/account/current门、原SQLite与资产、Evaluate先于current投影、两塔逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 94,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write，直接同私有算法／原塔领域；无Main、raw、Self或footprint。",
+          "old": "普通、Boss与Illusion拾取各一次原Transactional；不把拒绝改为RequireRollback。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-46.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 94,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.PickupTowerItemCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.PickupTowerItemCommand",
@@ -12957,31 +13014,46 @@
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerPickupResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 94,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+        ],
+        "mapping": "c20f4878 GetItem普通与两塔Pickup闭包全部归whole；仅该入口/DI的两拾取编排与塔Pickup段删除，Die/Leave/Timer和共享clear仍保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 94,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 94,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "保原集合与metadata；Boss全部成员仍保护，普通和Illusion仍空，不套Kill owners。",
+          "old": "普通和Illusion空selected；Boss全run selected且仅报告者physical，原metadata。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "同事实与顺序；whole默认生命周期仅VC-B19，两塔拾取精确physical cleanup仅VC-B20；共享closer及contexts准入不变。",
+          "old": "claim/run/version/account/current门、原SQLite与资产、Evaluate先于current投影、两塔逐成员catch继续。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -22279,26 +22351,35 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 672,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write，直接同私有算法／原塔领域；无Main、raw、Self或footprint。",
+          "old": "普通、Boss与Illusion拾取各一次原Transactional；不把拒绝改为RequireRollback。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-46.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 672,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+      ],
       "id": "message:65579",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler",
@@ -22321,31 +22402,48 @@
         "value": 65579
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 672,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+          "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+        ],
+        "mapping": "c20f4878 GetItem普通与两塔Pickup闭包全部归whole；仅该入口/DI的两拾取编排与塔Pickup段删除，Die/Leave/Timer和共享clear仍保留。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 672,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GroundPickupSlice.cs",
-          "line": 672,
-          "source_sha256": "97bd8e7f6b32b44df116e5c572482b997d93e0d9c15d895d134a6d1805c06cf7"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "保原集合与metadata；Boss全部成员仍保护，普通和Illusion仍空，不套Kill owners。",
+          "old": "普通和Illusion空selected；Boss全run selected且仅报告者physical，原metadata。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task46-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.Pickup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/GroundPickupFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/GetItemHandlerTests.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/GroundPickup/QuestClearVerticalTests.cs"
+          ],
+          "new": "同事实与顺序；whole默认生命周期仅VC-B19，两塔拾取精确physical cleanup仅VC-B20；共享closer及contexts准入不变。",
+          "old": "claim/run/version/account/current门、原SQLite与资产、Evaluate先于current投影、两塔逐成员catch继续。"
+        }
+      ],
       "refs": [
-        "command:Dfo.Server.Protocol.Game.GroundPickup.PickUpGroundDropCommand"
+        "command:Dfo.Server.Protocol.Game.GroundPickup.PickUpGroundDropCommand",
+        "command:Dfo.Server.Protocol.Game.PickupBossTowerItemCommand",
+        "command:Dfo.Server.Protocol.Game.PickupTowerItemCommand"
       ],
       "shared_helper_candidates": [
         "BossTowerProjectionDelivery",
@@ -22356,7 +22454,7 @@
         "GameInventoryDelivery",
         "IllusionTowerProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

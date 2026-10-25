@@ -65,52 +65,6 @@ public sealed class BossTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> PickupAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, ushort groundUid, CancellationToken token)
-    {
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        if (Stale(metadata)) return true;
-        var failures = new List<(SelectedSessionIdentity, Exception)>();
-        if (!Exact(session, expected)) return true;
-        var picked = await commands.SendAsync(new PickupBossTowerItemCommand(Context(expected, session), groundUid) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-        if (!picked.Action.Changed || picked.Action.Run is not { } run)
-        {
-            if (picked.NoRoom) await sender.SendCmdAsync(connectionId, new GetItemResponse(false), token).ConfigureAwait(false);
-            return true;
-        }
-        var item = run.GroundItems.Single(value => value.Uid == groundUid);
-        foreach (var member in ExactMembers(run))
-        {
-            try
-            {
-                var frames = new List<IGameServerMessage>();
-                if (member == session) frames.Add(new GetItemResponse(true));
-                if (item.Rolled.IsGold)
-                    frames.Add(new GroundGoldPickupNotification(groundUid, session.WireUserId, item.Rolled.Count));
-                else
-                {
-                    var update = picked.Action.InventoryUpdates.FirstOrDefault();
-                    frames.Add(new GroundPickupNotification(groundUid, session.WireUserId,
-                        update is null ? (ushort)0 : checked((ushort)SlotMappings.ToGameSlot(update.Slot).Index)));
-                }
-                if (member == session)
-                {
-                    AppendInventory(frames, picked.Action.InventoryUpdates, clock.GetUtcNow());
-                    AppendQuest(frames, picked.Action.QuestProgress);
-                    if (picked.Action.GoldBalance is { } balance)
-                        frames.Add(GameInventoryDelivery.CarriedGoldNotification(balance, clock.GetUtcNow()));
-                }
-                await SendCommittedBatchAsync(run, member, new GameExplicitMessageDelivery(frames, []), token).ConfigureAwait(false);
-            }
-            catch (Exception error) when (error is not OperationCanceledException || !token.IsCancellationRequested)
-            { failures.Add((member, error)); }
-        }
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<bool> DieAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
     {

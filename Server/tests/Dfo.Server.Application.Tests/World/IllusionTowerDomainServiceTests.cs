@@ -103,7 +103,7 @@ public sealed partial class IllusionTowerDomainServiceTests
 
             Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
             Assert.Empty(f.Sender.Messages);
-            await delivery.PickupAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, drop.Uid, default);
+            await Dfo.Server.Application.Tests.Support.GroundPickupRouteDriver.RunAsync(f.Services, new(f.Connection), new(GameMessageMetadata.Empty, drop.Uid));
             Assert.True(Assert.Single(tower.Find(f.Session)!.Room.Items).Claimed);
             await delivery.SweepAsync(f.Clock.GetUtcNow(), default);
             Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
@@ -1733,7 +1733,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(f.Services, f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
             var drop = Assert.Single(tower.Find(f.Session)!.Room.Items);
             f.Sender.Messages.Clear();
-            await f.Services.GetRequiredService<Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler>().HandleAsync(new(f.Connection),
+            await GroundPickupRouteDriver.RunAsync(f.Services, new(f.Connection),
                 new Dfo.Server.Protocol.Game.GroundPickup.GetItemRequest(GameMessageMetadata.Empty, drop.Uid), default);
             Assert.True(Assert.Single(f.Sender.Messages.OfType<Dfo.Server.Protocol.Game.GroundPickup.GetItemResponse>()).Accepted);
             Assert.Equal(drop.Uid, Assert.Single(f.Sender.Messages.OfType<Dfo.Server.Protocol.Game.GroundPickup.GroundPickupNotification>()).GroundDropNumber);

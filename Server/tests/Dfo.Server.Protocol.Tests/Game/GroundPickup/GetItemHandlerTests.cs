@@ -102,9 +102,9 @@ public sealed class GetItemHandlerTests
                 run.RunId,
                 1,
                 [Leader.CharacterId, Helper.CharacterId]));
-            var projection = new DungeonPickupProjectionDelivery(
+            var projection = new PickupProjectionDriver(
                 sessions, registry, sender, TimeProvider.System);
-            var postCommit = new DungeonPickupPostCommitCoordinator(
+            var postCommit = new PickupClearDriver(
                 evaluator,
                 new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
             var result = new GroundPickupResult(
@@ -160,9 +160,9 @@ public sealed class GetItemHandlerTests
             var clear = new DungeonClearDomainService(
                 runs,
                 new ClearedRoom());
-            var projection = new DungeonPickupProjectionDelivery(
+            var projection = new PickupProjectionDriver(
                 sessions, registry, sender, TimeProvider.System);
-            var postCommit = new DungeonPickupPostCommitCoordinator(
+            var postCommit = new PickupClearDriver(
                 clear,
                 new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
             var result = new GroundPickupResult(
@@ -337,7 +337,7 @@ public sealed class GetItemHandlerTests
                 recipients));
 
     private static (
-        DungeonPickupProjectionDelivery Projection,
+        PickupProjectionDriver Projection,
         RecordingSender Sender,
         DungeonRunState Run) Projection(
         IReadOnlyList<SelectedSessionIdentity> frozen,
@@ -356,7 +356,7 @@ public sealed class GetItemHandlerTests
         registry.Register(run.RunId, frozen);
         var sender = new RecordingSender();
         return (
-            new DungeonPickupProjectionDelivery(
+            new PickupProjectionDriver(
                 new Sessions(current), registry, sender, TimeProvider.System),
             sender,
             run);
@@ -387,7 +387,7 @@ public sealed class GetItemHandlerTests
         });
     }
 
-    private static (GetItemHandler Handler, RecordingSender Sender) Build(
+    private static (PickupHandlerDriver Handler, RecordingSender Sender) Build(
         IReadOnlyList<SelectedSessionIdentity> frozen,
         IReadOnlyList<GroundPickupResult> results,
         IReadOnlyList<SelectedSessionIdentity>? current = null)
@@ -402,15 +402,10 @@ public sealed class GetItemHandlerTests
         var deliveries = new DungeonRunDeliveryRegistry();
         deliveries.Register(run.RunId, frozen);
         var sender = new RecordingSender();
-        var projection = new DungeonPickupProjectionDelivery(
+        var projection = new PickupProjectionDriver(
             new Sessions(current ?? frozen), deliveries, sender, TimeProvider.System);
         return (
-            new GetItemHandler(
-                new Sessions(current ?? frozen),
-                runs,
-                new PickupBus(results, run, frozen.Select(value => value.CharacterId).ToArray()),
-                projection,
-                NullLogger<GetItemHandler>.Instance),
+            new PickupHandlerDriver(new Sessions(current ?? frozen),runs,deliveries,results,sender),
             sender);
     }
 
@@ -437,37 +432,36 @@ public sealed class GetItemHandlerTests
     private static NetworkDispatchContext Dispatch(NetworkConnectionId connectionId) =>
         new(new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10010));
 
-    private sealed class PickupBus(
-        IReadOnlyList<GroundPickupResult> results,
-        DungeonRunState run,
-        IReadOnlyList<CharacterId> recipients) : ICommandBus
+    // Calls the same owning whole body, with only its write outcome supplied by this projection fixture.
+    // Production inbound scope/disposal and failure protection are asserted by Application's real-wire oracle.
+    private sealed class PickupHandlerDriver : GameGetItemCommandHandler
     {
-        private int index;
-        private long revision;
-
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default) where TResult : notnull
+        private readonly IDungeonRunDomainService runSource;
+        private readonly DungeonRunDeliveryRegistry registry;
+        private readonly IReadOnlyList<GroundPickupResult> results;
+        internal PickupHandlerDriver(ISelectedSessionDomainService current, IDungeonRunDomainService runSource,
+            DungeonRunDeliveryRegistry registry,IReadOnlyList<GroundPickupResult> results,RecordingSender sender)
+            : base(current,runSource,registry,null!,new RecordingClearEvaluator(null),null!,null!,null!,null!,null!,null!,null!,null!,null!,null!,null!,new DriverOutbox(sender),null!,TimeProvider.System,null!,NullLogger<GameGetItemCommandHandler>.Instance)
+        { this.runSource=runSource;this.registry=registry;this.results=results; }
+        private int index; private long revision;
+        protected override IReadOnlyList<SelectedSessionIdentity> FindRecipients(SelectedSessionIdentity requester,DungeonRunId id)=>registry.Find(id);
+        protected override ValueTask<GroundPickupResult> SettleAsync(CommandExecutionContext execution,GroundPickupInput input,CancellationToken ct)
         {
-            var pickup = Assert.IsType<PickUpGroundDropCommand>(command);
-            var result = results[index++];
-            if (result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked or GroundPickupStatus.EpicPieceCollected)
-            {
-                result = result with
-                {
-                    Change = new DungeonPickupChange(
-                        run.RunId,
-                        ++revision,
-                        pickup.CharacterId,
-                        new GroundDropId(run.CurrentCell, pickup.GroundDropNumber),
-                        result.Status is GroundPickupStatus.Banked
-                            ? DungeonPickupKind.Gold
-                            : result.Status is GroundPickupStatus.EpicPieceCollected ? DungeonPickupKind.EpicPiece : DungeonPickupKind.Item,
-                        recipients),
-                };
-            }
-            return ValueTask.FromResult((TResult)(object)result);
+            var result=results[index++];var run=runSource.Find(input.CharacterId)!;
+            if(result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked or GroundPickupStatus.EpicPieceCollected)
+                result=result with { Change=new DungeonPickupChange(run.RunId,++revision,input.CharacterId,new GroundDropId(run.CurrentCell,input.GroundDropNumber),
+                    result.Status is GroundPickupStatus.Banked?DungeonPickupKind.Gold:result.Status is GroundPickupStatus.EpicPieceCollected?DungeonPickupKind.EpicPiece:DungeonPickupKind.Item,registry.Find(run.RunId).Select(x=>x.CharacterId).ToArray()) };
+            return ValueTask.FromResult(result);
         }
+        internal async ValueTask HandleAsync(NetworkDispatchContext context,GetItemRequest input,CancellationToken token)
+        { _=await base.HandleAsync(null!,new GameGetItemCommand(context,input),token); }
+    }
+    private sealed class DriverOutbox(IGameMessageSender sender):IGameCommandOutbox
+    {
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery batch,CancellationToken ct)=>sender.SendExplicitAsync(id,batch,ct);
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id,IGameCmdMessage message,CancellationToken ct)=>sender.SendCmdAsync(id,message,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id,IGameNotiMessage message,CancellationToken ct)=>sender.SendNotiAsync(id,message,ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext connection,IReadOnlyList<IGameServerMessage> messages,CancellationToken ct)=>sender.SendExplicitAsync(connection.ConnectionId,new(messages,[]),ct);
     }
 
     private sealed class Sessions(IReadOnlyList<SelectedSessionIdentity> sessions)
@@ -539,7 +533,7 @@ public sealed class GetItemHandlerTests
             throw new NotSupportedException();
     }
 
-    private sealed class RecordingClearEvaluator(DungeonClearChange change)
+    private sealed class RecordingClearEvaluator(DungeonClearChange? change)
         : IDungeonClearDomainService
     {
         public (DungeonRunId RunId, long RoomVersion)? LastRequest { get; private set; }

@@ -384,6 +384,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | SelectDungeon／MirrorDungeonEntry（含Boss／Illusion入场） | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs)；`TASK-43`。 |
 | FinishLoading／MoveMap／IllusionTowerStage（含两塔加载与换层） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.cs)；`TASK-44`，Boss Start离场消费者保留。 |
 | MonsterDeath（普通／物件／两塔击杀） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs)；`TASK-45`，祭坛仅具名纯唤醒接缝，Timer来源保持。 |
+| GetItem（普通／两塔地面拾取） | [源码](Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs)；`TASK-46`，默认whole生命周期与拾取精确关闭差异见 Spec VC-B19／20。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

@@ -43,11 +43,3 @@ public sealed class SelectIllusionTowerReturnCommandHandler(IIllusionTowerDomain
         SelectIllusionTowerReturnCommand command, CancellationToken token) =>
         towers.SelectReturnAsync(command.Context, command.Option, token);
 }
-
-public sealed record PickupTowerItemCommand(TowerActionContext Context, ushort GroundUid) : ICommand<TowerPickupResult>;
-public sealed class PickupTowerItemCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<PickupTowerItemCommand, TowerPickupResult>
-{
-    public ValueTask<TowerPickupResult> HandleAsync(CommandExecutionContext context, PickupTowerItemCommand command, CancellationToken token) =>
-        towers.PickupAsync(command.Context, command.GroundUid, token);
-}
