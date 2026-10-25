@@ -363,6 +363,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | Reinforce／Disjoint（NPC／Portable）／EnchantByBead | 仅原有效领域分支 Main；`TASK-13`。 |
 | MagicSeal／Forging／Outworld（含 twist） | unseal 拒绝静默、失败 roll 提交材料、action2 早拒绝；`TASK-14`。 |
 | PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening | 仅此四 opening，Freeze 后确认回滚可保投影；`TASK-15`。 |
+| CompoundItem／LotteryOpening／VendingMachine／EpicCraft | 原 Main 与失败 ACK 边界；Lottery mode1 在 Main 后独立读取 premium；[源码](Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs)。 |
 | ResetItemQuality／ResetRandomOption | 无 domain footprint，reseal 返回 null 才回落 quality；`TASK-16`。 |
 | Socket（四 logical） | 零消耗仍验证 pile，保 target／物料槽足迹；`TASK-17`。 |
 | AvatarCompound | 先建新 UID 再扣输入，重放 UI Recovery＋当前库存；`TASK-18`。 |

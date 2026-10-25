@@ -15,6 +15,8 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Dispatching;
 namespace Dfo.Server.Protocol.Game.LotteryOpening;
 
 public sealed record LotteryOpeningRequest(GameMessageMetadata Metadata, ushort Mode, short Slot) : IEffectSettlementRequest
@@ -64,55 +66,8 @@ internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeni
         return stream.ToArray();
     }
 }
-public sealed record LotteryOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int Slot, ushort Mode)
-    : ICommand<LotteryOpeningResult>, IRequestSettlementCommand, IAccountCommand
+public sealed class LotteryOpeningHandler(ICommandBus commands) : ClientMessageHandler<LotteryOpeningRequest>, IProtocolCommandMessageHandler<GameLotteryOpeningCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class LotteryOpeningCommandHandler(ILotteryOpeningDomainService opening) : ICommandHandler<LotteryOpeningCommand, LotteryOpeningResult>
-{
-    public ValueTask<LotteryOpeningResult> HandleAsync(CommandExecutionContext context, LotteryOpeningCommand command, CancellationToken token) =>
-        opening.ExecuteAsync(command.Session, OpeningWireSlots.FromMain(command.Slot), command.Mode, context.LegacyFootprint, token);
-}
-
-public sealed class LotteryOpeningDelivery(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
-    ILogger<LotteryOpeningDelivery> logger)
-{
-    public async ValueTask HandleAsync(NetworkDispatchContext context, int slot, ushort mode, ushort sequence, CancellationToken token)
-    {
-        var connection = context.Connection.ConnectionId;
-        var session = sessions.FindByConnection(connection);
-        if (session is null) return;
-        if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
-        LotteryOpeningResult? result = null;
-        byte error = 0;
-        try
-        {
-            result = await commands.SendAsync(new LotteryOpeningCommand(user.OnlineUserId, session, slot, mode), token).ConfigureAwait(false);
-        }
-        catch (OpeningRejectedException ex) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex)) { error = ex.Reason switch { OpeningRejection.PremiumUnavailable => 0x73, OpeningRejection.NoRoom => 0x7E, _ => (byte)0 }; logger.LogInformation("Lottery rejected character={Character} slot={Slot}: {Reason}", session.CharacterId, slot, ex.Message); }
-        catch (Exception ex) when (ex is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex)) { logger.LogError(ex, "Lottery transaction failed character={Character}", session.CharacterId); }
-        var response = new LotteryOpeningResponse(result, error);
-        logger.LogInformation("Lottery character={Character} mode={Mode} seq={Sequence} slot={Slot} committed={Committed} reward={Reward} quantity={Quantity} error={Error}",
-            session.CharacterId, mode, sequence, slot, result is not null, result?.Receipt.Rewards[0].ItemId, result?.Receipt.Rewards.Sum(x => x.Count), error);
-        if (result?.Receipt is { } receipt)
-        {
-            // State was committed by the command; native result precedes absolute inventory updates.
-            IReadOnlyList<IGameCmdMessage> replies = [response];
-            IReadOnlyList<IServerNetworkMessage> following = [];
-            if (mode == 1)
-            {
-                var snapshot = await commands.SendAsync(new ReadPremiumSnapshotCommand(session), token).ConfigureAwait(false);
-                following = [new PremiumServiceStateMessage(snapshot.Entitlements, snapshot.Usage, snapshot.PreparedAt)];
-            }
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new OpeningCompleted(receipt, replies, result.GoldAfter, following), token).ConfigureAwait(false);
-        }
-        else await sender.SendCmdAsync(connection, response, token).ConfigureAwait(false);
-    }
-}
-public sealed class LotteryOpeningHandler(LotteryOpeningDelivery delivery) : ClientMessageHandler<LotteryOpeningRequest>
-{
-    protected override ValueTask HandleMessageAsync(NetworkDispatchContext context, LotteryOpeningRequest message, CancellationToken token) =>
-        delivery.HandleAsync(context, message.Slot, message.Mode, message.Metadata.Sequence, token);
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, LotteryOpeningRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameLotteryOpeningCommand(context, message), ct).ConfigureAwait(false);
 }

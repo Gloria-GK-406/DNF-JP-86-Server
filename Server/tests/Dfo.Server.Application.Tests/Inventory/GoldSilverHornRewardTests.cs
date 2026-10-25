@@ -49,17 +49,15 @@ public sealed class GoldSilverHornRewardTests
             await f.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
             if (legendary)
             {
-                await Assert.ThrowsAsync<OpeningRejectedException>(() => commands.SendAsync(
-                    new LotteryOpeningCommand(f.Host.OnlineUser, f.Host.Session, slot, 0)).AsTask());
+                await Assert.ThrowsAsync<OpeningRejectedException>(() => OpeningDomainTestDriver.Lottery(f.Host, f.Host.Session, slot, 0));
                 Assert.Equal(1, f.Host.Count(itemId)); Assert.Equal(100000, f.Host.Gold);
                 f.Host.Sql("UPDATE character_stats SET carried_gold=15000000 WHERE character_id=1");
                 f.Host.Sql("CREATE TRIGGER gold_silver_reward_fault BEFORE INSERT ON items BEGIN SELECT RAISE(ABORT,'reward blocked'); END");
-                await Assert.ThrowsAnyAsync<Exception>(() => commands.SendAsync(
-                    new LotteryOpeningCommand(f.Host.OnlineUser, f.Host.Session, slot, 0)).AsTask());
+                await Assert.ThrowsAnyAsync<Exception>(() => OpeningDomainTestDriver.Lottery(f.Host, f.Host.Session, slot, 0));
                 Assert.Equal(1, f.Host.Count(itemId)); Assert.Equal(15000000, f.Host.Gold);
                 f.Host.Sql("DROP TRIGGER gold_silver_reward_fault");
             }
-            var result = await commands.SendAsync(new LotteryOpeningCommand(f.Host.OnlineUser, f.Host.Session, slot, 0));
+            var result = await OpeningDomainTestDriver.Lottery(f.Host, f.Host.Session, slot, 0);
             Assert.Single(result.Receipt.Rewards);
         }
         Assert.Equal(0, f.Host.Count(itemId));

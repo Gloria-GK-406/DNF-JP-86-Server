@@ -678,8 +678,9 @@ public sealed class ProtocolModule : IServerModule
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUnsealRandomOption, typeof(MagicSealRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameChangeRandomOption, typeof(MagicSealRequest)));
-        services.AddCommandHandler<CompoundItemCommand, RecipeCraftReceipt, CompoundItemCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameCompoundItemCommand, bool, GameCompoundItemCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameCompoundItem, typeof(CompoundItemRequest)));
         services.AddProtocolCommandHandler<GameAvatarCompoundCommand, AvatarCompoundResult, GameAvatarCompoundCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarCompound, typeof(AvatarCompoundRequest)));
@@ -695,8 +696,9 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameResetItemQualityCommand, EquipmentQualityResult, GameResetItemQualityCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameResetItemQuality, typeof(ResetItemQualityRequest)));
-        services.AddCommandHandler<EpicCraftCommand, EpicCraftReceipt, EpicCraftCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameEpicCraftCommand, bool, GameEpicCraftCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameEpicCraft, typeof(EpicCraftRequest)));
         services.AddProtocolCommandHandler<GameOutworldCommand, EquipmentOutworldResult, GameOutworldCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GamePurifyItem, typeof(OutworldRequest)),
@@ -735,9 +737,12 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<GameMagicBoxSingleOpeningCommand, MagicBoxOpeningResult, GameMagicBoxSingleOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameMagicBoxSingleOpening, typeof(MagicBoxSingleOpeningRequest)));
-        services.AddCommandHandler<VendingMachineCommand, VendingMachineResult, VendingMachineCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddSingleton<LotteryOpeningDelivery>();
-        services.AddCommandHandler<LotteryOpeningCommand, LotteryOpeningResult, LotteryOpeningCommandHandler>(CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameVendingMachineCommand, bool, GameVendingMachineCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameVendingMachine, typeof(VendingMachineRequest)));
+        services.AddProtocolCommandHandler<GameLotteryOpeningCommand, bool, GameLotteryOpeningCommandHandler>(
+            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
+            new ProtocolCommandMessageBinding(ClientMessageType.GameLotteryOpening, typeof(LotteryOpeningRequest)));
         services.AddProtocolCommandHandler<GamePackageOpeningCommand, PackageOpeningResult, GamePackageOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GamePackageOpening, typeof(PackageOpeningRequest)));
@@ -984,8 +989,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<CeraShopPurchaseHandler, CeraShopPurchaseRequest, GameCeraShopPurchaseCommand>(ClientMessageType.GameCeraShopPurchase);
         services.RegisterProtocolMessageHandler<MagicBoxBatchOpeningHandler, MagicBoxBatchOpeningRequest, GameMagicBoxBatchOpeningCommand>(ClientMessageType.GameMagicBoxBatchOpening);
         services.RegisterProtocolMessageHandler<MagicBoxSingleOpeningHandler, MagicBoxSingleOpeningRequest, GameMagicBoxSingleOpeningCommand>(ClientMessageType.GameMagicBoxSingleOpening);
-        services.RegisterMessageHandler<VendingMachineHandler>(ClientMessageType.GameVendingMachine);
-        services.RegisterMessageHandler<LotteryOpeningHandler>(ClientMessageType.GameLotteryOpening);
+        services.RegisterProtocolMessageHandler<VendingMachineHandler, VendingMachineRequest, GameVendingMachineCommand>(ClientMessageType.GameVendingMachine);
+        services.RegisterProtocolMessageHandler<LotteryOpeningHandler, LotteryOpeningRequest, GameLotteryOpeningCommand>(ClientMessageType.GameLotteryOpening);
         services.RegisterProtocolMessageHandler<PackageOpeningHandler, PackageOpeningRequest, GamePackageOpeningCommand>(ClientMessageType.GamePackageOpening);
         services.RegisterProtocolMessageHandler<AvatarPackageOpeningHandler, AvatarPackageOpeningRequest, GameAvatarPackageOpeningCommand>(ClientMessageType.GameAvatarPackageOpening);
         services.RegisterMessageHandler<GenCeraTicketHandler>(ClientMessageType.GameGenCeraTicket);
@@ -998,9 +1003,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<TeleportHandler>(ClientMessageType.GameTeleport);
         services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameUnsealRandomOption);
         services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameChangeRandomOption);
-        services.RegisterMessageHandler<CompoundItemHandler>(ClientMessageType.GameCompoundItem);
+        services.RegisterProtocolMessageHandler<CompoundItemHandler, CompoundItemRequest, GameCompoundItemCommand>(ClientMessageType.GameCompoundItem);
         services.RegisterProtocolMessageHandler<AvatarCompoundHandler, AvatarCompoundRequest, GameAvatarCompoundCommand>(ClientMessageType.GameAvatarCompound);
-        services.RegisterMessageHandler<EpicCraftHandler>(ClientMessageType.GameEpicCraft);
+        services.RegisterProtocolMessageHandler<EpicCraftHandler, EpicCraftRequest, GameEpicCraftCommand>(ClientMessageType.GameEpicCraft);
         services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameEquipmentSocketOpen);
         services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameEquipmentEmblem);
         services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameAvatarSocketOpen);

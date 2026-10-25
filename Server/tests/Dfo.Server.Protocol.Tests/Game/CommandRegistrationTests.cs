@@ -264,7 +264,7 @@ public sealed class CommandRegistrationTests
 
 
     [Fact]
-    public void Four_openings_each_have_one_exact_direct_whole_with_only_existing_replay_permission()
+    public void Eight_openings_each_have_one_exact_direct_whole_with_only_proven_replay_permission()
     {
         using var provider = BuildProductionGraph();
         var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
@@ -272,6 +272,10 @@ public sealed class CommandRegistrationTests
         var expected = new[]
         {
             (ClientMessageType.GamePackageOpening, typeof(Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningRequest), typeof(Dfo.Server.Protocol.Game.PackageOpening.GamePackageOpeningCommand)),
+            (ClientMessageType.GameCompoundItem, typeof(Dfo.Server.Protocol.Game.CompoundItem.CompoundItemRequest), typeof(Dfo.Server.Protocol.Game.CompoundItem.GameCompoundItemCommand)),
+            (ClientMessageType.GameLotteryOpening, typeof(Dfo.Server.Protocol.Game.LotteryOpening.LotteryOpeningRequest), typeof(Dfo.Server.Protocol.Game.LotteryOpening.GameLotteryOpeningCommand)),
+            (ClientMessageType.GameVendingMachine, typeof(Dfo.Server.Protocol.Game.VendingMachine.VendingMachineRequest), typeof(Dfo.Server.Protocol.Game.VendingMachine.GameVendingMachineCommand)),
+            (ClientMessageType.GameEpicCraft, typeof(Dfo.Server.Protocol.Game.EpicCraft.EpicCraftRequest), typeof(Dfo.Server.Protocol.Game.EpicCraft.GameEpicCraftCommand)),
             (ClientMessageType.GameAvatarPackageOpening, typeof(Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningRequest), typeof(Dfo.Server.Protocol.Game.AvatarPackageOpening.GameAvatarPackageOpeningCommand)),
             (ClientMessageType.GameMagicBoxSingleOpening, typeof(Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningRequest), typeof(Dfo.Server.Protocol.Game.MagicBoxSingleOpening.GameMagicBoxSingleOpeningCommand)),
             (ClientMessageType.GameMagicBoxBatchOpening, typeof(Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningRequest), typeof(Dfo.Server.Protocol.Game.MagicBoxBatchOpening.GameMagicBoxBatchOpeningCommand)),
@@ -286,7 +290,7 @@ public sealed class CommandRegistrationTests
             Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
             Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
         }
-        Assert.DoesNotContain(commands, row => row.CommandType.Name is "PackageOpeningCommand" or "AvatarPackageOpeningCommand" or "MagicBoxSingleOpeningCommand" or "MagicBoxBatchOpeningCommand");
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "PackageOpeningCommand" or "AvatarPackageOpeningCommand" or "MagicBoxSingleOpeningCommand" or "MagicBoxBatchOpeningCommand" or "CompoundItemCommand" or "LotteryOpeningCommand" or "VendingMachineCommand" or "EpicCraftCommand");
     }
 
     [Fact]

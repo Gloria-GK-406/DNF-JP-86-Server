@@ -77,4 +77,22 @@ internal static class OpeningDomainTestDriver
             catch (Exception cause) { await transaction.AbortAsync(cause); throw; }
             finally { await transaction.DisposeAsync(); }
         });
+    public static Task<RecipeCraftReceipt> Recipe(ShopFixture host, SelectedSessionIdentity owner, BusinessSlot slot, int count) =>
+        Run(host, owner, footprint => host.Services.GetRequiredService<IRecipeCraftDomainService>().CraftAsync(owner, slot, count, host.Clock.GetUtcNow(), footprint, default));
+    public static Task<LotteryOpeningResult> Lottery(ShopFixture host, SelectedSessionIdentity owner, int slot, ushort mode) =>
+        Run(host, owner, footprint => host.Services.GetRequiredService<ILotteryOpeningDomainService>().ExecuteAsync(owner, MainSlot(slot), mode, footprint, default));
+    public static Task<VendingMachineResult> Vending(ShopFixture host, SelectedSessionIdentity owner, int machine, int group, int slot) =>
+        Run(host, owner, footprint => host.Services.GetRequiredService<IVendingMachineDomainService>().UseAsync(owner, machine, group, MainSlot(slot), footprint, default));
+    public static Task<EpicCraftReceipt> Epic(ShopFixture host, SelectedSessionIdentity owner, int equipment) =>
+        Run(host, owner, footprint => host.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(owner, equipment, host.Clock.GetUtcNow(), footprint, default));
+    private static Task<T> Run<T>(ShopFixture host, SelectedSessionIdentity owner, Func<Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder, ValueTask<T>> action) =>
+        TestGameplay.RunAsync(host.Services, async () =>
+        {
+            var safety = host.Services.GetRequiredService<SelectedSessionSafety>();
+            var recipient = safety.Capture(owner, null); safety.DemandCurrent(recipient);
+            using var footprint = new TestEffectFootprints.Lease(owner);
+            await using var transaction = host.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            try { var result = await action(footprint); safety.DemandCurrent(recipient); await transaction.CommitAsync(default); return result; }
+            catch (Exception cause) { await transaction.AbortAsync(cause); throw; }
+        });
 }

@@ -32,8 +32,8 @@ public sealed class EffectSettlementRegistrationTests
             wire.SelectMany(x => x.Productions).Distinct().Select(x => x.Name).Order());
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
         var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
-        Assert.Equal(new[] { "CapsuleCommand", "ChargeRentPointCommand", "CompoundItemCommand", "EpicCraftCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "JoustBetCommand", "LearnSkillCommand", "LotteryOpeningCommand", "QuestClearCouponCommand",
-            "RenameCreatureCommand", "RentEquipmentCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "VendingMachineCommand", "WeddingLovePointCommand" },
+        Assert.Equal(new[] { "CapsuleCommand", "ChargeRentPointCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "JoustBetCommand", "LearnSkillCommand", "QuestClearCouponCommand",
+            "RenameCreatureCommand", "RentEquipmentCommand", "SharedEffectCommand", "TeleportCommand", "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "WeddingLovePointCommand" },
             commands.Select(x => x.CommandType.Name).Order());
         Assert.All(commands, x => {
             Assert.Same(x, commandRegistry.GetRegistration(x.CommandType));
@@ -64,6 +64,12 @@ public sealed class EffectSettlementRegistrationTests
             Assert.Equal(count, option.ProtocolMessages!.Count);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, option.RegistrationExits);
             Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
+        }
+        foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.CompoundItem.GameCompoundItemCommand), typeof(Dfo.Server.Protocol.Game.LotteryOpening.GameLotteryOpeningCommand), typeof(Dfo.Server.Protocol.Game.VendingMachine.GameVendingMachineCommand), typeof(Dfo.Server.Protocol.Game.EpicCraft.GameEpicCraftCommand) })
+        {
+            var opening = commandRegistry.GetRegistration(type);
+            Assert.Equal(CommandRouteKind.Protocol, opening.Route); Assert.Equal(CommandExecutionKind.Direct, opening.ExecutionKind);
+            Assert.Single(opening.ProtocolMessages!); Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, opening.RegistrationExits);
         }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();

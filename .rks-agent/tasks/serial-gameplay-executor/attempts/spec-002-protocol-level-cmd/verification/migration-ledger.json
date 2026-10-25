@@ -5153,26 +5153,42 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 69,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause.",
+          "old": "Original valid legacy Transactional Main; original handler and argument/input guards retain their no-Main boundary."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 69,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "CompoundItem fine CLR, handler and registration removed; unique whole calls original domain directly"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.CompoundItem.CompoundItemCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+          "purpose": "Whole CompoundItem protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.CompoundItem.CompoundItemCommand",
         "command_source": {
@@ -5197,32 +5213,50 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.RecipeCraftReceipt"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 69,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 69,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 69,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin CompoundItemHandler -> unique GameCompoundItemCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder.",
+          "old": "CompoundItemHandler -> CompoundItemCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -7208,26 +7242,42 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 48,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause.",
+          "old": "Original valid legacy Transactional Main; original handler and argument/input guards retain their no-Main boundary."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 48,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "EpicCraft fine CLR, handler and registration removed; unique whole calls original domain directly"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.EpicCraft.EpicCraftCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+          "purpose": "Whole EpicCraft protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.EpicCraft.EpicCraftCommand",
         "command_source": {
@@ -7252,32 +7302,50 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.EpicCraftReceipt"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 48,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 48,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 48,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin EpicCraftHandler -> unique GameEpicCraftCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder.",
+          "old": "EpicCraftHandler -> EpicCraftCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -9179,26 +9247,42 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 72,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause. Lottery mode1 retains independent premium ReadOnly.",
+          "old": "Original valid legacy Transactional Main; argument/input and no-session rejections do not open Main. Lottery mode1 reads premium in a separate ReadOnly command after Main."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 72,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "LotteryOpening fine CLR, handler and registration removed; unique whole calls original domain directly"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.LotteryOpening.LotteryOpeningCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+          "purpose": "Whole LotteryOpening protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.LotteryOpening.LotteryOpeningCommand",
         "command_source": {
@@ -9223,32 +9307,50 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.LotteryOpeningResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 72,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 72,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 72,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin LotteryOpeningHandler -> unique GameLotteryOpeningCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder. Shared ReadPremiumSnapshotCommand remains owned by premium report/timer callers.",
+          "old": "LotteryOpeningHandler via LotteryOpeningDelivery -> LotteryOpeningCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -16563,26 +16665,42 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 72,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause.",
+          "old": "Original valid legacy Transactional Main; original handler and argument/input guards retain their no-Main boundary."
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 72,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "VendingMachine fine CLR, handler and registration removed; unique whole calls original domain directly"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.VendingMachine.VendingMachineCommand",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+          "purpose": "Whole VendingMachine protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "command": "Dfo.Server.Protocol.Game.VendingMachine.VendingMachineCommand",
         "command_source": {
@@ -16607,32 +16725,50 @@
         },
         "result": "Dfo.Server.Abstractions.Inventory.VendingMachineResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 72,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 72,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 72,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin VendingMachineHandler -> unique GameVendingMachineCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder.",
+          "old": "VendingMachineHandler -> VendingMachineCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -19500,27 +19636,43 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 75,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause.",
+          "old": "Original valid legacy Transactional Main; original handler and argument/input guards retain their no-Main boundary."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 75,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "message:65561",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+          "purpose": "Whole CompoundItem protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.CompoundItem.CompoundItemHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -19541,35 +19693,53 @@
         "telemetry": false,
         "value": 65561
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 75,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 75,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/CompoundItem/CompoundItemSlice.cs",
-          "line": 75,
-          "source_sha256": "7a034050a077f68fcd1142ac02817bd32305c993215ad8b12af941501de2852d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin CompoundItemHandler -> unique GameCompoundItemCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder.",
+          "old": "CompoundItemHandler -> CompoundItemCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/CompoundItem/GameCompoundItemCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.CompoundItem.CompoundItemCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -19685,27 +19855,43 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 114,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause. Lottery mode1 retains independent premium ReadOnly.",
+          "old": "Original valid legacy Transactional Main; argument/input and no-session rejections do not open Main. Lottery mode1 reads premium in a separate ReadOnly command after Main."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 114,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "message:65563",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+          "purpose": "Whole LotteryOpening protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.LotteryOpening.LotteryOpeningHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -19726,30 +19912,48 @@
         "telemetry": false,
         "value": 65563
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 114,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 114,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/LotteryOpeningSlice.cs",
-          "line": 114,
-          "source_sha256": "a01bcb8b82e4a295d4e1afecbe01ce099ef2fd90774f7aed3987ce4efa1aa605"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin LotteryOpeningHandler -> unique GameLotteryOpeningCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder. Shared ReadPremiumSnapshotCommand remains owned by premium report/timer callers.",
+          "old": "LotteryOpeningHandler via LotteryOpeningDelivery -> LotteryOpeningCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.LotteryOpening.LotteryOpeningCommand",
         "command:Dfo.Server.Protocol.Game.StateSynchronization.ReadPremiumSnapshotCommand"
@@ -19757,7 +19961,7 @@
       "shared_helper_candidates": [
         "LotteryOpeningDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -24871,27 +25075,43 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 78,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause.",
+          "old": "Original valid legacy Transactional Main; original handler and argument/input guards retain their no-Main boundary."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 78,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "message:65751",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+          "purpose": "Whole VendingMachine protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.VendingMachine.VendingMachineHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -24912,35 +25132,53 @@
         "telemetry": false,
         "value": 65751
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 78,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 78,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/VendingMachine/VendingMachineSlice.cs",
-          "line": 78,
-          "source_sha256": "6a4dfc955b74132c140519e2cf76d42b9da13963eef21629d2a9189f56994160"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin VendingMachineHandler -> unique GameVendingMachineCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder.",
+          "old": "VendingMachineHandler -> VendingMachineCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/VendingMachine/GameVendingMachineCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.VendingMachine.VendingMachineCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -30165,27 +30403,43 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 54,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "One explicit Main WriteResult with active unit.Footprint and exact captured actor; original action exceptions RequireRollback then original ACK mapping only after unit/cleanup. Native known Commit rollback maps original cause.",
+          "old": "Original valid legacy Transactional Main; original handler and argument/input guards retain their no-Main boundary."
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 54,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+        "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+      ],
       "id": "message:66323",
+      "introduced_artifacts": [
+        {
+          "location": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+          "purpose": "Whole EpicCraft protocol preserving original Main and response/projection boundary"
+        }
+      ],
       "original": {
         "handler": "Dfo.Server.Protocol.Game.EpicCraft.EpicCraftHandler",
         "handler_assembly": "Dfo.Server.Protocol",
@@ -30206,37 +30460,55 @@
         "telemetry": false,
         "value": 66323
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 54,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 54,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EpicCraft/EpicCraftSlice.cs",
-          "line": 54,
-          "source_sha256": "cd4b57e7789c4a792513eedc0ee535c5d77795fa920ea9b0a67489f04628dc58"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Thin EpicCraftHandler -> unique GameEpicCraftCommand -> original domain. Pure business test callers use same-provider domain transaction driver; no old bus forwarder.",
+          "old": "EpicCraftHandler -> EpicCraftCommand legacy bus; original boundary @ 6bb6a8e8."
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Same actor and original domain participants. Each route independently tested with real action SQL19/1811 and native deferred-FK Commit19/787, FK1, action-return/deferred child evidence, confirmed rollback and asset retry.",
+          "old": "Selected actor/account; original domains enlist SQLite and original opening effects/events."
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/EpicCraft/GameEpicCraftCommand.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/RemainingOpeningProtocolCommandFlowTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OpeningDomainTestDriver.cs",
+            "Server/tests/Dfo.Server.Protocol.Tests/Game/CommandRegistrationTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-35.md"
+          ],
+          "new": "Only CommittedReplayCurrentStateBatch permission; actual encoder oracle tested before/after for all four and Lottery0/1. Same entry/Ordinal, committed assets and current-only retry; whole scope and independent premium failure retain default typed exact-participant fencing (VC-B6). Cancel, uncertain, rollback second cause and same-id physical replacement protected; shared runner/raw/self capabilities unchanged.",
+          "old": "Original noncancel/nonuncertain action/commit rollback ACK; current-state committed replay and physical source-close behavior."
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.EpicCraft.EpicCraftCommand"
       ],
       "shared_helper_candidates": [
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

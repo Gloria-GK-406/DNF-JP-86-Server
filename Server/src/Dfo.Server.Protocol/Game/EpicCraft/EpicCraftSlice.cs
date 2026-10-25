@@ -18,6 +18,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Application.Dispatching;
 namespace Dfo.Server.Protocol.Game.EpicCraft;
 
 public sealed record EpicCraftRequest(GameMessageMetadata Metadata, int EquipmentId, bool Valid = true) : IEffectSettlementRequest
@@ -40,49 +41,10 @@ internal sealed class EpicCraftEncoder : GameCmdMessageEncoder<EpicCraftResponse
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(EpicCraftResponse message) =>
         OnePayload(0x0313, message.Success ? new byte[] { 1 } : new byte[] { 0, message.Error });
 }
-public sealed record EpicCraftCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int EquipmentId)
-    : ICommand<EpicCraftReceipt>, IRequestSettlementCommand, IAccountCommand
+public sealed class EpicCraftHandler(ICommandBus commands) : ClientMessageHandler<EpicCraftRequest>, IProtocolCommandMessageHandler<GameEpicCraftCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class EpicCraftCommandHandler(IEpicCraftDomainService crafting, TimeProvider clock)
-    : ICommandHandler<EpicCraftCommand, EpicCraftReceipt>
-{
-    public ValueTask<EpicCraftReceipt> HandleAsync(CommandExecutionContext context, EpicCraftCommand command, CancellationToken ct) =>
-        crafting.CraftAsync(command.Session, command.EquipmentId, clock.GetUtcNow(), context.LegacyFootprint, ct);
-}
-public sealed class EpicCraftHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, IEventService events, IGameMessageSender sender, ILogger<EpicCraftHandler> logger)
-    : ClientMessageHandler<EpicCraftRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, EpicCraftRequest request, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !request.Valid || request.EquipmentId <= 0
-            || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
-        { await Reject(2); return; }
-        EpicCraftReceipt receipt;
-        try
-        {
-            receipt = await commands.SendAsync(new EpicCraftCommand(online.OnlineUserId, session, request.EquipmentId), ct).ConfigureAwait(false);
-        }
-        catch (OpeningRejectedException failure) when (!TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogInformation("Epic craft rejected character={Character} equipment={Equipment} reason={Reason}",
-                session.CharacterId, request.EquipmentId, failure.Reason);
-            await Reject(failure.Reason switch { OpeningRejection.MissingMaterial => 0x16, OpeningRejection.NoRoom => 4, _ => 2 });
-            return;
-        }
-        catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogError(failure, "Epic craft transaction failed character={Character}", session.CharacterId);
-            await Reject(2); return;
-        }
-        logger.LogInformation("Epic craft committed character={Character} equipment={Equipment} piece={Piece} balance={Balance}",
-            session.CharacterId, request.EquipmentId, receipt.Pieces.PieceId, receipt.Pieces.Count);
-        await events.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new EpicCraftCompleted(receipt), ct).ConfigureAwait(false);
-        ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new EpicCraftResponse(false, error), ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, EpicCraftRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameEpicCraftCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed record EpicCraftCompleted(EpicCraftReceipt Receipt) : INotification<EpicCraftCompleted>;
 public sealed class EpicCraftCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<EpicCraftCompleted>

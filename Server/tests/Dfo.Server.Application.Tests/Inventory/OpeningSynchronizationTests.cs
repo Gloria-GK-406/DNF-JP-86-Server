@@ -80,8 +80,7 @@ public sealed class OpeningSynchronizationTests
         });
         await host.Seed(3, 1001, 1);
         await host.Seed(4, 2000, 1);
-        var result = await host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new CompoundItemCommand(host.OnlineUser, host.Session, new(BusinessInventorySpace.QuickSlot, 0), 1));
+        var result = await OpeningDomainTestDriver.Recipe(host, host.Session, new(BusinessInventorySpace.QuickSlot, 0), 1);
         var messages = await Compose(host, result.Inventory, new CompoundItemResponse(result));
         var client = new MainInventoryReplica((3, 1001, 1), (4, 2000, 1));
         client.Receive(host, messages);

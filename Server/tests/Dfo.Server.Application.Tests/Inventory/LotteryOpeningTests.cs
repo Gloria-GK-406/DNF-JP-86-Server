@@ -18,15 +18,16 @@ public sealed class LotteryOpeningTests
         public OpeningReward Roll(int id)
         { Calls++; BeforeRoll?.Invoke(); return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
     }
-    private static CeraShopFixture Fixture(Fixed? selector = null)
+    private static CeraShopFixture Fixture(Fixed? selector = null, Action<IServiceCollection>? configure = null)
     {
         var shop = new CeraShopFixture(useArchive: true,
-            configure: s => s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()));
+            configure: s => { s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()); configure?.Invoke(s); });
         shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync().GetAwaiter().GetResult();
         return shop;
     }
+    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => Fixture(configure: configure);
     private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort mode = 0, int slot = 65) =>
-        shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new LotteryOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, slot, mode)).AsTask();
+        OpeningDomainTestDriver.Lottery(shop.Host, shop.Host.Session, slot, mode);
 
     private static ValueTask Network(CeraShopFixture shop, ushort sequence, ushort mode = 0) =>
         EffectRequestTransport.Send(shop.Host, new LotteryOpeningRequest(new(1, 0x001B, 0, sequence), mode, 65));

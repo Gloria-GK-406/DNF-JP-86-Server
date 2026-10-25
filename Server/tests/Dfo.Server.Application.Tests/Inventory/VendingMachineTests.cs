@@ -16,14 +16,15 @@ public sealed class VendingMachineTests
     {
         public long NextInt64(long bound) => value;
     }
-    private static CeraShopFixture Fixture(long ticket = 0)
+    private static CeraShopFixture Fixture(long ticket = 0, Action<IServiceCollection>? configure = null)
     {
-        var f = new CeraShopFixture(useArchive: true, configure: s => s.AddSingleton<ILotteryRandomSource>(new Ticket(ticket)));
+        var f = new CeraShopFixture(useArchive: true, configure: s => { s.AddSingleton<ILotteryRandomSource>(new Ticket(ticket)); configure?.Invoke(s); });
         f.Host.Services.GetRequiredService<IVendingMachineDefinitionSource>().Initialize();
         return f;
     }
+    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => Fixture(configure: configure);
     private static Task<VendingMachineResult> Use(CeraShopFixture f, int slot=121, int machine=1) =>
-        f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new VendingMachineCommand(f.Host.OnlineUser, f.Host.Session, machine, 1, slot)).AsTask();
+        OpeningDomainTestDriver.Vending(f.Host, f.Host.Session, machine, 1, slot);
 
     private static ValueTask Network(CeraShopFixture f, ushort sequence) =>
         EffectRequestTransport.Send(f.Host, new VendingMachineRequest(new(1, 0x00D7, 0, sequence), 1, 1, 121));

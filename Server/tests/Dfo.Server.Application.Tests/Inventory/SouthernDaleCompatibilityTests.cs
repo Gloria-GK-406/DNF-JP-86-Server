@@ -44,8 +44,7 @@ public sealed class SouthernDaleCompatibilityTests
         await fixture.Host.Seed(65, 7615, 2);
         await fixture.Host.Seed(177, 2680739, 2);
         var before = fixture.Host.Gold;
-        var result = await fixture.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new LotteryOpeningCommand(fixture.Host.OnlineUser, fixture.Host.Session, 65, 0));
+        var result = await OpeningDomainTestDriver.Lottery(fixture.Host, fixture.Host.Session, 65, 0);
         var reward = Assert.Single(result.Receipt.Rewards);
         Assert.Equal(0, reward.ItemId);
         Assert.InRange(reward.Count, 1, 100000);
@@ -96,8 +95,7 @@ public sealed class SouthernDaleCompatibilityTests
         await fixture.Host.Seed(177, 2680739, 2);
         fixture.Host.Sql("UPDATE character_stats SET carried_gold=2147483647;");
         var refused = await Assert.ThrowsAsync<Dfo.Server.Data.Inventory.OpeningRejectedException>(async () =>
-            await fixture.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-                new LotteryOpeningCommand(fixture.Host.OnlineUser, fixture.Host.Session, 65, 0)));
+            await OpeningDomainTestDriver.Lottery(fixture.Host, fixture.Host.Session, 65, 0));
         Assert.Equal(Dfo.Server.Data.Inventory.OpeningRejection.NoRoom, refused.Reason);
         Assert.Equal(int.MaxValue, fixture.Host.Gold);
         Assert.Equal(1, fixture.Host.Count(7615));
@@ -112,8 +110,7 @@ public sealed class SouthernDaleCompatibilityTests
         await fixture.Host.Seed(65, 7615, 1);
         await fixture.Host.Seed(177, 2680739, 1);
         var refused = await Assert.ThrowsAsync<Dfo.Server.Data.Inventory.OpeningRejectedException>(async () =>
-            await fixture.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-                new LotteryOpeningCommand(fixture.Host.OnlineUser, fixture.Host.Session, 65, 0)));
+            await OpeningDomainTestDriver.Lottery(fixture.Host, fixture.Host.Session, 65, 0));
         Assert.Equal(Dfo.Server.Data.Inventory.OpeningRejection.MissingMaterial, refused.Reason);
         Assert.Equal(1, fixture.Host.Count(7615));
         Assert.Equal(1, fixture.Host.Count(2680739));

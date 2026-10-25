@@ -24,23 +24,22 @@ public sealed class EpicCraftTests
         public IReadOnlyList<EpicPieceDefinition> Load() => [new(Piece, 3000)];
         public IReadOnlyList<EpicCraftRecipe> LoadRecipes() => [new(3000, Piece, 1000, [new(3244, 25), new(3262, 100)])];
     }
-    private static ShopFixture Fixture()
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null)
     {
         var content = new OpeningContent();
         content.Items[3000] = content.Items[3000] with { Placement = new(1, 1,
             new(BusinessInventorySpace.CarriedEquipment, 0, 1)) { WorldClass = ItemWorldClass.Equipment } };
         return new(s => { s.AddSingleton<IEpicBookDefinitionSource>(new Catalog());
-            s.AddSingleton<IPackageOpeningDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); });
+            s.AddSingleton<IPackageOpeningDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); configure?.Invoke(s); });
     }
-    private static async Task Seed(ShopFixture f, int count = 1)
+    internal static async Task Seed(ShopFixture f, int count = 1)
     {
         f.Sql($"INSERT INTO account_epic_pieces(account_id,piece_id,count) VALUES(1,{Piece},{1000 * count})");
         await f.Seed(140, 3244, 25 * count, 3);
         await f.SeedShared(3262, 100 * count);
     }
     private static int Balance(ShopFixture f) => f.Scalar("SELECT COALESCE(SUM(count),0) FROM account_epic_pieces WHERE account_id=1");
-    private static Task<EpicCraftReceipt> Craft(ShopFixture f, int id = 3000) => f.Services.GetRequiredService<ICommandBus>()
-        .SendAsync(new EpicCraftCommand(f.OnlineUser, f.Session, id)).AsTask();
+    private static Task<EpicCraftReceipt> Craft(ShopFixture f, int id = 3000) => OpeningDomainTestDriver.Epic(f, f.Session, id);
     private static ValueTask Send(ShopFixture f, ushort seq = 7, int id = 3000) => EffectRequestTransport.Send(f,
         new EpicCraftRequest(new(1, 0x0313, 0, seq), id));
 
@@ -69,8 +68,7 @@ public sealed class EpicCraftTests
     public async Task Stale_selection_cannot_consume_the_account_balance()
     {
         using var f = Fixture(); await Seed(f); var stale = f.Session; f.Select(2);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new EpicCraftCommand(f.OnlineUser, stale, 3000)));
+        await Assert.ThrowsAnyAsync<Exception>(async () => await OpeningDomainTestDriver.Epic(f, stale, 3000));
         Assert.Equal(1000, Balance(f)); Assert.Equal(100, f.SharedCount(3262));
     }
     [Fact]

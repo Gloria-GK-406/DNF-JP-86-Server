@@ -84,7 +84,7 @@ public sealed class RecipeCraftTests
         public RecipePlan? Plan { get; set; } = new([new(3244, 25), new(3262, 100)], [new(1286, 1)]);
         public ValueTask<RecipePlan?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(id == 1287 ? Plan : null);
     }
-    private static ShopFixture Fixture(Recipes? recipes = null, int limit = 1000)
+    private static ShopFixture Fixture(Recipes? recipes = null, int limit = 1000, Action<IServiceCollection>? configure = null)
     {
         var content = new OpeningContent();
         content.Items[1286] = new(1286, new(2, limit, new(BusinessInventorySpace.Consumable, 0, 1)), 0, false, [], null, true);
@@ -94,12 +94,13 @@ public sealed class RecipeCraftTests
             services.AddSingleton<IPackageOpeningDefinitionSource>(content);
             services.AddSingleton<IItemPlacementDefinitionSource>(content);
             services.AddSingleton<IItemUseRuleDefinitionSource>(content);
+            configure?.Invoke(services);
         });
     }
+    internal static ShopFixture ProtocolFixture(Action<IServiceCollection> configure) => Fixture(configure: configure);
     private static Task<RecipeCraftReceipt> Craft(ShopFixture f, int count = 1) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new CompoundItemCommand(f.OnlineUser, f.Session,
-            new(BusinessInventorySpace.Consumable, 36), count)).AsTask();
-    private static async Task Seed(ShopFixture f, int count = 1)
+        OpeningDomainTestDriver.Recipe(f, f.Session, new(BusinessInventorySpace.Consumable, 36), count);
+    internal static async Task Seed(ShopFixture f, int count = 1)
     {
         await f.Seed(101, 1287, count); await f.Seed(140, 3244, 25 * count, 3);
         await f.SeedShared(3262, 100 * count, 1);

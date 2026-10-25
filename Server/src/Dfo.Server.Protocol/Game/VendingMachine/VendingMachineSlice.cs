@@ -15,6 +15,8 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Dispatching;
 namespace Dfo.Server.Protocol.Game.VendingMachine;
 
 public sealed record VendingMachineRequest(GameMessageMetadata Metadata, uint MachineId, uint GroupId, short Slot) : IEffectSettlementRequest
@@ -64,48 +66,8 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
         return stream.ToArray();
     }
 }
-public sealed record VendingMachineCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    int MachineId, int GroupId, int Slot) : ICommand<VendingMachineResult>, IRequestSettlementCommand, IAccountCommand
+public sealed class VendingMachineHandler(ICommandBus commands) : ClientMessageHandler<VendingMachineRequest>, IProtocolCommandMessageHandler<GameVendingMachineCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class VendingMachineCommandHandler(IVendingMachineDomainService vending) : ICommandHandler<VendingMachineCommand, VendingMachineResult>
-{
-    public ValueTask<VendingMachineResult> HandleAsync(CommandExecutionContext context, VendingMachineCommand command, CancellationToken token) =>
-        vending.UseAsync(command.Session, command.MachineId, command.GroupId,
-            OpeningWireSlots.FromMain(command.Slot), context.LegacyFootprint, token);
-}
-public sealed class VendingMachineHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
-    ILogger<VendingMachineHandler> logger) : ClientMessageHandler<VendingMachineRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, VendingMachineRequest message, CancellationToken token)
-    {
-        var connection = context.Connection.ConnectionId;
-        var session = sessions.FindByConnection(connection);
-        if (session is null) return;
-        if (!sessions.IsInWorld(session) || !users.TryGetByConnection(connection, out var user) || user is null) return;
-        VendingMachineResult? result = null;
-        byte error = 0;
-        try
-        {
-            if (message.MachineId > int.MaxValue || message.GroupId > int.MaxValue || message.Slot < 3)
-                throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Invalid vending input.");
-            result = await commands.SendAsync(new VendingMachineCommand(user.OnlineUserId, session,
-                (int)message.MachineId, (int)message.GroupId, message.Slot), token).ConfigureAwait(false);
-        }
-        catch (OpeningRejectedException ex) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex))
-        {
-            error = ex.Reason switch { OpeningRejection.NoRoom => 1, OpeningRejection.MissingMaterial => 22, _ => (byte)0 };
-            logger.LogInformation("Vending rejected character={Character}: {Reason} {Detail}", session.CharacterId, ex.Reason, ex.Message);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(ex)) { logger.LogError(ex, "Vending transaction failed character={Character}", session.CharacterId); }
-        logger.LogInformation("Vending character={Character} machine={Machine} group={Group} slot={Slot} seq={Sequence} committed={Committed} reward={Reward} count={Count} remaining={Remaining}",
-            session.CharacterId, message.MachineId, message.GroupId, message.Slot, message.Metadata.Sequence, result is not null,
-            result?.Reward.ItemId, result?.Reward.Count, result?.Remaining);
-        var response = new VendingMachineResponse(result, error);
-        if (result is null) await sender.SendCmdAsync(connection, response, token).ConfigureAwait(false);
-        else await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-            new OpeningCompleted(result.Receipt, [response]), token).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, VendingMachineRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameVendingMachineCommand(context, message), ct).ConfigureAwait(false);
 }
