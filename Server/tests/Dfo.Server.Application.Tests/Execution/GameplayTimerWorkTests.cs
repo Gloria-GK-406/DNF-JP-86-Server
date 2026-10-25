@@ -58,7 +58,7 @@ public sealed class GameplayTimerWorkTests
     [Fact]
     public async Task A_tick_cancelled_by_its_loop_is_still_thrown_as_a_cancellation()
     {
-        var (executor, _) = ExecutionTest.Executor();
+        var (executor, executorLog) = ExecutionTest.Executor();
         await using var _executor = executor;
         var log = new RecordingExecutionLogger<GameplayTimerWorkTests>();
         var ticks = new CoalescingGameplaySource(new GameplayQueue(new GameplayShardSelector(executor)));
@@ -72,5 +72,6 @@ public sealed class GameplayTimerWorkTests
                 return ValueTask.CompletedTask;
             }, log, stopping.Token).WaitAsync(ExecutionTest.Patience));
         Assert.Empty(log.Entries);
+        Assert.DoesNotContain(executorLog.Entries, entry => entry.Level >= LogLevel.Warning);
     }
 }
