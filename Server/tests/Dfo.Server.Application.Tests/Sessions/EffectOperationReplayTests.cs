@@ -31,6 +31,38 @@ public sealed class EffectOperationReplayTests
 {
     private sealed class LoveContent : IMarriageCeremonyContentSource
     { public MarriageCeremonyContent Load() => new([], []) { LovePointItems = new Dictionary<int, int> { [1000] = 1 }, MaximumLovePoints = 999 }; }
+    [Theory]
+    [InlineData(true, false, true, EffectOperationState.ConfirmedRollback)]
+    [InlineData(true, true, true, EffectOperationState.ConfirmedRollback)]
+    [InlineData(true, true, false, EffectOperationState.Committed)]
+    [InlineData(false, true, true, null)]
+    [InlineData(false, false, true, null)]
+    [InlineData(true, false, false, null)]
+    public void Normal_settlement_requires_a_transaction_and_either_confirmed_rollback_or_frozen_projection(
+        bool started, bool frozen, bool rollback, object? expectedValue)
+    {
+        using var f = Fixture();
+        var context = f.Services.GetRequiredService<EffectOperationContext>();
+        var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
+        using var operation = context.Enter(entry, f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
+        var command = new SharedEffectCommand(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
+        var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(object), CommandExecutionKind.Transactional);
+        using var main = context.BeginMain(execution, command);
+        if (started) context.TransactionStarted(execution, command);
+        if (frozen) context.Freeze(execution, command);
+        if (rollback) context.RollbackConfirmed(execution, command);
+        if (expectedValue is null)
+        {
+            Assert.Throws<InvalidOperationException>(() => context.Settled(execution, command));
+            Assert.Equal(EffectOperationState.Pending, entry.State);
+        }
+        else
+        {
+            context.Settled(execution, command);
+            Assert.Equal((EffectOperationState)expectedValue, entry.State);
+        }
+    }
+
     [Fact]
     public async Task Love_coupon_real_dispatcher_lost_ack_replays_current_inventory_and_points_without_second_deduction()
     {

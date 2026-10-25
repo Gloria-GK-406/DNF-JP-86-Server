@@ -102,7 +102,14 @@ internal sealed class EffectOperationContext
     public void Settled(CommandExecutionContext execution, ICommand command)
     {
         if (For(execution, command) is not { } frame) return;
-        if (!frame.TransactionStarted || !frame.Frozen || frame.Entry.Projection is null)
+        if (!frame.TransactionStarted)
+            throw new InvalidOperationException("A primary settlement returned without a transaction.");
+        if (frame.RollbackConfirmed)
+        {
+            frame.Entry.State = EffectOperationState.ConfirmedRollback;
+            return;
+        }
+        if (!frame.Frozen || frame.Entry.Projection is null)
             throw new InvalidOperationException("A primary settlement returned without a prepared transaction projection.");
         frame.Entry.State = EffectOperationState.Committed;
     }
