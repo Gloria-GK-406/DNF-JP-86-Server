@@ -209,6 +209,12 @@ internal readonly record struct PartyExactNotificationDeliveryResult(
 
 internal static class PartyExactNotificationDelivery
 {
+    public static ValueTask<PartyExactNotificationDeliveryResult> PublishWithRetryAsync<T>(
+        IEventService notifications, IEnumerable<SelectedSessionIdentity> intendedAudience,
+        T notification, CancellationToken cancellationToken)
+        where T : class, INotification<T> => PublishWithRetryAsync(
+            new PartyLegacyProjections(notifications), intendedAudience, notification, cancellationToken);
+
     // Party handlers deliberately have no detached NotificationBus retry. The causal owner retries
     // only exact recipients that failed, so a town 0x0002 retry can still be followed by its 0x0009
     // and a successful recipient is never replayed merely because its neighbour failed.
@@ -216,7 +222,7 @@ internal static class PartyExactNotificationDelivery
 
     public static async ValueTask<PartyExactNotificationDeliveryResult> PublishWithRetryAsync<
         TNotification>(
-        IEventService notifications,
+        ICommandProjections notifications,
         IEnumerable<SelectedSessionIdentity> intendedAudience,
         TNotification notification,
         CancellationToken cancellationToken)

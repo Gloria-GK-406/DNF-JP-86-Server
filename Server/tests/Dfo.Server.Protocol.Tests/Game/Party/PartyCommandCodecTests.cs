@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
@@ -287,6 +288,9 @@ public sealed class PartyCommandCodecTests
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         using var provider = services.BuildServiceProvider();
+
+        Assert.Same(provider.GetRequiredService<PartyProjectionStreamRegistry>(),
+            provider.GetRequiredService<IPartyProjectionStateDomainService>());
 
         var decoders = provider.GetServices<GameMessageDecoderRegistration>().ToArray();
         Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x0002

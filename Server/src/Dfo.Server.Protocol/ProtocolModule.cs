@@ -488,6 +488,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>();
         services.AddNotificationHandler<MaterialsConsumed, MaterialsConsumedHandler>();
         services.TryAddSingleton<PartyProjectionStreamRegistry>();
+        services.TryAddSingleton<IPartyProjectionStateDomainService>(provider => provider.GetRequiredService<PartyProjectionStreamRegistry>());
         services.TryAddSingleton<PartyNotificationDelivery>();
         services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
         services.TryAddSingleton<TownAreaProjectionDelivery>();

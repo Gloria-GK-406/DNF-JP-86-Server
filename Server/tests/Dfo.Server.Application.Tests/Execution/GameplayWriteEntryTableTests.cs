@@ -464,6 +464,7 @@ public sealed class GameplayWriteEntryTableTests
 
         // PartyProjectionStreamRegistry and its stream handle
         ["PartyProjectionStreamRegistry.GetOrAdd(Int64)"] = W,
+        ["PartyProjectionStreamRegistry.Dfo.Server.Abstractions.Networking.IPartyProjectionStateDomainService.StreamOf(Int64)"] = W,
         ["PartyDeliveryStream.get_CurrentMembers()"] = W,
         ["PartyDeliveryStream.get_CurrentPartyId()"] = R,
         ["PartyDeliveryStream.get_FullStateMembers()"] = W,
