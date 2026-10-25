@@ -40,6 +40,8 @@ public sealed record MonsterDeathRequest(
 {
     public ClientMessageType MessageType => ClientMessageType.GameMonsterDeath;
     public int? ObjectCode { get; init; }
+    // Server startup measurement input, never decoded from client bytes.
+    internal bool LabelProbe { get; init; }
 
 }
 
@@ -343,7 +345,7 @@ internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathN
 }
 
 internal sealed class MonsterDeathDecoder(
-    ILogger<MonsterDeathDecoder>? logger = null) : IGameMessageDecoder
+    ILogger<MonsterDeathDecoder>? logger = null, ExperienceDiagnostics? diagnostics = null) : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
@@ -366,164 +368,14 @@ internal sealed class MonsterDeathDecoder(
         return new MonsterDeathRequest(metadata, passive == 0 ? (ushort)code : (ushort)0, killer)
         {
             ObjectCode = passive == 1 ? (int)code : null,
+            LabelProbe = diagnostics?.LabelProbe ?? false,
         };
     }
 }
 
-/// <summary>Transport projection of one committed actor-death settlement.</summary>
-public sealed class MonsterDeathHandler(
-    ISelectedSessionDomainService selectedSessions, IDungeonRunDomainService runs,
-    IDungeonClearDomainService clearEvaluator, DungeonClearProjectionDelivery clearProjection,
-    ICommandBus commandBus, DungeonRunDeliveryRegistry runDeliveries, IGameMessageSender sender,
-    ExperienceDiagnostics diagnostics, ILogger<MonsterDeathHandler> logger,
-    DungeonPartyRecipients? partyRecipients = null, ICreatureRuntimeDomainService? creatures = null,
-    SelectedSessionSafety? safety = null, IllusionTowerProjectionDelivery? illusionTower = null,
-    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournamentProjection = null,
-    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altarProjection = null, BossTowerProjectionDelivery? bossTower = null)
-    : ClientMessageHandler<MonsterDeathRequest>
+public sealed class MonsterDeathHandler(ICommandBus commands)
+    : ClientMessageHandler<MonsterDeathRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameMonsterDeathCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        MonsterDeathRequest message, CancellationToken ct)
-    {
-        if (logger.IsEnabled(LogLevel.Debug))
-            logger.LogDebug("Monster death received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} actor={Actor} object={ObjectCode}",
-                context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal, message.ActorSequence, message.ObjectCode);
-        var reporter = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (reporter is null)
-        {
-            logger.LogDebug("Monster death ignored connection={ConnectionId} reason=NoSession", context.Connection.ConnectionId);
-            return;
-        }
-        if (bossTower?.HasRun(reporter) == true)
-        {
-            if (message.ObjectCode is null)
-                _ = await bossTower.KillAsync(reporter.ConnectionId, message.Metadata, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
-            return;
-        }
-        if (message.ObjectCode is null && illusionTower is not null
-            && await illusionTower.KillAsync(reporter.ConnectionId, message.Metadata,
-                message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false)) return;
-        var run = runs.Find(reporter.CharacterId);
-        if (run is null)
-        {
-            logger.LogDebug("Monster death ignored connection={ConnectionId} actor={Actor} reason=NoRun", reporter.ConnectionId, message.ActorSequence);
-            await sender.SendExplicitAsync(reporter.ConnectionId,
-                new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
-            return;
-        }
-        var participants = (run.PartyMemberCount > 1
-                ? partyRecipients?.Find(reporter, run.RunId) ?? runDeliveries.Find(run.RunId) : [reporter])
-            .Where(x => selectedSessions.IsInWorld(x)).DistinctBy(x => x.CharacterId).ToArray();
-        if (!participants.Contains(reporter))
-        {
-            logger.LogDebug("Monster death ignored connection={ConnectionId} run={RunId} actor={Actor} reason=NotCurrentParticipant",
-                reporter.ConnectionId, run.RunId, message.ActorSequence);
-            return;
-        }
-        var captured = participants.Select(x => safety?.Capture(x) ?? new SelectedSessionRecipient(x, x == reporter ? context.Connection : null)).ToArray();
-        if (message.ObjectCode is { } code)
-        {
-            var objects = await commandBus.SendAsync(new ApplyObjectDestructionCommand(reporter,
-                run.RunId, run.RoomVersion, code, participants), ct).ConfigureAwait(false);
-            if (objects.Rewards is null) return;
-            var targets = objects.Rewards.Where(x => selectedSessions.IsInWorld(x.Session))
-                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, QuestFrames(x.Effects))).ToArray();
-            await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
-            return;
-        }
-        MonsterDeathSettlementResult settled;
-        try
-        {
-            settled = await commandBus.SendAsync(new ProcessMonsterDeathCommand(new(reporter, participants,
-                run.RunId, run.RoomVersion, message.ActorSequence)), ct).ConfigureAwait(false);
-        }
-        catch (Exception failure) when (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
-        {
-            if (safety is not null)
-                foreach (var recipient in captured) await safety.BlockAsync(recipient, failure, nameof(MonsterDeathHandler)).ConfigureAwait(false);
-            throw;
-        }
-        if (settled.Death?.Change is not { } change)
-        {
-            if (logger.IsEnabled(LogLevel.Debug))
-                logger.LogDebug("Monster death not committed connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} actor={Actor}; sending empty acknowledgement",
-                    reporter.ConnectionId, run.RunId, run.CurrentRoomMapId, run.RoomVersion, message.ActorSequence);
-            await sender.SendExplicitAsync(reporter.ConnectionId,
-                new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
-            return;
-        }
-        try
-        {
-            if (creatures is not null && change.Run.Layout.ConsumesFatigue && change.IsCellCleared)
-                foreach (var participant in settled.Participants)
-                    creatures.QueueRoomExperience(participant.Session, change.Run.RunId, change.Run.CurrentCell, 1);
-            var clear = await clearEvaluator.EvaluateAsync(reporter.AccountId, reporter.CharacterId,
-                change.Run.RunId, change.Run.RoomVersion, ct).ConfigureAwait(false);
-            var drops = change.AddedGroundItems.Select(x => x.ToMonsterDrop()).ToArray();
-            var owners = drops.Where(x => x.Rolled.OwnerCharacterId.HasValue)
-                .ToDictionary(x => x.Number, x => SelectedSessionIdentity.ToWireUserId(x.Rolled.OwnerCharacterId!.Value));
-            var death = new MonsterDeathNotification(message.ActorSequence, drops, reporter.WireUserId,
-                GameDropIdentity.ForKill(change.Run, message.ActorSequence), owners);
-            var targets = settled.Participants.Where(x => selectedSessions.IsInWorld(x.Session))
-                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
-                    settled.Tournament))).ToArray();
-            await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
-            if (clear is not null) await clearProjection.DeliverAsync(reporter, clear, ct).ConfigureAwait(false);
-            if (change.Run.Layout.Altar is not null) altarProjection?.Wake();
-            if (logger.IsEnabled(LogLevel.Debug))
-                logger.LogDebug("Monster death delivered connection={ConnectionId} sequence={Sequence} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} drops={Drops} cellCleared={CellCleared} boss={IsBossRoom} clearProjected={ClearProjected} aliveBlockers={AliveBlockers} mechanismBlocks={MechanismBlocks}",
-                    reporter.ConnectionId, message.Metadata.Sequence, run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId,
-                    run.RoomVersion, message.ActorSequence, settled.Participants.Count, drops.Length, change.IsCellCleared,
-                    change.Run.IsBossRoom, clear is not null,
-                    change.Run.CurrentCellState.Actors.Count(x => x.BlocksClear && !x.IsDead), change.Run.CurrentCellState.MechanismBlocksClear);
-            if (logger.IsEnabled(LogLevel.Trace))
-                logger.LogTrace("Dungeon remaining actors run={RunId} room={RoomId} version={RoomVersion} actors={AliveActors}",
-                    run.RunId, run.CurrentRoomMapId, run.RoomVersion,
-                    string.Join(',', change.Run.CurrentCellState.Actors.Where(x => x.BlocksClear && !x.IsDead).Select(x => x.Sequence)));
-        }
-        catch (Exception failure)
-        {
-            var uncertain = new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
-                Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
-                "Monster death committed but client publication failed.", failure);
-            if (safety is not null)
-                foreach (var recipient in captured) await safety.BlockAsync(recipient, uncertain, nameof(MonsterDeathHandler)).ConfigureAwait(false);
-            throw uncertain;
-        }
-    }
-
-    private ValueTask DeliverAsync(SelectedSessionIdentity reporter, IReadOnlyList<GameExplicitMessageTarget> targets, CancellationToken ct) =>
-        sender.SendExplicitAsync(reporter.ConnectionId, new GameExplicitMessageDelivery(
-            targets.FirstOrDefault(x => x.ConnectionId == reporter.ConnectionId)?.OrderedMessages ?? [],
-            targets.Where(x => x.ConnectionId != reporter.ConnectionId).ToArray()), ct);
-
-    private IReadOnlyList<IGameServerMessage> Frames(MonsterDeathParticipantResult participant,
-        MonsterDeathNotification death, IReadOnlyList<ushort> autoKilled, TournamentActionResult? tournament = null)
-    {
-        var award = participant.Effects.Award;
-        var total = award?.NotificationTotal ?? participant.Progress.Experience;
-        var frames = new List<IGameServerMessage> { new ExperienceNotification(participant.Progress.Level,
-            diagnostics.LabelProbe ? checked(total + ExperienceDiagnostics.ProbeTotal) : total, participant.SkillPoints,
-            AccountHonorLevel.Initial, ExperienceBonusLines.Of(award), diagnostics.LabelProbe), death };
-        frames.AddRange(autoKilled.Select(MonsterDeathNotification.Empty));
-        frames.AddRange(QuestFrames(new ApplyMonsterKillResult(award, [], participant.Effects.QuestItems,
-            participant.Effects.QuestProgress, participant.Effects.AccountMaterials)));
-        if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));
-        if (tournament is not null)
-            frames.AddRange((tournamentProjection ?? throw new InvalidOperationException("Tournament projection is unavailable."))
-                .CompletionFrames(tournament));
-        return frames;
-    }
-
-    internal static IReadOnlyList<IGameServerMessage> QuestFrames(ApplyMonsterKillResult? applied)
-    {
-        var frames = new List<IGameServerMessage>();
-        if (applied?.QuestItems is { } items) frames.Add(GameInventoryDelivery.Notification(items));
-        if (applied?.AccountMaterials is { Count: > 0 } shared)
-            frames.Add(GameInventoryDelivery.VirtualResourceNotification(shared, DateTimeOffset.UtcNow));
-        if (applied?.QuestProgress?.Quests is { } quests)
-            frames.Add(new AcceptedQuestProgressMessage([.. quests.OrderBy(x => x.Slot)
-                .Select(x => new AcceptedQuestProgressState(checked((ushort)x.QuestId), unchecked((uint)x.TriggerValue)))]));
-        return frames;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, MonsterDeathRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameMonsterDeathCommand(context, message), ct).ConfigureAwait(false);
 }

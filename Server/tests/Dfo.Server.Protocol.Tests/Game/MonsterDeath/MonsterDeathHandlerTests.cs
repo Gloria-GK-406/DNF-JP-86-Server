@@ -47,7 +47,7 @@ public sealed class MonsterDeathHandlerTests
 {
     // Keep the wire assertions and injected reward outcomes, but execute the new domain settlement
     // and its real transaction coordinator rather than emulating transaction boundaries in the handler.
-    private static MonsterDeathHandler CreateHandler(ISelectedSessionDomainService sessions,
+    private static DeathAlgorithmDriver CreateHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService unusedView, ICharacterDomainService characters,
         IDungeonRunDomainService runs, IMonsterKillDomainService kills, IDungeonClearDomainService clear,
         DungeonClearProjectionDelivery clearProjection, ICommandBus rewards, IQuestOfferRefreshDomainService offers,
@@ -61,8 +61,8 @@ public sealed class MonsterDeathHandlerTests
         var service = new MonsterDeathDomainService(scope, sessions, characters,
             runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
             events: new DeathEvents(scope));
-        return new MonsterDeathHandler(sessions, runs, clear, clearProjection, new DeathBus(scope, service, rewards),
-            registry, sender, diagnostics, logger, partyRecipients, creatures, safety);
+        return new DeathAlgorithmDriver(sessions, runs, clear, clearProjection, scope, service, rewards,
+            registry, sender, diagnostics, partyRecipients, creatures, safety);
     }
     private sealed class DeathEvents(Dfo.Server.Application.Transactions.DomainTransactionScope scope) : IEventService
     {
@@ -85,17 +85,36 @@ public sealed class MonsterDeathHandlerTests
             TNotification notification, CancellationToken cancellationToken = default)
             where TNotification : class, INotification<TNotification> => throw new NotSupportedException();
     }
-    private sealed class DeathBus(Dfo.Server.Application.Transactions.DomainTransactionScope scope,
-        IMonsterDeathDomainService service, ICommandBus fallback) : ICommandBus
+    // Same whole-owned ordinary algorithm and real domain transaction. A focused algorithm
+    // fixture: its injected results and manual failure policy do not prove the inbound bus/scope.
+    private sealed class DeathAlgorithmDriver(ISelectedSessionDomainService selected, IDungeonRunDomainService runs,
+        IDungeonClearDomainService clear, DungeonClearProjectionDelivery clearProjection,
+        Dfo.Server.Application.Transactions.DomainTransactionScope scope, IMonsterDeathDomainService service, ICommandBus fallback,
+        DungeonRunDeliveryRegistry registry, IGameMessageSender sender, ExperienceDiagnostics diagnostics,
+        DungeonPartyRecipients? recipients, Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService? creatures,
+        SelectedSessionSafety? safety) : GameMonsterDeathCommandHandler(selected,runs,registry,null!,clear,null!,creatures!,null!,
+            null!,null!,null!,null!,null!,null!,null!,null!,null!,new DriverOutbox(sender),null!,TimeProvider.System,null!,null!,NullLogger<GameMonsterDeathCommandHandler>.Instance)
     {
-        public async ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
+        private IReadOnlyList<SelectedSessionRecipient> captured=[];
+        internal async ValueTask HandleAsync(NetworkDispatchContext dispatch,MonsterDeathRequest input,CancellationToken ct)
         {
-            if (command is not ProcessMonsterDeathCommand death) return await fallback.SendAsync(command, ct);
-            await using var tx = scope.Begin();
-            var result = await TestEffectFootprints.Run(death.Request.Participants, cap => service.SettleAsync(death.Request, cap, ct));
-            await tx.CommitAsync(ct);
-            return (T)(object)result;
+            try { await RunAsync(new(Guid.NewGuid(),typeof(GameMonsterDeathCommand),GetType(),CommandExecutionKind.Direct),dispatch,input,diagnostics.LabelProbe,ct); }
+            catch(Exception error) when(Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            {
+                if(safety is not null) foreach(var recipient in captured) await safety.BlockAsync(recipient,error,nameof(DeathAlgorithmDriver));
+                throw;
+            }
         }
+        protected override IReadOnlyList<SelectedSessionRecipient> CaptureDeathRecipients(IReadOnlyList<SelectedSessionIdentity> participants,NetworkDispatchContext dispatch,GameMessageMetadata metadata) =>
+            captured=participants.Select(x=>safety?.Capture(x,metadata)??new SelectedSessionRecipient(x,x.ConnectionId==dispatch.Connection.ConnectionId?dispatch.Connection:null,metadata)).ToArray();
+        protected override IReadOnlyList<SelectedSessionIdentity> FindRecipients(SelectedSessionIdentity actor,DungeonRunId id)=>recipients?.Find(actor,id)??registry.Find(id);
+        protected override async ValueTask<MonsterDeathSettlementResult> SettleDeathAsync(CommandExecutionContext unused,MonsterDeathSettlementRequest request,IReadOnlyList<SelectedSessionRecipient> captures,CancellationToken ct)
+        {
+            await using var tx=scope.Begin();var result=await TestEffectFootprints.Run(request.Participants,cap=>service.SettleAsync(request,cap,ct));await tx.CommitAsync(ct);return result;
+        }
+        protected override ValueTask<ObjectDestructionResult> DestroyObjectAsync(CommandExecutionContext unused,SelectedSessionIdentity session,DungeonRunId run,long version,int code,IReadOnlyList<SelectedSessionIdentity> participants,CancellationToken ct)=>
+            fallback.SendAsync(new ObjectDestructionFacts(session,run,version,code,participants),ct);
+        protected override ValueTask<int> ProjectClearAsync(SelectedSessionIdentity actor,DungeonClearChange change,CancellationToken ct)=>clearProjection.DeliverAsync(actor,change,ct);
     }
     private sealed class RewardAdapter(ICommandBus bus) : IMonsterKillRewardsDomainService
     {
@@ -104,7 +123,7 @@ public sealed class MonsterDeathHandlerTests
             int count, PartyKey party, bool boss, DungeonRunId? run, RoomActorId? actor, int? world,
             IReadOnlyList<RolledDrop>? loot, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
-            var applied = await bus.SendAsync(new ApplyMonsterKillCommand(account, character,
+            var applied = await bus.SendAsync(new MonsterRewardFacts(account, character,
                 new(kill.Code, kill.Level, kill.Rank, kill.IsNamedMonster), dungeon, difficulty, weight,
                 kill.IsMonster ? HuntEnemyTargetTypes.Monster : HuntEnemyTargetTypes.AiCharacter,
                 count, loot, party, boss, session, run, actor, world), ct);
@@ -314,7 +333,7 @@ public sealed class MonsterDeathHandlerTests
 
             await Kill(bus: bus);
 
-            var fact = Assert.IsType<ApplyMonsterKillCommand>(bus.LastKillCommand);
+            var fact = Assert.IsType<MonsterRewardFacts>(bus.LastKillCommand);
             Assert.Equal(144, fact.DungeonId);
             Assert.Equal(3001, fact.Monster.Code);
             Assert.Equal(0, (int)fact.Monster.Rank);
@@ -507,17 +526,17 @@ public sealed class MonsterDeathHandlerTests
 
     private sealed class ObjectRewardBus(Action afterCommit) : ICommandBus
     {
-        public ApplyObjectDestructionCommand? Command { get; private set; }
+        public ObjectDestructionFacts? Command { get; private set; }
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct)
             where TResult : notnull
         {
-            this.Command = Assert.IsType<ApplyObjectDestructionCommand>(command);
+            this.Command = Assert.IsType<ObjectDestructionFacts>(command);
             var rewards = this.Command.Recipients.Select(session => new ObjectQuestReward(session,
-                new ApplyMonsterKillResult(null, [], new CommittedInventoryUpdateState(
+                new MonsterKillEffects(null, new QuestProgressSnapshot([new CarriedQuest(0, 2201, 8)]), new CommittedInventoryUpdateState(
                     InventoryContainerType.Main,
                     [new InventoryItemState(null, 0,
                         StackableItemCore.Create(6, 10149163, session.CharacterId.Value))], DateTimeOffset.UtcNow),
-                    new QuestProgressSnapshot([new CarriedQuest(0, 2201, 8)]), []))).ToArray();
+                    []))).ToArray();
             afterCommit();
             return ValueTask.FromResult((TResult)(object)new ObjectDestructionResult(rewards));
         }
@@ -1178,20 +1197,20 @@ public sealed class MonsterDeathHandlerTests
 
         public int QuestCommands { get; private set; }
 
-        public ApplyMonsterKillCommand? LastKillCommand { get; private set; }
+        public MonsterRewardFacts? LastKillCommand { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var kill = Assert.IsType<ApplyMonsterKillCommand>(command);
+            var kill = Assert.IsType<MonsterRewardFacts>(command);
             Assert.Equal(SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010), kill.Session);
             this.QuestCommands++;
             this.LastKillCommand = kill;
             this.TimesAsked++;
             if (this._remainingFailures-- > 0)
                 throw new InvalidOperationException("injected durable kill failure");
-            var result = new ApplyMonsterKillResult(
+            var result = new MonsterRewardResult(
                 awarded ? overrideAward ?? new ExperienceAward(
                     Breakdown: new ExperienceBreakdown(Base: KillGain),
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
@@ -1675,13 +1694,13 @@ public sealed class MonsterDeathHandlerTests
         CharacterId? levelFor = null) : ICommandBus
     {
         private bool failed;
-        public List<ApplyMonsterKillCommand> Commands { get; } = [];
+        public List<MonsterRewardFacts> Commands { get; } = [];
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var kill = Assert.IsType<ApplyMonsterKillCommand>(command);
+            var kill = Assert.IsType<MonsterRewardFacts>(command);
             this.Commands.Add(kill);
             if (!this.failed && kill.CharacterId == failFor)
             {
@@ -1697,7 +1716,7 @@ public sealed class MonsterDeathHandlerTests
                     : StartingLevel,
                 Total: StartingExperience + KillGain,
                 LeveledUp: kill.CharacterId == levelFor);
-            return ValueTask.FromResult((TResult)(object)new ApplyMonsterKillResult(award, []));
+            return ValueTask.FromResult((TResult)(object)new MonsterRewardResult(award, []));
         }
     }
 
@@ -1771,4 +1790,12 @@ public sealed class MonsterDeathHandlerTests
         public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
             outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
+}
+
+internal sealed class DriverOutbox(IGameMessageSender sender) : IGameCommandOutbox
+{
+    public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery delivery,CancellationToken ct=default)=>sender.SendExplicitAsync(id,delivery,ct);
+    public ValueTask RegisterBatchAsync(NetworkConnectionContext connection,IReadOnlyList<IGameServerMessage> messages,CancellationToken ct)=>sender.SendExplicitAsync(connection.ConnectionId,new(messages,[]),ct);
+    public ValueTask RegisterCmdAsync(NetworkConnectionId id,IGameCmdMessage message,CancellationToken ct=default)=>sender.SendCmdAsync(id,message,ct);
+    public ValueTask RegisterNotiAsync(NetworkConnectionId id,IGameNotiMessage message,CancellationToken ct=default)=>sender.SendNotiAsync(id,message,ct);
 }

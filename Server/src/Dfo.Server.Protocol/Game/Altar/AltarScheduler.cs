@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Altar;
 
-public sealed class AltarWakeSignal(TimeProvider clock)
+public sealed class AltarWakeSignal(TimeProvider clock) : IAltarSchedulerWakeSignal
 {
     private readonly Channel<bool> wake = System.Threading.Channels.Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
     { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });

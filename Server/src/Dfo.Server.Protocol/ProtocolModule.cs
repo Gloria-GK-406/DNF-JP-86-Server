@@ -272,6 +272,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<TournamentProjectionDelivery>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
+        services.TryAddSingleton<IAltarSchedulerWakeSignal>(p => p.GetRequiredService<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>());
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProtocolCoordinator>();
         services.AddHostedService<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
@@ -545,16 +546,8 @@ public sealed class ProtocolModule : IServerModule
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<GrantKillExperienceCommand, KillExperienceResult, GrantKillExperienceCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<AdvanceHuntEnemyQuestCommand, AdvanceHuntEnemyQuestResult, AdvanceHuntEnemyQuestCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ApplyObjectDestructionCommand, ObjectDestructionResult, ApplyObjectDestructionCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ProcessMonsterDeathCommand, MonsterDeathSettlementResult, ProcessMonsterDeathCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ApplyMonsterKillCommand, ApplyMonsterKillResult, ApplyMonsterKillCommandHandler>(
-            CommandExecutionKind.Transactional);
+        services.AddProtocolCommandHandler<GameMonsterDeathCommand, bool, GameMonsterDeathCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameMonsterDeath, typeof(MonsterDeathRequest)));
         services.AddCommandHandler<GrantClearExperienceCommand, ClearExperienceResult, GrantClearExperienceCommandHandler>(
             CommandExecutionKind.Transactional);
         services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
@@ -895,7 +888,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterMessageHandler<StoryPauseHandler>(ClientMessageType.GameStoryPause);
         services.RegisterMessageHandler<UseRevivalCoinHandler>(ClientMessageType.GameUseRevivalCoin);
         services.RegisterMessageHandler<CharacterDeathHandler>(ClientMessageType.GameCharacterDeath);
-        services.RegisterMessageHandler<MonsterDeathHandler>(ClientMessageType.GameMonsterDeath);
+        services.RegisterProtocolMessageHandler<MonsterDeathHandler, MonsterDeathRequest, GameMonsterDeathCommand>(ClientMessageType.GameMonsterDeath);
         services.TryAddSingleton<BossTowerProjectionDelivery>();
         services.TryAddSingleton<BossTowerPartyCoordinator>();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
@@ -903,7 +896,6 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
         services.AddCommandHandler<StartBossTowerCommand, BossTowerActionResult, StartBossTowerCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<KillBossTowerActorCommand, BossTowerActionResult, KillBossTowerActorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DieInBossTowerCommand, BossTowerActionResult, DieInBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveBossTowerCommand, BossTowerActionResult, LeaveBossTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<SynchronizeBossTowerLeaderCommand, BossTowerActionResult, SynchronizeBossTowerLeaderCommandHandler>(CommandExecutionKind.Transactional);
@@ -919,8 +911,6 @@ public sealed class ProtocolModule : IServerModule
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
         services.AddCommandHandler<PickupTowerItemCommand, TowerPickupResult,
             PickupTowerItemCommandHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<KillIllusionTowerActorCommand, TowerActionResult,
-            KillIllusionTowerActorCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<DieInIllusionTowerCommand, TowerActionResult,
             DieInIllusionTowerCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<LeaveIllusionTowerCommand, TowerActionResult,

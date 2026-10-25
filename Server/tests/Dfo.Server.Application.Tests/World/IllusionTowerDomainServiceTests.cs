@@ -167,8 +167,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await tower.StartAsync(context, default);
             f.Sender.FailExplicit = true;
 
-            Assert.True(await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => f.Services.GetRequiredService<IllusionTowerProjectionDelivery>()
-                .KillAsync(f.Session.ConnectionId, GameMessageMetadata.Empty,
+            Assert.True(await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(f.Services, f.Session.ConnectionId, GameMessageMetadata.Empty,
                     run.Room.Actors[0].Uid, f.Session.WireUserId, default)));
 
             Assert.Equal([f.Session.ConnectionId], closer.Closed);
@@ -1620,7 +1619,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
-            await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => f.Services.GetRequiredService<IllusionTowerProjectionDelivery>().KillAsync(f.Session.ConnectionId,
+            await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(f.Services, f.Session.ConnectionId,
                 GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
             var ended = tower.Find(f.Session)!;
             Assert.True(ended.Completion!.Settled);
@@ -1731,7 +1730,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default); await tower.StartAsync(context, default);
             var delivery = f.Services.GetRequiredService<IllusionTowerProjectionDelivery>();
-            await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => delivery.KillAsync(f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
+            await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(f.Services, f.Session.ConnectionId, GameMessageMetadata.Empty, run.Room.Actors[0].Uid, f.Session.WireUserId, default));
             var drop = Assert.Single(tower.Find(f.Session)!.Room.Items);
             f.Sender.Messages.Clear();
             await f.Services.GetRequiredService<Dfo.Server.Protocol.Game.GroundPickup.GetItemHandler>().HandleAsync(new(f.Connection),

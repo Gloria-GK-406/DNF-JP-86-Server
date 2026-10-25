@@ -34,7 +34,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
                 kill.Level, kill.Rank, difficulty, weight, partyMemberCount, kill.IsNamedMonster),
             (clock ?? TimeProvider.System).GetUtcNow(), session, footprint, ct).ConfigureAwait(false) : null;
         footprint.DemandEffects(new(accountId, characterId, session));
-        var grants = await GrantQuestItemsAsync(accountId, characterId, loot, partyKey, footprint, ct).ConfigureAwait(false);
+        var grants = await GrantQuestItemsAsync(session, accountId, characterId, loot, partyKey, footprint, ct).ConfigureAwait(false);
         var facts = new List<QuestProgressFact> { new QuestEnemyDefeated(dungeonId, difficulty, kill.Code,
             kill.IsMonster ? HuntEnemyTargetTypes.Monster : HuntEnemyTargetTypes.AiCharacter, kill.Rank,
             WorldMapId: worldMapId, RunId: runId, Actor: actor) };
@@ -56,10 +56,10 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
         return grants with { Award = award, QuestProgress = report.NotificationSnapshot, QuestChanges = report.Changes };
     }
 
-    private async ValueTask<MonsterKillEffects> GrantQuestItemsAsync(AccountId account, CharacterId character,
+    private async ValueTask<MonsterKillEffects> GrantQuestItemsAsync(SelectedSessionIdentity? session, AccountId account, CharacterId character,
         IReadOnlyList<RolledDrop>? loot, PartyKey party, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        footprint.DemandEffects(new(account, character, null));
+        footprint.DemandEffects(new(account, character, session));
         var empty = new MonsterKillEffects(null, null, null, []);
         if (party != default && (parties?.FindByKey(party) is not { } current
             || !current.Members.Any(x => x.CharacterId == character))) return empty;
@@ -79,7 +79,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
                 + await delivery.PendingQuantityAsync(character, drop.ItemId, ct).ConfigureAwait(false);
             var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
             if (count <= 0) continue;
-            footprint.DemandEffects(new(account, character, null));
+            footprint.DemandEffects(new(account, character, session));
             var receipt = await delivery.DeliverAsync(account, character, [new(drop.ItemId, count)], "任务掉落奖励", ct,
                 ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
             foreach (var addition in receipt.Inventory) changed[slots.ToGameSlot(addition.Slot)] = (addition.Container, addition.Slot.Index);

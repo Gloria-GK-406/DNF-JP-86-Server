@@ -87,31 +87,22 @@ public sealed class GrantKillExperienceCommandTests
     {
         return await TestGameplay.RunAsync(async () =>
         {
-            var handler = new GrantKillExperienceCommandHandler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
+            var handler = new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                     new CapturedParameters(),
                     new UngradedRanks(),
                     new NoProgression(),
                     new NoChannelExperience(),
                     ExperienceTuning.Default,
                     ExperienceEntitlementPolicy.None)),
-                new FixedChannelBonus(channelRate)), characterLevel: 3), TimeProvider.System);
+                new FixedChannelBonus(channelRate)), characterLevel: 3);
 
-            var result = await TestEffectFootprints.Invoke(handler,
-                new CommandExecutionContext(
-                    Guid.Empty,
-                    typeof(GrantKillExperienceCommand),
-                    typeof(GrantKillExperienceCommandHandler),
-                    CommandExecutionKind.Transactional),
-                new GrantKillExperienceCommand(
-                    new AccountId(1),
-                    new CharacterId(60),
-                    new KilledMonster(Code: 63751, monsterLevel, rank, named),
-                    CapturedDungeon,
-                    Difficulty: 0,
-                    CapturedDungeonWeight), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null),
-                CancellationToken.None);
+            var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1),new(60),null),
+                cap => handler.Get(new(60)).AddExpAsync(new KillExperienceContext(
+                    new ExperienceOccasion(ExperienceEvent.MonsterKill,new(1),new(60),CapturedDungeon),
+                    monsterLevel,rank,0,CapturedDungeonWeight,1,named),DateTimeOffset.UtcNow,null,cap,default));
 
-            return result.Award;
+            return result;
+
         });
     }
 

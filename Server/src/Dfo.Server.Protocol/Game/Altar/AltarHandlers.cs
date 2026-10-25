@@ -78,8 +78,7 @@ public sealed class AltarProtocolCoordinator(IDungeonRunDomainService runs,
             new ExperienceNotification(participant.Progress.Level, award?.NotificationTotal ?? participant.Progress.Experience,
                 participant.SkillPoints, AccountHonorLevel.Initial, ExperienceBonusLines.Of(award)), death,
         };
-        frames.AddRange(MonsterDeathHandler.QuestFrames(new ApplyMonsterKillResult(award, [], participant.Effects.QuestItems,
-            participant.Effects.QuestProgress, participant.Effects.AccountMaterials)));
+        frames.AddRange(MonsterQuestFrames.Of(participant.Effects));
         if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));
         return frames;
     }

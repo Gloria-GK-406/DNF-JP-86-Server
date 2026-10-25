@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.World;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Tests.Quests;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
@@ -67,14 +68,20 @@ public sealed class MonsterDeathTransactionTests
                 DungeonRunId.New(), fixture.Clock.GetUtcNow()).Run;
             return (member, leader, runs, run);
         });
-        var command = new ProcessMonsterDeathCommand(new(leader, [leader, member], run.RunId, run.RoomVersion, 1));
-        var bus = fixture.Services.GetRequiredService<ICommandBus>();
+        var request = new MonsterDeathSettlementRequest(leader, [leader, member], run.RunId, run.RoomVersion, 1);
+        // Real SQLite/domain transaction oracle, distinct from the production inbound wire oracle.
+        Task<MonsterDeathSettlementResult> Settle() => TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await using var tx=fixture.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var result=await TestEffectFootprints.Run(request.Participants, cap =>fixture.Services.GetRequiredService<IMonsterDeathDomainService>().SettleAsync(request,cap,default));
+            await tx.CommitAsync(default);return result;
+        });
         var probe = (RewardProbe)fixture.Services.GetRequiredService<IMonsterKillRewardsDomainService>();
         if (duringFlush)
             fixture.Sql("CREATE TRIGGER fail_member BEFORE UPDATE ON character_stats WHEN NEW.character_id=3 BEGIN SELECT RAISE(ABORT,'member flush failure'); END");
         else probe.FailMember = true;
 
-        var failure = await Assert.ThrowsAnyAsync<Exception>(async () => await bus.SendAsync(command));
+        var failure = await Assert.ThrowsAnyAsync<Exception>(async () => await Settle());
         Assert.True(probe.Transactions.Count == 2, failure.ToString());
         Assert.Equal(0, fixture.Scalar("SELECT SUM(exp) FROM characters"));
         Assert.Equal(100000, fixture.Gold);
@@ -93,7 +100,7 @@ public sealed class MonsterDeathTransactionTests
 
         if (duringFlush) fixture.Sql("DROP TRIGGER fail_member");
         probe.FailMember = false;
-        var result = await bus.SendAsync(command);
+        var result = await Settle();
         Assert.NotNull(result.Death?.Change);
         Assert.Equal(2, result.Participants.Count);
         Assert.Equal(100017, fixture.Gold);
@@ -116,7 +123,7 @@ public sealed class MonsterDeathTransactionTests
         Assert.Same(probe.Transactions[2], probe.Transactions[3]);
         Assert.NotSame(probe.SqlTransactions[0], probe.SqlTransactions[2]);
         Assert.Same(probe.SqlTransactions[2], probe.SqlTransactions[3]);
-        var duplicate = await bus.SendAsync(command);
+        var duplicate = await Settle();
         Assert.Null(duplicate.Death);
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.map-cleared'"));
         Assert.Equal(4, probe.Transactions.Count);

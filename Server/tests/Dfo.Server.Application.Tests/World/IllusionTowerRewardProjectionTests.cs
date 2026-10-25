@@ -28,7 +28,7 @@ public sealed class IllusionTowerRewardProjectionTests
             var states = new List<(long Experience, long Gold, long Items)>();
             sender.OnAttempt = () => states.Add(Assets(fixture));
 
-            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(fixture.Services, fixture.Session.ConnectionId,
                 GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default)));
 
             Assert.Equal(2, sender.Attempts.Count);
@@ -47,7 +47,7 @@ public sealed class IllusionTowerRewardProjectionTests
                     message => message.GetType().Name == "IllusionTowerRewardNotification");
             }
 
-            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(fixture.Session.ConnectionId,
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(fixture.Services, fixture.Session.ConnectionId,
                 GameMessageMetadata.Empty, run.Room.Actors[0].Uid, fixture.Session.WireUserId, default)));
             Assert.Equal(2, sender.Attempts.Count);
             Assert.Equal(states[0], Assets(fixture));
@@ -71,7 +71,7 @@ public sealed class IllusionTowerRewardProjectionTests
                 _ = await TestEffectFootprints.Run(session, cap => fixture.Services.GetRequiredService<ISelectedSessionCleanupDomainService>().CleanupAsync(session, includeOwner: false, cap, default));
             };
 
-            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(session.ConnectionId,
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(fixture.Services, session.ConnectionId,
                 GameMessageMetadata.Empty, run.Room.Actors[0].Uid, session.WireUserId, default)));
 
             Assert.Equal(2, sender.Attempts.Count);
@@ -99,7 +99,7 @@ public sealed class IllusionTowerRewardProjectionTests
             SelectedSessionIdentity? replacement = null;
             sender.OnAttempt = () => replacement ??= ReplaceSession(fixture);
 
-            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => Delivery(fixture).KillAsync(old.ConnectionId,
+            Assert.True(await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(fixture.Services, old.ConnectionId,
                 GameMessageMetadata.Empty, run.Room.Actors[0].Uid, old.WireUserId, default)));
 
             Assert.Single(sender.Attempts);

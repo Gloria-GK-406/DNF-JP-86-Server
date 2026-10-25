@@ -84,10 +84,8 @@ public sealed class IllusionTowerPublicFlowTests
 
                 foreach (var actor in Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session)).Room.Actors)
                 {
-                    await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => fixture.Services.GetRequiredService<MonsterDeathHandler>().HandleAsync(
-                        new(fixture.Connection),
-                        new MonsterDeathRequest(GameMessageMetadata.Empty, actor.Uid, fixture.Session.WireUserId),
-                        default));
+                    await TestEffectFootprints.NonEffect(fixture.Services, GameMessageMetadata.Empty, () => MonsterDeathRouteDriver.KillAsync(fixture.Services,fixture.Session.ConnectionId,
+                        GameMessageMetadata.Empty,actor.Uid,fixture.Session.WireUserId,default));
                 }
 
                 var cleared = Assert.IsType<IllusionTowerSnapshot>(towers.Find(fixture.Session));

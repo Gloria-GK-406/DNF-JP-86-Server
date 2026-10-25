@@ -34,6 +34,7 @@ public sealed class CommandHandlerArchitectureTests
     private static readonly IReadOnlyDictionary<Type, string> Exempt =
         new Dictionary<Type, string>
         {
+            [typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal)] = "仅唤醒原祭坛调度器的具名纯信号；不提供等待、排程、世界读取或队列权限。",
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
             [typeof(ICommandWorkUnits)] = "当前CMD的显式事务边界，不派发其它CMD。",
@@ -48,6 +49,7 @@ public sealed class CommandHandlerArchitectureTests
         };
 
     private interface IPretendOutbox;
+    private interface IPretendAltarSchedulerWakeSignal { void Wake(); }
 
     private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;
 
@@ -124,6 +126,9 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Application.Execution.GameplayExecutor))]
     [InlineData(typeof(IServiceProvider))]
     [InlineData(typeof(IPretendOutbox))]
+    [InlineData(typeof(IPretendAltarSchedulerWakeSignal))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.Altar.AltarWakeSignal))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
 
@@ -133,6 +138,7 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
     [InlineData(typeof(TimeProvider))]
     [InlineData(typeof(ICommandWorkUnits))]
+    [InlineData(typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures))]
     [InlineData(typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections))]

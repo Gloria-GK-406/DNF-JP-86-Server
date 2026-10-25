@@ -4,16 +4,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game;
 
-public sealed record KillIllusionTowerActorCommand(TowerActionContext Context, ushort ActorUid)
-    : ICommand<TowerActionResult>;
-public sealed class KillIllusionTowerActorCommandHandler(IIllusionTowerDomainService towers)
-    : ICommandHandler<KillIllusionTowerActorCommand, TowerActionResult>
-{
-    public ValueTask<TowerActionResult> HandleAsync(CommandExecutionContext context,
-        KillIllusionTowerActorCommand command, CancellationToken token) =>
-        towers.KillAsync(command.Context, command.ActorUid, context.LegacyFootprint, token);
-}
-
 public sealed record DieInIllusionTowerCommand(TowerActionContext Context) : ICommand<TowerActionResult>;
 public sealed class DieInIllusionTowerCommandHandler(IIllusionTowerDomainService towers)
     : ICommandHandler<DieInIllusionTowerCommand, TowerActionResult>

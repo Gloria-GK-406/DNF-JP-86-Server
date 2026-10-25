@@ -29,6 +29,7 @@
       quietly stops matching the interface the other is proving something about. There is no
       shared test-support project, and one double does not earn creating one.
     -->
+    <Compile Include="../Dfo.Server.Application.Tests/Support/MonsterRewardDomainDriver.cs" Link="Support/MonsterRewardDomainDriver.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\CurrentCharacterStub.cs" Link="Support\CurrentCharacterStub.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\NoticeStateStub.cs" Link="Support\NoticeStateStub.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingCharacterTable.cs"

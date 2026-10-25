@@ -383,6 +383,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | EnterSelectDungeon／BackToVillage／PrepareCycleDungeonEntry | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs)；`TASK-42`。 |
 | SelectDungeon／MirrorDungeonEntry（含Boss／Illusion入场） | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs)；`TASK-43`。 |
 | FinishLoading／MoveMap／IllusionTowerStage（含两塔加载与换层） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.cs)；`TASK-44`，Boss Start离场消费者保留。 |
+| MonsterDeath（普通／物件／两塔击杀） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs)；`TASK-45`，祭坛仅具名纯唤醒接缝，Timer来源保持。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文
@@ -390,7 +391,7 @@ CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次�
 路由（声明种类与原调用链）；其余仍走 LegacyQueued／LegacyFineGrained，新 CMD 不得回调旧命令。
 协议 CMD 可注入领域服务／store，以及具名 `ICommandWorkUnits`、`ICommandMessageOutbox`、
 `ICommandConnectionClosures`、`ICommandProjections`、Protocol 的 `IGameCommandOutbox`、既有顺序／槽位映射
-与日志；禁止旧 sender／closer、总线、队列、执行器及动态服务解析。
+与日志；`IAltarSchedulerWakeSignal`仅供原祭坛同步无参唤醒。禁止旧 sender／closer、总线、队列、执行器及动态服务解析。
 
 显式工作单元复用领域事务，不把整协议包成事务；空 selected 列表不表示没有 SQLite／内存参与者。
 普通 NonEffect 不取得 Main／操作账本／raw 许可，同序号仍按当前事实执行业务；需要效果的分支先显式

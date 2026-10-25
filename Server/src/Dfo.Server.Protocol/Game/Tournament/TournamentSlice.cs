@@ -144,28 +144,8 @@ public sealed class TournamentProjectionDelivery(ITournamentDungeonDomainService
     ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ICommandBus commands,
     IGameMessageSender sender, IInventorySlotProjectionDomainService slots, TimeProvider clock)
 {
-    internal IReadOnlyList<IGameServerMessage> CompletionFrames(TournamentActionResult action)
-    {
-        var frames = new List<IGameServerMessage>();
-        if (action.Fatigue is { } fatigue) frames.Add(new Fatigue.FatigueNotification(fatigue));
-        if (action.Experience is { } exp && action.SkillPoints is { } points)
-            frames.Add(new ExperienceNotification(exp.Level, exp.NotificationTotal, points, AccountHonorLevel.Initial, ExperienceBonusLines.Of(exp)));
-        AddInventory(frames, action);
-        if (action.Quests is { } quests)
-            frames.Add(new AcceptedQuestProgressMessage([.. quests.Quests.OrderBy(x => x.Slot)
-                .Select(x => new AcceptedQuestProgressState(checked((ushort)x.QuestId), unchecked((uint)x.TriggerValue)))]));
-        if (action.State.IsFinished && action.Experience is not null) frames.Add(new TournamentRewardMessage(action.State));
-        return frames;
-    }
-    private void AddInventory(List<IGameServerMessage> frames, TournamentActionResult action)
-    {
-        if (action.GoldBalance is { } gold) frames.Add(GameInventoryDelivery.CarriedGoldNotification(gold, clock.GetUtcNow()));
-        foreach (var group in (action.Delivery?.Inventory ?? []).GroupBy(x => slots.Project(x.Slot).Space))
-            frames.Add(new InventoryDeltaMessage(group.Key, group.GroupBy(x => x.Slot).Select(x =>
-            {
-                var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(null, slots.Project(last.Slot).Index, last.Snapshot.ToCore());
-            }).ToArray(), clock.GetUtcNow()));
-    }
+    internal IReadOnlyList<IGameServerMessage> CompletionFrames(TournamentActionResult action) =>
+        TournamentCompletionFrames.CompletionFrames(action, slots, clock);
     public async ValueTask<bool> EliminateAsync(DungeonRunId runId, CancellationToken ct)
     {
         var run = runs.Find(runId);

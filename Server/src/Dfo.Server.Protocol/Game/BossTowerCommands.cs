@@ -20,16 +20,6 @@ public sealed class StartBossTowerCommandHandler(IBossTowerDomainService towers)
         StartBossTowerCommand command, CancellationToken token) => towers.StartAsync(command.Context, token);
 }
 
-public sealed record KillBossTowerActorCommand(BossTowerActionContext Context, ushort ActorUid)
-    : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
-public sealed class KillBossTowerActorCommandHandler(IBossTowerDomainService towers)
-    : ICommandHandler<KillBossTowerActorCommand, BossTowerActionResult>
-{
-    public ValueTask<BossTowerActionResult> HandleAsync(CommandExecutionContext context,
-        KillBossTowerActorCommand command, CancellationToken token) =>
-        towers.KillAsync(command.Context, command.ActorUid, context.LegacyFootprint, token);
-}
-
 public sealed record DieInBossTowerCommand(BossTowerActionContext Context) : BossTowerActionCommand(Context), ICommand<BossTowerActionResult>;
 public sealed class DieInBossTowerCommandHandler(IBossTowerDomainService towers)
     : ICommandHandler<DieInBossTowerCommand, BossTowerActionResult>

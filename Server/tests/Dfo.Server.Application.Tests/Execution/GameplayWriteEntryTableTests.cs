@@ -442,11 +442,8 @@ public sealed class GameplayWriteEntryTableTests
         ["EffectOperationLedger.DispatchAsync(NetworkConnectionContext, IEffectSettlementRequest, Func<ValueTask>, CancellationToken)"] = W,
 
         // DungeonRunDeliveryRegistry
-        ["DungeonRunDeliveryRegistry.CompleteKillDelivery(DungeonRunId, RoomActorId)"] = W,
         ["DungeonRunDeliveryRegistry.Find(DungeonRunId)"] = R,
-        ["DungeonRunDeliveryRegistry.FindKillResult(DungeonRunId, RoomActorId, CharacterId)"] = R,
         ["DungeonRunDeliveryRegistry.ParticipantDeparted(DungeonRunId, CharacterId)"] = W,
-        ["DungeonRunDeliveryRegistry.RecordKillResult(DungeonRunId, RoomActorId, CharacterId, ApplyMonsterKillResult)"] = W,
         ["DungeonRunDeliveryRegistry.Register(DungeonRunId, IReadOnlyList<SelectedSessionIdentity>)"] = W,
         ["DungeonRunDeliveryRegistry.RemoveParticipant(DungeonRunId, CharacterId)"] = W,
 

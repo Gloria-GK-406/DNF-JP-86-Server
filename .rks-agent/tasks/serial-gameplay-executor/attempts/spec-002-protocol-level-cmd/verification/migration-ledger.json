@@ -8727,25 +8727,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 49,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 49,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.KillBossTowerActorCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.KillBossTowerActorCommand",
@@ -8772,52 +8783,81 @@
         "result": "Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 49,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 49,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/BossTowerCommands.cs",
-          "line": 49,
-          "source_sha256": "13ddf7b3d9de36dd81b32a20613c0be1270d919ee6fd0312b9229dd4c420c3f4"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 37,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 37,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.KillIllusionTowerActorCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.KillIllusionTowerActorCommand",
@@ -8844,31 +8884,49 @@
         "result": "Dfo.Server.Abstractions.World.IllusionTower.TowerActionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 37,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 37,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/IllusionTowerCommands.cs",
-          "line": 37,
-          "source_sha256": "64906194a33c6d46733cd63891efa38d3993830f3bb6da003d9f65389d847c20"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -11229,25 +11287,36 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/AdvanceHuntEnemyQuestCommand.cs",
-          "line": 23,
-          "source_sha256": "645ec9b98b69fc6ac0a72c7dfa56fcb80bad0bdb0b38f511609eca1380ed8fb9"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/AdvanceHuntEnemyQuestCommand.cs",
-          "line": 23,
-          "source_sha256": "645ec9b98b69fc6ac0a72c7dfa56fcb80bad0bdb0b38f511609eca1380ed8fb9"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MonsterDeath.AdvanceHuntEnemyQuestCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MonsterDeath.AdvanceHuntEnemyQuestCommand",
@@ -11274,52 +11343,81 @@
         "result": "Dfo.Server.Protocol.Game.MonsterDeath.AdvanceHuntEnemyQuestResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/AdvanceHuntEnemyQuestCommand.cs",
-          "line": 23,
-          "source_sha256": "645ec9b98b69fc6ac0a72c7dfa56fcb80bad0bdb0b38f511609eca1380ed8fb9"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/AdvanceHuntEnemyQuestCommand.cs",
-          "line": 23,
-          "source_sha256": "645ec9b98b69fc6ac0a72c7dfa56fcb80bad0bdb0b38f511609eca1380ed8fb9"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/AdvanceHuntEnemyQuestCommand.cs",
-          "line": 23,
-          "source_sha256": "645ec9b98b69fc6ac0a72c7dfa56fcb80bad0bdb0b38f511609eca1380ed8fb9"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyMonsterKillCommand.cs",
-          "line": 44,
-          "source_sha256": "8f5ddc7db0899818b16601f7a92a5e6a0334372c92697bd24d9363d1e762df56"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyMonsterKillCommand.cs",
-          "line": 44,
-          "source_sha256": "8f5ddc7db0899818b16601f7a92a5e6a0334372c92697bd24d9363d1e762df56"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MonsterDeath.ApplyMonsterKillCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MonsterDeath.ApplyMonsterKillCommand",
@@ -11346,52 +11444,81 @@
         "result": "Dfo.Server.Protocol.Game.MonsterDeath.ApplyMonsterKillResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyMonsterKillCommand.cs",
-          "line": 44,
-          "source_sha256": "8f5ddc7db0899818b16601f7a92a5e6a0334372c92697bd24d9363d1e762df56"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyMonsterKillCommand.cs",
-          "line": 44,
-          "source_sha256": "8f5ddc7db0899818b16601f7a92a5e6a0334372c92697bd24d9363d1e762df56"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyMonsterKillCommand.cs",
-          "line": 44,
-          "source_sha256": "8f5ddc7db0899818b16601f7a92a5e6a0334372c92697bd24d9363d1e762df56"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyObjectDestructionCommand.cs",
-          "line": 24,
-          "source_sha256": "4bbf8ee5e017097541e2751866698b9c5cae00436710f51ce9d2fd1852957594"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyObjectDestructionCommand.cs",
-          "line": 24,
-          "source_sha256": "4bbf8ee5e017097541e2751866698b9c5cae00436710f51ce9d2fd1852957594"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MonsterDeath.ApplyObjectDestructionCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MonsterDeath.ApplyObjectDestructionCommand",
@@ -11418,52 +11545,81 @@
         "result": "Dfo.Server.Protocol.Game.MonsterDeath.ObjectDestructionResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyObjectDestructionCommand.cs",
-          "line": 24,
-          "source_sha256": "4bbf8ee5e017097541e2751866698b9c5cae00436710f51ce9d2fd1852957594"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyObjectDestructionCommand.cs",
-          "line": 24,
-          "source_sha256": "4bbf8ee5e017097541e2751866698b9c5cae00436710f51ce9d2fd1852957594"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ApplyObjectDestructionCommand.cs",
-          "line": 24,
-          "source_sha256": "4bbf8ee5e017097541e2751866698b9c5cae00436710f51ce9d2fd1852957594"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/GrantKillExperienceCommand.cs",
-          "line": 47,
-          "source_sha256": "d0ff0db91586e0f8743d64e11fea1b5ac8ebaa66def50d7eafde8ee29f0c5a6a"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/GrantKillExperienceCommand.cs",
-          "line": 47,
-          "source_sha256": "d0ff0db91586e0f8743d64e11fea1b5ac8ebaa66def50d7eafde8ee29f0c5a6a"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MonsterDeath.GrantKillExperienceCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MonsterDeath.GrantKillExperienceCommand",
@@ -11490,52 +11646,81 @@
         "result": "Dfo.Server.Protocol.Game.MonsterDeath.KillExperienceResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/GrantKillExperienceCommand.cs",
-          "line": 47,
-          "source_sha256": "d0ff0db91586e0f8743d64e11fea1b5ac8ebaa66def50d7eafde8ee29f0c5a6a"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/GrantKillExperienceCommand.cs",
-          "line": 47,
-          "source_sha256": "d0ff0db91586e0f8743d64e11fea1b5ac8ebaa66def50d7eafde8ee29f0c5a6a"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/GrantKillExperienceCommand.cs",
-          "line": 47,
-          "source_sha256": "d0ff0db91586e0f8743d64e11fea1b5ac8ebaa66def50d7eafde8ee29f0c5a6a"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ProcessMonsterDeathCommand.cs",
-          "line": 15,
-          "source_sha256": "6742df52ac68af1d04e488737546bb9148ac036024f2f948c5032e7d0df1d5c5"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ProcessMonsterDeathCommand.cs",
-          "line": 15,
-          "source_sha256": "6742df52ac68af1d04e488737546bb9148ac036024f2f948c5032e7d0df1d5c5"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "全部真实MonsterDeath／两塔Kill消费者归唯一whole；原三个已无生产调用的fine正式价值断言迁入实际领域／同算法测试，七fine类型与绑定均删除。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MonsterDeath.ProcessMonsterDeathCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MonsterDeath.ProcessMonsterDeathCommand",
@@ -11562,31 +11747,49 @@
         "result": "Dfo.Server.Abstractions.World.MonsterDeathSettlementResult"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ProcessMonsterDeathCommand.cs",
-          "line": 15,
-          "source_sha256": "6742df52ac68af1d04e488737546bb9148ac036024f2f948c5032e7d0df1d5c5"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ProcessMonsterDeathCommand.cs",
-          "line": 15,
-          "source_sha256": "6742df52ac68af1d04e488737546bb9148ac036024f2f948c5032e7d0df1d5c5"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/ProcessMonsterDeathCommand.cs",
-          "line": 15,
-          "source_sha256": "6742df52ac68af1d04e488737546bb9148ac036024f2f948c5032e7d0df1d5c5"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -21737,26 +21940,37 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
-          "line": 374,
-          "source_sha256": "051c87bc1234668e29c818e171ac60daf7ccffaf4435df942fa1db6b6311126f"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "每实际分支一次ordinary Write复用原领域算法与事务，不把四分支整体套事务；旧孤立fine测试直接驱动实际领域事务和效果。",
+          "old": "普通全队settlement、物件claim/grants、Boss Kill、Illusion Kill各一次原Transactional；三奖励fine仅正式领域测试仍调用。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-45.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
-          "line": 374,
-          "source_sha256": "051c87bc1234668e29c818e171ac60daf7ccffaf4435df942fa1db6b6311126f"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+        "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+      ],
       "id": "message:65575",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathHandler",
@@ -21779,33 +21993,48 @@
         "value": 65575
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
-          "line": 374,
-          "source_sha256": "051c87bc1234668e29c818e171ac60daf7ccffaf4435df942fa1db6b6311126f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+          "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+        ],
+        "mapping": "cc212b99的MonsterDeath普通/物件与两塔Kill实际分支全部归whole；保Altar共享纯帧、其它clear投影和塔其它adapter真实消费者，未关闭T-007/T-008/Timer。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
-          "line": 374,
-          "source_sha256": "051c87bc1234668e29c818e171ac60daf7ccffaf4435df942fa1db6b6311126f"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MonsterDeath/MonsterDeathSlice.cs",
-          "line": 374,
-          "source_sha256": "051c87bc1234668e29c818e171ac60daf7ccffaf4435df942fa1db6b6311126f"
-        },
-        "state": "pending"
-      },
-      "refs": [
-        "command:Dfo.Server.Protocol.Game.MonsterDeath.ApplyObjectDestructionCommand",
-        "command:Dfo.Server.Protocol.Game.MonsterDeath.ProcessMonsterDeathCommand"
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "普通保全部Capture保护与DeclaredNonRequest全参与者owners；Boss原保护及run成员owners；Illusion仍[]保护但run成员owners；物件仍[]无footprint。",
+          "old": "普通外层Capture全部精确session/physical/metadata，Boss全run selected且仅reporterphysical，Illusion和物件空selected。"
+        }
       ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task45-verification.md",
+            "Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterTowerCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/MonsterObjectCommandPhase.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathFailureBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathAltarWakeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/MonsterDeathTransactionTests.cs"
+          ],
+          "new": "同事实与时序，whole默认生命周期差异VC-B17、Kill精确physical cleanup差异VC-B18；B7/P9祭坛原作业内wake同singleton，不改Timer或shared关闭机制。",
+          "old": "原current/run/version/account完整recipient集合、claims与奖励原子性；ordinary发布typed全员Block；两塔逐成员故障隔离。"
+        }
+      ],
+      "refs": [],
       "shared_helper_candidates": [
         "AltarProjectionDelivery",
         "BossTowerProjectionDelivery",
@@ -21815,7 +22044,7 @@
         "IllusionTowerProjectionDelivery",
         "TournamentProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {

@@ -65,25 +65,6 @@ public sealed class BossTowerProjectionDelivery(
 
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
 
-    public async ValueTask<bool> KillAsync(NetworkConnectionId connectionId,
-        GameMessageMetadata metadata, ushort actorUid, ushort killerUid, CancellationToken token)
-    {
-        if (Stale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var expected = session is null ? null : towers.Find(session);
-        if (session is null || expected is null) return false;
-        IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!Exact(session, expected)) return true;
-        var action = await commands.SendAsync(
-            new KillBossTowerActorCommand(Context(expected, session), actorUid) { Sessions = Members(expected) }, token).ConfigureAwait(false);
-        if (!action.Changed || action.Run is null) return true;
-        failures = await ProjectActionAsync(
-            action, new MonsterDeathNotification(actorUid, action.Drops.Select(item => new MonsterDrop(item.Uid,
-                item.Rolled)).ToArray(), killerUid), token).ConfigureAwait(false);
-        await CloseProjectionFailuresAsync(failures, expected.RunId).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<bool> PickupAsync(NetworkConnectionId connectionId,
         GameMessageMetadata metadata, ushort groundUid, CancellationToken token)
     {

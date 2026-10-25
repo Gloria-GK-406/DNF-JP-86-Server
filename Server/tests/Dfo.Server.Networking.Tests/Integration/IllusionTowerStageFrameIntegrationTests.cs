@@ -154,12 +154,13 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             });
             if (dungeonId == 11000)
             {
-                var killed = await bus.SendAsync(new KillIllusionTowerActorCommand(
-                    new(selected, run.RunId, run.Room.Version), run.Room.Actors[0].Uid), timeout.Token);
-                var drop = Assert.Single(killed.Drops);
+                var deathBody=new byte[62];BinaryPrimitives.WriteUInt32LittleEndian(deathBody,run.Room.Actors[0].Uid);
+                await stream.WriteAsync(ClientFrame(0x0027,deathBody,sequence:2),timeout.Token);
+                await WaitUntilAsync(()=>towers.Find(selected)!.Room.Actors[0].Dead,timeout.Token);
+                var drop=Assert.Single(towers.Find(selected)!.Room.Items);
                 var body = new byte[18];
                 BinaryPrimitives.WriteUInt16LittleEndian(body, drop.Uid);
-                await stream.WriteAsync(ClientFrame(0x002B, body, sequence: 2), timeout.Token);
+                await stream.WriteAsync(ClientFrame(0x002B, body, sequence: 3), timeout.Token);
                 await WaitUntilAsync(() => towers.Find(selected)!.Room.Items.Single().Claimed, timeout.Token);
                 var acknowledged = false;
                 for (var count = 0; count < 8 && !acknowledged; count++)
