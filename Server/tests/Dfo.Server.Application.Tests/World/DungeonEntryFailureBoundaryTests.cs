@@ -275,7 +275,7 @@ internal sealed class EntryFailureProbe(bool illusion, bool scopeFailure, bool o
         else
         {
         var descriptors = services.Where(value => value.ServiceType.IsGenericType && value.ServiceType.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)
-            && (command == "BossLoading" ? value.ServiceType.GenericTypeArguments[0].Name is "LoadBossTowerCommand" or "StartBossTowerCommand" : value.ServiceType.GenericTypeArguments[0].Name == command)).ToArray();
+            && (command == "BossLoading" ? value.ServiceType.GenericTypeArguments[0].Name is "LoadBossTowerCommand" or "StartBossTowerCommand" : command.Split('|').Contains(value.ServiceType.GenericTypeArguments[0].Name))).ToArray();
         Assert.NotEmpty(descriptors);
         foreach (var descriptor in descriptors)
         {
