@@ -313,8 +313,10 @@ public sealed class RemainingOpeningProtocolCommandFlowTests(ITestOutputHelper o
         internal ConcurrentQueue<(string Kind, NetworkConnectionContext Context)> Events { get; } = new();
         internal TaskCompletionSource Closed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int CloseCalls;
+        internal Exception? SendFailure;
         public ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken ct)
         {
+            if (SendFailure is { } error) throw error;
             Assert.False(Closed.Task.IsCompleted); Sends.Enqueue(frames.ToArray()); Events.Enqueue(("send", Context)); return ValueTask.CompletedTask;
         }
         public bool HasClosedSendSide(Exception error) => false;
