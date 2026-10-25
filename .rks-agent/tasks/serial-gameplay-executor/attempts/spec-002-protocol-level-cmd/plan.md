@@ -10,6 +10,8 @@ state: ready
 
 ## Planning Choice
 
+本 Plan 当前为 **P8 ready R1**。TASK-39 旧路径表征已通过；接入真实显式工作单元时发现，现有 `NonRequest` 只允许一个入站 actor，不能表达两塔离队对其他队员的效果调用。P8 仅补共享显式足迹的多 owner 声明，保留原事务点和独立的失败保护参与者集合；功能簇次序、Spec B6 及已追加变化表、根／子契约和中心方案不变。依据和详细执行范围见 TASK-39 下方的边界裁定。按 process-reset §4，仅重复受影响的独立 Plan review，无挑战；审查和主控消费前不实施该机制增量。以下 P7 段落保留为此前已接受规划的历史说明。
+
 本Plan P7 ready R1承接Contract r1及fresh independent approved的Spec B6（reviews/spec-b6-review.md；匹配immutable reviews/spec-b6-challenges.md high0/low0），主控已在verification/spec-b6-plan-p7-controller-consumption.md消费Spec门。baseline仍为10a7218a779493494b138bd6b43cc0fc1a84aa6a，当前HEAD为TASK-32检查点17d924a06b1237ca2b4f5997983c0a4923dfc050。Task31已交Mailbox，Task32只交四remaining opening与Rental旧边界调查；T-004/T-005仍未全闭。本次落实B6 HOW：先单独修旧正常确认回滚记账/NoRoom，再逐具名补旧encoder oracle并迁四opening及Rental whole，保各自恢复/提交点和显式足迹，明列whole scope/独立刷新默认保护。现十个WriteResult消费者/原三个raw类型及其他owner、Mailbox唯一self能力、默认sticky、Compose禁用/F-132保持。依据和原P6逐bytes快照见verification/plan-p7-amendment.md及verification/evidence/plan-p7-amendment/plan-p6-before.md。17RQ/11AC、根/child、A、task-units/on-drift及T-006～012责任不变；VC-B6由approved B6拥有。本ready仅表示高层路线可审，须本P7 fresh challenge、另一fresh独立Plan review、主控消费及amendment-only本地检查点后，才详细规划下一Task；writer不自批、不改routing、不建Task、不运行native或写产品/正式测试。
 
 采用逐单元规划：必须先落定跨切片共享契约，但后续功能簇的最小实际Task取决于前簇消除的共享依赖、实际事务点和回归结果。下文T-NNN是粗粒度工作包，不是预先分配的Task清单；详细计划只存于主控临近实施时指定的Task Unit。每Task保留独立结果快审；Spec级独立Plan审查及planning checkpoint在产品改动之前完成。本文件ready仅表示规划可供审查，不代表自批或实施完成。
@@ -194,6 +196,16 @@ Protocol的各主题CMD通过该服务检查周期/精确身份，并通过所�
 
 这明确接受VC-B3：排在实际子CMD前的请求可先响应，多个刷新CMD之间可插入请求；单个子CMD内不交错，单连接条目顺序保持。防重复沿各主题原有登记状态，不依靠队列插队或原整批锁；临近Task可细化主题状态的本地类型/返回值，不能退化成统一周期去重或新增配额余额指纹。测试必须插入真实排队请求、队列跨周期、session退出/替换和重复tick，证明旧输入无登记/水位、新扫描补新周期，并区分Premium同周期真变化与相同状态重复。
 
+### P8：无账本效果 owner 与失败保护参与者分别声明
+
+既定 `NonRequest` 保持现状：仅一个绑定入站物理连接的 actor，Cera 的许可与保护不变。为 TASK-39 的两塔普通写增加独立声明模式 `DeclaredNonRequest`，只适用于真实 `ProtocolNonEffect` 请求的 ordinary、非只读工作单元。声明显式携带非空、唯一的精确 `SelectedSessionIdentity` owner 集合；不得由缺参推断、在领域调用时动态追加、从 ambient／legacy 捕获，或借此获得 Main、账本、raw、恢复与可信内部来源权限。本轮不开放 Internal 或效果请求消费。
+
+owner 集合限定本单元可以调用效果的对象，`Participants` 仍单独表达原有失败保护范围，二者不自动互换。TASK-39 从原协调阶段捕获的塔 run／目标事实建立 owner 集合，不在持久提交到即时队伍内存修改之间新增读取。Boss 原报告会话加全部 run 参与者及逐人 current 检查保留；Illusion 原无 selected marker 的空保护集合保留，不能为了取得足迹而新增 Fence／DiscardExact。领域自身的 session／run／成员判定不删减。后簇使用该模式须在对应 Task 按真实旧行为明确 owner 与保护集合，不能由本模式推定其范围。
+
+机制仅由当前显式 runner 签发，绑定本 request、job 和本 writable transaction；action 结束即关闭，事务结束、请求结束／失败、跨 job 或泄漏续体均拒绝。每次调用先检查请求健康与活跃状态，再校验 owner 的账号／角色／完整 session 自洽并精确属于声明集合；其他 owner、替换代次、空 session 不放行。这些身份校验不另行把 owner 作为安全服务的 current／Fence 参与者；原业务 current 门和声明的保护参与者检查各守原职责。所有能力守卫拒绝须保持 sticky，捕获后不能继续写或正常提交；不建立无条件 no-op recorder。
+
+验证覆盖真实 runner＋生产两塔链的旧成功／新拒绝／修复后成功，至少含踢出非入站队员和结算其他成员；普通单 actor、Main／未选中效果请求、ReadOnly、Internal 和来源缺失不能误获新许可。补未声明 owner／替换代次／账号角色错配、跨请求／job、action 结束续用、捕获 guard 后提交等反例；按旧范围验证 Boss 全参与者和 Illusion 空 selected 的失败保护、原 cause 与真实 source close。既有 Cera 与所有已有 footprint／Main／WriteResult／self-settlement 判据须通过；修改共享 runner 后执行新鲜 Release solution build 和八项目全量。具体用例和结果只写 TASK-39，不新增取证 Task。
+
 ## Work and Dependencies
 
 | 包 | 有用结果与责任边界 | 真实依赖 / 拆分理由 | 覆盖 |
@@ -351,3 +363,7 @@ P6 ready R2（2026-10-25，immutable P6 R1挑战后、独立review前的单次�
 
 
 P7（2026-10-25，Task32检查点之后）：消费fresh approved B6，先独立修legacy正常确认回滚记账/NoRoom，再四remaining opening与Rental按真实旧新encoder oracle和共享依赖归并。仅四opening增加现WriteResult具名consumer（现十→十四），Rental保WriteAsync异常不恢复；六Main/独立premiumRO/RentalrefreshTx、unit.Footprint/最低投影、VC-B6 wholeScope/独立刷新default typed/精确actor/实际来源链及条目存活、Committed ledger与纯ConfirmedRollback后第二错误分开。六有限replay owner不提前授证、不增raw/Self/通用机制；根纯搬迁与语义提交分离落实为NoRoom独立前置和无无关纯搬动的whole闭合。T-004/005、§4/§5、验证/NextBoundary更新，T-006～012、A/Contract/baseline/门保持，原P1～P6历史段逐bytes保留。详见verification/plan-p7-amendment.md及原P6快照。本轮metadata-only，未建Task/运行native/改产品/正式测试/canonical/routing/Git，ready不等于approved。
+
+### P8（2026-10-25）：TASK-39 多 owner 无账本足迹
+
+补齐既定显式足迹方案对非入站队员效果的表达能力，新增独立声明模式，保留单 actor NonRequest 及独立失败保护集合。只改变跨簇共享 HOW；不改 RQ／AC、中心方案、原保护范围或外部授权。受影响审查见 `reviews/task-39-plan-review.md`，未批准前不实施机制增量。

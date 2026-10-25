@@ -78,3 +78,7 @@ Parent controller为`../../multi-spec-map.md`；父激活map检查点已完成�
 - 对抗挑战（spec-adversarial、plan-adversarial、change-adversarial）只在 spec-002 完成后的完整结果评审时做一次。
 - 不再有只取证的 Task；旧行为以正式测试钉住。原始证据不进 git。
 - Spec 基准改写后为 `51bd1e9cb7b4a6ace5b0b05b098e7e50adc1cdea`（原 `10a7218a`，见 `../../history-rewrite-2026-10-25.md`）。
+
+## TASK-39：P8 受影响 Plan 门（2026-10-25）
+
+Plan P8 ready R1 的独立审核 `reviews/task-39-plan-review.md` 已 approved，主控消费记在 TASK-39。增量只补两塔所需的显式多 owner 无账本足迹，并与原失败保护 Participants 分离；Cera 单 actor、原保护范围、根／子、Spec 和中心方案保持。按新流程不生成挑战、不建取证 Task；既有执行者继续，唯一独立 reviewer 后续复核完整 Task 结果。当前 plan-review override 为 `reviews/task-39-plan-review.md`，旧 P7 门保留历史效力；本次结果／全量尚未完成。
