@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.World;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Game;
@@ -34,54 +35,9 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
     ILogger<CreatureProjectionDelivery> logger, IInventorySlotMappingRuleService? slotMappings = null,
     TimeProvider? clock = null, IIllusionTowerDomainService? towers = null)
 {
-    public async ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification,
-        CancellationToken ct)
-    {
-        if (!sessions.IsInWorld(owner)) return false;
-        IEnumerable<SelectedSessionIdentity> receivers;
-        Guid? towerRunId = null;
-        if (towers?.Find(owner) is { } tower)
-        {
-            towerRunId = tower.RunId;
-            receivers = new[] { owner }.Concat(tower.Members.Select(member => member.Session)).Distinct();
-        }
-        else
-        {
-            var audience = runs.Find(owner.CharacterId)?.Participants.Select(x => x.CharacterId)
-                ?? (towns.Find(owner.CharacterId) is { } member
-                    ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
-            receivers = new[] { owner.CharacterId }.Concat(audience).Distinct()
-                .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null).OfType<SelectedSessionIdentity>();
-        }
-        var ownerDelivered = true;
-        foreach (var receiver in receivers)
-        {
-            if (towerRunId is { } expectedRun
-                && (!sessions.IsInWorld(owner)
-                    || towers?.Find(owner)?.RunId != expectedRun))
-                break;
-            if (towerRunId is not null
-                && (!sessions.IsInWorld(receiver)
-                    || towers?.Find(receiver)?.RunId != towerRunId))
-                continue;
-            try
-            {
-                await sender.SendNotiAsync(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception exception)
-            {
-                if (receiver == owner) ownerDelivered = false;
-                logger.LogWarning(exception,
-                    "Creature notification failed for receiver={CharacterId}; closing that connection",
-                    receiver.CharacterId);
-                if (sessions.IsInWorld(receiver))
-                    await connections.RequestCloseAsync(receiver.ConnectionId, CancellationToken.None)
-                        .ConfigureAwait(false);
-            }
-        }
-        return ownerDelivered;
-    }
+    public ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct) =>
+        CreatureVisibleRecipients.DeliverAsync(owner, notification, sessions, runs, towns, towers,
+            sender.SendNotiAsync, (receiver, token) => connections.RequestCloseAsync(receiver.ConnectionId, token), logger, ct);
 
     public async ValueTask SendAsync(SelectedSessionIdentity owner,
         IReadOnlyList<CreatureRuntimeChange> changes, CancellationToken ct)
@@ -175,5 +131,65 @@ public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures
                 if (sessions.IsInWorld(projection.Session))
                     await connections.RequestCloseAsync(projection.Session.ConnectionId, stoppingToken).ConfigureAwait(false);
             }
+    }
+}
+
+internal static class CreatureVisibleRecipients
+{
+    internal static async ValueTask<bool> DeliverAsync(SelectedSessionIdentity owner, IGameNotiMessage notification,
+        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns, IIllusionTowerDomainService? towers,
+        Func<NetworkConnectionId, IGameNotiMessage, CancellationToken, ValueTask> send,
+        Func<SelectedSessionIdentity, CancellationToken, ValueTask> close, ILogger logger, CancellationToken ct)
+    {
+        if (!sessions.IsInWorld(owner)) return false;
+        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
+        var ownerDelivered = true;
+        foreach (var receiver in receivers)
+        {
+            if (towerRunId is { } expectedRun
+                && (!sessions.IsInWorld(owner)
+                    || towers?.Find(owner)?.RunId != expectedRun))
+                break;
+            if (towerRunId is not null
+                && (!sessions.IsInWorld(receiver)
+                    || towers?.Find(receiver)?.RunId != towerRunId))
+                continue;
+            try
+            {
+                await send(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                if (receiver == owner) ownerDelivered = false;
+                logger.LogWarning(exception,
+                    "Creature notification failed for receiver={CharacterId}; closing that connection",
+                    receiver.CharacterId);
+                if (sessions.IsInWorld(receiver))
+                    await close(receiver, CancellationToken.None)
+                        .ConfigureAwait(false);
+            }
+        }
+        return ownerDelivered;
+    }
+    internal static (IEnumerable<SelectedSessionIdentity> Receivers, Guid? TowerRunId) Resolve(SelectedSessionIdentity owner,
+        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns, IIllusionTowerDomainService? towers)
+    {
+        IEnumerable<SelectedSessionIdentity> receivers;
+        Guid? towerRunId = null;
+        if (towers?.Find(owner) is { } tower)
+        {
+            towerRunId = tower.RunId;
+            receivers = new[] { owner }.Concat(tower.Members.Select(member => member.Session)).Distinct();
+        }
+        else
+        {
+            var audience = runs.Find(owner.CharacterId)?.Participants.Select(x => x.CharacterId)
+                ?? (towns.Find(owner.CharacterId) is { } member
+                    ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
+            receivers = new[] { owner.CharacterId }.Concat(audience).Distinct()
+                .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null).OfType<SelectedSessionIdentity>();
+        }
+        return (receivers, towerRunId);
     }
 }

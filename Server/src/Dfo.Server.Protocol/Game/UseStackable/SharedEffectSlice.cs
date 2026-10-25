@@ -59,6 +59,16 @@ internal sealed class SharedEffectHandler(ISelectedSessionDomainService sessions
         try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, m.Slot)); }
         catch (ArgumentOutOfRangeException) { await sender.SendExplicitAsync(c.Connection.ConnectionId, new([new SharedEffectAck(false, m.Slot)], []), ct).ConfigureAwait(false); return; }
         var result = actor is null ? new SharedEffectUseResult(false) : await commands.SendAsync(new SharedEffectCommand(actor, slot, m.ItemId), ct).ConfigureAwait(false);
+        var delivery = SharedEffectProjection.Compose(actor, m, result, sessions, areas);
+        await sender.SendExplicitAsync(c.Connection.ConnectionId, delivery, ct).ConfigureAwait(false);
+    }
+}
+
+internal static class SharedEffectProjection
+{
+    internal static GameExplicitMessageDelivery Compose(SelectedSessionIdentity? actor, SharedEffectRequest m, SharedEffectUseResult result,
+        ISelectedSessionDomainService sessions, ITownAreaDomainService areas)
+    {
         var messages = new List<IGameServerMessage> { new SharedEffectAck(result.Succeeded, m.Slot) };
         var targets = new List<GameExplicitMessageTarget>();
         if (result.Succeeded && actor is not null)
@@ -75,6 +85,6 @@ internal sealed class SharedEffectHandler(ISelectedSessionDomainService sessions
                     if (sessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
                         targets.Add(new(peer.ConnectionId, [effect]));
         }
-        await sender.SendExplicitAsync(c.Connection.ConnectionId, new(messages, targets), ct).ConfigureAwait(false);
+        return new(messages, targets);
     }
 }
