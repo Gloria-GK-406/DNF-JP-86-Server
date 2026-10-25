@@ -233,8 +233,10 @@ public sealed class KnownRollbackWorkUnitTests(ITestOutputHelper output)
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var assigned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var cleanup = new IOException("controlled independent rollback"); Task<CommandWriteResult<int>>? pending = null;
+        CommandRequestContext? observed = null;
         world.Settings.Action = context =>
         {
+            observed = context.Request;
             pending = world.Services.GetRequiredService<ICommandWorkUnits>().WriteResultAsync(context, new("drained native", []), async (_, ct) =>
             {
                 if (failRollback) world.Services.GetRequiredService<IDomainTransactionAccessor>().Current!.Enlist("cleanup", () => new RecordingParticipant("cleanup", [], false) { RollbackFailure = cleanup });
@@ -245,7 +247,25 @@ public sealed class KnownRollbackWorkUnitTests(ITestOutputHelper output)
             return ValueTask.FromResult(0);
         };
         var job = world.Internal(new InternalProbe()).AsTask();
-        try { await assigned.Task.WaitAsync(TimeSpan.FromSeconds(10)); await entered.Task.WaitAsync(TimeSpan.FromSeconds(10)); Assert.False(job.IsCompleted); Assert.False(pending!.IsCompleted); }
+        try
+        {
+            await assigned.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.False(job.IsCompleted); Assert.False(pending!.IsCompleted);
+            // Assignment/entry does not mean the invoker has returned. Observe the real bus
+            // guard before releasing the action, so this test cannot race a native commit.
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            while (observed!.Failure is null)
+            {
+                if (System.Diagnostics.Stopwatch.GetElapsedTime(started) > TimeSpan.FromSeconds(10))
+                    throw new TimeoutException("The real unfinished-work-unit guard did not arrive.");
+                await Task.Yield();
+            }
+            var guard = Assert.IsType<InvalidOperationException>(observed.Failure);
+            Assert.Contains("unfinished work unit", guard.Message);
+            Assert.False(job.IsCompleted); Assert.False(pending.IsCompleted);
+            output.WriteLine("Observed the real unfinished-work-unit guard before releasing the action.");
+        }
         finally { release.TrySetResult(); }
         if (failRollback)
         {

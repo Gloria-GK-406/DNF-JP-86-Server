@@ -18,7 +18,9 @@ internal sealed class TownReturnCommandStages(
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing,
     ICommandProjections notifications, IPartyTownProjectionDelivery partyTownProjection,
     Func<NetworkConnectionId, GameExplicitMessageDelivery, CancellationToken, ValueTask> register,
-    Func<SelectedSessionIdentity, CancellationToken, ValueTask>? weakness)
+    Func<SelectedSessionIdentity, CancellationToken, ValueTask>? weakness,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housingSessions = null,
+    Func<NetworkConnectionId, IGameNotiMessage, CancellationToken, ValueTask>? noti = null)
     : PartyMutationProtocolCommandHandler(selectedSessions, null, townAreas, notifications, null!, null,
         Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, currentViews: currentViews, towns: towns,
         housing: housing, register: register, weakness: weakness)
@@ -33,4 +35,14 @@ internal sealed class TownReturnCommandStages(
         CancellationToken token) => partyTownProjection.RefreshMovedPartyAsync(mover, previousScope, token);
     protected override ValueTask PartyTownRefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients,
         IReadOnlyList<SelectedSessionIdentity> represented, CancellationToken token) => partyTownProjection.RefreshObservedPartiesAsync(recipients, represented, token);
+    protected override Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? HousingSessions => housingSessions;
+    protected override ValueTask TownRegisterNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken token) => noti is null ? base.TownRegisterNotiAsync(connection, message, token) : noti(connection, message, token);
+    internal ValueTask RefuseAsync(NetworkConnectionId connection, SelectedSessionIdentity session, SelectCharacterResult result,
+        Dfo.Server.Data.Characters.CharacterPositionState standing, string reason, CancellationToken token) => TownRefuseTownChangeAsync(connection, session, result, standing, reason, token);
+    internal ValueTask<bool> TransferAsync(NetworkConnectionId connection, SelectedSessionIdentity session, SelectCharacterResult result,
+        int channel, Dfo.Server.Data.Characters.CharacterPositionState position, TownAreaMember previous, bool shared, CancellationToken token) => TownTransferAsync(connection, session, result, channel, position, previous, shared, token);
+    internal ValueTask<bool> ProjectTransferAsync(NetworkConnectionId connection, SelectedSessionIdentity session, SelectCharacterResult result,
+        TownAreaMember previous, CancellationToken token) => TownProjectTransferAsync(connection, session, result, previous, token);
+    internal ValueTask<bool> MoveAsync(NetworkConnectionId connection, SelectedSessionIdentity session,
+        Dfo.Server.Data.Characters.CharacterPositionState position, ushort trailer, CancellationToken token) => TownMoveAsync(connection, session, position, trailer, token);
 }
