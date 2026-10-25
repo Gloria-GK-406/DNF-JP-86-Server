@@ -50,7 +50,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler : PartyProto
     Func<SelectedSessionIdentity, ValueTask>? close = null,
     Func<SelectedSessionIdentity, CancellationToken, ValueTask>? weakness = null,
     ICommandWorkUnits? workUnits = null, IOnlineUserQueryDomainService? onlineUsers = null,
-    IDungeonRunDomainService? dungeonRuns = null, IDungeonRunParticipantDepartureSink? departureSink = null)
+    IDungeonRunDomainService? dungeonRuns = null, IDungeonRunProjectionDomainService? departureSink = null)
         : base(projections, streams, parties, ordering)
     {
         this.sessions = sessions!;

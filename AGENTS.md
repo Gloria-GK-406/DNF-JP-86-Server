@@ -377,6 +377,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | Mailbox（Send／SendMulti／Claim／Action／Open／Query） | 保原领域自结算与封闭恢复；`TASK-31`。 |
 | RentEquipment／ChargeRentPoint | 原 Main 后独立普通 Write 刷新；[源码](Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs)。 |
 | SetUdpIpPort／RequestPeer／ResponsePeer／SetPartyInfo／CallPartyMemberRealtimeInfo | 原无事务的直接能力，精确队伍阶段与城镇共享唯一代际水位；`TASK-38`。 |
+| LeaveParty／RemovePartyMember／ChangePartyLeader | [源码](Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs)。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

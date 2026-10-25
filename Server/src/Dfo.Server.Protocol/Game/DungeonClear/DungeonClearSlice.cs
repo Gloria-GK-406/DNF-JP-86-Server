@@ -162,7 +162,7 @@ public sealed class GiveUpGameHandler(
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<GiveUpGameHandler> logger,
     ITownAreaDomainService? townAreas = null,
-    ICommandBus? commands = null,
+    Dfo.Server.Abstractions.Parties.IPartyService? parties = null,
     PartyNotificationDelivery? partyNotifications = null,
     DungeonCardPresentationCoordinator? cardPresentation = null,
     IllusionTowerProjectionDelivery? illusionTower = null,
@@ -240,10 +240,9 @@ public sealed class GiveUpGameHandler(
                 .ConfigureAwait(false);
         if (ended && currentRun is not null)
             deliveries.RemoveParticipant(currentRun.RunId, session.CharacterId);
-        if (ended && townAreas is not null && commands is not null)
+        if (ended && townAreas is not null && parties is not null)
         {
-            var partyResult = await commands.SendAsync(
-                new LeavePartyCommand(session.CharacterId),
+            var partyResult = await PartyMutationLegacyDeparture.LeaveAsync(parties, runs, session.CharacterId,
                 cancellationToken).ConfigureAwait(false);
             partyExecution = new PartyCommandExecution(
                 partyResult,

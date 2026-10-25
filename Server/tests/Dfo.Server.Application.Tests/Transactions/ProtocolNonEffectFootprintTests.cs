@@ -15,7 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Transactions;
 
-public sealed class ProtocolNonEffectFootprintTests
+public sealed partial class ProtocolNonEffectFootprintTests
 {
     private const ClientMessageType MessageId = (ClientMessageType)0x1FFFF;
     [Fact]
@@ -164,7 +164,7 @@ public sealed class ProtocolNonEffectFootprintTests
         CapMessage input = mode is Mode.Selected or Mode.Rejected ? new EffectCapMessage(metadata) : new CapMessage(metadata);
         return world.Services.GetRequiredService<ICommandBus>().SendAsync(new CapCommand(new(world.Connection), input, mode));
     }
-    public enum Mode { Allowed, Undeclared, ReadOnly, Main, NoActor, TwoActors, WrongPhysical, WrongOwner, WrongEffectsOwner, WrongRental, Selected, Rejected, Internal, CatchOwner, AfterUnit, Prepare, ScopeClosed, Hold, ReplayPermission, NextUnit }
+    public enum Mode { Allowed, Undeclared, ReadOnly, Main, NoActor, TwoActors, WrongPhysical, WrongOwner, WrongEffectsOwner, WrongRental, Selected, Rejected, Internal, CatchOwner, AfterUnit, Prepare, ScopeClosed, Hold, ReplayPermission, NextUnit, Declared }
     private record CapMessage(GameMessageMetadata Metadata) : IClientNetworkMessage { public ClientMessageType MessageType => MessageId; }
     private sealed record EffectCapMessage(GameMessageMetadata Metadata) : CapMessage(Metadata), IEffectSettlementRequest
     { public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory; }
@@ -178,6 +178,7 @@ public sealed class ProtocolNonEffectFootprintTests
         internal SelectedSessionIdentity? Actor; internal NetworkConnectionContext? Connection;
         internal Dfo.Server.Data.OnlineUsers.OnlineUserId Online;
         internal SelectedSessionRecipient? Peer; internal CommandExecutionContext? Context; internal IEffectFootprintRecorder? Cap;
+        internal Func<CommandExecutionContext, ICommandWorkUnits, ICharacterDomainService, ValueTask<int>>? DeclaredAction;
         internal ushort Sequence; internal int Writes, ForeignWrites; internal Guid Job; internal Mode Mode; internal bool ClosedAtDispose;
         internal readonly TaskCompletionSource Ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -197,6 +198,7 @@ public sealed class ProtocolNonEffectFootprintTests
                     registry.GetRequiredUser(state.Online).Generation, 10011);
                 registry.Select(state.Actor); registry.EnterWorld(state.Actor);
             }
+            if (state.DeclaredAction is { } declared) return await declared(context, units, characters);
             if (mode == Mode.ReplayPermission)
                 context.Request!.BeginRegistrationAttempt(CommandRegistrationExit.CommittedReplayCurrentStateBatch, state.Connection!);
             var actor = new SelectedSessionRecipient(state.Actor!, mode == Mode.WrongPhysical ? state.Connection! with { } : state.Connection);

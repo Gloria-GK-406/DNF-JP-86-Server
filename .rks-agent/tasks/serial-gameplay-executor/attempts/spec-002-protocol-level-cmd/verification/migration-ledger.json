@@ -11818,25 +11818,31 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 323,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "普通退队、踢人和换队长为 Direct 内存修改；两塔协调先完成各自 Leave 或 SynchronizeLeader 事务，再以 CancellationToken.None 修改队伍；Boss 离场后 Ready 可另开 Start 事务，Illusion Ready 只投影。",
+          "new": "三条完整协议 CMD 承接原阶段，不合并事务。原塔写各对应一个 ordinary Write；Leave 的 DeclaredNonRequest 冻结原 run 全员效果 owner。提交到即时队伍修改之间无新增取消点；Boss Start 仍是独立 ordinary Write，Illusion 无 Start。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 323,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -11862,32 +11868,46 @@
         },
         "result": "Dfo.Server.Data.Parties.PartyOperationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 323,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 323,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 323,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "三个队伍 handler 与两塔 coordinator 调用本次删除的 party fine；GiveUpGame 的普通副本退出也调用 LeavePartyCommand。",
+          "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Boss 的 selected 管线捕获报告会话并逐一检查原 run Sessions；Illusion Leave／SynchronizeLeader 是 plain command，无 selected 保护集合。队伍通知在修改后捕获精确收件人；异常关闭范围合并原队伍、run、caller 和 target。",
+          "new": "保护参与者与效果 owner 分开声明：Boss 仅报告会话保原物理连接捕获，其余原 run 全员保 selected 检查；Illusion 保护集合为空。保原 actor／target／run 捕获和精确受众，不把 owner 自动扩为 Fence 对象。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "保 stale／current／virtual／多个 run／队长／目标验证、塔提交后立即修改队伍、先队伍后塔投影、精确失败关闭、已提交投影重试及返城时点。",
+          "new": "同一 CMD 的 partial 具名阶段与窄 legacy 适配共用算法。保来源连接与替换身份隔离；足迹绑定 request／job／可写 action，守卫拒绝保持 sticky。既有单 actor NonRequest、Main、raw 与恢复许可不变。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/IllusionTowerPartyCommandCoordination.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
       "actual_units": [
@@ -11974,25 +11994,31 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 363,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "普通退队、踢人和换队长为 Direct 内存修改；两塔协调先完成各自 Leave 或 SynchronizeLeader 事务，再以 CancellationToken.None 修改队伍；Boss 离场后 Ready 可另开 Start 事务，Illusion Ready 只投影。",
+          "new": "三条完整协议 CMD 承接原阶段，不合并事务。原塔写各对应一个 ordinary Write；Leave 的 DeclaredNonRequest 冻结原 run 全员效果 owner。提交到即时队伍修改之间无新增取消点；Boss Start 仍是独立 ordinary Write，Illusion 无 Start。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 363,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.RemovePartyMemberCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.RemovePartyMemberCommand",
@@ -12018,32 +12044,46 @@
         },
         "result": "Dfo.Server.Data.Parties.PartyOperationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 363,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 363,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 363,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "三个队伍 handler 与两塔 coordinator 调用本次删除的 party fine；GiveUpGame 的普通副本退出也调用 LeavePartyCommand。",
+          "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Boss 的 selected 管线捕获报告会话并逐一检查原 run Sessions；Illusion Leave／SynchronizeLeader 是 plain command，无 selected 保护集合。队伍通知在修改后捕获精确收件人；异常关闭范围合并原队伍、run、caller 和 target。",
+          "new": "保护参与者与效果 owner 分开声明：Boss 仅报告会话保原物理连接捕获，其余原 run 全员保 selected 检查；Illusion 保护集合为空。保原 actor／target／run 捕获和精确受众，不把 owner 自动扩为 Fence 对象。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "保 stale／current／virtual／多个 run／队长／目标验证、塔提交后立即修改队伍、先队伍后塔投影、精确失败关闭、已提交投影重试及返城时点。",
+          "new": "同一 CMD 的 partial 具名阶段与窄 legacy 适配共用算法。保来源连接与替换身份隔离；足迹绑定 request／job／可写 action，守卫拒绝保持 sticky。既有单 actor NonRequest、Main、raw 与恢复许可不变。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/IllusionTowerPartyCommandCoordination.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
       "actual_units": [
@@ -12214,25 +12254,31 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 347,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "普通退队、踢人和换队长为 Direct 内存修改；两塔协调先完成各自 Leave 或 SynchronizeLeader 事务，再以 CancellationToken.None 修改队伍；Boss 离场后 Ready 可另开 Start 事务，Illusion Ready 只投影。",
+          "new": "三条完整协议 CMD 承接原阶段，不合并事务。原塔写各对应一个 ordinary Write；Leave 的 DeclaredNonRequest 冻结原 run 全员效果 owner。提交到即时队伍修改之间无新增取消点；Boss Start 仍是独立 ordinary Write，Illusion 无 Start。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+          ]
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 347,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.Party.TransferPartyLeadershipCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.Party.TransferPartyLeadershipCommand",
@@ -12258,32 +12304,46 @@
         },
         "result": "Dfo.Server.Data.Parties.PartyOperationResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 347,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 347,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 347,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "三个队伍 handler 与两塔 coordinator 调用本次删除的 party fine；GiveUpGame 的普通副本退出也调用 LeavePartyCommand。",
+          "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Boss 的 selected 管线捕获报告会话并逐一检查原 run Sessions；Illusion Leave／SynchronizeLeader 是 plain command，无 selected 保护集合。队伍通知在修改后捕获精确收件人；异常关闭范围合并原队伍、run、caller 和 target。",
+          "new": "保护参与者与效果 owner 分开声明：Boss 仅报告会话保原物理连接捕获，其余原 run 全员保 selected 检查；Illusion 保护集合为空。保原 actor／target／run 捕获和精确受众，不把 owner 自动扩为 Fence 对象。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "保 stale／current／virtual／多个 run／队长／目标验证、塔提交后立即修改队伍、先队伍后塔投影、精确失败关闭、已提交投影重试及返城时点。",
+          "new": "同一 CMD 的 partial 具名阶段与窄 legacy 适配共用算法。保来源连接与替换身份隔离；足迹绑定 request／job／可写 action，守卫拒绝保持 sticky。既有单 actor NonRequest、Main、raw 与恢复许可不变。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/IllusionTowerPartyCommandCoordination.cs"
+          ]
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
       "actual_units": {
@@ -18691,26 +18751,32 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 665,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "普通退队、踢人和换队长为 Direct 内存修改；两塔协调先完成各自 Leave 或 SynchronizeLeader 事务，再以 CancellationToken.None 修改队伍；Boss 离场后 Ready 可另开 Start 事务，Illusion Ready 只投影。",
+          "new": "三条完整协议 CMD 承接原阶段，不合并事务。原塔写各对应一个 ordinary Write；Leave 的 DeclaredNonRequest 冻结原 run 全员效果 owner。提交到即时队伍修改之间无新增取消点；Boss Start 仍是独立 ordinary Write，Illusion 无 Start。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 665,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+      ],
       "id": "message:65549",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.LeavePartyHandler",
@@ -18732,30 +18798,43 @@
         "telemetry": false,
         "value": 65549
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 665,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 665,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 665,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "三个队伍 handler 与两塔 coordinator 调用本次删除的 party fine；GiveUpGame 的普通副本退出也调用 LeavePartyCommand。",
+          "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Boss 的 selected 管线捕获报告会话并逐一检查原 run Sessions；Illusion Leave／SynchronizeLeader 是 plain command，无 selected 保护集合。队伍通知在修改后捕获精确收件人；异常关闭范围合并原队伍、run、caller 和 target。",
+          "new": "保护参与者与效果 owner 分开声明：Boss 仅报告会话保原物理连接捕获，其余原 run 全员保 selected 检查；Illusion 保护集合为空。保原 actor／target／run 捕获和精确受众，不把 owner 自动扩为 Fence 对象。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "保 stale／current／virtual／多个 run／队长／目标验证、塔提交后立即修改队伍、先队伍后塔投影、精确失败关闭、已提交投影重试及返城时点。",
+          "new": "同一 CMD 的 partial 具名阶段与窄 legacy 适配共用算法。保来源连接与替换身份隔离；足迹绑定 request／job／可写 action，守卫拒绝保持 sticky。既有单 actor NonRequest、Main、raw 与恢复许可不变。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/IllusionTowerPartyCommandCoordination.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -18772,29 +18851,36 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 827,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "普通退队、踢人和换队长为 Direct 内存修改；两塔协调先完成各自 Leave 或 SynchronizeLeader 事务，再以 CancellationToken.None 修改队伍；Boss 离场后 Ready 可另开 Start 事务，Illusion Ready 只投影。",
+          "new": "三条完整协议 CMD 承接原阶段，不合并事务。原塔写各对应一个 ordinary Write；Leave 的 DeclaredNonRequest 冻结原 run 全员效果 owner。提交到即时队伍修改之间无新增取消点；Boss Start 仍是独立 ordinary Write，Illusion 无 Start。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 827,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+      ],
       "id": "message:65550",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.RemovePartyMemberHandler",
@@ -18816,30 +18902,43 @@
         "telemetry": false,
         "value": 65550
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 827,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 827,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 827,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "三个队伍 handler 与两塔 coordinator 调用本次删除的 party fine；GiveUpGame 的普通副本退出也调用 LeavePartyCommand。",
+          "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Boss 的 selected 管线捕获报告会话并逐一检查原 run Sessions；Illusion Leave／SynchronizeLeader 是 plain command，无 selected 保护集合。队伍通知在修改后捕获精确收件人；异常关闭范围合并原队伍、run、caller 和 target。",
+          "new": "保护参与者与效果 owner 分开声明：Boss 仅报告会话保原物理连接捕获，其余原 run 全员保 selected 检查；Illusion 保护集合为空。保原 actor／target／run 捕获和精确受众，不把 owner 自动扩为 Fence 对象。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "保 stale／current／virtual／多个 run／队长／目标验证、塔提交后立即修改队伍、先队伍后塔投影、精确失败关闭、已提交投影重试及返城时点。",
+          "new": "同一 CMD 的 partial 具名阶段与窄 legacy 适配共用算法。保来源连接与替换身份隔离；足迹绑定 request／job／可写 action，守卫拒绝保持 sticky。既有单 actor NonRequest、Main、raw 与恢复许可不变。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/IllusionTowerPartyCommandCoordination.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -18856,7 +18955,8 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
       "actual_units": {
@@ -23541,26 +23641,32 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 739,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "old": "普通退队、踢人和换队长为 Direct 内存修改；两塔协调先完成各自 Leave 或 SynchronizeLeader 事务，再以 CancellationToken.None 修改队伍；Boss 离场后 Ready 可另开 Start 事务，Illusion Ready 只投影。",
+          "new": "三条完整协议 CMD 承接原阶段，不合并事务。原塔写各对应一个 ordinary Write；Leave 的 DeclaredNonRequest 冻结原 run 全员效果 owner。提交到即时队伍修改之间无新增取消点；Boss Start 仍是独立 ordinary Write，Illusion 无 Start。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+          ]
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 739,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
+      ],
       "id": "message:65657",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.Party.ChangePartyLeaderHandler",
@@ -23582,30 +23688,43 @@
         "telemetry": false,
         "value": 65657
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 739,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 739,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/Party/PartyCommandSlice.cs",
-          "line": 739,
-          "source_sha256": "e2eac72ad834778d79c79472369f51eb5cf121e82f60473a1d64f316ca3b90d4"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "old": "三个队伍 handler 与两塔 coordinator 调用本次删除的 party fine；GiveUpGame 的普通副本退出也调用 LeavePartyCommand。",
+          "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+          ]
+        }
+      ],
+      "participants": [
+        {
+          "old": "Boss 的 selected 管线捕获报告会话并逐一检查原 run Sessions；Illusion Leave／SynchronizeLeader 是 plain command，无 selected 保护集合。队伍通知在修改后捕获精确收件人；异常关闭范围合并原队伍、run、caller 和 target。",
+          "new": "保护参与者与效果 owner 分开声明：Boss 仅报告会话保原物理连接捕获，其余原 run 全员保 selected 检查；Illusion 保护集合为空。保原 actor／target／run 捕获和精确受众，不把 owner 自动扩为 Fence 对象。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
+          ]
+        }
+      ],
+      "protection_locations": [
+        {
+          "old": "保 stale／current／virtual／多个 run／队长／目标验证、塔提交后立即修改队伍、先队伍后塔投影、精确失败关闭、已提交投影重试及返城时点。",
+          "new": "同一 CMD 的 partial 具名阶段与窄 legacy 适配共用算法。保来源连接与替换身份隔离；足迹绑定 request／job／可写 action，守卫拒绝保持 sticky。既有单 actor NonRequest、Main、raw 与恢复许可不变。",
+          "evidence": [
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/IllusionTowerPartyCommandCoordination.cs"
+          ]
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.Party.AcceptPartyInviteCommand",
         "command:Dfo.Server.Protocol.Game.Party.LeavePartyCommand",
@@ -23622,7 +23741,8 @@
         "PartyNotificationDelivery",
         "TownAreaProjectionDelivery"
       ],
-      "state": "pending"
+      "state": "closed",
+      "completion_result_path": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
     },
     {
       "actual_units": {

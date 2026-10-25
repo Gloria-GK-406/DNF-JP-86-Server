@@ -32,9 +32,9 @@ public sealed class PartyCommandHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var parties = new PartyService(
+            var parties = new PartyClientProjectionService(new PartyService(
                 new FixedPartyMemberStatus(), new PartyModeRuleService(),
-                TimeProvider.System, new NoPartyEndpoints());
+                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = Character(Inviter) with { DirectoryScope = scope };
             var second = Character(Invitee) with { DirectoryScope = scope };
@@ -55,10 +55,11 @@ public sealed class PartyCommandHandlerTests
             var context = new CommandExecutionContext(
                 Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
 
-            var result = await new LeavePartyCommandHandler(parties, runs)
-                .HandleAsync(context, new LeavePartyCommand(Inviter.CharacterId), CancellationToken.None);
+            var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                .SendAsync(new GameLeavePartyCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty)));
 
-            Assert.True(result.Succeeded);
+            Assert.True(result);
             Assert.Null(runs.Find(Inviter.CharacterId));
             Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
             Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
@@ -70,9 +71,9 @@ public sealed class PartyCommandHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var parties = new PartyService(
+            var parties = new PartyClientProjectionService(new PartyService(
                 new FixedPartyMemberStatus(), new PartyModeRuleService(),
-                TimeProvider.System, new NoPartyEndpoints());
+                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = Character(Inviter) with { DirectoryScope = scope };
             var target = Character(Invitee) with { DirectoryScope = scope };
@@ -91,11 +92,11 @@ public sealed class PartyCommandHandlerTests
             var context = new CommandExecutionContext(
                 Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
 
-            var result = await new RemovePartyMemberCommandHandler(parties, runs)
-                .HandleAsync(context, new RemovePartyMemberCommand(
-                    Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
+            var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                .SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
 
-            Assert.True(result.Succeeded);
+            Assert.True(result);
             Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
             Assert.Null(runs.Find(Invitee.CharacterId));
         });
@@ -116,12 +117,10 @@ public sealed class PartyCommandHandlerTests
                 .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []), CancellationToken.None);
             await DriveResponsePeer(sessions, Presence, fixture, Notifications, NullLogger<ResponsePeerHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []), CancellationToken.None);
-            await new LeavePartyCommandHandler(domain).HandleAsync(
-                context, new(Invitee.CharacterId), CancellationToken.None);
-            await new TransferPartyLeadershipCommandHandler(domain).HandleAsync(
-                context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
-            await new RemovePartyMemberCommandHandler(domain).HandleAsync(
-                context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
+            var mutations = PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, domain, Presence, Notifications.Events));
+            await mutations.SendAsync(new GameLeavePartyCommand(Dispatch(Invitee), new(GameMessageMetadata.Empty)));
+            await mutations.SendAsync(new GameChangePartyLeaderCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
+            await mutations.SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
             await DriveCallPartyMemberRealtimeInfo(sessions, fixture, Notifications, NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), CancellationToken.None);
             var settings = Settings();
@@ -134,7 +133,9 @@ public sealed class PartyCommandHandlerTests
                     "invite:1->2:64",
                     "accept:2<-1",
                     "leave:2",
+                    "query:1",
                     "lead:1->2",
+                    "query:1",
                     "remove:1->2",
                     "query:1",
                     "settings:1:2:41",
@@ -189,18 +190,18 @@ public sealed class PartyCommandHandlerTests
                 .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
                     GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []),
                     CancellationToken.None);
-            await new LeavePartyHandler(sessions, commands, Notifications,
+            await DriveLeaveParty(sessions, commands, Notifications,
                     NullLogger<LeavePartyHandler>.Instance)
                 .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
                     CancellationToken.None);
-            await new ChangePartyLeaderHandler(
+            await DriveChangePartyLeader(
                     sessions, new RecordingParties(), commands, Notifications,
                     NullLogger<ChangePartyLeaderHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter),
                     new ChangePartyLeaderRequest(GameMessageMetadata.Empty, 1),
                     CancellationToken.None);
             var sender = new RecordingSender();
-            await new RemovePartyMemberHandler(
+            await DriveRemovePartyMember(
                     sessions, new RecordingParties(), commands, Notifications, sender,
                     NullLogger<RemovePartyMemberHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter),
@@ -216,9 +217,9 @@ public sealed class PartyCommandHandlerTests
                 commands.Commands,
                 command => Assert.IsType<GameRequestPeerCommand>(command),
                 command => Assert.IsType<GameResponsePeerCommand>(command),
-                command => Assert.IsType<LeavePartyCommand>(command),
-                command => Assert.IsType<TransferPartyLeadershipCommand>(command),
-                command => Assert.IsType<RemovePartyMemberCommand>(command),
+                command => Assert.IsType<GameLeavePartyCommand>(command),
+                command => Assert.IsType<GameChangePartyLeaderCommand>(command),
+                command => Assert.IsType<GameRemovePartyMemberCommand>(command),
                 command =>
                 {
                     var set = Assert.IsType<GameSetPartyInfoCommand>(command);
@@ -236,10 +237,11 @@ public sealed class PartyCommandHandlerTests
             var sessions = new SessionDirectory(Inviter, Invitee);
             var commands = new RecordingCommandBus();
             var sender = new RecordingSender();
+            var parties = new RecordingParties();
 
-            await new RemovePartyMemberHandler(
+            await DriveRemovePartyMember(
                     sessions,
-                    new RecordingParties(),
+                    parties,
                     commands,
                     Notifications,
                     sender,
@@ -249,7 +251,8 @@ public sealed class PartyCommandHandlerTests
                     new RemovePartyMemberRequest(GameMessageMetadata.Empty, 7),
                     CancellationToken.None);
 
-            Assert.Empty(commands.Commands);
+            Assert.IsType<GameRemovePartyMemberCommand>(Assert.Single(commands.Commands));
+            Assert.Equal(["query:1"], parties.Writes);
             Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
         });
     }
@@ -363,7 +366,7 @@ public sealed class PartyCommandHandlerTests
         await TestGameplay.RunAsync(async () =>
         {
             var commands = new RecordingCommandBus();
-            await new LeavePartyHandler(
+            await DriveLeaveParty(
                     new SessionDirectory(),
                     commands,
                     Notifications,
@@ -371,7 +374,8 @@ public sealed class PartyCommandHandlerTests
                 .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
                     CancellationToken.None);
 
-            Assert.Empty(commands.Commands);
+            Assert.IsType<GameLeavePartyCommand>(Assert.Single(commands.Commands));
+            Assert.Empty(commands.Domain.Writes);
         });
     }
 
@@ -387,7 +391,7 @@ public sealed class PartyCommandHandlerTests
                 SequenceIsFresh = false,
             };
 
-            await new LeavePartyHandler(
+            await DriveLeaveParty(
                     new SessionDirectory(Invitee),
                     commands,
                     Notifications,
@@ -395,7 +399,8 @@ public sealed class PartyCommandHandlerTests
                 .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(stale),
                     CancellationToken.None);
 
-            Assert.Empty(commands.Commands);
+            Assert.IsType<GameLeavePartyCommand>(Assert.Single(commands.Commands));
+            Assert.Empty(commands.Domain.Writes);
         });
     }
 
@@ -414,19 +419,21 @@ public sealed class PartyCommandHandlerTests
             var commands = new RecordingCommandBus();
             var sender = new RecordingSender();
 
-            await new ChangePartyLeaderHandler(
+            await DriveChangePartyLeader(
                     sessions, parties, commands, Notifications,
                     NullLogger<ChangePartyLeaderHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new ChangePartyLeaderRequest(stale, 1),
                     CancellationToken.None);
-            await new RemovePartyMemberHandler(
+            await DriveRemovePartyMember(
                     sessions, parties, commands, Notifications, sender,
                     NullLogger<RemovePartyMemberHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RemovePartyMemberRequest(stale, 1),
                     CancellationToken.None);
 
             Assert.Empty(parties.Writes);
-            Assert.Empty(commands.Commands);
+            Assert.Collection(commands.Commands,
+                command => Assert.IsType<GameChangePartyLeaderCommand>(command),
+                command => Assert.IsType<GameRemovePartyMemberCommand>(command));
             Assert.Empty(sender.Sent);
         });
     }
@@ -618,6 +625,19 @@ public sealed class PartyCommandHandlerTests
                 { Request = request }, command, ct);
         }
     }
+
+    private static LeavePartyHandler DriveLeaveParty(ISelectedSessionDomainService sessions,
+        RecordingCommandBus commands, TestProjection projection, ILogger<LeavePartyHandler> _, ITownAreaDomainService? townAreas = null) =>
+        new(PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, commands.Domain, townAreas ?? Presence,
+            projection.Events, projection.Streams), commands.Commands.Add));
+    private static ChangePartyLeaderHandler DriveChangePartyLeader(ISelectedSessionDomainService sessions, IPartyService parties,
+        RecordingCommandBus commands, TestProjection projection, ILogger<ChangePartyLeaderHandler> _, ITownAreaDomainService? townAreas = null) =>
+        new(PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, parties, townAreas ?? Presence,
+            projection.Events, projection.Streams), commands.Commands.Add));
+    private static RemovePartyMemberHandler DriveRemovePartyMember(ISelectedSessionDomainService sessions, IPartyService parties,
+        RecordingCommandBus commands, TestProjection projection, IGameMessageSender sender, ILogger<RemovePartyMemberHandler> _, ITownAreaDomainService? townAreas = null) =>
+        new(PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, parties, townAreas ?? Presence,
+            projection.Events, projection.Streams, sender), commands.Commands.Add));
 
     private static SetUdpIpPortHandler DriveSetUdpIpPort(IOnlineUserQueryDomainService online,
         IGameSessionEndpointDomainService endpoints, ILogger<SetUdpIpPortHandler> _) =>

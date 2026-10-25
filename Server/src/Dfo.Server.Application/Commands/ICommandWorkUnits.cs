@@ -5,9 +5,10 @@ using Dfo.Server.Application.Transactions;
 namespace Dfo.Server.Application.Commands;
 
 public enum CommandWorkUnitKind { Ordinary, MainSettlement }
-public enum CommandFootprintMode { None, NonRequest }
+public enum CommandFootprintMode { None, NonRequest, DeclaredNonRequest }
 public sealed record CommandWorkUnitDeclaration(string Name, IReadOnlyList<SelectedSessionRecipient> Participants,
-    CommandWorkUnitKind Kind = CommandWorkUnitKind.Ordinary, CommandFootprintMode Footprint = CommandFootprintMode.None);
+    CommandWorkUnitKind Kind = CommandWorkUnitKind.Ordinary, CommandFootprintMode Footprint = CommandFootprintMode.None,
+    IReadOnlyList<Dfo.Server.Data.World.SelectedSessionIdentity>? FootprintOwners = null);
 
 public sealed class CommandWorkUnit
 {

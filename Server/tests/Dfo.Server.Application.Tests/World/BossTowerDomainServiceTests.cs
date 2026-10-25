@@ -21,7 +21,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
-public sealed class BossTowerDomainServiceTests
+public sealed partial class BossTowerDomainServiceTests
 {
     [Fact]
     public async Task Autoloot_is_in_the_receiving_members_inventory_projection_and_never_repaid()

@@ -43,7 +43,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             if (request is not CommandRequestContext.ProtocolNonEffect
                 || request.SelfSettlement != CommandSelfSettlementCapability.SelfSettledAction
                 || declaration.Kind != CommandWorkUnitKind.Ordinary || declaration.Footprint != CommandFootprintMode.None
-                || declaration.Participants is not { Count: 0 })
+                || declaration.Participants is not { Count: 0 } || declaration.FootprintOwners is not null)
                 throw new InvalidOperationException("Self settlement requires a permitted ordinary non-effect protocol write with no participants or footprint.");
             request.BeginUnit(); began = true;
             lease = transactions.Begin();
@@ -237,6 +237,8 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         ExplicitEffectRequest? main = null;
         IEffectFootprintRecorder? footprint = null;
         ExplicitNonRequestFootprint? nonRequest = null;
+        ExplicitDeclaredNonRequestFootprint? declaredNonRequest = null;
+        Dfo.Server.Data.World.SelectedSessionIdentity[] owners = [];
         try
         {
             request.DemandCurrent();
@@ -254,6 +256,17 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                     || !ReferenceEquals(participants[0].Connection, plain.Dispatch.Connection)
                     || participants[0].Session.ConnectionId != plain.Dispatch.Connection.ConnectionId))
                 throw new InvalidOperationException("NonRequest requires one exact protocol actor in an ordinary write.");
+            if (declaration.Footprint == CommandFootprintMode.DeclaredNonRequest)
+            {
+                if (readOnly || recoverCommit || declaration.Kind != CommandWorkUnitKind.Ordinary
+                    || request is not CommandRequestContext.ProtocolNonEffect)
+                    throw new InvalidOperationException("DeclaredNonRequest requires an ordinary writable non-effect protocol request.");
+                owners = [.. declaration.FootprintOwners ?? throw new InvalidOperationException("DeclaredNonRequest requires explicit owners.")];
+                if (owners.Length == 0 || owners.Any(owner => owner is null) || owners.Distinct().Count() != owners.Length)
+                    throw new InvalidOperationException("DeclaredNonRequest owners must be nonempty, exact and unique.");
+            }
+            else if (declaration.FootprintOwners is not null)
+                throw new InvalidOperationException("Only DeclaredNonRequest accepts an explicit owner set.");
             if (declaration.Kind == CommandWorkUnitKind.MainSettlement)
             {
                 main = (request as CommandRequestContext.ProtocolEffectSelected)?.State
@@ -266,11 +279,14 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             if (declaration.Footprint == CommandFootprintMode.NonRequest)
                 footprint = nonRequest = new((CommandRequestContext.ProtocolNonEffect)request, participants[0],
                     (DomainTransaction)transaction.Transaction, safety);
+            if (declaration.Footprint == CommandFootprintMode.DeclaredNonRequest)
+                footprint = declaredNonRequest = new((CommandRequestContext.ProtocolNonEffect)request, owners,
+                    (DomainTransaction)transaction.Transaction);
             unit = new CommandWorkUnit(transaction.Transaction, request, footprint);
             TResult result;
             stage = FailureStage.Action;
             try { result = await action(unit, ct).ConfigureAwait(false); stage = FailureStage.PostAction; }
-            finally { nonRequest?.Close(); }
+            finally { nonRequest?.Close(); declaredNonRequest?.Close(); }
             request.DemandCurrent();
             foreach (var participant in participants) safety.DemandCurrent(participant);
             if (transaction.GuardFailure is { } guard)
@@ -347,6 +363,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         finally
         {
             nonRequest?.Close();
+            declaredNonRequest?.Close();
             unit?.Close();
             if (began) request.EndUnit();
             main?.EndMain();

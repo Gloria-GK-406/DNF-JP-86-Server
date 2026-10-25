@@ -16,7 +16,7 @@ namespace Dfo.Server.Protocol.Game.Dungeons;
 /// Every consumer must compare an entry with the selected-session directory immediately before
 /// delivery, so a replacement connection never inherits an older run's traffic.
 /// </remarks>
-public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDepartureSink
+public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDepartureSink, Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService
 {
     private readonly object gate = new();
     private readonly Dictionary<DungeonRunId, ImmutableArray<SelectedSessionIdentity>> entries = [];

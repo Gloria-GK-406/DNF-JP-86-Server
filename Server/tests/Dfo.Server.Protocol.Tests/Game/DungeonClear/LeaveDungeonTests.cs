@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
@@ -27,7 +28,6 @@ using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
-using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Testing;
@@ -404,7 +404,7 @@ public sealed class LeaveDungeonTests
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runs.RunId, [Identity]);
             var sender = new RecordingSender();
-            var commands = new RecordingCommandBus();
+            var parties = new RecordingPartyMutations();
             var handler = new GiveUpGameHandler(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
@@ -424,7 +424,7 @@ public sealed class LeaveDungeonTests
                         new FixedWeakness(weaknessValue), new OneSession(Identity), sender)),
                 NullLogger<GiveUpGameHandler>.Instance,
                 new SessionPresenceDomainService(),
-                commands,
+                parties,
                 new PartyNotificationDelivery(new NoopNotificationBus()));
 
             await handler.HandleAsync(
@@ -444,7 +444,7 @@ public sealed class LeaveDungeonTests
             Assert.Empty(deliveries.Find(runs.RunId));
             Assert.Equal(
                 Identity.CharacterId,
-                Assert.IsType<LeavePartyCommand>(Assert.Single(commands.Commands)).CharacterId);
+                Assert.Single(parties.Left));
         });
     }
 
@@ -453,7 +453,7 @@ public sealed class LeaveDungeonTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var commands = new RecordingCommandBus();
+            var parties = new RecordingPartyMutations();
             var handler = new GiveUpGameHandler(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
@@ -467,7 +467,7 @@ public sealed class LeaveDungeonTests
                     new RecordingSender()),
                 NullLogger<GiveUpGameHandler>.Instance,
                 new SessionPresenceDomainService(),
-                commands,
+                parties,
                 new PartyNotificationDelivery(new NoopNotificationBus()));
 
             await handler.HandleAsync(
@@ -475,7 +475,7 @@ public sealed class LeaveDungeonTests
                 new GiveUpGameRequest(GameMessageMetadata.Empty),
                 CancellationToken.None);
 
-            Assert.Empty(commands.Commands);
+            Assert.Empty(parties.Left);
         });
     }
 
@@ -497,7 +497,6 @@ public sealed class LeaveDungeonTests
         services.AddCommandDispatching();
         services.AddCommandHandler<AltarActionCommand, AltarCommandResult, ExitAltarCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, ExitPartyCommandHandler>(CommandExecutionKind.Workflow);
         using var provider = services.BuildServiceProvider();
         await TestGameplay.RunAsync(provider, async () =>
         {
@@ -516,7 +515,7 @@ public sealed class LeaveDungeonTests
             var handler = new GiveUpGameHandler(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
                 runs, deliveries, sender, TownAreaProjectionTestFactory.Create(sessions, new OneRuntimeSession(Entry()), sender),
                 NullLogger<GiveUpGameHandler>.Instance,
-                townAreas: new SessionPresenceDomainService(), commands: commands, altars: coordinator);
+                townAreas: new SessionPresenceDomainService(), parties: new RecordingPartyMutations(trace.PartyLeaves.Add), altars: coordinator);
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), deadline.Token)
                 .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
@@ -524,12 +523,12 @@ public sealed class LeaveDungeonTests
             Assert.Single(sender.Sent.OfType<GiveUpGameResponse>());
             Assert.Single(sender.Sent.OfType<UserAreaNotification>());
             await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), default);
-            Assert.Equal(isAltar ? 2 : 1, trace.Commands.Count);
-            Assert.Single(trace.Commands.OfType<LeavePartyCommand>());
+            Assert.Equal(isAltar ? 1 : 0, trace.Commands.Count);
+            Assert.Equal(Identity.CharacterId, Assert.Single(trace.PartyLeaves));
         });
     }
 
-    private sealed class ExitCommandTrace { public List<ICommand> Commands { get; } = []; }
+    private sealed class ExitCommandTrace { public List<ICommand> Commands { get; } = []; public List<CharacterId> PartyLeaves { get; } = []; }
     private sealed class ExitAltarCommandHandler(ExitCommandTrace trace, IDomainTransactionAccessor transactions)
         : ICommandHandler<AltarActionCommand, AltarCommandResult>
     {
@@ -540,15 +539,6 @@ public sealed class LeaveDungeonTests
             return ValueTask.FromResult(new AltarCommandResult(null));
         }
     }
-    private sealed class ExitPartyCommandHandler(ExitCommandTrace trace) : ICommandHandler<LeavePartyCommand, PartyOperationResult>
-    {
-        public ValueTask<PartyOperationResult> HandleAsync(CommandExecutionContext context, LeavePartyCommand command, CancellationToken ct)
-        {
-            trace.Commands.Add(command);
-            return ValueTask.FromResult(PartyOperationResult.Success());
-        }
-    }
-
     [Fact]
     public async Task Stale_give_up_stops_before_any_current_run_or_party_capture()
     {

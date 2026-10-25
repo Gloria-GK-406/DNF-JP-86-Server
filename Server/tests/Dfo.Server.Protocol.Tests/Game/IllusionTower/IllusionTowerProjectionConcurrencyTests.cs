@@ -1,3 +1,5 @@
+using Dfo.Server.Application.World;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -57,7 +59,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var delivery = Delivery(tower, sessions, commands, sender, closer);
             var coordinator = new IllusionTowerPartyCoordinator(
                 tower,
-                parties,
+                commands.Parties,
                 sessions,
                 commands,
                 Notifications(parties, sessions, town),
@@ -99,7 +101,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions,
+                tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
@@ -143,16 +145,22 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 ],
             };
             var tower = new TowerDomain(initial);
+            var ordinaryRuns = new DungeonRunDomainService();
+            var layout = new DungeonLayout(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000) });
+            var ordinary = ordinaryRuns.PreparePartyEntry([new DungeonRunParticipant(external.AccountId, external.CharacterId, 0, true)],
+                layout, 0).Run;
+            Assert.Equal(ordinary.RunId, ordinaryRuns.Find(external.CharacterId)!.RunId);
             using var request = new CancellationTokenSource();
             var commands = new CoordinatorCommands(tower, parties, request);
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions,
+                tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
-                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
+                closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance, runs: ordinaryRuns);
 
             var result = await coordinator.TryLeaveAsync(
                 external, allowVirtual: false, departureResponse: null, CancellationToken.None);
@@ -160,6 +168,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             Assert.True(result.Result.Succeeded);
             Assert.Equal(1, commands.SynchronizeCalls);
             Assert.Null(tower.Find(external));
+            Assert.Null(ordinaryRuns.Find(external.CharacterId));
             var current = Assert.IsType<IllusionTowerSnapshot>(tower.Find(successor));
             Assert.Equal(2, current.Members.Length);
             Assert.Equal(successor, current.Members.Single(member => member.IsLeader).Session);
@@ -191,7 +200,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, commands,
+                tower, commands.Parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -234,7 +243,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions,
+                tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
@@ -283,7 +292,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions,
+                tower, commands.Parties, sessions,
                 commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
@@ -327,7 +336,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var closer = new Closer();
         var town = new NoTown();
         var coordinator = new IllusionTowerPartyCoordinator(
-            tower, parties, sessions, commands,
+            tower, commands.Parties, sessions, commands,
             Notifications(parties, sessions, town),
             Delivery(tower, sessions, commands, new Sender(), closer),
             closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -493,7 +502,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var closer = new Closer();
             var town = new NoTown();
             var coordinator = new IllusionTowerPartyCoordinator(
-                tower, parties, sessions, commands,
+                tower, commands.Parties, sessions, commands,
                 Notifications(parties, sessions, town),
                 Delivery(tower, sessions, commands, new Sender(), closer),
                 closer, town, NullLogger<IllusionTowerPartyCoordinator>.Instance);
@@ -934,6 +943,8 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         bool throwAfterParty = false) : ICommandBus
     {
         public CancellationToken PartyToken { get; private set; }
+        public IPartyService Parties => new Dfo.Server.Protocol.Tests.Game.Party.PartyMutationProbe(parties,
+            (_, _, _) => { PartyToken = CancellationToken.None; PartyCalls++; }, throwAfterParty);
         public int PartyCalls { get; private set; }
         public int SynchronizeCalls { get; private set; }
 
@@ -945,10 +956,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 LeaveIllusionTowerCommand leave => LeaveTower(leave),
                 SynchronizeIllusionTowerLeaderCommand synchronize =>
                     Synchronize(synchronize),
-                LeavePartyCommand leave => LeaveParty(leave, cancellationToken),
-                TransferPartyLeadershipCommand transfer =>
-                    TransferParty(transfer, cancellationToken),
-                RemovePartyMemberCommand remove => RemoveParty(remove, cancellationToken),
                 _ => throw new NotSupportedException(command.GetType().Name),
             };
             return ValueTask.FromResult((TResult)result);
@@ -968,34 +975,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             return result;
         }
 
-        private PartyOperationResult LeaveParty(
-            LeavePartyCommand command, CancellationToken cancellationToken)
-        {
-            PartyToken = cancellationToken;
-            PartyCalls++;
-            var result = parties.LeaveParty(command.CharacterId);
-            return throwAfterParty
-                ? throw new IOException("wrapper failed after party write")
-                : result;
-        }
-
-        private PartyOperationResult TransferParty(
-            TransferPartyLeadershipCommand command, CancellationToken cancellationToken)
-        {
-            PartyToken = cancellationToken;
-            PartyCalls++;
-            return parties.TransferLeadership(
-                command.CurrentLeaderCharacterId, command.NextLeaderCharacterId);
-        }
-
-        private PartyOperationResult RemoveParty(
-            RemovePartyMemberCommand command, CancellationToken cancellationToken)
-        {
-            PartyToken = cancellationToken;
-            PartyCalls++;
-            return parties.RemoveMember(
-                command.CurrentLeaderCharacterId, command.TargetCharacterId);
-        }
     }
 
     private sealed class NoViews : ISelectedCharacterCurrentViewDomainService

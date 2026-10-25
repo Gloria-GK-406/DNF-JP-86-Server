@@ -31,7 +31,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.Tests.World;
 
-public sealed class IllusionTowerDomainServiceTests
+public sealed partial class IllusionTowerDomainServiceTests
 {
     [Fact]
     public async Task Cleared_floor_advances_its_map_quest_asynchronously_even_after_leaving_the_tower()

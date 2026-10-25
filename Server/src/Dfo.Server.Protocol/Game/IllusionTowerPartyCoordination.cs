@@ -22,9 +22,10 @@ public sealed record IllusionTowerPartyAttempt(
 public sealed class IllusionTowerPartyCoordinator(
     IIllusionTowerDomainService towers, IPartyService parties, ISelectedSessionDomainService sessions,
     ICommandBus commands, PartyNotificationDelivery notifications, IllusionTowerProjectionDelivery towerProjection,
-    INetworkConnectionCloser connections, ITownAreaDomainService townAreas, ILogger<IllusionTowerPartyCoordinator> logger)
+    INetworkConnectionCloser connections, ITownAreaDomainService townAreas, ILogger<IllusionTowerPartyCoordinator> logger,
+    IDungeonRunDomainService? runs = null)
 {
-    private readonly Legacy legacy = new(towers, parties, sessions, commands, notifications, towerProjection, connections, townAreas, logger);
+    private readonly Legacy legacy = new(towers, parties, sessions, commands, notifications, towerProjection, connections, townAreas, logger, runs);
     public ValueTask<IllusionTowerPartyAttempt> TryLeaveAsync(SelectedSessionIdentity caller, bool allowVirtual,
         IGameServerMessage? departureResponse, CancellationToken token) => legacy.LeaveAsync(caller, allowVirtual, departureResponse, token);
     public ValueTask<IllusionTowerPartyAttempt> TryRemoveAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => legacy.RemoveAsync(caller, targetSlot, token);
@@ -32,10 +33,10 @@ public sealed class IllusionTowerPartyCoordinator(
 
     private sealed class Legacy(IIllusionTowerDomainService towers, IPartyService parties, ISelectedSessionDomainService sessions,
         ICommandBus commands, PartyNotificationDelivery notifications, IllusionTowerProjectionDelivery projection,
-        INetworkConnectionCloser connections, ITownAreaDomainService townAreas, ILogger logger)
+        INetworkConnectionCloser connections, ITownAreaDomainService townAreas, ILogger logger, IDungeonRunDomainService? runs)
         : PartyMutationProtocolCommandHandler(sessions, parties, townAreas, null!, null!, null, logger,
             illusionTowers: towers,
-            close: session => connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None))
+            close: session => connections.RequestCloseAsync(session.ConnectionId, CancellationToken.None), dungeonRuns: runs)
     {
         internal ValueTask<IllusionTowerPartyAttempt> LeaveAsync(SelectedSessionIdentity caller, bool allowVirtual, IGameServerMessage? response, CancellationToken token) =>
             CoordinateIllusionTowerPartyAsync(null, PartyChange.Leave, caller, null, allowVirtual, response, token);
@@ -50,17 +51,9 @@ public sealed class IllusionTowerPartyCoordinator(
             projection.ProjectCommittedDepartureAsync(action, returning, response, token);
         protected override ValueTask ProjectIllusionTowerPartyHostAsync(IllusionTowerSnapshot run, CancellationToken token) => projection.ProjectCurrentHostAsync(run, token);
         protected override ValueTask<TowerActionResult> LeaveIllusionPartyTowerAsync(CommandExecutionContext? execution, TowerActionContext context,
-            CancellationToken token) => commands.SendAsync(new LeaveIllusionTowerCommand(context, false), token);
+            IReadOnlyList<SelectedSessionIdentity> owners, CancellationToken token) => commands.SendAsync(new LeaveIllusionTowerCommand(context, false), token);
         protected override ValueTask<TowerActionResult> SynchronizeIllusionTowerPartyTowerAsync(CommandExecutionContext? execution, TowerActionContext context,
             SelectedSessionIdentity leader, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
             commands.SendAsync(new SynchronizeIllusionTowerLeaderCommand(context, leader), token);
-        protected override ValueTask<PartyOperationResult> MutatePartyAsync(PartyChange change, SelectedSessionIdentity caller, SelectedSessionIdentity? target, CancellationToken token) =>
-            change switch
-            {
-                PartyChange.Leave => commands.SendAsync(new LeavePartyCommand(caller.CharacterId), token),
-                PartyChange.Remove => commands.SendAsync(new RemovePartyMemberCommand(caller.CharacterId, target!.CharacterId), token),
-                PartyChange.Transfer => commands.SendAsync(new TransferPartyLeadershipCommand(caller.CharacterId, target!.CharacterId), token),
-                _ => throw new ArgumentOutOfRangeException(nameof(change)),
-            };
     }
 }

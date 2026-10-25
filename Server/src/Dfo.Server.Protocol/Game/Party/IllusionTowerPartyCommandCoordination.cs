@@ -58,7 +58,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         // Any predictable party refusal has already been resolved above.
         if (departingMember is not null)
         {
-            departure = await LeaveIllusionPartyTowerAsync(execution, new TowerActionContext(departingMember.Session, run.RunId, run.Room.Version), token).ConfigureAwait(false);
+            departure = await LeaveIllusionPartyTowerAsync(execution, new TowerActionContext(departingMember.Session, run.RunId, run.Room.Version), run.Members.Select(value => value.Session).ToArray(), token).ConfigureAwait(false);
             if (!departure.Changed || departure.Run is null)
                 return IllusionTowerRejected(observed.Target, PartyFailureReason.CallerNotCurrent);
             projectionRun = departure.Run;

@@ -443,6 +443,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonCardPresentationCoordinator>();
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(provider => provider.GetRequiredService<DungeonCardPresentationCoordinator>());
         services.TryAddSingleton<IDungeonLoadingProjectionDelivery, DungeonLoadingProjectionDelivery>();
+        services.TryAddSingleton<IDungeonRunProjectionDomainService>(provider =>
+            provider.GetRequiredService<DungeonRunDeliveryRegistry>());
         services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());
         // Every notification type declared in this assembly must have a handler registered below,
@@ -782,16 +784,12 @@ public sealed class ProtocolModule : IServerModule
         // write with no boundary open, so this is what makes the arrival possible at all.
         services.AddCommandHandler<SelectCardCommand, SelectCardResult, SelectCardCommandHandler>(
             CommandExecutionKind.Transactional);
-        services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, LeavePartyCommandHandler>(
-            CommandExecutionKind.Direct);
-        services.AddCommandHandler<
-            TransferPartyLeadershipCommand,
-            PartyOperationResult,
-            TransferPartyLeadershipCommandHandler>(CommandExecutionKind.Direct);
-        services.AddCommandHandler<
-            RemovePartyMemberCommand,
-            PartyOperationResult,
-            RemovePartyMemberCommandHandler>(CommandExecutionKind.Direct);
+        services.AddProtocolCommandHandler<GameLeavePartyCommand, bool, GamePartyMutationCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameLeaveParty, typeof(LeavePartyRequest)));
+        services.AddProtocolCommandHandler<GameRemovePartyMemberCommand, bool, GamePartyMutationCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRemovePartyMember, typeof(RemovePartyMemberRequest)));
+        services.AddProtocolCommandHandler<GameChangePartyLeaderCommand, bool, GamePartyMutationCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameChangePartyLeader, typeof(ChangePartyLeaderRequest)));
         services.AddProtocolCommandHandler<GameSetUdpIpPortCommand, bool, GameSetUdpIpPortCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSetUdpIpPort, typeof(SetUdpIpPortRequest)));
         services.AddProtocolCommandHandler<GameRequestPeerCommand, bool, GameRequestPeerCommandHandler>(
@@ -853,10 +851,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<SetUdpIpPortHandler, SetUdpIpPortRequest, GameSetUdpIpPortCommand>(ClientMessageType.GameSetUdpIpPort);
         services.RegisterProtocolMessageHandler<RequestPeerHandler, RequestPeerRequest, GameRequestPeerCommand>(ClientMessageType.GameRequestPeer);
         services.RegisterProtocolMessageHandler<ResponsePeerHandler, ResponsePeerRequest, GameResponsePeerCommand>(ClientMessageType.GameResponsePeer);
-        services.RegisterMessageHandler<LeavePartyHandler>(ClientMessageType.GameLeaveParty);
-        services.RegisterMessageHandler<RemovePartyMemberHandler>(
+        services.RegisterProtocolMessageHandler<LeavePartyHandler, LeavePartyRequest, GameLeavePartyCommand>(ClientMessageType.GameLeaveParty);
+        services.RegisterProtocolMessageHandler<RemovePartyMemberHandler, RemovePartyMemberRequest, GameRemovePartyMemberCommand>(
             ClientMessageType.GameRemovePartyMember);
-        services.RegisterMessageHandler<ChangePartyLeaderHandler>(
+        services.RegisterProtocolMessageHandler<ChangePartyLeaderHandler, ChangePartyLeaderRequest, GameChangePartyLeaderCommand>(
             ClientMessageType.GameChangePartyLeader);
         services.RegisterProtocolMessageHandler<CallPartyMemberRealtimeInfoHandler, CallPartyMemberRealtimeInfoRequest, GameCallPartyMemberRealtimeInfoCommand>(
             ClientMessageType.GameCallPartyMemberRealtimeInfo);

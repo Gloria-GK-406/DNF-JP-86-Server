@@ -286,6 +286,7 @@ public sealed class PartyCommandCodecTests
     public void Production_registers_all_eight_wire_keys_and_handlers_plus_eight_party_commands()
     {
         var services = new ServiceCollection();
+        services.AddNetworkMessageDispatching();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         using var provider = services.BuildServiceProvider();
 
@@ -331,8 +332,11 @@ public sealed class PartyCommandCodecTests
         Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetPartyInfo
             && value.HandlerType == typeof(SetPartyInfoHandler));
 
+        _ = provider.GetRequiredService<MessageHandlerRegistry>();
+
         Type[] migratedHandlers = [typeof(SetUdpIpPortHandler), typeof(RequestPeerHandler),
-            typeof(ResponsePeerHandler), typeof(SetPartyInfoHandler), typeof(CallPartyMemberRealtimeInfoHandler)];
+            typeof(ResponsePeerHandler), typeof(SetPartyInfoHandler), typeof(CallPartyMemberRealtimeInfoHandler),
+            typeof(LeavePartyHandler), typeof(RemovePartyMemberHandler), typeof(ChangePartyLeaderHandler)];
         Assert.All(handlers.Where(value => migratedHandlers.Contains(value.HandlerType)),
             value => Assert.Equal(MessageHandlerRouteKind.ProtocolCommand, value.Route));
 
@@ -341,9 +345,9 @@ public sealed class PartyCommandCodecTests
             typeof(GameSetUdpIpPortCommand),
             typeof(GameRequestPeerCommand),
             typeof(GameResponsePeerCommand),
-            typeof(LeavePartyCommand),
-            typeof(TransferPartyLeadershipCommand),
-            typeof(RemovePartyMemberCommand),
+            typeof(GameLeavePartyCommand),
+            typeof(GameChangePartyLeaderCommand),
+            typeof(GameRemovePartyMemberCommand),
             typeof(GameCallPartyMemberRealtimeInfoCommand),
             typeof(GameSetPartyInfoCommand),
         ];

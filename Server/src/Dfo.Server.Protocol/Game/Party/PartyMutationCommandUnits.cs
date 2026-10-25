@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.World;
@@ -16,26 +17,31 @@ internal abstract partial class PartyMutationProtocolCommandHandler
     protected readonly ICommandWorkUnits? workUnits;
     protected readonly IOnlineUserQueryDomainService? onlineUsers;
     protected readonly IDungeonRunDomainService? dungeonRuns;
-    protected readonly IDungeonRunParticipantDepartureSink? departureSink;
+    protected readonly IDungeonRunProjectionDomainService? departureSink;
 
     protected virtual ValueTask ProjectPartyAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients,
         CancellationToken token) => DeliverPartyNotificationsAsync(plan, recipients, token);
 
-    protected virtual async ValueTask<PartyOperationResult> MutatePartyAsync(PartyChange change,
-        SelectedSessionIdentity caller, SelectedSessionIdentity? target, CancellationToken token)
+    protected virtual ValueTask<PartyOperationResult> MutatePartyAsync(PartyChange change,
+        SelectedSessionIdentity caller, SelectedSessionIdentity? target, CancellationToken token) =>
+        MutatePartyStateAsync(PartyService!, dungeonRuns, change, caller.CharacterId, target?.CharacterId, token);
+
+    protected static async ValueTask<PartyOperationResult> MutatePartyStateAsync(Dfo.Server.Abstractions.Parties.IPartyService parties,
+        IDungeonRunDomainService? runs, PartyChange change, Dfo.Server.Data.Characters.CharacterId caller,
+        Dfo.Server.Data.Characters.CharacterId? target, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var departing = change == PartyChange.Leave ? caller : change == PartyChange.Remove ? target : null;
-        var run = departing is null ? null : dungeonRuns?.Find(departing.CharacterId);
+        var run = departing is null ? null : runs?.Find(departing.Value);
         var result = change switch
         {
-            PartyChange.Leave => PartyService!.LeaveParty(caller.CharacterId),
-            PartyChange.Remove => PartyService!.RemoveMember(caller.CharacterId, target!.CharacterId),
-            PartyChange.Transfer => PartyService!.TransferLeadership(caller.CharacterId, target!.CharacterId),
+            PartyChange.Leave => parties.LeaveParty(caller),
+            PartyChange.Remove => parties.RemoveMember(caller, target!.Value),
+            PartyChange.Transfer => parties.TransferLeadership(caller, target!.Value),
             _ => throw new ArgumentOutOfRangeException(nameof(change)),
         };
         if (result.Succeeded && run is not null)
-            _ = await dungeonRuns!.EndAsync(departing!.CharacterId, run.RunId).ConfigureAwait(false);
+            _ = await runs!.EndAsync(departing!.Value, run.RunId).ConfigureAwait(false);
         return result;
     }
 
@@ -51,20 +57,24 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         return new(session, connection);
     }
 
+    private SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
+        SelectedSessionIdentity reporter) => participants.Select(session => session == reporter
+            ? CaptureParticipant(session) : new SelectedSessionRecipient(session, null)).ToArray();
+
     protected virtual ValueTask<BossTowerActionResult> LeaveBossPartyTowerAsync(CommandExecutionContext? execution,
         BossTowerActionContext context, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
-        workUnits!.WriteAsync(execution!, new("party-leave-boss-tower", participants.Select(CaptureParticipant).ToArray(),
-                Footprint: CommandFootprintMode.NonRequest),
+        workUnits!.WriteAsync(execution!, new("party-leave-boss-tower", ProtectedParticipants(participants, context.Session),
+                Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: participants),
             (unit, ct) => bossTowers.LeaveAsync(context, false, unit.Footprint, ct), token);
 
     protected virtual ValueTask<TowerActionResult> LeaveIllusionPartyTowerAsync(CommandExecutionContext? execution,
-        TowerActionContext context, CancellationToken token) =>
-        workUnits!.WriteAsync(execution!, new("party-leave-illusion-tower", [], Footprint: CommandFootprintMode.NonRequest),
+        TowerActionContext context, IReadOnlyList<SelectedSessionIdentity> owners, CancellationToken token) =>
+        workUnits!.WriteAsync(execution!, new("party-leave-illusion-tower", [], Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: owners),
             (unit, ct) => illusionTowers.LeaveAsync(context, false, unit.Footprint, ct), token);
 
     protected virtual ValueTask<BossTowerActionResult> SynchronizeBossTowerPartyTowerAsync(CommandExecutionContext? execution,
         BossTowerActionContext context, SelectedSessionIdentity leader, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
-        workUnits!.WriteAsync(execution!, new("party-synchronize-boss-leader", participants.Select(CaptureParticipant).ToArray()),
+        workUnits!.WriteAsync(execution!, new("party-synchronize-boss-leader", ProtectedParticipants(participants, context.Session)),
             (_, ct) => bossTowers.SynchronizeLeaderAsync(context, leader, ct), token);
 
     protected virtual ValueTask<TowerActionResult> SynchronizeIllusionTowerPartyTowerAsync(CommandExecutionContext? execution,
@@ -74,6 +84,6 @@ internal abstract partial class PartyMutationProtocolCommandHandler
 
     protected virtual ValueTask<BossTowerActionResult> StartBossPartyTowerAsync(CommandExecutionContext? execution,
         BossTowerSnapshot run, SelectedSessionIdentity leader, CancellationToken token) =>
-        workUnits!.WriteAsync(execution!, new("party-start-boss-tower", run.Members.Select(member => CaptureParticipant(member.Session)).ToArray()),
+        workUnits!.WriteAsync(execution!, new("party-start-boss-tower", ProtectedParticipants(run.Members.Select(member => member.Session).ToArray(), leader)),
             (_, ct) => bossTowers.StartAsync(BossTowerContext(run, leader), ct), token);
 }
