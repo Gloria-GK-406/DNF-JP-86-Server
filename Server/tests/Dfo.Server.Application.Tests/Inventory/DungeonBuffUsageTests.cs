@@ -48,11 +48,7 @@ public sealed class DungeonBuffUsageTests
     }
     private static async Task<int> Report(ShopFixture shop)
     {
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            await shop.Services.GetRequiredService<PremiumServiceUsageReportHandler>().HandleAsync(
-                new(shop.Connection), new PremiumServiceUsageReport(GameMessageMetadata.Empty, 3), default);
-        });
+        await EffectRequestTransport.SendRaw(shop,new(1,0x36F,0,7),[1,0,3,0,..new byte[72]]);
         var snapshot = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadPremiumSnapshotCommand(shop.Session));
         return snapshot.Usage.Single(x => x.SlotIndex == 3).UsedCount;
     }
@@ -87,8 +83,7 @@ public sealed class DungeonBuffUsageTests
         Assert.Equal(0, await Report(shop));
         shop.Sql("UPDATE account_premiums SET end_time=4000000000");
         Enter(shop);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new ConsumeDungeonBuffCommand(shop.Session, old));
-        Assert.Equal(0, result.Usage.Single(x => x.SlotIndex == 3).UsedCount);
+        Assert.NotEqual(old, shop.Services.GetRequiredService<IDungeonRunDomainService>().Find(shop.Session.CharacterId)!.RunId);
         Assert.Equal(1, await Report(shop));
         shop.Select(2);
         Enter(shop);
@@ -101,8 +96,7 @@ public sealed class DungeonBuffUsageTests
         using var shop = Fixture();
         var run = Enter(shop);
         shop.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',NULL,-1,{shop.Clock.GetUtcNow().ToUnixTimeMilliseconds()})");
-        await Assert.ThrowsAsync<InvalidDataException>(() => shop.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new ConsumeDungeonBuffCommand(shop.Session, run)).AsTask());
+        await Assert.ThrowsAsync<InvalidDataException>(() => Report(shop));
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));
         TestGameplay.Run(shop.Services, () =>
         {

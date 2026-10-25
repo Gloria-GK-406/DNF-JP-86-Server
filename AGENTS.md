@@ -393,6 +393,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | QuestClearCoupon（三条消耗分支） | 实际物品优先分类，单 Main 后保原各投影；疲劳使用量另读普通 ReadOnly；[源码](Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs)。 |
 | StoreTitle／WithdrawTitle／QueryTitleBook／SetTitleAppearance／AchievementTrigger／WeeklyAttendance | 五个 ordinary whole，Query 只读且仅保护请求者；[源码](Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs)，`TASK-53`；可靠事件与日切来源保留。 |
 | SaveGameOption1／SaveHotkeys／SaveQuickChat／SaveCharacterOption／NoticeSeen／InformNoticeSecond | 原 blob／profile 捕获与无 ACK，nullable selected 及通知空保护；[源码](Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs)，`TASK-54`。 |
+| TaggedIdReport／DecreaseDurability／PremiumServiceUsageReport | 三普通写与 Premium slot4 独立只读均空 selected；[源码](Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs)，`TASK-55`。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

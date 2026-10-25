@@ -29,27 +29,9 @@ internal sealed class PremiumServiceUsageReportDecoder : IGameMessageDecoder
     }
 }
 
-public sealed class PremiumServiceUsageReportHandler(ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs, ICommandBus commands, IGameMessageSender sender,
-    ILogger<PremiumServiceUsageReportHandler> logger) : ClientMessageHandler<PremiumServiceUsageReport>
+public sealed class PremiumServiceUsageReportHandler(ICommandBus commands) : ClientMessageHandler<PremiumServiceUsageReport>,
+    Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GamePremiumServiceUsageReportCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        PremiumServiceUsageReport message, CancellationToken cancellationToken)
-    {
-        var connection = context.Connection.ConnectionId;
-        var session = sessions.FindByConnection(connection);
-        if (session is null || message.Slot is not (3 or 4)) return;
-        var runId = message.Slot == 3 ? runs.Find(session.CharacterId)?.RunId : null;
-        if (!sessions.IsInWorld(session)) return;
-        var state = message.Slot == 3
-            ? await commands.SendAsync(new ConsumeDungeonBuffCommand(session, runId), cancellationToken).ConfigureAwait(false)
-            : await commands.SendAsync(new ReadPremiumSnapshotCommand(session), cancellationToken).ConfigureAwait(false);
-        if (!state.IsCurrent) return;
-        // Effects already ran locally. Only slot3 consumes daily usage; never apply effects again.
-        await sender.SendCmdAsync(connection,
-            new PremiumServiceStateMessage(state.Entitlements, state.Usage, state.PreparedAt), cancellationToken)
-            .ConfigureAwait(false);
-        logger.LogInformation("Premium service usage report character={CharacterId} slot={Slot}: snapshot refreshed",
-            session.CharacterId, message.Slot);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, PremiumServiceUsageReport message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GamePremiumServiceUsageReportCommand(context, message), ct).ConfigureAwait(false);
 }

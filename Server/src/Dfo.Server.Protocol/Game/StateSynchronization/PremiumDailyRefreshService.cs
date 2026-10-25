@@ -28,9 +28,19 @@ public sealed class ReadPremiumSnapshotCommandHandler(ISelectedSessionDomainServ
     public async ValueTask<PremiumSnapshotResult> HandleAsync(CommandExecutionContext context,
         ReadPremiumSnapshotCommand command, CancellationToken token)
     {
-        if (!sessions.IsInWorld(command.Session)) return new(new([]), [], clock.GetUtcNow(), false);
-        return new(new(await premiums.For(command.AccountId).ReadAsync(token).ConfigureAwait(false)),
-            await usage.ReadAsync(command.Session.CharacterId, token).ConfigureAwait(false), clock.GetUtcNow());
+        return await PremiumSnapshotReader.ReadAsync(sessions, premiums, usage, clock, command.Session, token).ConfigureAwait(false);
+    }
+}
+
+internal static class PremiumSnapshotReader
+{
+    internal static async ValueTask<PremiumSnapshotResult> ReadAsync(ISelectedSessionDomainService sessions,
+        IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService usage, TimeProvider clock,
+        SelectedSessionIdentity session, CancellationToken token)
+    {
+        if (!sessions.IsInWorld(session)) return new(new([]), [], clock.GetUtcNow(), false);
+        return new(new(await premiums.For(session.AccountId).ReadAsync(token).ConfigureAwait(false)),
+            await usage.ReadAsync(session.CharacterId, token).ConfigureAwait(false), clock.GetUtcNow());
     }
 }
 

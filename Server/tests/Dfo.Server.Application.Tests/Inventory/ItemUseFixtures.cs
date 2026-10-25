@@ -87,31 +87,51 @@ internal sealed class AdvanceableTimeProvider(DateTimeOffset start) : TimeProvid
 /// so a bus that opened none would be testing the handler against a container it can never meet.
 /// </remarks>
 internal sealed class DirectCommandBus(
-    DomainTransactionScope? scope = null,
-    ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>? reward = null) : ICommandBus
+    DomainTransactionScope? scope = null, TutorialRewardTestDriver? reward = null) : ICommandBus, ICommandWorkUnits
 {
     private readonly DomainTransactionScope scope = scope ?? new DomainTransactionScope();
-
-    public async ValueTask<TResult> SendAsync<TResult>(
-        ICommand<TResult> command,
-        CancellationToken cancellationToken = default)
-        where TResult : notnull
+    private ICommandHandler<Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand, bool>? report;
+    public Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler Report(
+        Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
+        Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
+        Dfo.Server.Abstractions.World.ITutorialRewardDomainService rewards,
+        Dfo.Server.Protocol.Game.IGameMessageSender sender,
+        Microsoft.Extensions.Logging.ILogger<Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler> logger)
     {
-        var context = new CommandExecutionContext(
-            Guid.Empty, command.GetType(), typeof(DirectCommandBus),
-            CommandExecutionKind.Transactional);
-
-        await using var transaction = this.scope.Begin();
-        object dispatched = command switch
-        {
-            GrantTutorialRewardCommand value => await reward!
-                .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
-            _ => throw new NotSupportedException($"No handler registered for {command.GetType()}."),
-        };
-
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        return (TResult)dispatched;
+        report = new Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommandHandler(users, sessions,
+            rewards, reward!.Containers, reward.Delivery, null!, this, new TestOutbox(sender), logger);
+        return new(this);
     }
+    private sealed class TestOutbox(Dfo.Server.Protocol.Game.IGameMessageSender sender):Dfo.Server.Protocol.Game.IGameCommandOutbox {
+        public ValueTask RegisterCmdAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameCmdMessage m,CancellationToken ct)=>sender.SendCmdAsync(id,m,ct);
+        public ValueTask RegisterNotiAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameNotiMessage m,CancellationToken ct)=>sender.SendNotiAsync(id,m,ct);
+        public ValueTask RegisterExplicitAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.GameExplicitMessageDelivery d,CancellationToken ct)=>sender.SendExplicitAsync(id,d,ct);
+        public ValueTask RegisterBatchAsync(Dfo.Server.Data.Networking.NetworkConnectionContext c,IReadOnlyList<Dfo.Server.Protocol.Game.IGameServerMessage> m,CancellationToken ct)=>throw new NotSupportedException();
+    }
+    public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct = default) where TResult : notnull
+    {
+        var context = new CommandExecutionContext(Guid.Empty, command.GetType(), typeof(DirectCommandBus), CommandExecutionKind.Direct);
+        if(command is Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand q)
+            return (TResult)(object)await report!.HandleAsync(context,q,ct);
+        await using var transaction = scope.Begin();
+        var result = await reward!.HandleAsync(context,(TutorialRewardTestInput)(object)command,ct);
+        await transaction.CommitAsync(ct); return (TResult)(object)result;
+    }
+    public async ValueTask<T> WriteAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a, CancellationToken ct=default) where T:notnull
+    { await using var tx=scope.Begin();var result=await a(null!,ct);await tx.CommitAsync(ct);return result; }
+    public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
+    public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
+}
+
+internal sealed record TutorialRewardTestInput(CharacterId CharacterId, IReadOnlyList<DeclaredRewardItem> Declared,
+    Dfo.Server.Data.Accounts.AccountId AccountId, bool CompleteTutorial=false) : ICommand<TutorialRewardResult>;
+internal sealed class TutorialRewardTestDriver(ICharacterContainerDomainService containers, IItemDeliveryDomainService delivery,
+    Dfo.Server.Abstractions.Characters.ITutorialCompletionDomainService tutorial)
+{
+    internal ICharacterContainerDomainService Containers => containers;
+    internal IItemDeliveryDomainService Delivery => delivery;
+    public ValueTask<TutorialRewardResult> HandleAsync(CommandExecutionContext context,TutorialRewardTestInput input,CancellationToken ct) =>
+        Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommandHandler.GrantAsync(containers,delivery,tutorial,input.CharacterId,input.Declared,input.AccountId,input.CompleteTutorial,ct);
 }
 
 /// <summary>

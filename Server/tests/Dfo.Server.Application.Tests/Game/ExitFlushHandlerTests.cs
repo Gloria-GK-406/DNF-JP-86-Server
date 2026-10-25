@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
@@ -92,7 +93,7 @@ public sealed class ExitFlushHandlerTests
     {
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var sender = new RecordingExplicitSender();
-        var handler = new TaggedIdReportHandler(
+        var handler = Report(
             Attributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), sender, logger);
 
@@ -120,7 +121,7 @@ public sealed class ExitFlushHandlerTests
             var logger = new RecordingLogger<TaggedIdReportHandler>();
             var sender = new RecordingExplicitSender();
             var stored = new RecordingInventory();
-            var handler = new TaggedIdReportHandler(
+            var handler = Report(
                 Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new OneReward())),
                 Rewarding(stored, new KnownPlacement()), sender, logger);
 
@@ -153,7 +154,7 @@ public sealed class ExitFlushHandlerTests
         {
             var sender = new RecordingExplicitSender();
             var stored = new RecordingInventory();
-            var handler = new TaggedIdReportHandler(
+            var handler = Report(
                 Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new TwoOfOneReward())),
                 Rewarding(stored, new KnownPlacement()), sender,
                 new RecordingLogger<TaggedIdReportHandler>());
@@ -176,7 +177,7 @@ public sealed class ExitFlushHandlerTests
     {
         // It arrives after the server has answered EXIT, so the online user may already be gone.
         var logger = new RecordingLogger<TaggedIdReportHandler>();
-        var handler = new TaggedIdReportHandler(
+        var handler = Report(
             Unattributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), new RecordingExplicitSender(),
             logger);
@@ -218,6 +219,10 @@ public sealed class ExitFlushHandlerTests
         Assert.Equal(2, sender.CmdCount);
     }
 
+    private static TaggedIdReportHandler Report(IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
+        ITutorialRewardDomainService rewards, DirectCommandBus bus, IGameMessageSender sender, ILogger<TaggedIdReportHandler> logger) =>
+        bus.Report(users,sessions,rewards,sender,logger);
+
     private sealed class NoPlacement : IItemPlacementDefinitionSource
     {
         public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken cancellationToken) =>
@@ -239,11 +244,11 @@ public sealed class ExitFlushHandlerTests
     /// The command is transactional, so the boundary comes with it -- the container it writes
     /// through refuses a change made outside one.
     /// </remarks>
-    private static ICommandBus Rewarding(
+    private static DirectCommandBus Rewarding(
         RecordingInventory inventory, IItemPlacementDefinitionSource placements) =>
         new DirectCommandBus(
             scope: inventory.Scope,
-            reward: new GrantTutorialRewardCommandHandler(
+            reward: new TutorialRewardTestDriver(
                 inventory.Containers(placements),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(inventory.Grants(placements), inventory.Containers(placements)), null!));
 

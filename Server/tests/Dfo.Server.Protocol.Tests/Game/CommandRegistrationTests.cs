@@ -36,6 +36,38 @@ namespace Dfo.Server.Protocol.Tests.Game;
 public sealed class CommandRegistrationTests
 {
     [Fact]
+    public void Reports_have_three_exact_bindings_without_fine_or_extra_capabilities()
+    {
+        using var provider = BuildProductionGraph();
+        var rows = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+        (ClientMessageType Message, Type Input, Type Command)[] expected = [
+            (ClientMessageType.GameTaggedIdReport, typeof(TaggedIdReportRequest), typeof(GameTaggedIdReportCommand)),
+            (ClientMessageType.GameDecreaseDurability, typeof(Dfo.Server.Protocol.Game.EquipmentDurability.DecreaseDurabilityRequest), typeof(Dfo.Server.Protocol.Game.EquipmentDurability.GameDecreaseDurabilityCommand)),
+            (ClientMessageType.GamePremiumServiceUsageReport, typeof(Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceUsageReport), typeof(Dfo.Server.Protocol.Game.StateSynchronization.GamePremiumServiceUsageReportCommand))];
+        using var scope = provider.CreateScope();
+        foreach (var item in expected)
+        {
+            var row = Assert.Single(rows, x => x.CommandType == item.Command);
+            Assert.NotNull(scope.ServiceProvider.GetRequiredService(row.InvokerType));
+            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(expected.Where(x => x.Command == item.Command).Select(x => new ProtocolCommandMessageBinding(x.Message, x.Input)), row.ProtocolMessages);
+            Assert.True(row.RegistrationExits is null or { Count: 0 }); Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
+            Assert.True(registry.TryGet(item.Message, out var route)); Assert.Equal(item.Command, route!.ProtocolCommandType);
+            Assert.Equal(new[] { item.Input }, route.AllowedMessageClrTypes);
+            Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(item.Input));
+        }
+        foreach (var fine in new[] { "GrantTutorialRewardCommand", "DecreaseDurabilityCommand", "ConsumeDungeonBuffCommand" })
+        {
+            Assert.DoesNotContain(rows, x => x.CommandType.Name == fine);
+            Assert.DoesNotContain(typeof(ProtocolModule).Assembly.GetTypes(), x => x.Name == fine || x.Name == fine + "Handler");
+        }
+        var dailyRead=Assert.Single(rows,x=>x.CommandType.Name=="ReadPremiumSnapshotCommand");
+        Assert.Equal(CommandRouteKind.LegacyFineGrained,dailyRead.Route);
+        Assert.Equal(CommandExecutionKind.ReadOnly,dailyRead.ExecutionKind);
+    }
+
+    [Fact]
     public void Settings_and_notice_uploads_have_six_exact_bindings_without_fine_or_extra_capabilities()
     {
         using var provider = BuildProductionGraph();
@@ -521,7 +553,6 @@ public sealed class CommandRegistrationTests
             typeof(ApplySelectedCharacterDailyRefillCommand),
             typeof(SynchronizeSelectedCharacterQuestsCommand),
             typeof(ReviveSelectedCharacterPetCommand),
-            typeof(GrantTutorialRewardCommand),
         ];
 
         foreach (var command in reachPersistentWrites)

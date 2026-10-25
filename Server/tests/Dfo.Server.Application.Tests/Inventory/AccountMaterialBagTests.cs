@@ -14,6 +14,13 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class AccountMaterialBagTests
 {
+    private static async ValueTask<TutorialRewardResult> Grant(ShopFixture shop,TutorialRewardTestInput input) =>
+        await TestGameplay.RunAsync(shop.Services, async () => {
+            await using var tx=((DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            var result=await GameTaggedIdReportCommandHandler.GrantAsync(shop.Services.GetRequiredService<ICharacterContainerDomainService>(),shop.Services.GetRequiredService<IItemDeliveryDomainService>(),shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ITutorialCompletionDomainService>(),input.CharacterId,input.Declared,input.AccountId,input.CompleteTutorial,default);
+            await tx.CommitAsync(default);return result;
+        });
+
     [Fact]
     public void The_supported_mapping_is_complete_and_unique()
     {
@@ -77,8 +84,8 @@ public sealed class AccountMaterialBagTests
     {
         using var shop = new ShopFixture();
 
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new GrantTutorialRewardCommand(
+        var result = await Grant(shop,
+            new TutorialRewardTestInput(
                 new CharacterId(1),
                 [new DeclaredRewardItem(3037, 7)],
                 new AccountId(1)));
@@ -97,8 +104,8 @@ public sealed class AccountMaterialBagTests
             + "WHEN NEW.owner_scope='account' AND NEW.list_type=240 BEGIN SELECT RAISE(ABORT,'forced account material failure'); END;");
 
         await Assert.ThrowsAsync<SqliteException>(() =>
-            shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-                new GrantTutorialRewardCommand(
+            Grant(shop,
+                new TutorialRewardTestInput(
                     new CharacterId(1),
                     [new DeclaredRewardItem(3037, 7)],
                     new AccountId(1))).AsTask());

@@ -7823,25 +7823,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityCommand.cs",
-          "line": 17,
-          "source_sha256": "463a8783dd9150371cb7bbc58e1455ac8669694f8fe2145bbf187493b3727a65"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "三唯一Direct／Protocol whole；各原写段为ordinary Write，slot4独立ReadOnly；无Main／效果ledger／raw／Self。",
+          "old": "a805e9e3：三个fine各一个Transactional，Premium slot4另ReadPremiumSnapshot只读。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-55.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityCommand.cs",
-          "line": 17,
-          "source_sha256": "463a8783dd9150371cb7bbc58e1455ac8669694f8fe2145bbf187493b3727a65"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.EquipmentDurability.DecreaseDurabilityCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.EquipmentDurability.DecreaseDurabilityCommand",
@@ -7867,32 +7870,41 @@
         },
         "result": "Dfo.Server.Data.Inventory.EquipmentDurabilityResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityCommand.cs",
-          "line": 17,
-          "source_sha256": "463a8783dd9150371cb7bbc58e1455ac8669694f8fe2145bbf187493b3727a65"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityCommand.cs",
-          "line": 17,
-          "source_sha256": "463a8783dd9150371cb7bbc58e1455ac8669694f8fe2145bbf187493b3727a65"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityCommand.cs",
-          "line": 17,
-          "source_sha256": "463a8783dd9150371cb7bbc58e1455ac8669694f8fe2145bbf187493b3727a65"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "三薄入口只传完整消息与精确context；原三fine类型／handler／生产引用／注册清零；ReadPremiumSnapshot与日切仍pending，共用实质读取算法。",
+          "old": "三个原消息handler派GrantTutorialReward／DecreaseDurability／ConsumeDungeonBuff，ReadPremiumSnapshot另有日切消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "三普通写与slot4只读均[] participants／None footprint；不因捕获selected新增Fence／Block／Discard。",
+          "old": "三fine均无ISelectedSession，Grant也无IAccount；Premium Read仅IAccount。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "原领域算法／拒绝／日志／ACK与NOTI顺序、checked槽位投影和时钟位置保持；scope／初始encoder仅VC-B35默认差异，slot4原cause；native Commit与action回滚分开验证，same-ID物理替换隔离。",
+          "old": "教程声明在事务外、完成及实际到达奖励原子；耐久原session／online／固定槽及Failed忽略；Premium捕获run、InWorld复查、使用与marker同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -16665,25 +16677,28 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/ConsumeDungeonBuffCommand.cs",
-          "line": 16,
-          "source_sha256": "e9be23bdbfc586f5fa386aa07dfd1a939fffc69a44a1305c568dc3e854a99fa7"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "三唯一Direct／Protocol whole；各原写段为ordinary Write，slot4独立ReadOnly；无Main／效果ledger／raw／Self。",
+          "old": "a805e9e3：三个fine各一个Transactional，Premium slot4另ReadPremiumSnapshot只读。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-55.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/ConsumeDungeonBuffCommand.cs",
-          "line": 16,
-          "source_sha256": "e9be23bdbfc586f5fa386aa07dfd1a939fffc69a44a1305c568dc3e854a99fa7"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.StateSynchronization.ConsumeDungeonBuffCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.StateSynchronization.ConsumeDungeonBuffCommand",
@@ -16709,32 +16724,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.StateSynchronization.PremiumSnapshotResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/ConsumeDungeonBuffCommand.cs",
-          "line": 16,
-          "source_sha256": "e9be23bdbfc586f5fa386aa07dfd1a939fffc69a44a1305c568dc3e854a99fa7"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/ConsumeDungeonBuffCommand.cs",
-          "line": 16,
-          "source_sha256": "e9be23bdbfc586f5fa386aa07dfd1a939fffc69a44a1305c568dc3e854a99fa7"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/ConsumeDungeonBuffCommand.cs",
-          "line": 16,
-          "source_sha256": "e9be23bdbfc586f5fa386aa07dfd1a939fffc69a44a1305c568dc3e854a99fa7"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "三薄入口只传完整消息与精确context；原三fine类型／handler／生产引用／注册清零；ReadPremiumSnapshot与日切仍pending，共用实质读取算法。",
+          "old": "三个原消息handler派GrantTutorialReward／DecreaseDurability／ConsumeDungeonBuff，ReadPremiumSnapshot另有日切消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "三普通写与slot4只读均[] participants／None footprint；不因捕获selected新增Fence／Block／Discard。",
+          "old": "三fine均无ISelectedSession，Grant也无IAccount；Premium Read仅IAccount。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "原领域算法／拒绝／日志／ACK与NOTI顺序、checked槽位投影和时钟位置保持；scope／初始encoder仅VC-B35默认差异，slot4原cause；native Commit与action回滚分开验证，same-ID物理替换隔离。",
+          "old": "教程声明在事务外、完成及实际到达奖励原子；耐久原session／online／固定槽及Failed忽略；Premium捕获run、InWorld复查、使用与marker同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -17025,25 +17049,28 @@
       "state": "pending"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GrantTutorialRewardCommand.cs",
-          "line": 41,
-          "source_sha256": "0bf11a40db25468f5ad03ace4830c05e5e622ac32889c734a427b3dfd523b5f7"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "三唯一Direct／Protocol whole；各原写段为ordinary Write，slot4独立ReadOnly；无Main／效果ledger／raw／Self。",
+          "old": "a805e9e3：三个fine各一个Transactional，Premium slot4另ReadPremiumSnapshot只读。"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-55.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GrantTutorialRewardCommand.cs",
-          "line": 41,
-          "source_sha256": "0bf11a40db25468f5ad03ace4830c05e5e622ac32889c734a427b3dfd523b5f7"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.TaggedIdReport.GrantTutorialRewardCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.TaggedIdReport.GrantTutorialRewardCommand",
@@ -17069,32 +17096,41 @@
         },
         "result": "Dfo.Server.Protocol.Game.TaggedIdReport.TutorialRewardResult"
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GrantTutorialRewardCommand.cs",
-          "line": 41,
-          "source_sha256": "0bf11a40db25468f5ad03ace4830c05e5e622ac32889c734a427b3dfd523b5f7"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GrantTutorialRewardCommand.cs",
-          "line": 41,
-          "source_sha256": "0bf11a40db25468f5ad03ace4830c05e5e622ac32889c734a427b3dfd523b5f7"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GrantTutorialRewardCommand.cs",
-          "line": 41,
-          "source_sha256": "0bf11a40db25468f5ad03ace4830c05e5e622ac32889c734a427b3dfd523b5f7"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "三薄入口只传完整消息与精确context；原三fine类型／handler／生产引用／注册清零；ReadPremiumSnapshot与日切仍pending，共用实质读取算法。",
+          "old": "三个原消息handler派GrantTutorialReward／DecreaseDurability／ConsumeDungeonBuff，ReadPremiumSnapshot另有日切消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "三普通写与slot4只读均[] participants／None footprint；不因捕获selected新增Fence／Block／Discard。",
+          "old": "三fine均无ISelectedSession，Grant也无IAccount；Premium Read仅IAccount。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "原领域算法／拒绝／日志／ACK与NOTI顺序、checked槽位投影和时钟位置保持；scope／初始encoder仅VC-B35默认差异，slot4原cause；native Commit与action回滚分开验证，same-ID物理替换隔离。",
+          "old": "教程声明在事务外、完成及实际到达奖励原子；耐久原session／online／固定槽及Failed忽略；Premium捕获run、InWorld复查、使用与marker同事务。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -23417,26 +23453,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityHandler.cs",
-          "line": 13,
-          "source_sha256": "c3adc70473bb262fa9c37fb1277662f14233228a4551a8c79e56a60d42f677cf"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "三唯一Direct／Protocol whole；各原写段为ordinary Write，slot4独立ReadOnly；无Main／效果ledger／raw／Self。",
+          "old": "a805e9e3：三个fine各一个Transactional，Premium slot4另ReadPremiumSnapshot只读。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-55.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityHandler.cs",
-          "line": 13,
-          "source_sha256": "c3adc70473bb262fa9c37fb1277662f14233228a4551a8c79e56a60d42f677cf"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+      ],
       "id": "message:65584",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.EquipmentDurability.DecreaseDurabilityHandler",
@@ -23458,35 +23497,44 @@
         "telemetry": false,
         "value": 65584
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityHandler.cs",
-          "line": 13,
-          "source_sha256": "c3adc70473bb262fa9c37fb1277662f14233228a4551a8c79e56a60d42f677cf"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityHandler.cs",
-          "line": 13,
-          "source_sha256": "c3adc70473bb262fa9c37fb1277662f14233228a4551a8c79e56a60d42f677cf"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/DecreaseDurabilityHandler.cs",
-          "line": 13,
-          "source_sha256": "c3adc70473bb262fa9c37fb1277662f14233228a4551a8c79e56a60d42f677cf"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "三薄入口只传完整消息与精确context；原三fine类型／handler／生产引用／注册清零；ReadPremiumSnapshot与日切仍pending，共用实质读取算法。",
+          "old": "三个原消息handler派GrantTutorialReward／DecreaseDurability／ConsumeDungeonBuff，ReadPremiumSnapshot另有日切消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "三普通写与slot4只读均[] participants／None footprint；不因捕获selected新增Fence／Block／Discard。",
+          "old": "三fine均无ISelectedSession，Grant也无IAccount；Premium Read仅IAccount。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/EquipmentDurability/GameDecreaseDurabilityCommand.cs"
+          ],
+          "new": "原领域算法／拒绝／日志／ACK与NOTI顺序、checked槽位投影和时钟位置保持；scope／初始encoder仅VC-B35默认差异，slot4原cause；native Commit与action回滚分开验证，same-ID物理替换隔离。",
+          "old": "教程声明在事务外、完成及实际到达奖励原子；耐久原session／online／固定槽及Failed忽略；Premium捕获run、InWorld复查、使用与marker同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.EquipmentDurability.DecreaseDurabilityCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -25857,26 +25905,29 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/TaggedIdReportHandler.cs",
-          "line": 29,
-          "source_sha256": "81c4f12cdcb2cf476b3116e52f464d2afdf10ea87eb811507704a83d6de3a463"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "三唯一Direct／Protocol whole；各原写段为ordinary Write，slot4独立ReadOnly；无Main／效果ledger／raw／Self。",
+          "old": "a805e9e3：三个fine各一个Transactional，Premium slot4另ReadPremiumSnapshot只读。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-55.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/TaggedIdReportHandler.cs",
-          "line": 29,
-          "source_sha256": "81c4f12cdcb2cf476b3116e52f464d2afdf10ea87eb811507704a83d6de3a463"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+      ],
       "id": "message:65679",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler",
@@ -25898,30 +25949,39 @@
         "telemetry": false,
         "value": 65679
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/TaggedIdReportHandler.cs",
-          "line": 29,
-          "source_sha256": "81c4f12cdcb2cf476b3116e52f464d2afdf10ea87eb811507704a83d6de3a463"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/TaggedIdReportHandler.cs",
-          "line": 29,
-          "source_sha256": "81c4f12cdcb2cf476b3116e52f464d2afdf10ea87eb811507704a83d6de3a463"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/TaggedIdReportHandler.cs",
-          "line": 29,
-          "source_sha256": "81c4f12cdcb2cf476b3116e52f464d2afdf10ea87eb811507704a83d6de3a463"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "三薄入口只传完整消息与精确context；原三fine类型／handler／生产引用／注册清零；ReadPremiumSnapshot与日切仍pending，共用实质读取算法。",
+          "old": "三个原消息handler派GrantTutorialReward／DecreaseDurability／ConsumeDungeonBuff，ReadPremiumSnapshot另有日切消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "三普通写与slot4只读均[] participants／None footprint；不因捕获selected新增Fence／Block／Discard。",
+          "old": "三fine均无ISelectedSession，Grant也无IAccount；Premium Read仅IAccount。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TaggedIdReport/GameTaggedIdReportCommand.cs"
+          ],
+          "new": "原领域算法／拒绝／日志／ACK与NOTI顺序、checked槽位投影和时钟位置保持；scope／初始encoder仅VC-B35默认差异，slot4原cause；native Commit与action回滚分开验证，same-ID物理替换隔离。",
+          "old": "教程声明在事务外、完成及实际到达奖励原子；耐久原session／online／固定槽及Failed忽略；Premium捕获run、InWorld复查、使用与marker同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.TaggedIdReport.GrantTutorialRewardCommand"
       ],
@@ -25929,7 +25989,7 @@
         "GameExplicitMessageDelivery",
         "GameInventoryDelivery"
       ],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -33225,26 +33285,29 @@
       "state": "retained"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/PremiumServiceUsageReport.cs",
-          "line": 32,
-          "source_sha256": "ffcb6beae21c8d1bc2a63dd19931d2dc13ed6c33520c7b39c1ab3bfa3849043d"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "三唯一Direct／Protocol whole；各原写段为ordinary Write，slot4独立ReadOnly；无Main／效果ledger／raw／Self。",
+          "old": "a805e9e3：三个fine各一个Transactional，Premium slot4另ReadPremiumSnapshot只读。"
+        }
+      ],
       "candidate_commands_scope": "file-level lexical candidates only, not a proven handler call graph; inspect shared helper/caller closure before closing",
       "classification": "protocol",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-55.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/PremiumServiceUsageReport.cs",
-          "line": 32,
-          "source_sha256": "ffcb6beae21c8d1bc2a63dd19931d2dc13ed6c33520c7b39c1ab3bfa3849043d"
-        },
-        "state": "pending"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+        "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+      ],
       "id": "message:66415",
       "original": {
         "handler": "Dfo.Server.Protocol.Game.StateSynchronization.PremiumServiceUsageReportHandler",
@@ -33266,36 +33329,45 @@
         "telemetry": false,
         "value": 66415
       },
-      "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/PremiumServiceUsageReport.cs",
-          "line": 32,
-          "source_sha256": "ffcb6beae21c8d1bc2a63dd19931d2dc13ed6c33520c7b39c1ab3bfa3849043d"
-        },
-        "state": "pending"
-      },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/PremiumServiceUsageReport.cs",
-          "line": 32,
-          "source_sha256": "ffcb6beae21c8d1bc2a63dd19931d2dc13ed6c33520c7b39c1ab3bfa3849043d"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/PremiumServiceUsageReport.cs",
-          "line": 32,
-          "source_sha256": "ffcb6beae21c8d1bc2a63dd19931d2dc13ed6c33520c7b39c1ab3bfa3849043d"
-        },
-        "state": "pending"
-      },
+      "original_callers": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "三薄入口只传完整消息与精确context；原三fine类型／handler／生产引用／注册清零；ReadPremiumSnapshot与日切仍pending，共用实质读取算法。",
+          "old": "三个原消息handler派GrantTutorialReward／DecreaseDurability／ConsumeDungeonBuff，ReadPremiumSnapshot另有日切消费者。"
+        }
+      ],
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "三普通写与slot4只读均[] participants／None footprint；不因捕获selected新增Fence／Block／Discard。",
+          "old": "三fine均无ISelectedSession，Grant也无IAccount；Premium Read仅IAccount。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task55-verification.md",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ReportProtocolCommandFlowTests.cs",
+            "Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs"
+          ],
+          "new": "原领域算法／拒绝／日志／ACK与NOTI顺序、checked槽位投影和时钟位置保持；scope／初始encoder仅VC-B35默认差异，slot4原cause；native Commit与action回滚分开验证，same-ID物理替换隔离。",
+          "old": "教程声明在事务外、完成及实际到达奖励原子；耐久原session／online／固定槽及Failed忽略；Premium捕获run、InWorld复查、使用与marker同事务。"
+        }
+      ],
       "refs": [
         "command:Dfo.Server.Protocol.Game.StateSynchronization.ConsumeDungeonBuffCommand",
         "command:Dfo.Server.Protocol.Game.StateSynchronization.ReadPremiumSnapshotCommand"
       ],
       "shared_helper_candidates": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

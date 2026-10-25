@@ -258,7 +258,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddSingleton<ItemUsageProjectionDelivery>();
         services.AddHostedService<ItemUsageDailyRefreshService>();
         services.AddCommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult, ReadItemUsageSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);
-        services.AddCommandHandler<ConsumeDungeonBuffCommand, PremiumSnapshotResult, ConsumeDungeonBuffCommandHandler>(CommandExecutionKind.Transactional);
         services.AddCommandHandler<ReadPremiumSnapshotCommand, PremiumSnapshotResult, ReadPremiumSnapshotCommandHandler>(CommandExecutionKind.ReadOnly);
         services.AddCommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>, AdvanceWeaknessRecoveryCommandHandler>(CommandExecutionKind.Transactional);
         var lotteryCounterExperiment = new LotteryCounterExperimentOptions(
@@ -723,8 +722,6 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeInventory, typeof(WarehouseRequest)));
         services.AddProtocolCommandHandler<GameSortItemCommand, bool, GameSortItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSortItem, typeof(SortItemRequest)));
-        services.AddCommandHandler<DecreaseDurabilityCommand, EquipmentDurabilityResult,
-            DecreaseDurabilityCommandHandler>(CommandExecutionKind.Transactional);
         services.AddProtocolCommandHandler<GameCrystalContractCommand, bool, GameCrystalContractCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameCrystalContract, typeof(CrystalContractRequest)));
         services.AddProtocolCommandHandler<GameDeleteItemCommand, bool, GameDeleteItemCommandHandler>(
@@ -755,11 +752,6 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarPackageOpening, typeof(AvatarPackageOpeningRequest)));
         services.AddCommandHandler<QueryShopPurchaseCountsCommand, NpcShopPurchaseCountsResult, QueryShopPurchaseCountsCommandHandler>(
             CommandExecutionKind.Direct);
-        // A tutorial step's items settle together, and through the same container everything else
-        // writes through.
-        services.AddCommandHandler<
-            GrantTutorialRewardCommand, TutorialRewardResult, GrantTutorialRewardCommandHandler>(
-            CommandExecutionKind.Transactional);
         // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
         // change, and a piece that left the floor without arriving anywhere is the thing to avoid.
         services.AddProtocolCommandHandler<GameGetItemCommand, bool, GameGetItemCommandHandler>(
@@ -802,7 +794,10 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<ChannelInfoHandler, ChannelInfoRequest, ChannelInfoCommand>(ClientMessageType.ChannelInfo);
         services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);
         services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
-        services.RegisterMessageHandler<PremiumServiceUsageReportHandler>(ClientMessageType.GamePremiumServiceUsageReport);
+        services.AddProtocolCommandHandler<GameTaggedIdReportCommand, bool, GameTaggedIdReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameTaggedIdReport, typeof(TaggedIdReportRequest)));
+        services.AddProtocolCommandHandler<GameDecreaseDurabilityCommand, bool, GameDecreaseDurabilityCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameDecreaseDurability, typeof(DecreaseDurabilityRequest)));
+        services.AddProtocolCommandHandler<GamePremiumServiceUsageReportCommand, bool, GamePremiumServiceUsageReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GamePremiumServiceUsageReport, typeof(PremiumServiceUsageReport)));
+        services.RegisterProtocolMessageHandler<PremiumServiceUsageReportHandler, PremiumServiceUsageReport, GamePremiumServiceUsageReportCommand>(ClientMessageType.GamePremiumServiceUsageReport);
         services.RegisterProtocolMessageHandler<RecoverStaminaHandler, RecoverStaminaRequest, GameRecoverStaminaCommand>(ClientMessageType.GameRecoverStamina);
         services.RegisterProtocolMessageHandler<GameLoginHandler, GameLoginRequest, GameLoginCommand>(ClientMessageType.GameLogin);
         services.RegisterProtocolMessageHandler<GetAccountCharacterRosterHandler, GetAccountCharacterRosterRequest, GameAccountRosterCommand>(ClientMessageType.GameGetAccountCharacterRoster);
@@ -817,7 +812,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<GiveUpQuestHandler, GiveUpQuestRequest, GameGiveUpQuestCommand>(ClientMessageType.GameGiveUpQuest);
         services.RegisterProtocolMessageHandler<SetQuestTriggerHandler, SetQuestTriggerRequest, GameSetQuestTriggerCommand>(ClientMessageType.GameSetQuestTrigger);
         services.RegisterProtocolMessageHandler<FinishQuestHandler, FinishQuestRequest, GameFinishQuestCommand>(ClientMessageType.GameFinishQuest);
-        services.RegisterMessageHandler<TaggedIdReportHandler>(ClientMessageType.GameTaggedIdReport);
+        services.RegisterProtocolMessageHandler<TaggedIdReportHandler, TaggedIdReportRequest, GameTaggedIdReportCommand>(ClientMessageType.GameTaggedIdReport);
         services.RegisterMessageHandler<RosterFollowUpHandler>(ClientMessageType.GameRosterFollowUp);
         services.RegisterProtocolMessageHandler<CheckCharacterNameHandler, CheckCharacterNameRequest, GameCheckCharacterNameCommand>(ClientMessageType.GameCheckCharacterName);
         services.RegisterProtocolMessageHandler<CreateCharacterHandler, CreateCharacterRequest, GameCreateCharacterCommand>(ClientMessageType.GameCreateCharacter);
@@ -964,7 +959,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeInventory);
         services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
         services.RegisterProtocolMessageHandler<SortItemHandler, SortItemRequest, GameSortItemCommand>(ClientMessageType.GameSortItem);
-        services.RegisterMessageHandler<DecreaseDurabilityHandler>(ClientMessageType.GameDecreaseDurability);
+        services.RegisterProtocolMessageHandler<DecreaseDurabilityHandler, DecreaseDurabilityRequest, GameDecreaseDurabilityCommand>(ClientMessageType.GameDecreaseDurability);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);

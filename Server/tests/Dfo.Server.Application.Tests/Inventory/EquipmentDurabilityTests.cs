@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
@@ -84,9 +85,11 @@ public sealed class EquipmentDurabilityTests
             InventoryContainerType.Equipment);
         var old = shop.Session;
         shop.Select(2);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new DecreaseDurabilityCommand(shop.OnlineUser, old,
-                new BusinessSlot(BusinessInventorySpace.WornEquipment, 0)));
+        var result = await TestGameplay.RunAsync(shop.Services, async () => {
+            await using var tx=((Dfo.Server.Application.Transactions.DomainTransactionScope)shop.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>()).Begin();
+            var value=await shop.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IEquipmentDurabilityDomainService>().DecreaseAsync(old,new BusinessSlot(BusinessInventorySpace.WornEquipment,0),default);
+            await tx.CommitAsync(default);return value;
+        });
         Assert.Equal(EquipmentDurabilityRejection.NoSession, result.Rejection);
         Assert.Empty(shop.Sender.Messages);
     }

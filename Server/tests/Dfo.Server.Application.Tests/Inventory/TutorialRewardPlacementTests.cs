@@ -30,8 +30,8 @@ public sealed class TutorialRewardPlacementTests
 
     private static readonly CommandExecutionContext Context = new(
         Guid.Empty,
-        typeof(GrantTutorialRewardCommand),
-        typeof(GrantTutorialRewardCommandHandler),
+        typeof(TutorialRewardTestInput),
+        typeof(TutorialRewardTestDriver),
         CommandExecutionKind.Transactional);
 
     [Fact]
@@ -146,13 +146,13 @@ public sealed class TutorialRewardPlacementTests
     [Fact]
     public async Task A_character_with_no_bound_container_cannot_consume_the_reward()
     {
-        var handler = new GrantTutorialRewardCommandHandler(
+        var handler = new TutorialRewardTestDriver(
             new CharacterContainerDomainService(),
             new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()), null!);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(
             Context,
-            new GrantTutorialRewardCommand(
+            new TutorialRewardTestInput(
                 new CharacterId(60), [new DeclaredRewardItem(Potion, 1)], new AccountId(6)),
             CancellationToken.None));
     }
@@ -160,12 +160,12 @@ public sealed class TutorialRewardPlacementTests
     private static async Task<TutorialRewardResult> Grant(
         RewardInventory inventory, params (int ItemId, int Count)[] declared)
     {
-        var handler = new GrantTutorialRewardCommandHandler(
+        var handler = new TutorialRewardTestDriver(
             inventory.Containers(new RewardPlacements()),
             new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(inventory.Grants(new RewardPlacements()), inventory.Containers(new RewardPlacements())), null!);
         var bus = new DirectCommandBus(reward: handler, scope: inventory.Scope);
         return await bus.SendAsync(
-            new GrantTutorialRewardCommand(
+            new TutorialRewardTestInput(
                 new CharacterId(60),
                 [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
                 new AccountId(6)),
