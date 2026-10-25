@@ -1,3 +1,9 @@
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Protocol;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
@@ -99,6 +105,81 @@ public sealed class TournamentDungeonTests
         var result = await DungeonEntryRouteDriver.EnterAsync(f.Services, context ?? Entry());
         if (commit) await tx.CommitAsync(default);
         return result;
+    }
+
+    [SkippableFact]
+    public async Task Native_reward_status_commits_deadline_and_two_rows_publish_updates_before_selection_ack()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        ShopSender sender = null!;
+        await using var f = await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture(configure: services =>
+            {
+                new ProtocolModule().ConfigureServices(services, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+                sender = new ShopSender(services);
+            });
+            await Champion(fixture);
+            return fixture;
+        });
+        var user = f.Services.GetRequiredService<IOnlineUserQueryDomainService>();
+        Assert.True(user.TryGetByConnection(f.Session.ConnectionId, out var online));
+        sender.Outbound.Connections.Add(online!.Connection);
+        var rewards = State(f).Rewards;
+        var beforeGold = Gold(f);
+        await SendTournament(f, online.Connection, 0x1CA, []);
+        var status = Assert.Single(sender.Outbound.Frames);
+        Assert.Equal((ushort)0x1CA, WireType(status));
+        Assert.Equal(new byte[] { 1, 1, 255, 255, 255, 1, 255, 255, 255 }, status[15..]);
+        var deadline = Assert.IsType<DateTimeOffset>(State(f).RewardSelectionEndsAt);
+        sender.Messages.Clear();
+        await SendTournament(f, online.Connection, 0x1CA, []);
+        Assert.Equal(deadline, State(f).RewardSelectionEndsAt);
+        sender.Messages.Clear();
+        await SendTournament(f, online.Connection, 0x1CB, [0, 0]);
+        Assert.Equal(new ushort[] { 0x000E, 0x1CB }, sender.Outbound.Frames.Select(WireType));
+        Assert.Equal(beforeGold + rewards[0][0].Count, Gold(f));
+        Assert.Equal(new byte[] { 1, 2, 0, 255, 2, 255, 255 }, sender.Outbound.Frames.Last()[15..]);
+        sender.Messages.Clear();
+        await SendTournament(f, online.Connection, 0x1CB, [1, 0]);
+        Assert.Equal(new ushort[] { 0x000E, 0x1CB }, sender.Outbound.Frames.Select(WireType));
+        Assert.Equal(rewards[1][0].Count, Count(f, 3329));
+        Assert.Equal(new byte[] { 1, 2, 0, 255, 2, 0, 255 }, sender.Outbound.Frames.Last()[15..]);
+        sender.Messages.Clear();
+        await SendTournament(f, online.Connection, 0x1CB, [0, 1]);
+        Assert.Equal((ushort)0x1CB, WireType(Assert.Single(sender.Outbound.Frames)));
+        Assert.Equal(beforeGold + rewards[0][0].Count, Gold(f));
+        sender.Messages.Clear();
+        await SendTournament(f, online.Connection, 0x1CB, [2, 0]);
+        Assert.Equal(new byte[] { 0, 1 }, Assert.Single(sender.Outbound.Frames)[15..]);
+    }
+
+    [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Native_reward_without_run_returns_full_status_or_selection_refusal(bool selection)
+    {
+        ShopSender sender = null!;
+        await using var f = new LearningFixture(configure: services =>
+        {
+            new ProtocolModule().ConfigureServices(services, new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+            sender = new ShopSender(services);
+        });
+        await f.SeedAsync();
+        Assert.True(f.Services.GetRequiredService<IOnlineUserQueryDomainService>().TryGetByConnection(f.Session.ConnectionId, out var online));
+        sender.Outbound.Connections.Add(online!.Connection);
+        await SendTournament(f, online.Connection, selection ? (ushort)0x1CB : (ushort)0x1CA, selection ? [0, 0] : []);
+        var response = Assert.Single(sender.Outbound.Frames);
+        Assert.Equal(selection ? (ushort)0x1CB : (ushort)0x1CA, WireType(response));
+        Assert.Equal(selection ? new byte[] { 0, 1 } : [0, 255, 255, 255, 255, 255, 255, 255, 255], response[15..]);
+    }
+
+    private static ushort WireType(byte[] frame) => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1));
+    private static ValueTask SendTournament(LearningFixture f, NetworkConnectionContext connection, ushort type, byte[] body)
+    {
+        var registration = f.Services.GetServices<GameMessageDecoderRegistration>().Single(x => x.Selector == 1 && x.Type == type);
+        var message = ((IGameMessageDecoder)f.Services.GetRequiredService(registration.DecoderType))
+            .Decode(new(1, type, 0, 1), body)!;
+        return f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection), message, default);
     }
 
     [SkippableFact]
