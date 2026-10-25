@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -116,13 +117,13 @@ public sealed class MarriageEngagementCharacterizationTests
             s.AddSingleton<IQuestDefinitionSource, Definitions>();
             s.AddSingleton<IQuestParameterSource, Parameters>();
             s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
-            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+            QuestTestCommands.RegisterLegacy(s,"QuestAcceptance","AcceptQuest");
         });
         return (f, peer);
     }
 
     internal static async Task AcceptTrialAsync(LearningFixture f, int account, int character) =>
-        Assert.True((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(account), new(character), 20737), default)).Accepted);
+        Assert.True((await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(account), new(character), 20737), default)).Accepted);
 
     [Fact]
     public async Task Quest_eligibility_follows_the_engaged_owner_only()

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Commands;
@@ -16,7 +17,7 @@ public sealed class SeekingQuestCompletionTests
     [Fact]
     public async Task Giving_up_removes_the_carried_quest_and_prevents_later_completion()
     {
-        using var shop = new ShopFixture(services =>
+        using var shop = new ShopFixture(true,services =>
         {
             services.RemoveAll<IQuestContentRuleService>();
             services.AddSingleton<IQuestContentRuleService>(new SeekingQuestRules());
@@ -24,10 +25,10 @@ public sealed class SeekingQuestCompletionTests
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) "
             + "VALUES(1,0,2001,0)");
 
-        var commands = shop.Services.GetRequiredService<ICommandBus>();
-        var givenUp = await commands.SendAsync(new GiveUpQuestCommand(
+        var commands = new QuestTestCommands(shop);
+        var givenUp = await commands.SendAsync(new QuestGiveUpTestInput(
             new AccountId(1), new CharacterId(1), 2001));
-        var finish = await commands.SendAsync(new FinishQuestCommand(
+        var finish = await commands.SendAsync(new QuestFinishTestInput(
             new AccountId(1), new CharacterId(1), 2001, ushort.MaxValue, 1, 0));
 
         Assert.True(givenUp.GivenUp);
@@ -40,7 +41,7 @@ public sealed class SeekingQuestCompletionTests
     [Fact]
     public async Task A_stale_complete_trigger_cannot_finish_after_the_required_item_is_gone()
     {
-        using var shop = new ShopFixture(services =>
+        using var shop = new ShopFixture(true,services =>
         {
             services.RemoveAll<IQuestContentRuleService>();
             services.AddSingleton<IQuestContentRuleService>(new SeekingQuestRules());
@@ -48,8 +49,8 @@ public sealed class SeekingQuestCompletionTests
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) "
             + "VALUES(1,0,2001,0)");
 
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new FinishQuestCommand(new AccountId(1), new CharacterId(1), 2001,
+        var result = await new QuestTestCommands(shop).SendAsync(
+            new QuestFinishTestInput(new AccountId(1), new CharacterId(1), 2001,
                 ushort.MaxValue, 1, 0));
 
         Assert.False(result.Finished);

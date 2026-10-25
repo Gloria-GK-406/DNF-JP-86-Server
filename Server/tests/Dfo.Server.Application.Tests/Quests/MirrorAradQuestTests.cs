@@ -129,11 +129,14 @@ public sealed class MirrorAradQuestTests
             var (service, store, _, effects, settlement) = Create(fixture, runtime);
             await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
             var first = await store.ReadAsync(new(71), runtime.Current.RunId, default);
-            var handler = ActivatorUtilities.CreateInstance<AcceptQuestCommandHandler>(fixture.Services, new DefinitionDomain(), service);
+            var handler = new QuestAcceptOperationDriver(new DefinitionDomain(), service,
+                fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(),
+                fixture.Services.GetRequiredService<ICharacterContainerDomainService>(),
+                fixture.Services.GetRequiredService<IQuestProgressDomainService>(),
+                fixture.Services.GetRequiredService<IItemDeliveryDomainService>());
             await Write(fixture, async () =>
             {
-                var replay = await handler.HandleAsync(new(Guid.NewGuid(), typeof(AcceptQuestCommand), typeof(AcceptQuestCommandHandler),
-                    CommandExecutionKind.Transactional), new(new(1), new(71), 14299), default);
+                var replay = await handler.HandleAsync(new(Guid.NewGuid(),typeof(object),typeof(object),CommandExecutionKind.Transactional),new(new(1), new(71), 14299), default);
                 Assert.False(replay.Accepted);
                 Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
                 Assert.Null(replay.QuestProgress);

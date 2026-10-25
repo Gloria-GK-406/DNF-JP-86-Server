@@ -364,6 +364,12 @@ internal sealed class ShopFixture : IDisposable
     }
 
 
+    public ShopFixture(bool questProtocol, Action<IServiceCollection>? configure = null) : this(services =>
+    {
+        if (questProtocol) services.AddSingleton<ISelectedCharacterCurrentViewDomainService, Dfo.Server.Application.Tests.Support.QuestTestCommands.PublishedView>();
+        configure?.Invoke(services);
+    }) { }
+
     public ShopFixture(Action<IServiceCollection>? configure = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>

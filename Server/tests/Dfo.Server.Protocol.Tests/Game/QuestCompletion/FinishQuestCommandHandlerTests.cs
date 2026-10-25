@@ -1,4 +1,5 @@
 using Dfo.Server.Protocol.Tests.Support;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
@@ -84,9 +85,10 @@ public sealed class FinishQuestCommandHandlerTests
             Assert.Same(wrapped,result);
         });
     }
-    private static ValueTask<QuestFinishOutcome> Run(Completion completion) => TestEffectFootprints.Invoke(new FinishQuestCommandHandler(completion, null!),
-        new(Guid.Empty,typeof(FinishQuestCommand),typeof(FinishQuestCommandHandler),CommandExecutionKind.Transactional),
-        new(new(1),new(1),2001,ushort.MaxValue,1,0), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null),default);
+    private static ValueTask<QuestFinishOutcome> Run(Completion completion) => TestEffectFootprints.Run(new EffectFootprintOwner(new(1),new(1),null),footprint =>
+        QuestOperationDriver.Invoke<QuestFinishOutcome>("QuestCompletion","FinishQuest","QuestCompletionInput","CompleteAsync",[completion],
+            [new AccountId(1),new CharacterId(1),(ushort)2001,ushort.MaxValue,(ushort)1,(uint)0,null],
+            new(Guid.Empty,typeof(object),typeof(object),CommandExecutionKind.Transactional),footprint,default));
     private sealed class Completion(QuestCompletionReceipt? receipt,Exception? error=null):IQuestCompletionSettlementDomainService
     {
         public ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account,CharacterId id,ushort quest,ushort selection,ushort count,DateTimeOffset at,Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct,Dfo.Server.Data.World.SelectedSessionIdentity? session=null)

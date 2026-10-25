@@ -34,7 +34,7 @@ public sealed class CommonExperienceEffectTests
         });
         var command = new ClearExperienceAlgorithmInput(new(999), new(1), 144, new(3, 0, 1, 80, 10));
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await shop.Services.GetRequiredService<ICommandBus>().SendAsync(command));
+            await new QuestTestCommands(shop).SendAsync(command));
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
@@ -44,7 +44,7 @@ public sealed class CommonExperienceEffectTests
         var calculation = new Calculation();
         var trace = new EffectTrace();
         using var shop = Shop(calculation, trace);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         var clear = await bus.SendAsync(Clear(shop.Session));
         var kill = await KillDomainAsync(shop, experienceOnly: true);
         var canonical = await KillDomainAsync(shop);
@@ -71,7 +71,7 @@ public sealed class CommonExperienceEffectTests
         var wrong = otherCharacter ? shop.Session with { CharacterId = new(2) }
             : shop.Session with { ConnectionGeneration = shop.Session.ConnectionGeneration + 1 };
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(wrong)));
+            await new QuestTestCommands(shop).SendAsync(Clear(wrong)));
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
@@ -100,12 +100,12 @@ public sealed class CommonExperienceEffectTests
     {
         var trace = new EffectTrace { Prepare = _ => throw new IOException("late prepare") };
         using var shop = Shop(new Calculation(), trace);
-        await Assert.ThrowsAsync<IOException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        await Assert.ThrowsAsync<IOException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.Single(trace.Results);
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Null(shop.Services.GetRequiredService<IDomainTransactionAccessor>().Current);
         trace.Prepare = null;
-        Assert.Equal(30u, (await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session))).Award!.Total);
+        Assert.Equal(30u, (await new QuestTestCommands(shop).SendAsync(Clear(shop.Session))).Award!.Total);
     }
 
     [Theory]
@@ -124,7 +124,7 @@ public sealed class CommonExperienceEffectTests
         var calculation = new Calculation();
         using var shop = Shop(calculation, trace, RegisterQueuedKill);
         shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1");
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         var first = bus.SendAsync(Clear(shop.Session)).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         trace.Prepare = null;
@@ -156,7 +156,7 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace { Commit = _ => throw new IOException("nonfallible publication") };
         var calculation = new Calculation();
         using var shop = Shop(calculation, trace);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await bus.SendAsync(Clear(shop.Session)));
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         trace.Commit = null;
@@ -175,7 +175,7 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace { Prepare = async ct => { entered.TrySetResult(); await release.Task.WaitAsync(ct); },
             Commit = _ => throw new IOException("nonfallible") };
         using var shop = Shop(calculation, trace, services => { RegisterQueuedKill(services); services.AddSingleton<ICommandPipelineBehavior<QueuedKillResult>>(admitted); });
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         var first = bus.SendAsync(Clear(shop.Session)).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var second = bus.SendAsync(new QueuedKillDomainCommand(shop.Session)).AsTask();
@@ -207,7 +207,7 @@ public sealed class CommonExperienceEffectTests
         var failure = safety.PublicationFailedAsync(recipient, new IOException("claim lost"), "test").AsTask();
             Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced == true);
             Assert.True(safety.IsBlocked(shop.Connection));
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, (await failure.WaitAsync(TimeSpan.FromSeconds(5))).Reason);
         });
     }
@@ -219,7 +219,7 @@ public sealed class CommonExperienceEffectTests
         // The command is one job; teardown is a later job and cannot interleave with the settlement.
         var first = TestGameplay.RunAsync(shop.Services, async () =>
             await TestEffectFootprints.NonEffect(shop.Services, Dfo.Server.Data.Networking.GameMessageMetadata.Empty,
-                () => shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session))));
+                () => new QuestTestCommands(shop).SendAsync(Clear(shop.Session))));
         Assert.Equal(30u, (await first.WaitAsync(TimeSpan.FromSeconds(5))).Award!.Total);
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
@@ -238,7 +238,7 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace();
         using var shop = Shop(new Calculation(), trace, services => services.AddSingleton<IQuestContentRuleService>(new OrdinaryQuestEffectTests.Rules()));
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,0)");
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommand(
+        var result = await new QuestTestCommands(shop).SendAsync(new Dfo.Server.Application.Tests.Support.QuestFinishTestInput(
             new(1),new(1),2001,ushort.MaxValue,1,0,shop.Session));
         Assert.True(result.Finished);
         Assert.Equal(shop.Session, Assert.Single(trace.Contexts).Session);
@@ -298,7 +298,7 @@ public sealed class CommonExperienceEffectTests
             closer.Use(services);
             services.AddSingleton<Microsoft.Extensions.Logging.ILogger<SelectedSessionSafety>>(new ThrowingLogger());
         });
-        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.IsType<IOException>(error.InnerException);
         await closer.Callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Same(shop.Connection,closer.Expected);
@@ -349,11 +349,11 @@ public sealed class CommonExperienceEffectTests
             Rollback = wrapped ? null : _ => throw new IOException("rollback participant") };
         var calculation = new Calculation();
         using var shop = Shop(calculation,trace);
-        var error = await Assert.ThrowsAnyAsync<Exception>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        var error = await Assert.ThrowsAnyAsync<Exception>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.True(TransactionOutcomeUncertainException.Contains(error));
         Assert.Equal(0,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         trace.Prepare = null; trace.Rollback = null;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.Single(calculation.Calls);
     }
 
@@ -394,7 +394,7 @@ public sealed class CommonExperienceEffectTests
             await tx.CommitAsync(default);return result;
         });
     private static ShopFixture Shop(Calculation calculation, EffectTrace trace, Action<IServiceCollection>? configure = null) =>
-        new(s =>
+        new(true,s =>
         {
             s.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
@@ -453,7 +453,7 @@ public sealed class CommonExperienceEffectTests
         public ValueTask CommitAsync(CancellationToken ct) => commit?.Invoke(ct) ?? ValueTask.CompletedTask;
         public ValueTask RollbackAsync(CancellationToken ct) => rollback?.Invoke(ct) ?? ValueTask.CompletedTask;
     }
-    private static bool Migrated(string name) => name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+    private static bool Migrated(string name) => name == "FinishQuestCommand" && QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
         && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
 
 }

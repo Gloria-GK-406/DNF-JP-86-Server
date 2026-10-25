@@ -404,32 +404,19 @@ public sealed class FinishQuestHandlerTests
             var sender = recording ?? new RecordingSender();
             sessions ??= new OneSession(session);
 
-            var handler = new FinishQuestHandler(
-                sessions,
-                views ?? new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
-                new OnePlayingCharacter(ledger),
-                bus,
-                sender,
-                new QuestOfferRefreshDomainService(
-                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-                new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000)),
-                NullLogger<FinishQuestHandler>.Instance,
-                areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService(),
-                runs ?? new Dfo.Server.Application.World.DungeonRunDomainService(),
-                new WeaknessProjectionDelivery(new WeaknessState(), sessions, sender),
-                generations ?? new DungeonRunDeliveryRegistry(),
-                towers);
-
-            await handler.HandleAsync(
-                new NetworkDispatchContext(
-                    new NetworkConnectionContext(
-                        new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-                new FinishQuestRequest(
-                    GameMessageMetadata.Empty,
-                    QuestId,
-                    rewardSelection,
-                    completionCount),
-                CancellationToken.None);
+            var current = views ?? new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience));
+            var characters = new OnePlayingCharacter(ledger);
+            var offers = new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain());
+            var clock = new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
+            var town = areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
+            var dungeon = runs ?? new Dfo.Server.Application.World.DungeonRunDomainService();
+            var weakness = new WeaknessState();
+            var registry = generations ?? new DungeonRunDeliveryRegistry();
+            var input = new FinishQuestRequest(GameMessageMetadata.Empty,QuestId,rewardSelection,completionCount);
+            await QuestProjectionDriver.Finish(
+                [sessions,current,characters,new QuestProjectionDriver.Bus(bus),sender,offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,new WeaknessProjectionDelivery(weakness,sessions,sender),registry,towers,null],
+                [sessions,current,characters,new QuestProjectionDriver.Units(()=>bus.SendAsync(new QuestFinishProjectionInput(session.AccountId,session.CharacterId,QuestId,rewardSelection,completionCount,checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),session))),new SkillGrowthDirectDriver.Outbox(sender),offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,weakness,registry,null,null,towers,null],
+                new(new NetworkConnectionContext(new("one"),NetworkEndpointKind.Game,10010)),input,session);
 
             return sender.Sent;
         });
@@ -449,13 +436,13 @@ public sealed class FinishQuestHandlerTests
         /// <summary>What the ledger's count stood at when the completion was written.</summary>
         public int LedgerAsksWhenTheCompletionRan { get; private set; } = -1;
 
-        public FinishQuestCommand? LastCommand { get; private set; }
+        public QuestFinishProjectionInput? LastCommand { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            this.LastCommand = Assert.IsType<FinishQuestCommand>(command);
+            this.LastCommand = Assert.IsType<QuestFinishProjectionInput>(command);
             this.LedgerAsksWhenTheCompletionRan = ledger.TimesAsked;
             var outcome = new QuestFinishOutcome(
                 Finished: true,

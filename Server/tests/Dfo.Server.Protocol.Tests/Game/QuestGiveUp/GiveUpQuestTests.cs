@@ -16,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Testing;
+using Dfo.Server.Protocol.Tests.Support;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestGiveUp;
 
@@ -79,16 +80,12 @@ public sealed class GiveUpQuestTests
             var characters = CurrentCharacterStub.Domain(character);
             var content = new StubWorldContentEntryRuleService();
             var sender = new RecordingSender();
-            var handler = new GiveUpQuestHandler(
-                new OneSession(session), currentViews, characters,
-                new SuccessfulGiveUp(), sender,
-                new QuestOfferRefreshDomainService(content, new RecordingQuestLogs(), characters),
-                NullLogger<GiveUpQuestHandler>.Instance);
-
-            await handler.HandleAsync(
-                new NetworkDispatchContext(new NetworkConnectionContext(session.ConnectionId,
-                    NetworkEndpointKind.Game, 10011)),
-                new GiveUpQuestRequest(GameMessageMetadata.Empty, 1016), CancellationToken.None);
+            var sessions = new OneSession(session);
+            var offers = new QuestOfferRefreshDomainService(content,new RecordingQuestLogs(),characters);
+            await QuestProjectionDriver.GiveUp(
+                [sessions,currentViews,characters,new SuccessfulGiveUp(),sender,offers,SkillGrowthDirectDriver.Logger],
+                [sessions,currentViews,characters,new QuestProjectionDriver.ValueUnits<GiveUpQuestOutcome>(new(true,1016,new QuestProgressSnapshot([]))),new SkillGrowthDirectDriver.Outbox(sender),offers,SkillGrowthDirectDriver.Logger,null,null,null],
+                new(new NetworkConnectionContext(session.ConnectionId,NetworkEndpointKind.Game,10011)),new GiveUpQuestRequest(GameMessageMetadata.Empty,1016));
 
             Assert.Equal([
                 typeof(GiveUpQuestAcknowledgement), typeof(AcceptedQuestProgressMessage),
@@ -105,7 +102,7 @@ public sealed class GiveUpQuestTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            Assert.Equal((ushort)1016, Assert.IsType<GiveUpQuestCommand>(command).QuestId);
+            Assert.Equal((ushort)1016, command.GetType().GetProperty("QuestId")!.GetValue(command));
             return ValueTask.FromResult((TResult)(object)new GiveUpQuestOutcome(
                 true, 1016, new QuestProgressSnapshot([])));
         }

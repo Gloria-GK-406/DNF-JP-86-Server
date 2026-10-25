@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -19,7 +20,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_daily_exchange_is_available_in_the_quest_catalog()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         var quest = await fixture.Host.Services.GetRequiredService<IQuestContentRuleService>().FindAsync(20549, default);
         Assert.NotNull(quest);
         Assert.Equal(QuestGrade.SpecialDaily, quest.Grade);
@@ -29,7 +30,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_dungeon_exempts_failure_weakness()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         var layout = await fixture.Host.Services.GetRequiredService<IDungeonStructureRuleService>()
             .ResolveAsync(100, DungeonEntryFacts.None, 17, default);
         Assert.NotNull(layout);
@@ -39,7 +40,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_coin_pot_pays_wallet_gold_and_consumes_one_pot()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         await fixture.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
         await fixture.Host.Seed(65, 7615, 2);
         await fixture.Host.Seed(177, 2680739, 2);
@@ -59,14 +60,14 @@ public sealed class SouthernDaleCompatibilityTests
     public async Task Southern_daily_completion_is_once_per_game_day_and_closed_activity_blocks_new_acceptance()
     {
         var clock = new MutableClock();
-        using var fixture = new CeraShopFixture(useArchive: true, configure: services => services.AddSingleton<TimeProvider>(clock));
-        var commands = fixture.Host.Services.GetRequiredService<ICommandBus>();
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true, configure: services => services.AddSingleton<TimeProvider>(clock));
+        var commands = new QuestTestCommands(fixture.Host);
         var session = fixture.Host.Session;
         await fixture.Host.Seed(177, 2680739, 6);
-        Assert.True((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);
-        Assert.True((await commands.SendAsync(new FinishQuestCommand(session.AccountId, session.CharacterId, 20549, ushort.MaxValue, 1,
+        Assert.True((await commands.SendAsync(new QuestAcceptTestInput(session.AccountId, session.CharacterId, 20549))).Accepted);
+        Assert.True((await commands.SendAsync(new QuestFinishTestInput(session.AccountId, session.CharacterId, 20549, ushort.MaxValue, 1,
             checked((uint)clock.Now.ToUnixTimeSeconds())))).Finished);
-        Assert.False((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);
+        Assert.False((await commands.SendAsync(new QuestAcceptTestInput(session.AccountId, session.CharacterId, 20549))).Accepted);
         clock.Now = clock.Now.AddMinutes(1);
         var availability = fixture.Host.Services.GetRequiredService<ISouthernDaleQuestDomainService>();
         Assert.True(await availability.CanAcceptAsync(session.CharacterId, default));
@@ -81,7 +82,7 @@ public sealed class SouthernDaleCompatibilityTests
             }
         });
         Assert.False(await availability.CanAcceptAsync(session.CharacterId, default));
-        Assert.False((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);
+        Assert.False((await commands.SendAsync(new QuestAcceptTestInput(session.AccountId, session.CharacterId, 20549))).Accepted);
         Assert.Equal(4, fixture.Host.Count(2680739));
         Assert.Equal(1, fixture.Host.Count(7615));
     }
@@ -89,7 +90,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_coin_pot_full_wallet_preserves_the_pot()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         await fixture.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
         await fixture.Host.Seed(65, 7615, 1);
         await fixture.Host.Seed(177, 2680739, 2);
@@ -105,7 +106,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_coin_pot_without_two_keys_preserves_all_inputs()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         await fixture.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
         await fixture.Host.Seed(65, 7615, 1);
         await fixture.Host.Seed(177, 2680739, 1);
@@ -119,7 +120,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_magic_pot_uses_its_declared_holy_water_recipe()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         await fixture.Host.Seed(65, 2681819, 1);
         await fixture.Host.Seed(66, 2681820, 1);
         var result = await OpeningDomainTestDriver.Box(fixture.Host, fixture.Host.Session, new(0, 65, 2681819, 66, 2681820, 1));
@@ -134,7 +135,7 @@ public sealed class SouthernDaleCompatibilityTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            using var fixture = new CeraShopFixture(useArchive: true);
+            using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
             var at = new DateTimeOffset(2026, 10, 19, 6, 0, 0, TimeSpan.FromHours(8));
             var rule = Assert.Single(await fixture.Host.Services.GetRequiredService<IDailyRefillConfigurationDomainService>()
                 .EffectiveAsync(at, default), x => x.ItemId == 2680738);
@@ -160,7 +161,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_offer_stays_consistent_in_current_view_and_replay_after_activity_changes()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         var services = fixture.Host.Services;
         TestGameplay.Run(services, () =>
         {
@@ -210,7 +211,7 @@ public sealed class SouthernDaleCompatibilityTests
     [Dfo.Server.Testing.PvfFact]
     public async Task Southern_activity_changes_push_the_current_offer_list_to_the_online_client()
     {
-        using var fixture = new CeraShopFixture(useArchive: true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         var services = fixture.Host.Services;
         TestGameplay.Run(services, () =>
         {
@@ -244,14 +245,14 @@ public sealed class SouthernDaleCompatibilityTests
     public async Task Southern_online_day_reset_pushes_the_next_daily_offer_even_with_two_tickets_held()
     {
         var clock = new MutableClock();
-        using var fixture = new CeraShopFixture(useArchive: true, configure: s => s.AddSingleton<TimeProvider>(clock));
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true, configure: s => s.AddSingleton<TimeProvider>(clock));
         var services = fixture.Host.Services;
         var session = fixture.Host.Session;
         services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
         await fixture.Host.Seed(177, 2680739, 2);
-        var commands = services.GetRequiredService<ICommandBus>();
-        Assert.True((await commands.SendAsync(new AcceptQuestCommand(session.AccountId, session.CharacterId, 20549))).Accepted);
-        Assert.True((await commands.SendAsync(new FinishQuestCommand(session.AccountId, session.CharacterId, 20549, ushort.MaxValue, 1,
+        var commands = new QuestTestCommands(fixture.Host);
+        Assert.True((await commands.SendAsync(new QuestAcceptTestInput(session.AccountId, session.CharacterId, 20549))).Accepted);
+        Assert.True((await commands.SendAsync(new QuestFinishTestInput(session.AccountId, session.CharacterId, 20549, ushort.MaxValue, 1,
             checked((uint)clock.Now.ToUnixTimeSeconds())))).Finished);
         foreach (var nextDay in new[] { false, true })
         {

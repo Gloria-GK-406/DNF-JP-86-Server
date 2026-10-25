@@ -537,9 +537,9 @@ internal sealed class CeraShopFixture : IDisposable
     public CeraShopTestContent Content { get; } = new();
     public ShopFixture Host { get; }
     public int Cera => Host.Scalar("SELECT cera FROM accounts WHERE account_id=1");
-    public CeraShopFixture(bool useArchive = false, Action<IServiceCollection>? configure = null)
+    public CeraShopFixture(bool useArchive = false, Action<IServiceCollection>? configure = null, bool questProtocol = false)
     {
-        Host = new(services =>
+        Host = new(questProtocol, services =>
         {
             if (useArchive)
             {

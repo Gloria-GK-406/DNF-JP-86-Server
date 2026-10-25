@@ -59,7 +59,7 @@ public sealed class MarriageEngagementTests
                 s.AddSingleton<IQuestParameterSource, Parameters>();
             }
             s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
-            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+            QuestTestCommands.RegisterLegacy(s,"QuestAcceptance","AcceptQuest");
         });
     private static async Task Engage(LearningFixture f, Dfo.Server.Data.World.SelectedSessionIdentity peer)
     {
@@ -68,7 +68,7 @@ public sealed class MarriageEngagementTests
     }
     private static async Task Accept(LearningFixture f, int account, int character)
     {
-        var result = await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(account), new(character), 20737), default);
+        var result = await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(account), new(character), 20737), default);
         Assert.True(result.Accepted);
         Assert.Equal(5u, result.InitialTrigger);
     }
@@ -78,7 +78,7 @@ public sealed class MarriageEngagementTests
         var (f, peer) = await Fixture(); await using var owned = f;
         await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
         Assert.False((await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(new(1), new(71), default)).IsEngaged);
-        Assert.False((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default)).Accepted);
+        Assert.False((await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(1), new(71), 20737), default)).Accepted);
         Assert.Empty((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests);
     }
     [Fact]
@@ -191,9 +191,9 @@ public sealed class MarriageEngagementTests
             s.AddSingleton<IQuestParameterSource, Parameters>();
             s.AddSingleton<IMarriageProposalContentSource, Content>();
             s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
-            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+            QuestTestCommands.RegisterLegacy(s,"QuestAcceptance","AcceptQuest");
         });
-        var replay = await reopened.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default);
+        var replay = await new QuestTestCommands(reopened.Services).SendAsync(new QuestAcceptTestInput(new(1), new(71), 20737), default);
         Assert.False(replay.Accepted);
         Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
         Assert.Null(replay.QuestProgress);
@@ -231,8 +231,8 @@ public sealed class MarriageEngagementTests
         if (invalid == "different-relation") f.Sql($"UPDATE marriage_quest_bindings SET proposal_id='{oldRelation:N}' WHERE character_id=71");
         if (invalid == "inactive-relation") f.Sql("UPDATE marriage_proposal_participants SET active=0");
         var before = await bindings.ReadAsync(new(71), 20737, default);
-        var replay = await f.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new AcceptQuestCommand(new(invalid == "wrong-account" ? 2 : 1), new(71), 20737), default);
+        var replay = await new QuestTestCommands(f.Services).SendAsync(
+            new QuestAcceptTestInput(new(invalid == "wrong-account" ? 2 : 1), new(71), 20737), default);
         Assert.False(replay.Accepted);
         Assert.Equal(before, await bindings.ReadAsync(new(71), 20737, default));
         Assert.Equal(5, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
@@ -298,7 +298,7 @@ public sealed class MarriageEngagementTests
         Assert.Contains(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002616);
         Assert.Contains((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests, x => x.QuestId == 20738);
         Assert.DoesNotContain((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(2), new(72), default)).Quests, x => x.QuestId == 20738);
-        Assert.True((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20738), default)).Accepted);
+        Assert.True((await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(1), new(71), 20738), default)).Accepted);
         await TestGameplay.RunAsync(f.Services, async () =>
         {
             await using (var tx = f.Scope.Begin())

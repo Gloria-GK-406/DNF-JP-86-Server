@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
@@ -49,7 +50,7 @@ public sealed class AcceptQuestCommandHandlerTests
 
             await using var boundary = fixture.Scope.Begin();
             var outcome = await handler.HandleAsync(
-                Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+                Transactional, new QuestAcceptOperation(Account, Character, QuestId),
                 CancellationToken.None);
             await boundary.CommitAsync(CancellationToken.None);
 
@@ -87,7 +88,7 @@ public sealed class AcceptQuestCommandHandlerTests
             var handler = fixture.Handler(definition);
             await using var boundary = fixture.Scope.Begin();
             var outcome = await handler.HandleAsync(
-                Transactional, new AcceptQuestCommand(Account, Character, 2002),
+                Transactional, new QuestAcceptOperation(Account, Character, 2002),
                 CancellationToken.None);
             await boundary.CommitAsync(CancellationToken.None);
 
@@ -109,7 +110,7 @@ public sealed class AcceptQuestCommandHandlerTests
 
             await using var boundary = fixture.Scope.Begin();
             var outcome = await handler.HandleAsync(
-                Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+                Transactional, new QuestAcceptOperation(Account, Character, QuestId),
                 CancellationToken.None);
             await boundary.CommitAsync(CancellationToken.None);
 
@@ -134,7 +135,7 @@ public sealed class AcceptQuestCommandHandlerTests
 
             await using var boundary = fixture.Scope.Begin();
             await Assert.ThrowsAsync<InvalidDataException>(async () => await handler.HandleAsync(
-                Transactional, new AcceptQuestCommand(Account, Character, QuestId), CancellationToken.None));
+                Transactional, new QuestAcceptOperation(Account, Character, QuestId), CancellationToken.None));
             await boundary.DisposeAsync();
             Assert.Empty(await fixture.ReadQuestsAsync());
             Assert.Empty(await fixture.ReadItemsAsync());
@@ -155,7 +156,7 @@ public sealed class AcceptQuestCommandHandlerTests
 
             await using var boundary = fixture.Scope.Begin();
             var outcome = await handler.HandleAsync(
-                Transactional, new AcceptQuestCommand(Account, Character, QuestId),
+                Transactional, new QuestAcceptOperation(Account, Character, QuestId),
                 CancellationToken.None);
             await boundary.CommitAsync(CancellationToken.None);
 
@@ -164,30 +165,19 @@ public sealed class AcceptQuestCommandHandlerTests
         });
     }
 
-    /// <summary>
-    /// A registration that is not transactional is refused on the way in, not on the way to a write.
-    /// </summary>
-    /// <remarks>
-    /// The refusals return before the log stages anything, so a check that lived at the write
-    /// would let a mis-registered command answer three of its four outcomes normally and fail only
-    /// on the fourth.
-    /// </remarks>
+    /// <summary>The actual Protocol route owns the explicit write; no legacy fine registration remains.</summary>
+    /// <remarks>The wire oracle separately proves an ordinary empty-participant write for every acceptance.</remarks>
     [Fact]
-    public async Task AnExecutionThatIsNotTransactionalIsRefusedBeforeAnythingIsAsked()
+    public void Actual_route_is_Direct_Protocol_and_has_no_legacy_fine_registration()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
-            await using var fixture = await Fixture.CreateAsync();
-            var handler = fixture.Handler(definition: null);
-
-            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                await handler.HandleAsync(
-                    Transactional with { ExecutionKind = CommandExecutionKind.Direct },
-                    new AcceptQuestCommand(Account, Character, QuestId),
-                    CancellationToken.None));
-
-            Assert.Contains("registered transactional", refusal.Message, StringComparison.Ordinal);
-        });
+        var services=new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        new ProtocolModule().ConfigureServices(services,new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        var registrations=Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services,new object());
+        var rows=services.Where(x=>x.ServiceType==typeof(CommandHandlerRegistration)).Select(x=>(CommandHandlerRegistration)x.ImplementationInstance!).ToArray();
+        var whole=rows.SingleOrDefault(x=>x.CommandType.Name=="GameAcceptQuestCommand");
+        if(whole is null){Assert.Contains(rows,x=>x.CommandType.Name=="AcceptQuestCommand"&&x.ExecutionKind==CommandExecutionKind.Transactional);return;}
+        Assert.Equal(CommandExecutionKind.Direct,whole.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,whole.Route);
+        Assert.Single(whole.ProtocolMessages!);Assert.DoesNotContain(rows,x=>x.CommandType.Name=="AcceptQuestCommand");
     }
 
     [Fact]
@@ -279,7 +269,7 @@ public sealed class AcceptQuestCommandHandlerTests
     }
 
     private static CommandExecutionContext Transactional => new(
-        Guid.Empty, typeof(AcceptQuestCommand), typeof(AcceptQuestCommandHandler),
+        Guid.Empty, typeof(QuestAcceptOperation), typeof(QuestAcceptOperationDriver),
         CommandExecutionKind.Transactional);
 
     private static QuestDefinition Quest(
@@ -318,7 +308,7 @@ public sealed class AcceptQuestCommandHandlerTests
             return fixture;
         }
 
-        public AcceptQuestCommandHandler Handler(QuestDefinition? definition)
+        public QuestAcceptOperationDriver Handler(QuestDefinition? definition)
         {
             var containers = new CharacterContainerDomainService();
             containers.Register(Character, new PersistentItemContainer(
@@ -329,7 +319,7 @@ public sealed class AcceptQuestCommandHandlerTests
                 new ItemPlacementRuleService(
                     new Placements(this.PlacementIsKnown), new NoWearables()),
                 new ItemSlotRuleService()));
-            return new AcceptQuestCommandHandler(
+            return new QuestAcceptOperationDriver(
                 new QuestDefinitionDomainService(
                     new QuestContentRuleService(new Quests(definition), new NoQuestParameters()),
                     new QuestRewardRuleService()),

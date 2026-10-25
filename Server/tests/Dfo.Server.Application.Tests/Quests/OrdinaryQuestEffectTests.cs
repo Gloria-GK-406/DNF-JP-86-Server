@@ -31,7 +31,7 @@ public sealed class OrdinaryQuestEffectTests
         using var shop = Shop(s => s.AddSingleton<IQuestContentRuleService>(new Rules()));
         await shop.Seed(3, 2000, 9);
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,0)");
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1), new(1), 2001, ushort.MaxValue, 1, 0));
+        var result = await new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1), new(1), 2001, ushort.MaxValue, 1, 0));
         Assert.True(result.Finished);
         Assert.Equal(12, shop.Count(2000));
         Assert.Equal(3u, checked((uint)result.Items.Sum(i => (long)i.Count)));
@@ -52,7 +52,7 @@ public sealed class OrdinaryQuestEffectTests
     }
 
     // These settlement cases use synthetic content, including progression, without a client archive.
-    private static ShopFixture Shop(Action<IServiceCollection>? configure = null) => new(services =>
+    private static ShopFixture Shop(Action<IServiceCollection>? configure = null) => new(true, services =>
     {
         services.AddSingleton<IExperienceRuleService>(new FixedProgression());
         services.AddSingleton<ICarriedGoldRuleService>(new CompositeGoldLimits());
@@ -60,7 +60,7 @@ public sealed class OrdinaryQuestEffectTests
     });
 
     private static Task<QuestFinishOutcome> Finish(ShopFixture shop, ushort selection = ushort.MaxValue, ushort count = 1) =>
-        shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),2001,selection,count,0)).AsTask();
+        new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1),new(1),2001,selection,count,0)).AsTask();
     private static void Carry(ShopFixture shop, int trigger=0) => shop.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,{trigger})");
 
     [Fact]
@@ -129,8 +129,8 @@ public sealed class OrdinaryQuestEffectTests
         await shop.SeedShared(3035, 1000);
         await shop.Seed(121, 1000, 100, 3);
         await shop.Seed(65, 2000, 100);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
-        var accepted = await bus.SendAsync(new Dfo.Server.Protocol.Game.QuestAcceptance.AcceptQuestCommand(new(1), new(1), 2001));
+        var bus = new QuestTestCommands(shop);
+        var accepted = await bus.SendAsync(new Dfo.Server.Application.Tests.Support.QuestAcceptTestInput(new(1), new(1), 2001));
         Assert.True(accepted.Accepted);
         Assert.Equal(enough ? 0 : 1, shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=2001"));
         if (enough) Assert.Equal(0, Assert.Single(accepted.QuestProgress!.Quests).TriggerValue);
@@ -321,7 +321,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules())); Carry(shop,1);
         Assert.False((await Finish(shop)).Finished);
-        Assert.False((await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(2),new(1),2001,ushort.MaxValue,1,0))).Finished);
+        Assert.False((await new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(2),new(1),2001,ushort.MaxValue,1,0))).Finished);
         Assert.Equal(0,shop.Count(2000));
     }
     [Fact]
@@ -392,7 +392,7 @@ public sealed class OrdinaryQuestEffectTests
         public int CarryLimitFor(int level, int stored) => Math.Max(stored, 1_000_000);
     }
 
-    private sealed class CareerStats : ICharacterStatDefinitionSource
+    internal sealed class CareerStats : ICharacterStatDefinitionSource
     {
         public ValueTask<CharacterBaseStats> GetInitialAsync(byte job,CancellationToken ct)=>ValueTask.FromResult(new CharacterStatValues(HpMax:100).ToFixedPoint());
         public ValueTask<IReadOnlyList<CharacterStatDefinition>> GetAllAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<CharacterStatDefinition>>([new(12,new(HpMax:100),new Dictionary<CharacterCareer,CharacterStatValues>{[new(12)]=new(HpMax:1),[new(12,1)]=new(HpMax:2),[new(12,1,1)]=new(HpMax:3),[new(12,1,2)]=new(HpMax:4)})]);
@@ -485,7 +485,8 @@ public sealed class OrdinaryQuestEffectTests
         var before = 1 | ((stage-1)<<4);
         shop.Sql($"UPDATE characters SET grow_type={before} WHERE character_id=1; DELETE FROM character_active_quests WHERE quest_id=2002; CREATE TRIGGER fail_awaken BEFORE INSERT ON character_skills WHEN NEW.skill_id IN (7,8) BEGIN SELECT RAISE(ABORT,'awakening grant failed'); END");
         await shop.Seed(3,2000,2);
-        var error = await Assert.ThrowsAsync<QuestFinishRejectedException>(async () => await Finish(shop));
+        if(QuestTestCommands.Modern) Assert.False((await Finish(shop)).Finished);
+        var error = await Assert.ThrowsAsync<QuestFinishRejectedException>(async () => await new QuestTestCommands(shop.Services).SendAsync(new QuestFinishTestInput(new(1),new(1),2001,ushort.MaxValue,1,0)));
         Assert.Contains("awakening grant failed",error.InnerException!.Message);
         Assert.Equal(before,shop.Scalar("SELECT grow_type FROM characters WHERE character_id=1"));
         Assert.Equal(2,shop.Count(2000));
@@ -500,12 +501,12 @@ public sealed class OrdinaryQuestEffectTests
     public async Task Real_awakening_final_quests_consume_materials_and_unlock_the_next_stage_without_resetting_skills(int quest, byte before, byte stage)
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
-        using var fixture = new CeraShopFixture(useArchive:true);
+        using var fixture = new CeraShopFixture(questProtocol: true, useArchive:true);
         var shop = fixture.Host;
         shop.Sql($"UPDATE characters SET job=0,grow_type={before} WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,0,{quest},0); INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',0,5,179,7,X'0102')");
         if (stage==1) { await shop.Seed(121,3229,60,3); await shop.Seed(122,3051,80,3); await shop.Seed(123,3052,120,3); }
         else await shop.Seed(121,4831,30,3);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),(ushort)quest,ushort.MaxValue,1,0));
+        var result = await new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1),new(1),(ushort)quest,ushort.MaxValue,1,0));
         Assert.True(result.Finished); Assert.Equal((byte?)stage,result.Awakening); Assert.Equal((byte?)(1 | (stage<<4)),result.GrowType);
         Assert.Equal(0,shop.Count(3229)); Assert.Equal(0,shop.Count(3051)); Assert.Equal(0,shop.Count(3052));
         Assert.Equal(7,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=0 AND slot=5 AND skill_id=179 AND hex(extra_values)='0102'"));
@@ -571,7 +572,8 @@ public sealed class OrdinaryQuestEffectTests
             cause=await Assert.ThrowsAsync<SqliteException>(async()=>await Finish(shop)); // Raw quest section flushes during UoW Prepare, after the command returns.
         else
         {
-            var error=await Assert.ThrowsAsync<QuestFinishRejectedException>(async()=>await Finish(shop));
+            if(QuestTestCommands.Modern) Assert.False((await Finish(shop)).Finished);
+            var error=await Assert.ThrowsAsync<QuestFinishRejectedException>(async()=>await new QuestTestCommands(shop.Services).SendAsync(new QuestFinishTestInput(new(1),new(1),2001,ushort.MaxValue,1,0)));
             cause=Assert.IsType<SqliteException>(error.InnerException);
         }
         Assert.Contains(fault=="trigger"?"late related trigger":$"late {fault}",cause.Message);
@@ -625,9 +627,9 @@ public sealed class OrdinaryQuestEffectTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
         using var archive=new PvfArchiveProvider(new PvfContentOptions());
-        using var shop=new ShopFixture(s=>s.AddSingleton<IItemPlacementDefinitionSource>(new PvfItemPlacementDefinitionSource(archive)));
+        using var shop=new ShopFixture(true,s=>s.AddSingleton<IItemPlacementDefinitionSource>(new PvfItemPlacementDefinitionSource(archive)));
         shop.Sql("UPDATE characters SET job=0,level=1,exp=0 WHERE character_id=1; UPDATE character_stats SET carried_gold=0 WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,0,1776,0)");
-        var result=await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(1),1776,ushort.MaxValue,1,0));
+        var result=await new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1),new(1),1776,ushort.MaxValue,1,0));
         Assert.True(result.Finished); Assert.Equal(1,shop.Count(101010437)); Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));
         Assert.Equal(101,shop.Gold); Assert.Contains(new FinishedQuestItem(0,0,101),result.Items);
     }
@@ -636,7 +638,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
         var rules=new Rules(); rules.Quest=rules.Quest with {ItemRewards=new([new(39032,2),new(63000,1)],[],false,0)};
-        using var shop=new CeraShopFixture(useArchive:true,configure:s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop.Host);
+        using var shop=new CeraShopFixture(questProtocol: true, useArchive:true,configure:s=>s.AddSingleton<IQuestContentRuleService>(rules)); Carry(shop.Host);
         var result=await Finish(shop.Host); Assert.True(result.Finished); Assert.Equal(3,result.Items.Count);
         Assert.Equal(2,shop.Host.Count(39032)); Assert.Equal(1,shop.Host.Count(63000));
         Assert.Equal(2,shop.Host.Scalar("SELECT COUNT(*) FROM items WHERE avatar_expire_date=0 AND avatar_delete_date=0 AND length(avatar_jewel_socket)=30"));
@@ -671,7 +673,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
         var rules=new Rules();rules.Quest=rules.Quest with {ItemRewards=new([new(39032,200),new(63000,60)],[],false,0)};
-        using var shop=new CeraShopFixture(useArchive:true,configure:s=>s.AddSingleton<IQuestContentRuleService>(rules));Carry(shop.Host);
+        using var shop=new CeraShopFixture(questProtocol: true, useArchive:true,configure:s=>s.AddSingleton<IQuestContentRuleService>(rules));Carry(shop.Host);
         var result=await Finish(shop.Host);Assert.True(result.Finished);Assert.True(result.Items.Count<=byte.MaxValue);
         Assert.Equal(260,shop.Host.Count(39032)+shop.Host.Count(63000)+shop.Host.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE claimed_flag=0"));
         Assert.Equal(0,shop.Host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
@@ -680,7 +682,7 @@ public sealed class OrdinaryQuestEffectTests
     public async Task Missing_character_cannot_report_a_placeholder_completion()
     {
         using var shop=Shop(s=>s.AddSingleton<IQuestContentRuleService>(new Rules()));
-        var result=await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new FinishQuestCommand(new(1),new(999),2001,ushort.MaxValue,1,0));
+        var result=await new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1),new(999),2001,ushort.MaxValue,1,0));
         Assert.False(result.Finished);Assert.Equal(QuestFinishRefusal.Unusable,result.Refusal);
     }
 }

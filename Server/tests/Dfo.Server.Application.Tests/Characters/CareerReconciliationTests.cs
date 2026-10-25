@@ -119,14 +119,14 @@ public sealed class CareerReconciliationTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         await using var f = new LearningFixture(useArchive: true, configure: services =>
-            services.AddCommandHandler<FinishQuestCommand, QuestFinishOutcome, FinishQuestCommandHandler>(CommandExecutionKind.Transactional));
+            QuestTestCommands.RegisterLegacy(services,"QuestCompletion","FinishQuest"));
         await f.SeedAsync();
         Prepare(f);
         f.Sql($"UPDATE characters SET job=2,level=20,exp={f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(20)} WHERE character_id=71; DELETE FROM character_skills WHERE character_id=71; INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(71,0,7840,0)");
         if (failGrant)
             f.Sql("CREATE TRIGGER fail_grant BEFORE INSERT ON character_skills WHEN NEW.character_id=71 BEGIN SELECT RAISE(ABORT,'injected grant failure'); END;");
-        var bus = f.Services.GetRequiredService<ICommandBus>();
-        var command = new FinishQuestCommand(new(1), new(71), 7840, ushort.MaxValue, 1, 0);
+        var bus = new QuestTestCommands(f.Services);
+        var command = new QuestFinishTestInput(new(1), new(71), 7840, ushort.MaxValue, 1, 0);
         if (failGrant)
         {
             await Assert.ThrowsAsync<QuestFinishRejectedException>(async () => await bus.SendAsync(command));
