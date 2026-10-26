@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
@@ -28,8 +29,9 @@ internal class CardAwardAlgorithmDriver(ICardRewardDomainService cards, IDungeon
     { private readonly InventorySlotMappingRuleService slots=new(); public Dfo.Server.Data.Inventory.GameSlot Project(Dfo.Server.Data.Inventory.BusinessSlot slot)=>slots.ToGameSlot(slot); }
 }
 internal sealed record ClearExperienceAlgorithmInput(AccountId AccountId,CharacterId CharacterId,int DungeonId,
-    ClearCircumstances Clear, SelectedSessionIdentity? Session=null,Guid RunId=default,int SettlementLevel=0,DateTimeOffset? SettledAt=null)
-    : ICommand<ClearExperienceResult>, ISelectedSessionCommand,IAccountCommand;
+    ClearCircumstances Clear, SelectedSessionIdentity? Session=null,Guid RunId=default,int SettlementLevel=0,DateTimeOffset? SettledAt=null, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder? Footprint=null)
+     : ICommand<ClearExperienceResult>,IDomainFixtureParticipants
+{public IReadOnlyList<SelectedSessionIdentity> Participants=>Session is {} session?[session]:[];}
 internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,TimeProvider clock,ICharacterDungeonDifficultyDomainService difficulties,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance=null,IQuestProgressDomainService? quests=null,
     IDungeonRunDomainService? runs=null,IDespairTowerDomainService? despair=null,Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars=null)
@@ -38,8 +40,14 @@ internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,Time
 {
     public ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext c,ClearExperienceAlgorithmInput q,CancellationToken ct)
     {
-        if(c.ExecutionKind!=CommandExecutionKind.Transactional)throw new InvalidOperationException("Awarding experience requires a transaction.");
-        return GrantBodyAsync(q.AccountId,q.CharacterId,q.DungeonId,q.Clear,q.Session,q.RunId,q.SettlementLevel,q.SettledAt,c.LegacyFootprint,ct);
+        if(DomainCommandFixture.Kind(c)!=FixtureUnitKind.Transactional)throw new InvalidOperationException("Awarding experience requires a transaction.");
+        if(q.Session is {} session&&(session.AccountId!=q.AccountId||session.CharacterId!=q.CharacterId))throw new InvalidOperationException("The fixture owner differs from its exact selected participant.");
+        return Run();
+        async ValueTask<ClearExperienceResult> Run()
+        {
+            using var fallback=new DomainCommandFixture.FootprintLease(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(q.AccountId,q.CharacterId,q.Session));
+            return await GrantBodyAsync(q.AccountId,q.CharacterId,q.DungeonId,q.Clear,q.Session,q.RunId,q.SettlementLevel,q.SettledAt,q.Footprint ?? fallback,ct);
+        }
     }
 }
 internal sealed class CardTestOutbox(IGameMessageSender sender):IGameCommandOutbox

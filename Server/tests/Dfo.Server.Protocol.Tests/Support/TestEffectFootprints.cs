@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Commands;
@@ -54,17 +55,8 @@ internal static class TestEffectFootprints
         where TCommand : class, ICommand<TResult> where TResult : notnull
     {
         using var lease = new Lease(owner);
-        context.SupplyLegacyFootprint(lease);
-        return await handler.HandleAsync(context, command, ct).ConfigureAwait(false);
+        if(command is not Dfo.Server.Application.Tests.Support.ClearExperienceAlgorithmInput clear)throw new InvalidOperationException("Unknown footprint fixture input.");
+        return await handler.HandleAsync(context,(TCommand)(object)(clear with {Footprint=lease}),ct).ConfigureAwait(false);
     }
 
-    internal static async ValueTask<TResult> Invoke<TCommand, TResult>(ICommandHandler<TCommand, TResult> handler,
-        TCommand command, CancellationToken ct)
-        where TCommand : class, ICommand<TResult>, IRequestSettlementCommand where TResult : notnull
-    {
-        using var lease = new Lease(command.Session ?? throw new InvalidOperationException("This test requires an owner."));
-        var context = new CommandExecutionContext(Guid.NewGuid(), typeof(TCommand), handler.GetType(), CommandExecutionKind.Transactional);
-        context.SupplyLegacyFootprint(lease);
-        return await handler.HandleAsync(context, command, ct).ConfigureAwait(false);
-    }
 }

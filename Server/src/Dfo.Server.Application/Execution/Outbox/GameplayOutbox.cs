@@ -90,7 +90,10 @@ public sealed class GameplayOutboxes
         }
         catch (Exception refused)
         {
-            logger.LogError(refused, "The sender refused a gameplay job's outbox; only its close requests are sent");
+            if (end.Failed)
+                logger.LogError(refused, "The sender refused a gameplay job's outbox; only its close requests are sent");
+            else
+                logger.LogWarning("The sender refused a gameplay job's outbox; only its close requests are sent");
             var closes = entries.Where(entry => entry.IsClose).Select(entry => OutboundEntry.Close(entry.Connection)).ToList();
             if (!end.Failed && end.Source is not null)
             {

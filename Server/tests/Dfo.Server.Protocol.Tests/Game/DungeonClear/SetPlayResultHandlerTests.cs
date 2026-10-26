@@ -688,6 +688,9 @@ public sealed class SetPlayResultHandlerTests
         ExperienceBreakdown? bonusAward = null)
         : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public Action? AfterAward { get; init; }
         private int remainingFailures = failuresBeforeSuccess;
         /// <summary>Whether the settlement got as far as pricing the run.</summary>

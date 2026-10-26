@@ -19,6 +19,26 @@ namespace Dfo.Server.Application.Tests.Transactions;
 public sealed class CommandWorkUnitsTests
 {
     [Fact]
+    public async Task A_nonreporting_participant_that_is_no_longer_current_stops_the_unit_before_its_action()
+    {
+        var players = new Players();
+        await using var world = new CommandWorld(configure: players.Register);
+        var handled = new List<int>();
+        players.Current.Remove(players.All[1]);
+        world.Settings.Action = ctx => world.Services.GetRequiredService<ICommandWorkUnits>().WriteAsync(
+            ctx, new("both-current-required", players.Recipients), (_, _) =>
+            { handled.Add(1); return ValueTask.FromResult(42); });
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Internal(new InternalProbe()).AsTask());
+        Assert.Contains("stale", error.Message, StringComparison.Ordinal);
+        Assert.Empty(handled);
+        Assert.Empty(players.Fenced);
+        players.Current.Add(players.All[1]);
+        Assert.Equal(42, await world.Internal(new InternalProbe()));
+        Assert.Single(handled);
+    }
+
+    [Fact]
     public async Task A_normal_write_prepares_then_commits_and_leaves_no_ambient_transaction()
     {
         await using var world = new CommandWorld();
@@ -323,15 +343,20 @@ public sealed class CommandWorkUnitsTests
             SelectedSessionIdentity.Create(new(1), new(11), new("unit-player-1"), 1, 10011),
             SelectedSessionIdentity.Create(new(2), new(12), new("unit-player-2"), 1, 10011)];
         public HashSet<SelectedSessionIdentity> Fenced { get; } = [];
+        public HashSet<SelectedSessionIdentity> Current { get; }
         public IReadOnlyList<SelectedSessionRecipient> Recipients { get; }
-        public Players() => Recipients = [.. All.Select(s => new SelectedSessionRecipient(s, new(s.ConnectionId, NetworkEndpointKind.Game, 10011)))];
+        public Players()
+        {
+            Current = [.. All];
+            Recipients = [.. All.Select(s => new SelectedSessionRecipient(s, new(s.ConnectionId, NetworkEndpointKind.Game, 10011)))];
+        }
         public void Register(IServiceCollection services)
         {
             services.AddSingleton<ISelectedSessionDomainService>(this);
             services.AddSingleton<IOnlineUserQueryDomainService>(this);
             services.AddSingleton<INetworkConnectionContexts>(this);
         }
-        public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) => All.Contains(session) ? new(SelectedSessionPhase.InWorld, Fenced.Contains(session), false) : null;
+        public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) => Current.Contains(session) ? new(SelectedSessionPhase.InWorld, Fenced.Contains(session), false) : null;
         public bool IsSelected(SelectedSessionIdentity session) => All.Contains(session);
         public bool IsInWorld(SelectedSessionIdentity session) => IsSelected(session);
         public bool Fence(SelectedSessionIdentity session) => All.Contains(session) && Fenced.Add(session);

@@ -521,8 +521,8 @@ public sealed class PaidCardFlipCostTests
             update.Parameters.AddWithValue("@id", Character.Value);
             await update.ExecuteNonQueryAsync();
             return await this._handler.HandleAsync(
-                new CommandExecutionContext(Guid.NewGuid(), typeof(CardAwardAlgorithmInput),
-                    typeof(CardAwardAlgorithmDriver), CommandExecutionKind.Workflow),
+                DomainCommandFixture.Context(Guid.NewGuid(), typeof(CardAwardAlgorithmInput),
+                    typeof(CardAwardAlgorithmDriver), FixtureUnitKind.Workflow),
                 new CardAwardAlgorithmInput(Account, Character, kind, index), CancellationToken.None);
         }
 

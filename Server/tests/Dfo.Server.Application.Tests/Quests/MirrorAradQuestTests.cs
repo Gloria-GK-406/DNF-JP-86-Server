@@ -136,7 +136,7 @@ public sealed class MirrorAradQuestTests
                 fixture.Services.GetRequiredService<IItemDeliveryDomainService>());
             await Write(fixture, async () =>
             {
-                var replay = await handler.HandleAsync(new(Guid.NewGuid(),typeof(object),typeof(object),CommandExecutionKind.Transactional),new(new(1), new(71), 14299), default);
+                var replay = await handler.HandleAsync(new(Guid.NewGuid(),typeof(object),typeof(object)),new(new(1), new(71), 14299), default);
                 Assert.False(replay.Accepted);
                 Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
                 Assert.Null(replay.QuestProgress);

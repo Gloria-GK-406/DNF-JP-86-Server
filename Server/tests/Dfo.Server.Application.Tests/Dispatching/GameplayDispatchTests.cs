@@ -29,9 +29,9 @@ public sealed class GameplayDispatchTests
         await using var provider = Build(services =>
         {
             services.AddSingleton(recorder);
-            services.RegisterMessageHandler<RecordingHandler>(ClientMessageType.ChannelConnect);
+            RegisterRecording(services);
         });
-        var connection = Connection("d1");
+        var connection = Connection("d1",NetworkEndpointKind.Channel);
 
         await provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(
             new(connection), new ChannelConnectRequest(ChannelMessageMetadata.Empty), default);
@@ -41,30 +41,30 @@ public sealed class GameplayDispatchTests
         var chain = Assert.NotNull(seen.Chain);
         Assert.Equal(GameplayCallSource.Connection, chain.Source);
         Assert.Equal(connection.ConnectionId, chain.SourceConnection);
-        Assert.Equal("inbound:ChannelConnect", chain.CommandType);
+        Assert.Equal(nameof(RecordingCommand), chain.CommandType);
         Assert.True(provider.GetRequiredService<GameplayExecutor>().IsStarted);
     }
 
     [Fact]
-    public async Task Request_frames_are_built_inside_the_job_and_reach_the_commands_it_runs()
+    public async Task Explicit_request_is_built_inside_the_job_and_blocks_a_unit_after_its_source_is_fenced()
     {
         var recorder = new Recorder();
         await using var provider = Build(services =>
         {
             services.AddSingleton(recorder);
-            services.RegisterMessageHandler<FencingHandler>(ClientMessageType.GameExit);
-            services.AddCommandHandler<ProbeCommand, string, ProbeCommandHandler>(CommandExecutionKind.Direct);
+            services.RegisterProtocolMessageHandler<FencingHandler,ProbeGameMessage,ProbeCommand>(ClientMessageType.GameExit);
+            services.AddProtocolCommandHandler<ProbeCommand,string,ProbeCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameExit,typeof(ProbeGameMessage)));
         });
         var connection = Connection("d2");
         var metadata = new GameMessageMetadata(1, 0x0003, 0, 7);
 
-        await provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(
-            new(connection), new ProbeGameMessage(metadata), default);
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(
+            new(connection), new ProbeGameMessage(metadata), default).AsTask());
 
         var seen = Assert.Single(recorder.Seen);
         Assert.True(seen.OnExecutor);
         Assert.Same(metadata, seen.Metadata);
-        Assert.IsType<UnauthorizedAccessException>(seen.CommandError);
+        Assert.IsType<InvalidOperationException>(seen.CommandError);
         Assert.Equal(0, recorder.CommandRuns);
     }
 
@@ -75,7 +75,7 @@ public sealed class GameplayDispatchTests
         await using var provider = Build(services =>
         {
             services.AddSingleton(recorder);
-            services.RegisterMessageHandler<RecordingHandler>(ClientMessageType.ChannelConnect);
+            RegisterRecording(services);
         });
         var scope = provider.GetRequiredService<DomainTransactionScope>();
         var dispatcher = provider.GetRequiredService<INetworkMessageDispatcher>();
@@ -84,7 +84,7 @@ public sealed class GameplayDispatchTests
         {
             await using var lease = scope.Begin(readOnly: true);
             var open = scope.Current;
-            await dispatcher.DispatchAsync(new(Connection("d3")), new ChannelConnectRequest(ChannelMessageMetadata.Empty), default);
+            await GameplayJob.RunDetachedAsync(()=>dispatcher.DispatchAsync(new(Connection("d3",NetworkEndpointKind.Channel)), new ChannelConnectRequest(ChannelMessageMetadata.Empty), default));
             return open;
         });
 
@@ -100,12 +100,12 @@ public sealed class GameplayDispatchTests
         await using var provider = Build(services =>
         {
             services.AddSingleton(new Recorder());
-            services.RegisterMessageHandler<RecordingHandler>(ClientMessageType.ChannelConnect);
+            RegisterRecording(services);
         });
         var dispatcher = provider.GetRequiredService<INetworkMessageDispatcher>();
 
         await Assert.ThrowsAsync<GameplaySelfWaitException>(() => TestGameplay.RunAsync(provider, async () =>
-            await dispatcher.DispatchAsync(new(Connection("d4")), new ChannelConnectRequest(ChannelMessageMetadata.Empty), default)));
+            await dispatcher.DispatchAsync(new(Connection("d4",NetworkEndpointKind.Channel)), new ChannelConnectRequest(ChannelMessageMetadata.Empty), default)));
     }
 
     [Fact]
@@ -168,8 +168,8 @@ public sealed class GameplayDispatchTests
         return services.BuildServiceProvider();
     }
 
-    private static NetworkConnectionContext Connection(string id) =>
-        new(new("dispatch-" + id + "-" + Guid.NewGuid().ToString("N")), NetworkEndpointKind.Game, 10011);
+    private static NetworkConnectionContext Connection(string id,NetworkEndpointKind kind=NetworkEndpointKind.Game) =>
+        new(new("dispatch-" + id + "-" + Guid.NewGuid().ToString("N")), kind, 10011);
 
     private sealed record Seen(
         bool OnExecutor,
@@ -184,50 +184,34 @@ public sealed class GameplayDispatchTests
         public int CommandRuns;
     }
 
-    private sealed class RecordingHandler(Recorder recorder, IDomainTransactionAccessor transactions)
-        : ClientMessageHandler<ChannelConnectRequest>
+    private static void RegisterRecording(IServiceCollection services)
     {
-        protected override ValueTask HandleMessageAsync(
-            NetworkDispatchContext context, ChannelConnectRequest message, CancellationToken cancellationToken)
-        {
-            recorder.Seen.Enqueue(new(GameplayJob.IsOnExecutor, GameplayJob.Current, Transaction: transactions.Current));
-            return ValueTask.CompletedTask;
-        }
+        services.RegisterProtocolMessageHandler<RecordingHandler,ChannelConnectRequest,RecordingCommand>(ClientMessageType.ChannelConnect);
+        services.AddProtocolCommandHandler<RecordingCommand,bool,RecordingBody>(new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect,typeof(ChannelConnectRequest)));
     }
-
-    private sealed record ProbeGameMessage(GameMessageMetadata Metadata) : IClientNetworkMessage
+    private sealed record RecordingCommand(NetworkDispatchContext Dispatch,ChannelConnectRequest Input):IProtocolCommand<bool>
+    {public IClientNetworkMessage Message=>Input;public ProtocolFrameMetadata Frame=>new ProtocolFrameMetadata.Channel(Input.Metadata);}
+    private sealed class RecordingHandler(ICommandBus bus):ClientMessageHandler<ChannelConnectRequest>,IProtocolCommandMessageHandler<RecordingCommand>
+    {protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,ChannelConnectRequest message,CancellationToken ct)=>await bus.SendAsync(new RecordingCommand(context,message),ct);}
+    private sealed class RecordingBody(Recorder recorder,IDomainTransactionAccessor transactions):ICommandHandler<RecordingCommand,bool>
+    {public ValueTask<bool> HandleAsync(CommandExecutionContext context,RecordingCommand command,CancellationToken ct)
+        {recorder.Seen.Enqueue(new(GameplayJob.IsOnExecutor,GameplayJob.Current,Transaction:transactions.Current));return ValueTask.FromResult(true);}}
+    private sealed record ProbeGameMessage(GameMessageMetadata Metadata):IClientNetworkMessage
+    {public ClientMessageType MessageType=>ClientMessageType.GameExit;}
+    private sealed record ProbeCommand(NetworkDispatchContext Dispatch,ProbeGameMessage Input):IProtocolCommand<string>
+    {public IClientNetworkMessage Message=>Input;public ProtocolFrameMetadata Frame=>new ProtocolFrameMetadata.Game(Input.Metadata);}
+    private sealed class FencingHandler(ICommandBus bus):ClientMessageHandler<ProbeGameMessage>,IProtocolCommandMessageHandler<ProbeCommand>
+    {protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,ProbeGameMessage message,CancellationToken ct)=>await bus.SendAsync(new ProbeCommand(context,message),ct);}
+    private sealed class ProbeCommandHandler(Recorder recorder,SelectedSessionSafety safety,ICommandWorkUnits units):ICommandHandler<ProbeCommand,string>
     {
-        public ClientMessageType MessageType => ClientMessageType.GameExit;
-    }
-
-    /// <summary>Fences its own connection, then sends a command: the command must see the fence.</summary>
-    private sealed class FencingHandler(
-        Recorder recorder,
-        NetworkCommandAuthorization authorization,
-        SelectedSessionSafety safety,
-        ICommandBus bus) : ClientMessageHandler<ProbeGameMessage>
-    {
-        protected override async ValueTask HandleMessageAsync(
-            NetworkDispatchContext context, ProbeGameMessage message, CancellationToken cancellationToken)
+        public async ValueTask<string> HandleAsync(CommandExecutionContext context,ProbeCommand command,CancellationToken ct)
         {
-            var metadata = authorization.Metadata;
-            await safety.BlockAsync(new(SelectedSessionIdentity.Create(
-                new(1), new(1), context.Connection.ConnectionId, 1, 10011), context.Connection), new IOException("unknown"), "test");
-            Exception? error = null;
-            try { await bus.SendAsync(new ProbeCommand(), cancellationToken); }
-            catch (Exception caught) { error = caught; }
-            recorder.Seen.Enqueue(new(GameplayJob.IsOnExecutor, GameplayJob.Current, metadata, CommandError: error));
-        }
-    }
-
-    private sealed record ProbeCommand : ICommand<string>;
-
-    private sealed class ProbeCommandHandler(Recorder recorder) : ICommandHandler<ProbeCommand, string>
-    {
-        public ValueTask<string> HandleAsync(CommandExecutionContext context, ProbeCommand command, CancellationToken ct)
-        {
-            Interlocked.Increment(ref recorder.CommandRuns);
-            return ValueTask.FromResult("ran");
+            await safety.BlockAsync(new(SelectedSessionIdentity.Create(new(1),new(1),command.Dispatch.Connection.ConnectionId,1,10011),command.Dispatch.Connection),new IOException("unknown"),"test");
+            Exception? error=null;
+            try{await units.WriteAsync(context,new("after-fence",[]),(_,_)=>{recorder.CommandRuns++;return ValueTask.FromResult("ran");},ct);}
+            catch(Exception caught){error=caught;}
+            recorder.Seen.Enqueue(new(GameplayJob.IsOnExecutor,GameplayJob.Current,command.Input.Metadata,CommandError:error));
+            return "refused";
         }
     }
 

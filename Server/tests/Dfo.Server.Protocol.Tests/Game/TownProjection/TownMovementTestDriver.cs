@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -40,11 +41,14 @@ internal static class TownMovementTestDriver
     }
     private sealed class Driver(GameTownMovementCommandHandler handler):ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<T> SendAsync<T>(ICommand<T> value,CancellationToken token=default) where T:notnull
         {
             var command=(IProtocolCommand)value;
             var request=new CommandRequestContext.ProtocolNonEffect(command.Dispatch,command.Message,command.Frame,()=>true);
-            var context=new CommandExecutionContext(Guid.NewGuid(),value.GetType(),handler.GetType(),CommandExecutionKind.Direct){Request=request};
+            var context=DomainCommandFixture.Context(Guid.NewGuid(),value.GetType(),handler.GetType()) with{Request=request};
             var result=value switch { GameSetUserAreaCommand area=>await handler.HandleAsync(context,area,token), GameSetUserPositionCommand position=>await handler.HandleAsync(context,position,token),_=>throw new NotSupportedException() };
             return (T)(object)result;
         }

@@ -7,15 +7,14 @@ public enum CommandSelectedSessionCleanupCapability { None, SelectedSessionLifec
 public enum CommandSelfSettlementCapability { None, SelfSettledAction }
 public enum InternalActionCancellationCapability { None, ConfirmedRollbackWriteResult }
 public enum TimerReadOnlyCancellationCapability { None, PremiumSnapshot, ItemUsageSnapshot }
-public enum CommandRouteKind { LegacyFineGrained, Protocol, Internal }
+public enum CommandRouteKind { Protocol, Internal }
 public sealed record ProtocolCommandMessageBinding(ClientMessageType MessageType, Type MessageClrType);
 
 public sealed record CommandHandlerRegistration(
     Type CommandType,
     Type HandlerType,
     Type InvokerType,
-    CommandExecutionKind ExecutionKind,
-    CommandRouteKind Route = CommandRouteKind.LegacyFineGrained,
+    CommandRouteKind Route,
     IReadOnlyList<ProtocolCommandMessageBinding>? ProtocolMessages = null,
     IReadOnlyCollection<CommandRegistrationExit>? RegistrationExits = null,
     CommandSelfSettlementCapability SelfSettlement = CommandSelfSettlementCapability.None,

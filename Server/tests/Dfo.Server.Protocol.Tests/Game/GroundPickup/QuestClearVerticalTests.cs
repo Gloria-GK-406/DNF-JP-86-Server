@@ -101,10 +101,10 @@ public sealed class QuestClearVerticalTests
                 new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(PlacementRules(),
                     new ItemLifecycleDomainService(itemStore,
                         provider.GetRequiredService<IDomainTransactionAccessor>(), PlacementRules())));
-            services.AddCommandHandler<
+            services.AddFixtureCommand<
                 GroundPickupDomainCommand,
                 GroundPickupResult,
-                GroundPickupDomainCommandHandler>(CommandExecutionKind.Transactional);
+                GroundPickupDomainCommandHandler>(FixtureUnitKind.Transactional);
             await using var provider = services.BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
@@ -156,7 +156,7 @@ public sealed class QuestClearVerticalTests
             });
 
             var drop = Assert.Single(afterDeath.CurrentCellState.GroundItems);
-            var pickup = await provider.GetRequiredService<ICommandBus>().SendAsync(
+            var pickup = await DomainCommandFixture.Bus(provider).SendAsync(
                 new GroundPickupDomainCommand(
                     LeaderAccount,
                     Leader,

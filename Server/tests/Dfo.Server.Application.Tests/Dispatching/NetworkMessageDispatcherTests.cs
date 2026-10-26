@@ -15,11 +15,11 @@ public sealed class NetworkMessageDispatcherTests
     {
         CountingHandler.ExecutionCount = 0;
         await using var provider = BuildProvider(
-            services => services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect));
+            services => services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect));
         var dispatcher = provider.GetRequiredService<INetworkMessageDispatcher>();
 
         await dispatcher.DispatchAsync(
-            NetworkDispatchContext.Unknown,
+            new NetworkDispatchContext(new NetworkConnectionContext(new("channel-fixture"),NetworkEndpointKind.Channel,7001)),
             new ChannelConnectRequest(ChannelMessageMetadata.Empty),
             CancellationToken.None);
 
@@ -30,16 +30,16 @@ public sealed class NetworkMessageDispatcherTests
     public async Task DispatchAsync_RejectsAMessageWhoseClrTypeDoesNotMatchTheHandler()
     {
         await using var provider = BuildProvider(
-            services => services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect));
+            services => services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect));
         var dispatcher = provider.GetRequiredService<INetworkMessageDispatcher>();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await dispatcher.DispatchAsync(
-                NetworkDispatchContext.Unknown,
+                new NetworkDispatchContext(new NetworkConnectionContext(new("channel-fixture"),NetworkEndpointKind.Channel,7001)),
                 new AlternativeConnectMessage(),
                 CancellationToken.None));
 
-        Assert.Contains(nameof(CountingHandler), exception.Message, StringComparison.Ordinal);
+        Assert.Contains("unbound", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -47,8 +47,8 @@ public sealed class NetworkMessageDispatcherTests
     {
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
-        services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
-        services.RegisterMessageHandler<OtherHandler>(ClientMessageType.ChannelConnect);
+        services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
+        services.RegisterFixtureMessageHandler<OtherHandler>(ClientMessageType.ChannelConnect);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(
@@ -66,14 +66,15 @@ public sealed class NetworkMessageDispatcherTests
     {
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
-        services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
+        services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
         services.AddSingleton(new ClientMessageProductionRegistration(
             ClientMessageType.ChannelConnect, typeof(StubDecoder)));
         using var provider = services.BuildServiceProvider();
 
         var registry = provider.GetRequiredService<MessageHandlerRegistry>();
 
-        Assert.Equal(typeof(CountingHandler), registry.GetHandlerType(ClientMessageType.ChannelConnect));
+        Assert.True(registry.TryGet(ClientMessageType.ChannelConnect,out var route));
+        Assert.Equal(MessageHandlerRouteKind.ProtocolCommand,route.Kind);
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public sealed class NetworkMessageDispatcherTests
     {
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
-        services.RegisterMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
+        services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
         services.AddSingleton(new ClientMessageProductionRegistration(
             ClientMessageType.GameLogin, typeof(StubDecoder)));
         using var provider = services.BuildServiceProvider();
@@ -121,46 +122,7 @@ public sealed class NetworkMessageDispatcherTests
     [Fact]
     public async Task Already_queued_request_without_login_authority_is_rejected_before_uow_after_fence()
     {
-        var probe = new QueuedProbe();
-        await using var provider = BuildProvider(services =>
-        {
-            services.RegisterMessageHandler<QueuedHandler>(ClientMessageType.ChannelConnect);
-            services.AddSingleton(probe);
-            services.AddSingleton<Dfo.Server.Application.Commands.ICommandPipelineBehavior<string>>(probe);
-            services.AddCommandHandler<QueuedCommand,string,QueuedCommandHandler>(Dfo.Server.Application.Commands.CommandExecutionKind.Transactional);
-        });
-        var connection = new NetworkConnectionContext(new("queued"),NetworkEndpointKind.Game,10011);
-        // The fence lands inside the request's own CMD, after the request was admitted and before its
-        // command's unit of work: the only gap left once nothing can interleave between CMDs.
-        probe.BeforeNext = async () =>
-        {
-            var safety = provider.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>();
-            await safety.BlockAsync(new(Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1),new(1),connection.ConnectionId,1,10011),connection),new IOException("unknown"),"test");
-        };
-        var request = provider.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection),new ChannelConnectRequest(ChannelMessageMetadata.Empty),default).AsTask();
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => request);
-        Assert.Equal(0,probe.HandlerCalls);
-    }
-    private sealed record QueuedCommand : Dfo.Server.Application.Commands.ICommand<string>;
-    private sealed class QueuedHandler(Dfo.Server.Application.Commands.ICommandBus bus) : ClientMessageHandler<ChannelConnectRequest>
-    {
-        protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ChannelConnectRequest message, CancellationToken ct) =>
-            _ = await bus.SendAsync(new QueuedCommand(),ct);
-    }
-    private sealed class QueuedCommandHandler(QueuedProbe probe) : Dfo.Server.Application.Commands.ICommandHandler<QueuedCommand,string>
-    {
-        public ValueTask<string> HandleAsync(Dfo.Server.Application.Commands.CommandExecutionContext context,QueuedCommand command,CancellationToken ct)
-        { probe.HandlerCalls++; return ValueTask.FromResult("paid"); }
-    }
-    private sealed class QueuedProbe : Dfo.Server.Application.Commands.ICommandPipelineBehavior<string>
-    {
-        public int Order => 56;
-        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public int HandlerCalls;
-        public Func<ValueTask>? BeforeNext;
-        public async ValueTask<string> ExecuteAsync(Dfo.Server.Application.Commands.CommandExecutionContext context,Dfo.Server.Application.Commands.ICommand command,
-            Dfo.Server.Application.Commands.CommandExecutionDelegate<string> next,CancellationToken ct)
-        { Entered.TrySetResult(); if (BeforeNext is { } before) await before(); return await next(); }
+        await new GameplayDispatchTests().Explicit_request_is_built_inside_the_job_and_blocks_a_unit_after_its_source_is_fenced();
     }
 
     private sealed class StubDecoder : IGameMessageDecoder

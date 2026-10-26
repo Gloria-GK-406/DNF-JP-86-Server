@@ -186,6 +186,9 @@ public sealed class CharacterRosterCommandFlowTests
 
     private sealed class CaptureBus : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public List<object> Commands { get; } = [];
         public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
         { Commands.Add(command); return ValueTask.FromResult(default(T)!); }

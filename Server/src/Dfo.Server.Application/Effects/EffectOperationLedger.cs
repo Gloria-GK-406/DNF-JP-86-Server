@@ -10,8 +10,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Effects;
 
 /// <summary>Bounded operation identities belong to the original physical connection, never its reusable ID.</summary>
-internal sealed class EffectOperationLedger(EffectOperationContext operations, SelectedSessionSafety safety,
-    ISelectedSessionDomainService sessions, IReplayStateProjectionDelivery delivery)
+internal sealed class EffectOperationLedger(SelectedSessionSafety safety, ISelectedSessionDomainService sessions)
 {
     private const long Window = 128;
     private readonly ConditionalWeakTable<NetworkConnectionContext, Ledger> ledgers = new();
@@ -67,28 +66,6 @@ internal sealed class EffectOperationLedger(EffectOperationContext operations, S
         if (entry.State == EffectOperationState.Pending) entry.State = EffectOperationState.Rejected;
     }
 
-    public async ValueTask DispatchAsync(NetworkConnectionContext connection, IEffectSettlementRequest request,
-        Func<ValueTask> handler, CancellationToken ct)
-    {
-        GameplayWriteAssertion.Writing(nameof(EffectOperationLedger) + "." + nameof(DispatchAsync));
-        var admission = Admit(connection, request);
-        if (admission is EffectAdmission.Rejected)
-        {
-            using var rejection = operations.EnterWithoutSelectedSession();
-            await handler().ConfigureAwait(false);
-            return;
-        }
-        if (admission is EffectAdmission.Replay replay)
-        {
-            await delivery.RefreshAsync(connection, replay.Recipient.Session, replay.Entry.Projection
-                ?? throw new InvalidOperationException("Committed operation has no prepared projection."), request.Metadata, ct).ConfigureAwait(false);
-            return;
-        }
-        var selected = (EffectAdmission.Selected)admission;
-        using var operation = operations.Enter(selected.Entry, selected.Recipient, selected.Minimum);
-        try { await handler().ConfigureAwait(false); }
-        finally { FinalizePending(selected.Entry); }
-    }
     private sealed class Ledger
     {
         public long LatestOrdinal { get; set; }

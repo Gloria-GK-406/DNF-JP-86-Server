@@ -1,6 +1,6 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Transactions;
@@ -18,9 +18,9 @@ public sealed class UnitOfWorkBehaviorTests
         var cause = new IOException("handler failed");
         var rollback = new IOException("rollback failed");
         var probe = new ParticipantProbe { HandlerFailure = cause, RollbackFailure = rollback };
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
         var failure = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
-            await provider.GetRequiredService<ICommandBus>().SendAsync(new TestCommand(), default));
+            await DomainCommandFixture.Bus(provider).SendAsync(new TestCommand(), default));
         Assert.Equal(TransactionUncertaintyReason.RollbackFailure, failure.Reason);
         var aggregate = Assert.IsType<AggregateException>(failure.InnerException);
         Assert.Contains(cause, aggregate.InnerExceptions);
@@ -33,9 +33,9 @@ public sealed class UnitOfWorkBehaviorTests
     public async Task TransactionalCommand_MakesEveryChangeVisibleWhenItSucceeds()
     {
         var probe = new ParticipantProbe();
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
 
-        await provider.GetRequiredService<ICommandBus>()
+        await DomainCommandFixture.Bus(provider)
             .SendAsync(new TestCommand(), CancellationToken.None);
 
         Assert.All(probe.Participants, participant => Assert.True(participant.Applied));
@@ -51,10 +51,10 @@ public sealed class UnitOfWorkBehaviorTests
         {
             HandlerFailure = new InvalidOperationException("business failure"),
         };
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await provider.GetRequiredService<ICommandBus>()
+            await DomainCommandFixture.Bus(provider)
                 .SendAsync(new TestCommand(), CancellationToken.None));
 
         Assert.NotEmpty(probe.Participants);
@@ -66,10 +66,10 @@ public sealed class UnitOfWorkBehaviorTests
     public async Task TransactionalCommand_FailsWhenASecondParticipantWhoseCommitCanFailJoins()
     {
         var probe = new ParticipantProbe { EnlistASecondFallibleParticipant = true };
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await provider.GetRequiredService<ICommandBus>()
+            await DomainCommandFixture.Bus(provider)
                 .SendAsync(new TestCommand(), CancellationToken.None));
 
         Assert.Contains("at most one", failure.Message, StringComparison.OrdinalIgnoreCase);
@@ -80,9 +80,9 @@ public sealed class UnitOfWorkBehaviorTests
     public async Task DirectCommand_RunsWithNoTransactionOpen()
     {
         var probe = new ParticipantProbe();
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Direct);
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Direct);
 
-        await provider.GetRequiredService<ICommandBus>()
+        await DomainCommandFixture.Bus(provider)
             .SendAsync(new AmbientProbeCommand(), CancellationToken.None);
 
         Assert.False(probe.SawAmbientTransaction);
@@ -92,66 +92,34 @@ public sealed class UnitOfWorkBehaviorTests
     public async Task TransactionalCommand_LeavesNoTransactionOpenAfterItReturns()
     {
         var probe = new ParticipantProbe();
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
-        var bus = provider.GetRequiredService<ICommandBus>();
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
+        var bus = DomainCommandFixture.Bus(provider);
 
         await bus.SendAsync(new TestCommand(), CancellationToken.None);
 
         Assert.Null(provider.GetRequiredService<IDomainTransactionAccessor>().Current);
     }
 
-    /// <summary>
-    /// The transaction has to open inside the selected-session check and the settlement that reads
-    /// its outcome, and around the handler. That is a statement about where the behaviour sits, so
-    /// it is asserted on the order rather than on the exact numbers.
-    /// </summary>
-    [Fact]
-    public void UnitOfWork_OpensInsideTheSelectedSessionSettlementAndOutsideTheExecutionPolicy()
-    {
-        var probe = new ParticipantProbe();
-        using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
-        using var scope = provider.CreateScope();
-
-        var orders = scope.ServiceProvider
-            .GetServices<ICommandPipelineBehavior<TestResult>>()
-            .ToDictionary(
-                behaviour => behaviour.GetType().GetGenericTypeDefinition(),
-                behaviour => behaviour.Order);
-
-        Assert.True(
-            orders[typeof(SelectedSessionExecutionBehavior<>)] < orders[typeof(SelectedSessionSettlementBehavior<>)],
-            "the settlement must run inside the selected-session check");
-        Assert.True(
-            orders[typeof(SelectedSessionSettlementBehavior<>)] < orders[typeof(UnitOfWorkBehavior<>)],
-            "the transaction must open inside the settlement that reads its outcome");
-        Assert.True(
-            orders[typeof(SelectedSessionExecutionBehavior<>)] < orders[typeof(UnitOfWorkBehavior<>)],
-            "the transaction must open after the selected session is checked");
-        Assert.True(
-            orders[typeof(UnitOfWorkBehavior<>)] < orders[typeof(CommandExecutionPolicyBehavior<>)],
-            "the command must execute inside the transaction");
-    }
-
     [Fact]
     public async Task Business_refusal_returns_normally_but_rolls_back_every_participant()
     {
         var probe = new ParticipantProbe { RefuseWithoutThrowing = true };
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
-        Assert.NotNull(await provider.GetRequiredService<ICommandBus>().SendAsync(new TestCommand(), default));
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
+        Assert.NotNull(await DomainCommandFixture.Bus(provider).SendAsync(new TestCommand(), default));
         Assert.All(probe.Participants, p => { Assert.True(p.RolledBack); Assert.False(p.Applied); });
         Assert.Null(provider.GetRequiredService<IDomainTransactionAccessor>().Current);
     }
 
     private static ServiceProvider BuildProvider(
         ParticipantProbe probe,
-        CommandExecutionKind executionKind)
+        FixtureUnitKind executionKind)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddCommandDispatching();
         services.AddSingleton(probe);
-        services.AddCommandHandler<TestCommand, TestResult, EnlistingHandler>(executionKind);
-        services.AddCommandHandler<AmbientProbeCommand, TestResult, AmbientProbeHandler>(executionKind);
+        services.AddFixtureCommand<TestCommand, TestResult, EnlistingHandler>(executionKind);
+        services.AddFixtureCommand<AmbientProbeCommand, TestResult, AmbientProbeHandler>(executionKind);
         return services.BuildServiceProvider();
     }
 

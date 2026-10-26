@@ -34,7 +34,7 @@ internal static class DungeonEntryRouteDriver
         var dispatch = new NetworkDispatchContext(user!.Connection);
         var input = new SelectDungeonRequest(GameMessageMetadata.Empty,dungeon,0,0,0);
         var request = new CommandRequestContext.ProtocolNonEffect(dispatch,input,new ProtocolFrameMetadata.Game(input.Metadata),()=>true);
-        var context = new CommandExecutionContext(Guid.NewGuid(),typeof(GameSelectDungeonCommand),typeof(GameSelectDungeonCommandHandler),CommandExecutionKind.Direct) { Request=request };
+        var context = DomainCommandFixture.Context(Guid.NewGuid(),typeof(GameSelectDungeonCommand),typeof(GameSelectDungeonCommandHandler)) with { Request=request };
         var handler = ActivatorUtilities.CreateInstance<GameSelectDungeonCommandHandler>(services);
         var result = await handler.HandleAsync(context,new(dispatch,input),token);
         await request.DrainOperationsAsync(); request.Close();

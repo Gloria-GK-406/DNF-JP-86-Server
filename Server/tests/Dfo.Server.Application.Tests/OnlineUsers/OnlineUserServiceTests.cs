@@ -628,7 +628,7 @@ public sealed class UserServiceTests
         ISelectedSessionCleanupDomainService cleanup,
         IGameMessageSender sender,
         TimeProvider timeProvider,
-        IChannelEntryPolicy? channelPolicy = null,
+        IChannelEntryDomainService? channelPolicy = null,
         RecordingCleanupDelivery? cleanupDelivery = null) =>
         new(
             service,
@@ -658,8 +658,11 @@ public sealed class UserServiceTests
         }
     }
 
-    private sealed class FixedChannelEntryPolicy(ChannelEntryIdentity channel) : IChannelEntryPolicy
+    private sealed class FixedChannelEntryPolicy(ChannelEntryIdentity channel) : IChannelEntryDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort,
             CancellationToken cancellationToken) =>

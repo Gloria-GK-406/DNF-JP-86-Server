@@ -7,27 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Dispatching;
 
-/// <summary>
-/// Runs each inbound message as one job on the gameplay executor and waits for it (RQ-005): the
-/// receive callback awaits this, so a connection's next frame is decoded only after its previous
-/// job has run.
-/// </summary>
-/// <remarks>
-/// Everything the message needs is built inside the job (scope, the session fence, login
-/// supersession, captured authority, the authorization frame, the effect ledger). The executor's
-/// loop does not carry the producer's execution context, so a frame built out here would be
-/// invisible to the handler and to the commands it runs inline, and every guard would take its
-/// "no frame, let it through" branch (plan, request-level context, transitional shape).
-/// <para>
-/// The job carries its source connection and starts its outbox at once, so a job that fails closes
-/// that connection after whatever its outbox keeps, even if it registered nothing (RQ-031(c), DR-15);
-/// the returned task completes once the outbox has been handed to the sender (RQ-005).
-/// </para>
-/// </remarks>
 internal sealed class NetworkMessageDispatcher(
     MessageHandlerRegistry registry,
     IServiceScopeFactory scopeFactory,
-    IGameplayQueue queue,
     Commands.CommandJobEntry entry) : INetworkMessageDispatcher
 {
     public ValueTask DispatchAsync(
@@ -38,22 +20,11 @@ internal sealed class NetworkMessageDispatcher(
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(message);
 
-        // TryGet, not a lookup that throws: an unregistered type still goes through the job, where
-        // the fence is checked before the handler lookup fails.
-        var registered = registry.TryGet(message.MessageType, out var route);
-        if (registered && route!.IsTelemetry) return DispatchTelemetryAsync(context, message, route.HandlerType, cancellationToken);
-        if (registered && route!.Kind == MessageHandlerRouteKind.ProtocolCommand)
-            return DispatchProtocolAsync(context, message, route, cancellationToken);
-        return queue.RunAsync(new GameplayWork(
-            GameplayShardKey.World,
-            GameplayCallChain.NewRoot(GameplayCallSource.Connection, context.Connection.ConnectionId),
-            registered ? route!.CommandType : MessageHandlerRegistry.CommandTypeOf(message.MessageType),
-            token =>
-            {
-                entry.Begin();
-                return HandleOnExecutorAsync(context, message, token);
-            },
-            context.Connection), cancellationToken);
+        if (!registry.TryGet(message.MessageType, out var route))
+            return entry.RejectUnregisteredAsync(context, message, cancellationToken);
+        return route.IsTelemetry
+            ? DispatchTelemetryAsync(context, message, route.HandlerType, cancellationToken)
+            : DispatchProtocolAsync(context, message, route, cancellationToken);
     }
 
     private async ValueTask DispatchProtocolAsync(NetworkDispatchContext context, IClientNetworkMessage message,
@@ -65,41 +36,6 @@ internal sealed class NetworkMessageDispatcher(
         var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(route.HandlerType);
         if (!handler.CanHandle(message)) throw new InvalidOperationException("The protocol handler rejected its registered message.");
         await handler.HandleAsync(context, message, ct).ConfigureAwait(false);
-    }
-
-    private async ValueTask HandleOnExecutorAsync(
-        NetworkDispatchContext context,
-        IClientNetworkMessage message,
-        CancellationToken cancellationToken)
-    {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var safety = scope.ServiceProvider.GetRequiredService<Commands.SelectedSessionSafety>();
-        if (safety.IsBlocked(context.Connection)) return;
-        // A replaced login/connection loses authority before asynchronous transport closure.
-        var sessions = scope.ServiceProvider.GetService<Authentication.LoginSessionRegistry>();
-        if (sessions?.IsSuperseded(context.Connection.ConnectionId) == true) return;
-        var authority = sessions?.CaptureAuthority(context.Connection.ConnectionId);
-        using var authorization = scope.ServiceProvider
-            .GetRequiredService<Commands.NetworkCommandAuthorization>().Enter(
-                () => !safety.IsBlocked(context.Connection) && (authority?.Invoke() ?? true),
-                // Telemetry only; authorization and settlement never depend on reflected payload facts.
-                message.GetType().GetProperty("Metadata")?.GetValue(message) as GameMessageMetadata,
-                message is IEffectSettlementRequest ? Commands.NetworkCommandAuthorization.MessageCategory.Effect
-                    : Commands.NetworkCommandAuthorization.MessageCategory.NonEffect);
-        var handlerType = registry.GetHandlerType(message.MessageType);
-        var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(handlerType);
-        if (!handler.CanHandle(message))
-        {
-            throw new InvalidOperationException(
-                $"Handler '{handlerType.Name}' rejected message CLR type '{message.GetType().Name}' " +
-                $"registered as '{message.MessageType}'.");
-        }
-
-        if (message is IEffectSettlementRequest effect)
-            await scope.ServiceProvider.GetRequiredService<EffectOperationLedger>().DispatchAsync(context.Connection, effect,
-                () => handler.HandleAsync(context, message, cancellationToken), cancellationToken).ConfigureAwait(false);
-        else
-            await handler.HandleAsync(context, message, cancellationToken);
     }
 
     /// <summary>

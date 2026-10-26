@@ -19,7 +19,7 @@ public sealed class OnlineUserConnectionObserver(
     IOnlineUserDomainService onlineUsers,
     ISelectedSessionDomainService selectedSessions,
     ICommandSelectedSessionCleanup cleanup,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     IServerConfigService serverConfig,
     IGameCommandOutbox gameSender,
     ICleanupNotificationDelivery cleanupDelivery,

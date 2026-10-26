@@ -433,6 +433,9 @@ public sealed class FinishQuestHandlerTests
     /// </remarks>
     private sealed class FixedCompletion(SkillPointLedger ledger, byte? growType = null, byte? awakening = null) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         /// <summary>What the ledger's count stood at when the completion was written.</summary>
         public int LedgerAsksWhenTheCompletionRan { get; private set; } = -1;
 
@@ -465,6 +468,9 @@ public sealed class FinishQuestHandlerTests
     }
     private sealed class UnknownCompletion : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken=default) where TResult:notnull =>
             throw new QuestFinishRejectedException(QuestId,"wrapper",new AggregateException(new IOException("other"),
                 new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
@@ -473,6 +479,9 @@ public sealed class FinishQuestHandlerTests
 
     private sealed class RejectedCompletion : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull =>
@@ -481,6 +490,9 @@ public sealed class FinishQuestHandlerTests
 
     private sealed class RefusedWithProgress : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull =>

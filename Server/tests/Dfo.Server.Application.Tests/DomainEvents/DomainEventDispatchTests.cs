@@ -3,7 +3,6 @@ using System.Threading.Channels;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Tests.Execution;

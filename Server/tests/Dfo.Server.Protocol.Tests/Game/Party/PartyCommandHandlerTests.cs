@@ -52,8 +52,8 @@ public sealed class PartyCommandHandlerTests
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(run.RunId, [Inviter, Invitee]);
-            var context = new CommandExecutionContext(
-                Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+            var context = DomainCommandFixture.Context(
+                Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
                 new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
@@ -89,8 +89,8 @@ public sealed class PartyCommandHandlerTests
                  new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
                 layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-            var context = new CommandExecutionContext(
-                Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+            var context = DomainCommandFixture.Context(
+                Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
                 new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
@@ -108,8 +108,8 @@ public sealed class PartyCommandHandlerTests
         await TestGameplay.RunAsync(async () =>
         {
             var domain = new RecordingParties();
-            var context = new CommandExecutionContext(
-                Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+            var context = DomainCommandFixture.Context(
+                Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var fixture = new RecordingCommandBus(domain: domain);
             var sessions = new SessionDirectory(Inviter, Invitee);
@@ -616,12 +616,15 @@ public sealed class PartyCommandHandlerTests
     private sealed class DirectBus<T>(ICommandHandler<T, bool> handler, RecordingCommandBus? recording = null) : ICommandBus
         where T : class, IProtocolCommand<bool>
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<R> SendAsync<R>(ICommand<R> value, CancellationToken ct = default) where R : notnull
         {
             var command = Assert.IsType<T>(value);
             recording?.Commands.Add(command);
             var request = new CommandRequestContext.ProtocolNonEffect(command.Dispatch, command.Message, command.Frame, () => true);
-            return (R)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(T), handler.GetType(), CommandExecutionKind.Direct)
+            return (R)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(T), handler.GetType())
                 { Request = request }, command, ct);
         }
     }
@@ -810,6 +813,9 @@ public sealed class PartyCommandHandlerTests
         PartyOperationResult? result = null, PartySnapshot? snapshot = null, RecordingParties? domain = null) : ICommandBus
 
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public RecordingParties Domain { get; } = domain ?? new RecordingParties(result, snapshot);
         public List<ICommand> Commands { get; } = [];
 

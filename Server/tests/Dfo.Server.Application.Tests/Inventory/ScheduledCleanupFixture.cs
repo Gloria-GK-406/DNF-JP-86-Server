@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
@@ -17,7 +18,7 @@ internal static class ScheduledCleanupFixture
             if (!services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().IsInWorld(session))
                 throw new InvalidOperationException("The domain fixture requires the exact in-world session, as the former fine admission did.");
             var request = new CommandRequestContext.TrustedInternal(new(GameplayCallSource.Timer, GameplayJob.Current!.Value, "test:scheduled-cleanup-domain"));
-            var context = new CommandExecutionContext(Guid.NewGuid(), typeof(ScheduledCleanupFixture), typeof(ScheduledCleanupFixture), CommandExecutionKind.Direct) { Request = request };
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(ScheduledCleanupFixture), typeof(ScheduledCleanupFixture)) with { Request = request };
             try
             {
                 return await services.GetRequiredService<ICommandWorkUnits>().WriteAsync(context, new("test:scheduled-session", [new(session, null)]),

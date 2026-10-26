@@ -1829,7 +1829,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         Assert.Equal(Dfo.Server.Abstractions.Inventory.ItemMoveStatus.ItemCannotOccupySlot, escaped.Status);
         var request = new Dfo.Server.Abstractions.Effects.ReplayProjectionRequest(
             Dfo.Server.Abstractions.Effects.ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.TowerQuickSlot, 0)]);
-        var active = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request, null), default);
+        var active = await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(f.Services,f.Session, request, null, default);
         var memory = active.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.QuickSlot);
         Assert.Equal(6521, memory.Items.Single(x => x.SlotIndex == 3).Core.ItemId);
         Assert.Equal(6515, memory.Items.Single(x => x.SlotIndex == 4).Core.ItemId);
@@ -1839,7 +1839,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         {
             await TestEffectFootprints.Run((tower.Find(context.Session)?.Members.Select(member => member.Session) ?? []).Append(context.Session), cap => tower.LeaveAsync(context, false, cap, default));
         });
-        var returned = await bus.SendAsync(new Dfo.Server.Application.Effects.ReadReplayStateCommand(f.Session, request, null), default);
+        var returned = await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(f.Services,f.Session, request, null, default);
         Assert.DoesNotContain(returned.Inventory!.Character().Containers, x => x.ContainerType == InventoryContainerType.QuickSlot);
         Assert.Equal(2000, returned.Inventory.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Main)
             .Items.Single(x => x.SlotIndex == 3).Core.ItemId);

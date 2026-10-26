@@ -31,8 +31,7 @@ public sealed class TutorialRewardPlacementTests
     private static readonly CommandExecutionContext Context = new(
         Guid.Empty,
         typeof(TutorialRewardTestInput),
-        typeof(TutorialRewardTestDriver),
-        CommandExecutionKind.Transactional);
+        typeof(TutorialRewardTestDriver));
 
     [Fact]
     public async Task A_grant_joins_a_pile_the_character_already_has()

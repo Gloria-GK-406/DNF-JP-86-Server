@@ -20,20 +20,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Effects;
 
-public sealed record ReadReplayStateCommand(SelectedSessionIdentity Session, ReplayProjectionRequest Request, GameMessageMetadata? Metadata)
-    : ICommand<ReplayStateSnapshot>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
-
-public sealed class ReadReplayStateCommandHandler(IReplayStateDomainService reader)
-    : ICommandHandler<ReadReplayStateCommand, ReplayStateSnapshot>
-{
-    public ValueTask<ReplayStateSnapshot> HandleAsync(CommandExecutionContext context,
-        ReadReplayStateCommand command, CancellationToken cancellationToken) =>
-        reader.ReadAsync(command.Session, command.Request, command.Metadata, cancellationToken);
-}
-
 /// <summary>Reads only requested current facts, in the caller's protected transaction; never performs entry work.</summary>
 internal sealed class ReplayStateDomainService(IServiceProvider services, IDomainTransactionAccessor transactions,
     SelectedSessionSafety safety, TimeProvider clock) : IReplayStateDomainService

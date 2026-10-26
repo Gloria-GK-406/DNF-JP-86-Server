@@ -120,38 +120,24 @@ public sealed class ExplicitEffectExecutionTests
 
     [Theory]
     [InlineData("owner")]
-    [InlineData("main")]
     [InlineData("transaction")]
     [InlineData("frozen")]
-    [InlineData("operation")]
-    [InlineData("execution")]
-    [InlineData("admission")]
     [InlineData("authorization")]
-    [InlineData("lease")]
-    [InlineData("rejected")]
+    [InlineData("request")]
+    [InlineData("main-ended")]
     public async Task Captured_effects_authority_rejects_before_gold_even_for_an_empty_effect_list(string invalid)
     {
         using var f = Fixture(new Witness(), new Replay());
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var operations = f.Services.GetRequiredService<EffectOperationContext>();
-            var authorization = f.Services.GetRequiredService<NetworkCommandAuthorization>();
-            using var network = authorization.Enter(() => true, GameMessageMetadata.Empty, NetworkCommandAuthorization.MessageCategory.Effect);
-            var context = new CommandExecutionContext(Guid.NewGuid(), typeof(Probe), typeof(ProbeHandler), CommandExecutionKind.Transactional);
-            var command = new Probe(f.Session, 2); var entry = Entry(f.Session);
-            using var admission = context.EnterLegacyInvocation(f.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(typeof(Probe)));
-            using var operation = invalid == "rejected" ? operations.EnterWithoutSelectedSession()
-                : operations.Enter(entry, new(f.Session, f.Connection), ReplayProjectionNeeds.None);
-            using var main = invalid == "rejected" ? null : operations.BeginMain(context, invalid == "main" ? new Ordinary() : command);
+            var explicitRequest = new EffectFixtureContext(f);
+            var cap = explicitRequest.State.BeginMain([new(f.Session, f.Connection)], false);
             await using var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            if (invalid != "transaction" && invalid != "rejected") operations.TransactionStarted(context, command);
-            using var cap = operations.CaptureLegacy(context, authorization.Capture(), false, () => { });
-            if (invalid == "frozen") operations.Freeze(context, command);
-            if (invalid == "operation") operation.Dispose();
-            if (invalid == "execution") main!.Dispose();
-            if (invalid == "admission") admission.Dispose();
-            if (invalid == "authorization") network.Dispose();
-            if (invalid == "lease") cap.Dispose();
+            if (invalid != "transaction") explicitRequest.State.TransactionStarted();
+            if (invalid == "frozen") explicitRequest.State.Freeze();
+            if (invalid == "main-ended") explicitRequest.State.EndMain();
+            if (invalid == "authorization") explicitRequest.Authorized = false;
+            if (invalid == "request") explicitRequest.Request.Close();
             var target = Context(f, cap);
             if (invalid == "owner") target = target with { AccountId = new(99) };
             var executor = f.Services.GetRequiredService<IApplyEffectsDomainService>();
@@ -265,14 +251,14 @@ public sealed class ExplicitEffectExecutionTests
         using var f = new ShopFixture();
         var cap = f.Services.GetRequiredService<ICommandSelectedSessionCleanup>();
         await Assert.ThrowsAsync<InvalidOperationException>(() => cap.CleanupAsync(
-            new(Guid.NewGuid(), typeof(DisconnectedLifecycleCommand), typeof(OnlineUserConnectionObserver), CommandExecutionKind.Direct),
+            new(Guid.NewGuid(), typeof(DisconnectedLifecycleCommand), typeof(OnlineUserConnectionObserver)),
             f.Session, false).AsTask());
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(f.Services, async () =>
         {
             foreach (var kind in new[] { GameplayCallSource.Event, GameplayCallSource.Timer, GameplayCallSource.Lifecycle })
             {
                 var request = new CommandRequestContext.TrustedInternal(new(kind, GameplayJob.Current!.Value, "wrong-origin"));
-                var context = new CommandExecutionContext(Guid.NewGuid(), typeof(ConnectedLifecycleCommand), typeof(OnlineUserConnectionObserver), CommandExecutionKind.Direct) { Request = request };
+                var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(ConnectedLifecycleCommand), typeof(OnlineUserConnectionObserver)) with { Request = request };
                 await Assert.ThrowsAsync<InvalidOperationException>(() => cap.CleanupAsync(context, f.Session, false).AsTask());
             }
             new Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests()
@@ -332,18 +318,12 @@ public sealed class ExplicitEffectExecutionTests
         {
             await TestGameplay.RunAsync(f.Services, () =>
             {
-                var operations = f.Services.GetRequiredService<EffectOperationContext>();
-                var authorization = f.Services.GetRequiredService<NetworkCommandAuthorization>();
-                using var network = authorization.Enter(() => true, GameMessageMetadata.Empty, NetworkCommandAuthorization.MessageCategory.Effect);
-                var context = new CommandExecutionContext(Guid.NewGuid(), typeof(Probe), typeof(ProbeHandler), CommandExecutionKind.Transactional);
-                var command = new Probe(f.Session, 2); var entry = Entry(f.Session);
-                using var admission = context.EnterLegacyInvocation(f.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(typeof(Probe)));
-                using var operation = operations.Enter(entry, new(f.Session, f.Connection), ReplayProjectionNeeds.None);
-                using var main = operations.BeginMain(context, command);
-                operations.TransactionStarted(context, command);
-                using var cap = operations.CaptureLegacy(context, authorization.Capture(), false, () => { });
+                var owner = new EffectFixtureContext(f);
+                var entry = owner.Entry;
+                var cap = owner.State.BeginMain([new(f.Session,f.Connection)],false);
+                owner.State.TransactionStarted();
                 cap.RecordEffects(Owner(f), [new(item.Effect, item.Change)]);
-                operations.Freeze(context, command);
+                owner.State.Freeze();
                 Assert.Equal(item.Needs, entry.Projection!.Needs);
                 Assert.Equal(item.Slots.OrderBy(slot => slot.Index), entry.Projection.TouchedSlots.OrderBy(slot => slot.Index));
                 if (item.Effect is MoveToTownEffect move)
@@ -414,38 +394,44 @@ public sealed class ExplicitEffectExecutionTests
         foreach (var registration in services.Where(value => value.ImplementationInstance is MessageHandlerRegistration { MessageType: ClientMessageType.GameExit }).ToArray()) services.Remove(registration);
         foreach (var descriptor in services.Where(d => d.ImplementationInstance is CommandHandlerRegistration registration
             && registration.CommandType == typeof(Dfo.Server.Protocol.Game.Exit.GameExitCommand)).ToArray()) services.Remove(descriptor);
-        services.RegisterMessageHandler<ProbeNetworkHandler>(ClientMessageType.GameExit);
-        services.AddCommandHandler<Probe, bool, ProbeHandler>(CommandExecutionKind.Transactional);
-        services.AddSingleton(witness); services.AddSingleton<IReplayStateProjectionDelivery>(replay);
+        services.RegisterProtocolMessageHandler<ProbeNetworkHandler,EffectRequest,Probe>(ClientMessageType.GameExit);
+        services.AddProtocolCommandHandler<Probe, bool, ProbeHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameExit, typeof(EffectRequest)));
+        services.AddSingleton(witness); services.AddSingleton<IReplayStateDomainService>(replay); services.AddSingleton<IReplayStateProjectionSink>(replay);
     });
     private sealed record EffectRequest(GameMessageMetadata Metadata, byte Level) : IEffectSettlementRequest
     { public ClientMessageType MessageType => ClientMessageType.GameExit; public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.None; }
-    private sealed record Probe(SelectedSessionIdentity Session, byte Level) : ICommand<bool>, IRequestSettlementCommand;
-    private sealed record Ordinary : ICommand<bool>;
-    private sealed class ProbeNetworkHandler(ICommandBus bus, ISelectedSessionDomainService sessions) : IClientMessageHandler
+    private sealed record Probe(NetworkDispatchContext Dispatch, EffectRequest Input) : IProtocolCommand<bool>
+    { public IClientNetworkMessage Message => Input; public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata); }
+    private sealed class ProbeNetworkHandler(ICommandBus bus) : ClientMessageHandler<EffectRequest>, IProtocolCommandMessageHandler<Probe>
     {
-        public bool CanHandle(IClientNetworkMessage message) => message is EffectRequest;
-        public async ValueTask HandleAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken ct) =>
-            _ = await bus.SendAsync(new Probe(sessions.FindByConnection(context.Connection.ConnectionId)!, ((EffectRequest)message).Level), ct);
+        protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, EffectRequest message, CancellationToken ct) =>
+            _ = await bus.SendAsync(new Probe(context,message), ct);
     }
     private sealed class Witness { public bool Fail; public List<IEffectFootprintRecorder> Caps { get; } = []; }
-    private sealed class ProbeHandler(IApplyEffectsDomainService effects, ICharacterDomainService characters, Witness witness, TimeProvider clock) : ICommandHandler<Probe, bool>
+    private sealed class ProbeHandler(IApplyEffectsDomainService effects, ICharacterDomainService characters, Witness witness, TimeProvider clock, ICommandWorkUnits units) : ICommandHandler<Probe, bool>
     {
-        public async ValueTask<bool> HandleAsync(CommandExecutionContext context, Probe command, CancellationToken ct)
+        public ValueTask<bool> HandleAsync(CommandExecutionContext context, Probe command, CancellationToken ct)
         {
-            witness.Caps.Add(context.LegacyFootprint);
-            var progress = await characters.Get(command.Session.CharacterId).ProgressAsync(ct);
-            await effects.ApplyAsync(new(command.Session.AccountId, command.Session.CharacterId, clock.GetUtcNow(), context.LegacyFootprint, command.Session),
-                [new ConsumeFromContainerEffect(Slot, 1000, 1), new SpendGoldEffect(7), new SetCharacterLevelEffect(progress!, command.Level)], ct);
-            if (witness.Fail) { witness.Fail = false; throw new IOException("before commit"); }
-            return true;
+            var selected = (CommandRequestContext.ProtocolEffectSelected)context.Request!;
+            var session = selected.State.Recipient.Session;
+            return units.WriteAsync(context, new("explicit-effects", [selected.State.Recipient], CommandWorkUnitKind.MainSettlement), async (unit,token) =>
+            {
+                witness.Caps.Add(unit.Footprint);
+                var progress = await characters.Get(session.CharacterId).ProgressAsync(token);
+                await effects.ApplyAsync(new(session.AccountId, session.CharacterId, clock.GetUtcNow(), unit.Footprint, session),
+                    [new ConsumeFromContainerEffect(Slot, 1000, 1), new SpendGoldEffect(7), new SetCharacterLevelEffect(progress!, command.Input.Level)], token);
+                if (witness.Fail) { witness.Fail = false; throw new IOException("before commit"); }
+                return true;
+            },ct);
         }
     }
-    private sealed class Replay : IReplayStateProjectionDelivery
+    private sealed class Replay : IReplayStateDomainService, IReplayStateProjectionSink
     {
         public List<ReplayProjectionRequest> Plans { get; } = [];
-        public ValueTask RefreshAsync(NetworkConnectionContext connection, SelectedSessionIdentity session, ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken ct)
-        { Plans.Add(request); return ValueTask.CompletedTask; }
+        public ValueTask<ReplayStateSnapshot> ReadAsync(SelectedSessionIdentity session, ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken ct) =>
+            ValueTask.FromResult(new ReplayStateSnapshot(session,request,DateTimeOffset.UnixEpoch,null,[],null,null,null,null,null,[],[],[],null));
+        public ValueTask ProjectAsync(NetworkConnectionContext connection, SelectedSessionIdentity session, GameMessageMetadata? metadata, ReplayStateSnapshot snapshot, ICommandRegistrationAttempt? attempt,CancellationToken ct)
+        { Plans.Add(snapshot.Request); return ValueTask.CompletedTask; }
     }
     private class Pause
     {

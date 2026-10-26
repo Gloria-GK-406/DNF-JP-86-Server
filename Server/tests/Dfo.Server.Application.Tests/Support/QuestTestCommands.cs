@@ -43,7 +43,7 @@ internal sealed class QuestTestCommands
     private static readonly ConditionalWeakTable<NetworkConnectionContext,Counter> Counters=new();
     private sealed class Counter {internal GameInboundFrameCounter Value=new();internal ushort Sequence;}
     internal static bool Modern=>typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestAcceptance.GameAcceptQuestCommand") is not null;
-    internal ValueTask<T> SendAsync<T>(ICommand<T> input,CancellationToken ct=default) where T:notnull => services.GetRequiredService<ICommandBus>().SendAsync(input,ct);
+    internal ValueTask<T> SendAsync<T>(ICommand<T> input,CancellationToken ct=default) where T:notnull => Dfo.Server.Testing.DomainCommandFixture.Bus(services).SendAsync(input,ct);
     internal ValueTask<QuestAcceptOutcome> SendAsync(QuestAcceptTestInput input,CancellationToken ct=default)=>Run<QuestAcceptOutcome>("QuestAcceptance","AcceptQuest","AcceptAsync",0x1F,input.AccountId,input.CharacterId,[input.AccountId,input.CharacterId,input.QuestId],ct);
     internal ValueTask<GiveUpQuestOutcome> SendAsync(QuestGiveUpTestInput input,CancellationToken ct=default)=>Run<GiveUpQuestOutcome>("QuestGiveUp","GiveUpQuest","GiveUpAsync",0x20,input.AccountId,input.CharacterId,[input.AccountId,input.CharacterId,input.QuestId],ct);
     internal ValueTask<QuestFinishOutcome> SendAsync(QuestFinishTestInput input,CancellationToken ct=default)=>Run<QuestFinishOutcome>("QuestCompletion","FinishQuest","CompleteAsync",0x22,input.AccountId,input.CharacterId,[input.AccountId,input.CharacterId,input.QuestId,input.RewardSelection,input.CompletionCount,input.AcquiredAtUnixTime,input.Session],ct);
@@ -81,7 +81,7 @@ internal sealed class QuestTestCommands
         var assembly=typeof(ProtocolModule).Assembly;var command=assembly.GetType($"Dfo.Server.Protocol.Game.{slice}.{name}Command");if(command is null)return;
         var handler=assembly.GetType($"Dfo.Server.Protocol.Game.{slice}.{name}CommandHandler",true)!;
         var result=command.GetInterfaces().Single(x=>x.IsGenericType&&x.GetGenericTypeDefinition()==typeof(ICommand<>)).GenericTypeArguments[0];
-        typeof(CommandDispatchingExtensions).GetMethods().Single(x=>x.Name=="AddCommandHandler"&&x.GetGenericArguments().Length==3).MakeGenericMethod(command,result,handler).Invoke(null,[services,CommandExecutionKind.Transactional]);
+        typeof(CommandDispatchingExtensions).GetMethods().Single(x=>x.Name=="AddCommandHandler"&&x.GetGenericArguments().Length==3).MakeGenericMethod(command,result,handler).Invoke(null,[services,FixtureUnitKind.Transactional]);
     }
     internal sealed class PublishedView(ICharacterDomainService characters,ICharacterEntryStateDomainService entries,ICharacterInventoryEntryDomainService inventory,ICharacterSkillPointDomainService points):ISelectedCharacterCurrentViewDomainService
     {

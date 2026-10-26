@@ -65,7 +65,7 @@ public sealed class MarriageEntityTests
 
         relations.Armed = true;
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            f.Services.GetRequiredService<ICommandBus>().SendAsync(new ProposalTestCommand(peer, f.Session, 0), default).AsTask());
+            DomainCommandFixture.Bus(f.Services).SendAsync(new ProposalTestCommand(peer, f.Session, 0), default).AsTask());
         AssertStored(f, stage: 0, revision: 1);
         Assert.Equal(0, f.Scalar("SELECT state FROM marriage_proposals"));
 

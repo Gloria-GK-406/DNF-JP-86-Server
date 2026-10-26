@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
@@ -38,8 +39,11 @@ internal static class DungeonSelectionTestDriver
     }
     private sealed class Driver(GameDungeonSelectionCommandHandler handler):ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<T> SendAsync<T>(ICommand<T> value,CancellationToken token=default)where T:notnull
-        {var command=(IProtocolCommand)value;var request=new CommandRequestContext.ProtocolNonEffect(command.Dispatch,command.Message,command.Frame,()=>true);var context=new CommandExecutionContext(Guid.NewGuid(),value.GetType(),handler.GetType(),CommandExecutionKind.Direct){Request=request};var result=value switch{GameEnterSelectDungeonCommand enter=>await handler.HandleAsync(context,enter,token),GameBackToVillageCommand back=>await handler.HandleAsync(context,back,token),_=>throw new NotSupportedException()};return(T)(object)result;}
+        {var command=(IProtocolCommand)value;var request=new CommandRequestContext.ProtocolNonEffect(command.Dispatch,command.Message,command.Frame,()=>true);var context=DomainCommandFixture.Context(Guid.NewGuid(),value.GetType(),handler.GetType()) with{Request=request};var result=value switch{GameEnterSelectDungeonCommand enter=>await handler.HandleAsync(context,enter,token),GameBackToVillageCommand back=>await handler.HandleAsync(context,back,token),_=>throw new NotSupportedException()};return(T)(object)result;}
     }
     private sealed class Units:ICommandWorkUnits
     {

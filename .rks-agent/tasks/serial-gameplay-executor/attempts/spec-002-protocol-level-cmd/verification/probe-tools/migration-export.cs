@@ -36,7 +36,7 @@ var commands = services.Select(item => item.ImplementationInstance).OfType<Comma
         command = item.CommandType.FullName, handler = item.HandlerType.FullName,
         invoker = item.InvokerType.FullName,
         result = item.CommandType.GetInterfaces().Single(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICommand<>)).GetGenericArguments()[0].FullName,
-        execution_kind = item.ExecutionKind.ToString(), route = item.Route.ToString(),
+        execution_model = "explicit-work-units", route = item.Route.ToString(),
         protocol_bindings = item.ProtocolMessages?.OrderBy(binding => Convert.ToInt64(binding.MessageType)).Select(binding => new
         { message = binding.MessageType.ToString(), message_clr = binding.MessageClrType.FullName }).ToArray(),
     }).ToArray();

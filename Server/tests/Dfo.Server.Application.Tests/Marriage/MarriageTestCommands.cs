@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
@@ -13,10 +14,11 @@ namespace Dfo.Server.Application.Tests.Marriage;
 
 // Domain characterization keeps its result shape and real transaction; network cases use the registered whole CMD.
 internal sealed record ProposalTestCommand(SelectedSessionIdentity Actor, SelectedSessionIdentity Peer, byte? Response)
-    : ICommand<MarriageProposalResult>, IMultiSelectedSessionCommand
+    : ICommand<MarriageProposalResult>, Dfo.Server.Testing.IDomainFixtureParticipants
 {
     public SelectedSessionIdentity? Session => Actor;
     public IReadOnlyList<SelectedSessionIdentity> Sessions => [Actor, Peer];
+    public IReadOnlyList<SelectedSessionIdentity> Participants => [Actor,Peer];
 }
 internal sealed class ProposalTestHandler(IMarriageCoupleDomainService couple) : ICommandHandler<ProposalTestCommand, MarriageProposalResult>
 {
@@ -25,10 +27,11 @@ internal sealed class ProposalTestHandler(IMarriageCoupleDomainService couple) :
             : couple.ProposeAsync(command.Actor, command.Peer, ct);
 }
 internal sealed record CeremonyTestCommand(SelectedSessionIdentity Actor, SelectedSessionIdentity Peer, int Tier, int WaitIndex, byte? Response)
-    : ICommand<MarriageCeremonyResult>, IMultiSelectedSessionCommand
+    : ICommand<MarriageCeremonyResult>, Dfo.Server.Testing.IDomainFixtureParticipants
 {
     public SelectedSessionIdentity? Session => Actor;
     public IReadOnlyList<SelectedSessionIdentity> Sessions => [Actor, Peer];
+    public IReadOnlyList<SelectedSessionIdentity> Participants => [Actor,Peer];
 }
 internal sealed class CeremonyTestHandler(IMarriageCoupleDomainService couple) : ICommandHandler<CeremonyTestCommand, MarriageCeremonyResult>
 {
@@ -49,8 +52,8 @@ internal static class MarriageTestCommands
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         Dfo.Server.Testing.RecordedOutbound.AddTo(services);
         services.AddSingleton<IGameCommandOutbox, Outbox>();
-        services.AddCommandHandler<ProposalTestCommand, MarriageProposalResult, ProposalTestHandler>(CommandExecutionKind.Transactional);
-        services.AddCommandHandler<CeremonyTestCommand, MarriageCeremonyResult, CeremonyTestHandler>(CommandExecutionKind.Transactional);
+        services.AddFixtureCommand<ProposalTestCommand, MarriageProposalResult, ProposalTestHandler>(FixtureUnitKind.Transactional);
+        services.AddFixtureCommand<CeremonyTestCommand, MarriageCeremonyResult, CeremonyTestHandler>(FixtureUnitKind.Transactional);
     }
     private sealed class Outbox(IGameMessageSender sender) : IGameCommandOutbox
     {

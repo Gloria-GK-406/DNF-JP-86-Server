@@ -98,7 +98,7 @@ public sealed class MonsterDeathHandlerTests
         private IReadOnlyList<SelectedSessionRecipient> captured=[];
         internal async ValueTask HandleAsync(NetworkDispatchContext dispatch,MonsterDeathRequest input,CancellationToken ct)
         {
-            try { await RunAsync(new(Guid.NewGuid(),typeof(GameMonsterDeathCommand),GetType(),CommandExecutionKind.Direct),dispatch,input,diagnostics.LabelProbe,ct); }
+            try { await RunAsync(new(Guid.NewGuid(),typeof(GameMonsterDeathCommand),GetType()),dispatch,input,diagnostics.LabelProbe,ct); }
             catch(Exception error) when(Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
             {
                 if(safety is not null) foreach(var recipient in captured) await safety.BlockAsync(recipient,error,nameof(DeathAlgorithmDriver));
@@ -526,6 +526,9 @@ public sealed class MonsterDeathHandlerTests
 
     private sealed class ObjectRewardBus(Action afterCommit) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public ObjectDestructionFacts? Command { get; private set; }
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct)
             where TResult : notnull
@@ -1190,6 +1193,9 @@ public sealed class MonsterDeathHandlerTests
         CommittedInventoryUpdateState? questItems = null,
         QuestProgressSnapshot? questProgress = null, ExperienceAward? overrideAward = null) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         private int _remainingFailures = failuresBeforeSuccess;
 
         /// <summary>How many times the kill was priced, which a repeated death would raise.</summary>
@@ -1693,6 +1699,9 @@ public sealed class MonsterDeathHandlerTests
         CharacterId? failFor = null,
         CharacterId? levelFor = null) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         private bool failed;
         public List<MonsterRewardFacts> Commands { get; } = [];
 

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.World;
@@ -28,7 +29,7 @@ public sealed class CommonExperienceEffectTests
     {
         using var shop = new ShopFixture(s =>
         {
-            s.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
+            s.AddFixtureCommand<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(FixtureUnitKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
             s.AddSingleton<IExperienceCalculationDomainService>(new Calculation { Earned = earned });
         });
@@ -174,7 +175,7 @@ public sealed class CommonExperienceEffectTests
         var calculation = new Calculation();
         var trace = new EffectTrace { Prepare = async ct => { entered.TrySetResult(); await release.Task.WaitAsync(ct); },
             Commit = _ => throw new IOException("nonfallible") };
-        using var shop = Shop(calculation, trace, services => { RegisterQueuedKill(services); services.AddSingleton<ICommandPipelineBehavior<QueuedKillResult>>(admitted); });
+        using var shop = Shop(calculation, trace, services => { RegisterQueuedKill(services); services.AddSingleton(admitted); });
         var bus = new QuestTestCommands(shop);
         var first = bus.SendAsync(Clear(shop.Session)).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -196,41 +197,30 @@ public sealed class CommonExperienceEffectTests
     }
 
     [Fact]
-    public async Task Publication_fence_is_synchronous_even_when_discard_waits_for_lifecycle_exclusive()
+    public async Task Publication_fence_is_synchronous_and_the_next_command_cannot_settle()
     {
-        using var shop = Shop(new Calculation(), new EffectTrace());
-        var safety = shop.Services.GetRequiredService<SelectedSessionSafety>();
-        // The publication failure and its discard run inside one CMD; no lifecycle holder can make it wait.
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-        var recipient = safety.Capture(shop.Session);
-        var failure = safety.PublicationFailedAsync(recipient, new IOException("claim lost"), "test").AsTask();
-            Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced == true);
+        using var shop=Shop(new Calculation(),new EffectTrace());
+        var safety=shop.Services.GetRequiredService<SelectedSessionSafety>();
+        await TestGameplay.RunAsync(shop.Services,async()=>{
+            var failure=safety.PublicationFailedAsync(safety.Capture(shop.Session,null),new IOException("claim lost"),"test").AsTask();
+            Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced==true);
             Assert.True(safety.IsBlocked(shop.Connection));
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
-        Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, (await failure.WaitAsync(TimeSpan.FromSeconds(5))).Reason);
+            Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure,(await failure.WaitAsync(TimeSpan.FromSeconds(5))).Reason);
         });
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>new QuestTestCommands(shop).SendAsync(Clear(shop.Session)).AsTask());
     }
 
     [Fact]
     public async Task Effect_award_settles_inside_its_clearing_cmd()
     {
         using var shop = Shop(new Calculation(), new EffectTrace());
-        // The command is one job; teardown is a later job and cannot interleave with the settlement.
-        var first = TestGameplay.RunAsync(shop.Services, async () =>
-            await TestEffectFootprints.NonEffect(shop.Services, Dfo.Server.Data.Networking.GameMessageMetadata.Empty,
-                () => new QuestTestCommands(shop).SendAsync(Clear(shop.Session))));
+        var first = new QuestTestCommands(shop).SendAsync(Clear(shop.Session)).AsTask();
         Assert.Equal(30u, (await first.WaitAsync(TimeSpan.FromSeconds(5))).Award!.Total);
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
-    private sealed class AdmissionProbe : ICommandPipelineBehavior<QueuedKillResult>
-    {
-        public int Order => 56;
-        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public ValueTask<QueuedKillResult> ExecuteAsync(CommandExecutionContext context, ICommand command,
-            CommandExecutionDelegate<QueuedKillResult> next, CancellationToken ct) { Entered.TrySetResult(); return next(); }
-    }
+    private sealed class AdmissionProbe
+    { public TaskCompletionSource Entered {get;} = new(TaskCreationOptions.RunContinuationsAsynchronously); }
 
     [Fact]
     public async Task Finish_quest_propagates_exact_session_into_actual_effect_context()
@@ -242,49 +232,6 @@ public sealed class CommonExperienceEffectTests
             new(1),new(1),2001,ushort.MaxValue,1,0,shop.Session));
         Assert.True(result.Finished);
         Assert.Equal(shop.Session, Assert.Single(trace.Contexts).Session);
-    }
-
-    [Fact]
-    public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
-    {
-        string[] readOnly = [];
-        string[] direct = [];
-        string[] expected = ["AltarActionCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
-            "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand"];
-        var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
-        Assert.Equal(expected.Where(name => !Migrated(name)).Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
-        using var shop = Shop(new Calculation(),new EffectTrace());
-        var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
-        var use = registry.GetRegistration(typeof(Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand));
-        Assert.Equal(CommandRouteKind.Protocol, use.Route);
-        Assert.Equal(CommandExecutionKind.Direct, use.ExecutionKind);
-        var buy = registry.GetRegistration(typeof(Dfo.Server.Protocol.Game.BuyItem.GameBuyItemCommand));
-        Assert.Equal(CommandRouteKind.Protocol, buy.Route);
-        Assert.Equal(CommandExecutionKind.Direct, buy.ExecutionKind);
-        Assert.Equal(2, buy.ProtocolMessages!.Count);
-        Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(buy.CommandType));
-        foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.ReinforceItem.GameReinforceItemCommand), typeof(Dfo.Server.Protocol.Game.DisjointItem.GameDisjointItemCommand), typeof(Dfo.Server.Protocol.Game.EnchantByBead.GameEnchantByBeadCommand) })
-        {
-            var equipment = registry.GetRegistration(type);
-            Assert.Equal(CommandRouteKind.Protocol, equipment.Route);
-            Assert.Equal(CommandExecutionKind.Direct, equipment.ExecutionKind);
-            Assert.Single(equipment.ProtocolMessages!);
-            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, equipment.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
-        }
-        foreach (var (type, count) in new[] { (typeof(Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand), 2), (typeof(Dfo.Server.Protocol.Game.Forging.GameForgingCommand), 1), (typeof(Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand), 2) })
-        {
-            var option = registry.GetRegistration(type);
-            Assert.Equal(CommandRouteKind.Protocol, option.Route);
-            Assert.Equal(CommandExecutionKind.Direct, option.ExecutionKind);
-            Assert.Equal(count, option.ProtocolMessages!.Count);
-            Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, option.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
-        }
-        Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:direct.Contains(type.Name)?CommandExecutionKind.Direct:CommandExecutionKind.Transactional,
-            registry.GetRegistration(type).ExecutionKind));
-        Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 45);
-        Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 58);
     }
 
     [Fact]
@@ -357,24 +304,28 @@ public sealed class CommonExperienceEffectTests
     }
 
     // Test-only registration preserves the original cross-TResult bus/FIFO regression. It
-    // executes the real reward domain inside the bus's real transaction and legacy footprint;
+    // executes the real reward domain inside the bus's explicit transaction and the fixture's explicit footprint;
     // it neither retains a production fine command nor bypasses admission with a domain driver.
-    private sealed record QueuedKillDomainCommand(SelectedSessionIdentity Session) : ICommand<QueuedKillResult>, ISelectedSessionCommand;
+    private sealed record QueuedKillDomainCommand(SelectedSessionIdentity Session) : ICommand<QueuedKillResult>,IDomainFixtureParticipants {public IReadOnlyList<SelectedSessionIdentity> Participants=>[Session];}
     private sealed record QueuedKillResult(ExperienceAward? Award);
-    private sealed class QueuedKillDomainCommandHandler(IMonsterKillRewardsDomainService rewards)
+    private sealed class QueuedKillDomainCommandHandler(IMonsterKillRewardsDomainService rewards,SelectedSessionSafety safety,AdmissionProbe admission)
         : ICommandHandler<QueuedKillDomainCommand, QueuedKillResult>
     {
         public async ValueTask<QueuedKillResult> HandleAsync(CommandExecutionContext context, QueuedKillDomainCommand command, CancellationToken ct)
         {
-            var session=command.Session;
+            safety.DemandCurrent(command.Session);admission.Entered.TrySetResult();
+            var session=command.Session;using var footprint=new TestEffectFootprints.Lease(session);
             var result=await rewards.ApplyAsync(session,session.AccountId,session.CharacterId,
                 new(13099,5,MonsterRank.Ordinary,true,false),144,0,1,1,default,false,null,null,null,null,
-                context.LegacyFootprint,ct);
+                footprint,ct);
             return new(result.Award);
         }
     }
-    private static void RegisterQueuedKill(IServiceCollection services) =>
-        services.AddCommandHandler<QueuedKillDomainCommand,QueuedKillResult,QueuedKillDomainCommandHandler>(CommandExecutionKind.Transactional);
+    private static void RegisterQueuedKill(IServiceCollection services)
+    {
+        Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton<AdmissionProbe>(services);
+        services.AddFixtureCommand<QueuedKillDomainCommand,QueuedKillResult,QueuedKillDomainCommandHandler>(FixtureUnitKind.Transactional);
+    }
 
     private static ClearExperienceAlgorithmInput Clear(SelectedSessionIdentity? session) =>
         new(new(1), new(1), 144, new(3, 0, 1, 80, 10), session);
@@ -395,7 +346,7 @@ public sealed class CommonExperienceEffectTests
     private static ShopFixture Shop(Calculation calculation, EffectTrace trace, Action<IServiceCollection>? configure = null) =>
         new(true,s =>
         {
-            s.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
+            s.AddFixtureCommand<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(FixtureUnitKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
             s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             s.AddSingleton<IExperienceCalculationDomainService>(sp => { calculation.Transactions = sp.GetRequiredService<IDomainTransactionAccessor>(); return calculation; });

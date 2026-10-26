@@ -80,7 +80,7 @@ public sealed class ChannelControlCommandHandlerTests
     }
 
     private static CommandExecutionContext CreateContext(ICommand command, object handler) =>
-        new(Guid.NewGuid(), command.GetType(), handler.GetType(), CommandExecutionKind.Direct);
+        new(Guid.NewGuid(), command.GetType(), handler.GetType());
 
     /// <summary>Each of these tests reads one of the two declarations, never both.</summary>
     private sealed class NoChannelCatalog : IChannelCatalog

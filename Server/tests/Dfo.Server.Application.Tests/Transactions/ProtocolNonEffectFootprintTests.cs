@@ -120,7 +120,7 @@ public sealed partial class ProtocolNonEffectFootprintTests
         using var world = World(out var state);
         await TestGameplay.RunAsync(world.Services, async () =>
         {
-            var context = new CommandExecutionContext(Guid.NewGuid(), typeof(CapCommand), typeof(Handler), CommandExecutionKind.Direct);
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(CapCommand), typeof(Handler));
             await Assert.ThrowsAsync<InvalidOperationException>(() => world.Services.GetRequiredService<ICommandWorkUnits>().WriteAsync(context,
                 new("missing", [], Footprint: CommandFootprintMode.NonRequest), (_, _) => { state.Writes++; return ValueTask.FromResult(1); }).AsTask());
         });

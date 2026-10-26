@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
@@ -25,11 +26,14 @@ internal static class MoveItemProtocolTestDriver
             new Outbox(sender),logger,character,account,time,housing)));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<T> SendAsync<T>(ICommand<T> command,CancellationToken ct=default)where T:notnull
         {
             var move=Assert.IsType<GameMoveItemSpaceCommand>(command);
-            return (T)(object)await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameMoveItemSpaceCommand),
-                typeof(GameMoveItemSpaceCommandHandler),CommandExecutionKind.Direct),move,ct);
+            return (T)(object)await handler.HandleAsync(DomainCommandFixture.Context(Guid.NewGuid(),typeof(GameMoveItemSpaceCommand),
+                typeof(GameMoveItemSpaceCommandHandler),FixtureUnitKind.Direct),move,ct);
         }
     }
     private sealed class Units(MoveItemFixture fixture):ICommandWorkUnits

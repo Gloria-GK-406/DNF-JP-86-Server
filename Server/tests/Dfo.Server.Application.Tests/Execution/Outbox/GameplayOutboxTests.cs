@@ -13,7 +13,8 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
     private static readonly NetworkConnectionContext Peer = Connection("peer");
     private static readonly NetworkConnectionContext Third = Connection("third");
 
-    private readonly GameplayExecutor executor = ExecutionTest.Executor().Executor;
+    private readonly (GameplayExecutor Executor, RecordingExecutionLogger<GameplayExecutor> Log) execution = ExecutionTest.Executor();
+    private GameplayExecutor executor => execution.Executor;
     private readonly RecordingOutboundSender sender = new();
     private readonly RecordingExecutionLogger<GameplayOutbox> log = new();
     private readonly GameplayOutboxes outboxes;
@@ -297,6 +298,7 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
         Assert.Equal("cmd failed", failure.Message);
         Assert.Equal(["peer:close", "source:close"], refusing.Accepted.Flushed());
         Assert.Contains(log.Entries, entry => entry.Level == LogLevel.Error && entry.Exception is ArgumentException);
+        Assert.Same(failure,Assert.Single(execution.Log.Entries,entry=>entry.Level==LogLevel.Error).Exception);
     }
 
     [Fact]
@@ -305,7 +307,7 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
         var refusing = new RefusingOnceSender();
         var boxes = new GameplayOutboxes(refusing, log);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => executor.RunAsync(Cmd(_ =>
+        var failure=await Assert.ThrowsAsync<ArgumentException>(() => executor.RunAsync(Cmd(_ =>
             {
                 boxes.Current.Register(Batch(Peer, "lost"));
                 boxes.Current.Register(OutboundEntry.Close(Third, new OutboundOrder(new OutboundOrderGroup("g"), 1)));
@@ -315,7 +317,9 @@ public sealed class GameplayOutboxTests : IAsyncDisposable
         var closes = Assert.Single(refusing.Accepted.Submissions);
         Assert.Equal(["third:close", "source:close"], refusing.Accepted.Flushed());
         Assert.All(closes, entry => Assert.Null(entry.Order));
-        Assert.Contains(log.Entries, entry => entry.Level == LogLevel.Error && entry.Exception is ArgumentException);
+        var warning=Assert.Single(log.Entries,entry=>entry.Level==LogLevel.Warning);Assert.Null(warning.Exception);
+        Assert.DoesNotContain(log.Entries,entry=>entry.Level==LogLevel.Error);
+        Assert.Same(failure,Assert.Single(execution.Log.Entries,entry=>entry.Level==LogLevel.Error).Exception);
     }
 
     /// <summary>The body as one CMD on the executor; its outbox is flushed when the job ends.</summary>

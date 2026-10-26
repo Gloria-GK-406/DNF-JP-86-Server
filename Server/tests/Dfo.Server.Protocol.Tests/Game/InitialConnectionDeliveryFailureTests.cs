@@ -82,8 +82,11 @@ public sealed class InitialConnectionDeliveryFailureTests
         public ValueTask DisposeAsync() => Outbound.DisposeAsync();
     }
 
-    private sealed class GeneralChannel : IChannelEntryPolicy
+    private sealed class GeneralChannel : IChannelEntryDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ChannelEntryIdentity(11, listenerPort, ChannelEntryKind.General));
 

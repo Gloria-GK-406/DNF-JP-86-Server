@@ -46,7 +46,7 @@ public sealed class ChannelEntryDomainServiceTests
     }
 
     [Fact]
-    public void Legacy_policy_and_domain_are_aliases_for_one_instance()
+    public void Formal_channel_boundary_is_the_registered_concrete_singleton()
     {
         var services=new ServiceCollection(); services.AddLogging();
         services.AddSingleton(ChannelEntryOptions.Legacy);
@@ -56,7 +56,7 @@ public sealed class ChannelEntryDomainServiceTests
         services.AddSingleton<IChannelScriptSource>(new Script());
         new ApplicationModule().ConfigureServices(services,new ConfigurationBuilder().Build());
         using var provider=services.BuildServiceProvider();
-        Assert.Same(provider.GetRequiredService<IChannelEntryPolicy>(),provider.GetRequiredService<IChannelEntryDomainService>());
+        Assert.Same(provider.GetRequiredService<ChannelEntryDomainService>(),provider.GetRequiredService<IChannelEntryDomainService>());
     }
 
     private static ChannelEntryDomainService Domain(Deployment deployment,byte? environment) => new(

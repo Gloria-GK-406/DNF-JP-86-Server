@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
@@ -357,8 +358,7 @@ public sealed class PartyCommandCodecTests
         Assert.Equal(expectedCommands.Length, commands.Length);
         Assert.All(commands, value =>
         {
-            Assert.Equal(CommandExecutionKind.Direct, value.ExecutionKind);
-        });
+            });
 
         Assert.Contains(
             provider.GetServices<ServerMessageEncoderRegistration>(),

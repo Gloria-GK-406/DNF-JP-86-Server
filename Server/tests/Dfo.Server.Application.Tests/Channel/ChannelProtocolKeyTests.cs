@@ -32,7 +32,7 @@ public sealed class ChannelProtocolKeyTests
                 if (cultureName == "th-TH")
                     Assert.NotEqual("2026", clock.GetLocalNow().ToString("yyyy", CultureInfo.CurrentCulture));
                 Assert.Equal(expected, provider.GetCurrentKey());
-                await handler.HandleAsync(new(Guid.NewGuid(), command.GetType(), handler.GetType(), CommandExecutionKind.Direct),
+                await handler.HandleAsync(new(Guid.NewGuid(), command.GetType(), handler.GetType()),
                     command, CancellationToken.None);
             }
             finally { CultureInfo.CurrentCulture = previous; }

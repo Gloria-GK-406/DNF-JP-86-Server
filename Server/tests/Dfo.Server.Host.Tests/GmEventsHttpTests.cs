@@ -39,7 +39,7 @@ public sealed class GmEventsHttpTests
         services.AddSingleton<IDungeonAdmissionDefinitionSource>(s=>(IDungeonAdmissionDefinitionSource)archive(s));
         services.AddSingleton<IDungeonDefinitionSource>(new Dungeons());
     }
-    public sealed record Act(AccountId AccountId,bool Claim=false,Guid RunId=default,int Dungeon=1,int Level=86,bool Fail=false) : ICommand<bool>,IAccountCommand;
+    public sealed record Act(AccountId AccountId,bool Claim=false,Guid RunId=default,int Dungeon=1,int Level=86,bool Fail=false) : ICommand<bool>;
     public sealed class ActHandler(IWeeklyAttendanceDomainService attendance,TimeProvider clock) : ICommandHandler<Act,bool>
     {
         public async ValueTask<bool> HandleAsync(CommandExecutionContext c,Act q,CancellationToken ct)
@@ -52,9 +52,9 @@ public sealed class GmEventsHttpTests
     }
     private static void Content(IServiceCollection services,Rules? rules=null)
     {
-        services.AddCommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(CommandExecutionKind.Transactional);
+        services.AddFixtureCommand<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(FixtureUnitKind.Transactional);
         services.AddSingleton<IWeeklyAttendanceDefinitionSource>(rules ?? new Rules());ConfigureDungeons(services);
-        services.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional);
+        services.AddFixtureCommand<Act,bool,ActHandler>(FixtureUnitKind.Transactional);
     }
     private static EventChange Configure(long rev,string action="configure")=>new(2208,rev,action,"签到","周签到","说明","开始","结束",DateTimeOffset.Parse("2026-01-01T00:00:00Z"),DateTimeOffset.Parse("2028-01-01T00:00:00Z"));
     private static async Task<ManagedEventEntry> Get(GmTestHost host)=>Assert.Single((await host.Client.GetFromJsonAsync<ManagedEventList>(Url))!.Entries,e=>e.EventId==2208);
@@ -63,7 +63,7 @@ public sealed class GmEventsHttpTests
     private static async Task<string> Enable(GmTestHost host)
     { var csrf=await GmCeraHttpTests.Login(host);await Change(host,csrf,Configure(0));await Change(host,csrf,new(2208,1,"enable"));return csrf; }
     private static async Task Clears(GmTestHost host,int count=4)
-    { for(var i=0;i<count;i++) Assert.True(await host.Services.GetRequiredService<ICommandBus>().SendAsync(new Act(new(1),RunId:Guid.NewGuid()))); }
+    { for(var i=0;i<count;i++) Assert.True(await DomainCommandFixture.Bus(host.Services).SendAsync(new Act(new(1),RunId:Guid.NewGuid()))); }
     [Fact]
     public async Task List_contains_only_common_fields_and_specific_settings_are_read_only_without_creating_state()
     {
@@ -117,7 +117,7 @@ public sealed class GmEventsHttpTests
         Assert.True(missing.Available);Assert.All(missing.WeeklyRewards,r=>Assert.Null(r.ItemName));
         Assert.All(missing.CumulativeRewards,r=>Assert.Null(r.ItemName));Assert.Equal(3,missing.WeeklyRewards[0].ItemId);
         Assert.Equal(before,await host.ReadAsync("SELECT input FROM event_configuration"));
-        Assert.True(await host.Services.GetRequiredService<ICommandBus>().SendAsync(new Act(new(1),Claim:true)));
+        Assert.True(await DomainCommandFixture.Bus(host.Services).SendAsync(new Act(new(1),Claim:true)));
         Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
     }
     [Fact]
@@ -188,7 +188,7 @@ public sealed class GmEventsHttpTests
             var start=DateTimeOffset.Parse("2026-01-01T00:00:00Z");var end=DateTimeOffset.Parse("2028-01-01T00:00:00Z");
             Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1),start.AddTicks(-1),default),e=>e.EventId==2208);Assert.Single(await events.GetEventInfoListAsync(new(1),start,default),e=>e.EventId==2208);
             Assert.DoesNotContain(await events.GetEventInfoListAsync(new(1),end,default),e=>e.EventId==2208);
-            var bus=host.Services.GetRequiredService<ICommandBus>();var id=Guid.NewGuid();
+            var bus=DomainCommandFixture.Bus(host.Services);var id=Guid.NewGuid();
             Assert.False(await bus.SendAsync(new Act(new(1),Claim:true)));
             Assert.False(await bus.SendAsync(new Act(new(1),RunId:Guid.NewGuid(),Dungeon:2)));
             Assert.False(await bus.SendAsync(new Act(new(1),RunId:Guid.NewGuid(),Level:60)));
@@ -214,7 +214,7 @@ public sealed class GmEventsHttpTests
     public async Task Transaction_failure_rolls_back_runs_rewards_and_claims_and_retry_is_available()
     {
         await using var host=await GmTestHost.StartAsync(configureServices:s=>Content(s));await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);
-        var bus=host.Services.GetRequiredService<ICommandBus>();var run=Guid.NewGuid();
+        var bus=DomainCommandFixture.Bus(host.Services);var run=Guid.NewGuid();
         await Assert.ThrowsAsync<InvalidOperationException>(()=>bus.SendAsync(new Act(new(1),RunId:run,Fail:true)).AsTask());
         Assert.True(await bus.SendAsync(new Act(new(1),RunId:run)));await Clears(host,3);
         await Assert.ThrowsAsync<InvalidOperationException>(()=>bus.SendAsync(new Act(new(1),Claim:true,Fail:true)).AsTask());
@@ -226,7 +226,7 @@ public sealed class GmEventsHttpTests
     public async Task Weekly_reset_cumulative_rewards_expiry_and_missing_content_follow_server_authority()
     {
         var clock=new GmTestClock();var rules=new Rules();await using var host=await GmTestHost.StartAsync(clock:clock,configureServices:s=>Content(s,rules));await GmPlayerDirectoryHttpTests.SeedAsync(host);var csrf=await Enable(host);
-        var bus=host.Services.GetRequiredService<ICommandBus>();var attendance=host.Services.GetRequiredService<IWeeklyAttendanceDomainService>();
+        var bus=DomainCommandFixture.Bus(host.Services);var attendance=host.Services.GetRequiredService<IWeeklyAttendanceDomainService>();
         var reset=host.Services.GetRequiredService<IWeeklyAttendanceRuleService>();
         Assert.Equal(DateTimeOffset.Parse("2026-10-04T22:00:00Z"),reset.WeekStart(DateTimeOffset.Parse("2026-10-05T06:00:00+08:00")));
         Assert.Equal(DateTimeOffset.Parse("2026-09-27T22:00:00Z"),reset.WeekStart(DateTimeOffset.Parse("2026-10-05T05:59:59+08:00")));
@@ -245,7 +245,7 @@ public sealed class GmEventsHttpTests
     {
         var path=new PvfContentOptions().ResolveArchivePath()!;
         await using var host=await GmTestHost.StartAsync(realContent:true,configuration:new Dictionary<string,string?> { ["Pvf:ArchivePath"]=path },configureServices:s=>
-        { ConfigureDungeons(s);s.AddCommandHandler<Act,bool,ActHandler>(CommandExecutionKind.Transactional); });
+        { ConfigureDungeons(s);s.AddFixtureCommand<Act,bool,ActHandler>(FixtureUnitKind.Transactional); });
         await GmPlayerDirectoryHttpTests.SeedAsync(host);await Enable(host);
         var entry=(await host.Client.GetFromJsonAsync<WeeklyAttendanceSettings>(Url+"/weekly-attendance/settings"))!;
         Assert.True(entry.Available,entry.UnavailableReason);Assert.Equal("event/chn_event/chn_totalattendance.evt",entry.SourcePath);Assert.Equal(4,entry.RequiredClears);
@@ -257,7 +257,7 @@ public sealed class GmEventsHttpTests
             Assert.False(string.IsNullOrWhiteSpace(reward.ItemName));
             Assert.Equal((await names.FindAsync(reward.ItemId,default))!.Name,reward.ItemName);
         }
-        await Clears(host);Assert.True(await host.Services.GetRequiredService<ICommandBus>().SendAsync(new Act(new(1),Claim:true)));
+        await Clears(host);Assert.True(await DomainCommandFixture.Bus(host.Services).SendAsync(new Act(new(1),Claim:true)));
         var mail=Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
         Assert.Equal(490003187,Assert.IsType<Dfo.Server.Data.Mail.MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset).ItemId);
     }
@@ -292,7 +292,7 @@ public sealed class GmEventsHttpTests
         await GmPlayerDirectoryHttpTests.SeedAsync(host);var csrf=await Enable(host);
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
-        var bus=host.Services.GetRequiredService<ICommandBus>();var run=Guid.NewGuid();
+        var bus=DomainCommandFixture.Bus(host.Services);var run=Guid.NewGuid();
         var clear=new ClearExperienceAlgorithmInput(new(1),new(1),1,new(86,0,1,50,1,1),Session:session,RunId:run,SettlementLevel:86);
         Assert.True((await bus.SendAsync(clear)).AttendanceChanged);Assert.False((await bus.SendAsync(clear)).AttendanceChanged);await Clears(host,3);
         var decoderInfo=host.Services.GetServices<GameMessageDecoderRegistration>().Single(r=>r.Selector==1 && r.Type==0x0441);

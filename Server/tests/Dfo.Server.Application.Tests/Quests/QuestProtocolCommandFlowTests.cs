@@ -50,13 +50,11 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
     public void Actual_DI_has_four_unique_routes_and_no_legacy_fine_or_extra_raw_authority()
     {
         using var f=new ShopFixture();var rows=f.Services.GetServices<CommandHandlerRegistration>().ToArray();
-        foreach(var name in Fine){if(!Modern){Assert.Contains(rows,x=>x.CommandType.Name==name&&x.ExecutionKind==CommandExecutionKind.Transactional);continue;}Assert.DoesNotContain(rows,x=>x.CommandType.Name==name);Assert.Null(typeof(ProtocolModule).Assembly.GetTypes().SingleOrDefault(x=>x.Name==name||x.Name==name+"Handler"));}
+        foreach(var name in Fine){Assert.DoesNotContain(rows,x=>x.CommandType.Name==name);Assert.Null(typeof(ProtocolModule).Assembly.GetTypes().SingleOrDefault(x=>x.Name==name||x.Name==name+"Handler"));}
         if(!Modern)return;
         for(var p=0;p<4;p++){
-            var row=Assert.Single(rows,x=>x.CommandType.Name==Whole[p]);Assert.Equal(CommandRouteKind.Protocol,row.Route);Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);
-            var binding=Assert.Single(row.ProtocolMessages!);Assert.Equal((ClientMessageType)(65567+p),binding.MessageType);Assert.Equal(Fine[p].Replace("Command","Request"),binding.MessageClrType.Name);
+            var row=Assert.Single(rows,x=>x.CommandType.Name==Whole[p]);Assert.Equal(CommandRouteKind.Protocol,row.Route);var binding=Assert.Single(row.ProtocolMessages!);Assert.Equal((ClientMessageType)(65567+p),binding.MessageType);Assert.Equal(Fine[p].Replace("Command","Request"),binding.MessageClrType.Name);
             Assert.Equal(p==3?new[]{CommandRegistrationExit.CommittedReplayCurrentStateBatch}:[],row.RegistrationExits??[]);
-            Assert.False(typeof(ISelectedSessionCommand).IsAssignableFrom(row.CommandType));Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(row.CommandType));
         }
         Assert.Equal(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Quests,new Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestRequest(GameMessageMetadata.Empty,2001,ushort.MaxValue,1).MinimumReplayNeeds);
     }

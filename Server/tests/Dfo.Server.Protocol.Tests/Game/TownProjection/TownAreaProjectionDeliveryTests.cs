@@ -113,7 +113,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var request = new CommandRequestContext.TrustedInternal(origin);
             try
             {
-                await handler.HandleAsync(new(Guid.NewGuid(), typeof(AdvanceWeddingTickCommand), handler.GetType(), CommandExecutionKind.Direct) { Request = request }, new AdvanceWeddingTickCommand(), default);
+                await handler.HandleAsync(new(Guid.NewGuid(), typeof(AdvanceWeddingTickCommand), handler.GetType()) { Request = request }, new AdvanceWeddingTickCommand(), default);
             }
             finally { await request.DrainOperationsAsync(); request.Close(); }
         });

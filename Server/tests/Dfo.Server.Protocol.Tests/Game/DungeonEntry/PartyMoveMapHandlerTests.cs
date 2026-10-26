@@ -70,7 +70,8 @@ public sealed class PartyMoveMapHandlerTests
             Assert.Same(failure, observed);
             Assert.Equal(1, visits.Moves);
             var entry = Assert.Single(logger.Entries);
-            Assert.Equal(LogLevel.Error, entry.Level);
+            Assert.Equal(LogLevel.Warning, entry.Level);
+            Assert.Null(entry.Exception);
             Assert.Contains("publication failed after commit", entry.Message);
             Assert.Contains(visits.RunId.ToString(), entry.Message);
         });
@@ -457,13 +458,13 @@ public sealed class PartyMoveMapHandlerTests
 
     private sealed class RecordingLogger(LogLevel minimum) : ILogger<MoveMapHandler>
     {
-        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+        public List<(LogLevel Level, string Message, Exception? Exception)> Entries { get; } = [];
         public bool IsEnabled(LogLevel logLevel) => logLevel >= minimum;
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            if (IsEnabled(logLevel)) Entries.Add((logLevel, formatter(state, exception)));
+            if (IsEnabled(logLevel)) Entries.Add((logLevel, formatter(state, exception), exception));
         }
     }
 }

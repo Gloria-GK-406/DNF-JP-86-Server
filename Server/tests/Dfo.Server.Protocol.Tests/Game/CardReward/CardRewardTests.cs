@@ -1198,14 +1198,12 @@ public sealed class CardRewardTests
         })
         {
             var registration = Assert.Single(commands, row => row.CommandType == type);
-            Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
             Assert.Equal(CommandRouteKind.Protocol, registration.Route);
             Assert.Equal(message, Assert.Single(registration.ProtocolMessages!).MessageType);
         }
         foreach (var type in new[] { typeof(DungeonCardLayoutCommand), typeof(DungeonCardAutoFlipCommand) })
         {
             var registration = Assert.Single(commands, row => row.CommandType == type);
-            Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
             Assert.Equal(CommandRouteKind.Internal, registration.Route);
         }
         Assert.DoesNotContain(commands, row => row.CommandType.Name is "SelectCardCommand" or "GrantClearExperienceCommand");
@@ -1372,11 +1370,10 @@ public sealed class CardRewardTests
                 this.Flips++;
                 this.LastCommand = command;
                 return await this._handler.HandleAsync(
-                    new CommandExecutionContext(
+                    DomainCommandFixture.Context(
                         Guid.NewGuid(),
                         typeof(CardAwardAlgorithmInput),
-                        typeof(CardAwardAlgorithmDriver),
-                        CommandExecutionKind.Workflow),
+                        typeof(CardAwardAlgorithmDriver)),
                     command,
                     CancellationToken.None);
             });
@@ -1423,6 +1420,9 @@ public sealed class CardRewardTests
     /// <summary>A bus that carries exactly the one command this slice sends.</summary>
     private sealed class OneCommandBus(World world) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull

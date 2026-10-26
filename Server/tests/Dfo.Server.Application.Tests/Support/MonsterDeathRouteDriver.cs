@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
@@ -17,7 +18,7 @@ internal static class MonsterDeathRouteDriver
         var dispatch=new NetworkDispatchContext(user.Connection);var input=new MonsterDeathRequest(metadata,actor,killer);
         var command=new GameMonsterDeathCommand(dispatch,input);
         var request=new CommandRequestContext.ProtocolNonEffect(dispatch,input,command.Frame,()=>true);
-        var execution=new CommandExecutionContext(Guid.NewGuid(),command.GetType(),typeof(GameMonsterDeathCommandHandler),CommandExecutionKind.Direct){Request=request};
+        var execution=DomainCommandFixture.Context(Guid.NewGuid(),command.GetType(),typeof(GameMonsterDeathCommandHandler)) with{Request=request};
         var handler=ActivatorUtilities.CreateInstance<GameMonsterDeathCommandHandler>(services,
             new Outbox(services.GetRequiredService<IGameMessageSender>()),new Closures(services.GetRequiredService<INetworkConnectionCloser>()));
         var result=await handler.HandleAsync(execution,command,token);

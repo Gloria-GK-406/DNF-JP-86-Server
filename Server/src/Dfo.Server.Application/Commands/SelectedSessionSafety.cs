@@ -26,9 +26,6 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     public bool IsBlocked(NetworkConnectionContext connection)
     { lock (gate) return connections.TryGetValue(connection, out _); }
 
-    public SelectedSessionRecipient Capture(SelectedSessionIdentity session) =>
-        Capture(session, services.GetService<NetworkCommandAuthorization>()?.Metadata);
-
     public SelectedSessionRecipient Capture(SelectedSessionIdentity session, GameMessageMetadata? metadata)
     {
         DemandCurrent(session);
@@ -66,7 +63,7 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
             lock (gate) connections.GetValue(connection, _ => new());
         try { services.GetService<ICreatureRuntimeDomainService>()?.DiscardExact(recipient.Session); }
         catch (Exception cleanup) { TryLog(() => logger.LogError(cleanup, "Discard of uncertain creature runtime failed")); }
-        TryLog(() => logger.LogError(error, "Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",
+        TryLog(() => logger.LogWarning("Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",
             operation, TransactionOutcomeUncertainException.Find(error)?.Reason, recipient.Session.AccountId,
             recipient.Session.CharacterId, recipient.Session.ConnectionId, recipient.Session.ConnectionGeneration, recipient.Metadata?.Sequence, recipient.Metadata?.InboundOrdinal));
         if (recipient.Connection is { } original && services.GetService<INetworkConnectionCloser>() is { } closer)

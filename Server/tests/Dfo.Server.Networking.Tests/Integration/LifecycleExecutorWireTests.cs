@@ -93,7 +93,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
 
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
         var disconnect = server.Recorder.First("disconnect-enter", id)!;
-        AssertLifecycleChild(disconnect, id, id, new(GameplayCallSource.Connection, "inbound:GameExit"),
+        AssertLifecycleChild(disconnect, id, id, new(GameplayCallSource.Connection, "Inbound`2"),
             server.Recorder.First("inbound-enter", id)!.Chain);
         Assert.True(disconnect.Order > server.Recorder.First("inbound-exit", id)!.Order);
         Assert.Equal(0, server.Log.Count("did not complete within"));
@@ -135,7 +135,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", idleId) is not null, server.Timeout);
 
         var disconnect = server.Recorder.First("disconnect-enter", idleId)!;
-        AssertLifecycleChild(disconnect, idleId, requesterId, new(GameplayCallSource.Connection, "inbound:GameExit"),
+        AssertLifecycleChild(disconnect, idleId, requesterId, new(GameplayCallSource.Connection, "Inbound`2"),
             server.Recorder.First("inbound-enter", requesterId)!.Chain);
         Assert.True(disconnect.Order > server.Recorder.First("inbound-exit", requesterId)!.Order);
         Assert.Null(server.Recorder.First("disconnect-enter", requesterId));

@@ -1,6 +1,5 @@
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Application.Commands.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;

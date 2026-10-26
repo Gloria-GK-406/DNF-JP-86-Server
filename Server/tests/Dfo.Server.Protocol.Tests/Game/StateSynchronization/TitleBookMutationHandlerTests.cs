@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol;
@@ -34,8 +35,7 @@ public sealed class TitleBookMutationHandlerTests
             (65953, "GameAchievementTriggerCommand"), (65960, "GameQueryTitleBookCommand"), (66105, "GameSetTitleAppearanceCommand"), (66625, "GameWeeklyAttendanceCommand") };
         foreach (var (id, name) in bindings) {
             var row = Assert.Single(rows, r => r.ProtocolMessages?.Any(m => (int)m.MessageType == id) == true);
-            Assert.Equal(name, row.CommandType.Name); Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
-            Assert.Empty(row.RegistrationExits ?? []); Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
+            Assert.Equal(name, row.CommandType.Name); Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Empty(row.RegistrationExits ?? []); Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
         }
         foreach (var name in new[] { "StoreTitle", "WithdrawTitle", "EquipCarriedTitleReplacingMirror", "QueryTitleBook", "SetTitleAppearance", "ReconcileAchievement", "ClaimWeeklyAttendance" })
             Assert.DoesNotContain(typeof(ProtocolModule).Assembly.GetTypes(), t => t.Name == name + "Command" || t.Name == name + "CommandHandler");
@@ -43,6 +43,9 @@ public sealed class TitleBookMutationHandlerTests
 
     private sealed class Commands : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         internal List<object> Seen = [];
         public ValueTask<R> SendAsync<R>(ICommand<R> command, CancellationToken ct = default) where R : notnull
         { Seen.Add(command); return ValueTask.FromResult((R)(object)true); }

@@ -9,7 +9,6 @@ using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Characters;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Creatures;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Parties;
@@ -639,12 +638,12 @@ public sealed class GameplayWriteAssertionTests
         var ledger = Make<Dfo.Server.Application.Effects.EffectOperationLedger>();
         var connection = new NetworkConnectionContext(new NetworkConnectionId("write-assertion"), NetworkEndpointKind.Game, 10011);
         var request = new Dfo.Server.Protocol.Game.Joust.JoustBetRequest(new GameMessageMetadata(1, 2, 3, 4), 0, 0, 0);
-        ValueTask Dispatch() => ledger.DispatchAsync(connection, request, () => ValueTask.CompletedTask, CancellationToken.None);
+        ValueTask Dispatch() { ledger.Admit(connection,request); return ValueTask.CompletedTask; }
         var seen = ViolationCapture.Attach();
 
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Dispatch());
 
-        AssertOneViolation(seen, "EffectOperationLedger.DispatchAsync");
+        AssertOneViolation(seen, "EffectOperationLedger.Admit");
         await Assert.ThrowsAsync<InvalidDataException>(() => TestGameplay.RunAsync(async () => await Dispatch()));
     }
 
@@ -763,7 +762,7 @@ public sealed class GameplayWriteAssertionTests
     {
         // The handler's static per-connection identity is its state; the dispatcher only runs it in a job.
         var handler = Make<Dfo.Server.Protocol.Game.Joust.GameJoustBetCommandHandler>();
-        var execution = new Dfo.Server.Application.Commands.CommandExecutionContext(Guid.NewGuid(), typeof(Dfo.Server.Protocol.Game.Joust.GameJoustBetCommand), handler.GetType(), Dfo.Server.Application.Commands.CommandExecutionKind.Direct);
+        var execution = DomainCommandFixture.Context(Guid.NewGuid(), typeof(Dfo.Server.Protocol.Game.Joust.GameJoustBetCommand), handler.GetType(), FixtureUnitKind.Direct);
         var context = new NetworkDispatchContext(new NetworkConnectionContext(new NetworkConnectionId("joust"), NetworkEndpointKind.Game, 10011));
         var bet = new Dfo.Server.Protocol.Game.Joust.JoustBetRequest(new GameMessageMetadata(1, 2, 3, 4), 0, 0, 0);
         var seen = ViolationCapture.Attach();

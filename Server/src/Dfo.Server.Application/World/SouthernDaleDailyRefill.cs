@@ -40,7 +40,7 @@ internal sealed class SouthernDaleDailyRefillJob(ISelectedSessionSnapshotQuery o
             var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
             if (error is not null && sessions.IsInWorld(session))
             {
-                logger.LogError(error, "Southern Dale ticket refill failed character={CharacterId}", session.CharacterId);
+                logger.LogWarning( "Southern Dale ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }
         }

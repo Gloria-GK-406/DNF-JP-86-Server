@@ -158,6 +158,9 @@ public sealed class JoustQueryHandlerTests
 
     private sealed class Commands(IServiceProvider services, JoustState state, JoustHistoryEntry[] history) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
@@ -165,7 +168,7 @@ public sealed class JoustQueryHandlerTests
             var handler = new GameJoustQueryCommandHandler(services.GetRequiredService<ISelectedSessionDomainService>(),
                 services.GetRequiredService<IOnlineUserQueryDomainService>(), null!, TimeProvider.System,
                 new Units(state, history), (IGameCommandOutbox)services.GetRequiredService<IGameMessageSender>());
-            var execution = new CommandExecutionContext(Guid.NewGuid(), query.GetType(), handler.GetType(), CommandExecutionKind.Direct);
+            var execution = DomainCommandFixture.Context(Guid.NewGuid(), query.GetType(), handler.GetType());
             return (TResult)(object)await handler.HandleAsync(execution, query, cancellationToken);
         }
     }

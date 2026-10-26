@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
@@ -17,8 +19,10 @@ public sealed class ScheduledCleanupTransactionTests
     [Fact]
     public async Task A_failed_character_rolls_back_its_items_and_event_while_the_next_commits_and_a_later_run_retries()
     {
+        var logs=new CapturedLogs();
         using var f = new ShopFixture(services =>
         {
+            services.AddLogging(builder=>builder.AddProvider(logs));
             services.AddSingleton<OnlineExpiredItemCleanupDomainService>();
             services.AddSingleton<ControlledCleanup>();
             services.AddSingleton<IOnlineExpiredItemCleanupDomainService>(sp => sp.GetRequiredService<ControlledCleanup>());
@@ -48,6 +52,11 @@ public sealed class ScheduledCleanupTransactionTests
         var failure = await Assert.ThrowsAsync<AggregateException>(() => Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "inventory.expiration.online").AsTask());
 
         Assert.Same(controlled.Failure, Assert.Single(failure.InnerExceptions));
+        var loggedFailure=Assert.Single(logs.Entries,x=>x.Level==LogLevel.Error);
+        Assert.Same(failure,loggedFailure.Error);Assert.Contains("root",loggedFailure.Message);
+        var characterWarning=Assert.Single(logs.Entries,x=>x.Message.Contains("Online expired-item cleanup failed"));
+        Assert.Equal(LogLevel.Warning,characterWarning.Level);Assert.Null(characterWarning.Error);
+        Assert.Contains("account=1",characterWarning.Message);Assert.Contains("character=1",characterWarning.Message);
         Assert.Equal(new[] { 1, 3 }, controlled.Attempts);
         Assert.False(f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(second)!.Fenced);
         Assert.Equal(3, f.Count(9001));
@@ -116,6 +125,18 @@ public sealed class ScheduledCleanupTransactionTests
         Assert.True(users.TryGetByConnection(second.ConnectionId, out var protectedUser));
         Assert.True(f.Services.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>().IsBlocked(protectedUser!.Connection));
         Assert.False(f.Services.GetRequiredService<Dfo.Server.Application.Commands.SelectedSessionSafety>().IsBlocked(f.Connection));
+    }
+    private sealed class CapturedLogs:ILoggerProvider
+    {
+        internal ConcurrentQueue<(LogLevel Level,string Message,Exception? Error)> Entries {get;}=new();
+        public ILogger CreateLogger(string category)=>new Logger(this);
+        public void Dispose(){}
+        private sealed class Logger(CapturedLogs owner):ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)where TState:notnull=>null;
+            public bool IsEnabled(LogLevel level)=>true;
+            public void Log<TState>(LogLevel level,EventId id,TState state,Exception? error,Func<TState,Exception?,string> format)=>owner.Entries.Enqueue((level,format(state,error),error));
+        }
     }
     private sealed class ScopeFailure(IOException cause) : IAsyncDisposable
     {

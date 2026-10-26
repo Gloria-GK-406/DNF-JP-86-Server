@@ -104,8 +104,7 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
             endpoint.Metadata.GetMetadata<HttpGameplayOperation>()?.Operation ?? endpoint.Metadata.GetMetadata<EnqueuesItself>()!.Operation).Order());
         var registration = host.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(typeof(HttpRouteCommand));
         Assert.Equal(CommandRouteKind.Internal, registration.Route);
-        Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
-    }
+        }
 
     /// <summary>R1's counter-example: a route that neither runs as a CMD nor states why not is refused, as is an empty reason.</summary>
     [Fact]

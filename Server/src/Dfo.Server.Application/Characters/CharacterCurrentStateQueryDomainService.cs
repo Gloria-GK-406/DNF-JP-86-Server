@@ -24,7 +24,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IWorldContentEntryRuleService worldContent,
     ICharacterEntryPreparationRuleService rules,
     ICharacterPvpSkillProfileRepository pvpSkills,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     ITownMovementDomainService towns,
     ISessionAdjacentEntryDomainService adjacent,
     IOnlineCharacterRuntimeDomainService onlineCharacters,

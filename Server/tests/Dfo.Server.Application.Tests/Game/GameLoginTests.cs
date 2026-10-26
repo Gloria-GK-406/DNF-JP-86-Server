@@ -300,13 +300,16 @@ public sealed class GameLoginTests
 
     private sealed class DirectLoginBus(GameLoginCommandHandler handler, IGameMessageSender sender) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
             var login = Assert.IsType<GameLoginCommand>(command);
             if (sender is RecordingSender recording) recording.RegisterConnection(login.Dispatch.Connection);
-            return (TResult)(object)await handler.HandleAsync(new CommandExecutionContext(Guid.NewGuid(),
-                command.GetType(), handler.GetType(), CommandExecutionKind.Direct), login, cancellationToken);
+            return (TResult)(object)await handler.HandleAsync(DomainCommandFixture.Context(Guid.NewGuid(),
+                command.GetType(), handler.GetType(), FixtureUnitKind.Direct), login, cancellationToken);
         }
     }
     private sealed class DirectWorkUnits : ICommandWorkUnits

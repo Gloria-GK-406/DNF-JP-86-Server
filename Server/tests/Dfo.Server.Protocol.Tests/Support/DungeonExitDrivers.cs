@@ -49,7 +49,7 @@ internal class DungeonExitDriver(ISelectedSessionDomainService selected, ISelect
         choose!(new(session, expected.RunId, expected.Room.Version), option, ct);
     public ValueTask HandleAsync(NetworkDispatchContext dispatch, EplpCommandRequest message, CancellationToken ct) => EplpAsync(Context(), dispatch, message, ct);
     public ValueTask HandleAsync(NetworkDispatchContext dispatch, GiveUpGameRequest message, CancellationToken ct) => GiveUpAsync(Context(), dispatch, message, ct);
-    private static CommandExecutionContext Context() => new(Guid.NewGuid(), typeof(GameEplpCommand), typeof(GameDungeonExitCommandHandler), CommandExecutionKind.Direct);
+    private static CommandExecutionContext Context() => new(Guid.NewGuid(), typeof(GameEplpCommand), typeof(GameDungeonExitCommandHandler));
 }
 internal sealed class EplpDriver(ISelectedSessionDomainService selectedSessions, ISelectedCharacterCurrentViewDomainService currentViews,
     IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunDomainService runs, DungeonRunDeliveryRegistry deliveries,
@@ -72,7 +72,7 @@ internal sealed class GiveUpDriver(ISelectedSessionDomainService selectedSession
         townAreas, parties, partyNotifications, cardPresentation, bossParties: bossParties, towerParties: towerParties, altarExit: altarExit);
 
 internal sealed record LeaveDungeonAlgorithmCommand(SelectedSessionIdentity Session, IReadOnlyList<SelectedSessionIdentity> Sessions, DungeonRunId RunId)
-    : ICommand<LeaveDungeonAlgorithmResult>, IMultiSelectedSessionCommand;
+    : ICommand<LeaveDungeonAlgorithmResult>;
 internal sealed record LeaveDungeonAlgorithmResult(IReadOnlyList<CharacterId> EndedCharacters);
 internal sealed class LeaveDungeonAlgorithmHandler(IDungeonRunDomainService runs) : ICommandHandler<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult>
 {

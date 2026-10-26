@@ -776,7 +776,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IWorldContentEntryRuleService, WorldContentEntryRuleService>();
         services.TryAddSingleton<ChannelEntryDomainService>();
         services.TryAddSingleton<IChannelEntryDomainService>(provider => provider.GetRequiredService<ChannelEntryDomainService>());
-        services.TryAddSingleton<IChannelEntryPolicy>(provider => provider.GetRequiredService<ChannelEntryDomainService>());
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
         services.TryAddSingleton<SelectedSessionDomainService>();
         services.TryAddSingleton<IRoomMechanismMaintenanceDomainService, RoomMechanismMaintenanceDomainService>();
@@ -789,8 +788,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISelectedSessionSnapshotQuery>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
         services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateDomainService, Dfo.Server.Application.Effects.ReplayStateDomainService>();
-        services.AddCommandHandler<Dfo.Server.Application.Effects.ReadReplayStateCommand,
-            Dfo.Server.Abstractions.Effects.ReplayStateSnapshot, Dfo.Server.Application.Effects.ReadReplayStateCommandHandler>(CommandExecutionKind.Transactional);
+
         services.TryAddSingleton<
             IOtherCharacterDetailQueryDomainService,
             OtherCharacterDetailQueryDomainService>();

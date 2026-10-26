@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Tests.Execution;
 using Dfo.Server.Application.Tests.Support;

@@ -53,8 +53,8 @@ public sealed class DungeonPickupTransactionTests
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
             services.AddSingleton<IQuestDomainStore>(new SqliteQuestDomainStore(path));
             services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path));
-            services.AddCommandHandler<StaleQuestPickupCommand, PickupReceipt,
-                StaleQuestPickupHandler>(CommandExecutionKind.Transactional);
+            services.AddFixtureCommand<StaleQuestPickupCommand, PickupReceipt,
+                StaleQuestPickupHandler>(FixtureUnitKind.Transactional);
             await using var provider = services.BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
@@ -82,7 +82,7 @@ public sealed class DungeonPickupTransactionTests
             });
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await provider.GetRequiredService<ICommandBus>().SendAsync(
+                await DomainCommandFixture.Bus(provider).SendAsync(
                     new StaleQuestPickupCommand(drop.Number), CancellationToken.None));
 
             TestGameplay.Run(provider, () =>

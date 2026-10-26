@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
@@ -59,8 +60,8 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         Assert.Equal(2, entered.Length);
         var onGame = Assert.Single(entered, x => x.Connection.Value.StartsWith("Game:", StringComparison.Ordinal));
         var onChannel = Assert.Single(entered, x => x.Connection.Value.StartsWith("Channel:", StringComparison.Ordinal));
-        AssertInboundJob(onGame, "inbound:GameExit");
-        AssertInboundJob(onChannel, "inbound:ChannelConnect");
+        AssertInboundJob(onGame, DomainCommandFixture.InboundCommandTypeName);
+        AssertInboundJob(onChannel, DomainCommandFixture.InboundCommandTypeName);
     }
 
     [Fact]
@@ -106,7 +107,7 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         Assert.Equal(2, byConnection.Length);
         Assert.All(byConnection, group =>
             Assert.Equal(Enumerable.Range(1, perConnection), group.Select(x => x.Number)));
-        Assert.All(entered, x => AssertInboundJob(x, "inbound:GameExit"));
+        Assert.All(entered, x => AssertInboundJob(x, DomainCommandFixture.InboundCommandTypeName));
         Assert.Equal(0, Recorder.Overlaps);
     }
 
@@ -121,7 +122,7 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         await client.GetStream().WriteAsync(GameFrame(PiType, 2, [0x01, 0x02]), server.Timeout);
         await WaitUntilAsync(() => Recorder.Events.Count(x => x.Kind == "returned") == 2, server.Timeout);
 
-        AssertInboundJob(Assert.Single(Recorder.Events, x => x.Kind == "enter"), "inbound:GameExit");
+        AssertInboundJob(Assert.Single(Recorder.Events, x => x.Kind == "enter"), DomainCommandFixture.InboundCommandTypeName);
         var telemetry = Assert.Single(Recorder.Events, x => x.Kind == "telemetry");
         Assert.False(telemetry.OnExecutor);
         Assert.Null(telemetry.Chain);
@@ -153,6 +154,8 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         };
         await using var server = await Server.StartAsync();
         // Both connect first: the initial notice is sent by a lifecycle job, which a held frame would block.
+        try
+        {
         using var flooding = await server.ConnectGameAsync();
         using var other = await server.ConnectGameAsync();
 
@@ -190,7 +193,7 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         Assert.Equal(1, Recorder.MaxWaitingOf(floodingId));
         Assert.Equal(1, Recorder.MaxWaitingOf(otherId));
         Assert.Equal(0, Recorder.Overlaps);
-        Assert.All(entered, x => AssertInboundJob(x, "inbound:GameExit"));
+        Assert.All(entered, x => AssertInboundJob(x, DomainCommandFixture.InboundCommandTypeName));
 
         void Observe(string point, int next)
         {
@@ -204,6 +207,12 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         }
 
         static bool Entered(int number) => Recorder.Events.Any(x => x.Kind == "enter" && x.Number == number);
+        }
+        finally
+        {
+            releaseFirst.TrySetResult();
+            releaseMiddle.TrySetResult();
+        }
     }
 
     private static void AssertInboundJob(Event seen, string commandType)
@@ -360,7 +369,7 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
 
         private static bool IsInbound(GameplayCallChain chain, string commandType) =>
             chain.Source == GameplayCallSource.Connection && chain.SourceConnection is not null
-            && commandType.StartsWith("inbound:", StringComparison.Ordinal);
+            && commandType==DomainCommandFixture.InboundCommandTypeName;
 
         private sealed class StartMark
         {
@@ -416,8 +425,8 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
             Reroute(builder.Services, ClientMessageType.GameExit, ClientMessageType.ChannelConnect, ClientMessageType.GamePi);
-            builder.Services.RegisterMessageHandler<ProbeHandler>(ClientMessageType.GameExit);
-            builder.Services.RegisterMessageHandler<ProbeHandler>(ClientMessageType.ChannelConnect);
+            builder.Services.RegisterFixtureMessageHandler<ProbeHandler,GameExitRequest>(ClientMessageType.GameExit);
+            builder.Services.RegisterFixtureMessageHandler<ProbeHandler,ChannelConnectRequest>(ClientMessageType.ChannelConnect);
             builder.Services.RegisterTelemetryMessageHandler<TelemetryProbe>(ClientMessageType.GamePi);
             var original = builder.Services.Last(x => x.ServiceType == typeof(INetworkMessageDispatcher));
             builder.Services.Remove(original);

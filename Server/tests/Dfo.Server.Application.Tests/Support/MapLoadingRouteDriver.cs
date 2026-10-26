@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
@@ -21,7 +22,7 @@ internal static class MapLoadingRouteDriver
             _ => throw new NotSupportedException(),
         };
         var request = new CommandRequestContext.ProtocolNonEffect(dispatch, input, command.Frame, () => true);
-        var context = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(GameMapLoadingCommandHandler), CommandExecutionKind.Direct) { Request = request };
+        var context = DomainCommandFixture.Context(Guid.NewGuid(), command.GetType(), typeof(GameMapLoadingCommandHandler)) with { Request = request };
         var handler = ActivatorUtilities.CreateInstance<GameMapLoadingCommandHandler>(services);
         _ = command switch
         {

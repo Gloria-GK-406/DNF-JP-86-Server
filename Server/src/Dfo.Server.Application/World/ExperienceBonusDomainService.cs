@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class ExperienceBonusDomainService(
     ISelectedSessionDomainService sessions,
     IPremiumServiceDomainService premiums,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     IExperienceRuleService experienceRules,
     TimeProvider clock,
     IOnlineCharacterRuntimeDomainService onlineCharacters) : IExperienceBonusDomainService

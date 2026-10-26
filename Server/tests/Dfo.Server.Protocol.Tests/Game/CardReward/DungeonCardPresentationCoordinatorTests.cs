@@ -521,6 +521,9 @@ await TestGameplay.RunAsync(async () =>
         FirstAttemptGate? firstAttemptGate = null,
         CharacterId? transientConflict = null) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         private bool conflictReturned;
 
         private int selections;

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Protocol.Game.AccountRoster;
 using Dfo.Server.Protocol.Game.CharacterName;
 using Dfo.Server.Data.Networking;
@@ -79,7 +80,7 @@ public sealed class CommandRegistrationTests
         {
             var row = Assert.Single(rows, x => x.CommandType == item.Command);
             Assert.NotNull(scope.ServiceProvider.GetRequiredService(row.InvokerType));
-            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route);
             Assert.Equal(expected.Where(x => x.Command == item.Command).Select(x => new ProtocolCommandMessageBinding(x.Message, x.Input)), row.ProtocolMessages);
             Assert.True(row.RegistrationExits is null or { Count: 0 }); Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
             Assert.True(registry.TryGet(item.Message, out var route)); Assert.Equal(item.Command, route!.ProtocolCommandType);
@@ -115,7 +116,7 @@ public sealed class CommandRegistrationTests
         {
             var row = Assert.Single(rows, x => x.CommandType == item.Command);
             Assert.NotNull(scope.ServiceProvider.GetRequiredService(row.InvokerType));
-            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route);
             Assert.Equal(expected.Where(x => x.Command == item.Command).Select(x => new ProtocolCommandMessageBinding(x.Message, x.Input)), row.ProtocolMessages);
             Assert.True(row.RegistrationExits is null or { Count: 0 }); Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
             Assert.True(registry.TryGet(item.Message, out var route)); Assert.Equal(item.Command, route!.ProtocolCommandType);
@@ -135,7 +136,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider = BuildProductionGraph(); var rows = provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row = Assert.Single(rows, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.QuestClearCoupon.GameQuestClearCouponCommand));
-        Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+        Assert.Equal(CommandRouteKind.Protocol, row.Route);
         Assert.Equal(new[] { new ProtocolCommandMessageBinding(ClientMessageType.GameQuestClearCoupon, typeof(Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest)) }, row.ProtocolMessages);
         Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
         Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
@@ -160,7 +161,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row=Assert.Single(rows,x=>x.CommandType==typeof(GameMoveItemSpaceCommand));
-        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
         Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameMoveItemSpace,typeof(MoveItemSpaceRequest))},row.ProtocolMessages);
         Assert.True(row.RegistrationExits is null or {Count:0});
         Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(MoveItemSpaceRequest)));
@@ -179,7 +180,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.CrystalContract.GameCrystalContractCommand));
-        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
         Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameCrystalContract,typeof(Dfo.Server.Protocol.Game.CrystalContract.CrystalContractRequest))},row.ProtocolMessages);
         Assert.True(row.RegistrationExits is null or {Count:0});
         Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.CrystalContract.CrystalContractRequest)));
@@ -195,7 +196,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.RepairItem.GameRepairItemCommand));
-        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
         Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameRepairItem,typeof(Dfo.Server.Protocol.Game.RepairItem.RepairItemRequest))},row.ProtocolMessages);
         Assert.True(row.RegistrationExits is null or {Count:0});
         Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.RepairItem.RepairItemRequest)));
@@ -212,7 +213,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.DeleteItem.GameDeleteItemCommand));
-        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
         Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteItem,typeof(Dfo.Server.Protocol.Game.DeleteItem.DeleteItemRequest))},row.ProtocolMessages);
         Assert.True(row.RegistrationExits is null or {Count:0});
         Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.DeleteItem.DeleteItemRequest)));
@@ -232,7 +233,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider=BuildProductionGraph();var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row=Assert.Single(rows,x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.SellItem.GameSellItemCommand));
-        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
         Assert.Equal(new[]{new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem,typeof(Dfo.Server.Protocol.Game.SellItem.SellItemRequest))},row.ProtocolMessages);
         Assert.True(row.RegistrationExits is null or {Count:0});
         Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(typeof(Dfo.Server.Protocol.Game.SellItem.SellItemRequest)));
@@ -254,8 +255,7 @@ public sealed class CommandRegistrationTests
             (typeof(Dfo.Server.Protocol.Game.InventorySort.GameSortLockCommand), new[] { ClientMessageType.GameSortLock, ClientMessageType.GameSortUnlock }, typeof(Dfo.Server.Protocol.Game.InventorySort.SortLockRequest)) })
         {
             var row = Assert.Single(commands, x => x.CommandType == pair.Item1);
-            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
-            Assert.Empty(row.RegistrationExits ?? []);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Empty(row.RegistrationExits ?? []);
             Assert.Equal(pair.Item2.Select(logical => new ProtocolCommandMessageBinding(logical, pair.Item3)), row.ProtocolMessages);
             Assert.False(typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(pair.Item3));
             foreach (var logical in pair.Item2)
@@ -274,7 +274,7 @@ public sealed class CommandRegistrationTests
     {
         using var provider = BuildProductionGraph(); var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row = Assert.Single(commands,x=>x.CommandType == typeof(Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand));
-        Assert.Equal(CommandExecutionKind.Direct,row.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
         Assert.Equal(new[] {new ProtocolCommandMessageBinding(ClientMessageType.GameCollectionBox,typeof(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest))},row.ProtocolMessages);
         Assert.Equal(new[]{CommandRegistrationExit.CommittedReplayCurrentStateBatch,CommandRegistrationExit.SettledInitialBatch},row.RegistrationExits);
         var registry=provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
@@ -298,12 +298,11 @@ public sealed class CommandRegistrationTests
         using var provider = BuildProductionGraph();
         var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row = Assert.Single(commands, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.Warehouse.GameWarehouseCommand));
-        Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+        Assert.Equal(CommandRouteKind.Protocol, row.Route);
         var expected = new[] { ClientMessageType.GameCreateAccountCargo, ClientMessageType.GameUpgradeAccountCargo, ClientMessageType.GameDepositAccountCargo, ClientMessageType.GameWithdrawAccountCargo, ClientMessageType.GameUpgradeCargo, ClientMessageType.GameUpgradeInventory };
         var shape = typeof(Dfo.Server.Protocol.Game.Warehouse.WarehouseRequest);
         Assert.Equal(expected.Select(x => new ProtocolCommandMessageBinding(x, shape)), row.ProtocolMessages);
         Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
-        Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(row.CommandType));
         var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
         foreach (var logical in expected)
         {
@@ -320,10 +319,9 @@ public sealed class CommandRegistrationTests
         using var provider = BuildProductionGraph();
         var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
         var row = Assert.Single(commands, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.AvatarCompound.GameAvatarCompoundCommand));
-        Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+        Assert.Equal(CommandRouteKind.Protocol, row.Route);
         Assert.Equal(new[] { new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarCompound, typeof(Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundRequest)) }, row.ProtocolMessages);
         Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
-        Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(row.CommandType));
         var registry = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
         Assert.True(registry.TryGet(ClientMessageType.GameAvatarCompound, out var route)); Assert.Equal(row.CommandType, route!.ProtocolCommandType);
         Assert.Equal(new[] { typeof(Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundRequest) }, route.AllowedMessageClrTypes);
@@ -346,10 +344,9 @@ public sealed class CommandRegistrationTests
         foreach (var (logical, input, command) in expected)
         {
             var row = Assert.Single(commands, row => row.CommandType == command);
-            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route);
             Assert.Equal(expected.Select(x => new ProtocolCommandMessageBinding(x.Item1, x.Item2)), row.ProtocolMessages);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
             Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
             Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
         }
@@ -372,10 +369,9 @@ public sealed class CommandRegistrationTests
         foreach (var (logical, input, command) in expected)
         {
             var row = Assert.Single(commands, row => row.CommandType == command);
-            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route);
             Assert.Equal(new[] { new ProtocolCommandMessageBinding(logical, input) }, row.ProtocolMessages);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
             Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
             Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
         }
@@ -403,10 +399,9 @@ public sealed class CommandRegistrationTests
         foreach (var (logical, input, command) in expected)
         {
             var row = Assert.Single(commands, row => row.CommandType == command);
-            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route);
             Assert.Equal(new[] { new ProtocolCommandMessageBinding(logical, input) }, row.ProtocolMessages);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
             Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
             Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
         }
@@ -428,8 +423,7 @@ public sealed class CommandRegistrationTests
         foreach (var (command, input, logicals) in expected)
         {
             var row = Assert.Single(commands, row => row.CommandType == command);
-            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
-            Assert.Equal(logicals.Select(logical => new ProtocolCommandMessageBinding(logical, input)), row.ProtocolMessages);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(logicals.Select(logical => new ProtocolCommandMessageBinding(logical, input)), row.ProtocolMessages);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
             foreach (var logical in logicals)
             {
@@ -455,7 +449,7 @@ public sealed class CommandRegistrationTests
         foreach (var (logical, input, command) in expected)
         {
             var row = Assert.Single(commands, row => row.CommandType == command);
-            Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind); Assert.Equal(CommandRouteKind.Protocol, row.Route);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route);
             Assert.Equal(new[] { new ProtocolCommandMessageBinding(logical, input) }, row.ProtocolMessages);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, row.RegistrationExits);
             Assert.True(registry.TryGet(logical, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
@@ -471,7 +465,6 @@ public sealed class CommandRegistrationTests
         var registration = Assert.Single(provider.GetServices<CommandHandlerRegistration>(),
             row => row.CommandType == typeof(GameOtherCharacterDetailCommand));
         Assert.Equal(CommandRouteKind.Protocol, registration.Route);
-        Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
         var binding = Assert.Single(registration.ProtocolMessages!);
         Assert.Equal(ClientMessageType.GameGetOtherCharacterDetail, binding.MessageType);
         Assert.Equal(typeof(GetOtherCharacterDetailRequest), binding.MessageClrType);
@@ -485,7 +478,6 @@ public sealed class CommandRegistrationTests
         var registrations = provider.GetServices<CommandHandlerRegistration>().ToArray();
         var whole = Assert.Single(registrations, row => row.CommandType == typeof(Dfo.Server.Protocol.Game.BuyItem.GameBuyItemCommand));
         Assert.Equal(CommandRouteKind.Protocol, whole.Route);
-        Assert.Equal(CommandExecutionKind.Direct, whole.ExecutionKind);
         Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, whole.RegistrationExits);
         Assert.All(whole.ProtocolMessages!, pair => Assert.Equal(ClientMessageType.GameBuyItem, pair.MessageType));
         var family = new[] { typeof(Dfo.Server.Protocol.Game.BuyItem.BuyItemRequest), typeof(Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemRequest) };
@@ -571,13 +563,13 @@ public sealed class CommandRegistrationTests
     {
         using var provider = BuildProductionGraph();
         var registrations = provider.GetServices<CommandHandlerRegistration>()
-            .ToDictionary(value => value.CommandType, value => value.ExecutionKind);
+            .ToDictionary(value => value.CommandType, value => value.Route);
 
-        Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameUseStackableCommand)]);
+        Assert.Equal(CommandRouteKind.Protocol, registrations[typeof(GameUseStackableCommand)]);
         Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameUseStackableCommand)).Route);
-        Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameMoveItemSpaceCommand)]);
+        Assert.Equal(CommandRouteKind.Protocol, registrations[typeof(GameMoveItemSpaceCommand)]);
         Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameMoveItemSpaceCommand)).Route);
-        Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameSelectCharacterCommand)]);
+        Assert.Equal(CommandRouteKind.Protocol, registrations[typeof(GameSelectCharacterCommand)]);
         Assert.DoesNotContain(provider.GetServices<CommandHandlerRegistration>(), r =>
             r.CommandType.Name is "PrepareSelectedCharacterSessionCommand" or "CleanupExpiredCharacterItemsCommand"
                 or "PrepareSelectedCharacterStateCommand" or "ApplySelectedCharacterDailyRefillCommand"
@@ -600,7 +592,6 @@ public sealed class CommandRegistrationTests
         {
             var registration = Assert.Single(registrations, row => row.CommandType == command);
             Assert.Equal(CommandRouteKind.Protocol, registration.Route);
-            Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
             var binding = Assert.Single(registration.ProtocolMessages!);
             Assert.Equal(message, binding.MessageType);
             Assert.Equal(request, binding.MessageClrType);
@@ -618,7 +609,6 @@ public sealed class CommandRegistrationTests
             provider.GetServices<CommandHandlerRegistration>(),
             value => value.CommandType == typeof(GameLoginCommand));
 
-        Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
         Assert.Equal(CommandRouteKind.Protocol, registration.Route);
     }
 
@@ -672,13 +662,11 @@ public sealed class CommandRegistrationTests
         foreach (var (message, command, input, replay) in expected)
         {
             var row = Assert.Single(registrations, x => x.CommandType == command);
-            Assert.Equal(CommandRouteKind.Protocol, row.Route); Assert.Equal(CommandExecutionKind.Direct, row.ExecutionKind);
-            var binding = Assert.Single(row.ProtocolMessages!); Assert.Equal(message, binding.MessageType); Assert.Equal(input, binding.MessageClrType);
+            Assert.Equal(CommandRouteKind.Protocol, row.Route); var binding = Assert.Single(row.ProtocolMessages!); Assert.Equal(message, binding.MessageType); Assert.Equal(input, binding.MessageClrType);
             Assert.True(routes.TryGet(message, out var route)); Assert.Equal(command, route!.ProtocolCommandType);
             Assert.Equal(new[] { input }, route.AllowedMessageClrTypes);
             Assert.Equal(replay ? new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch } : [], row.RegistrationExits ?? []);
             Assert.Equal(CommandSelfSettlementCapability.None, row.SelfSettlement);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(command));
         }
         Assert.DoesNotContain(registrations, x => x.CommandType.Name is "RentEquipmentCommand" or "ChargeRentPointCommand" or "ReadRentalRefreshCommand" or "RenameCreatureCommand" or "HatchCreatureCommand" or "SharedEffectCommand");
     }

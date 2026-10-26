@@ -106,6 +106,23 @@ public sealed class ProtocolCommandExecutionTests
     }
 
     [Fact]
+    public async Task An_unregistered_message_fails_inside_its_initialized_job_and_closes_only_its_source()
+    {
+        await using var world=new CommandWorld();
+        await Assert.ThrowsAsync<KeyNotFoundException>(()=>world.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(world.Source),new UnknownMessage(),default).AsTask());
+        Assert.Empty(world.Settings.Seen);Assert.Equal(1,world.Queue.Calls);
+        var close=Assert.Single(world.Outbound.Entries);Assert.True(close.IsClose);Assert.Same(world.Source,close.Connection);
+    }
+    [Fact]
+    public async Task The_fixed_unregistered_entry_refuses_a_registered_message_without_running_its_handler()
+    {
+        await using var world=new CommandWorld();
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>world.Services.GetRequiredService<CommandJobEntry>().RejectUnregisteredAsync(new(world.Source),new ProbeMessage(),default).AsTask());
+        Assert.Empty(world.Settings.Seen);Assert.Equal(1,world.Queue.Calls);Assert.True(Assert.Single(world.Outbound.Entries).IsClose);
+    }
+    private sealed record UnknownMessage:IClientNetworkMessage {public ClientMessageType MessageType=>ClientMessageType.GamePi;}
+
+    [Fact]
     public async Task Internal_and_protocol_entries_cannot_be_substituted_for_each_other()
     {
         await using var world = new CommandWorld();
@@ -316,7 +333,7 @@ public sealed class ProtocolCommandExecutionTests
     internal static InternalCommandOrigin Origin() => new(GameplayCallSource.StartupRecovery,
         GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery), "test:internal");
     private static CommandHandlerRegistration Registration(IReadOnlyList<ProtocolCommandMessageBinding> messages) =>
-        new(typeof(Probe), typeof(ProbeHandler), typeof(CommandInvoker<Probe, int>), CommandExecutionKind.Direct, CommandRouteKind.Protocol, messages);
+        new(typeof(Probe), typeof(ProbeHandler), typeof(CommandInvoker<Probe, int>), CommandRouteKind.Protocol, messages);
 
     internal enum ProbeMode { Plain, Throw, NestLegacyAndCatch, NestInternalAndCatch, Detached, Leak }
     private record FamilyMessage : IClientNetworkMessage { public ClientMessageType MessageType => ClientMessageType.ChannelConnect; }
@@ -418,7 +435,7 @@ public sealed class ProtocolCommandExecutionTests
             services.AddSingleton<INetworkConnectionContexts>(new Connections(Source));
             services.AddSingleton<IOutboundMessageEncoder, Encoder>();
             services.AddInternalCommandHandler<InternalProbe, int, ProbeHandler>();
-            services.AddCommandHandler<LegacyProbe, int, LegacyHandler>(CommandExecutionKind.Direct);
+            services.AddFixtureCommand<LegacyProbe, int, LegacyHandler>(FixtureUnitKind.Direct);
             services.AddProtocolCommandHandler<Probe, int, ProbeHandler>(new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(ProbeMessage)));
             services.RegisterProtocolMessageHandler<Thin, ProbeMessage, Probe>(ClientMessageType.ChannelConnect);
             if (realVersion)

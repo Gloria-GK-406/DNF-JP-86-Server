@@ -130,8 +130,11 @@ public sealed class HatchCreatureHandlerTests
     }
     private sealed class WholeDriver(GameHatchCreatureCommandHandler handler) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull =>
-            (T)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(GameHatchCreatureCommand), typeof(GameHatchCreatureCommandHandler), CommandExecutionKind.Direct), Assert.IsType<GameHatchCreatureCommand>(command), ct);
+            (T)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(GameHatchCreatureCommand), typeof(GameHatchCreatureCommandHandler)), Assert.IsType<GameHatchCreatureCommand>(command), ct);
     }
     // Local projection test driver; the Application tests exercise production work units and SQLite commits.
     private sealed class Units : ICommandWorkUnits

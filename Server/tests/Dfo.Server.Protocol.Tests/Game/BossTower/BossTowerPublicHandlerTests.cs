@@ -150,6 +150,9 @@ public sealed partial class BossTowerProjectionConcurrencyTests
     }
     private sealed class FlowCommands(TowerDomain towers) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public BossTowerActionResult Load(Dfo.Server.Abstractions.World.BossTower.BossTowerActionContext context)
         {
             var loading = towers.Find(context.Session)!;

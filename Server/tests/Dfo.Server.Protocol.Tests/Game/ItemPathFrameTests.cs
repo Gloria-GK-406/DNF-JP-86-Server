@@ -110,8 +110,7 @@ public sealed class ItemPathFrameTests
     }
 
     private static CommandExecutionContext Context => new(
-        Guid.Empty, typeof(InventoryMoveRequest), typeof(InventoryMoveDomainService),
-        CommandExecutionKind.Transactional);
+        Guid.Empty, typeof(InventoryMoveRequest), typeof(InventoryMoveDomainService));
 
     /// <summary>
     /// Wearing a piece is acknowledged with the bytes the reference server sends.

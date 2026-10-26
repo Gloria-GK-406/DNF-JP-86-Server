@@ -1,6 +1,5 @@
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,10 +20,7 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<ICommandWorkUnits, CommandWorkUnits>();
         services.TryAddSingleton<ICommandHttpFailureAudit, CommandHttpFailureAudit>();
         services.TryAddSingleton<ICommandSelectedSessionCleanup, CommandSelectedSessionCleanup>();
-        services.TryAddSingleton<NetworkCommandAuthorization>();
         services.TryAddSingleton<SelectedSessionSafety>();
-        services.TryAddSingleton<SelectedSessionCommandScope>();
-        services.TryAddSingleton<EffectOperationContext>();
         services.TryAddSingleton<EffectOperationLedger>();
         // The scope holds the open transaction for the flow the command runs on. Stores are
         // singletons and containers are held per character, so neither can be handed the
@@ -32,71 +28,44 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<DomainTransactionScope>();
         services.TryAddSingleton<IDomainTransactionAccessor>(
             provider => provider.GetRequiredService<DomainTransactionScope>());
-        // Behaviours carry the command's result type, so they register as open generics
-        // and the container closes them per result type at resolution.
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(CommandLoggingBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(SelectedSessionExecutionBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(SelectedSessionSettlementBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(UnitOfWorkBehavior<>)));
-        services.TryAddEnumerable(ServiceDescriptor.Scoped(
-            typeof(ICommandPipelineBehavior<>), typeof(CommandExecutionPolicyBehavior<>)));
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, CommandHandlerRegistryValidationService>());
         return services;
-    }
-
-    /// <summary>
-    /// Registers the handler for a command. The three type arguments must agree: the
-    /// command must declare this result, and the handler must handle this command and
-    /// produce this result, or the call does not compile.
-    /// </summary>
-    public static IServiceCollection AddCommandHandler<TCommand, TResult, THandler>(
-        this IServiceCollection services,
-        CommandExecutionKind executionKind)
-        where TCommand : class, ICommand<TResult>
-        where TResult : notnull
-        where THandler : class, ICommandHandler<TCommand, TResult>
-    {
-        return Add<TCommand, TResult, THandler>(services, executionKind, CommandRouteKind.LegacyFineGrained, null);
     }
 
     public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
         params ProtocolCommandMessageBinding[] messages)
         where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages]);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Protocol, [.. messages]);
 
     public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
         IReadOnlyCollection<CommandRegistrationExit> exits, params ProtocolCommandMessageBinding[] messages)
         where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], exits);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Protocol, [.. messages], exits);
 
     public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
         CommandSelfSettlementCapability capability, params ProtocolCommandMessageBinding[] messages)
         where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], selfSettlement: capability);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Protocol, [.. messages], selfSettlement: capability);
 
     public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
         CommandSelectedSessionCleanupCapability capability, params ProtocolCommandMessageBinding[] messages)
         where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], selectedSessionCleanup: capability);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Protocol, [.. messages], selectedSessionCleanup: capability);
 
     public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
         TimerReadOnlyCancellationCapability timerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None,
         InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Internal, null, timerReadOnlyCancellation: timerReadOnlyCancellation, internalActionCancellation: internalActionCancellation);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Internal, null, timerReadOnlyCancellation: timerReadOnlyCancellation, internalActionCancellation: internalActionCancellation);
 
     private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
-        CommandExecutionKind kind, CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null,
+        CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null,
         CommandSelfSettlementCapability selfSettlement = CommandSelfSettlementCapability.None,
         CommandSelectedSessionCleanupCapability selectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
         TimerReadOnlyCancellationCapability timerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None,
@@ -111,7 +80,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            kind, route, messages, exits, selfSettlement, selectedSessionCleanup, timerReadOnlyCancellation, internalActionCancellation).Freeze());
+            route, messages, exits, selfSettlement, selectedSessionCleanup, timerReadOnlyCancellation, internalActionCancellation).Freeze());
         return services;
     }
 }

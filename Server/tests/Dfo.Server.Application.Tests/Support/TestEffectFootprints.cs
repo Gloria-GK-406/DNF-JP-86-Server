@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Commands;
@@ -49,38 +50,8 @@ internal static class TestEffectFootprints
         return await action(lease).ConfigureAwait(false);
     }
 
-    // Known direct-handler state, independent of the real network replay ledger.
     internal static async ValueTask Effect(IServiceProvider services, SelectedSessionIdentity owner,
-        Dfo.Server.Data.Networking.GameMessageMetadata metadata, ReplayProjectionNeeds minimum, Func<ValueTask> action)
-    {
-        using var source = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<NetworkCommandAuthorization>(services)
-            .Enter(() => true, metadata, NetworkCommandAuthorization.MessageCategory.Effect);
-        using var operation = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Dfo.Server.Application.Effects.EffectOperationContext>(services).Enter(
-            new(owner, 1, metadata.Selector, metadata.Type, metadata.Sequence, "explicit-test-invocation", 0),
-            Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<SelectedSessionSafety>(services).Capture(owner, metadata), minimum);
-        await action().ConfigureAwait(false);
-    }
-
-    internal static async ValueTask<T> NonEffect<T>(IServiceProvider services, Dfo.Server.Data.Networking.GameMessageMetadata metadata, Func<ValueTask<T>> action)
-    {
-        using var source = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<NetworkCommandAuthorization>(services)
-            .Enter(() => true, metadata, NetworkCommandAuthorization.MessageCategory.NonEffect);
-        return await action().ConfigureAwait(false);
-    }
-    internal static async ValueTask NonEffect(IServiceProvider services, Dfo.Server.Data.Networking.GameMessageMetadata metadata, Func<ValueTask> action)
-    {
-        using var source = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<NetworkCommandAuthorization>(services)
-            .Enter(() => true, metadata, NetworkCommandAuthorization.MessageCategory.NonEffect);
-        await action().ConfigureAwait(false);
-    }
-
-    internal static async ValueTask<TResult> Invoke<TCommand, TResult>(ICommandHandler<TCommand, TResult> handler,
-        TCommand command, CancellationToken ct)
-        where TCommand : class, ICommand<TResult>, IRequestSettlementCommand where TResult : notnull
-    {
-        using var lease = new Lease(command.Session ?? throw new InvalidOperationException("This test requires an owner."));
-        var context = new CommandExecutionContext(Guid.NewGuid(), typeof(TCommand), handler.GetType(), CommandExecutionKind.Transactional);
-        context.SupplyLegacyFootprint(lease);
-        return await handler.HandleAsync(context, command, ct).ConfigureAwait(false);
-    }
+        Dfo.Server.Data.Networking.GameMessageMetadata metadata, ReplayProjectionNeeds minimum, Func<ValueTask> action) => await action();
+    internal static async ValueTask<T> NonEffect<T>(IServiceProvider services,Dfo.Server.Data.Networking.GameMessageMetadata metadata,Func<ValueTask<T>> action)=>await action();
+    internal static async ValueTask NonEffect(IServiceProvider services,Dfo.Server.Data.Networking.GameMessageMetadata metadata,Func<ValueTask> action)=>await action();
 }

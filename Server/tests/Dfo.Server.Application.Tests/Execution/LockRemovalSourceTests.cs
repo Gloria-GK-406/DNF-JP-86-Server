@@ -40,7 +40,26 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
         // T-006 delivery (TASK-24): the party participant gates and the gate assertion that guarded them.
         "GameplayGateAssertion", "GameplayGateWaitException", "EnterParticipantsAsync", "PartyParticipantLease",
         "participantGates",
+        "IChannelEntryPolicy", "LegacyRequestAdapter", "LegacyEffectFootprint", "LegacyFineGrained", "LegacyQueued", "InlineAsync", "DispatchDepth",
+        "NetworkCommandAuthorization", "SelectedSessionCommandScope", "EffectOperationContext", "ICommandPipelineBehavior",
+        "CommandExecutionDelegate", "CommandExecutionKind", "IAccountCommand", "ISelectedSessionCommand", "IMultiSelectedSessionCommand",
+        "IRequestSettlementCommand", "CommandLoggingBehavior", "SelectedSessionExecutionBehavior", "SelectedSessionSettlementBehavior",
+        "UnitOfWorkBehavior", "CommandExecutionPolicyBehavior",
     ];
+
+    private static bool DispatcherOwnsJobEntry(string source)=>Regex.IsMatch(source,@"\bGameplayOutboxes\b|\bnew\s+GameplayWork(?:<|\s*\()|\.Begin\s*\(",RegexOptions.CultureInvariant);
+    [Fact]
+    public void Dispatchers_delegate_job_entry_instead_of_initializing_an_outbox()
+    {
+        var files=ProductionSources();
+        foreach(var path in new[]{"Dfo.Server.Application/Dispatching/NetworkMessageDispatcher.cs","Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs"})
+            Assert.False(DispatcherOwnsJobEntry(files[path]),path);
+    }
+    [Theory]
+    [InlineData("_ = outboxes.Current; GameplayOutboxes state;")]
+    [InlineData("entry.Begin();")]
+    [InlineData("new GameplayWork(key,chain,name,body);")]
+    public void Dispatcher_job_entry_rule_refuses_each_old_initialization_shape(string source)=>Assert.True(DispatcherOwnsJobEntry(source));
 
     /// <summary>Waiting primitives other than <c>SemaphoreSlim</c>; none is allowed anywhere.</summary>
     private static readonly string[] OtherWaits =

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
@@ -11,8 +12,8 @@ internal static class LifecycleStageTestDriver
         var request = new CommandRequestContext.TrustedInternal(new(GameplayCallSource.Lifecycle,
             GameplayJob.Current!.Value, disconnected ? "lifecycle:disconnected" : "lifecycle:connected"))
             { DisconnectedLifecycleCleanup = disconnected };
-        return new(Guid.NewGuid(), disconnected ? typeof(DisconnectedLifecycleCommand) : typeof(ConnectedLifecycleCommand),
-            typeof(OnlineUserConnectionObserver), CommandExecutionKind.Direct) { Request = request };
+        return DomainCommandFixture.Context(Guid.NewGuid(), disconnected ? typeof(DisconnectedLifecycleCommand) : typeof(ConnectedLifecycleCommand),
+            typeof(OnlineUserConnectionObserver), FixtureUnitKind.Direct) with { Request = request };
     }
     internal static ValueTask ConnectedAsync(this OnlineUserConnectionObserver observer, NetworkConnectionContext connection, CancellationToken token) =>
         observer.ConnectedAsync(Context(false), connection, token);

@@ -38,7 +38,7 @@ internal static class EntryServices
         IExpertSkillContractDefinitionSource? expertContracts = null,
         IExpertSkillContractReconciliationRepository? expertSkillReconciliation = null,
         ICreatureEquipmentLifetimeSource? creatureLifetimes = null,
-        IChannelEntryPolicy? channels = null,
+        IChannelEntryDomainService? channels = null,
         IEntryPlacementRuleService? placement = null,
         ISessionAdjacentEntryDomainService? sessionAdjacent = null,
         ISelectedSessionPositionPersistence? positions = null,

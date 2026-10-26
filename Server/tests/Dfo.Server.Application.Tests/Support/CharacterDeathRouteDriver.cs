@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
@@ -13,7 +14,7 @@ internal static class CharacterDeathRouteDriver
     {
         var command=new GameCharacterDeathCommand(dispatch,input);
         var request=new CommandRequestContext.ProtocolNonEffect(dispatch,input,command.Frame,()=>true);
-        var execution=new CommandExecutionContext(Guid.NewGuid(),command.GetType(),typeof(GameCharacterDeathCommandHandler),CommandExecutionKind.Direct){Request=request};
+        var execution=DomainCommandFixture.Context(Guid.NewGuid(),command.GetType(),typeof(GameCharacterDeathCommandHandler)) with{Request=request};
         var handler=ActivatorUtilities.CreateInstance<GameCharacterDeathCommandHandler>(services,new Outbox(services.GetRequiredService<IGameMessageSender>()),new Closures(services.GetRequiredService<INetworkConnectionCloser>()));
         try{_=await handler.HandleAsync(execution,command,token);}
         finally{await request.DrainOperationsAsync();request.Close();}

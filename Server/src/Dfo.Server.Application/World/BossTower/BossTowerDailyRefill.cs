@@ -40,7 +40,7 @@ internal sealed class BossTowerDailyRefillJob(ISelectedSessionSnapshotQuery onli
             var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
             if (error is not null && sessions.IsInWorld(session))
             {
-                logger.LogError(error, "Boss tower ticket refill failed character={CharacterId}", session.CharacterId);
+                logger.LogWarning( "Boss tower ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }
         }

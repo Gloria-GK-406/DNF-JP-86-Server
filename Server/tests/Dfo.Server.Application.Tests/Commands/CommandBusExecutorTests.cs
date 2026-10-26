@@ -25,27 +25,16 @@ public sealed class CommandBusExecutorTests
         var seen = Assert.Single(world.Seen);
         Assert.True(seen.OnExecutor);
         Assert.Equal("bus:" + nameof(Probe), seen.CommandType);
-        Assert.Equal(GameplayCallSource.Connection, seen.Source);
+        Assert.Equal(GameplayCallSource.Timer, seen.Source);
         Assert.Equal(1, world.Queue.Enqueued);
     }
 
     [Fact]
-    public async Task F2_a_send_from_a_job_runs_inline_in_that_job()
+    public async Task F2_a_send_from_a_job_is_refused_without_inline_execution()
     {
-        await using var world = World.Build();
-
-        var outer = await TestGameplay.RunAsync(world.Services, async () =>
-        {
-            var chain = GameplayJob.Current!.Value;
-            await world.Bus.SendAsync(new Probe(1), CancellationToken.None);
-            return chain;
-        }).WaitAsync(Patience);
-
-        var seen = Assert.Single(world.Seen);
-        Assert.True(seen.OnExecutor);
-        Assert.Equal(outer.RootId, seen.RootId);
-        Assert.Equal(outer.CommandType, seen.CommandType);
-        Assert.Equal(0, world.Queue.Enqueued);
+        await using var world=World.Build();
+        await Assert.ThrowsAsync<GameplaySelfWaitException>(()=>TestGameplay.RunAsync(world.Services,async()=>await world.Bus.SendAsync(new Probe(1))));
+        Assert.Empty(world.Seen);Assert.Equal(0,world.Queue.Enqueued);
     }
 
     [Fact]
@@ -93,7 +82,7 @@ public sealed class CommandBusExecutorTests
     {
         await using var world = World.Build(nested: true);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsAsync<GameplaySelfWaitException>(async () =>
             await world.Bus.SendAsync(new Probe(1), CancellationToken.None).AsTask().WaitAsync(Patience));
 
         Assert.Contains("Nested command dispatch", exception.Message, StringComparison.Ordinal);
@@ -126,7 +115,7 @@ public sealed class CommandBusExecutorTests
     }
 
     [Fact]
-    public async Task F8_a_send_from_RunDetached_inside_a_handler_is_still_a_nested_dispatch()
+    public async Task F8_a_detached_internal_command_without_an_explicit_origin_is_refused()
     {
         await using var world = World.Build(leak: Leak.Detached);
 
@@ -134,12 +123,12 @@ public sealed class CommandBusExecutorTests
 
         var leaked = world.Services.GetRequiredService<Settings>().Leaked!;
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => leaked.WaitAsync(Patience));
-        Assert.Contains("Nested command dispatch", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("explicit origin", exception.Message, StringComparison.Ordinal);
         Assert.Single(world.Seen);
     }
 
     [Fact]
-    public async Task F9_a_continuation_that_outlived_its_job_is_still_a_nested_dispatch()
+    public async Task F9_a_continuation_that_outlived_its_job_is_a_leaked_flow()
     {
         await using var world = World.Build(leak: Leak.Continuation);
         var settings = world.Services.GetRequiredService<Settings>();
@@ -147,8 +136,8 @@ public sealed class CommandBusExecutorTests
         await world.Bus.SendAsync(new Probe(1), CancellationToken.None).AsTask().WaitAsync(Patience);
         settings.Release.TrySetResult();
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => settings.Leaked!.WaitAsync(Patience));
-        Assert.Contains("Nested command dispatch", exception.Message, StringComparison.Ordinal);
+        var exception = await Assert.ThrowsAsync<GameplayLeakedFlowException>(() => settings.Leaked!.WaitAsync(Patience));
+        Assert.Contains("leaked from a finished", exception.Message, StringComparison.Ordinal);
         Assert.Single(world.Seen);
     }
 
@@ -303,7 +292,7 @@ public sealed class CommandBusExecutorTests
     private sealed class World(ServiceProvider services) : IAsyncDisposable
     {
         public ServiceProvider Services { get; } = services;
-        public ICommandBus Bus => Services.GetRequiredService<ICommandBus>();
+        public ICommandBus Bus => DomainCommandFixture.Bus(Services);
         public CountingQueue Queue => (CountingQueue)Services.GetRequiredService<IGameplayQueue>();
         public IReadOnlyCollection<Observation> Seen =>
             Services.GetRequiredService<System.Collections.Concurrent.ConcurrentQueue<Observation>>();
@@ -321,7 +310,7 @@ public sealed class CommandBusExecutorTests
             services.AddSingleton<IGameplayQueue>(provider =>
                 new CountingQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>())));
             services.AddCommandDispatching();
-            services.AddCommandHandler<Probe, ProbeResult, ProbeHandler>(CommandExecutionKind.Direct);
+            services.AddFixtureCommand<Probe, ProbeResult, ProbeHandler>(FixtureUnitKind.Direct);
             return new World(services.BuildServiceProvider());
         }
 

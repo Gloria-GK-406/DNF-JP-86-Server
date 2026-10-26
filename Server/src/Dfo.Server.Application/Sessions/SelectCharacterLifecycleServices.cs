@@ -36,7 +36,7 @@ internal sealed class SelectedSessionCleanupService(
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
     IOnlineCharacterRuntimeDomainService runtime,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     IPartyService parties,
     IDungeonRunDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,

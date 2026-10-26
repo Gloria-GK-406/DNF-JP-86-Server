@@ -654,7 +654,6 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));
         services.RegisterProtocolMessageHandler<UseStackableHandler, UseStackableRequest, GameUseStackableCommand>(ClientMessageType.GameUseStackable);
-        services.AddSingleton<IReplayStateProjectionDelivery, UnusedReplay>();
         var outbound = RecordedOutbound.AddTo(services);
         outbound.Connections.Add(Context.Connection);
         var protocolServices = new ServiceCollection();
@@ -681,11 +680,6 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             return user is not null;
         }
     }
-    private sealed class UnusedReplay : IReplayStateProjectionDelivery
-    {
-        public ValueTask RefreshAsync(NetworkConnectionContext c, SelectedSessionIdentity s, ReplayProjectionRequest r, GameMessageMetadata? m, CancellationToken ct) => throw new NotSupportedException();
-    }
-
     /// <summary>The character's main container, holding one pile in one slot.</summary>
     private sealed class FakeInventory : FakeMainInventory
     {

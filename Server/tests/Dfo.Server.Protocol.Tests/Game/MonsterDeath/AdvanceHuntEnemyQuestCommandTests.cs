@@ -221,8 +221,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var handler = new ObjectDestructionAlgorithmDriver(runs, sessions, new OneCharacterLog(log),
                 containers, new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
                 Progress(log, seeking: seeking));
-            var context = new CommandExecutionContext(Guid.Empty, typeof(ObjectDestructionFacts),
-                typeof(ObjectDestructionAlgorithmDriver), CommandExecutionKind.Transactional);
+            var context = DomainCommandFixture.Context(Guid.Empty, typeof(ObjectDestructionFacts),
+                typeof(ObjectDestructionAlgorithmDriver), FixtureUnitKind.Transactional);
             var command = new ObjectDestructionFacts(session, run.RunId, run.RoomVersion, 8961);
 
             // An unavailable inventory must not eat the queued reward.
@@ -370,8 +370,8 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         }
 
         public ValueTask<ObjectDestructionResult> Apply(ObjectDestructionFacts? command = null) =>
-            this.handler.HandleAsync(new(Guid.Empty, typeof(ObjectDestructionFacts),
-                typeof(ObjectDestructionAlgorithmDriver), CommandExecutionKind.Transactional), command ?? this.Command, default);
+            this.handler.HandleAsync(DomainCommandFixture.Context(Guid.Empty, typeof(ObjectDestructionFacts),
+                typeof(ObjectDestructionAlgorithmDriver), FixtureUnitKind.Transactional), command ?? this.Command, default);
     }
 
     private sealed class PartyLogs(IReadOnlyDictionary<CharacterId, IQuestLog> logs) : ICharacterQuestLogDomainService
@@ -477,8 +477,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
     private static CommandExecutionContext Context() => new(
         Guid.Empty,
         typeof(HuntProgressFacts),
-        typeof(HuntProgressDriver),
-        CommandExecutionKind.Transactional);
+        typeof(HuntProgressDriver));
 
     private static QuestDefinition Quest1776(
         int enemyType = HuntEnemyTargetTypes.Monster) =>

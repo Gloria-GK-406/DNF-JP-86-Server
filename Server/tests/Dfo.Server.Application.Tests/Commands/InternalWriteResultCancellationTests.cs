@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
@@ -38,7 +39,7 @@ public sealed class InternalWriteResultCancellationTests
     public void A_non_internal_registration_cannot_declare_the_cancellation_capability()
     {
         Assert.Throws<InvalidOperationException>(() => new CommandHandlerRegistry([
-            new(typeof(Probe), typeof(Handler), typeof(object), CommandExecutionKind.Direct,
+            new(typeof(Probe), typeof(Handler), typeof(object), CommandRouteKind.Protocol,
                 InternalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult)]));
     }
     [Fact]

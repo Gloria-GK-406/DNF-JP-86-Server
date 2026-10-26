@@ -32,7 +32,7 @@ public sealed class CommandRequestContextTests
     {
         await using var world = new CommandWorld();
         var units = world.Services.GetRequiredService<ICommandWorkUnits>();
-        var context = new CommandExecutionContext(Guid.NewGuid(), typeof(InternalProbe), typeof(CommandRequestContextTests), CommandExecutionKind.Direct);
+        var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(InternalProbe), typeof(CommandRequestContextTests));
         var ran = false;
         await TestGameplay.RunAsync(world.Services, async () =>
             await Assert.ThrowsAsync<InvalidOperationException>(() => units.WriteAsync(context, new("missing", []),
@@ -61,7 +61,7 @@ public sealed class CommandRequestContextTests
         var ran = false;
         await TestGameplay.RunAsync(world.Services, async () =>
         {
-            var context = new CommandExecutionContext(Guid.NewGuid(), typeof(InternalProbe), typeof(CommandRequestContextTests), CommandExecutionKind.Direct)
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(InternalProbe), typeof(CommandRequestContextTests)) with
             { Request = new CommandRequestContext.TrustedInternal(Origin()) };
             context.Request.Close();
             await Assert.ThrowsAsync<InvalidOperationException>(() => world.Services.GetRequiredService<ICommandWorkUnits>()
@@ -75,7 +75,7 @@ public sealed class CommandRequestContextTests
     {
         await using var world = new CommandWorld();
         var context = await TestGameplay.RunAsync(world.Services, () => Task.FromResult(
-            new CommandExecutionContext(Guid.NewGuid(), typeof(InternalProbe), typeof(CommandRequestContextTests), CommandExecutionKind.Direct)
+            DomainCommandFixture.Context(Guid.NewGuid(), typeof(InternalProbe), typeof(CommandRequestContextTests)) with
             { Request = new CommandRequestContext.TrustedInternal(Origin()) }));
         Assert.False(context.Request!.IsClosed);
         var ran = false;

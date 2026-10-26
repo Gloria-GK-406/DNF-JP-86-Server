@@ -178,6 +178,9 @@ public sealed class TutorialLevelUpHandlerTests
     /// </remarks>
     private sealed class FixedGrant(SkillPointLedger ledger) : ICommandBus, ICommandWorkUnits
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         /// <summary>What the ledger's count stood at when the level was written.</summary>
         public int LedgerAsksWhenTheGrantRan { get; private set; } = -1;
 

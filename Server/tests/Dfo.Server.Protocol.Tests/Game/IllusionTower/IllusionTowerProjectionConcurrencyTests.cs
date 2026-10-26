@@ -709,6 +709,9 @@ public sealed class IllusionTowerProjectionConcurrencyTests
 
     private sealed class EntryCommands(IllusionTowerSnapshot run) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull =>
             command is Dfo.Server.Protocol.Tests.Game.DungeonEntry.IllusionEntryRouteProbe
@@ -912,6 +915,9 @@ public sealed class IllusionTowerProjectionConcurrencyTests
 
     private sealed class Commands(Guid? failingRun = null) : ICommandBus, ITowerAlgorithmMutations
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public List<Guid> Attempts { get; } = [];
 
         public ValueTask<TowerActionResult> IllusionLeave(TowerActionContext context)
@@ -929,6 +935,9 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         CancellationTokenSource request,
         bool throwAfterParty = false) : ICommandBus, ITowerAlgorithmMutations
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public CancellationToken PartyToken { get; private set; }
         public IPartyService Parties => new Dfo.Server.Protocol.Tests.Game.Party.PartyMutationProbe(parties,
             (_, _, _) => { PartyToken = CancellationToken.None; PartyCalls++; }, throwAfterParty);

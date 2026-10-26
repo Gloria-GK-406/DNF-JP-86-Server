@@ -3542,25 +3542,32 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
-          "line": 28,
-          "source_sha256": "2fe4313dfc19ba0897a17aa3aa7fa23258c14a60fb4159c3627ce0604b68c413"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ReplayStateSnapshotTests.cs"
+          ],
+          "new": "现行Bus committed-replay-current-state普通Write，及Joust已有独立当前态读取段；无嵌套dispatch、事务点不合并。",
+          "old": "ReadReplayState fine的Transactional快照段"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
-          "line": 28,
-          "source_sha256": "2fe4313dfc19ba0897a17aa3aa7fa23258c14a60fb4159c3627ce0604b68c413"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "最后的LegacyReplayStateProjectionDelivery／ledger callback消费者随旧路由删除；正式committed replay直接调用参数式reader与sink，不再dispatch细粒度命令。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/ReplayStateSnapshotTests.cs"
+      ],
       "id": "command:Dfo.Server.Application.Effects.ReadReplayStateCommand",
       "original": {
         "command": "Dfo.Server.Application.Effects.ReadReplayStateCommand",
@@ -3587,31 +3594,43 @@
         "result": "Dfo.Server.Abstractions.Effects.ReplayStateSnapshot"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
-          "line": 28,
-          "source_sha256": "2fe4313dfc19ba0897a17aa3aa7fa23258c14a60fb4159c3627ce0604b68c413"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+          "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Sessions/ReplayStateSnapshotTests.cs"
+        ],
+        "mapping": "原适配器唯一调用链已删除；Joust与正式bus replay均已用其自身显式工作单元直接读当前状态。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
-          "line": 28,
-          "source_sha256": "2fe4313dfc19ba0897a17aa3aa7fa23258c14a60fb4159c3627ce0604b68c413"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
-          "line": 28,
-          "source_sha256": "2fe4313dfc19ba0897a17aa3aa7fa23258c14a60fb4159c3627ce0604b68c413"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ReplayStateSnapshotTests.cs"
+          ],
+          "new": "显式replay.Recipient及metadata传到reader；精确物理/current检查保持，单纯读取不成为Main。",
+          "old": "原精确selected session＋账号声明与metadata"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ReplayStateSnapshotTests.cs"
+          ],
+          "new": "CommandRequestContext／ICommandWorkUnits／SelectedSessionSafety，ledger Admit在ordinal消费前DemandCurrent，Committed回放不重新结算。",
+          "old": "旧selected pipeline／effect frame／legacy delivery的当前性与主状态保护"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -14560,24 +14579,24 @@
     },
     {
       "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MirrorDungeonEntry/ReportDungeonQuestFactsCommand.cs",
-          "line": 12,
-          "source_sha256": "679b158b7a151155b5a149f718b6989518b238a3b12084d9e7fb7963ccc11e4f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+        ],
+        "none_reason": "仅声明Transactional而无实际消费者，未迁移或移除任何实际Begin／Commit。"
       },
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MirrorDungeonEntry/ReportDungeonQuestFactsCommand.cs",
-          "line": 12,
-          "source_sha256": "679b158b7a151155b5a149f718b6989518b238a3b12084d9e7fb7963ccc11e4f"
-        },
-        "state": "pending"
+        "kind": "deleted",
+        "reason": "仅定义与注册，无生产或测试消费者；删除未被执行的fine及其注册，不删除现行镜像副本／任务事实领域能力。"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json",
+        "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+      ],
       "id": "command:Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand",
       "original": {
         "command": "Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand",
@@ -14604,31 +14623,31 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MirrorDungeonEntry/ReportDungeonQuestFactsCommand.cs",
-          "line": 12,
-          "source_sha256": "679b158b7a151155b5a149f718b6989518b238a3b12084d9e7fb7963ccc11e4f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+        ],
+        "mapping": "actual src/tests调用核查仅原定义与注册；运行时最终注册集合无此类型。"
       },
       "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MirrorDungeonEntry/ReportDungeonQuestFactsCommand.cs",
-          "line": 12,
-          "source_sha256": "679b158b7a151155b5a149f718b6989518b238a3b12084d9e7fb7963ccc11e4f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+        ],
+        "none_reason": "未被执行的fine无实际冻结参与者；不据此改变当前镜像副本保护集合。"
       },
       "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Protocol/Game/MirrorDungeonEntry/ReportDungeonQuestFactsCommand.cs",
-          "line": 12,
-          "source_sha256": "679b158b7a151155b5a149f718b6989518b238a3b12084d9e7fb7963ccc11e4f"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json",
+          "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
+        ],
+        "none_reason": "无活动调用链或独立保护；现行任务与副本能力保持原所属工作单元。"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -40920,14 +40939,19 @@
       "state": "closed"
     },
     {
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-discard-02.log",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-green-discard-02.log",
-        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md"
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/src/Dfo.Server.Application/Commands/SelectedSessionSafety.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Creatures/CreatureRuntimeDomainServiceTests.cs"
       ],
       "id": "protection:F-93-discard",
-      "new_owner": "pending",
-      "new_test_entry": "pending",
+      "new_owner": "CommandBus whole收口→CommandWorkUnits.FailAsync枚举实际CommittedParticipants→SelectedSessionSafety.BlockAsync→DiscardExact；精确参与者范围不扩大。",
+      "new_test_entry": "Server/tests/Dfo.Server.Application.Tests/Creatures/CreatureRuntimeDomainServiceTests.cs:Blocking_uncertain_settlement_discards_only_the_exact_creature_runtime_without_saving_it",
       "original": {
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-discard-02.log",
@@ -40949,17 +40973,21 @@
         }
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-recipient-01.log",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-green-recipient-01.log",
-        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md"
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Effects/EffectOperationLedger.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs"
       ],
       "id": "protection:F-93-recipient",
-      "new_owner": "pending",
-      "new_test_entry": "pending",
+      "new_owner": "EffectOperationLedger.Admit：捕获recipient后DemandCurrent，早于LatestOrdinal写入；由正式whole admission消费。",
+      "new_test_entry": "Server/tests/Dfo.Server.Application.Tests/Sessions/EffectOperationReplayTests.cs:A_recipient_replaced_after_capture_is_rejected_before_the_ordinal_is_consumed",
       "original": {
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task-02-red-recipient-01.log",
@@ -40981,15 +41009,18 @@
         }
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
       "evidence": [
-        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md"
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/tests/Dfo.Server.Host.Tests/DeferredOutboxCompositionArchitectureTests.cs"
       ],
       "id": "protection:F-132",
-      "new_owner": "pending",
-      "new_test_entry": "pending",
+      "new_owner": "生产延迟Compose保持禁用；Host transitive IL实际引用判据覆盖async MoveNext／构造器，不冒称机制修复。",
+      "new_test_entry": "Server/tests/Dfo.Server.Host.Tests/DeferredOutboxCompositionArchitectureTests.cs:No_production_method_references_the_deferred_outbox_composition_API",
       "original": {
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-02.md"
@@ -41009,7 +41040,7 @@
         }
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     }
   ],
   "sources": [
@@ -49970,8 +50001,14 @@
   ],
   "transitions": [
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "仅保真实Protocol SendAsync与带显式origin的Internal入口，删除InlineAsync与旧外部fine回退；现有job sticky／leak拒绝嵌套。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/CommandBusExecutorTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs"
+      ],
       "id": "transition:T1",
       "original": {
         "final_evidence": "pending",
@@ -49986,11 +50023,18 @@
         "removal_owner": "T-003 dual route then T-011 remove InlineAsync/legacy semantics"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "全部业务handler为已注册薄入口，不存在legacy handler编排；unregistered仅固定技术拒绝，不执行业务handler。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Dispatching/NetworkMessageDispatcher.cs",
+        "Server/src/Dfo.Server.Application/Dispatching/MessageHandlerRegistry.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandJobEntry.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json"
+      ],
       "id": "transition:T2",
       "original": {
         "final_evidence": "pending",
@@ -50005,11 +50049,18 @@
         "removal_owner": "T-003..010 absorb handler/shared Delivery/Coordinator business; T-011 no fine-grained forwarding"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "删除旧五pipeline、ICommandPipelineBehavior、四marker和无决策ExecutionKind；现行CMD显式工作单元／参与者承担事务与保护。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandHandlerRegistry.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Transactions/CommandWorkUnitsTests.cs"
+      ],
       "id": "transition:T3",
       "original": {
         "final_evidence": "pending",
@@ -50029,11 +50080,19 @@
         "removal_owner": "explicit current-CMD work units/participants replace five pipeline/markers; T-011 zero"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "六处请求AsyncLocal全部删除，显式请求／recorder全链传参；生产仅保GameplayJob.Running与DomainTransactionScope.ambient。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandRequestContext.cs",
+        "Server/src/Dfo.Server.Application/Effects/ExplicitEffectRequest.cs",
+        "Server/src/Dfo.Server.Abstractions/Execution/GameplayJob.cs",
+        "Server/src/Dfo.Server.Application/Transactions/DomainTransactionScope.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayStateCensusTests.cs"
+      ],
       "id": "transition:T4",
       "introduced_artifacts": [
         {
@@ -50114,11 +50173,18 @@
         "removal_owner": "explicit request/footprint parameters, no fallback; T-011 only Job+transaction AsyncLocal"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "删除fine重复Error；四scheduled逐角色与uncertain定位报告无栈Warning，两个重抛点降级；Outbox正常body拒绝无栈Warning，原body失败时独立hook Error保留；执行器保最终原cause。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/SelectedSessionSafety.cs",
+        "Server/src/Dfo.Server.Application/Execution/Outbox/GameplayOutbox.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Execution/Outbox/GameplayOutboxTests.cs"
+      ],
       "id": "transition:T5",
       "original": {
         "final_evidence": "pending",
@@ -50133,11 +50199,18 @@
         "removal_owner": "remove duplicate CMD Error with legacy pipeline, executor remains authority"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "dispatcher手工Current／Begin归零；CommandBus／固定CommandJobEntry在scope或判定前初始化，空条目真实source置后关闭，rootless不误关目标。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandJobEntry.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Commands/ProtocolCommandExecutionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Execution/LockRemovalSourceTests.cs"
+      ],
       "id": "transition:T6",
       "original": {
         "final_evidence": "pending",
@@ -50157,14 +50230,21 @@
         "removal_owner": "bus job entry initializes before any failure; empty-entry failure closes real source"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "LegacyFineGrained／LegacyQueued和旧注册入口归零；仅Protocol/Internal与Telemetry/ProtocolCommand。IChannelEntryPolicy临时alias及DI已删除，六消费者转现有IChannelEntryDomainService同一singleton。",
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/evidence/task-04-mapping/workunit-map.md",
         "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
-        "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs"
+        "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/CommandDispatchingExtensions.cs",
+        "Server/src/Dfo.Server.Application/Dispatching/NetworkMessageDispatchingExtensions.cs",
+        "Server/src/Dfo.Server.Abstractions/Channel/IChannelEntryDomainService.cs",
+        "Server/src/Dfo.Server.Application/ApplicationModule.cs",
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/logs/task65-runtime-r3/crosscheck.json"
       ],
       "id": "transition:planned-legacy-routes",
       "introduced_artifacts": [
@@ -50252,11 +50332,19 @@
         "removal_owner": "not yet implemented: count LegacyFineGrained/LegacyQueued routes introduced T003, remove T011"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "destination": "pending",
-      "evidence": [],
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-65.md",
+      "destination": "删除LegacyEffectFootprint、legacy admission／inheritance／旧回调与replay适配；真实entry/state、显式footprint、参数式reader及sink保留，不留测试专用生产入口。",
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task65-verification.md",
+        "Server/src/Dfo.Server.Application/Effects/EffectOperationEntry.cs",
+        "Server/src/Dfo.Server.Application/Effects/EffectOperationLedger.cs",
+        "Server/src/Dfo.Server.Application/Effects/ReplayStateDomainService.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandContracts.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitFootprintLifecycleTests.cs"
+      ],
       "id": "transition:planned-LegacyRequestAdapter",
       "introduced_artifacts": [
         {
@@ -50322,7 +50410,7 @@
         "removal_owner": "not yet implemented: old caller boundary only, explicit core no ambient, remove last consumer same unit"
       },
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     }
   ]
 }

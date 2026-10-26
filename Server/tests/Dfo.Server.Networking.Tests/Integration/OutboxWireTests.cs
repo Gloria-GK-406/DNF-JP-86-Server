@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net.Sockets;
@@ -83,16 +84,14 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
     {
         await using var server = await LifecycleWireHost.StartAsync(services =>
         {
-            RegisterUnitCommand(services);
             RoomForLargeFrames(services);
         });
         server.Recorder.OnInbound = async (context, sender, _, ct) =>
         {
             var id = context.Connection.ConnectionId;
-            var commands = server.Host.Services.GetRequiredService<ICommandBus>();
-            await commands.SendAsync(new SendInUnitCommand(id, 1, Rollback: false), ct);
+            await SendInUnit(server.Host.Services,sender,id,1,false,ct);
             await sender.SendAsync(id, new LifecycleBlob(2, Large), ct);
-            await commands.SendAsync(new SendInUnitCommand(id, 3, Rollback: true), ct);
+            await SendInUnit(server.Host.Services,sender,id,3,true,ct);
             throw new InvalidOperationException("cmd failed after its sends");
         };
         var (client, id) = await server.ConnectGameAsync(receiveBufferSize: 4096);
@@ -103,7 +102,7 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
         var received = await ReadFramesUntilFinAsync(client, server.Timeout);
         Assert.Equal([1, 2], received.Select(Index));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
-        Assert.Equal(1, server.Log.Count("Gameplay inbound:GameExit failed", LogLevel.Error));
+        Assert.Equal(1, server.Log.Count("Gameplay Inbound`2 failed", LogLevel.Error));
         Assert.Equal(0, server.Log.Count("Game handler failed", LogLevel.Error));
     }
 
@@ -126,7 +125,7 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
         var received = await ReadFramesUntilFinAsync(client, server.Timeout);
         Assert.Equal([1], received.Select(Index));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
-        Assert.Equal(1, server.Log.Count("Gameplay inbound:GameExit failed", LogLevel.Error));
+        Assert.Equal(1, server.Log.Count("Gameplay Inbound`2 failed", LogLevel.Error));
         Assert.Equal(0, server.Log.Count("Game handler failed", LogLevel.Error));
         Assert.Null(server.Recorder.First("inbound-exit", id));
     }
@@ -211,8 +210,13 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
     private static void RoomForLargeFrames(IServiceCollection services) =>
         services.AddSingleton(OutboundSendOptions.Default with { QueueByteLimit = 64L * 1024 * 1024 });
 
-    private static void RegisterUnitCommand(IServiceCollection services) =>
-        services.AddCommandHandler<SendInUnitCommand, bool, SendInUnitCommandHandler>(CommandExecutionKind.Transactional);
+    private static async ValueTask SendInUnit(IServiceProvider services,INetworkMessageSender sender,NetworkConnectionId id,int index,bool rollback,CancellationToken ct)
+    {
+        await using var unit=services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+        await sender.SendAsync(id,new LifecycleBlob(index,Large),ct);
+        if(rollback)unit.Transaction.RequireRollback();
+        await unit.CommitAsync(ct);
+    }
 
     private static int Index(byte[] frame) => BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15));
 
@@ -236,20 +240,6 @@ public sealed class OutboxWireTests(ITestOutputHelper output)
     private sealed record Unencodable : IServerNetworkMessage
     {
         public ServerMessageType MessageType => default;
-    }
-
-    private sealed record SendInUnitCommand(NetworkConnectionId Connection, int Index, bool Rollback) : ICommand<bool>;
-
-    /// <summary>Sends inside the command's own transaction, which commits or, refused, rolls back.</summary>
-    private sealed class SendInUnitCommandHandler(INetworkMessageSender sender, IDomainTransactionAccessor transactions)
-        : ICommandHandler<SendInUnitCommand, bool>
-    {
-        public async ValueTask<bool> HandleAsync(CommandExecutionContext context, SendInUnitCommand command, CancellationToken cancellationToken)
-        {
-            await sender.SendAsync(command.Connection, new LifecycleBlob(command.Index, Large), cancellationToken);
-            if (command.Rollback) transactions.Current!.RequireRollback();
-            return true;
-        }
     }
 
     private sealed class CompletionObserver(INetworkMessageDispatcher inner, Action<NetworkDispatchContext> completed)

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -97,8 +98,8 @@ internal sealed class LifecycleWireHost : IAsyncDisposable
                 && route.ProtocolMessages[0].MessageType == type).ToArray())
                 builder.Services.Remove(command);
         }
-        builder.Services.RegisterMessageHandler<ProbeHandler>(ClientMessageType.GameExit);
-        builder.Services.RegisterMessageHandler<ProbeHandler>(ClientMessageType.ChannelConnect);
+        builder.Services.RegisterFixtureMessageHandler<ProbeHandler,GameExitRequest>(ClientMessageType.GameExit);
+        builder.Services.RegisterFixtureMessageHandler<ProbeHandler,ChannelConnectRequest>(ClientMessageType.ChannelConnect);
         builder.Services.AddServerMessageEncoder<LifecycleBlob, LifecycleBlobEncoder>(NetworkEndpointKind.Game);
         var original = builder.Services.Last(x => x.ServiceType == typeof(INetworkConnectionLifecycleDispatcher));
         builder.Services.Remove(original);

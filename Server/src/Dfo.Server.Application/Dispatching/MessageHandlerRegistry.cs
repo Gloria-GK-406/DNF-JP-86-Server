@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Dispatching;
 
-public enum MessageHandlerRouteKind { LegacyQueued, ProtocolCommand }
+public enum MessageHandlerRouteKind { Telemetry, ProtocolCommand }
 public interface IProtocolCommandMessageHandler<TCommand> : IClientMessageHandler where TCommand : class, IProtocolCommand;
 
 /// <param name="IsTelemetry">
@@ -14,7 +14,7 @@ public interface IProtocolCommandMessageHandler<TCommand> : IClientMessageHandle
 /// refuses a telemetry handler whose constructors inject anything but logging.
 /// </param>
 public sealed record MessageHandlerRegistration(ClientMessageType MessageType, Type HandlerType, bool IsTelemetry = false,
-    MessageHandlerRouteKind Route = MessageHandlerRouteKind.LegacyQueued, Type? MessageClrType = null, Type? ProtocolCommandType = null,
+    MessageHandlerRouteKind Route = MessageHandlerRouteKind.Telemetry, Type? MessageClrType = null, Type? ProtocolCommandType = null,
     IReadOnlyList<Type>? AllowedMessageClrTypes = null)
 {
     internal MessageHandlerRegistration Freeze() => Route != MessageHandlerRouteKind.ProtocolCommand ? this : this with
@@ -23,7 +23,7 @@ public sealed record MessageHandlerRegistration(ClientMessageType MessageType, T
 
 /// <summary>Where a registered message goes: its handler, whether it is telemetry, and its inbound CMD type.</summary>
 public sealed record MessageHandlerRoute(Type HandlerType, bool IsTelemetry, string CommandType,
-    MessageHandlerRouteKind Kind = MessageHandlerRouteKind.LegacyQueued, Type? MessageClrType = null, Type? ProtocolCommandType = null, IReadOnlyList<Type>? AllowedMessageClrTypes = null);
+    MessageHandlerRouteKind Kind = MessageHandlerRouteKind.Telemetry, Type? MessageClrType = null, Type? ProtocolCommandType = null, IReadOnlyList<Type>? AllowedMessageClrTypes = null);
 
 /// <summary>
 /// Maps a client message type to the handler that consumes it.
@@ -92,7 +92,11 @@ public sealed class MessageHandlerRegistry
         foreach (var item in registrationList)
         {
             if (!Enum.IsDefined(item.Route)) throw new InvalidOperationException("Unknown message route.");
-            if (item.Route != MessageHandlerRouteKind.ProtocolCommand) continue;
+            if (item.Route == MessageHandlerRouteKind.Telemetry)
+            {
+                if (!item.IsTelemetry) throw new InvalidOperationException("A non-telemetry message requires a protocol command route.");
+                continue;
+            }
             if (item.IsTelemetry || item.MessageClrType is null || item.ProtocolCommandType is null)
                 throw new InvalidOperationException("A protocol route requires a typed message and command.");
             var match = commandList.Where(x => x.CommandType == item.ProtocolCommandType).ToArray();

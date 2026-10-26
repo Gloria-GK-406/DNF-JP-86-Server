@@ -73,7 +73,7 @@ internal sealed class OnlineExpiredItemCleanupJob(ISelectedSessionSnapshotQuery 
             var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
             if (error is not null && sessions.IsInWorld(session))
             {
-                logger.LogError(error, "Online expired-item cleanup failed account={AccountId} character={CharacterId}", session.AccountId, session.CharacterId);
+                logger.LogWarning( "Online expired-item cleanup failed account={AccountId} character={CharacterId}", session.AccountId, session.CharacterId);
                 failures.Add(error);
             }
         }

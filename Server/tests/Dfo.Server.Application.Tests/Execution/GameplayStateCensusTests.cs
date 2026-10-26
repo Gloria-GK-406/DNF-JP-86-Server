@@ -56,7 +56,6 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
         E2,
 
         /// <summary>A per-flow request frame (transition mechanism, root SC-12).</summary>
-        E3,
 
         /// <summary>
         /// RQ-061's own write unit of work, guarded by the transaction-site criterion rather than the table; the
@@ -75,7 +74,6 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
 
     private const string EncodingRow = "发送端：编码、发送队列、交付、超时";
 
-    private const string RequestFrameRow = "请求级帧（过渡）";
 
     private const string ConstantTable = "a static constant table: written by its initializer, only read afterwards (every use read in TASK-30)";
 
@@ -147,16 +145,6 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
         [ProtocolType("Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoResponseEncoder")] = new(Category.E2, EncodingRow, ConstantBytes),
         [ProtocolType("Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathPayloadCodec")] = new(Category.E2, EncodingRow, ConstantBytes),
         [ProtocolType("Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec")] = new(Category.E2, EncodingRow, ConstantBytes),
-
-        // E3: per-flow request frames (transition mechanisms; sub-Spec B turns them into explicit data).
-        [typeof(Dfo.Server.Application.Commands.NetworkCommandAuthorization)] = new(Category.E3, RequestFrameRow,
-            "the request's login-binding check, an AsyncLocal frame entered and left inside the job; nothing survives the job"),
-        [typeof(Dfo.Server.Application.Commands.Pipeline.SelectedSessionCommandScope)] = new(Category.E3, RequestFrameRow,
-            "the command's selected-session recipient, an AsyncLocal frame entered and left inside the job"),
-        [typeof(Dfo.Server.Application.Effects.EffectOperationContext)] = new(Category.E3, RequestFrameRow,
-            "the effect operation, execution and rejection frames of one request, AsyncLocal and left inside the job; the ledger they point at is a write entry"),
-        [typeof(Dfo.Server.Application.Commands.CommandBus)] = new(Category.E3, RequestFrameRow,
-            "the static AsyncLocal dispatch depth that refuses a nested dispatch inside a command handler"),
 
         // R061: the write unit of work, RQ-061's first entry.
         [typeof(Dfo.Server.Application.Transactions.DomainTransactionScope)] = new(Category.R061,

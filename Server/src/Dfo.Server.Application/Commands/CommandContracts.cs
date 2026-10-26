@@ -5,14 +5,6 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Data.World;
 
-public enum CommandExecutionKind
-{
-    Direct = 0,
-    Transactional = 1,
-    Workflow = 2,
-    ReadOnly = 3,
-}
-
 /// <summary>A dispatchable command. Its CLR type is its identity.</summary>
 public interface ICommand;
 
@@ -25,25 +17,6 @@ public interface ICommand;
 public interface ICommand<TResult> : ICommand
     where TResult : notnull;
 
-/// <summary>Effects owned by one exact selected generation; null is trusted offline work.</summary>
-public interface ISelectedSessionCommand : ICommand
-{
-    SelectedSessionIdentity? Session { get; }
-}
-
-/// <summary>The single primary settlement belonging to an effect network request. XP and reads are separate.</summary>
-public interface IRequestSettlementCommand : ISelectedSessionCommand;
-
-public interface IMultiSelectedSessionCommand : ISelectedSessionCommand
-{
-    IReadOnlyList<SelectedSessionIdentity> Sessions { get; }
-}
-
-public interface IAccountCommand : ICommand
-{
-    AccountId AccountId { get; }
-}
-
 public interface ICommandBus
 {
     ValueTask<TResult> SendAsync<TResult>(
@@ -52,119 +25,21 @@ public interface ICommandBus
         where TResult : notnull;
 
     ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin,
-        CancellationToken cancellationToken = default) where TResult : notnull =>
-        ValueTask.FromException<TResult>(new NotSupportedException("This legacy command-bus test adapter has no internal entry."));
+        CancellationToken cancellationToken = default) where TResult : notnull;
 }
 
 public sealed record CommandExecutionContext(
     Guid ExecutionId,
     Type CommandType,
-    Type HandlerType,
-    CommandExecutionKind ExecutionKind)
+    Type HandlerType)
 {
     public CommandRequestContext? Request { get; init; }
-    private IEffectFootprintRecorder? legacyFootprint;
-    private LegacyAdmission? legacyAdmission;
-
-    public IEffectFootprintRecorder LegacyFootprint
-    {
-        get
-        {
-            if (Request is not null)
-            {
-                var error = new InvalidOperationException("An explicit command cannot use the legacy footprint bridge.");
-                Request.Failed(error);
-                throw error;
-            }
-            var footprint = legacyFootprint
-                ?? throw new InvalidOperationException("This command has no explicitly supplied legacy footprint.");
-            if (footprint is LegacyEffectFootprint captured)
-            {
-                DemandLegacyInvocation();
-                captured.DemandAvailable();
-            }
-            return footprint;
-        }
-    }
-
-    internal void SupplyLegacyFootprint(IEffectFootprintRecorder footprint)
-    {
-        if (Request is not null)
-        {
-            var error = new InvalidOperationException("An explicit command cannot receive a legacy footprint.");
-            Request.Failed(error);
-            throw error;
-        }
-        legacyFootprint = footprint ?? throw new ArgumentNullException(nameof(footprint));
-    }
-    internal IDisposable EnterLegacyInvocation(CommandHandlerRegistration registration)
-    {
-        if (Request is not null)
-        {
-            var error = new InvalidOperationException("An explicit command cannot enter a legacy invocation.");
-            Request.Failed(error);
-            throw error;
-        }
-        if (registration.Route != CommandRouteKind.LegacyFineGrained || registration.CommandType != CommandType
-            || registration.HandlerType != HandlerType || registration.ExecutionKind != ExecutionKind
-            || legacyAdmission is { Closed: false })
-            throw new InvalidOperationException("The legacy invocation does not match its registration.");
-        var admitted = new LegacyAdmission(this, registration, GameplayJobId());
-        legacyAdmission = admitted;
-        return admitted;
-    }
-
-    internal void DemandLegacyInvocation()
-    {
-        if (Request is not null)
-        {
-            var error = new InvalidOperationException("An explicit command cannot use legacy admission.");
-            Request.Failed(error);
-            throw error;
-        }
-        var admitted = legacyAdmission;
-        if (admitted is null || admitted.Closed || !ReferenceEquals(admitted.Owner, this)
-            || admitted.ExecutionId != ExecutionId || admitted.Job != GameplayJobId()
-            || admitted.Registration.CommandType != CommandType || admitted.Registration.HandlerType != HandlerType
-            || admitted.Registration.ExecutionKind != ExecutionKind)
-            throw new InvalidOperationException("This context has no matching live legacy invocation admission.");
-    }
-
-    private static Guid GameplayJobId() => Dfo.Server.Abstractions.Execution.GameplayJob.Current?.Id
-        ?? throw new InvalidOperationException("Legacy admission requires a live gameplay job.");
-
-    private sealed class LegacyAdmission(CommandExecutionContext owner, CommandHandlerRegistration registration, Guid job) : IDisposable
-    {
-        internal CommandExecutionContext Owner { get; } = owner;
-        internal Guid ExecutionId { get; } = owner.ExecutionId;
-        internal CommandHandlerRegistration Registration { get; } = registration;
-        internal Guid Job { get; } = job;
-        internal bool Closed { get; private set; }
-        public void Dispose() => Closed = true;
-    }
-
     internal CommandRequestContext DemandRequest()
     {
         var request = Request ?? throw new InvalidOperationException("An explicit command request is required.");
         request.DemandCurrent();
         return request;
     }
-}
-
-/// <summary>The remainder of the pipeline, carrying the command's own result type.</summary>
-public delegate ValueTask<TResult> CommandExecutionDelegate<TResult>()
-    where TResult : notnull;
-
-public interface ICommandPipelineBehavior<TResult>
-    where TResult : notnull
-{
-    int Order { get; }
-
-    ValueTask<TResult> ExecuteAsync(
-        CommandExecutionContext context,
-        ICommand command,
-        CommandExecutionDelegate<TResult> next,
-        CancellationToken cancellationToken);
 }
 
 /// <summary>

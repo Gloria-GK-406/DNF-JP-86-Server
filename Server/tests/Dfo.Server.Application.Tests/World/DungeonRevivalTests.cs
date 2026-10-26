@@ -195,7 +195,7 @@ public sealed class DungeonRevivalTests
             var message=new UseRevivalCoinRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty,input.Payer.WireUserId);
             var command=new GameUseRevivalCoinCommand(dispatch,message);
             var request=new CommandRequestContext.ProtocolNonEffect(dispatch,message,command.Frame,()=>true);
-            var context=new CommandExecutionContext(Guid.NewGuid(),command.GetType(),GetType(),CommandExecutionKind.Direct){Request=request};
+            var context=DomainCommandFixture.Context(Guid.NewGuid(),command.GetType(),GetType()) with{Request=request};
             try{return await ReviveAsync(context,input.Payer,input.Target,input.Run,default);}finally{await request.DrainOperationsAsync();request.Close();}
             });
         }

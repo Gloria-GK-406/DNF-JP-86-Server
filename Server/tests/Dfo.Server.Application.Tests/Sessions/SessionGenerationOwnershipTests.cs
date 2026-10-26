@@ -320,7 +320,7 @@ public sealed class SessionGenerationOwnershipTests
         SessionPresenceDomainService? presence = null,
         ExpertStoreDomainService? stores = null,
         IOnlineCharacterRuntimeDomainService? runtime = null,
-        IChannelEntryPolicy? channels = null,
+        IChannelEntryDomainService? channels = null,
         RecordingPositionPersistence? persistence = null,
         DungeonRunDomainService? runs = null,
         IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null) =>
@@ -355,8 +355,11 @@ public sealed class SessionGenerationOwnershipTests
     }
 
     /// <summary>Every listener resolves to a channel of one kind.</summary>
-    private sealed class KindChannels(ChannelEntryKind kind) : IChannelEntryPolicy
+    private sealed class KindChannels(ChannelEntryKind kind) : IChannelEntryDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public int Resolutions { get; private set; }
 
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken)
@@ -368,8 +371,11 @@ public sealed class SessionGenerationOwnershipTests
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
     }
 
-    private sealed class FailingChannels : IChannelEntryPolicy
+    private sealed class FailingChannels : IChannelEntryDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromException<ChannelEntryIdentity>(new InvalidOperationException("channel unavailable"));
 

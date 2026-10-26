@@ -1,3 +1,7 @@
+using Dfo.Server.Application.Commands;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
@@ -146,12 +150,22 @@ public sealed class CreatureRuntimeDomainServiceTests
             }
             f.Runtime.QueueRoomExperience(f.Session, DungeonRunId.New(), new(0, 0), 10);
             Assert.Contains(f.Session, f.Runtime.DueSessions());
-            using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
-                .AddSingleton<ISelectedSessionDomainService>(f.Sessions)
-                .AddSingleton<ICreatureRuntimeDomainService>(f.Runtime).BuildServiceProvider();
-            var safety = new Dfo.Server.Application.Commands.SelectedSessionSafety(services,
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Commands.SelectedSessionSafety>.Instance);
-            await safety.BlockAsync(new(f.Session, null), new IOException("uncertain commit"), "creature discard probe");
+            var registrations = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+            var logs=new CapturedLogs();
+            registrations.AddLogging(builder=>builder.AddProvider(logs));registrations.AddCommandDispatching();
+            registrations.AddSingleton<ISelectedSessionDomainService>(f.Sessions);
+            registrations.AddSingleton<ICreatureRuntimeDomainService>(f.Runtime);
+            registrations.AddInternalCommandHandler<DiscardProbe,bool,DiscardProbeHandler>();
+            await using var services=registrations.BuildServiceProvider();
+            var safety=services.GetRequiredService<SelectedSessionSafety>();
+            var failure=new IOException("uncertain commit");
+            var thrown=await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(()=>GameplayJob.RunDetachedAsync(()=>
+                services.GetRequiredService<ICommandBus>().SendInternalAsync(new DiscardProbe(f.Session,failure),
+                    new(GameplayCallSource.Timer,GameplayCallChain.NewRoot(GameplayCallSource.Timer),"test:creature-discard-whole"))).AsTask());
+            Assert.Same(failure,thrown.InnerException);
+            var executorError=Assert.Single(logs.Entries,x=>x.Level==LogLevel.Error);Assert.Same(thrown,executorError.Error);
+            var blocked=Assert.Single(logs.Entries,x=>x.Message.Contains("Unknown settlement blocked"));
+            Assert.Equal(LogLevel.Warning,blocked.Level);Assert.Null(blocked.Error);Assert.Contains("generation=1",blocked.Message);
             Assert.Empty(f.Runtime.DueSessions());
             Assert.Empty(f.Runtime.DrainProjections());
             await f.Runtime.LeaveAsync(f.Session, default);
@@ -167,6 +181,28 @@ public sealed class CreatureRuntimeDomainServiceTests
             Assert.Contains(replacement, f.Runtime.DueSessions());
             Assert.Equal(80, await f.StomachAsync());
         });
+    }
+
+    private sealed class CapturedLogs:ILoggerProvider
+    {
+        internal ConcurrentQueue<(LogLevel Level,string Message,Exception? Error)> Entries {get;}=new();
+        public ILogger CreateLogger(string category)=>new Logger(this);
+        public void Dispose(){}
+        private sealed class Logger(CapturedLogs owner):ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)where TState:notnull=>null;
+            public bool IsEnabled(LogLevel level)=>true;
+            public void Log<TState>(LogLevel level,EventId id,TState state,Exception? error,Func<TState,Exception?,string> format)=>owner.Entries.Enqueue((level,format(state,error),error));
+        }
+    }
+    private sealed record DiscardProbe(SelectedSessionIdentity Session,IOException Failure):ICommand<bool>;
+    private sealed class DiscardProbeHandler(ICommandWorkUnits units):ICommandHandler<DiscardProbe,bool>
+    {
+        public async ValueTask<bool> HandleAsync(CommandExecutionContext context,DiscardProbe command,CancellationToken ct)
+        {
+            await units.WriteAsync(context,new("committed-creature-participant",[new(command.Session,null)]),(_,_)=>ValueTask.FromResult(true),ct);
+            throw command.Failure;
+        }
     }
 
     private sealed class FoodInventory() : FakeMainInventory(7);

@@ -85,8 +85,8 @@ public sealed class BusinessEquipmentSwapTests
             var scope = (DomainTransactionScope)shop.Host.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using (var tx = scope.Begin())
             {
-                var context = new CommandExecutionContext(Guid.NewGuid(), typeof(InventoryMoveRequest),
-                    typeof(InventoryMoveDomainService), CommandExecutionKind.Transactional);
+                var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(InventoryMoveRequest),
+                    typeof(InventoryMoveDomainService), FixtureUnitKind.Transactional);
                 var putOn = await handler.MoveAsync( new(shop.Host.Session.CharacterId,
                     new(BusinessInventorySpace.CarriedEquipment, 0), 1,
                     new(BusinessInventorySpace.WornEquipment, 2)), default);

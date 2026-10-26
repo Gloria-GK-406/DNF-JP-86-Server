@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Reflection;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
@@ -22,7 +23,7 @@ internal static class SkillGrowthDirectDriver
         if(modern is null) { await ((IClientMessageHandler)handler).HandleAsync(dispatch,input,default);return; }
         var commandType=assembly.GetType($"Dfo.Server.Protocol.Game.{slice}.Game{name}Command",true)!;
         var metadata=(GameMessageMetadata)input.GetType().GetProperty("Metadata")!.GetValue(input)!;
-        var context=new CommandExecutionContext(Guid.NewGuid(),commandType,type,CommandExecutionKind.Direct) {
+        var context=DomainCommandFixture.Context(Guid.NewGuid(),commandType,type) with {
             Request=new CommandRequestContext.ProtocolNonEffect(dispatch,input,new ProtocolFrameMetadata.Game(metadata),()=>true) };
         try { await (ValueTask<bool>)type.GetMethod("HandleAsync")!.Invoke(handler,[context,Activator.CreateInstance(commandType,dispatch,input),CancellationToken.None])!; }
         finally { await context.Request.DrainOperationsAsync();context.Request.Close(); }

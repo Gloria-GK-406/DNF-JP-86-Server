@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
@@ -31,11 +32,14 @@ internal static class MarriageChurchTestDriver
     }
     private sealed class Driver(GameMarriageCommandHandler handler) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<T> SendAsync<T>(ICommand<T> value, CancellationToken ct = default) where T : notnull
         {
             var command = Assert.IsType<GameWeddingChurchEnterCommand>(value);
             var request = new CommandRequestContext.ProtocolNonEffect(command.Dispatch, command.Message, command.Frame, () => true);
-            var context = new CommandExecutionContext(Guid.NewGuid(), value.GetType(), handler.GetType(), CommandExecutionKind.Direct) { Request = request };
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), value.GetType(), handler.GetType()) with { Request = request };
             return (T)(object)await handler.HandleAsync(context, command, ct);
         }
     }

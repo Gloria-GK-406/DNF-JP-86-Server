@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Data.Marriage;
@@ -30,48 +31,8 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class EffectOperationReplayTests
 {
-    private sealed record LegacySettlementProbe(SelectedSessionIdentity Actor, BusinessSlot Slot, int ItemId)
-        : ICommand<SharedEffectUseResult>, IAccountCommand, IRequestSettlementCommand
-    { public AccountId AccountId => Actor.AccountId; public SelectedSessionIdentity Session => Actor; }
-    private sealed class LegacySettlementProbeHandler(ISharedEffectDomainService effects) : ICommandHandler<LegacySettlementProbe, SharedEffectUseResult>
-    {
-        public ValueTask<SharedEffectUseResult> HandleAsync(CommandExecutionContext context, LegacySettlementProbe command, CancellationToken ct) =>
-            effects.UseAsync(command.Actor, command.Slot, command.ItemId, context.LegacyFootprint, ct);
-    }
     private sealed class LoveContent : IMarriageCeremonyContentSource
     { public MarriageCeremonyContent Load() => new([], []) { LovePointItems = new Dictionary<int, int> { [1000] = 1 }, MaximumLovePoints = 999 }; }
-    [Theory]
-    [InlineData(true, false, true, EffectOperationState.ConfirmedRollback)]
-    [InlineData(true, true, true, EffectOperationState.ConfirmedRollback)]
-    [InlineData(true, true, false, EffectOperationState.Committed)]
-    [InlineData(false, true, true, null)]
-    [InlineData(false, false, true, null)]
-    [InlineData(true, false, false, null)]
-    public void Normal_settlement_requires_a_transaction_and_either_confirmed_rollback_or_frozen_projection(
-        bool started, bool frozen, bool rollback, object? expectedValue)
-    {
-        using var f = Fixture();
-        var context = f.Services.GetRequiredService<EffectOperationContext>();
-        var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
-        using var operation = context.Enter(entry, f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        var command = new LegacySettlementProbe(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
-        var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(object), CommandExecutionKind.Transactional);
-        using var main = context.BeginMain(execution, command);
-        if (started) context.TransactionStarted(execution, command);
-        if (frozen) context.Freeze(execution, command);
-        if (rollback) context.RollbackConfirmed(execution, command);
-        if (expectedValue is null)
-        {
-            Assert.Throws<InvalidOperationException>(() => context.Settled(execution, command));
-            Assert.Equal(EffectOperationState.Pending, entry.State);
-        }
-        else
-        {
-            context.Settled(execution, command);
-            Assert.Equal((EffectOperationState)expectedValue, entry.State);
-        }
-    }
-
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task Love_coupon_real_dispatcher_lost_ack_replays_current_inventory_and_points_without_second_deduction(bool encodingFailure)
@@ -254,7 +215,7 @@ public sealed class EffectOperationReplayTests
         f.Sender.BeforeExplicit = () => child = Task.Run(async () =>
         {
             inherited.SetResult(); await release.Task;
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(WholeUse.Command(f.Services, f.Session,
+            await DomainCommandFixture.Bus(f.Services).SendAsync(WholeUse.Command(f.Services, f.Session,
                 new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
         });
         await Dispatch(f, stream.Request(1)); await inherited.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -313,69 +274,25 @@ public sealed class EffectOperationReplayTests
     [Fact]
     public async Task Postdurable_operation_record_failure_preserves_typed_cause_and_exact_connection_fence()
     {
-        var fault = new ProbeFault();
-        using var f = new ShopFixture(services => {
-            services.AddSingleton(fault);
-            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional);
-        });
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
-        var safety = f.Services.GetRequiredService<SelectedSessionSafety>();
-        var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
-        using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry, safety.Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        fault.CloseOnCommit = operation.Dispose;
-        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
-        Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, error.Reason);
+        var fault=new ProbeFault {CloseOnCommit=true};using var f=ProbeFixture(fault);
+        var error=await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(()=>SendProbe(f));
+        Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure,error.Reason);
         Assert.IsType<InvalidOperationException>(error.InnerException);
-        Assert.Contains("already closed", error.InnerException!.Message);
-        Assert.Equal(100001, f.Gold); Assert.Equal(EffectOperationState.Blocked, entry.State);
-        Assert.True(safety.IsBlocked(f.Connection)); Assert.True(f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(f.Session)?.Fenced == true);
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
-        Assert.Equal(100001, f.Gold);
-        });
+        Assert.Equal(100001,f.Gold);Assert.Equal(EffectOperationState.Committed,fault.State!.Entry.State);
+        var safety=f.Services.GetRequiredService<SelectedSessionSafety>();
+        Assert.True(safety.IsBlocked(f.Connection));Assert.True(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)?.Fenced==true);
+        await SendProbe(f);Assert.Equal(100001,f.Gold);
     }
     [Fact]
     public async Task Invalid_projection_freeze_aborts_real_SQL_before_durability_and_records_confirmed_rollback()
     {
-        using var f = new ShopFixture(services => {
-            services.AddSingleton(new ProbeFault());
-            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional);
-        });
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
-        var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
-        using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry,
-            f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), (ReplayProjectionNeeds)4096);
-        await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session)));
-        Assert.Equal(100000, f.Gold); Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);
-        Assert.Null(entry.Projection);
-        });
+        var fault=new ProbeFault {Minimum=(ReplayProjectionNeeds)4096};using var f=ProbeFixture(fault);
+        await Assert.ThrowsAsync<InvalidDataException>(()=>SendProbe(f));
+        Assert.Equal(100000,f.Gold);Assert.Equal(EffectOperationState.ConfirmedRollback,fault.State!.Entry.State);Assert.Null(fault.State.Entry.Projection);
     }
     [Fact]
-    public async Task An_inherited_readonly_scope_does_not_clear_the_primary_execution_on_the_parent_flow()
-    {
-        using var f = Fixture();
-        var context = f.Services.GetRequiredService<EffectOperationContext>();
-        var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
-        using var operation = context.Enter(entry, f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        var command = new LegacySettlementProbe(f.Session, new(BusinessInventorySpace.Consumable, 4), 1000);
-        var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), typeof(object), CommandExecutionKind.Transactional);
-        using var main = context.BeginMain(execution, command);
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var child = Task.Run(async () => {
-            var read = new ReadReplayStateCommand(f.Session, new(ReplayProjectionNeeds.Inventory, []), null);
-            using var readonlyScope = context.BeginMain(new(Guid.NewGuid(), read.GetType(), typeof(object), CommandExecutionKind.Transactional), read);
-            entered.SetResult(); await release.Task;
-        });
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        try { context.TransactionStarted(execution, command); context.Freeze(execution, command); context.Settled(execution, command); }
-        finally { release.SetResult(); }
-        await child; Assert.Equal(EffectOperationState.Committed, entry.State); Assert.NotNull(entry.Projection);
-    }
+    public async Task An_ordinary_readonly_unit_does_not_clear_the_primary_execution() =>
+        await Dfo.Server.Application.Tests.Commands.ExplicitEffectCommandTests.AssertOrdinaryReplayReadPreservesMainAsync();
 
     [Fact]
     public async Task Second_primary_command_cannot_pay_or_overwrite_the_first_committed_entry() =>
@@ -388,7 +305,7 @@ public sealed class EffectOperationReplayTests
         var (safety, replacement) = await TestGameplay.RunAsync(f.Services, async () =>
         {
             var safety = f.Services.GetRequiredService<SelectedSessionSafety>();
-            await safety.BlockAsync(safety.Capture(f.Session), new TransactionOutcomeUncertainException(
+            await safety.BlockAsync(safety.Capture(f.Session,null), new TransactionOutcomeUncertainException(
                 TransactionUncertaintyReason.RollbackFailure, "test physical fence", new IOException("unknown")), "probe");
             var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
             Assert.True(registry.TryDisconnect(f.OnlineUser, f.Connection.ConnectionId, registry.GetRequiredUser(f.OnlineUser).Generation));
@@ -417,21 +334,11 @@ public sealed class EffectOperationReplayTests
     [Fact]
     public async Task Unknown_applied_effect_change_is_rejected_before_SQL_commit()
     {
-        using var f = new ShopFixture(services => {
-            services.AddSingleton(new ProbeFault()); services.AddSingleton<IEffectHandler, UnknownHandler>();
-            services.AddCommandHandler<SettlementProbe, ProbeResult, SettlementProbeHandler>(CommandExecutionKind.Transactional);
-        });
-        await TestGameplay.RunAsync(f.Services, async () =>
-        {
-        var entry = new EffectOperationEntry(f.Session, 1, 1, 0x002C, 1, new string('A', 64), 11);
-        using var operation = f.Services.GetRequiredService<EffectOperationContext>().Enter(entry,
-            f.Services.GetRequiredService<SelectedSessionSafety>().Capture(f.Session), ReplayProjectionNeeds.Inventory);
-        var error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(f.Session, Unknown: true)));
-        Assert.Contains("UnknownEffect/UnknownChange", error.Message);
-        Assert.Equal(100000, f.Gold); Assert.Equal(EffectOperationState.ConfirmedRollback, entry.State);
+        var fault=new ProbeFault {Unknown=true};using var f=ProbeFixture(fault);
+        var error=await Assert.ThrowsAsync<NotSupportedException>(()=>SendProbe(f));
+        Assert.Contains("UnknownEffect/UnknownChange",error.Message);
+        Assert.Equal(100000,f.Gold);Assert.Equal(EffectOperationState.ConfirmedRollback,fault.State!.Entry.State);
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
-        });
     }
     private sealed record UnknownEffect : DomainEffect;
     private sealed record UnknownChange : EffectChange;
@@ -443,21 +350,6 @@ public sealed class EffectOperationReplayTests
     }
 
     [Fact]
-    public async Task Refusal_only_unselected_operation_cannot_pay_after_a_selection_arrives()
-    {
-        using var f = new ShopFixture(s => s.AddCommandHandler<LegacySettlementProbe, SharedEffectUseResult, LegacySettlementProbeHandler>(CommandExecutionKind.Transactional)); await f.Seed(69, 1000, 3);
-        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(f.Session));
-        // The selection arrives inside the refusal-only operation's own CMD, before it sends its command.
-        var pending = TestGameplay.RunAsync(f.Services, () => f.Services.GetRequiredService<EffectOperationLedger>().DispatchAsync(f.Connection, new Stream().Request(1), async () => {
-            f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
-            f.Select(1);
-            await f.Services.GetRequiredService<ICommandBus>().SendAsync(new LegacySettlementProbe(f.Session,
-                new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
-        }, default).AsTask());
-        await Assert.ThrowsAsync<InvalidOperationException>(() => pending);
-        Assert.Equal(3, f.Count(1000)); Assert.Empty(f.Sender.Messages);
-    }
-    [Fact]
     public async Task A_recipient_replaced_after_capture_is_rejected_before_the_ordinal_is_consumed()
     {
         using var f = Fixture();
@@ -467,19 +359,18 @@ public sealed class EffectOperationReplayTests
             .AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(users).BuildServiceProvider();
         var safety = new SelectedSessionSafety(services,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionSafety>.Instance);
-        var ledger = new EffectOperationLedger(f.Services.GetRequiredService<EffectOperationContext>(), safety,
-            f.Services.GetRequiredService<ISelectedSessionDomainService>(), f.Services.GetRequiredService<IReplayStateProjectionDelivery>());
+        var ledger = new EffectOperationLedger(safety, f.Services.GetRequiredService<ISelectedSessionDomainService>());
         var request = new Stream().Request(1);
         var calls = 0;
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => ledger.DispatchAsync(f.Connection, request,
-                () => { calls++; return ValueTask.CompletedTask; }, default).AsTask());
+            var error = Assert.Throws<InvalidOperationException>(() => { ledger.Admit(f.Connection,request); calls++; });
             Assert.Contains("captured recipient", error.Message);
             Assert.Equal(2, users.Queries);
             Assert.Equal(0, calls);
             users.ReplaceAfterFirst = false;
-            await ledger.DispatchAsync(f.Connection, request, () => { calls++; return ValueTask.CompletedTask; }, default);
+            Assert.IsType<EffectAdmission.Selected>(ledger.Admit(f.Connection,request)); calls++;
+            await ValueTask.CompletedTask;
             Assert.Equal(1, calls);
             Assert.Equal(4, users.Queries);
         });
@@ -501,20 +392,35 @@ public sealed class EffectOperationReplayTests
         }
     }
 
-    private sealed record SettlementProbe(SelectedSessionIdentity Session, bool Unknown = false) : ICommand<ProbeResult>, IRequestSettlementCommand, IAccountCommand
-    { public AccountId AccountId => Session.AccountId; }
+    private sealed record ProbeInput(GameMessageMetadata Metadata,ReplayProjectionNeeds MinimumReplayNeeds):IEffectSettlementRequest
+    {public ClientMessageType MessageType=>ClientMessageType.GameExit;}
+    private sealed record SettlementProbe(NetworkDispatchContext Dispatch,ProbeInput Input):IProtocolCommand<ProbeResult>
+    {public IClientNetworkMessage Message=>Input;public ProtocolFrameMetadata Frame=>new ProtocolFrameMetadata.Game(Input.Metadata);}
     private sealed record ProbeResult;
-    private sealed class ProbeFault { public Action? CloseOnCommit; }
-    private sealed class SettlementProbeHandler(ICharacterCarriedGoldTable gold, IDomainTransactionAccessor transactions, ProbeFault fault, IApplyEffectsDomainService effects)
-        : ICommandHandler<SettlementProbe, ProbeResult>
+    private sealed class ProbeFault
+    {public bool CloseOnCommit;public bool Unknown;public ReplayProjectionNeeds Minimum=ReplayProjectionNeeds.Inventory;public ExplicitEffectRequest? State;}
+    private static ShopFixture ProbeFixture(ProbeFault fault)=>new(services=>{
+        foreach(var d in services.Where(d=>d.ImplementationInstance is Dfo.Server.Application.Dispatching.MessageHandlerRegistration {MessageType:ClientMessageType.GameExit}
+            || d.ImplementationInstance is CommandHandlerRegistration row&&row.CommandType==typeof(Dfo.Server.Protocol.Game.Exit.GameExitCommand)).ToArray())services.Remove(d);
+        services.AddSingleton(fault);services.AddSingleton<IEffectHandler,UnknownHandler>();
+        services.AddProtocolCommandHandler<SettlementProbe,ProbeResult,SettlementProbeHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameExit,typeof(ProbeInput)));
+        services.RegisterProtocolMessageHandler<ProbeEntry,ProbeInput,SettlementProbe>(ClientMessageType.GameExit);
+    });
+    private sealed class ProbeEntry(ICommandBus bus):ClientMessageHandler<ProbeInput>,Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<SettlementProbe>
+    {protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c,ProbeInput q,CancellationToken ct)=>await bus.SendAsync(new SettlementProbe(c,q),ct);}
+    private static Task<ProbeResult> SendProbe(ShopFixture f)=>f.Services.GetRequiredService<ICommandBus>().SendAsync(new SettlementProbe(new(f.Connection),
+        new((new GameMessageMetadata(1,3,0,1){InboundOrdinal=1,SequenceIsFresh=true}).WithRawBody([1]),f.Services.GetRequiredService<ProbeFault>().Minimum))).AsTask();
+    private sealed class SettlementProbeHandler(ICharacterCarriedGoldTable gold,IDomainTransactionAccessor transactions,ProbeFault fault,IApplyEffectsDomainService effects,ICommandWorkUnits units):ICommandHandler<SettlementProbe,ProbeResult>
     {
-        public async ValueTask<ProbeResult> HandleAsync(CommandExecutionContext context, SettlementProbe command, CancellationToken ct)
+        public ValueTask<ProbeResult> HandleAsync(CommandExecutionContext context,SettlementProbe command,CancellationToken ct)
         {
-            await gold.AddAsync(command.Session.CharacterId, 1, int.MaxValue, ct);
-            if (command.Unknown) await effects.ApplyAsync(new(command.Session.AccountId, command.Session.CharacterId,
-                DateTimeOffset.UtcNow, context.LegacyFootprint, command.Session), [new UnknownEffect()], ct);
-            if (fault.CloseOnCommit is { } close) transactions.Current!.Enlist(this, () => new CloseFrame(close));
-            return new();
+            var state=((CommandRequestContext.ProtocolEffectSelected)context.Request!).State;fault.State=state;var session=state.Recipient.Session;
+            return units.WriteAsync(context,new("settlement-probe",[state.Recipient],CommandWorkUnitKind.MainSettlement),async(unit,token)=>{
+                await gold.AddAsync(session.CharacterId,1,int.MaxValue,token);
+                if(fault.Unknown)await effects.ApplyAsync(new(session.AccountId,session.CharacterId,DateTimeOffset.UtcNow,unit.Footprint,session),[new UnknownEffect()],token);
+                if(fault.CloseOnCommit)transactions.Current!.Enlist(this,()=>new CloseFrame(context.Request.Close));
+                return new ProbeResult();
+            },ct);
         }
     }
     private sealed class CloseFrame(Action close) : ITransactionParticipant

@@ -79,7 +79,7 @@ public sealed class MagicSealHandlerTests
         {
             shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
             shop.Select(1);
-            await shop.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(
+            await Dfo.Server.Application.Tests.Support.ReplayStateFixture.RefreshAsync(shop.Services,
                 shop.Connection, shop.Session, new(ReplayProjectionNeeds.Inventory, []), null, default);
         });
         var snapshot = EffectRequestTransport.MainSnapshot(shop);

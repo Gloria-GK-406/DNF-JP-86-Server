@@ -270,9 +270,9 @@ internal partial class GameMapLoadingCommandHandler
                 context.Connection.ConnectionId, visit.Run.RunId, message.Metadata.Sequence);
             throw;
         }
-        catch (Exception error)
+        catch (Exception)
         {
-            logger.LogError(error, "Move map publication failed after commit connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} sequence={Sequence}",
+            logger.LogWarning("Move map publication failed after commit connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} sequence={Sequence}",
                 context.Connection.ConnectionId, visit.Run.RunId, visit.Run.CurrentRoomMapId, visit.Run.RoomVersion, message.Metadata.Sequence);
             throw;
         }

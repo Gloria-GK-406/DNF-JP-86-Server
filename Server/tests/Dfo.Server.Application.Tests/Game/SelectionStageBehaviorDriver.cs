@@ -150,7 +150,9 @@ internal static class ProductionSelectionStages
         public void RecordDisconnectedDeliveryFailure(CommandExecutionContext context, Exception cause) => throw new NotSupportedException("This fixture only drives selection stages.");
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(CommandExecutionContext context,SelectedSessionIdentity session,
             bool includeOwner,CommandWorkUnit? action=null,CancellationToken cancellationToken=default) =>
-            cleanup.CleanupAsync(session,includeOwner,context.LegacyFootprint,cancellationToken);
+            Run(session,includeOwner,cancellationToken);
+        private async ValueTask<SelectedSessionCleanupNotificationPlan> Run(SelectedSessionIdentity session,bool includeOwner,CancellationToken ct)
+        {using var footprint=new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(session);return await cleanup.CleanupAsync(session,includeOwner,footprint,ct);}
     }
     private sealed class UnusedOutbox : Dfo.Server.Protocol.Game.IGameCommandOutbox
     {

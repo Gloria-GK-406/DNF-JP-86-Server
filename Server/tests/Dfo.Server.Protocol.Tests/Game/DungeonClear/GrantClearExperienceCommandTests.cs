@@ -132,14 +132,14 @@ public sealed class GrantClearExperienceCommandTests
 
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(handler,
-                    Context(CommandExecutionKind.Direct), Command(80, 5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), CancellationToken.None));
+                    Context(FixtureUnitKind.Direct), Command(80, 5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), CancellationToken.None));
         });
     }
 
     private static async Task<ClearExperienceResult> Settle(
         int clientRankPoint, int basisLevel = 5) =>
         await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(),
-            Context(CommandExecutionKind.Transactional),
+            Context(FixtureUnitKind.Transactional),
             Command(clientRankPoint, basisLevel), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null),
             CancellationToken.None);
 
@@ -151,7 +151,7 @@ public sealed class GrantClearExperienceCommandTests
         await TestGameplay.RunAsync(async () =>
         {
             var difficulties = new RecordingDifficulty();
-            var result = await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(difficulties),Context(CommandExecutionKind.Transactional), Command(score,5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), default);
+            var result = await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(difficulties),Context(FixtureUnitKind.Transactional), Command(score,5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), default);
             Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
             Assert.Equal(new CharacterId(60), difficulties.Character);
             Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
@@ -187,8 +187,8 @@ public sealed class GrantClearExperienceCommandTests
             ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
     }
 
-    private static CommandExecutionContext Context(CommandExecutionKind kind) =>
-        new(Guid.Empty,
+    private static CommandExecutionContext Context(FixtureUnitKind kind) =>
+        DomainCommandFixture.Context(Guid.Empty,
             typeof(ClearExperienceAlgorithmInput),
             typeof(ClearExperienceAlgorithmDriver),
             kind);

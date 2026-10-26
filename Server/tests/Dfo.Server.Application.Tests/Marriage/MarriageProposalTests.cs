@@ -154,10 +154,10 @@ public sealed class MarriageProposalTests
         });
     }
     [Fact]
-    public async Task Concurrent_cross_proposals_through_real_command_pipeline_commit_only_one_relationship()
+    public async Task Concurrent_cross_proposals_through_explicit_domain_units_commit_only_one_relationship()
     {
         var (f, peer) = await Fixture(); await using var fixture = f;
-        var bus = f.Services.GetRequiredService<ICommandBus>();
+        var bus = DomainCommandFixture.Bus(f.Services);
         var results = await Task.WhenAll(
             bus.SendAsync(new ProposalTestCommand(f.Session, peer, null)).AsTask(),
             bus.SendAsync(new ProposalTestCommand(peer, f.Session, null)).AsTask()).WaitAsync(TimeSpan.FromSeconds(5));

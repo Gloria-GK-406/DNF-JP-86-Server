@@ -882,6 +882,9 @@ public sealed partial class BossTowerProjectionConcurrencyTests
 
     private sealed class Commands(Guid? failingRun = null) : ICommandBus, ITowerAlgorithmMutations
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public List<Guid> Attempts { get; } = [];
 
         public ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context)
@@ -899,6 +902,9 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         CancellationTokenSource request,
         bool throwAfterParty = false) : ICommandBus, ITowerAlgorithmMutations
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public CancellationToken PartyToken { get; private set; }
         public IPartyService Parties => new Dfo.Server.Protocol.Tests.Game.Party.PartyMutationProbe(parties,
             (_, _, _) => { PartyToken = CancellationToken.None; PartyCalls++; }, throwAfterParty);

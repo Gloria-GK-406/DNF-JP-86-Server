@@ -72,7 +72,7 @@ public sealed partial class SelectCharacterLifecycleTests
 
             using var footprint = new TestEffectFootprints.Lease(selected);
             var returnContext = ReturnContext();
-            returnContext.SupplyLegacyFootprint(footprint);
+
             await complete.HandleAsync(returnContext, new(prepared), CancellationToken.None);
 
             Assert.Null(f.Directory.Find(f.AccountId));
@@ -148,8 +148,7 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     private static CommandExecutionContext ReturnContext() => new(Guid.NewGuid(),
-        typeof(PrepareReturnToSelectionStage), typeof(PrepareReturnToSelectionStageHandler),
-        CommandExecutionKind.Transactional);
+        typeof(PrepareReturnToSelectionStage), typeof(PrepareReturnToSelectionStageHandler));
 
     private sealed class RosterCharacters(SelectCharacterResult state) : ICharacterDomainService
     {

@@ -40,7 +40,7 @@ internal sealed class TauKingdomDailyRefillJob(ISelectedSessionSnapshotQuery onl
             var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
             if (error is not null && sessions.IsInWorld(session))
             {
-                logger.LogError(error, "Tau ticket refill failed character={CharacterId}", session.CharacterId);
+                logger.LogWarning( "Tau ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }
         }

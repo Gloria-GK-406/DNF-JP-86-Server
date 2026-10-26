@@ -54,6 +54,7 @@ def source_registrations(repo):
         text = path.read_text(encoding='utf-8-sig')
         masked = mask_noncode(text)
         usings = re.findall(r'^\s*using\s+([\w.]+)\s*;', masked, re.M)
+        namespace = re.search(r'\bnamespace\s+([\w.]+)\s*[;{]', masked)
         aliases = dict(re.findall(r'^\s*using\s+(\w+)\s*=\s*([\w.]+)\s*;', masked, re.M))
         for found in re.finditer(r'\.(' + '|'.join(sorted(REG_APIS)) + r')\s*<', masked):
             start, depth, pos = found.end(), 1, found.end()
@@ -69,8 +70,9 @@ def source_registrations(repo):
             kind = re.search(r'CommandExecutionKind\.(\w+)', masked[pos:end])
             rows.append(dict(api=api, types=arguments, message=message[1] if message else None,
                 execution_kind=kind[1] if kind else ('Direct' if api in ('AddProtocolCommandHandler','AddInternalCommandHandler') else None),
+                execution_model='explicit-work-units' if api in ('AddProtocolCommandHandler','AddInternalCommandHandler') else None,
                 protocol_bindings=re.findall(r'new(?:\s+ProtocolCommandMessageBinding)?\s*\(\s*ClientMessageType\.(\w+)\s*,\s*typeof\(([^)]+)\)\s*\)', masked[pos:end]) if api=='AddProtocolCommandHandler' else [], file=path.relative_to(repo).as_posix(),
-                line=text.count('\n', 0, found.start()) + 1, text=call.strip(), usings=usings, aliases=aliases,
+                line=text.count('\n', 0, found.start()) + 1, text=call.strip(), usings=usings, aliases=aliases, namespace=namespace[1] if namespace else '',
                 source_sha256=sha(path.read_bytes())))
     return rows
 
@@ -79,6 +81,11 @@ def resolve_type(raw, actual_names, row):
     raw = re.sub(r'\s+', '', raw).replace('global::', '')
     raw = row['aliases'].get(raw, raw)
     if raw in actual_names: return raw
+    namespace = row.get('namespace','').split('.')
+    prefixes = row['usings'] + ['.'.join(namespace[:length]) for length in range(len(namespace),0,-1)]
+    qualified = [name for name in actual_names if any(name == prefix + '.' + raw for prefix in prefixes)]
+    if len(qualified) == 1: return qualified[0]
+    if len(qualified) > 1: raise ValueError(f"ambiguous qualified type {raw}: {qualified}")
     candidates = [name for name in actual_names if name.rsplit('.', 1)[-1] == raw]
     allowed = [name for name in candidates if any(name == namespace + '.' + raw for namespace in row['usings'])]
     if len(allowed) == 1: return allowed[0]
@@ -88,6 +95,8 @@ def resolve_type(raw, actual_names, row):
 
 def crosscheck(runtime, source):
     commands = runtime['commands']; messages = runtime['messages']
+    explicit = any('execution_model' in item for item in commands)
+    if explicit: assert all(item.get('execution_model') == 'explicit-work-units' for item in commands), 'invalid explicit runtime execution model'
     by_command = {row['command']: row for row in commands}
     by_message = {row['message']: row for row in messages}
     if len(by_command) != len(commands) or len(by_message) != len(messages): raise ValueError('duplicate runtime registration')
@@ -98,7 +107,10 @@ def crosscheck(runtime, source):
             name = resolve_type(row['types'][0], by_command, row)
             actual = by_command[name]
             handler = resolve_type(row['types'][2], command_handlers, row)
-            assert handler == actual['handler'] and row['execution_kind'] == actual['execution_kind'], row
+            assert handler == actual['handler'], row
+            if explicit:
+                assert row['api'] in ('AddProtocolCommandHandler','AddInternalCommandHandler') and row['execution_model'] == actual['execution_model'], row
+            else: assert row['execution_kind'] == actual['execution_kind'], row
             route = {'AddCommandHandler':'LegacyFineGrained','AddProtocolCommandHandler':'Protocol','AddInternalCommandHandler':'Internal'}[row['api']]
             assert actual.get('route','LegacyFineGrained') == route, row
             if route == 'Protocol':
@@ -116,7 +128,7 @@ def crosscheck(runtime, source):
                 assert resolve_type(row['types'][1], {actual['registered_message_clr']}, row) == actual['registered_message_clr'], row
                 assert resolve_type(row['types'][2], by_command, row) == actual['protocol_command'], row
             else:
-                assert actual.get('route','LegacyQueued') == 'LegacyQueued', row
+                assert actual.get('route') == ('Telemetry' if explicit else 'LegacyQueued'), row
             assert name not in seen_m, name
             seen_m.add(name)
         actual['registration'] = {key: row[key] for key in ('file','line','text','source_sha256')}
@@ -128,7 +140,7 @@ def crosscheck(runtime, source):
         business_messages=sum(not row['telemetry'] for row in messages),
         business_handlers=len({row['handler'] for row in messages if not row['telemetry']}),
         commands=len(commands), command_handlers=len(command_handlers),
-        execution_kinds=dict(sorted(collections.Counter(row['execution_kind'] for row in commands).items())),
+        execution_models=dict(sorted(collections.Counter(row['execution_model'] for row in commands).items())) if explicit else dict(sorted(collections.Counter(row['execution_kind'] for row in commands).items())),
         command_registration_files=dict(sorted(collections.Counter(row['registration']['file'] for row in commands).items())))
     return report
 

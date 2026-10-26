@@ -104,7 +104,7 @@ public sealed class CardRewardReconnectIntegrationTests
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
-            builder.Services.AddCommandHandler<SeedReconnectRunCommand, DungeonRunState, SeedReconnectRunCommandHandler>(CommandExecutionKind.Transactional);
+            builder.Services.AddFixtureCommand<SeedReconnectRunCommand, DungeonRunState, SeedReconnectRunCommandHandler>(FixtureUnitKind.Transactional);
 
             using var host = builder.Build();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -134,7 +134,7 @@ public sealed class CardRewardReconnectIntegrationTests
                             Account, Character, first, connectionGeneration: 1, gamePort));
                 });
 
-                var run = await host.Services.GetRequiredService<ICommandBus>()
+                var run = await DomainCommandFixture.Bus(host.Services)
                     .SendAsync(new SeedReconnectRunCommand(), timeout.Token);
                 TestGameplay.Run(host.Services, () =>
                 {

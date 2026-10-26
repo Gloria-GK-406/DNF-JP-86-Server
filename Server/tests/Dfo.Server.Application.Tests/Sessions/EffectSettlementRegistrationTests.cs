@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
@@ -32,14 +33,7 @@ public sealed class EffectSettlementRegistrationTests
             "RenameCreatureRequest", "RentEquipmentRequest", "ResetItemQualityRequest", "ResetRandomOptionRequest", "SharedEffectRequest", "TeleportRequest", "UseStackableRequest", "VendingMachineRequest", "WarehouseRequest", "WeddingLovePointRequest" },
             wire.SelectMany(x => x.Productions).Distinct().Select(x => x.Name).Order());
         var commandRegistry = services.GetRequiredService<CommandHandlerRegistry>();
-        var commands = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).ToArray();
-        Assert.Equal(new[] { "CapsuleCommand", "FinishQuestCommand", "HousingCommand", "IncreaseStatusCommand", "LearnSkillCommand", "QuestClearCouponCommand",
-             "UseEntryAllowanceCommand", "UseFatiguePotionCommand", "UseLevelUpTicketCommand", "WeddingLovePointCommand" }.Where(name => !Migrated(name)),
-            commands.Select(x => x.CommandType.Name).Order());
-        Assert.All(commands, x => {
-            Assert.Same(x, commandRegistry.GetRegistration(x.CommandType));
-            Assert.Equal(CommandExecutionKind.Transactional, x.ExecutionKind);
-        });
+        Assert.All(services.GetServices<CommandHandlerRegistration>(),x=>Assert.Contains(x.Route,new[]{CommandRouteKind.Protocol,CommandRouteKind.Internal}));
         var use = commandRegistry.GetRegistration(typeof(Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand));
         Assert.Equal(CommandRouteKind.Protocol, use.Route);
         Assert.Equal(new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch }, use.RegistrationExits);
@@ -47,42 +41,31 @@ public sealed class EffectSettlementRegistrationTests
         Assert.Equal(CommandRouteKind.Protocol, buy.Route);
         Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, buy.RegistrationExits);
         Assert.Equal(new[] { typeof(Dfo.Server.Protocol.Game.BuyItem.BuyItemRequest), typeof(Dfo.Server.Protocol.Game.BuyItem.HousingBuyItemRequest) }, buy.ProtocolMessages!.Select(x => x.MessageClrType));
-        Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(buy.CommandType));
         foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.ReinforceItem.GameReinforceItemCommand), typeof(Dfo.Server.Protocol.Game.DisjointItem.GameDisjointItemCommand), typeof(Dfo.Server.Protocol.Game.EnchantByBead.GameEnchantByBeadCommand) })
         {
             var equipment = commandRegistry.GetRegistration(type);
             Assert.Equal(CommandRouteKind.Protocol, equipment.Route);
-            Assert.Equal(CommandExecutionKind.Direct, equipment.ExecutionKind);
             Assert.Single(equipment.ProtocolMessages!);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, equipment.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
         }
         foreach (var (type, count) in new[] { (typeof(Dfo.Server.Protocol.Game.MagicSeal.GameMagicSealCommand), 2), (typeof(Dfo.Server.Protocol.Game.Forging.GameForgingCommand), 1), (typeof(Dfo.Server.Protocol.Game.Outworld.GameOutworldCommand), 2) })
         {
             var option = commandRegistry.GetRegistration(type);
             Assert.Equal(CommandRouteKind.Protocol, option.Route);
-            Assert.Equal(CommandExecutionKind.Direct, option.ExecutionKind);
             Assert.Equal(count, option.ProtocolMessages!.Count);
             Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, option.RegistrationExits);
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
         }
         foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.CompoundItem.GameCompoundItemCommand), typeof(Dfo.Server.Protocol.Game.LotteryOpening.GameLotteryOpeningCommand), typeof(Dfo.Server.Protocol.Game.VendingMachine.GameVendingMachineCommand), typeof(Dfo.Server.Protocol.Game.EpicCraft.GameEpicCraftCommand) })
         {
             var opening = commandRegistry.GetRegistration(type);
-            Assert.Equal(CommandRouteKind.Protocol, opening.Route); Assert.Equal(CommandExecutionKind.Direct, opening.ExecutionKind);
-            Assert.Single(opening.ProtocolMessages!); Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, opening.RegistrationExits);
+            Assert.Equal(CommandRouteKind.Protocol, opening.Route); Assert.Single(opening.ProtocolMessages!); Assert.Equal(new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch }, opening.RegistrationExits);
         }
         foreach (var type in new[] { typeof(Dfo.Server.Protocol.Game.MonsterDeath.GameMonsterDeathCommand), typeof(Dfo.Server.Protocol.Game.FinishLoading.GameFinishLoadingCommand), typeof(Dfo.Server.Protocol.Game.DungeonEntry.GameMoveMapCommand), typeof(Dfo.Server.Protocol.Game.IllusionTowerStage.GameIllusionTowerStageCommand) })
         {
             var loading = commandRegistry.GetRegistration(type);
-            Assert.Equal(CommandRouteKind.Protocol, loading.Route); Assert.Equal(CommandExecutionKind.Direct, loading.ExecutionKind);
-            Assert.Single(loading.ProtocolMessages!); Assert.Empty(loading.RegistrationExits ?? []);
-            Assert.False(typeof(ISelectedSessionCommand).IsAssignableFrom(type));
-            Assert.False(typeof(IRequestSettlementCommand).IsAssignableFrom(type));
+            Assert.Equal(CommandRouteKind.Protocol, loading.Route); Assert.Single(loading.ProtocolMessages!); Assert.Empty(loading.RegistrationExits ?? []);
         }
-        var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
-            && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
-        Assert.Equal(new[] { "ReadReplayStateCommand" }, protectedNonMain);
+        Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(),x=>x.CommandType.Name=="ReadReplayStateCommand");
         Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(), x => x.CommandType.Name.Contains("ReplayGuard"));
         Assert.NotNull(services.GetRequiredService<EffectOperationLedger>());
     }

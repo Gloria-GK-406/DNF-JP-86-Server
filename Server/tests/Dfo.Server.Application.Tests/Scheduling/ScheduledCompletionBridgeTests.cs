@@ -16,7 +16,7 @@ public sealed class ScheduledCompletionBridgeTests
         {
             command = new("test", new(), 1);
             var request = new CommandRequestContext.TrustedInternal(new(GameplayCallSource.Timer, GameplayJob.Current!.Value, "test:completion-bridge"));
-            var context = new CommandExecutionContext(Guid.NewGuid(), typeof(ScheduledGameplayTaskCommand), typeof(ScheduledCompletionBridgeTests), CommandExecutionKind.Direct) { Request = request };
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), typeof(ScheduledGameplayTaskCommand), typeof(ScheduledCompletionBridgeTests)) with { Request = request };
             var business = ScheduledTaskBusinessResult.Handled(context, "original aggregate", [original]);
             report = new(command, context, new ScheduledTaskContext("test", default, default, 1), business);
             Assert.Throws<InvalidOperationException>(() => report.ThrowCompletedBusinessFailure(command));

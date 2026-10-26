@@ -323,10 +323,9 @@ internal partial class GameDungeonSelectionCommandHandler
                 context.Connection.ConnectionId,
                 deliveries.Sum(value => value.Messages.Count));
         }
-        catch (Exception error)
+        catch (Exception)
         {
-            logger.LogError(
-                error,
+            logger.LogDebug(
                 "Enter select dungeon {ConnectionId}: sending the notification burst failed",
                 context.Connection.ConnectionId);
             throw;

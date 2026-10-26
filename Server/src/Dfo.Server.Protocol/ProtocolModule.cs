@@ -218,7 +218,6 @@ public sealed class ProtocolModule : IServerModule
         services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink, ReplayStateProjectionDelivery>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionDelivery, LegacyReplayStateProjectionDelivery>();
         services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
@@ -871,8 +870,7 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameMirrorDungeonEntry, typeof(SelectDungeonRequest)));
         services.RegisterProtocolMessageHandler<SelectDungeonHandler, SelectDungeonRequest, GameSelectDungeonCommand>(ClientMessageType.GameSelectDungeon);
         services.RegisterProtocolMessageHandler<SelectDungeonHandler, SelectDungeonRequest, GameSelectDungeonCommand>(ClientMessageType.GameMirrorDungeonEntry);
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommand, bool, Dfo.Server.Protocol.Game.MirrorDungeonEntry.ReportDungeonQuestFactsCommandHandler>(
-            CommandExecutionKind.Transactional);
+
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
         services.RegisterProtocolMessageHandler<PrepareCycleDungeonEntryHandler, PrepareCycleDungeonEntryRequest, GamePrepareCycleDungeonEntryCommand>(ClientMessageType.GamePrepareCycleDungeonEntry);

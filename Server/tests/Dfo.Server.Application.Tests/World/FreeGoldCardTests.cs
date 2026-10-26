@@ -36,7 +36,7 @@ public sealed class FreeGoldCardTests
     {
         var shop = new ShopFixture(s =>
         {
-            s.AddCommandHandler<CardAwardAlgorithmInput, SelectCardResult, CardAwardAlgorithmDriver>(CommandExecutionKind.Transactional);
+            s.AddFixtureCommand<CardAwardAlgorithmInput, SelectCardResult, CardAwardAlgorithmDriver>(FixtureUnitKind.Transactional);
             s.AddSingleton<IPremiumServiceDefinitionSource>(new Rules());
             s.AddSingleton<IGoldCarryLimitSource>(new GoldLimit());
         });
@@ -64,7 +64,7 @@ public sealed class FreeGoldCardTests
         });
     }
     private static ValueTask<SelectCardResult> Flip(ShopFixture shop, ClearRewardCardKind kind = ClearRewardCardKind.Paid) =>
-        shop.Services.GetRequiredService<ICommandBus>().SendAsync(new CardAwardAlgorithmInput(
+        DomainCommandFixture.Bus(shop.Services).SendAsync(new CardAwardAlgorithmInput(
             shop.Session.AccountId, shop.Session.CharacterId, kind, 0));
     private static int Used(SelectCardResult result) => result.Usage.Single(x => x.SlotIndex == 0).UsedCount;
 

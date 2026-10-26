@@ -883,6 +883,9 @@ public sealed partial class SelectCharacterLifecycleTests
         ReviveSelectedCharacterPetStageHandler pet,
         CompensateSelectedCharacterSessionStageHandler compensate) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public LifecycleWorkflow? Workflow { get; set; }
         public SelectCharacterResult? State { get; private set; }
         public List<Type> DispatchedCommands { get; } = [];
@@ -893,7 +896,7 @@ public sealed partial class SelectCharacterLifecycleTests
             where TResult : notnull
         {
             if (command is not GameSelectCharacterCommand whole) throw new NotSupportedException(command.GetType().Name);
-            var ctx = new CommandExecutionContext(Guid.NewGuid(), typeof(GameSelectCharacterCommand), typeof(LifecycleWorkflow), CommandExecutionKind.Direct)
+            var ctx = DomainCommandFixture.Context(Guid.NewGuid(), typeof(GameSelectCharacterCommand), typeof(LifecycleWorkflow)) with
             { Request = new CommandRequestContext.ProtocolNonEffect(whole.Dispatch,whole.Input,new ProtocolFrameMetadata.Game(whole.Input.Metadata),()=>true) };
             return (TResult)(object)await Workflow!.HandleAsync(ctx, whole, cancellationToken);
         }
@@ -954,8 +957,8 @@ public sealed partial class SelectCharacterLifecycleTests
             where TResult : notnull
         {
             using var footprint = new TestEffectFootprints.Lease(Array.Empty<Dfo.Server.Abstractions.Effects.EffectFootprintOwner>());
-            var context = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), handler.GetType(), CommandExecutionKind.Workflow);
-            context.SupplyLegacyFootprint(footprint);
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), command.GetType(), handler.GetType());
+
             return await handler.HandleAsync(context, command, cancellationToken);
         }
     }

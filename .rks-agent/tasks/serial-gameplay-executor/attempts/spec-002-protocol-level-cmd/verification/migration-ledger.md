@@ -421,3 +421,10 @@ AltarActionCommand 仍由 AltarScheduler 及 DungeonPartyWipeService→AltarProj
 仅闭合 `source:lifecycle-connected`、`source:lifecycle-disconnected`、`source:event-consumer`、`source:event-depth-settlement`、`source:startup-epic-book`、`source:startup-experience-storage`、`source:scheduled-task` 七来源及其五个最后消费者 fine；JSON 是唯一逐行权威。消息159 closed／14 retained；fine202 closed／2 pending；来源73 closed／12 retained；保护2 closed／3 pending，过渡8 pending。ReadReplayState 与 ReportDungeonQuestFacts 留 T-011，original／ID／顺序与非目标不变。
 
 真实业务移入 typed CMD／注册拥有者，Direct事件不排队。原生命周期代次／清理／关闭链、Reliable同事务与独立retry、LiveOnly先提交后投影、启动准备位置、scheduled实际开始时最新Requested及原五业务阶段保持；部分业务失败经固定完成桥保原Aggregate和重试，其他infra按VC-B40。最终证据见 `task64-verification.md`：r2 App＋r1其余七项，9848＝9828通过＋2原Dimension失败＋18原跳过，新增27／删除0；DFO原67＋7、strict及八坏例通过。此Task不宣告T-011／B／最终性能完成。
+
+
+### TASK-65：删除旧模型与迁移判据闭合
+
+仅闭合最后 ReadReplayState／ReportDungeonQuestFacts 两旧命令、F-93两保护与F-132禁用边界、八项过渡机制。消息159 closed／14 retained，旧命令204 closed，来源73 closed／12 retained，保护5 closed，过渡8 closed；全部五类无pending。原ID、original、行序与非目标逐项保持。频道临时policy别名亦按TASK06原责任删除，六消费者使用同一正式领域singleton。真实事务、精确参与者、重放ordinal／footprint与各工作单元失败收口保留；F-132不冒修复，F-131保原已批准因果精度。
+
+最终证据与旧测试逐项去向见 `verification/task65-verification.md`，JSON仍是唯一逐行权威。此处只结束第一阶段迁移账，不声明第二阶段结构整理、性能／完整结果评审或B封存完成。

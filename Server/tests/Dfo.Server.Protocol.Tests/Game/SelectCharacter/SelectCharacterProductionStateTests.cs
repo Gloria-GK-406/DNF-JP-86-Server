@@ -404,13 +404,16 @@ public sealed class SelectCharacterProductionStateTests
         IReadOnlyList<CharacterRosterAppearanceState>? appearances = null) :
         ICharacterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
         ICharacterEntryStateDomainService, IAccountEntryStateDomainService, IEquippedCreatureQuery,
-        IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryPolicy,
+        IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryDomainService,
         ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
         ISessionAdjacentEntryDomainService,
         ISelectedSessionPositionPersistence, ITownMovementDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public bool Published { get; private set; }
         public int RequestedLoginTown { get; private set; }
         public bool RejectPlacement { get; init; }

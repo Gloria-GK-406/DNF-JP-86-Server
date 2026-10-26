@@ -118,7 +118,7 @@ public sealed class MarriageRelationLedgerTests
         Assert.True((await InTx(f, () => Couple(f).RespondReservationAsync(peer, f.Session, 2, default))).Succeeded);
         await Expect(MarriageStage.Engaged, null);
 
-        var bus = f.Services.GetRequiredService<ICommandBus>();
+        var bus = DomainCommandFixture.Bus(f.Services);
         var cancelled = await Request();
         var accepted = await bus.SendAsync(new CeremonyTestCommand(peer, f.Session, 0, 0, 0));
         Assert.Equal(2, accepted.Admissions.Count);

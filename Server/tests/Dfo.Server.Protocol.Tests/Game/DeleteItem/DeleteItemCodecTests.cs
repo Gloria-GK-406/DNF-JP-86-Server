@@ -34,8 +34,7 @@ public sealed class DeleteItemCodecTests
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<GameDeleteItemCommandHandler>.Instance);
             var dispatch = new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011));
             var request = new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1);
-            Assert.False(await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameDeleteItemCommand),typeof(GameDeleteItemCommandHandler),
-                Dfo.Server.Application.Commands.CommandExecutionKind.Direct),new(dispatch,request),default));
+            Assert.False(await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameDeleteItemCommand),typeof(GameDeleteItemCommandHandler)),new(dispatch,request),default));
             var rejected=Assert.IsType<DeleteItemResponse>(Assert.Single(sender.Sent));
             Assert.False(rejected.Success);
             Assert.Equal(DeleteItemResponse.CannotDelete,rejected.ErrorCode);

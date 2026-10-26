@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Commands;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,8 +10,8 @@ public sealed class TransactionalCommandSerializationTests
     public async Task TransactionalCommands_DoNotRunTheirHandlersConcurrently()
     {
         var probe = new ConcurrencyProbe();
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
-        var bus = provider.GetRequiredService<ICommandBus>();
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
+        var bus = DomainCommandFixture.Bus(provider);
 
         var first = bus.SendAsync(new ProbeCommand(Block: true), CancellationToken.None).AsTask();
         await probe.FirstBlockingCallEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -28,8 +29,8 @@ public sealed class TransactionalCommandSerializationTests
     public async Task CancelledWaiter_DoesNotEnterAndDoesNotKeepTheGate()
     {
         var probe = new ConcurrencyProbe();
-        await using var provider = BuildProvider(probe, CommandExecutionKind.Transactional);
-        var bus = provider.GetRequiredService<ICommandBus>();
+        await using var provider = BuildProvider(probe, FixtureUnitKind.Transactional);
+        var bus = DomainCommandFixture.Bus(provider);
 
         var first = bus.SendAsync(new ProbeCommand(Block: true), CancellationToken.None).AsTask();
         await probe.FirstBlockingCallEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -50,13 +51,13 @@ public sealed class TransactionalCommandSerializationTests
 
     private static ServiceProvider BuildProvider(
         ConcurrencyProbe probe,
-        CommandExecutionKind executionKind)
+        FixtureUnitKind executionKind)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddCommandDispatching();
         services.AddSingleton(probe);
-        services.AddCommandHandler<ProbeCommand, ProbeResult, ProbeHandler>(executionKind);
+        services.AddFixtureCommand<ProbeCommand, ProbeResult, ProbeHandler>(executionKind);
         return services.BuildServiceProvider();
     }
 

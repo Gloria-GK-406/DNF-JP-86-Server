@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Tests.Inventory;
@@ -23,8 +24,7 @@ public sealed class MarriageProtocolRegistrationTests
         Assert.Equal(MessageHandlerRouteKind.ProtocolCommand, route!.Kind);
         Assert.Equal(name, route.ProtocolCommandType!.Name); Assert.False(route.IsTelemetry);
         var command = f.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(route.ProtocolCommandType);
-        Assert.Equal(CommandRouteKind.Protocol, command.Route); Assert.Equal(CommandExecutionKind.Direct, command.ExecutionKind);
-        Assert.All(route.HandlerType.GetConstructors().SelectMany(x => x.GetParameters()), x => Assert.Equal(typeof(ICommandBus), x.ParameterType));
+        Assert.Equal(CommandRouteKind.Protocol, command.Route); Assert.All(route.HandlerType.GetConstructors().SelectMany(x => x.GetParameters()), x => Assert.Equal(typeof(ICommandBus), x.ParameterType));
         Assert.Single(command.ProtocolMessages!, x => (int)x.MessageType == id);
         Assert.Equal(name is "GameHousingCommand" or "GameCapsuleCommand" or "GameWeddingLovePointCommand"
             ? new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch } : [], command.RegistrationExits ?? []);

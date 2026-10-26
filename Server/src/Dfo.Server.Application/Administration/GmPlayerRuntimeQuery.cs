@@ -13,7 +13,7 @@ internal sealed record GmRuntimeSample(HashSet<int> Accounts, IReadOnlyDictionar
 
 internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery online, ISelectedSessionSnapshotQuery snapshots,
     ISelectedSessionDomainService selected, IOnlineCharacterRuntimeDomainService onlineCharacters,
-    IChannelDirectoryDomainService channels, IChannelEntryPolicy entry, TimeProvider clock)
+    IChannelDirectoryDomainService channels, IChannelEntryDomainService entry, TimeProvider clock)
 {
     public async ValueTask<GmRuntimeSample> SampleAsync(CancellationToken token)
     {

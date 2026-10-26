@@ -26,17 +26,6 @@ public static class NetworkMessageDispatchingExtensions
         return services;
     }
 
-    public static IServiceCollection RegisterMessageHandler<THandler>(
-        this IServiceCollection services,
-        ClientMessageType messageType)
-        where THandler : class, IClientMessageHandler
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        services.AddTransient<THandler>();
-        services.AddSingleton(new MessageHandlerRegistration(messageType, typeof(THandler)));
-        return services;
-    }
-
     public static IServiceCollection RegisterProtocolMessageHandler<THandler, TMessage, TCommand>(
         this IServiceCollection services, ClientMessageType messageType, params Type[] allowedMessageClrTypes)
         where THandler : class, IProtocolCommandMessageHandler<TCommand>

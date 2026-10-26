@@ -137,11 +137,11 @@ public sealed class LightweightProtocolCommandFlowTests(ITestOutputHelper output
         {
             var id=(ClientMessageType)(65536+wire);var message=Assert.Single(messages,m=>m.MessageType==id);
             Assert.False(message.IsTelemetry);
-            if(!Modern){Assert.Equal(MessageHandlerRouteKind.LegacyQueued,message.Route);continue;}
+            if(!Modern){Assert.Equal(MessageHandlerRouteKind.Telemetry,message.Route);continue;}
             Assert.Equal(MessageHandlerRouteKind.ProtocolCommand,message.Route);
             var command=Assert.Single(commands,c=>c.ProtocolMessages?.Any(b=>b.MessageType==id)==true);
             Assert.Equal(message.ProtocolCommandType,command.CommandType);Assert.Equal(CommandRouteKind.Protocol,command.Route);
-            Assert.Equal(CommandExecutionKind.Direct,command.ExecutionKind);Assert.True(command.RegistrationExits is null or {Count:0});
+            Assert.True(command.RegistrationExits is null or {Count:0});
             Assert.Equal(CommandSelfSettlementCapability.None,command.SelfSettlement);
         }
         Assert.Equal(Modern?0:1,commands.Count(c=>c.CommandType.Name=="QueryShopPurchaseCountsCommand"));

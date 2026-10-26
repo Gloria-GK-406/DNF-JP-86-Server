@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -40,7 +41,7 @@ internal sealed class CardPresentationFixture : IDungeonCardPresentationControl,
         {
             await queue.RunAsync(new(GameplayShardKey.World,origin.Chain,origin.CommandType,async jobToken=>
             {
-                var execution=new CommandExecutionContext(Guid.NewGuid(),c.GetType(),typeof(GameCardCommandHandler),CommandExecutionKind.Direct);
+                var execution=DomainCommandFixture.Context(Guid.NewGuid(),c.GetType(),typeof(GameCardCommandHandler));
                 if(c is DungeonCardLayoutCommand layout)_=await Algorithm.HandleAsync(execution,layout,ct);
                 else if(c is DungeonCardAutoFlipCommand auto)_=await Algorithm.HandleAsync(execution,auto,ct);
                 else throw new NotSupportedException();

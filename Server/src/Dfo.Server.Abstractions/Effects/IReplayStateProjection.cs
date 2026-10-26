@@ -156,12 +156,6 @@ public interface IReplayStateDomainService
         ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken cancellationToken);
 }
 
-public interface IReplayStateProjectionDelivery
-{
-    ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
-        ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken cancellationToken);
-}
-
 public interface IReplayStateProjectionSink
 {
     ValueTask ProjectAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,

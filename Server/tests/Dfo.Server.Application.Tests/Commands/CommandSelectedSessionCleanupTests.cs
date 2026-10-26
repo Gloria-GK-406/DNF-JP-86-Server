@@ -29,7 +29,7 @@ public sealed class CommandSelectedSessionCleanupTests
             new Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterRequest(GameMessageMetadata.Empty, 0),
             new ProtocolFrameMetadata.Game(GameMessageMetadata.Empty), authority ?? (() => true))
             { SelectedSessionCleanup = CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle };
-        return new(Guid.NewGuid(), typeof(CommandSelectedSessionCleanupTests), typeof(CommandSelectedSessionCleanupTests), CommandExecutionKind.Direct) { Request = request };
+        return new(Guid.NewGuid(), typeof(CommandSelectedSessionCleanupTests), typeof(CommandSelectedSessionCleanupTests)) { Request = request };
     }
     private static ICommandWorkUnits Units() => new CommandWorkUnits(new DomainTransactionScope(),
         new SelectedSessionSafety(new ServiceCollection().BuildServiceProvider(), NullLogger<SelectedSessionSafety>.Instance));

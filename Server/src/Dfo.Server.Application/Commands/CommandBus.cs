@@ -13,44 +13,27 @@ internal sealed class CommandBus(
     IServiceScopeFactory scopeFactory,
     CommandHandlerRegistry registry,
     IGameplayQueue queue,
-    CommandJobEntry entry, NetworkCommandAuthorization authorization, EffectOperationContext operations) : ICommandBus
+    CommandJobEntry entry) : ICommandBus
 {
-    private static readonly AsyncLocal<int> DispatchDepth = new();
-
     public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
         where TResult : notnull
     {
         if (command is null) return ValueTask.FromException<TResult>(new ArgumentNullException(nameof(command)));
-        if (DispatchDepth.Value > 0) return ValueTask.FromException<TResult>(NestedDispatch());
         if (GameplayLeakAssertion.LeakedFrom("bus:" + command.GetType().Name) is { } leaked)
             return ValueTask.FromException<TResult>(leaked);
-        if (DispatchDepth.Value != 0) return ValueTask.FromException<TResult>(ExplicitNestedDispatch());
+        if (GameplayJob.IsOnExecutor) return ValueTask.FromException<TResult>(ExplicitNestedDispatch());
         var registration = registry.GetRegistration(command.GetType());
         if (registration.Route == CommandRouteKind.Internal)
             return ValueTask.FromException<TResult>(new InvalidOperationException("Internal commands require an explicit origin."));
         if (registration.Route == CommandRouteKind.Protocol)
         {
-            if (GameplayJob.IsOnExecutor) return ValueTask.FromException<TResult>(ExplicitNestedDispatch());
             var protocol = (IProtocolCommand)command;
             return queue.RunAsync(new GameplayWork<TResult>(GameplayShardKey.World,
                 GameplayCallChain.NewRoot(GameplayCallSource.Connection, protocol.Dispatch.Connection.ConnectionId),
                 command.GetType().Name, token => ExplicitAsync(command, registration, protocol, null, token),
                 protocol.Dispatch.Connection), cancellationToken);
         }
-        if (GameplayJob.IsOnExecutor) return InlineAsync(command, cancellationToken);
-        // This exact old external entry supplies its provenance before queue execution suppresses the flow.
-        var network = authorization.Capture();
-        var inherited = operations.CaptureInheritance();
-        network.DemandOpen();
-        inherited.DemandOpen();
-        var origin = new LegacyInvocationOrigin(network.IsAbsent && inherited.IsEmpty, () =>
-        {
-            network.DemandOpen();
-            inherited.DemandOpen();
-        });
-        return queue.RunAsync(new GameplayWork<TResult>(GameplayShardKey.World,
-            GameplayCallChain.NewRoot(GameplayCallSource.Connection), "bus:" + command.GetType().Name,
-            token => { entry.Begin(); return InlineAsync(command, token, origin); }), cancellationToken);
+        return ValueTask.FromException<TResult>(new InvalidOperationException("Only protocol commands accept the protocol entry."));
     }
 
     public ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin,
@@ -59,7 +42,7 @@ internal sealed class CommandBus(
         ArgumentNullException.ThrowIfNull(command);
         if (GameplayLeakAssertion.LeakedFrom("bus:" + command.GetType().Name) is { } leaked)
             return ValueTask.FromException<TResult>(leaked);
-        if (DispatchDepth.Value != 0 || GameplayJob.IsOnExecutor) return ValueTask.FromException<TResult>(ExplicitNestedDispatch());
+        if (GameplayJob.IsOnExecutor) return ValueTask.FromException<TResult>(ExplicitNestedDispatch());
         ArgumentNullException.ThrowIfNull(origin);
         origin.Validate();
         var registration = registry.GetRegistration(command.GetType());
@@ -99,8 +82,6 @@ internal sealed class CommandBus(
         IProtocolCommand? protocol, InternalCommandOrigin? origin, CancellationToken ct, ProducerCancellationObservation? cancellation = null) where TResult : notnull
     {
         entry.Begin();
-        var previousDepth = DispatchDepth.Value;
-        DispatchDepth.Value = -1;
         CommandRequestContext? request = null;
         SelectedSessionSafety? safety = null;
         AsyncServiceScope? scope = null;
@@ -125,35 +106,32 @@ internal sealed class CommandBus(
                 failure = request.Failure ?? failure;
                 request.Close();
             }
-            try
+            if (scope is { } ownedScope)
             {
-                if (scope is { } ownedScope)
+                request?.BeginScopeCleanup(ownedScope.ServiceProvider);
+                try { await ownedScope.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception cleanup)
                 {
-                    request?.BeginScopeCleanup(ownedScope.ServiceProvider);
-                    try { await ownedScope.DisposeAsync().ConfigureAwait(false); }
-                    catch (Exception cleanup)
-                    {
-                        if (request is not null) request.Failed(cleanup);
-                        else failure = failure is null ? cleanup : new AggregateException("Command scope cleanup failed.", failure, cleanup);
-                    }
-                    finally
-                    {
-                        request?.EndScopeCleanup();
-                        failure = request?.Failure ?? failure;
-                    }
+                    if (request is not null) request.Failed(cleanup);
+                    else failure = failure is null ? cleanup : new AggregateException("Command scope cleanup failed.", failure, cleanup);
                 }
-                if (request is not null)
+                finally
                 {
-                    try { GameplayJob.DemandHealthy(); }
-                    catch (Exception error) { cancellation?.Invalidate(); request.HttpFailure?.Invalidate(); request.Failed(error); }
-                    failure = request.Failure ?? failure;
+                    request?.EndScopeCleanup();
+                    failure = request?.Failure ?? failure;
                 }
-                if (failure is not null && request is not null && safety is not null)
-                    failure = await CommandWorkUnits.FailAsync(request, failure, safety, registration.CommandType.Name).ConfigureAwait(false);
-                if (request is CommandRequestContext.ProtocolEffectSelected selected)
-                    EffectOperationLedger.FinalizePending(selected.State.Entry);
             }
-            finally { DispatchDepth.Value = previousDepth; }
+            if (request is not null)
+            {
+                try { GameplayJob.DemandHealthy(); }
+                catch (Exception error) { cancellation?.Invalidate(); request.HttpFailure?.Invalidate(); request.Failed(error); }
+                failure = request.Failure ?? failure;
+            }
+            if (failure is not null && request is not null && safety is not null)
+                failure = await CommandWorkUnits.FailAsync(request, failure, safety, registration.CommandType.Name).ConfigureAwait(false);
+            if (request is CommandRequestContext.ProtocolEffectSelected selected)
+                EffectOperationLedger.FinalizePending(selected.State.Entry);
+
         }
         if (failure is not null)
         {
@@ -217,8 +195,7 @@ internal sealed class CommandBus(
             request.SelfSettlement = registration.SelfSettlement;
             request.SelectedSessionCleanup = registration.SelectedSessionCleanup;
             request.DisconnectedLifecycleCleanup = command is DisconnectedLifecycleCommand;
-            var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType,
-                registration.ExecutionKind) { Request = request };
+            var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType) { Request = request };
             request.DemandCurrent();
             if (request is CommandRequestContext.ProtocolEffectSelected { State.IsReplay: true } replayRequest)
             {
@@ -247,66 +224,6 @@ internal sealed class CommandBus(
             cancellation?.Invalidate();
             request.DemandFinished();
             return result;
-        }
-    }
-
-    private async ValueTask<TResult> InlineAsync<TResult>(
-        ICommand<TResult> command,
-        CancellationToken cancellationToken,
-        LegacyInvocationOrigin? origin = null)
-        where TResult : notnull
-    {
-        if (DispatchDepth.Value != 0) throw NestedDispatch();
-
-        DispatchDepth.Value++;
-        try
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
-            var registration = registry.GetRegistration(command.GetType());
-
-            if (registration.Route != CommandRouteKind.LegacyFineGrained)
-                throw new InvalidOperationException("Only a registered legacy command can use this invoker.");
-
-            // Registration binds the command, its result and its handler together, and
-            // ICommand is invariant in its result, so TResult here is the command's own
-            // declared result and this invoker necessarily produces it.
-            var invoker = (ICommandInvoker<TResult>)scope.ServiceProvider
-                .GetRequiredService(registration.InvokerType);
-
-            var context = new CommandExecutionContext(
-                Guid.NewGuid(),
-                registration.CommandType,
-                registration.HandlerType,
-                registration.ExecutionKind);
-            CommandExecutionDelegate<TResult> next = async () =>
-            {
-                using var admission = context.EnterLegacyInvocation(registration);
-                using var footprint = operations.CaptureLegacy(context, authorization.Capture(),
-                    origin?.Standalone == true, origin?.DemandOpen ?? (() => { }));
-                context.SupplyLegacyFootprint(footprint);
-                return await invoker.InvokeAsync(context, command, cancellationToken).ConfigureAwait(false);
-            };
-
-            var behaviors = scope.ServiceProvider
-                .GetServices<ICommandPipelineBehavior<TResult>>()
-                .OrderBy(behavior => behavior.Order)
-                .ToArray();
-            foreach (var behavior in behaviors.Reverse())
-            {
-                var capturedBehavior = behavior;
-                var capturedNext = next;
-                next = () => capturedBehavior.ExecuteAsync(
-                    context,
-                    command,
-                    capturedNext,
-                    cancellationToken);
-            }
-
-            return await next().ConfigureAwait(false);
-        }
-        finally
-        {
-            DispatchDepth.Value--;
         }
     }
 

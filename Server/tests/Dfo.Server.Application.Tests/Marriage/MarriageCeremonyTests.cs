@@ -179,7 +179,7 @@ public sealed class MarriageCeremonyTests
         var (fixture, peer, logs, _) = await Fixture(); await using var owned = fixture;
         await MakeEligibleAsync(fixture, peer, logs);
         fixture.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=72");
-        var bus = fixture.Services.GetRequiredService<ICommandBus>();
+        var bus = DomainCommandFixture.Bus(fixture.Services);
         var results = await Task.WhenAll(
             bus.SendAsync(new CeremonyTestCommand(fixture.Session, peer, 0, 0, null)).AsTask(),
             bus.SendAsync(new CeremonyTestCommand(peer, fixture.Session, 0, 0, null)).AsTask())

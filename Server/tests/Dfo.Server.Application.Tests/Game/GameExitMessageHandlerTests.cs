@@ -19,7 +19,7 @@ public sealed class GameExitMessageHandlerTests
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
 
         await TestGameplay.RunAsync(async () => await handler.HandleAsync(
-            new CommandExecutionContext(Guid.NewGuid(), typeof(GameExitCommand), typeof(GameExitCommandHandler), CommandExecutionKind.Direct),
+            DomainCommandFixture.Context(Guid.NewGuid(), typeof(GameExitCommand), typeof(GameExitCommandHandler)),
             new GameExitCommand(context, new GameExitRequest(GameMessageMetadata.Empty)),
             CancellationToken.None));
 

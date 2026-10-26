@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Protocol.Game.Party;
@@ -60,7 +61,7 @@ public sealed class ReturnToSelectionDeliveryFailureTests
     {
         var context = outbound.Context(Connection);
         var handler = new ReturnWorkflow(new OneUser(context), commands, outbound);
-        await handler.HandleAsync(new CommandExecutionContext(Guid.NewGuid(), typeof(GameReturnToSelectionCommand), typeof(ReturnWorkflow), CommandExecutionKind.Direct),
+        await handler.HandleAsync(DomainCommandFixture.Context(Guid.NewGuid(), typeof(GameReturnToSelectionCommand), typeof(ReturnWorkflow)),
             new GameReturnToSelectionCommand(new NetworkDispatchContext(context), new ReturnToSelectionRequest(GameMessageMetadata.Empty)), CancellationToken.None);
     }
 

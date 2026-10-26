@@ -175,8 +175,8 @@ public sealed class AcceptQuestCommandHandlerTests
         var registrations=Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services,new object());
         var rows=services.Where(x=>x.ServiceType==typeof(CommandHandlerRegistration)).Select(x=>(CommandHandlerRegistration)x.ImplementationInstance!).ToArray();
         var whole=rows.SingleOrDefault(x=>x.CommandType.Name=="GameAcceptQuestCommand");
-        if(whole is null){Assert.Contains(rows,x=>x.CommandType.Name=="AcceptQuestCommand"&&x.ExecutionKind==CommandExecutionKind.Transactional);return;}
-        Assert.Equal(CommandExecutionKind.Direct,whole.ExecutionKind);Assert.Equal(CommandRouteKind.Protocol,whole.Route);
+
+        Assert.NotNull(whole);Assert.Equal(CommandRouteKind.Protocol,whole.Route);
         Assert.Single(whole.ProtocolMessages!);Assert.DoesNotContain(rows,x=>x.CommandType.Name=="AcceptQuestCommand");
     }
 
@@ -269,8 +269,7 @@ public sealed class AcceptQuestCommandHandlerTests
     }
 
     private static CommandExecutionContext Transactional => new(
-        Guid.Empty, typeof(QuestAcceptOperation), typeof(QuestAcceptOperationDriver),
-        CommandExecutionKind.Transactional);
+        Guid.Empty, typeof(QuestAcceptOperation), typeof(QuestAcceptOperationDriver));
 
     private static QuestDefinition Quest(
         int questId, uint trigger = 1, IReadOnlyList<QuestEventItem>? items = null) =>

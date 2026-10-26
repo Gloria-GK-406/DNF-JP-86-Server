@@ -89,6 +89,9 @@ internal sealed class AdvanceableTimeProvider(DateTimeOffset start) : TimeProvid
 internal sealed class DirectCommandBus(
     DomainTransactionScope? scope = null, TutorialRewardTestDriver? reward = null) : ICommandBus, ICommandWorkUnits
 {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
     private readonly DomainTransactionScope scope = scope ?? new DomainTransactionScope();
     private ICommandHandler<Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand, bool>? report;
     public Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler Report(
@@ -110,7 +113,7 @@ internal sealed class DirectCommandBus(
     }
     public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct = default) where TResult : notnull
     {
-        var context = new CommandExecutionContext(Guid.Empty, command.GetType(), typeof(DirectCommandBus), CommandExecutionKind.Direct);
+        var context = DomainCommandFixture.Context(Guid.Empty, command.GetType(), typeof(DirectCommandBus));
         if(command is Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand q)
             return (TResult)(object)await report!.HandleAsync(context,q,ct);
         await using var transaction = scope.Begin();
@@ -335,8 +338,11 @@ internal static class MoveWholeTestDriver
         new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Scope),new Outbox(sender),logger,character,account,time,housing)));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<T> SendAsync<T>(ICommand<T> command,CancellationToken ct=default)where T:notnull=>
-            (T)(object)await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameMoveItemSpaceCommand),typeof(GameMoveItemSpaceCommandHandler),CommandExecutionKind.Direct),Assert.IsType<GameMoveItemSpaceCommand>(command),ct);
+            (T)(object)await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameMoveItemSpaceCommand),typeof(GameMoveItemSpaceCommandHandler)),Assert.IsType<GameMoveItemSpaceCommand>(command),ct);
     }
     private sealed class Units(DomainTransactionScope scope):ICommandWorkUnits
     {

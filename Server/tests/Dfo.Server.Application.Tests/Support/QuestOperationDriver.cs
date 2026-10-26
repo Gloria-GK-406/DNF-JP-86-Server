@@ -26,7 +26,6 @@ internal static class QuestOperationDriver
     internal static async ValueTask<T> Invoke<T>(string slice,string name,string inputName,string method,object[] dependencies,object?[] fields,CommandExecutionContext context,IEffectFootprintRecorder? footprint,CancellationToken ct) where T:notnull
     {
         var a=typeof(ProtocolModule).Assembly;var old=a.GetType($"Dfo.Server.Protocol.Game.{slice}.{name}CommandHandler");var owner=old??a.GetType($"Dfo.Server.Protocol.Game.{slice}.Game{name}CommandHandler",true)!;
-        if(old is not null && footprint is not null) context.SupplyLegacyFootprint(footprint);
         var instance=Create(owner,null,dependencies);var input=Activator.CreateInstance(a.GetType($"Dfo.Server.Protocol.Game.{slice}."+(old is null?inputName:name+"Command"),true)!,fields)!;
         try{return await (ValueTask<T>)owner.GetMethod(old is null?method:"HandleAsync",BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(instance,old is not null?[context,input,ct]:footprint is not null?[input,footprint,ct]:[input,ct])!;}
         catch(TargetInvocationException e) when(e.InnerException is {} cause){ExceptionDispatchInfo.Capture(cause).Throw();throw;}

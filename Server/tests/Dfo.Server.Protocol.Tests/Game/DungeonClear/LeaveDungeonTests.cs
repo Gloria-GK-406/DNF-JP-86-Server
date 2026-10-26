@@ -208,7 +208,7 @@ public sealed class LeaveDungeonTests
     }
 
     [Fact]
-    public async Task Exit_command_ends_the_run_through_the_real_pipeline()
+    public async Task Exit_command_ends_the_run_through_the_explicit_domain_entry()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -216,16 +216,13 @@ public sealed class LeaveDungeonTests
         var runs = new OneRun();
         services.AddSingleton<IDungeonRunDomainService>(runs);
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
-        services.AddCommandHandler<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
-            CommandExecutionKind.Direct);
+        services.AddFixtureCommand<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
+            FixtureUnitKind.Direct);
         await using var provider = services.BuildServiceProvider();
-        await TestGameplay.RunAsync(provider, async () =>
-        {
-        var result = await provider.GetRequiredService<ICommandBus>().SendAsync(
+        var result = await DomainCommandFixture.Bus(provider).SendAsync(
             new LeaveDungeonAlgorithmCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal([Identity.CharacterId], result.EndedCharacters);
         Assert.True(runs.Ended);
-        });
     }
 
     [Fact]
@@ -497,7 +494,7 @@ public sealed class LeaveDungeonTests
         services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, ExitBusHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
         services.AddScoped<ICommandHandler<GameGiveUpGameCommand, bool>>(p => p.GetRequiredService<ExitBusHandler>());
         using var provider = services.BuildServiceProvider();
-        var commands = provider.GetRequiredService<ICommandBus>();
+        var commands = DomainCommandFixture.Bus(provider);
         runs.BeforeEnd = () =>
         {
             if (isAltar) Assert.Equal(AltarOperation.SettleParticipantBeforeExit, Assert.Single(trace.Commands));
@@ -1070,6 +1067,9 @@ public sealed class LeaveDungeonTests
 
     private sealed class RecordingCommandBus : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public List<ICommand> Commands { get; } = [];
 
         public ValueTask<TResult> SendAsync<TResult>(

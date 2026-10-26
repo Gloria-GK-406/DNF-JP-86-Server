@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Networking;
@@ -34,7 +35,7 @@ internal class SetPlayResultDriver(ISelectedSessionDomainService selectedSession
     protected override ValueTask<ClearExperienceResult> GrantAsync(CommandExecutionContext execution,SelectedSessionRecipient actor,DungeonRunState run,ClearCircumstances clear,int level,CancellationToken ct)=>
         bus.SendAsync(new ClearExperienceAlgorithmInput(actor.Session.AccountId,actor.Session.CharacterId,run.Layout.DungeonId,clear,actor.Session,run.RunId.Value,level),ct);
     public ValueTask HandleAsync(NetworkDispatchContext context,SetPlayResultRequest input,CancellationToken ct)=>RunAsync(
-        new(Guid.NewGuid(),typeof(GameSetPlayResultCommand),typeof(GameSetPlayResultCommandHandler),CommandExecutionKind.Direct),context,input,ct);
+        new(Guid.NewGuid(),typeof(GameSetPlayResultCommand),typeof(GameSetPlayResultCommandHandler)),context,input,ct);
 }
 internal class CardWireDriver(ISelectedSessionDomainService sessions,ISelectedCharacterCurrentViewDomainService views,
     IDungeonRunDomainService runs,ICommandBus bus,IGameMessageSender sender,ILogger logger,
@@ -51,7 +52,7 @@ internal class CardWireDriver(ISelectedSessionDomainService sessions,ISelectedCh
         if(delivery is not null)await sender.SendExplicitAsync(session.ConnectionId,delivery,ct);
     }
     public ValueTask HandleAsync(NetworkDispatchContext context,SelectCardRequest input,CancellationToken ct)=>SelectAsync(
-        new(Guid.NewGuid(),typeof(GameSelectCardCommand),typeof(GameCardCommandHandler),CommandExecutionKind.Direct),context,input,ct);
+        new(Guid.NewGuid(),typeof(GameSelectCardCommand),typeof(GameCardCommandHandler)),context,input,ct);
     public ValueTask HandleAsync(NetworkDispatchContext context,ScoreScrollStateRequest input,CancellationToken ct)=>ScrollAsync(context,input,ct);
     public ValueTask HandleAsync(NetworkDispatchContext context,CardSelectRightStateRequest input,CancellationToken ct)=>RightAsync(context,input,ct);
     internal ValueTask OpenAsync(SelectedSessionIdentity session,DungeonRunId run,CancellationToken ct)=>OpenLayoutAsync(session,run,ct);

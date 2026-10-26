@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
@@ -23,7 +24,7 @@ internal static class QuestProjectionDriver
         var commandType=typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestCompletion.GameFinishQuestCommand",true)!;
         var request=new CommandRequestContext.ProtocolEffectSelected(dispatch,input,new ProtocolFrameMetadata.Game(input.Metadata),()=>true,
             new ExplicitEffectRequest(new(session,1,1,0x22,0,"projection fixture",0),new(session,dispatch.Connection,input.Metadata),input.MinimumReplayNeeds,null!));
-        var context=new CommandExecutionContext(Guid.NewGuid(),commandType,owner,CommandExecutionKind.Direct){Request=request};
+        var context=DomainCommandFixture.Context(Guid.NewGuid(),commandType,owner) with{Request=request};
         try{await (ValueTask<QuestFinishOutcome>)owner.GetMethod("HandleAsync")!.Invoke(handler,[context,Activator.CreateInstance(commandType,dispatch,input),CancellationToken.None])!;}
         finally{await request.DrainOperationsAsync();request.Close();}
     }
@@ -33,7 +34,7 @@ internal static class QuestProjectionDriver
         var args=(modern is null?oldArgs:newArgs).Select(x=>ReferenceEquals(x,SkillGrowthDirectDriver.Logger)?typeof(NullLogger<>).MakeGenericType(owner).GetField("Instance")!.GetValue(null):x).ToArray();var handler=Activator.CreateInstance(owner,args)!;
         if(modern is null){await ((IClientMessageHandler)handler).HandleAsync(dispatch,input,default);return;}
         var cmd=a.GetType("Dfo.Server.Protocol.Game.QuestGiveUp.GameGiveUpQuestCommand",true)!;var request=new CommandRequestContext.ProtocolNonEffect(dispatch,input,new ProtocolFrameMetadata.Game(input.Metadata),()=>true);
-        try{await (ValueTask<Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestOutcome>)owner.GetMethod("HandleAsync")!.Invoke(handler,[new CommandExecutionContext(Guid.NewGuid(),cmd,owner,CommandExecutionKind.Direct){Request=request},Activator.CreateInstance(cmd,dispatch,input),CancellationToken.None])!;}
+        try{await (ValueTask<Dfo.Server.Protocol.Game.QuestGiveUp.GiveUpQuestOutcome>)owner.GetMethod("HandleAsync")!.Invoke(handler,[DomainCommandFixture.Context(Guid.NewGuid(),cmd,owner) with{Request=request},Activator.CreateInstance(cmd,dispatch,input),CancellationToken.None])!;}
         finally{await request.DrainOperationsAsync();request.Close();}
     }
     internal sealed class ValueUnits<TResult>(TResult result):ICommandWorkUnits where TResult:notnull
@@ -51,6 +52,9 @@ internal static class QuestProjectionDriver
     }
     internal sealed class Bus(ICommandBus actual):ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public ValueTask<T> SendAsync<T>(ICommand<T> command,CancellationToken ct=default) where T:notnull
         {
             var type=command.GetType();object Get(string name)=>type.GetProperty(name)!.GetValue(command)!;

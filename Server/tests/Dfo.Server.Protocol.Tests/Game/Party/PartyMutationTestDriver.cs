@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
@@ -26,12 +27,15 @@ internal static class PartyMutationTestDriver
 
     private sealed class Driver(GamePartyMutationCommandHandler handler, Action<ICommand>? observe) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> value, CancellationToken token = default) where TResult : notnull
         {
             observe?.Invoke(value);
             var command = (IProtocolCommand)value;
             var request = new CommandRequestContext.ProtocolNonEffect(command.Dispatch, command.Message, command.Frame, () => true);
-            var context = new CommandExecutionContext(Guid.NewGuid(), value.GetType(), handler.GetType(), CommandExecutionKind.Direct) { Request = request };
+            var context = DomainCommandFixture.Context(Guid.NewGuid(), value.GetType(), handler.GetType()) with { Request = request };
             var result = value switch
             {
                 GameLeavePartyCommand leave => await handler.HandleAsync(context, leave, token),
