@@ -61,22 +61,22 @@ workspace:
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
 | SC-1 | A：唯一执行器，全部入口作为作业经唯一入队点进入 | satisfied | `verification/completion-evidence.md` SC-1；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-006 依赖 `a-final-report.md` §4.2 的「RQ-061」与「调度器排队中的运行合并」两条解读 | aligned |
-| SC-2 | B：每个入站协议一条协议级 CMD，handler 只解包入队 | not_started | none | spec-002 | aligned |
+| SC-2 | B：每个入站协议一条协议级 CMD，handler 只解包入队 | satisfied | `attempts/spec-002-protocol-level-cmd/verification/completion-evidence.md` AC-001/002/007；B seal `ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；完整报告及独立审查见该子目录 | 无未交付项；性能下降、2条既有失败/18skip、TitleQuery/F131/F132及A附条件如实保留；用户外部Astra与分支收尾仍待 | aligned |
 | SC-3 | A：出站消息提交后发出，顺序、批次、必达、隔离成立 | satisfied | `verification/completion-evidence.md` SC-3；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件，都已有去向：AC-007、RQ-012「此前登记的消息」按连接计（外部审核时说明）；AC-011 线级第 3 条降到发送端层（F-108）；AC-012 的 XO-2～XO-7 由发送端通用用例承担、XO-6 是近似（VC-10）；AC-013 人群项的适用范围（F-113、F-114）；VC-10 第 3 句的衔接是读码 | aligned |
 | SC-4 | A：玩法路径上的门、信号量与重试循环删除 | satisfied | `verification/completion-evidence.md` SC-4；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-017 依赖 §4.2 的「RQ-061」与「附录 F 改为执行器内访问」两条解读。短 `lock` 与 PVF 内容缓存锁按根 Scope Out 第 2 项保留；A 在 Networking 新增的执行器外短锁已在 `transition-mechanisms.md` §3 列出 | aligned |
 | SC-5 | A：事件组件保留，Reliable、LiveOnly 与重试经执行器 | satisfied | `verification/completion-evidence.md` SC-5；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | none | aligned |
 | SC-6 | A：深度上限、调用链与超限处理覆盖全部来源 | satisfied | `verification/completion-evidence.md` SC-6；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件：RQ-050 末句的实现精度。CMD 已登记关闭、发送端还没执行时，传输层先断开，这次断开仍按继承处理，与 RQ-050 末句的字面不符（TASK-29 主控方裁定第 5 条；`t007-closure.md` §3 第 5 条、§4 第 2 条）。去向：F-131，子 Spec B（TASK-35 定）；交审重点第 10 项 | aligned |
 | SC-7 | A：依赖投递结果的行为都有承接，可见变化列明 | satisfied | `verification/completion-evidence.md` SC-7；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件，已有去向：AC-014 的 DR-16 证据用占位作业代表进入序列；VC-10 的组合证据 | aligned |
 | SC-8 | A：A 封存状态下构建、全量测试、线级与表征断言成立 | satisfied | `verification/completion-evidence.md` SC-8；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-019 依赖 §4.2「AC-019 的 b1、b2」，AC-020 依赖 §4.2「RQ-083 已登记的偶发项」（第四、第五栈根已按主控方处置登记，§2.2、§2.3） | aligned |
-| SC-8B | B：B 封存状态下 SC-8 成立，A 的 SC-1、SC-3～SC-7 仍成立 | not_started | none | spec-002 | aligned |
+| SC-8B | B：B 封存状态下 SC-8 成立，A 的 SC-1、SC-3～SC-7 仍成立 | satisfied | `attempts/spec-002-protocol-level-cmd/verification/completion-evidence.md` AC-002/003/005/006/008/009，保留A附条件；B seal `ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；完整报告及独立审查见该子目录 | 无未交付项；性能下降、2条既有失败/18skip、TitleQuery/F131/F132及A附条件如实保留；用户外部Astra与分支收尾仍待 | aligned |
 | SC-9 | A：A 封存状态下的实测数字，单条 CMD ≤ 2 秒 | satisfied | `verification/completion-evidence.md` SC-9；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：判定口径依赖 §4.2「M-1～M-3 的判定口径」。未达原目标值的项是后续性能优化（F-77～F-82、F-120），不阻断 | aligned |
-| SC-9B | B：B 封存状态下再测并与 A 对照 | not_started | none | spec-002 | aligned |
+| SC-9B | B：B 封存状态下再测并与 A 对照 | satisfied | `attempts/spec-002-protocol-level-cmd/verification/completion-evidence.md` AC-010；B seal `ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；完整报告及独立审查见该子目录 | 无未交付项；性能下降、2条既有失败/18skip、TitleQuery/F131/F132及A附条件如实保留；用户外部Astra与分支收尾仍待 | aligned |
 | SC-10 | A：文档与 A 封存状态一致 | satisfied | `verification/completion-evidence.md` SC-10；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 附条件（TASK-35 统一口径）：AC-022 的检索范围按 §4.2；F-128 ②③：RQ-100 点名范围之外的两份文档，交主控方 | aligned |
-| SC-10B | B：文档与协议级 CMD 一致 | not_started | none | spec-002 | aligned |
+| SC-10B | B：文档与协议级 CMD 一致 | satisfied | `attempts/spec-002-protocol-level-cmd/verification/completion-evidence.md` AC-007/011；B seal `ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；完整报告及独立审查见该子目录 | 无未交付项；性能下降、2条既有失败/18skip、TitleQuery/F131/F132及A附条件如实保留；用户外部Astra与分支收尾仍待 | aligned |
 | SC-11 | A：A 的最终汇报 | satisfied | `verification/completion-evidence.md` SC-11；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | 外部审核在 B 完成后进行（根 RI-16），审核结论不是封存的前提 | aligned |
-| SC-11B | B：B 的最终汇报 | not_started | none | spec-002 | aligned |
+| SC-11B | B：B 的最终汇报 | satisfied | `attempts/spec-002-protocol-level-cmd/verification/completion-evidence.md` AC-011；B seal `ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；完整报告及独立审查见该子目录 | 无未交付项；性能下降、2条既有失败/18skip、TitleQuery/F131/F132及A附条件如实保留；用户外部Astra与分支收尾仍待 | aligned |
 | SC-12 | A：过渡机制清单，清单之外无残留 | satisfied | `verification/completion-evidence.md` SC-12；`attempts/spec-001-executor-outbox-lock-removal/spec-result.md`（seal `e6f55558`）；`verification/a-final-report.md` §9 | none | aligned |
-| SC-13 | B：保留项在 CMD 内位置等价，工作单元对照，SC-12 清单清零 | not_started | none | spec-002 | aligned |
+| SC-13 | B：保留项在 CMD 内位置等价，工作单元对照，SC-12 清单清零 | satisfied | `attempts/spec-002-protocol-level-cmd/verification/completion-evidence.md` AC-003/004/005/007；B seal `ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；完整报告及独立审查见该子目录 | 无未交付项；性能下降、2条既有失败/18skip、TitleQuery/F131/F132及A附条件如实保留；用户外部Astra与分支收尾仍待 | aligned |
 
 ## Spec Attempts
 
@@ -86,7 +86,7 @@ Only the final row may have an empty `Git result`; that row is the active child.
 |---:|---|---|---|---|---|---|
 | `1` | `spec-001` | `attempts/spec-001-executor-outbox-lock-removal/TaskContract.md` | 结果 A：单执行器、提交后发件箱与删锁（收编，Spec 基准 `a02bce46`） | `SC-1, SC-3, SC-4, SC-5, SC-6, SC-7, SC-8, SC-9, SC-10, SC-11, SC-12` | `attempts/spec-001-executor-outbox-lock-removal/spec-result.md` | `2079d98d179ffd423298f18dba358949cd7ae4f1`（改写前 `e6f55558`） |
 
-| `2` | `spec-002` | `attempts/spec-002-protocol-level-cmd/TaskContract.md` | 结果 B：协议级CMD、显式请求上下文、工作单元与过渡清零 | `SC-2, SC-8B, SC-9B, SC-10B, SC-11B, SC-13` | | |
+| `2` | `spec-002` | `attempts/spec-002-protocol-level-cmd/TaskContract.md` | 结果 B：协议级CMD、显式请求上下文、工作单元与过渡清零 | `SC-2, SC-8B, SC-9B, SC-10B, SC-11B, SC-13` | `attempts/spec-002-protocol-level-cmd/spec-result.md` | `ec41fc575f9899bf9ce71d22825fa59243e3b3fa` |
 
 ## Root Evaluation：接受A后的后继决定（2026-10-24）
 
@@ -107,3 +107,11 @@ Only the final row may have an empty `Git result`; that row is the active child.
 - 用户要求整理已提交的证据。`main..` 区间已改写：去掉本任务目录下的原始证据（14720 个文件，约 4.0 GB），并给 28 个提交补上任务前缀。代码与全部 Markdown 不变，逐提交核对通过。本节之前的记录写的是改写前的提交号，按 `history-rewrite-2026-10-25.md` 换算；Spec Attempts 表的 spec-001 Git result 已换成改写后的号。
 - 本节之后，`Derived progress consistency` 里的提交号都以改写后为准。根改道提交（foreign-commit 例外）改写后是 `f4ade320965d`，仍可以用本文件首次加入的那个提交唯一确定。
 - spec-002 自 TASK-33 起按 `process-reset-2026-10-25.md` 执行；它的执行配置调整记在 `attempts/spec-002-protocol-level-cmd/routing-decision.md` 末节。根契约、子契约和各条 SC 都不变。
+
+## Child Acceptance：spec-002（2026-10-27）
+
+- 已读B已提交的completed结果、approved完整审查与pass核验，seal为`ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；产品保持`0c5acb958f673d3caf4352c3914960bed78a2c68`，正式源码与测量冻结相同。完整B和A+B集成的独立结果审查在B的`reviews/spec-002-final-review.md`；根门将在本次子项接受提交之后消费同一reviewer的确切提交确认，不提前冒作Root Review。
+- 基准`51bd1e9c`至B seal均属本结果规划/Task/修订/收口；其中`15d52320`是用户授权的原始证据清理与B流程重置，含根历史映射/流程文件，`1fabc832`含已授权B草案迁入。这两项是已记录的关联过程变更，不是另一任务产品；A封存制品保持，详见B核验的历史/源身份检查。
+- child-accepted后六条B条件以实际seal记satisfied，A原11条及其附条件保留；17项根条件已有提交证据，故root-satisfied。七约束（有序/保护/可见变化/搬迁与语义分离/删净/单写者/先A后B）均aligned。没有未交付的B工作或对已封存A的重开。
+- 保留披露：测试9817=9797通过+2原内容失败+18原skip；16场测量最大CMD356.0821ms，清洁p99爬坡与Debug吞吐下降、默认无耗时样本及污染窗口按报告保留；称号查询ReadOnly拒绝、F131精度、F132禁用Compose、A原残余及自动取消的审查结论均不抹去。
+- 下一控制器动作是同一完整内部review周期的已提交根状态确认，然后fresh Root Verification和map-only根封存。本次内部Astra不替代用户之后安排的外部审核；继续不推送/PR/合并/tag/远端issue/部署/分支工作树清理。
