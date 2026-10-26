@@ -56,7 +56,7 @@ workspace:
 
 ## Success Condition Progress
 
-按 `multi-spec-workflow`，只有已封存、已完成子 Spec 的证据才算交付进度。spec-001已在e6f55558封存，A的十一条条件按最终核验和原附条件计入；B六条仍未交付。
+按 `multi-spec-workflow`，只有已封存、已完成子 Spec 的证据才算交付进度。两子项均已封存：A为`2079d98d179ffd423298f18dba358949cd7ae4f1`，B为`ec41fc575f9899bf9ce71d22825fa59243e3b3fa`；17项条件按各自最终核验及原附条件计入，用户外部审核与分支收尾仍待。
 
 | SC | Requirement | Progress | Evidence | Remaining gap | Constraint |
 |---|---|---|---|---|---|
@@ -115,3 +115,49 @@ Only the final row may have an empty `Git result`; that row is the active child.
 - child-accepted后六条B条件以实际seal记satisfied，A原11条及其附条件保留；17项根条件已有提交证据，故root-satisfied。七约束（有序/保护/可见变化/搬迁与语义分离/删净/单写者/先A后B）均aligned。没有未交付的B工作或对已封存A的重开。
 - 保留披露：测试9817=9797通过+2原内容失败+18原skip；16场测量最大CMD356.0821ms，清洁p99爬坡与Debug吞吐下降、默认无耗时样本及污染窗口按报告保留；称号查询ReadOnly拒绝、F131精度、F132禁用Compose、A原残余及自动取消的审查结论均不抹去。
 - 下一控制器动作是同一完整内部review周期的已提交根状态确认，然后fresh Root Verification和map-only根封存。本次内部Astra不替代用户之后安排的外部审核；继续不推送/PR/合并/tag/远端issue/部署/分支工作树清理。
+
+## Root Review（2026-10-27）
+
+```yaml
+kind: rks-review
+verdict: approved
+```
+
+主控消费同一独立Astra对实际根接受提交`3add3b4745f283e20bca70a6bfcc937302cbfe8d`的有界确认。以下保存独立原文（仅下调小节层级），原报告SHA256为`72858d5bf1b65ce133ee80ad12ba729632f526ea961220533e06bef6abf3391c`。本次同时按其最低修正同步上方旧导语，未改A/B封存文件或产品。
+
+日期：2026-10-27，Asia/Shanghai。本记录属于 `spec-002-final-review.md` 的同一次完整内部评审周期；不是第二次完整评审，没有生成新挑战，没有重开封存 B。
+
+### 精确对象
+
+- 工作区：`/Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees/refactor-session-20261021`。
+- 当前分支：`task/refactor-session-20261021`。
+- 当前 HEAD／根子项接受提交：`3add3b4745f283e20bca70a6bfcc937302cbfe8d`。
+- A seal：`2079d98d179ffd423298f18dba358949cd7ae4f1`。
+- B seal：`ec41fc575f9899bf9ce71d22825fa59243e3b3fa`。
+- 原完整审查的产品检查点：`0c5acb958f673d3caf4352c3914960bed78a2c68`。
+
+**结论：approved。** 前一轮完整 B approved 及 A+B 实质集成通过的判断，可以用于此确切已提交根状态。没有新增阻断发现。该结论允许控制器继续消费 Root Review；不替代控制器的 fresh Root Verification、实际根封存提交或用户外部审核。
+
+### 核对依据与直接结果
+
+继续应用已加载的 reviewing-work 技能及 code/deliverable 准则、根契约 r4、B 子契约 r1、Spec B10、用户流程 §8与最终制品路由。本次仅检查封存及根接受的身份、一致性、上轮披露是否落实和这些变化的直接回归，没有重新展开全部产品审查或运行 native 测试。
+
+1. Git 证明 A seal 是 B seal 的祖先，产品检查点是 B seal 的祖先，B seal 是当前 HEAD 的祖先。B seal 增改恰8个B制品；其后的根接受提交只改 `multi-spec-map.md`。当前工作区 clean。
+2. `0c5acb95..HEAD` 仅有上述B制品及根map变化；Server、Tool、AGENTS、Docs、Document、protocol 的产品/测试/文档内容未变。逐项重算2862项正式源码清单（含删除标记），再次得到 `2cd7b909da3d58d1166df489ba20e25b360ef9dae47c3c287a4c06f403b5c67c`。没有把检查点提交时间早于seal误称为未来HEAD构建。
+3. 根/子TaskContract、B Spec及Plan相对原产品检查点逐字节不变。A封存制品相对A seal的唯一差异仍是已明列排除的旧B草案迁出；没有重写A的结果、证据或条件。
+4. 原审查输入清单 `logs/final-report-inputs.json` 的实际SHA仍为 `6a8501e0b63bb24ac64dbf5e7b2373347a431aff2d7adad4711f523672c4cbe9`。新 `logs/final-report-seal-inputs.json` 的每个路径均与当前字节匹配，采用另存绑定，没有覆盖原审查输入。B seal之后到当前HEAD，其整个子目录无差异。
+5. B已提交 `spec-result.md` 为 completed、terminal_stage verification，`verification/completion-evidence.md` 为 pass，完整独立审查为approved。封存前核验绑定原正式源码、原八项目与16场测量；`final-seal-freeze-check.json`记录2937源码/产物/工具及PVF未变。产品没有变化，原正式运行证据继续适用，无需重复同一native全量。
+6. 最终汇报逐字包含上轮要求的CH-1最小披露：排队未执行取消有覆盖，真实Write action内已请求停机取消可能记失败CMD/Error，该位置没有专项native探针。没有清sticky、扩取消资格或将静态分析升级为动态证明。其余变化为已批准状态与实际制品链接同步，未改变接受范围。
+7. 根map两个attempt都有实际seal/result，17条SC均为satisfied。SC-2、SC-8B、SC-9B、SC-10B、SC-11B、SC-13均明确引用B实际seal及对应核验；A原11条及附条件保持。根map仍声明同一reviewer确认之后才消费Root Review及fresh Root Verification，没有把待执行的根封存写成既成事实。
+
+### 保留条件及一处非阻断文字同步
+
+上轮完整审查的全部接受边界继续有效：9817=9797通过+2精确原Dimension失败+18原skip；性能下降、默认场无逐CMD耗时样本、污染窗与合成负载限制；TitleQuery真实ReadOnly拒绝、F-131因果精度、F-132生产Compose禁用而非机制修复、A原低风险残余及F-113/114/116/117；CH-1保持confirmed低风险非阻断。根六B条件的satisfied不能抹掉这些条件。
+
+根map在 `Success Condition Progress` 的旧导语仍写“B六条仍未交付”，与已提交表格和Child Acceptance末节矛盾。当前交付身份与状态可由实际seal、结果及表格唯一判定，因此这不是根接受阻断。最低修正是在后续map-only Root Review提交中把该导语同步为“两子项已封存，17条件按原附条件计入”，不改A历史记录或封存B；fresh Root Verification核对同步结果即可，不需要新挑战或重跑完整评审。
+
+### 控制器后续边界
+
+控制器可将本确认的实际结论持久化到根map，完成map-only Review记录提交，再做fresh Root Verification及实际根封存；后续若仅包含本记录和上述导语同步，属于本次已确认的控制器记录收口。任何产品、接受条件或封存子项实质变化不能借本确认沿用批准。
+
+用户之后安排的整分支外部Astra仍待进行，本次内部评审不代替它。不授权push、PR、merge、tag、远端issue修改、部署、分支或工作树清理。本文只写入指定临时报告，没有修改根map、封存B、产品或Git状态。
