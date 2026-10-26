@@ -16,6 +16,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
         request.ProducerCancellation?.RunnerAttempted();
+        request.HttpFailure?.OrdinaryRunnerAttempted();
         var operation = RunSelfSettledAsync(context, declaration, action, cancellationToken).AsTask();
         request.TrackOperation(operation);
         return new(operation);
@@ -212,12 +213,18 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         where TResult : notnull => ((CommandWriteResult<TResult>.Returned)await StartAsync(context, declaration, (_, ct) => action(ct),
             readOnly: true, recoverCommit: false, cancellationToken).ConfigureAwait(false)).Value;
 
+    public async ValueTask<TResult> ReadOnlyAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+        Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken cancellationToken = default)
+        where TResult : notnull => ((CommandWriteResult<TResult>.Returned)await StartAsync(context, declaration, action,
+            readOnly: true, recoverCommit: false, cancellationToken).ConfigureAwait(false)).Value;
+
     private ValueTask<CommandWriteResult<TResult>> StartAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
         Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, bool readOnly, bool recoverCommit, CancellationToken ct) where TResult : notnull
     {
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
         request.ProducerCancellation?.RunnerAttempted();
+        request.HttpFailure?.OrdinaryRunnerAttempted();
         var operation = RunAsync(context, declaration, action, readOnly, recoverCommit, ct).AsTask();
         request.TrackOperation(operation);
         return new(operation);
@@ -238,6 +245,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         var stage = FailureStage.Setup;
         Exception? commitRollbackCause = null;
         var recordedFailure = false;
+        (Exception Cause, Exception Output, bool Commit)? httpFailure = null;
         ExplicitEffectRequest? main = null;
         IEffectFootprintRecorder? footprint = null;
         ExplicitNonRequestFootprint? nonRequest = null;
@@ -293,7 +301,9 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             try { result = await action(unit, ct).ConfigureAwait(false); stage = FailureStage.PostAction; }
             catch (OperationCanceledException cancellation)
             {
-                if (!readOnly && !recoverCommit && declaration.Kind == CommandWorkUnitKind.Ordinary)
+                if (!recoverCommit && declaration.Kind == CommandWorkUnitKind.Ordinary
+                    && (!readOnly || request is CommandRequestContext.TrustedInternal
+                        && request.HttpOperation is HttpRouteOperation.Events or HttpRouteOperation.WeeklyAttendance or HttpRouteOperation.JoustSettings or HttpRouteOperation.JoustRound))
                     request.ProducerCancellation?.ObserveAction(request, lease, ct, cancellation);
                 throw;
             }
@@ -319,6 +329,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             else
             {
                 main?.Freeze();
+                stage = FailureStage.Commit;
                 // Only this actual CommitAsync span can yield a known, fully rolled-back result.
                 try { await transaction.CommitAsync(ct).ConfigureAwait(false); }
                 catch (Exception cause) when (recoverCommit && !ct.IsCancellationRequested && cause is not OperationCanceledException
@@ -367,6 +378,8 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             main?.Failed(lease?.Completion == DomainTransactionCompletion.ConfirmedRollback,
                 lease?.Completion == DomainTransactionCompletion.Uncertain || TransactionOutcomeUncertainException.Contains(error));
             request.Failed(error);
+            if (lease is not null && lease.GuardFailure is null && stage is FailureStage.Action or FailureStage.Commit)
+                httpFailure = (cause, error, stage == FailureStage.Commit);
             recordedFailure = true;
             ExceptionDispatchInfo.Capture(error).Throw();
             throw;
@@ -392,13 +405,16 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                     var error = !recordedFailure && retained is not null
                         ? new AggregateException("Rollback completed but lease cleanup failed.", retained, cleanup) : cleanup;
                     request.FailedIndependent(error, lease);
+                    httpFailure = null;
                     ExceptionDispatchInfo.Capture(error).Throw(); throw;
                 }
+                if (httpFailure is { } http)
+                    request.HttpFailure?.ObserveFailure(declaration.Name, http.Commit, http.Cause, http.Output, lease, ct);
             }
         }
     }
 
-    private enum FailureStage { Setup, Action, PostAction, GuardPropagation, BusinessRollback, PostRollback, RecoveredValidation }
+    private enum FailureStage { Setup, Action, PostAction, Commit, GuardPropagation, BusinessRollback, PostRollback, RecoveredValidation }
 
     internal static IEnumerable<SelectedSessionRecipient> ProtectionTargets(IReadOnlyList<SelectedSessionRecipient> declared)
     {

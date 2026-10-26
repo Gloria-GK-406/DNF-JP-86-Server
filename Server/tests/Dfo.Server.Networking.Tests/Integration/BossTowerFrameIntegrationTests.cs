@@ -48,6 +48,7 @@ public sealed class BossTowerFrameIntegrationTests
         builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new TestCredentials.FixtureReadiness());
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         var tower = new Tower();

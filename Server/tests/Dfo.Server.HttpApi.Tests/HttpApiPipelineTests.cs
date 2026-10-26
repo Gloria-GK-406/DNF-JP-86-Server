@@ -56,7 +56,7 @@ public sealed class HttpApiPipelineTests
             : null;
         await using var harness = ApiHarness.Create(command => command switch
         {
-            RegisterAccountCommand => new RegistrationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Register } => new RegistrationResult(
                 commandStatus,
                 commandStatus == AuthenticationStatus.Success ? "player" : null,
                 fieldErrors),
@@ -99,7 +99,7 @@ public sealed class HttpApiPipelineTests
     {
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand => new AuthenticationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } => new AuthenticationResult(
                 commandStatus,
                 FieldErrors: commandStatus == AuthenticationStatus.InvalidRequest
                     ? new Dictionary<string, string> { ["password"] = "bad password" }
@@ -124,7 +124,7 @@ public sealed class HttpApiPipelineTests
         var expiry = new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero);
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand login when login.LoginId == "player" =>
+            HttpRouteCommand { Operation: HttpRouteOperation.Login, Input: HttpRouteInput.Authentication { Value.LoginId: "player" } } =>
                 new AuthenticationResult(
                     AuthenticationStatus.Success,
                     "123456",
@@ -239,10 +239,10 @@ public sealed class HttpApiPipelineTests
     {
         await using var harness = ApiHarness.Create(command => command switch
         {
-            RegisterAccountCommand => new RegistrationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Register } => new RegistrationResult(
                 AuthenticationStatus.Success,
                 "player"),
-            AuthenticateAndIssueTicketCommand => new AuthenticationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } => new AuthenticationResult(
                 AuthenticationStatus.Success,
                 "player",
                 "ticket_safe-123",
@@ -305,7 +305,7 @@ public sealed class HttpApiPipelineTests
     {
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand =>
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } =>
                 new AuthenticationResult(AuthenticationStatus.InvalidCredentials),
             _ => throw new InvalidOperationException("Unexpected command."),
         });
@@ -373,7 +373,7 @@ public sealed class HttpApiPipelineTests
         var sent = 0;
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand => ++sent <= changes
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } => ++sent <= changes
                 ? new AuthenticationResult(AuthenticationStatus.CredentialChanged)
                 : new AuthenticationResult(
                     AuthenticationStatus.Success,
@@ -495,6 +495,14 @@ public sealed class HttpApiPipelineTests
     private sealed class StubCommandBus(Func<ICommand, object>? execute) : ICommandBus
     {
         public int CallCount { get; private set; }
+
+        public ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin, CancellationToken cancellationToken = default) where TResult : notnull
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            var result = execute?.Invoke(command) ?? throw new InvalidOperationException("No result arranged.");
+            return ValueTask.FromResult((TResult)(object)new HttpRouteReply(result));
+        }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command,

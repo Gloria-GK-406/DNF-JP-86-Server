@@ -1,3 +1,4 @@
+using Dfo.Server.HttpApi;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dfo.Server.Abstractions.Events;
@@ -16,34 +17,21 @@ internal static class GmEventsEndpoints
     private static readonly JsonSerializerOptions Json=new(JsonSerializerDefaults.Web) { UnmappedMemberHandling=JsonUnmappedMemberHandling.Disallow };
     internal static void Map(RouteGroupBuilder group)
     {
-        var permission=new GmRequiredPermission(GmPermission.All);
-        group.MapGet(Prefix,(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-            Results.Ok(await bus.SendAsync(new QueryGmEventsCommand(Secret(c)),c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix+"/weekly-attendance/settings",(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-            Results.Ok(await bus.SendAsync(new QueryGmWeeklyAttendanceSettingsCommand(Secret(c)),c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix+"/joust/settings",(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-            Results.Ok(await bus.SendAsync(new QueryGmJoustSettingsCommand(Secret(c)),c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix+"/joust/current-round",(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-            Results.Ok(await bus.SendAsync(new QueryGmJoustCurrentRoundCommand(Secret(c)),c.RequestAborted)))).WithMetadata(permission);
-        group.MapPost(Prefix+"/joust/current-round/champion",(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-        {
-            if(!c.Request.HasJsonContentType() || c.Request.ContentLength is >32768)throw new ArgumentException("场次请求必须为 JSON，且不超过 32 KiB。");
-            if(c.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly:false } limit)limit.MaxRequestBodySize=32768;
-            var change=await c.Request.ReadFromJsonAsync<JoustChampionChange>(Json,c.RequestAborted) ?? throw new ArgumentException("场次字段缺失。");
-            return Results.Ok(await bus.SendAsync(new ChangeGmJoustChampionCommand(Secret(c),change),c.RequestAborted));
-        })).WithMetadata(permission);
-        group.MapPost(Prefix+"/joust/settings",(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-        {
-            if(!c.Request.HasJsonContentType() || c.Request.ContentLength is >32768)throw new ArgumentException("活动请求必须为 JSON，且不超过 32 KiB。");
-            if(c.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly:false } limit)limit.MaxRequestBodySize=32768;
-            var change=await c.Request.ReadFromJsonAsync<JoustSettingsChange>(Json,c.RequestAborted) ?? throw new ArgumentException("活动字段缺失。");
-            return Results.Ok(await bus.SendAsync(new ChangeGmJoustSettingsCommand(Secret(c),change),c.RequestAborted));
-        })).WithMetadata(permission);
-        group.MapPost(Prefix,(HttpContext c,ICommandBus bus)=>GmInitializationEndpoints.Safe(c,async()=>
-        {
-            var result=await bus.SendAsync(new ChangeGmEventsCommand(Secret(c),await Read(c)),c.RequestAborted);
-            return Results.Ok(result);
-        })).WithMetadata(permission);
+        var permission = new GmRequiredPermission(GmPermission.All);
+        Map("GET", "", HttpRouteOperation.Events, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
+        Map("GET", "/weekly-attendance/settings", HttpRouteOperation.WeeklyAttendance, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
+        Map("GET", "/joust/settings", HttpRouteOperation.JoustSettings, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
+        Map("GET", "/joust/current-round", HttpRouteOperation.JoustRound, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
+        Map("POST", "/joust/current-round/champion", HttpRouteOperation.JoustChampion, async (HttpContext c) => new HttpRouteInput.JoustChampionRequest(Secret(c), await ReadJoust<JoustChampionChange>(c, "场次")));
+        Map("POST", "/joust/settings", HttpRouteOperation.JoustChange, async (HttpContext c) => new HttpRouteInput.JoustChangeRequest(Secret(c), await ReadJoust<JoustSettingsChange>(c, "活动")));
+        Map("POST", "", HttpRouteOperation.EventsChange, async (HttpContext c) => new HttpRouteInput.EventChangeRequest(Secret(c), await Read(c)));
+        void Map(string method, string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, method, Prefix + path, operation, parser, permission);
+    }
+    private static async Task<T> ReadJoust<T>(HttpContext c, string kind)
+    {
+        if (!c.Request.HasJsonContentType() || c.Request.ContentLength is > 32768) throw new ArgumentException(kind + "请求必须为 JSON，且不超过 32 KiB。");
+        if (c.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = 32768;
+        return await c.Request.ReadFromJsonAsync<T>(Json, c.RequestAborted) ?? throw new ArgumentException(kind + "字段缺失。");
     }
     private static string Secret(HttpContext c)=>c.Request.Cookies[GmAccessBoundary.SessionCookie]!;
     private static async Task<EventChange> Read(HttpContext c)

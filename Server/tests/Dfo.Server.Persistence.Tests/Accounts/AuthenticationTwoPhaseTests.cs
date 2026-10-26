@@ -7,7 +7,7 @@ namespace Dfo.Server.Persistence.Tests.Accounts;
 
 /// <summary>
 /// RQ-007 splits a login in two: the record is verified off the executor, then the login CMD writes.
-/// The CMD must notice a record that changed in between instead of trusting the earlier check.
+/// This persistence-only domain stage must notice a record that changed in between instead of trusting the earlier check.
 /// </summary>
 public sealed class AuthenticationTwoPhaseTests
 {
@@ -24,7 +24,7 @@ public sealed class AuthenticationTwoPhaseTests
 
         var replacement = new PasswordCredentialService(100).Hash("another password");
         await fixture.Scalar($"UPDATE accounts SET password_hash='{replacement}' WHERE m_id='player'; SELECT 1");
-        var result = await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand(verified.Login));
+        var result = await Dfo.Server.Testing.TestCredentials.AuthenticateDomainAsync(fixture.Services, verified.Login);
 
         Assert.Equal(new AuthenticationResult(AuthenticationStatus.CredentialChanged), result);
         // Issuing a session would have revoked the earlier pair.

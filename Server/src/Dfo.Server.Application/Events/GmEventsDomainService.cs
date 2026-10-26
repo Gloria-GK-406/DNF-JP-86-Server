@@ -30,12 +30,3 @@ internal sealed class GmEventsDomainService(IGmAccessDomainService access,IEvent
         return result;
     }
 }
-public sealed record QueryGmEventsCommand(string Secret) : ICommand<ManagedEventList>;
-internal sealed class QueryGmEventsCommandHandler(IGmEventsDomainService events) : ICommandHandler<QueryGmEventsCommand,ManagedEventList>
-{ public ValueTask<ManagedEventList> HandleAsync(CommandExecutionContext c,QueryGmEventsCommand q,CancellationToken ct)=>events.ListAsync(q.Secret,ct); }
-public sealed record QueryGmWeeklyAttendanceSettingsCommand(string Secret) : ICommand<WeeklyAttendanceSettings>;
-internal sealed class QueryGmWeeklyAttendanceSettingsCommandHandler(IGmEventsDomainService events) : ICommandHandler<QueryGmWeeklyAttendanceSettingsCommand,WeeklyAttendanceSettings>
-{ public ValueTask<WeeklyAttendanceSettings> HandleAsync(CommandExecutionContext c,QueryGmWeeklyAttendanceSettingsCommand q,CancellationToken ct)=>events.WeeklyAttendanceSettingsAsync(q.Secret,ct); }
-public sealed record ChangeGmEventsCommand(string Secret,EventChange Change) : ICommand<ManagedEventList>;
-internal sealed class ChangeGmEventsCommandHandler(IGmEventsDomainService events) : ICommandHandler<ChangeGmEventsCommand,ManagedEventList>
-{ public ValueTask<ManagedEventList> HandleAsync(CommandExecutionContext c,ChangeGmEventsCommand q,CancellationToken ct)=>events.ChangeAsync(q.Secret,q.Change,ct); }

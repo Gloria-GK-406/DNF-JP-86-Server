@@ -693,6 +693,7 @@ public sealed class GameLoginIntegrationTests
         new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
         new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new TestCredentials.FixtureReadiness());
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         if (failFirstLoginDelivery)

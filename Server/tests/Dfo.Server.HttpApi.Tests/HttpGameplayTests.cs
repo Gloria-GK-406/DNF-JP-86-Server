@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
@@ -23,7 +24,7 @@ public sealed class HttpGameplayTests
         var logs = new LevelCapture();
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.AddProvider(logs))
-            .AddGameplayExecution()
+            .AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>()
             .BuildServiceProvider();
         var queue = services.GetRequiredService<IGameplayQueue>();
         var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -32,17 +33,18 @@ public sealed class HttpGameplayTests
         using var aborted = new CancellationTokenSource();
         var context = new DefaultHttpContext { RequestServices = services, RequestAborted = aborted.Token };
         context.SetEndpoint(new RouteEndpoint(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/probe"), 0,
-            new EndpointMetadataCollection(new HttpMethodMetadata(["POST"])), "probe"));
+            new EndpointMetadataCollection(new HttpMethodMetadata(["POST"]), new EnqueuesItself(GameplayCallSource.Gm, HttpRouteOperation.Overview)), "probe"));
         bool? sawCancelled = null;
         GameplayCallChain? chain = null;
 
-        var request = HttpGameplay.RunAsync(context, GameplayCallSource.Gm, token =>
+        services.GetRequiredService<ProbeState>().Body = token =>
         {
             sawCancelled = token.IsCancellationRequested;
             chain = GameplayJob.Current;
             token.ThrowIfCancellationRequested();
-            return ValueTask.FromResult(1);
-        });
+            return ValueTask.FromResult(new HttpRouteReply(1));
+        };
+        var request = HttpGameplay.RunAsync(context, GameplayCallSource.Gm, new(HttpRouteOperation.Overview, new HttpRouteInput.Empty()));
         aborted.Cancel();
         await Task.Delay(100);
         Assert.False(request.IsCompleted);
@@ -67,14 +69,14 @@ public sealed class HttpGameplayTests
         var logs = new EntryCapture();
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.AddProvider(logs).SetMinimumLevel(LogLevel.Trace))
-            .AddGameplayExecution()
+            .AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>()
             .BuildServiceProvider();
         var context = new DefaultHttpContext { RequestServices = services };
         context.Response.Body = new MemoryStream();
         context.SetEndpoint(Probe());
+        services.GetRequiredService<ProbeState>().Body = _ => throw new InvalidOperationException("the gm cmd failed");
         var middleware = new HttpApiExceptionMiddleware(
-            async request => await HttpGameplay.RunAsync<int>(request, GameplayCallSource.Gm,
-                _ => throw new InvalidOperationException("the gm cmd failed")),
+            async request => await HttpGameplay.RunAsync(request, GameplayCallSource.Gm, new(HttpRouteOperation.Overview, new HttpRouteInput.Empty())),
             services.GetRequiredService<ILogger<HttpApiExceptionMiddleware>>());
 
         await middleware.InvokeAsync(context);
@@ -111,9 +113,50 @@ public sealed class HttpGameplayTests
         Assert.Equal(0, position);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_parser_failure_still_waits_in_the_same_queue_and_carries_the_original_cause(bool cancelled)
+    {
+        await using var services = new ServiceCollection().AddLogging().AddCommandDispatching()
+            .AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>().BuildServiceProvider();
+        var queue = services.GetRequiredService<IGameplayQueue>();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var holding = queue.RunAsync(new GameplayWork(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.Gm),
+            "test:hold-parser-failure", _ => new ValueTask(release.Task)), default);
+        using var aborted = new CancellationTokenSource();
+        if (cancelled) aborted.Cancel();
+        Exception cause = cancelled ? new OperationCanceledException("original failed-body cause", aborted.Token) : new IOException("original failed-body cause");
+        var context = new DefaultHttpContext { RequestServices = services, RequestAborted = aborted.Token };
+        context.SetEndpoint(new RouteEndpoint(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/probe"), 0,
+            new EndpointMetadataCollection(new HttpMethodMetadata(["POST"]), new HttpGameplayOperation(HttpRouteOperation.Overview, new ProbeMapper())), "probe"));
+        var seen = false;
+        services.GetRequiredService<ProbeState>().Body = token =>
+        {
+            Assert.Same(cause, Assert.IsType<HttpRouteInput.Failed>(services.GetRequiredService<ProbeState>().Command!.Input).Cause);
+            Assert.Equal(aborted.Token, token); seen = true;
+            if (cancelled) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(cause);
+            return ValueTask.FromResult(new HttpRouteReply(Error: cause));
+        };
+        var conventions = new Conventions(); conventions.RunsOnGameplay(GameplayCallSource.Gm, 32768);
+        var endpoint = new RouteEndpointBuilder(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/probe"), 0);
+        foreach (var convention in conventions.Added) convention(endpoint);
+        var filter = Assert.Single(endpoint.FilterFactories)(new EndpointFilterFactoryContext
+        {
+            MethodInfo = typeof(HttpGameplayTests).GetMethod(nameof(Probe), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!,
+            ApplicationServices = services
+        }, _ => { Assert.False(GameplayJob.IsOnExecutor); return ValueTask.FromException<object?>(cause); });
+        var pending = filter(new DefaultEndpointFilterInvocationContext(context)).AsTask();
+        Assert.False(pending.IsCompleted); Assert.False(seen);
+        release.TrySetResult(); await holding;
+        if (cancelled) Assert.Same(cause, await Record.ExceptionAsync(() => pending));
+        else await pending;
+        Assert.True(seen);
+    }
+
     private static RouteEndpoint Probe() =>
         new(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/probe"), 0,
-            new EndpointMetadataCollection(new HttpMethodMetadata(["POST"])), "probe");
+            new EndpointMetadataCollection(new HttpMethodMetadata(["POST"]), new EnqueuesItself(GameplayCallSource.Gm, HttpRouteOperation.Overview)), "probe");
 
     private static byte[] JsonBody(int length) =>
         System.Text.Encoding.UTF8.GetBytes("{\"text\":\"" + new string('x', length) + "\"}");
@@ -121,18 +164,20 @@ public sealed class HttpGameplayTests
     /// <summary>Runs a chunked JSON request through the filter that <see cref="HttpGameplay.RunsOnGameplay{TBuilder}"/> adds.</summary>
     private static async Task<(byte[] Read, long Position)> ReadThroughTheFilterAsync(byte[] body, IHttpMaxRequestBodySizeFeature? size)
     {
-        await using var services = new ServiceCollection().AddLogging().AddGameplayExecution().BuildServiceProvider();
+        await using var services = new ServiceCollection().AddLogging().AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>().BuildServiceProvider();
         var context = new DefaultHttpContext { RequestServices = services };
         context.Request.Method = "POST";
         context.Request.ContentType = "application/json";
         context.Request.Body = new ForwardOnly(body);
         context.Features.Set(size);
-        context.SetEndpoint(Probe());
+        context.SetEndpoint(new RouteEndpoint(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/probe"), 0,
+            new EndpointMetadataCollection(new HttpMethodMetadata(["POST"]), new HttpGameplayOperation(HttpRouteOperation.Overview, new ProbeMapper())), "probe"));
         var conventions = new Conventions();
         conventions.RunsOnGameplay(GameplayCallSource.Gm, bodyLimit: 32768);
         var endpoint = new RouteEndpointBuilder(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/probe"), 0);
         foreach (var convention in conventions.Added) convention(endpoint);
         var factory = Assert.Single(endpoint.FilterFactories);
+        (byte[], long) captured = default;
         var filter = factory(new EndpointFilterFactoryContext
         {
             MethodInfo = typeof(HttpGameplayTests).GetMethod(nameof(Probe),
@@ -143,11 +188,27 @@ public sealed class HttpGameplayTests
             var position = invocation.HttpContext.Request.Body.CanSeek ? invocation.HttpContext.Request.Body.Position : -1;
             using var copy = new MemoryStream();
             await invocation.HttpContext.Request.Body.CopyToAsync(copy);
-            return (copy.ToArray(), position);
+            captured = (copy.ToArray(), position);
+            return new HttpRouteInput.Empty();
         });
 
-        var result = await filter(new DefaultEndpointFilterInvocationContext(context));
-        return ((byte[], long))result!;
+        await filter(new DefaultEndpointFilterInvocationContext(context));
+        return captured;
+    }
+
+    private sealed class ProbeState
+    {
+        internal HttpRouteCommand? Command;
+        internal Func<CancellationToken, ValueTask<HttpRouteReply>> Body { get; set; } = _ => ValueTask.FromResult(new HttpRouteReply());
+    }
+    private sealed class ProbeHandler(ProbeState state) : ICommandHandler<HttpRouteCommand, HttpRouteReply>
+    {
+        public ValueTask<HttpRouteReply> HandleAsync(CommandExecutionContext context, HttpRouteCommand command, CancellationToken token)
+        { state.Command = command; return state.Body(token); }
+    }
+    private sealed class ProbeMapper : IHttpRouteReplyMapper
+    {
+        public ValueTask<IResult> MapAsync(HttpContext context, HttpRouteOperation operation, HttpRouteReply reply) => ValueTask.FromResult(Results.Empty);
     }
 
     private sealed class Conventions : IEndpointConventionBuilder

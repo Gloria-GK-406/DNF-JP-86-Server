@@ -26,65 +26,23 @@ internal static class GmCeraEndpoints
     private static GmRequiredPermission Permission => new(GmPermission.GrantCera);
     internal static void Map(RouteGroupBuilder group)
     {
-        Get("/accounts", GmCeraQuery.Accounts); Get("/operations", GmCeraQuery.Operations);
-        group.MapGet(Prefix + "/operations/{id}", (HttpContext context, ICommandBus commands, string id) => Safe(context, () => Query(context, commands, GmCeraQuery.Operation, Id(id)))).WithMetadata(Permission);
-        group.MapPost(Prefix + "/preview", (HttpContext context, ICommandBus commands) => Safe(context, async () =>
-        {
-            var input = await Read(context);
-            return Results.Ok((await commands.SendAsync(new QueryGmCeraCommand(Secret(context), GmCeraQuery.Preview, input: Input(input)), context.RequestAborted)).Value);
-        })).WithMetadata(Permission);
-        group.MapPost(Prefix + "/grant", Grant).WithMetadata(Permission);
-        void Get(string path, GmCeraQuery kind) => group.MapGet(Prefix + path, (HttpContext context, ICommandBus commands) => Safe(context, () => Query(context, commands, kind))).WithMetadata(Permission);
+        Map("GET", "/accounts", HttpRouteOperation.CeraAccounts, (HttpContext c) => Query(c, GmCeraQuery.Accounts));
+        Map("GET", "/operations", HttpRouteOperation.CeraOperations, (HttpContext c) => Query(c, GmCeraQuery.Operations));
+        Map("GET", "/operations/{id}", HttpRouteOperation.CeraOperation, (HttpContext c, string id) => Query(c, GmCeraQuery.Operation, Id(id)));
+        Map("POST", "/preview", HttpRouteOperation.CeraPreview, async (HttpContext c) =>
+            new HttpRouteInput.Cera(Secret(c), GmCeraQuery.Preview, new(), Input: Input(await Read(c))));
+        Map("POST", "/grant", HttpRouteOperation.CeraGrant, async (HttpContext c) => new HttpRouteInput.CeraGrantRequest(Secret(c), await Read(c)));
+        void Map(string method, string path, HttpRouteOperation operation, Delegate parser) =>
+            GmRouteMapping.Map(group, method, Prefix + path, operation, parser, Permission);
     }
-    private static async Task<IResult> Query(HttpContext context, ICommandBus commands, GmCeraQuery kind, Guid id = default) =>
-        Results.Ok((await commands.SendAsync(new QueryGmCeraCommand(Secret(context), kind, Filter(context), id), context.RequestAborted)).Value);
-    private static async Task<IResult> Grant(HttpContext context, ICommandBus commands, IGmCeraReminderDomainService reminders)
-    {
-        GmCeraRequest? input = null; var executing = false; GmCeraGrantResult granted;
-        try
-        {
-            input = await Read(context);
-            var normalized = (GmCeraInput)(await commands.SendAsync(new QueryGmCeraCommand(Secret(context), GmCeraQuery.Normalize,
-                id: input.RequestId, input: Input(input)), context.RequestAborted)).Value;
-            executing = true;
-            granted = await commands.SendAsync(new GrantGmCeraCommand(Secret(context), input.RequestId, normalized), context.RequestAborted);
-        }
-        catch (Exception error)
-        {
-            var uncertain = TransactionOutcomeUncertainException.Contains(error);
-            if (input is not null && input.RequestId != Guid.Empty && error is not GmCeraException { Reason: GmCeraRefusal.Unauthorized or GmCeraRefusal.Forbidden })
-                try
-                {
-                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    await commands.SendAsync(new RecordGmCeraFailureCommand(Secret(context), input.RequestId,
-                        uncertain ? "Unknown" : executing ? "RolledBack" : "Rejected", uncertain ? "提交状态暂未确认" : "发放请求未提交，原因：" + (error is GmCeraException c ? c.Message : "存储或规则处理失败")), timeout.Token);
-                }
-                catch (Exception auditFailure) { Log(context, auditFailure, "GM cera failure audit could not be recorded."); return Error(500, "结果暂未确认，失败记录未能保存；请保留原编号查询或重试。", "unknown"); }
-            if (uncertain) { Log(context, error, "GM wallet transaction outcome is uncertain."); return Error(500, "结果暂未确认，请用原编号查询或重试。", "unknown"); }
-            return Failure(context, error, executing ? "rolledBack" : "rejected");
-        }
-        // VC-6: after the commit, outside the grant's failure handling, so a reminder that throws is reported as the
-        // error it is and never recorded as a rolled-back grant; the grant itself stays committed and replays.
-        string reminder;
-        try
-        {
-            using var reminderTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            reminder = await reminders.RemindAsync(granted.Receipt.Input.AccountIds, reminderTimeout.Token);
-        }
-        catch (Exception error)
-        {
-            Log(context, error, "Committed GM wallet reminder failed.");
-            return Error(500, "点券已到账，提醒未能发出；勿新建编号重发。", "unknown");
-        }
-        return Results.Ok(new { granted.Receipt, granted.Replayed, reminder });
-    }
+    private static HttpRouteInput Query(HttpContext c, GmCeraQuery kind, Guid id = default) => new HttpRouteInput.Cera(Secret(c), kind, Filter(c), id);
     private static async Task<IResult> Safe(HttpContext context, Func<Task<IResult>> action)
     { try { return await action(); } catch (Exception error) when (error is not OperationCanceledException) { return Failure(context, error); } }
-    private static IResult Failure(HttpContext context, Exception error, string? outcome = null)
+    internal static IResult Failure(HttpContext context, Exception error, string? outcome = null, bool alreadyLogged = false)
     {
         if (error is GmCeraException cera) return Error(cera.Reason switch { GmCeraRefusal.Unauthorized => 401, GmCeraRefusal.Forbidden => 403, GmCeraRefusal.NotFound => 404, GmCeraRefusal.Conflict => 409, _ => 400 }, cera.Message, outcome);
         if (error is JsonException or BadHttpRequestException or NotSupportedException) return Error(400, "点券请求字段无效或超过 32 KiB。", outcome);
-        Log(context, error, "GM cera request failed.");
+        if (!alreadyLogged) Log(context, error, "GM cera request failed.");
         return Error(500, outcome == "rolledBack" ? "发放已回滚，请核对后重试。" : "点券操作失败，请稍后重试。", outcome);
     }
     private static void Log(HttpContext context, Exception error, string message) => context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.GmWeb.Cera").LogError(error, "{Failure}", message);

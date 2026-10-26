@@ -57,6 +57,9 @@ internal sealed class DomainTransaction(
         .Select(source => source.LastFailure).FirstOrDefault(fact => fact?.Kind == TransactionFailureKind.Guard)?.Cause;
     private object? actionObservation;
     internal DomainActionRollbackFact? ActionRollback { get; private set; }
+    internal DomainActionAbortFact? ActionAbort { get; private set; }
+    internal sealed record DomainActionAbortFact(DomainTransaction Transaction, Exception Cause, Exception Output, DomainTransactionCompletion Completion, object Occurrence)
+    { internal DomainActionRollbackPhase Phase => DomainActionRollbackPhase.DomainActionAbort; }
     internal GameplayOutboxUnit? OutboxUnit => unit;
     private Exception SettledGuard(string message)
     {
@@ -87,6 +90,7 @@ internal sealed class DomainTransaction(
         catch (Exception error) { output = error; throw; }
         finally
         {
+            ActionAbort = new(this, originalCause, output, Completion, new object());
             if (actionObservation is { } call)
                 ActionRollback = new(this, call, new object(), originalCause, output, Completion);
         }

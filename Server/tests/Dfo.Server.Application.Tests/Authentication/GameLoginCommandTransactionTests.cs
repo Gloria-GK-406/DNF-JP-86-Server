@@ -42,8 +42,8 @@ public sealed class GameLoginCommandTransactionTests
                 includePersistence: true);
             var commands = services.GetRequiredService<ICommandBus>();
             var onlineUsers = services.GetRequiredService<IOnlineUserDomainService>();
-            _ = await TestCredentials.RegisterAsync(services, "player", "test password");
-            var issued = await TestCredentials.LoginAsync(services, "player", "test password");
+            _ = await TestCredentials.RegisterDomainAsync(services, "player", "test password");
+            var issued = await TestCredentials.LoginDomainAsync(services, "player", "test password");
             Assert.NotNull(issued.Ticket);
             var first = Register(onlineUsers, "Game:cancelled-redemption");
 

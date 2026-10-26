@@ -42,10 +42,10 @@ internal sealed class AuthenticationFixture : IDisposable
     }
 
     public Task<Dfo.Server.Data.Authentication.RegistrationResult> RegisterAsync(string loginId, string password) =>
-        TestCredentials.RegisterAsync(Services, loginId, password);
+        TestCredentials.RegisterDomainAsync(Services, loginId, password);
 
     public Task<Dfo.Server.Data.Authentication.AuthenticationResult> LoginAsync(string loginId, string password) =>
-        TestCredentials.LoginAsync(Services, loginId, password);
+        TestCredentials.LoginDomainAsync(Services, loginId, password);
 
     public async Task<object?> Scalar(string sql)
     {

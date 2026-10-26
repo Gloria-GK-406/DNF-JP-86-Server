@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -79,7 +80,8 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
     {
         var launcher = LauncherHost.Create();
         await using var host = await GmTestHost.StartAsync(directory: launcher.Directory, configuration: launcher.Settings);
-        var routes = host.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>()
+        var endpoints = host.Services.GetRequiredService<EndpointDataSource>().Endpoints.OfType<RouteEndpoint>().ToArray();
+        var routes = endpoints
             .Where(endpoint => endpoint.RoutePattern.RawText is { } raw
                 && (raw.StartsWith("/api/gm/", StringComparison.Ordinal) || raw.StartsWith("/gm/", StringComparison.Ordinal)
                     || raw.StartsWith("/api/launcher/", StringComparison.Ordinal)))
@@ -94,6 +96,15 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
         Assert.Equal(commands.Length, commands.Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(40, commands.Count(command => command.StartsWith("gm:", StringComparison.Ordinal)));
         Assert.Equal(2, commands.Count(command => command.StartsWith("http:", StringComparison.Ordinal)));
+        var gameplay = endpoints.Where(endpoint => endpoint.Metadata.GetMetadata<OutsideGameplay>() is null
+            && (endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null || endpoint.Metadata.GetMetadata<GameplayCmdRoute>() is not null)).ToArray();
+        Assert.Equal(39, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<HttpGameplayOperation>() is not null));
+        Assert.Equal(3, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null));
+        Assert.Equal(Enum.GetValues<HttpRouteOperation>().Order(), gameplay.Select(endpoint =>
+            endpoint.Metadata.GetMetadata<HttpGameplayOperation>()?.Operation ?? endpoint.Metadata.GetMetadata<EnqueuesItself>()!.Operation).Order());
+        var registration = host.Services.GetRequiredService<CommandHandlerRegistry>().GetRegistration(typeof(HttpRouteCommand));
+        Assert.Equal(CommandRouteKind.Internal, registration.Route);
+        Assert.Equal(CommandExecutionKind.Direct, registration.ExecutionKind);
     }
 
     /// <summary>R1's counter-example: a route that neither runs as a CMD nor states why not is refused, as is an empty reason.</summary>

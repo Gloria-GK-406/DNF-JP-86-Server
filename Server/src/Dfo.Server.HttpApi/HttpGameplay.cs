@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Execution;
 using Microsoft.AspNetCore.Builder;
@@ -23,29 +24,22 @@ public static class HttpGameplay
     /// aborted token where the handler saw it. A cancellation raised through that token is carried out
     /// of the job and rethrown here instead of being reported as a failed CMD.
     /// </remarks>
-    public static async Task<T> RunAsync<T>(HttpContext context, GameplayCallSource source,
-        Func<CancellationToken, ValueTask<T>> body)
+    public static async Task<HttpRouteReply> RunAsync(HttpContext context, GameplayCallSource source, HttpRouteCommand command)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(body);
-        var queue = context.RequestServices.GetRequiredService<IGameplayQueue>();
-        var aborted = context.RequestAborted;
-        ExceptionDispatchInfo? cancelled = null;
-        var value = await queue.RunAsync(new GameplayWork<T>(GameplayShardKey.World, GameplayCallChain.NewRoot(source),
-            CommandTypeOf(source, context.GetEndpoint()), async _ =>
-            {
-                try
-                {
-                    return await body(aborted).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException error) when (aborted.IsCancellationRequested)
-                {
-                    cancelled = ExceptionDispatchInfo.Capture(error);
-                    return default!;
-                }
-            }), CancellationToken.None).ConfigureAwait(false);
-        cancelled?.Throw();
-        return value;
+        var bus = context.RequestServices.GetRequiredService<ICommandBus>();
+        var endpoint = context.GetEndpoint();
+        var operation = endpoint?.Metadata.GetMetadata<HttpGameplayOperation>()?.Operation
+            ?? endpoint?.Metadata.GetMetadata<EnqueuesItself>()?.Operation;
+        if (operation != command.Operation) throw new InvalidOperationException("The HTTP route and command operation do not match.");
+        var label = CommandTypeOf(source, endpoint);
+        var origin = new InternalCommandOrigin(source, GameplayCallChain.NewRoot(source), label, InternalCommandCancellation.BodyOnly);
+        try
+        {
+            return await bus.SendInternalAsync(command, origin, context.RequestAborted).ConfigureAwait(false);
+        }
+        catch (CommandHttpAuditedFailureException failure) when (failure.BelongsTo(command, origin.Chain.Id))
+        { return failure.Reply with { ExecutorFailed = true }; }
     }
 
     /// <summary>
@@ -66,7 +60,17 @@ public static class HttpGameplay
             if (metadata?.GetMetadata<OutsideGameplay>() is not null || metadata?.GetMetadata<EnqueuesItself>() is not null)
                 return await next(invocation).ConfigureAwait(false);
             await BufferBodyAsync(context, bodyLimit).ConfigureAwait(false);
-            return await RunAsync(context, source, _ => next(invocation)).ConfigureAwait(false);
+            var route = metadata?.GetMetadata<HttpGameplayOperation>()
+                ?? throw new InvalidOperationException("A gameplay route needs a fixed HTTP operation.");
+            HttpRouteInput input;
+            try
+            {
+                input = await next(invocation).ConfigureAwait(false) as HttpRouteInput
+                    ?? throw new InvalidOperationException("A gameplay route parser must return transport input.");
+            }
+            catch (Exception error) { input = new HttpRouteInput.Failed(error); }
+            var reply = await RunAsync(context, source, new(route.Operation, input)).ConfigureAwait(false);
+            return await route.Mapper.MapAsync(context, route.Operation, reply).ConfigureAwait(false);
         });
         return builder;
     }
@@ -145,7 +149,18 @@ public static class HttpGameplay
 public sealed record OutsideGameplay(string Reason);
 
 /// <summary>A route whose handler enqueues its own CMD because part of it must run off the executor.</summary>
-public sealed record EnqueuesItself(GameplayCallSource Source);
+public sealed record EnqueuesItself(GameplayCallSource Source, HttpRouteOperation Operation);
 
 /// <summary>A route that <see cref="HttpGameplay.RunsOnGameplay{TBuilder}"/> runs as one CMD.</summary>
 public sealed record GameplayCmdRoute(GameplayCallSource Source);
+
+/// <summary>A fixed route and its pure, off-executor HTTP response mapping.</summary>
+public sealed record HttpGameplayOperation(HttpRouteOperation Operation, IHttpRouteReplyMapper Mapper);
+public interface IHttpRouteReplyMapper
+{
+    ValueTask<IResult> MapAsync(HttpContext context, HttpRouteOperation operation, HttpRouteReply reply);
+}
+public sealed class HttpRouteInputException(int statusCode, string message) : Exception(message)
+{
+    public int StatusCode { get; } = statusCode;
+}

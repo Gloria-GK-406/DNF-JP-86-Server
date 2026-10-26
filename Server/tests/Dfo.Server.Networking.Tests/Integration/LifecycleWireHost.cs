@@ -80,6 +80,7 @@ internal sealed class LifecycleWireHost : IAsyncDisposable
         builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new Dfo.Server.Testing.TestCredentials.FixtureReadiness());
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         builder.Services.AddSingleton(recorder);

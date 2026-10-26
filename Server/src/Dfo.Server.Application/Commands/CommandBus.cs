@@ -142,7 +142,7 @@ internal sealed class CommandBus(
                 if (request is not null)
                 {
                     try { GameplayJob.DemandHealthy(); }
-                    catch (Exception error) { cancellation?.Invalidate(); request.Failed(error); }
+                    catch (Exception error) { cancellation?.Invalidate(); request.HttpFailure?.Invalidate(); request.Failed(error); }
                     failure = request.Failure ?? failure;
                 }
                 if (failure is not null && request is not null && safety is not null)
@@ -155,6 +155,8 @@ internal sealed class CommandBus(
         if (failure is not null)
         {
             cancellation?.Finalize(request, failure);
+            if (command is HttpRouteCommand httpCommand && request?.HttpFailure is { } http && http.TryFinalize(out var response))
+                failure = new CommandHttpAuditedFailureException(httpCommand, GameplayJob.Current!.Value.Id, response, failure);
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
         return result;

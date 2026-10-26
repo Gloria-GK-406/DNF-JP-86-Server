@@ -26,8 +26,8 @@ public sealed class AuthenticationFailureTests
         var reader = fixture.Services.GetRequiredService<ILauncherCredentialReader>();
         var verified = (await reader.VerifyLoginAsync(loginId, password, default)).Login!;
         var prepared = (await reader.PrepareRegistrationAsync(loginId, password, default)).Prepared!;
-        var observed = fixture.Logs.Text + result + new AuthenticateAndIssueTicketCommand(verified) + verified
-            + new RegisterAccountCommand(prepared) + prepared;
+        var observed = fixture.Logs.Text + result + new Dfo.Server.Application.Commands.HttpRouteCommand(Dfo.Server.Application.Commands.HttpRouteOperation.Login, new Dfo.Server.Application.Commands.HttpRouteInput.Authentication(verified)) + verified
+            + new Dfo.Server.Application.Commands.HttpRouteCommand(Dfo.Server.Application.Commands.HttpRouteOperation.Register, new Dfo.Server.Application.Commands.HttpRouteInput.Registration(prepared)) + prepared;
         foreach (var secret in new[] { password, loginId, legacy, modern, result.Ticket!, digest })
             Assert.DoesNotContain(secret, observed);
     }

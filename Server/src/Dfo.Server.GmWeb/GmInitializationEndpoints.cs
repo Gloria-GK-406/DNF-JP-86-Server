@@ -22,16 +22,12 @@ internal static class GmInitializationEndpoints
     internal static void Map(RouteGroupBuilder group)
     {
         var permission = new GmRequiredPermission(GmPermission.All);
-        group.MapGet(Prefix, (HttpContext c, ICommandBus bus) => Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new QueryGmInitializationCommand(Secret(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapPost(Prefix + "/account", (HttpContext c, ICommandBus bus) => Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new SaveGmAccountInitializationCommand(Secret(c), await Read<AccountInitialization>(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapPost(Prefix + "/character", (HttpContext c, ICommandBus bus) => Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new SaveGmCharacterInitializationCommand(Secret(c), await Read<CharacterInitialization>(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix + "/items", (HttpContext c, ICommandBus bus) => Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new SearchGmInitializationItemsCommand(Secret(c), Filter(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix + "/items/{id:int}", (HttpContext c, ICommandBus bus, int id) => Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new ReadGmInitializationItemCommand(Secret(c), id), c.RequestAborted)))).WithMetadata(permission);
+        Map("GET", "", HttpRouteOperation.Initialization, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
+        Map("POST", "/account", HttpRouteOperation.InitializationAccount, async (HttpContext c) => new HttpRouteInput.AccountInitializationRequest(Secret(c), await Read<AccountInitialization>(c)));
+        Map("POST", "/character", HttpRouteOperation.InitializationCharacter, async (HttpContext c) => new HttpRouteInput.CharacterInitializationRequest(Secret(c), await Read<CharacterInitialization>(c)));
+        Map("GET", "/items", HttpRouteOperation.InitializationItems, (HttpContext c) => new HttpRouteInput.Catalog(Secret(c), Filter(c)));
+        Map("GET", "/items/{id:int}", HttpRouteOperation.InitializationItem, (HttpContext c, int id) => new HttpRouteInput.CatalogItem(Secret(c), id));
+        void Map(string method, string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, method, Prefix + path, operation, parser, permission);
     }
     private static string Secret(HttpContext c) => c.Request.Cookies[GmAccessBoundary.SessionCookie]!;
     private static async Task<SaveInitializationRequest<T>> Read<T>(HttpContext c)

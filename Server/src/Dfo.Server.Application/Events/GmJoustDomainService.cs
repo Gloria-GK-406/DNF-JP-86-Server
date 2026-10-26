@@ -35,18 +35,6 @@ internal sealed class GmJoustDomainService(IGmAccessDomainService access,IJoustD
         return result;
     }
 }
-public sealed record QueryGmJoustCurrentRoundCommand(string Secret) : ICommand<JoustCurrentRound>;
-internal sealed class QueryGmJoustCurrentRoundCommandHandler(IGmJoustDomainService joust) : ICommandHandler<QueryGmJoustCurrentRoundCommand,JoustCurrentRound>
-{public ValueTask<JoustCurrentRound> HandleAsync(CommandExecutionContext c,QueryGmJoustCurrentRoundCommand q,CancellationToken ct)=>joust.CurrentRoundAsync(q.Secret,ct);}
-public sealed record ChangeGmJoustChampionCommand(string Secret,JoustChampionChange Change) : ICommand<JoustCurrentRound>;
-internal sealed class ChangeGmJoustChampionCommandHandler(IGmJoustDomainService joust) : ICommandHandler<ChangeGmJoustChampionCommand,JoustCurrentRound>
-{public ValueTask<JoustCurrentRound> HandleAsync(CommandExecutionContext c,ChangeGmJoustChampionCommand q,CancellationToken ct)=>joust.SetChampionAsync(q.Secret,q.Change,ct);}
-public sealed record QueryGmJoustSettingsCommand(string Secret) : ICommand<JoustSettings>;
-internal sealed class QueryGmJoustSettingsCommandHandler(IGmJoustDomainService joust) : ICommandHandler<QueryGmJoustSettingsCommand,JoustSettings>
-{public ValueTask<JoustSettings> HandleAsync(CommandExecutionContext c,QueryGmJoustSettingsCommand q,CancellationToken ct)=>joust.SettingsAsync(q.Secret,ct);}
-public sealed record ChangeGmJoustSettingsCommand(string Secret,JoustSettingsChange Change) : ICommand<JoustSettings>;
-internal sealed class ChangeGmJoustSettingsCommandHandler(IGmJoustDomainService joust) : ICommandHandler<ChangeGmJoustSettingsCommand,JoustSettings>
-{public ValueTask<JoustSettings> HandleAsync(CommandExecutionContext c,ChangeGmJoustSettingsCommand q,CancellationToken ct)=>joust.SaveAsync(q.Secret,q.Change,ct);}
 public sealed record AdvanceJoustLifecycleCommand(DateTimeOffset Now) : ICommand<JoustLifecycleResult>;
 internal sealed class AdvanceJoustLifecycleCommandHandler(IJoustDomainService joust) : ICommandHandler<AdvanceJoustLifecycleCommand,JoustLifecycleResult>
 {public ValueTask<JoustLifecycleResult> HandleAsync(CommandExecutionContext c,AdvanceJoustLifecycleCommand q,CancellationToken ct)=>joust.AdvanceLifecycleAsync(q.Now,ct);}

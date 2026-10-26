@@ -217,11 +217,11 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.Equal(HttpStatusCode.Forbidden, (await host.Client.GetAsync("/api/gm/v1/characters")).StatusCode);
         var bus = host.Services.GetRequiredService<ICommandBus>();
         var input = new GmMailInput("", "测试", [1], [], 0);
-        var preparation = (GmMailPreparation)(await bus.SendAsync(new QueryGmMailCommand(login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: input))).Value;
+        var preparation = (GmMailPreparation)(await MailStageDriver.Query(host, login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: input)).Value;
         await host.ExecuteAsync("UPDATE gm_administrators SET permissions=1;");
-        Assert.Equal(GmMailRefusal.Forbidden, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Forbidden, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         await host.ExecuteAsync("UPDATE gm_administrators SET permissions=2; DELETE FROM gm_sessions;");
-        Assert.Equal(GmMailRefusal.Unauthorized, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Unauthorized, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 
@@ -230,9 +230,9 @@ public sealed partial class GmOfficialMailHttpTests
     {
         await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
         var bus = host.Services.GetRequiredService<ICommandBus>();
-        var preparation = (GmMailPreparation)(await bus.SendAsync(new QueryGmMailCommand(login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "测试", [1], [], 0)))).Value;
+        var preparation = (GmMailPreparation)(await MailStageDriver.Query(host, login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "测试", [1], [], 0))).Value;
         await host.ExecuteAsync("UPDATE characters SET account_id=2 WHERE character_id=1;");
-        Assert.Equal(GmMailRefusal.Changed, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Changed, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 
@@ -517,9 +517,9 @@ public sealed partial class GmOfficialMailHttpTests
         foreach (var character in new[] { 1, 47 }) { var mail = Assert.Single(await mailbox.InboxAsync(new CharacterId(character))); Assert.Equal("同文\n换行", mail.Body); Assert.Equal(mail.Body, mail.Title); Assert.Empty(mail.Attachments); }
         Assert.Equal(first.GetProperty("expiresAt").GetString(), (await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/operations/" + id)).GetProperty("expiresAt").GetString());
         var bus = host.Services.GetRequiredService<ICommandBus>();
-        var preparation = (GmMailPreparation)(await bus.SendAsync(new QueryGmMailCommand(login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "预检", [1, 2], [], 0)))).Value;
+        var preparation = (GmMailPreparation)(await MailStageDriver.Query(host, login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "预检", [1, 2], [], 0))).Value;
         await host.ExecuteAsync("UPDATE characters SET delete_flag=1 WHERE character_id=2;");
-        Assert.Equal(GmMailRefusal.Invalid, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Invalid, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         Assert.Equal(new[] { "2" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 

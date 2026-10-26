@@ -157,6 +157,7 @@ public sealed class GameLoginCommandFlowTests
             }).Build();
             Configuration=new(new ServerConfigService(configuration),mode=="bad_configuration");Outbox=new(Events);Profiles=new(Events);
             var services=new ServiceCollection();services.AddLogging();
+            services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new FixtureReadiness());
             services.AddSingleton<IServerConfigService>(Configuration);
             new InfrastructureModule().ConfigureServices(services,configuration);
             new ApplicationModule().ConfigureServices(services,configuration);
@@ -270,4 +271,7 @@ public sealed class GameLoginCommandFlowTests
         public IDisposable? BeginScope<T>(T state) where T:notnull=>null;public bool IsEnabled(LogLevel level)=>true;
         public void Log<T>(LogLevel l,EventId e,T state,Exception? ex,Func<T,Exception?,string> formatter)=>messages.Add(formatter(state,ex));
     }
+    private sealed class FixtureReadiness : Dfo.Server.Abstractions.Hosting.IGameServerReadiness
+    { public bool NetworkEnabled => false; public bool IsReady => false; }
+
 }

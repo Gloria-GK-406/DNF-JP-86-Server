@@ -19,6 +19,7 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<CommandJobEntry>();
         services.TryAddSingleton<ICommandWorkUnits, CommandWorkUnits>();
+        services.TryAddSingleton<ICommandHttpFailureAudit, CommandHttpFailureAudit>();
         services.TryAddSingleton<ICommandSelectedSessionCleanup, CommandSelectedSessionCleanup>();
         services.TryAddSingleton<NetworkCommandAuthorization>();
         services.TryAddSingleton<SelectedSessionSafety>();

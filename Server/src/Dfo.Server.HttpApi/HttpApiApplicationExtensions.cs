@@ -52,9 +52,9 @@ public static class HttpApiApplicationExtensions
             .WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：就绪标志"));
         // Hashing runs off the executor first (RQ-007), so these two enqueue their CMD themselves.
         endpoints.MapPost(RegisterPath, RegisterAsync)
-            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http));
+            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Register));
         endpoints.MapPost(LoginPath, LoginAsync)
-            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http));
+            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Login));
     }
 
     private static async Task<IResult> RegisterAsync(
@@ -91,8 +91,10 @@ public static class HttpApiApplicationExtensions
                 prepared.FieldErrors);
         }
 
-        var result = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
-            token => commands.SendAsync(new RegisterAccountCommand(registration), token)).ConfigureAwait(false);
+        var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
+            new HttpRouteCommand(HttpRouteOperation.Register, new HttpRouteInput.Registration(registration))).ConfigureAwait(false);
+        if (reply.Error is { } registrationFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(registrationFailure);
+        var result = (RegistrationResult)reply.Value!;
         return result.Status switch
         {
             AuthenticationStatus.Success => Results.Json(
@@ -176,8 +178,10 @@ public static class HttpApiApplicationExtensions
                 request.LoginId!, request.Password!, context.RequestAborted).ConfigureAwait(false);
             if (verified.Login is not { } login)
                 return new AuthenticationResult(verified.Status, FieldErrors: verified.FieldErrors);
-            var result = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
-                token => commands.SendAsync(new AuthenticateAndIssueTicketCommand(login), token)).ConfigureAwait(false);
+            var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
+                new HttpRouteCommand(HttpRouteOperation.Login, new HttpRouteInput.Authentication(login))).ConfigureAwait(false);
+            if (reply.Error is { } loginFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(loginFailure);
+            var result = (AuthenticationResult)reply.Value!;
             if (result.Status != AuthenticationStatus.CredentialChanged) return result;
             if (attempt == 1) return new AuthenticationResult(AuthenticationStatus.InvalidCredentials);
         }

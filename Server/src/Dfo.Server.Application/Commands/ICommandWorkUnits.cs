@@ -24,6 +24,7 @@ public sealed class CommandWorkUnit
     internal CommandWorkUnit(IDomainTransaction transaction, CommandRequestContext request, IEffectFootprintRecorder? footprint = null, DomainTransactionLease? selfLease = null)
     { this.transaction = transaction; this.request = request; this.footprint = footprint; this.selfLease = selfLease; request.AttachUnit(this); }
     internal bool IsInAction { get; private set; }
+    internal bool TransactionIsOpen => transaction is DomainTransaction { Completion: DomainTransactionCompletion.Open };
     internal void BeginAction() => IsInAction = true;
     private readonly List<Task> cleanups = [];
     internal void TrackCleanup(Task cleanup) => cleanups.Add(cleanup);
@@ -201,6 +202,9 @@ public interface ICommandWorkUnits
     ValueTask<TResult> WriteAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
         Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken cancellationToken = default)
         where TResult : notnull;
+    ValueTask<TResult> ReadOnlyAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+        Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken cancellationToken = default)
+        where TResult : notnull => ValueTask.FromException<TResult>(new NotSupportedException("This adapter does not expose read-only business rollback."));
     ValueTask<TResult> ReadOnlyAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
         Func<CancellationToken, ValueTask<TResult>> action, CancellationToken cancellationToken = default)
         where TResult : notnull;
