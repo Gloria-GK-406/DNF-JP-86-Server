@@ -34,7 +34,7 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
     internal static async Task<GmTestHost> StartAsync(string? administrator = "operator", string password = Password, string permissions = "All", string? directory = null,
         CookieContainer? cookies = null, TimeProvider? clock = null, bool remoteConnection = false, bool https = false, GmAuditFault? fault = null,
         IReadOnlyDictionary<string, string?>? configuration = null, Action<IServiceCollection>? configureServices = null, int? listenerPort = null,
-        bool realContent = false)
+        bool realContent = false, Func<IHttpApiFeature, IHttpApiFeature>? wrapFeature = null)
     {
         directory ??= NewDirectory();
         using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = listenerPort ?? ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
@@ -63,7 +63,7 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
             certificate = X509CertificateLoader.LoadPkcs12(generated.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable);
             builder.ConfigureWebHost(web => web.ConfigureKestrel(server => server.ConfigureHttpsDefaults(tls => tls.ServerCertificate = certificate)));
         }
-        builder.ConfigureHttpApi(config, remoteConnection ? new RemoteFeature(feature) : feature);
+        builder.ConfigureHttpApi(config, wrapFeature is null ? remoteConnection ? new RemoteFeature(feature) : feature : wrapFeature(feature));
         var host = builder.Build(); await host.StartAsync();
         var handler = new HttpClientHandler { CookieContainer = cookies ?? new CookieContainer() };
         if (https) handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
