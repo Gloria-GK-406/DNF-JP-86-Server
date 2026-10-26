@@ -103,3 +103,18 @@ Plan P8 ready R1 的独立审核 `reviews/task-39-plan-review.md` 已 approved�
 同一唯一 Astra 已分别在 `reviews/spec-b9-review.md` 与 `reviews/task-57-plan-review.md` 批准 B9 ready R1、P11 ready R1；主控已全文消费，记录在 TASK-57。当前受影响 spec-review／plan-review 指向这两份文件，旧门保留历史效力，无挑战。两塔来源分解依据根 Goal 的经审查有意变化出口、SC-8B 例外和本次独立核定，不借 F-07 自动授权；根／子／中心方案、单执行器与禁止 CMD 嵌套不变。
 
 本次补显式内部 owner、纯取消的真实发生证明、累计已声明 physical 的引用去重和整轮 producer 排空；B9 明列调度／失败边界与旧缺陷修正。metadata-only 检查点后才放行产品，最终七行迁移、八项目全量与 Task Result 尚待完成。其余功能簇与来源不提前闭合，外部 Astra 与用户分支收尾门保持。
+
+## 第二阶段最终制品绑定（2026-10-26）
+
+按用户流程 §8 完成 B10 的一次独立 Spec 审查后，TASK-66 承担结构与文档收口；最终八项目和同工具测量属于 Plan T-012。当前 Spec 批准为 `reviews/spec-b10-review.md`，消费依据为 `verification/spec-b10-consolidation.md`。早期各修订审查保留其历史范围，不作为当前最终结果批准。
+
+为使最终阶段与实际落盘一致，绑定以下制品；不改变根／子契约、Spec 基准、Profile、接受条件或用户的外部审核门：
+
+| Artifact key | 当前路径 |
+|---|---|
+| change_challenges | `reviews/spec-002-change-challenges.md` |
+| change_review | `reviews/spec-002-final-review.md` |
+| completion_evidence | `verification/completion-evidence.md` |
+| result | `spec-result.md` |
+
+完整 B 及 A+B 集成按用户 §8 共用本次完整内部评审周期。主控先消费独立结果审查并核验封存 B，再记录根子项接受；同一独立 reviewer 对确切 B seal 与已提交根状态作有界确认后，根控制器才消费 Root Review 和 fresh Root Verification。不得提前将未封存 B 计为根已交付，也不得把本次内部 Astra 当作用户之后安排的整分支外部审核。
