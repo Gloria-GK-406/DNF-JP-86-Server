@@ -527,9 +527,9 @@ def selftest(baseline,ledger,repo):
         'duplicate-id':lambda d:d['commands'].append(copy.deepcopy(d['commands'][0])),
         'telemetry-misclassified':lambda d:next(row for row in d['messages'] if row['classification']=='telemetry').update(classification='protocol'),
         'dangling-reference':lambda d:d['messages'][0]['refs'].append('command:does.not.Exist'),
-        'premature-closed':lambda d:next(row for row in d['messages'] if row['state']=='pending').update(state='closed'),
+        'premature-closed':lambda d:next(row for row in d['messages'] if row['classification']=='protocol').update(state='closed',destination='pending'),
         'missing-evidence-path':lambda d:d['commands'][0]['evidence'].append('Server/missing-evidence.txt'),
-        'closed-transition-without-destination':lambda d:d['transitions'][0].update(state='closed',evidence=[B.relative_to(repo).as_posix()+'/tasks/TASK-02.md']),
+        'closed-transition-without-destination':lambda d:d['transitions'][0].update(state='closed',destination='pending',evidence=[B.relative_to(repo).as_posix()+'/tasks/TASK-02.md']),
     }
     results={}
     validate(baseline,ledger,repo)

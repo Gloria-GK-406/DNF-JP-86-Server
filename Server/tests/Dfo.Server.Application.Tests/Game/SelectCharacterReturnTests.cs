@@ -32,7 +32,7 @@ public sealed partial class SelectCharacterLifecycleTests
             var selected = f.Directory.Find(f.AccountId)!;
             var online = f.Users.GetRequired(f.OnlineUserId);
             var roster = new RosterCharacters(f.Result);
-            var prepared = await new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory, roster)
+            var prepared = await new PrepareReturnToSelectionStageHandler(f.Users, f.Directory, roster)
                 .HandleAsync(ReturnContext(), new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
             Assert.Equal(0, f.Inventory.Saves);
             Assert.Same(roster.Latest, prepared.Roster);
@@ -68,7 +68,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     EmptyPartyMemberSessionEndpointSource.Instance),
                 runs,
                 [departure]);
-            var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, cleanup);
+            var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, cleanup);
 
             using var footprint = new TestEffectFootprints.Lease(selected);
             var returnContext = ReturnContext();
@@ -109,14 +109,14 @@ public sealed partial class SelectCharacterLifecycleTests
             var f = await Fixture.CreateAsync();
             await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
             var online = f.Users.GetRequired(f.OnlineUserId);
-            var prepare = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
+            var prepare = new PrepareReturnToSelectionStageHandler(f.Users, f.Directory,
                 new RosterCharacters(f.Result));
             var old = await prepare.HandleAsync(ReturnContext(),
                 new(f.AccountId, f.ConnectionId, online.Generation), CancellationToken.None);
             await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
             var replacement = f.Directory.Find(f.AccountId);
             var cleanupCalls = f.Cleanup.Calls.Count;
-            var complete = new CompleteReturnToSelectionCommandHandler(f.Users, f.Directory, f.Cleanup);
+            var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, f.Cleanup);
 
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await complete.HandleAsync(ReturnContext(), new(old), CancellationToken.None));
@@ -135,7 +135,7 @@ public sealed partial class SelectCharacterLifecycleTests
             await f.Handler.HandleAsync(f.Context, f.Command, CancellationToken.None);
             var selected = f.Directory.Find(f.AccountId);
             f.Inventory.FailSave = true;
-            var handler = new PrepareReturnToSelectionCommandHandler(f.Users, f.Directory,
+            var handler = new PrepareReturnToSelectionStageHandler(f.Users, f.Directory,
                 new RosterCharacters(f.Result));
 
             _ = await handler.HandleAsync(ReturnContext(),
@@ -148,7 +148,7 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     private static CommandExecutionContext ReturnContext() => new(Guid.NewGuid(),
-        typeof(PrepareReturnToSelectionCommand), typeof(PrepareReturnToSelectionCommandHandler),
+        typeof(PrepareReturnToSelectionStage), typeof(PrepareReturnToSelectionStageHandler),
         CommandExecutionKind.Transactional);
 
     private sealed class RosterCharacters(SelectCharacterResult state) : ICharacterDomainService

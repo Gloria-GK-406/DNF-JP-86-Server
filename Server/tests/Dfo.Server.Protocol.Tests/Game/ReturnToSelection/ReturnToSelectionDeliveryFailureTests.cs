@@ -1,4 +1,7 @@
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Protocol.Game.Party;
+using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -56,35 +59,33 @@ public sealed class ReturnToSelectionDeliveryFailureTests
     private static async Task HandleAsync(XoDelivery outbound, ReturnCommands commands)
     {
         var context = outbound.Context(Connection);
-        var handler = new ReturnToSelectionHandler(new OneUser(context), commands,
-            new CharacterSelectionDelivery(outbound.Game, new NoCleanup()), outbound.Closer);
-        await handler.HandleAsync(new NetworkDispatchContext(context), new ReturnToSelectionRequest(GameMessageMetadata.Empty), CancellationToken.None);
+        var handler = new ReturnWorkflow(new OneUser(context), commands, outbound);
+        await handler.HandleAsync(new CommandExecutionContext(Guid.NewGuid(), typeof(GameReturnToSelectionCommand), typeof(ReturnWorkflow), CommandExecutionKind.Direct),
+            new GameReturnToSelectionCommand(new NetworkDispatchContext(context), new ReturnToSelectionRequest(GameMessageMetadata.Empty)), CancellationToken.None);
     }
 
-    private sealed class ReturnCommands : ICommandBus
+    private sealed class ReturnWorkflow : GameReturnToSelectionCommandHandler
     {
-        public int Completed { get; private set; }
-
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            object result = command switch
-            {
-                PrepareReturnToSelectionCommand prepare => new PreparedReturnToSelection(
-                    prepare.AccountId, prepare.ConnectionId, prepare.Generation, null,
-                    new AccountCharacterRoster(prepare.AccountId, 8, []), false),
-                CompleteReturnToSelectionCommand => Complete(),
-                _ => throw new NotSupportedException(command.GetType().Name),
-            };
-            return ValueTask.FromResult((TResult)result);
-        }
-
-        private CompletedReturnToSelection Complete()
-        {
-            Completed++;
-            return new CompletedReturnToSelection(null);
-        }
+        private readonly ReturnCommands stages;
+        public ReturnWorkflow(IOnlineUserQueryDomainService users, ReturnCommands stages, XoDelivery outbound)
+            : base(users,null!,null!,null!,null!,new TestOutbox(outbound),null!,new TestClosures(outbound),null!,new PartyProjectionStreamRegistry(),NullLogger<GameReturnToSelectionCommandHandler>.Instance)
+            { this.stages=stages; }
+        protected override ValueTask<PreparedReturnToSelection> PrepareAsync(CommandExecutionContext x, AccountId id, NetworkConnectionId c, long g, CancellationToken ct) =>
+            ValueTask.FromResult(new PreparedReturnToSelection(id,c,g,null,new AccountCharacterRoster(id,8,[]),false));
+        protected internal override ValueTask<SelectedSessionCleanupNotificationPlan?> CompleteAsync(CommandExecutionContext x, PreparedReturnToSelection p, CancellationToken ct)
+        { stages.Completed++; return ValueTask.FromResult<SelectedSessionCleanupNotificationPlan?>(null); }
     }
+
+    private sealed class TestClosures(XoDelivery outbound) : ICommandConnectionClosures
+    { public ValueTask RequestCloseAsync(NetworkConnectionContext c,CancellationToken ct) => outbound.Closer.RequestCloseExactAsync(c,ct); }
+    private sealed class TestOutbox(XoDelivery outbound) : IGameCommandOutbox
+    {
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id,IGameCmdMessage m,CancellationToken ct) => outbound.Game.SendCmdAsync(id,m,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id,IGameNotiMessage m,CancellationToken ct) => outbound.Game.SendNotiAsync(id,m,ct);
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery d,CancellationToken ct) => outbound.Game.SendExplicitAsync(id,d,ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext c,IReadOnlyList<IGameServerMessage> m,CancellationToken ct) => throw new NotSupportedException();
+    }
+    private sealed class ReturnCommands { public int Completed; }
 
     private sealed class OneUser(NetworkConnectionContext connection) : IOnlineUserQueryDomainService
     {

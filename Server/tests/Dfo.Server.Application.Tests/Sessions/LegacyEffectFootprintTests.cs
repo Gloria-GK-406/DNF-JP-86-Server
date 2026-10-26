@@ -316,7 +316,9 @@ public sealed class LegacyEffectFootprintTests
         var f = new ShopFixture(services =>
         {
             foreach (var descriptor in services.Where(d => d.ImplementationInstance is MessageHandlerRegistration { MessageType: ClientMessageType.GameExit }).ToArray()) services.Remove(descriptor);
-            services.RegisterMessageHandler<ProbeNetworkHandler>(ClientMessageType.GameExit);
+            foreach (var descriptor in services.Where(d => d.ImplementationInstance is CommandHandlerRegistration registration
+            && registration.CommandType == typeof(Dfo.Server.Protocol.Game.Exit.GameExitCommand)).ToArray()) services.Remove(descriptor);
+        services.RegisterMessageHandler<ProbeNetworkHandler>(ClientMessageType.GameExit);
             services.AddSingleton(sink); services.AddSingleton<IReplayStateProjectionDelivery>(replay);
             services.AddCommandHandler<Probe, IEffectFootprintRecorder, ProbeHandler>(CommandExecutionKind.Transactional);
             if (explicitProbe)

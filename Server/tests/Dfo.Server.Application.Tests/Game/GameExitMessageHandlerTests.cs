@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game;
@@ -12,20 +13,27 @@ public sealed class GameExitMessageHandlerTests
     public async Task HandleAsync_AcknowledgesTheExitOnTheSameConnection()
     {
         var sender = new RecordingSender();
-        var handler = new GameExitHandler(sender);
+        var handler = new GameExitCommandHandler(new ExitOutbox(sender));
         var connectionId = new NetworkConnectionId("game-42");
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, 10011));
 
         await TestGameplay.RunAsync(async () => await handler.HandleAsync(
-            context,
-            new GameExitRequest(GameMessageMetadata.Empty),
+            new CommandExecutionContext(Guid.NewGuid(), typeof(GameExitCommand), typeof(GameExitCommandHandler), CommandExecutionKind.Direct),
+            new GameExitCommand(context, new GameExitRequest(GameMessageMetadata.Empty)),
             CancellationToken.None));
 
         Assert.Equal(connectionId, sender.ConnectionId);
         Assert.Equal(new GameExitResponse(true), sender.Message);
     }
 
+    private sealed class ExitOutbox(IGameMessageSender sender) : IGameCommandOutbox
+    {
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage m, CancellationToken ct) => sender.SendCmdAsync(id,m,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage m, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery d, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext c, IReadOnlyList<IGameServerMessage> m, CancellationToken ct) => throw new NotSupportedException();
+    }
     /// <summary>
     /// The last CMD a real registration adapter registered, read from its outbox; every call goes to the real protocol
     /// sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, with the exception the

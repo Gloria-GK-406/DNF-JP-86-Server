@@ -22,7 +22,20 @@ public sealed class CommandWorkUnit
     private bool open = true;
     private readonly IEffectFootprintRecorder? footprint;
     internal CommandWorkUnit(IDomainTransaction transaction, CommandRequestContext request, IEffectFootprintRecorder? footprint = null, DomainTransactionLease? selfLease = null)
-    { this.transaction = transaction; this.request = request; this.footprint = footprint; this.selfLease = selfLease; }
+    { this.transaction = transaction; this.request = request; this.footprint = footprint; this.selfLease = selfLease; request.AttachUnit(this); }
+    internal bool IsInAction { get; private set; }
+    internal void BeginAction() => IsInAction = true;
+    private readonly List<Task> cleanups = [];
+    internal void TrackCleanup(Task cleanup) => cleanups.Add(cleanup);
+    internal async ValueTask EndActionAsync()
+    {
+        IsInAction = false;
+        if (cleanups.Any(task => !task.IsCompleted))
+            request.FailedIndependent(new InvalidOperationException("The action returned before selected-session cleanup completed."), new object());
+        foreach (var cleanup in cleanups)
+            try { await cleanup.ConfigureAwait(false); } catch (Exception error) { request.Failed(error); }
+    }
+
     public ValueTask<T> InvokeSelfSettlingAsync<T>(Func<CancellationToken, ValueTask<T>> action,
         CancellationToken cancellationToken = default) where T : notnull
     {

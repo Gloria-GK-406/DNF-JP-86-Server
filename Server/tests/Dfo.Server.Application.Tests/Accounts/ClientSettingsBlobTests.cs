@@ -304,7 +304,7 @@ public sealed class ClientSettingsBlobTests
         await using var f = new LearningFixture(configure: s => new ProtocolModule().ConfigureServices(s,new ConfigurationBuilder().Build()));
         await f.SeedAsync(); var origin = Origin(f);
         var commands = f.Services.GetRequiredService<ICommandBus>();
-        Assert.True(await commands.SendAsync(new ActivateClientHotkeyProfileCommand(origin,0),default));
+        Assert.True(await TestGameplay.RunAsync(() => Task.FromResult(f.Services.GetRequiredService<IClientSettingsDomainService>().ActivateHotkeyProfile(origin,0))));
         Assert.True(f.Services.GetRequiredService<IOnlineUserQueryDomainService>().TryGetByConnection(origin.Connection.ConnectionId, out var current));
         var dispatch = new NetworkDispatchContext(current!.Connection);
         var main=Enumerable.Range(0,150).Select(i=>(byte)i).ToArray();

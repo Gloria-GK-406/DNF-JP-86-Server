@@ -8,6 +8,26 @@ namespace Dfo.Server.Application.Tests.Commands;
 public sealed class CommandRequestContextTests
 {
     [Fact]
+    public async Task A_sole_failure_observation_rejects_an_independent_occurrence_even_with_the_same_exception()
+    {
+        await TestGameplay.RunAsync(() =>
+        {
+            var request=new CommandRequestContext.TrustedInternal(Origin());
+            var cause=new IOException("action"); var other=new IOException("other");
+            Assert.False(request.HasOnlyFailure(cause));
+            request.Failed(cause);
+            Assert.True(request.HasOnlyFailure(cause)); Assert.False(request.HasOnlyFailure(other));
+            request.Failed(cause); // Ordinary propagation keeps the same event.
+            Assert.True(request.HasOnlyFailure(cause));
+            Assert.Throws<IOException>(()=>request.DemandFinished());
+            request.FailedIndependent(cause,new object());
+            Assert.False(request.HasOnlyFailure(cause));
+            Assert.Throws<AggregateException>(()=>request.DemandFinished());
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
     public async Task A_missing_request_never_becomes_trusted_internal_work()
     {
         await using var world = new CommandWorld();

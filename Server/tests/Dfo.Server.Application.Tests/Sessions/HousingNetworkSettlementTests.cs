@@ -69,7 +69,7 @@ public sealed partial class HousingNetworkSettlementTests
         // A business refusal must not fence the session as an uncertain durable settlement.
         var (_, nextFresh) = counter.Observe(2); Assert.True(nextFresh);
         Assert.NotNull(await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default));
-        await f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendAsync(new Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand(f.Session), default);
+        await Dfo.Server.Application.Tests.Game.SelectionInitializationTestDriver.InitializeAsync(f.Services, f.Session);
     }
     [Fact]
     public async Task Lost_furniture_purchase_ack_replays_current_storage_without_a_second_charge()

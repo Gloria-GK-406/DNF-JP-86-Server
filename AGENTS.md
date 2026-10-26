@@ -387,6 +387,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | AltarPrepare／AltarDeathBatch／AltarDifficulty | [源码](Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs)。 |
 | JoustInfo／JoustBet／JoustHistory、TournamentRewardStatus／TournamentSelectReward | [源码](Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs)。 |
 | WeddingProposal／WeddingResponse／WeddingPartner／WeddingChurchEntry／WeddingComment（Post／Delete／Read）／WeddingLetter／WeddingGift／WeddingLovePoint／MarriageHousing／MarriageCapsule | [源码](Server/src/Dfo.Server.Protocol/Game/MarriageProposal/GameMarriageCommands.cs)。 |
+| SelectCharacter／ReturnToSelection／Exit | [源码](Server/src/Dfo.Server.Protocol/Game/SelectCharacter/GameSelectCharacterCommand.cs)。 |
 | GetItem（普通／两塔地面拾取） | [源码](Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs)；`TASK-46`，默认whole生命周期与拾取精确关闭差异见 Spec VC-B19／20。 |
 | CharacterDeath／UseRevivalCoin（普通／两塔死亡与复活） | [源码](Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs)；`TASK-47`，普通死亡零事务，默认whole生命周期与两塔死亡精确关闭见 Spec VC-B21／22。 |
 | SetPlayResult／ScoreScrollState／CardSelectRightState／SelectCard／BossDieCheck | 结算、卡牌与两固定阶段 typed Timer；[源码](Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs)，`TASK-48`，默认生命周期／单次自动确认见 Spec VC-B23／24。 |

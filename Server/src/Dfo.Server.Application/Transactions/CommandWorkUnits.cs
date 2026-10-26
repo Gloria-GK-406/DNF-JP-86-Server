@@ -51,6 +51,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             if (lease.OutboxUnit is null) throw new InvalidOperationException("Self settlement requires its original outbox unit.");
             unit = new(lease.Transaction, request, selfLease: lease);
             TResult result = default!;
+            unit.BeginAction();
             try { result = await action(unit, ct).ConfigureAwait(false); }
             catch (CommandSelfSettlementPropagationException signal) when (ReferenceEquals(signal, unit.Handoff)
                 && ReferenceEquals(signal.Unit, unit) && ReferenceEquals(signal.Call, unit.SelfCall))
@@ -68,6 +69,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                     ExceptionDispatchInfo.Throw(signal.Fact.Output);
                 candidate = new CommandSelfSettledWriteResult<TResult>.ActionRolledBack(retained);
             }
+            finally { await unit.EndActionAsync().ConfigureAwait(false); }
             if (candidate is null)
             {
                 if (unit.HasUnfinishedObservation)
@@ -287,6 +289,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             unit = new CommandWorkUnit(transaction.Transaction, request, footprint);
             TResult result;
             stage = FailureStage.Action;
+            unit.BeginAction();
             try { result = await action(unit, ct).ConfigureAwait(false); stage = FailureStage.PostAction; }
             catch (OperationCanceledException cancellation)
             {
@@ -294,7 +297,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                     request.ProducerCancellation?.ObserveAction(request, lease, ct, cancellation);
                 throw;
             }
-            finally { nonRequest?.Close(); declaredNonRequest?.Close(); }
+            finally { await unit.EndActionAsync().ConfigureAwait(false); nonRequest?.Close(); declaredNonRequest?.Close(); }
             request.DemandCurrent();
             foreach (var participant in participants) safety.DemandCurrent(participant);
             if (transaction.GuardFailure is { } guard)

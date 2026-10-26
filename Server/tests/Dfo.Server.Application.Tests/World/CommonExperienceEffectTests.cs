@@ -248,7 +248,7 @@ public sealed class CommonExperienceEffectTests
     public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
     {
         string[] readOnly = [];
-        string[] direct = ["ActivateClientHotkeyProfileCommand"];
+        string[] direct = [];
         string[] expected = ["AltarActionCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
             "MarriageCeremonyCommand", "MarriageProposalCommand","CapsuleCommand","HousingCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand"];
         var actual = typeof(SetPlayResultHandler).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();

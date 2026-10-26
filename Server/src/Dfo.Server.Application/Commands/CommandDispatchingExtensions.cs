@@ -19,6 +19,7 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<CommandJobEntry>();
         services.TryAddSingleton<ICommandWorkUnits, CommandWorkUnits>();
+        services.TryAddSingleton<ICommandSelectedSessionCleanup, CommandSelectedSessionCleanup>();
         services.TryAddSingleton<NetworkCommandAuthorization>();
         services.TryAddSingleton<SelectedSessionSafety>();
         services.TryAddSingleton<SelectedSessionCommandScope>();
@@ -80,6 +81,12 @@ public static class CommandDispatchingExtensions
         where THandler : class, ICommandHandler<TCommand, TResult> =>
         Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], selfSettlement: capability);
 
+    public static IServiceCollection AddProtocolCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
+        CommandSelectedSessionCleanupCapability capability, params ProtocolCommandMessageBinding[] messages)
+        where TCommand : class, IProtocolCommand<TResult> where TResult : notnull
+        where THandler : class, ICommandHandler<TCommand, TResult> =>
+        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], selectedSessionCleanup: capability);
+
     public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
@@ -87,7 +94,8 @@ public static class CommandDispatchingExtensions
 
     private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
         CommandExecutionKind kind, CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null,
-        CommandSelfSettlementCapability selfSettlement = CommandSelfSettlementCapability.None)
+        CommandSelfSettlementCapability selfSettlement = CommandSelfSettlementCapability.None,
+        CommandSelectedSessionCleanupCapability selectedSessionCleanup = CommandSelectedSessionCleanupCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
     {
@@ -98,7 +106,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            kind, route, messages, exits, selfSettlement).Freeze());
+            kind, route, messages, exits, selfSettlement, selectedSessionCleanup).Freeze());
         return services;
     }
 }

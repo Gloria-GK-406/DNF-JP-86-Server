@@ -3,6 +3,7 @@ using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Application.Commands;
 
+public enum CommandSelectedSessionCleanupCapability { None, SelectedSessionLifecycle }
 public enum CommandSelfSettlementCapability { None, SelfSettledAction }
 public enum CommandRouteKind { LegacyFineGrained, Protocol, Internal }
 public sealed record ProtocolCommandMessageBinding(ClientMessageType MessageType, Type MessageClrType);
@@ -15,7 +16,8 @@ public sealed record CommandHandlerRegistration(
     CommandRouteKind Route = CommandRouteKind.LegacyFineGrained,
     IReadOnlyList<ProtocolCommandMessageBinding>? ProtocolMessages = null,
     IReadOnlyCollection<CommandRegistrationExit>? RegistrationExits = null,
-    CommandSelfSettlementCapability SelfSettlement = CommandSelfSettlementCapability.None)
+    CommandSelfSettlementCapability SelfSettlement = CommandSelfSettlementCapability.None,
+    CommandSelectedSessionCleanupCapability SelectedSessionCleanup = CommandSelectedSessionCleanupCapability.None)
 {
     internal CommandHandlerRegistration Freeze() => ProtocolMessages is null && RegistrationExits is null ? this : this with
     { ProtocolMessages = ProtocolMessages is null ? null : Array.AsReadOnly(ProtocolMessages.ToArray()),
@@ -51,6 +53,12 @@ public sealed class CommandHandlerRegistry
 
         foreach (var item in registrationList)
         {
+            if (!Enum.IsDefined(item.SelectedSessionCleanup)
+                || item.SelectedSessionCleanup != CommandSelectedSessionCleanupCapability.None
+                    && (item.Route != CommandRouteKind.Protocol || item.ProtocolMessages is not { Count: 1 }
+                        || item.ProtocolMessages.Any(x => x.MessageType is not (ClientMessageType.GameSelectCharacter or ClientMessageType.GameReturnToSelection)
+                            || typeof(IEffectSettlementRequest).IsAssignableFrom(x.MessageClrType))))
+                throw new InvalidOperationException("Selected-session cleanup requires its named non-effect lifecycle protocol binding.");
             if (!Enum.IsDefined(item.SelfSettlement)) throw new InvalidOperationException("Unknown self-settlement capability.");
             if (item.SelfSettlement != CommandSelfSettlementCapability.None
                 && (item.Route != CommandRouteKind.Protocol || item.ProtocolMessages is not { Count: > 0 }

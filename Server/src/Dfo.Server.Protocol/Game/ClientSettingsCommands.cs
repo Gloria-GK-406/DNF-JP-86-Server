@@ -7,20 +7,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game;
 
-public sealed record ActivateClientHotkeyProfileCommand(ClientSettingsOrigin Origin, byte KeyType)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Origin.AccountId;
-    public SelectedSessionIdentity? Session => Origin.SelectedSession;
-}
-
-public sealed class ActivateClientHotkeyProfileCommandHandler(IClientSettingsDomainService settings)
-    : ICommandHandler<ActivateClientHotkeyProfileCommand, bool>
-{
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, ActivateClientHotkeyProfileCommand command, CancellationToken ct) =>
-        ValueTask.FromResult(settings.ActivateHotkeyProfile(command.Origin, command.KeyType));
-}
-
 internal static class ClientSettingsPayload
 {
     public static byte[] Decode(ReadOnlySpan<byte> body, int? exactLength = null)

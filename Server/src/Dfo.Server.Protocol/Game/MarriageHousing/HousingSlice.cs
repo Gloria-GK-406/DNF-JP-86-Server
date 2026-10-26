@@ -110,15 +110,3 @@ internal sealed class HousingChangedHandler(ISelectedSessionDomainService sessio
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }
 }
-
-public sealed record InitializeHousingCommand(SelectedSessionIdentity Session) : ICommand<bool>, IAccountCommand
-{ public AccountId AccountId => Session.AccountId; }
-public sealed class InitializeHousingCommandHandler(IMarriageHousingDomainService housing, ISelectedSessionDomainService sessions)
-    : ICommandHandler<InitializeHousingCommand, bool>
-{
-    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, InitializeHousingCommand command, CancellationToken ct)
-    {
-        if (!sessions.IsSelected(command.Session)) return false;
-        await housing.InitializeAsync(command.AccountId, command.Session.CharacterId, ct).ConfigureAwait(false); return true;
-    }
-}

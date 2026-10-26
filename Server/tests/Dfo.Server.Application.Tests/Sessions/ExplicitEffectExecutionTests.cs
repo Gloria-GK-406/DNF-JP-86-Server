@@ -407,6 +407,8 @@ public sealed class ExplicitEffectExecutionTests
     private static ShopFixture Fixture(Witness witness, Replay replay) => new(services =>
     {
         foreach (var registration in services.Where(value => value.ImplementationInstance is MessageHandlerRegistration { MessageType: ClientMessageType.GameExit }).ToArray()) services.Remove(registration);
+        foreach (var descriptor in services.Where(d => d.ImplementationInstance is CommandHandlerRegistration registration
+            && registration.CommandType == typeof(Dfo.Server.Protocol.Game.Exit.GameExitCommand)).ToArray()) services.Remove(descriptor);
         services.RegisterMessageHandler<ProbeNetworkHandler>(ClientMessageType.GameExit);
         services.AddCommandHandler<Probe, bool, ProbeHandler>(CommandExecutionKind.Transactional);
         services.AddSingleton(witness); services.AddSingleton<IReplayStateProjectionDelivery>(replay);

@@ -29,7 +29,7 @@ public sealed class SelectionWorkflowCurrencyTests
             var session = sessions.Selected(state, Account, Character, "Game:workflow");
             var housing = new RecordingHousing();
 
-            Assert.True(await Run(new InitializeHousingCommandHandler(housing, sessions), session));
+            Assert.True(await Dfo.Server.Protocol.Game.SelectCharacter.GameSelectCharacterCommandHandler.InitializeHousingStageAsync(sessions, housing, session, default));
             Assert.Equal([Character], housing.Initialized);
         });
     }
@@ -44,16 +44,10 @@ public sealed class SelectionWorkflowCurrencyTests
             Assert.True(state.TryDisconnectConnection(session.ConnectionId));
             var housing = new RecordingHousing();
 
-            Assert.False(await Run(new InitializeHousingCommandHandler(housing, sessions), session));
+            Assert.False(await Dfo.Server.Protocol.Game.SelectCharacter.GameSelectCharacterCommandHandler.InitializeHousingStageAsync(sessions, housing, session, default));
             Assert.Empty(housing.Initialized);
         });
     }
-
-    private static ValueTask<bool> Run(InitializeHousingCommandHandler handler, SelectedSessionIdentity session) =>
-        handler.HandleAsync(
-            new CommandExecutionContext(Guid.NewGuid(), typeof(InitializeHousingCommand),
-                typeof(InitializeHousingCommandHandler), CommandExecutionKind.Transactional),
-            new InitializeHousingCommand(session), CancellationToken.None);
 
     private sealed class RecordingHousing : IMarriageHousingDomainService
     {

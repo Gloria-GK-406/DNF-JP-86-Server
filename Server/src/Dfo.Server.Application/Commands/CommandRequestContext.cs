@@ -64,6 +64,40 @@ public abstract class CommandRequestContext
     }
     private bool closed;
     private bool unitOpen;
+    private CommandWorkUnit? activeUnit;
+    private object? selectedSessionCleanup;
+    internal CommandSelectedSessionCleanupCapability SelectedSessionCleanup { get; set; }
+    internal void AttachUnit(CommandWorkUnit unit) => activeUnit = unit;
+    internal object BeginSelectedSessionCleanup(CommandWorkUnit? unit)
+    {
+        DemandSelectedSessionCleanupLifetime();
+        if (selectedSessionCleanup is not null || pendingSelfSettlement is not null
+            || (unit is null ? !OperationsCompleted : !ReferenceEquals(unit, activeUnit) || !unit.IsInAction))
+            throw new InvalidOperationException("Selected-session cleanup requires its sole live action or completed operations.");
+        // A first authority loss is a failure, never a way to finish the protocol successfully.
+        try { DemandCurrent(); }
+        catch (Exception error) { Failed(error); }
+        var invocation = new object();
+        if (Interlocked.CompareExchange(ref selectedSessionCleanup, invocation, null) is not null)
+            throw new InvalidOperationException("Selected-session cleanup is already in progress.");
+        return invocation;
+    }
+    private void DemandSelectedSessionCleanupLifetime()
+    {
+        if (closed || GameplayJob.Current?.Id != job || this is not ProtocolNonEffect
+            || SelectedSessionCleanup != CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle)
+            throw new InvalidOperationException("The request has no live selected-session cleanup permission.");
+    }
+    internal void DemandSelectedSessionCleanup(object invocation, CommandWorkUnit? unit)
+    {
+        DemandSelectedSessionCleanupLifetime();
+        if (!ReferenceEquals(selectedSessionCleanup, invocation) || unit is not null
+            && (!ReferenceEquals(activeUnit, unit) || !unit.IsInAction))
+            throw new InvalidOperationException("The selected-session cleanup invocation has ended.");
+    }
+    internal void EndSelectedSessionCleanup(object invocation)
+    { Interlocked.CompareExchange(ref selectedSessionCleanup, null, invocation); }
+
     private readonly List<Task> operations = [];
     private CommandRequestContext() { }
 
@@ -103,17 +137,18 @@ public abstract class CommandRequestContext
     {
         DemandCurrent();
         DemandNoIncompleteAttempt();
+        if (selectedSessionCleanup is not null) throw new InvalidOperationException("Selected-session cleanup is in progress.");
         if (unitOpen) throw new InvalidOperationException("Command work units cannot overlap.");
         unitOpen = true;
     }
     internal void TrackOperation(Task operation) => operations.Add(operation);
-    internal void EndUnit() => unitOpen = false;
+    internal void EndUnit() { unitOpen = false; activeUnit = null; }
     internal void DemandFinished()
     {
         DemandCurrent();
         DemandNoIncompleteAttempt();
         if (this is ProtocolEffectSelected selected) selected.State.DemandFinished();
-        if (unitOpen || operations.Any(operation => !operation.IsCompleted))
+        if (selectedSessionCleanup is not null || unitOpen || operations.Any(operation => !operation.IsCompleted))
             throw new InvalidOperationException("A command returned with an unfinished work unit.");
     }
     internal async ValueTask DrainOperationsAsync()
@@ -138,6 +173,8 @@ public abstract class CommandRequestContext
     }
     internal ProducerCancellationObservation? ProducerCancellation { get; set; }
     internal bool OperationsCompleted => !unitOpen && operations.All(operation => operation.IsCompleted);
+    /// <summary>Observes one propagated failure; an independent second occurrence is never the same event.</summary>
+    public bool HasOnlyFailure(Exception cause) => failures.Count == 1 && ReferenceEquals(failures[0].Error, cause);
     internal bool HasOnlyFailure(object source, Exception error) => failures.Count == 1
         && ReferenceEquals(failures[0].Source, source) && ReferenceEquals(failures[0].Error, error);
     internal void FailedIndependent(Exception error, object source)

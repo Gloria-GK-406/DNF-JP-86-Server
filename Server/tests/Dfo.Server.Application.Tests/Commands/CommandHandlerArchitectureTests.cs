@@ -40,6 +40,10 @@ public sealed class CommandHandlerArchitectureTests
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
             [typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink)] = "仅Joust首次成功在独立当前态读取后登记Inventory与Joust快照；不嵌套派发或授raw。",
             [typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery)] = "仅Joust按原采样点取得广播的精确选中集；只读、不调度或修改状态。",
+            [typeof(ICommandSelectedSessionCleanup)] = "只执行已批准选角与回选的固定精确会话清理，不授正常工作或通用恢复。",
+            [typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory)] = "既有纯协议帧工厂及完整预校验，不读写世界。",
+            [typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions)] = "既有协议尾帧发送配置。",
+            [typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions)] = "既有彩票实验协议开关，默认关闭。",
             [typeof(ICommandWorkUnits)] = "当前CMD的显式事务边界，不派发其它CMD。",
             [typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox)] = "只登记当前CMD的消息，不等待传输。",
             [typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures)] = "只登记精确连接关闭。",
@@ -147,6 +151,10 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(TimeProvider))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
     [InlineData(typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink))]
+    [InlineData(typeof(ICommandSelectedSessionCleanup))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions))]
     [InlineData(typeof(ICommandWorkUnits))]
     [InlineData(typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]

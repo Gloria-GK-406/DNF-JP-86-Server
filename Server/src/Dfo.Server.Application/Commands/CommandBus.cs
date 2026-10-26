@@ -205,6 +205,7 @@ internal sealed class CommandBus(
             }
             request.RegistrationExits = registration.RegistrationExits ?? [];
             request.SelfSettlement = registration.SelfSettlement;
+            request.SelectedSessionCleanup = registration.SelectedSessionCleanup;
             var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType,
                 registration.ExecutionKind) { Request = request };
             request.DemandCurrent();

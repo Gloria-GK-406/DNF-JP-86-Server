@@ -157,6 +157,36 @@ public sealed class NotificationHandlerArchitectureTests
             message.GetType().GetProperty("Participant")!.GetValue(message));
     }
 
+    [Fact]
+    public void Pvp_publication_is_bound_to_its_exact_handler_and_composer() => AssertPvpWiring(ProductionRegistrations());
+
+    [Fact]
+    public void Pvp_publication_wiring_rejects_a_missing_binding() => Assert.ThrowsAny<Exception>(() =>
+        AssertPvpWiring(ProductionRegistrations().Where(item => item.NotificationType != typeof(PvpParticipantPublished))));
+
+    [Fact]
+    public void Pvp_publication_wiring_rejects_even_a_different_handler_for_the_same_notification() => Assert.ThrowsAny<Exception>(() =>
+        AssertPvpWiring(ProductionRegistrations().Select(item => item.NotificationType == typeof(PvpParticipantPublished)
+            ? item with { HandlerType = typeof(WrongPvpHandler) } : item)));
+
+    private static NotificationHandlerRegistration[] ProductionRegistrations()
+    {
+        var services = new ServiceCollection();
+        new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+        return services.Select(item => item.ImplementationInstance).OfType<NotificationHandlerRegistration>().ToArray();
+    }
+    private static void AssertPvpWiring(IEnumerable<NotificationHandlerRegistration> registrations)
+    {
+        var binding = Assert.Single(registrations, item => item.NotificationType == typeof(PvpParticipantPublished));
+        Assert.Equal(typeof(PvpParticipantPublishedHandler), binding.HandlerType);
+        Assert.Equal(typeof(NotificationComposer<PvpParticipantPublished>), binding.ComposerType);
+    }
+    private sealed class WrongPvpHandler : INotificationHandler<PvpParticipantPublished>
+    {
+        public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
+            PvpParticipantPublished notification, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
+    }
+
     private static IEnumerable<Type> ProductionNotificationHandlers() =>
         typeof(ProtocolModule).Assembly
             .GetTypes()

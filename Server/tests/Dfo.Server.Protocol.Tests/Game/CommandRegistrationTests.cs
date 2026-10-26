@@ -35,6 +35,35 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// </remarks>
 public sealed class CommandRegistrationTests
 {
+    [Theory]
+    [InlineData(typeof(GameSelectCharacterCommand))]
+    [InlineData(typeof(GameReturnToSelectionCommand))]
+    public void Only_the_two_real_lifecycle_commands_receive_fixed_cleanup(Type command)
+    {
+        using var provider=BuildProductionGraph();
+        var row=Assert.Single(provider.GetServices<CommandHandlerRegistration>(),x=>x.CommandType==command);
+        Assert.Equal(CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,row.SelectedSessionCleanup);
+        Assert.Equal(CommandRouteKind.Protocol,row.Route);
+        Assert.Single(row.ProtocolMessages!);
+        _=new CommandHandlerRegistry([row]);
+    }
+    [Theory]
+    [InlineData("Internal")]
+    [InlineData("Effect")]
+    [InlineData("OtherProtocol")]
+    public void Fixed_cleanup_registration_rejects_other_routes_and_effects(string source)
+    {
+        using var provider=BuildProductionGraph();
+        var rows=provider.GetServices<CommandHandlerRegistration>().ToArray();
+        var row=source switch
+        {
+            "Internal" => rows.First(x=>x.Route==CommandRouteKind.Internal),
+            "Effect" => rows.First(x=>x.Route==CommandRouteKind.Protocol && x.ProtocolMessages!.Any(m=>typeof(Dfo.Server.Abstractions.Networking.IEffectSettlementRequest).IsAssignableFrom(m.MessageClrType))),
+            _ => rows.Single(x=>x.CommandType==typeof(Dfo.Server.Protocol.Game.Exit.GameExitCommand)),
+        };
+        Assert.Throws<InvalidOperationException>(()=>new CommandHandlerRegistry([row with { SelectedSessionCleanup=CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle }]));
+    }
+
     [Fact]
     public void Reports_have_three_exact_bindings_without_fine_or_extra_capabilities()
     {
@@ -97,7 +126,7 @@ public sealed class CommandRegistrationTests
             Assert.DoesNotContain(rows, x => x.CommandType.Name == fine);
             Assert.DoesNotContain(typeof(ProtocolModule).Assembly.GetTypes(), x => x.Name == fine || x.Name == fine + "Handler");
         }
-        Assert.Equal(CommandRouteKind.LegacyFineGrained, Assert.Single(rows, x => x.CommandType.Name == "ActivateClientHotkeyProfileCommand").Route);
+        Assert.DoesNotContain(rows, x => x.CommandType.Name == "ActivateClientHotkeyProfileCommand");
     }
 
     [Fact]
@@ -545,23 +574,11 @@ public sealed class CommandRegistrationTests
         Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameUseStackableCommand)).Route);
         Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameMoveItemSpaceCommand)]);
         Assert.Equal(CommandRouteKind.Protocol, provider.GetServices<CommandHandlerRegistration>().Single(x => x.CommandType == typeof(GameMoveItemSpaceCommand)).Route);
-        Type[] reachPersistentWrites =
-        [
-            typeof(PrepareSelectedCharacterSessionCommand),
-            typeof(CleanupExpiredCharacterItemsCommand),
-            typeof(PrepareSelectedCharacterStateCommand),
-            typeof(ApplySelectedCharacterDailyRefillCommand),
-            typeof(SynchronizeSelectedCharacterQuestsCommand),
-            typeof(ReviveSelectedCharacterPetCommand),
-        ];
-
-        foreach (var command in reachPersistentWrites)
-        {
-            Assert.True(
-                registrations.TryGetValue(command, out var kind),
-                $"{command.Name} is not registered at all.");
-            Assert.Equal(CommandExecutionKind.Transactional, kind);
-        }
+        Assert.Equal(CommandExecutionKind.Direct, registrations[typeof(GameSelectCharacterCommand)]);
+        Assert.DoesNotContain(provider.GetServices<CommandHandlerRegistration>(), r =>
+            r.CommandType.Name is "PrepareSelectedCharacterSessionCommand" or "CleanupExpiredCharacterItemsCommand"
+                or "PrepareSelectedCharacterStateCommand" or "ApplySelectedCharacterDailyRefillCommand"
+                or "SynchronizeSelectedCharacterQuestsCommand" or "ReviveSelectedCharacterPetCommand");
     }
 
     [Fact]
@@ -608,10 +625,9 @@ public sealed class CommandRegistrationTests
         using var provider = BuildProductionGraph();
         var registrations = provider.GetServices<CommandHandlerRegistration>()
             .ToDictionary(value => value.CommandType);
-        Assert.Equal(CommandExecutionKind.Transactional,
-            registrations[typeof(PrepareReturnToSelectionCommand)].ExecutionKind);
-        Assert.Equal(CommandExecutionKind.Workflow,
-            registrations[typeof(CompleteReturnToSelectionCommand)].ExecutionKind);
+        Assert.Equal(CommandRouteKind.Protocol, registrations[typeof(GameReturnToSelectionCommand)].Route);
+        Assert.Equal(CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle, registrations[typeof(GameReturnToSelectionCommand)].SelectedSessionCleanup);
+        Assert.DoesNotContain(registrations.Keys, type => type.Name is "PrepareReturnToSelectionCommand" or "CompleteReturnToSelectionCommand");
     }
 
     /// <remarks>

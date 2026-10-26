@@ -391,7 +391,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingTreeMessage, Dfo.Server.Protocol.Game.HousingTreeEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRingMessage, Dfo.Server.Protocol.Game.HousingRingEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRewardsMessage, Dfo.Server.Protocol.Game.HousingRewardsEncoder>();
-        services.AddCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommandHandler>(CommandExecutionKind.Transactional);
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(0x03F5, ClientMessageType.GameWeddingLovePoint);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLovePointCommand>(ClientMessageType.GameWeddingLovePoint);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
@@ -560,15 +559,6 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameFinishQuest, typeof(FinishQuestRequest)));
         services.AddProtocolCommandHandler<GameMonsterDeathCommand, bool, GameMonsterDeathCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameMonsterDeath, typeof(MonsterDeathRequest)));
-        services.AddCommandHandler<PrepareReturnToSelectionCommand, PreparedReturnToSelection, PrepareReturnToSelectionCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<CompleteReturnToSelectionCommand, CompletedReturnToSelection, CompleteReturnToSelectionCommandHandler>(
-            CommandExecutionKind.Workflow);
-        // Every command below reaches a write that outlives the process, so every one of them
-        // opens a use case boundary. A write with no boundary settles on its own: it looks like it
-        // worked, it is not taken back by whatever else the command was doing, and no test shows
-        // it, because a lone write does succeed. The kind decides only that -- the pipeline treats
-        // Direct, Workflow and Transactional identically everywhere else.
         services.AddProtocolCommandHandler<GameLoginCommand, GameLoginCompleted, GameLoginCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameLogin, typeof(GameLoginRequest)));
         // These complete protocol commands own their original explicit write segments; no account gate remains.
@@ -580,36 +570,15 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameCreateCharacter, typeof(CreateCharacterRequest)));
         services.AddProtocolCommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult, GameDeleteCharacterCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteCharacter, typeof(DeleteCharacterRequest)));
-        services.AddCommandHandler<PrepareSelectedCharacterSessionCommand, PreparedSelectedCharacterSession, PrepareSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<CleanupExpiredCharacterItemsCommand, bool, CleanupExpiredCharacterItemsCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<EnsureDailyContractPuppetsCommand, bool, EnsureDailyContractPuppetsCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<PrepareSelectedCharacterStateCommand, SelectCharacterResult, PrepareSelectedCharacterStateCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ApplySelectedCharacterDailyRefillCommand, EntryInventoryPreparation, ApplySelectedCharacterDailyRefillCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<PublishSelectedCharacterSessionCommand, PublishedSelectedCharacterSession, PublishSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Workflow);
-        services.AddCommandHandler<MarkSelectedCharacterPvpReadyCommand, SelectedCharacterPvpPublication, MarkSelectedCharacterPvpReadyCommandHandler>(
-            CommandExecutionKind.Workflow);
+        services.AddProtocolCommandHandler<GameSelectCharacterCommand, bool, GameSelectCharacterCommandHandler>(
+            CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,
+            new ProtocolCommandMessageBinding(ClientMessageType.GameSelectCharacter, typeof(SelectCharacterRequest)));
+        services.AddProtocolCommandHandler<GameReturnToSelectionCommand, bool, GameReturnToSelectionCommandHandler>(
+            CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,
+            new ProtocolCommandMessageBinding(ClientMessageType.GameReturnToSelection, typeof(ReturnToSelectionRequest)));
+        services.AddProtocolCommandHandler<GameExitCommand, bool, GameExitCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameExit, typeof(GameExitRequest)));
         services.AddNotificationHandler<PvpParticipantPublished, PvpParticipantPublishedHandler>();
-        // These two change a character's stored state, so they are the phases that need a
-        // boundary: the unit of work opens one for Transactional commands and for nothing else.
-        // Without it the store would have no transaction to join and the change would land
-        // outside any outcome that could take it back.
-        services.AddCommandHandler<SynchronizeSelectedCharacterQuestsCommand, SynchronizedSelectedCharacterQuests, SynchronizeSelectedCharacterQuestsCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddCommandHandler<ReviveSelectedCharacterPetCommand, RevivedSelectedCharacterPet, ReviveSelectedCharacterPetCommandHandler>(
-            CommandExecutionKind.Transactional);
-        // Not transactional, deliberately. Compensation is best effort: it collects what failed
-        // and carries on, and it ends by throwing what it collected. A boundary here would take
-        // back everything that had worked because something else did not -- the opposite of what
-        // it is for. Its one lasting write, where the character was standing, settles on its own.
-        services.AddCommandHandler<CompensateSelectedCharacterSessionCommand, CompensatedSelectedCharacterSession, CompensateSelectedCharacterSessionCommandHandler>(
-            CommandExecutionKind.Workflow);
-
         // Both act on one character's own container, which the registry already keeps per
         // character; neither reads or writes anything the account owns, so neither takes it.
         // Transactional, and in the same change that broke the move into separate writes. Marking
@@ -807,8 +776,8 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<ChannelScriptVersionHandler, ChannelScriptVersionRequest, ChannelScriptVersionCommand>(ClientMessageType.ChannelScriptVersion);
         services.RegisterProtocolMessageHandler<ChannelScriptHandler, ChannelScriptRequest, ChannelScriptCommand>(ClientMessageType.ChannelScript);
         services.RegisterProtocolMessageHandler<ChannelInfoHandler, ChannelInfoRequest, ChannelInfoCommand>(ClientMessageType.ChannelInfo);
-        services.RegisterMessageHandler<ReturnToSelectionHandler>(ClientMessageType.GameReturnToSelection);
-        services.RegisterMessageHandler<GameExitHandler>(ClientMessageType.GameExit);
+        services.RegisterProtocolMessageHandler<ReturnToSelectionHandler, ReturnToSelectionRequest, GameReturnToSelectionCommand>(ClientMessageType.GameReturnToSelection);
+        services.RegisterProtocolMessageHandler<GameExitHandler, GameExitRequest, GameExitCommand>(ClientMessageType.GameExit);
         services.AddProtocolCommandHandler<GameTaggedIdReportCommand, bool, GameTaggedIdReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameTaggedIdReport, typeof(TaggedIdReportRequest)));
         services.AddProtocolCommandHandler<GameDecreaseDurabilityCommand, bool, GameDecreaseDurabilityCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameDecreaseDurability, typeof(DecreaseDurabilityRequest)));
         services.AddProtocolCommandHandler<GamePremiumServiceUsageReportCommand, bool, GamePremiumServiceUsageReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GamePremiumServiceUsageReport, typeof(PremiumServiceUsageReport)));
@@ -818,7 +787,7 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<GetAccountCharacterRosterHandler, GetAccountCharacterRosterRequest, GameAccountRosterCommand>(ClientMessageType.GameGetAccountCharacterRoster);
         services.RegisterProtocolMessageHandler<GetOtherCharacterDetailHandler, GetOtherCharacterDetailRequest, GameOtherCharacterDetailCommand>(
             ClientMessageType.GameGetOtherCharacterDetail);
-        services.RegisterMessageHandler<SelectCharacterHandler>(ClientMessageType.GameSelectCharacter);
+        services.RegisterProtocolMessageHandler<SelectCharacterHandler, SelectCharacterRequest, GameSelectCharacterCommand>(ClientMessageType.GameSelectCharacter);
         services.AddProtocolCommandHandler<GameClientSpecStatisticCommand, bool, GameClientSpecStatisticCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameClientSpecStatistic, typeof(ClientSpecStatisticReportRequest)));
         services.RegisterProtocolMessageHandler<ClientSpecStatisticHandler, ClientSpecStatisticReportRequest, GameClientSpecStatisticCommand>(ClientMessageType.GameClientSpecStatistic);
@@ -850,7 +819,6 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveCharacterOption, typeof(SaveCharacterOptionRequest)));
         services.RegisterProtocolMessageHandler<SaveCharacterOptionHandler, SaveCharacterOptionRequest, GameSaveCharacterOptionCommand>(ClientMessageType.GameSaveCharacterOption);
         services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
-        services.AddCommandHandler<ActivateClientHotkeyProfileCommand, bool, ActivateClientHotkeyProfileCommandHandler>(CommandExecutionKind.Direct);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler, Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand>(ClientMessageType.GameSaveHotkeys);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand, bool, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveHotkeys, typeof(Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest)));

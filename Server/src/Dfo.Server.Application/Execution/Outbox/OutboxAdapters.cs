@@ -258,6 +258,9 @@ internal sealed class OutboxConnectionCloser : INetworkConnectionCloser, IComman
         GameplayOutboxes outboxes, INetworkConnectionContexts contexts, ILogger<OutboxConnectionCloser> logger)
         : this(outboxes, logger) => this.contexts = contexts;
 
+    public ValueTask ResolveAndRequestCloseAsync(NetworkConnectionId connectionId, CancellationToken cancellationToken) =>
+        RequestCloseAsync(connectionId, cancellationToken);
+
     public ValueTask RequestCloseAsync(NetworkConnectionContext expected, CancellationToken cancellationToken) =>
         RequestCloseExactAsync(expected, cancellationToken);
 

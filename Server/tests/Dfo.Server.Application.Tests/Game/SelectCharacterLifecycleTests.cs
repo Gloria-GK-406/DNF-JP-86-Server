@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -43,10 +44,10 @@ public sealed partial class SelectCharacterLifecycleTests
             var f = await Fixture.CreateAsync(tau: new TauMarker());
             await f.Handler.HandleAsync(f.Context, f.Command, default);
             var types = f.Bus.DispatchedCommands;
-            Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
-                > types.IndexOf(typeof(PublishSelectedCharacterSessionCommand)));
-            Assert.True(types.IndexOf(typeof(Dfo.Server.Application.World.RefillOnlineTauTicketCommand))
-                < types.IndexOf(typeof(SynchronizeSelectedCharacterQuestsCommand)));
+            Assert.True(types.IndexOf(typeof(RefillTauStage))
+                > types.IndexOf(typeof(PublishSelectedCharacterSessionStage)));
+            Assert.True(types.IndexOf(typeof(RefillTauStage))
+                < types.IndexOf(typeof(SynchronizeSelectedCharacterQuestsStage)));
         });
     }
     private sealed class TauMarker : ITauKingdomDomainService
@@ -81,15 +82,15 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Ledger);
             Assert.Equal(
                 [
-                    typeof(PrepareSelectedCharacterSessionCommand),
-                    typeof(CleanupExpiredCharacterItemsCommand),
-                    typeof(EnsureDailyContractPuppetsCommand),
-                    typeof(Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand),
-                    typeof(PrepareSelectedCharacterStateCommand),
-                    typeof(ApplySelectedCharacterDailyRefillCommand),
-                    typeof(PublishSelectedCharacterSessionCommand),
-                    typeof(SynchronizeSelectedCharacterQuestsCommand),
-                    typeof(ReviveSelectedCharacterPetCommand),
+                    typeof(PrepareSelectedCharacterSessionStage),
+                    typeof(CleanupExpiredCharacterItemsStage),
+                    typeof(EnsureDailyContractPuppetsStage),
+                    typeof(InitializeHousingStage),
+                    typeof(PrepareSelectedCharacterStateStage),
+                    typeof(ApplySelectedCharacterDailyRefillStage),
+                    typeof(PublishSelectedCharacterSessionStage),
+                    typeof(SynchronizeSelectedCharacterQuestsStage),
+                    typeof(ReviveSelectedCharacterPetStage),
                 ],
                 fixture.Bus.DispatchedCommands);
             Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
@@ -279,7 +280,7 @@ public sealed partial class SelectCharacterLifecycleTests
             Assert.Equal(0, fixture.Sender.StateMessageCount);
             Assert.Equal(0, fixture.Inventory.Claims);
             Assert.Null(fixture.Directory.Find(fixture.AccountId));
-            Assert.DoesNotContain(typeof(PrepareSelectedCharacterStateCommand), fixture.Bus.DispatchedCommands);
+            Assert.DoesNotContain(typeof(PrepareSelectedCharacterStateStage), fixture.Bus.DispatchedCommands);
         });
     }
 
@@ -824,40 +825,29 @@ public sealed partial class SelectCharacterLifecycleTests
                 var preparation = refuseAdmission
                     ? null
                     : new Preparation(result, ledger, failPreparation, mutations);
-                var prepareHandler = new PrepareSelectedCharacterSessionCommandHandler(
+                var prepareHandler = new PrepareSelectedCharacterSessionStageHandler(
                     users,
                     refuseAdmission ? new RefusingPreparation(ledger) : preparation!,
                     directory,
                     cleanup);
                 var bus = new RecordingCommandBus(
                     prepareHandler,
-                    new CleanupExpiredCharacterItemsCommandHandler(
+                    new CleanupExpiredCharacterItemsStageHandler(
                         new StubExpiredCleanup(refuseExpiredCleanup, failExpiredCleanup)),
-                    new PrepareSelectedCharacterStateCommandHandler(
+                    new PrepareSelectedCharacterStateStageHandler(
                         refuseAdmission ? new RefusingPreparation(ledger) : preparation!, inventory),
-                    new ApplySelectedCharacterDailyRefillCommandHandler(inventory),
-                    new PublishSelectedCharacterSessionCommandHandler(active, sessionEntry),
-                    new MarkSelectedCharacterPvpReadyCommandHandler(sessionEntry),
-                    new SynchronizeSelectedCharacterQuestsCommandHandler(
+                    new ApplySelectedCharacterDailyRefillStageHandler(inventory),
+                    new PublishSelectedCharacterSessionStageHandler(active, sessionEntry),
+                    new MarkSelectedCharacterPvpReadyStageHandler(sessionEntry),
+                    new SynchronizeSelectedCharacterQuestsStageHandler(
                         new QuestEntry(ledger, changeQuest, failQuest)),
-                    new ReviveSelectedCharacterPetCommandHandler(
+                    new ReviveSelectedCharacterPetStageHandler(
                         new PetEntry(ledger, revivePet)),
-                    new CompensateSelectedCharacterSessionCommandHandler(cleanup, directory));
-                var handler = new SelectCharacterHandler(
-                    users,
-                    new StubChannelEntryPolicy(),
-                    bus,
-                    new StubStateMessageFactory(),
-                    directory,
-                    gameSender ?? sender,
-                    notifications,
-                    townAreaProjection,
-                    cleanupDelivery ?? new NoopCleanupDelivery(),
-                    connectionCloser ?? closer,
-                    NullLogger<SelectCharacterHandler>.Instance,
-                    // These tests describe the full delivery contract, including everything that
-                    // follows the entry batch. Production runs the reference sequence instead.
-                    SelectCharacterDeliveryOptions.Everything, tau:tau);
+                    new CompensateSelectedCharacterSessionStageHandler(cleanup, directory));
+                bus.Workflow = new LifecycleWorkflow(users, new TestEntryChannel(), new StubStateMessageFactory(), directory,
+                    gameSender ?? sender, notifications, connectionCloser ?? closer, bus,
+                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau);
+                var handler = new SelectCharacterHandler(bus);
                 var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
                 return new Fixture(
                     accountId, connectionId, result, ledger, directory, active, closer,
@@ -884,16 +874,17 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     private sealed class RecordingCommandBus(
-        PrepareSelectedCharacterSessionCommandHandler prepare,
-        CleanupExpiredCharacterItemsCommandHandler cleanupExpired,
-        PrepareSelectedCharacterStateCommandHandler prepareState,
-        ApplySelectedCharacterDailyRefillCommandHandler refill,
-        PublishSelectedCharacterSessionCommandHandler publish,
-        MarkSelectedCharacterPvpReadyCommandHandler markPvpReady,
-        SynchronizeSelectedCharacterQuestsCommandHandler quests,
-        ReviveSelectedCharacterPetCommandHandler pet,
-        CompensateSelectedCharacterSessionCommandHandler compensate) : ICommandBus
+        PrepareSelectedCharacterSessionStageHandler prepare,
+        CleanupExpiredCharacterItemsStageHandler cleanupExpired,
+        PrepareSelectedCharacterStateStageHandler prepareState,
+        ApplySelectedCharacterDailyRefillStageHandler refill,
+        PublishSelectedCharacterSessionStageHandler publish,
+        MarkSelectedCharacterPvpReadyStageHandler markPvpReady,
+        SynchronizeSelectedCharacterQuestsStageHandler quests,
+        ReviveSelectedCharacterPetStageHandler pet,
+        CompensateSelectedCharacterSessionStageHandler compensate) : ICommandBus
     {
+        public LifecycleWorkflow? Workflow { get; set; }
         public SelectCharacterResult? State { get; private set; }
         public List<Type> DispatchedCommands { get; } = [];
 
@@ -902,29 +893,36 @@ public sealed partial class SelectCharacterLifecycleTests
             CancellationToken cancellationToken = default)
             where TResult : notnull
         {
+            if (command is not GameSelectCharacterCommand whole) throw new NotSupportedException(command.GetType().Name);
+            var ctx = new CommandExecutionContext(Guid.NewGuid(), typeof(GameSelectCharacterCommand), typeof(LifecycleWorkflow), CommandExecutionKind.Direct)
+            { Request = new CommandRequestContext.ProtocolNonEffect(whole.Dispatch,whole.Input,new ProtocolFrameMetadata.Game(whole.Input.Metadata),()=>true) };
+            return (TResult)(object)await Workflow!.HandleAsync(ctx, whole, cancellationToken);
+        }
+        public async ValueTask<TResult> SendStageAsync<TResult>(ISelectionStage<TResult> command, CancellationToken cancellationToken=default) where TResult:notnull
+        {
             DispatchedCommands.Add(command.GetType());
             object result = command switch
             {
-                PrepareSelectedCharacterSessionCommand value =>
+                PrepareSelectedCharacterSessionStage value =>
                     await RunAsync(prepare, value, cancellationToken),
-                CleanupExpiredCharacterItemsCommand value =>
+                CleanupExpiredCharacterItemsStage value =>
                     await RunAsync(cleanupExpired, value, cancellationToken),
-                EnsureDailyContractPuppetsCommand => false,
-                Dfo.Server.Protocol.Game.MarriageHousing.InitializeHousingCommand => false,
-                Dfo.Server.Application.World.RefillOnlineTauTicketCommand => true,
-                PrepareSelectedCharacterStateCommand value =>
+                EnsureDailyContractPuppetsStage => false,
+                InitializeHousingStage => false,
+                RefillTauStage => true,
+                PrepareSelectedCharacterStateStage value =>
                     await RunAsync(prepareState, value, cancellationToken),
-                ApplySelectedCharacterDailyRefillCommand value =>
+                ApplySelectedCharacterDailyRefillStage value =>
                     await RunAsync(refill, value, cancellationToken),
-                PublishSelectedCharacterSessionCommand value =>
+                PublishSelectedCharacterSessionStage value =>
                     await RunAsync(publish, value, cancellationToken),
-                MarkSelectedCharacterPvpReadyCommand value =>
+                MarkSelectedCharacterPvpReadyStage value =>
                     await RunAsync(markPvpReady, value, cancellationToken),
-                SynchronizeSelectedCharacterQuestsCommand value =>
+                SynchronizeSelectedCharacterQuestsStage value =>
                     await RunAsync(quests, value, cancellationToken),
-                ReviveSelectedCharacterPetCommand value =>
+                ReviveSelectedCharacterPetStage value =>
                     await RunAsync(pet, value, cancellationToken),
-                CompensateSelectedCharacterSessionCommand value =>
+                CompensateSelectedCharacterSessionStage value =>
                     await RunAsync(compensate, value, cancellationToken),
                 _ => throw new InvalidOperationException(
                     $"Unexpected command '{command.GetType().Name}'."),
@@ -950,10 +948,10 @@ public sealed partial class SelectCharacterLifecycleTests
         }
 
         private static async ValueTask<TResult> RunAsync<TCommand, TResult>(
-            ICommandHandler<TCommand, TResult> handler,
+            ISelectionStageHandler<TCommand, TResult> handler,
             TCommand command,
             CancellationToken cancellationToken)
-            where TCommand : class, ICommand<TResult>
+            where TCommand : class, ISelectionStage<TResult>
             where TResult : notnull
         {
             using var footprint = new TestEffectFootprints.Lease(Array.Empty<Dfo.Server.Abstractions.Effects.EffectFootprintOwner>());
@@ -961,6 +959,61 @@ public sealed partial class SelectCharacterLifecycleTests
             context.SupplyLegacyFootprint(footprint);
             return await handler.HandleAsync(context, command, cancellationToken);
         }
+    }
+
+    private sealed class TestEntryChannel : Dfo.Server.Abstractions.Channel.IChannelEntryDomainService
+    {
+        public ValueTask<ChannelEntryIdentity> ResolveAsync(int port, CancellationToken ct) => new StubChannelEntryPolicy().ResolveAsync(port, ct);
+        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => new StubChannelEntryPolicy().Refuse(channel, level);
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
+    }
+    private sealed class LifecycleWorkflow : GameSelectCharacterCommandHandler
+    {
+        private readonly RecordingCommandBus stages;
+        private readonly ICleanupNotificationDelivery cleanupDelivery;
+        private readonly TownAreaProjectionDelivery town;
+        public LifecycleWorkflow(IOnlineUserQueryDomainService users, Dfo.Server.Abstractions.Channel.IChannelEntryDomainService channels,
+            ISelectedCharacterStateMessageFactory factory, ISelectedSessionDomainService sessions, IGameMessageSender sender,
+            IEventService events, INetworkConnectionCloser closer, RecordingCommandBus stages,
+            ICleanupNotificationDelivery cleanupDelivery, TownAreaProjectionDelivery town, ITauKingdomDomainService? tau)
+            : base(users, channels, factory, sessions, new TestGameOutbox(sender), new TestProjections(events), new TestClosures(closer),
+                cleanup: null!, units: null!, preparation: null!, inventoryEntry: null!, sessionEntry: null!, questEntry: null!, petEntry: null!,
+                expiredItems: null!, puppets: null!, housingEntry: null!, parties: null!, projectionState: new PartyProjectionStreamRegistry(), townAreas: null!,
+                logger: NullLogger<GameSelectCharacterCommandHandler>.Instance, delivery: SelectCharacterDeliveryOptions.Everything, clock: TimeProvider.System, tau: tau)
+        { this.stages=stages; this.cleanupDelivery=cleanupDelivery; this.town=town; }
+        protected override ValueTask<PreparedSelectedCharacterSession> PrepareSessionAsync(CommandExecutionContext x, AccountId account,
+            ushort slot, ChannelEntryIdentity channel, NetworkConnectionId id, long generation, CancellationToken ct) =>
+            stages.SendStageAsync(new PrepareSelectedCharacterSessionStage(account, slot, channel, id, generation), ct);
+        protected internal override async ValueTask<bool> CleanupExpiredAsync(CommandExecutionContext x, SelectedSessionIdentity session, Action<Exception> failed, CancellationToken ct)
+        { try { return await stages.SendStageAsync(new CleanupExpiredCharacterItemsStage(session), ct); } catch (Exception error) { failed(error); x.Request!.Failed(error); throw; } }
+        protected override ValueTask<bool> EnsurePuppetsAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => stages.SendStageAsync(new EnsureDailyContractPuppetsStage(s), ct);
+        protected override ValueTask<bool> InitializeHousingAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => stages.SendStageAsync(new InitializeHousingStage(s), ct);
+        protected internal override ValueTask<SelectCharacterResult> PrepareStateAsync(CommandExecutionContext x, SelectedSessionIdentity s, ActiveCharacterState selected, ChannelEntryIdentity channel, CancellationToken ct) => stages.SendStageAsync(new PrepareSelectedCharacterStateStage(s, selected, channel), ct);
+        protected internal override ValueTask<EntryInventoryPreparation> DailyRefillAsync(CommandExecutionContext x, SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new ApplySelectedCharacterDailyRefillStage(s, prepared), ct);
+        protected internal override ValueTask<PublishedSelectedCharacterSession> PublishAsync(SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new PublishSelectedCharacterSessionStage(s, prepared), ct);
+        protected override ValueTask<bool> RefillTauAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => stages.SendStageAsync(new RefillTauStage(s), ct);
+        protected internal override ValueTask<SelectedCharacterPvpPublication> MarkPvpReadyAsync(SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new MarkSelectedCharacterPvpReadyStage(s, prepared), ct);
+        protected internal override ValueTask<SynchronizedSelectedCharacterQuests> SynchronizeQuestsAsync(CommandExecutionContext x, SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new SynchronizeSelectedCharacterQuestsStage(s, prepared), ct);
+        protected internal override ValueTask<RevivedSelectedCharacterPet> RevivePetAsync(CommandExecutionContext x, SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new ReviveSelectedCharacterPetStage(s, prepared), ct);
+        protected internal override async ValueTask<SelectedSessionCleanupNotificationPlan> CompensateAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => (await stages.SendStageAsync(new CompensateSelectedCharacterSessionStage(s), ct)).Notifications;
+        protected override ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) => cleanupDelivery.DeliverAsync(plan, ct);
+        protected override ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity s, TownParticipantPublicationPlan plan, CancellationToken ct) => town.PublishCommittedEntryAsync(s, plan, ct);
+    }
+    private sealed class TestGameOutbox(IGameMessageSender sender) : IGameCommandOutbox
+    {
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => sender.SendCmdAsync(id,message,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => sender.SendNotiAsync(id,message,ct);
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) => sender.SendExplicitAsync(id,delivery,ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext target, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct) => throw new NotSupportedException();
+    }
+    private sealed class TestProjections(IEventService events) : ICommandProjections
+    {
+        public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken ct=default) where T:class, INotification<T> => events.ProjectAsync(audience,notification,ct);
+    }
+    private sealed class TestClosures(INetworkConnectionCloser closer) : ICommandConnectionClosures
+    {
+        public ValueTask ResolveAndRequestCloseAsync(NetworkConnectionId id, CancellationToken ct) => closer.RequestCloseAsync(id,ct);
+        public ValueTask RequestCloseAsync(NetworkConnectionContext target, CancellationToken ct) => closer.RequestCloseExactAsync(target,ct);
     }
 
     private sealed class StubExpiredCleanup(bool refuse, bool fail) : IExpiredCharacterItemCleanupDomainService

@@ -33,7 +33,7 @@ public sealed class MarriageProtocolRegistrationTests
         Assert.DoesNotContain(typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetTypes(), x => extinct.Contains(x.Name) || extinct.Any(n => x.Name == n + "Handler"));
         var registrations = f.Services.GetServices<CommandHandlerRegistration>().ToArray();
         Assert.DoesNotContain(registrations, x => extinct.Contains(x.CommandType.Name));
-        foreach (var retained in new[] { "InitializeHousingCommand", "AdvanceMarriageWeddingCommand", "CompleteWeddingCleanupCommand" })
+        foreach (var retained in new[] { "AdvanceMarriageWeddingCommand", "CompleteWeddingCleanupCommand" })
             Assert.Contains(registrations, x => x.CommandType.Name == retained && x.Route == CommandRouteKind.LegacyFineGrained);
     }
 }
