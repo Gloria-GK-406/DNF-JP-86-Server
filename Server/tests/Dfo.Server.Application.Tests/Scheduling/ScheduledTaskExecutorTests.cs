@@ -1,3 +1,6 @@
+using ScheduledTaskRegistration = Dfo.Server.Application.Tests.Scheduling.TestScheduledTaskRegistration;
+using ScheduledTaskContext = Dfo.Server.Application.Tests.Scheduling.TestScheduledTaskContext;
+using ScheduledTaskCallback = Dfo.Server.Application.Tests.Scheduling.TestScheduledTaskCallback;
 using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Scheduling;
@@ -27,7 +30,7 @@ public sealed class ScheduledTaskExecutorTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<TimeProvider>(clock);
-        services.AddScheduledTask(new ScheduledTaskRegistration("probe.retry", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
+        services.AddTestScheduledTask(new ScheduledTaskRegistration("probe.retry", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
             (_, _) =>
             {
                 attempts.Enqueue((GameplayJob.IsOnExecutor, GameplayJob.Current));
@@ -86,7 +89,7 @@ public sealed class ScheduledTaskExecutorTests
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddProvider(logs));
         services.AddSingleton<TimeProvider>(clock);
-        services.AddScheduledTask(new ScheduledTaskRegistration("probe.last-attempt", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
+        services.AddTestScheduledTask(new ScheduledTaskRegistration("probe.last-attempt", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
             (_, _) => throw new InvalidOperationException("the only attempt fails"))
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce, MaximumAttempts = 1 });
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });

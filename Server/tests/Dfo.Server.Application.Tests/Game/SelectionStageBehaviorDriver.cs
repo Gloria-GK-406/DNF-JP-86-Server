@@ -147,6 +147,7 @@ internal static class ProductionSelectionStages
     }
     private sealed class CleanupAdapter(ISelectedSessionCleanupDomainService cleanup) : ICommandSelectedSessionCleanup
     {
+        public void RecordDisconnectedDeliveryFailure(CommandExecutionContext context, Exception cause) => throw new NotSupportedException("This fixture only drives selection stages.");
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(CommandExecutionContext context,SelectedSessionIdentity session,
             bool includeOwner,CommandWorkUnit? action=null,CancellationToken cancellationToken=default) =>
             cleanup.CleanupAsync(session,includeOwner,context.LegacyFootprint,cancellationToken);

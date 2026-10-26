@@ -401,6 +401,10 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 | TaggedIdReport／DecreaseDurability／PremiumServiceUsageReport | 三普通写与 Premium slot4 独立只读均空 selected；[源码](Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs)，`TASK-55`。 |
 | CeraQuery／RuntimeTingStatistic、CreatureResponseReport／CreatureScriptMessage、四硬件与会话报告、StoryPause、MercenaryInfo／SecurityStatus／RosterFollowUp／ContentsPlayInfo／ConnectionCheck、ShopPurchaseCount | 原直接读取、日志及静态应答，无事务或新增选中保护；[源码](Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs)。 |
 | LoginSessionMaintenance／JoustMaintenance（启动／定时）／AltarScheduler／DungeonPartyWipe／CreatureClock／MarriageWedding／RoomMechanismMaintenance／TournamentRewardSweep／WeaknessRecovery；Altar／Dimension／GoldSilverHorn／ReviveCoin／Mirror／Heras／Tournament／ItemUsage／Premium／Fatigue 日切 | [源码](Server/src/Dfo.Server.Application/Execution/TypedGameplayTimerSource.cs)。 |
+| Lifecycle Connected／Disconnected／DepthRootClose | [源码](Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs)。 |
+| ConsumeDomainEvent／SettleDepthExceededDomainEvent | [源码](Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs)。 |
+| InitializeEpicBook／InitializeCharacterExperienceStorage | [源码](Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs)。 |
+| ScheduledGameplayTask（在线物品过期／名字标签／三处入场券补给） | [源码](Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs)。 |
 
 **共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
 CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文

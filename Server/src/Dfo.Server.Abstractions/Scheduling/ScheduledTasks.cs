@@ -8,12 +8,9 @@ public interface IScheduledTaskSchedule
 
 public enum ScheduledTaskMissedRunPolicy { Skip, RunOnce }
 
-public sealed record ScheduledTaskContext(IServiceProvider Services, string TaskId,
-    DateTimeOffset ScheduledAt, DateTimeOffset StartedAt, int Attempt);
+public sealed record ScheduledTaskContext(string TaskId, DateTimeOffset ScheduledAt, DateTimeOffset StartedAt, int Attempt);
 
-public delegate ValueTask ScheduledTaskCallback(ScheduledTaskContext context, CancellationToken ct);
-
-public sealed record ScheduledTaskRegistration(string Id, IScheduledTaskSchedule Schedule, ScheduledTaskCallback Execute)
+public sealed record ScheduledTaskRegistration(string Id, IScheduledTaskSchedule Schedule, Type HandlerType)
 {
     public ScheduledTaskMissedRunPolicy MissedRun { get; init; } = ScheduledTaskMissedRunPolicy.Skip;
     public int MaximumAttempts { get; init; } = 3;

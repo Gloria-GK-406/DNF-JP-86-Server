@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -237,7 +238,7 @@ public sealed class ExplicitEffectExecutionTests
         CleanupApply? cleanup = null;
         using var f = new ShopFixture(services =>
         {
-            services.AddSingleton<ILifecycleEffectFootprintSource>(source);
+            services.AddSingleton<INetworkConnectionLifecycleHandler>(source);
             services.AddSingleton<ISelectedSessionCleanupDomainService>(provider => cleanup = new CleanupApply(
                 provider.GetRequiredService<IApplyEffectsDomainService>(), provider.GetRequiredService<DomainTransactionScope>()));
         });
@@ -251,28 +252,32 @@ public sealed class ExplicitEffectExecutionTests
         Assert.Equal(99993, f.Gold);
         Assert.NotNull(cleanup!.Cap);
         Assert.Throws<InvalidOperationException>(() => cleanup.Cap!.DemandEffects(Owner(f)));
-        await TestGameplay.RunAsync(f.Services, () =>
+        await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(f.Services, () =>
         {
             Assert.Throws<InvalidOperationException>(() => cleanup.Cap!.DemandEffects(Owner(f)));
             return Task.CompletedTask;
-        });
+        }));
     }
 
     [Fact]
     public async Task Lifecycle_factory_refuses_unknown_default_and_wrong_job_origins_and_is_no_command_injection_exemption()
     {
-        var factory = new LifecycleEffectFootprintSource();
-        var origin = new InternalCommandOrigin(GameplayCallSource.Lifecycle, GameplayCallChain.NewRoot(GameplayCallSource.Lifecycle), "cleanup");
-        Assert.Throws<GameplayOffExecutorException>(() => factory.Open(origin));
-        await TestGameplay.RunAsync(() =>
+        using var f = new ShopFixture();
+        var cap = f.Services.GetRequiredService<ICommandSelectedSessionCleanup>();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => cap.CleanupAsync(
+            new(Guid.NewGuid(), typeof(DisconnectedLifecycleCommand), typeof(OnlineUserConnectionObserver), CommandExecutionKind.Direct),
+            f.Session, false).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.Throws<InvalidOperationException>(() => factory.Open(origin with { Chain = default }));
-            Assert.Throws<InvalidOperationException>(() => factory.Open(origin));
-            Assert.Throws<InvalidOperationException>(() => factory.Open(origin with { Kind = GameplayCallSource.Event }));
+            foreach (var kind in new[] { GameplayCallSource.Event, GameplayCallSource.Timer, GameplayCallSource.Lifecycle })
+            {
+                var request = new CommandRequestContext.TrustedInternal(new(kind, GameplayJob.Current!.Value, "wrong-origin"));
+                var context = new CommandExecutionContext(Guid.NewGuid(), typeof(ConnectedLifecycleCommand), typeof(OnlineUserConnectionObserver), CommandExecutionKind.Direct) { Request = request };
+                await Assert.ThrowsAsync<InvalidOperationException>(() => cap.CleanupAsync(context, f.Session, false).AsTask());
+            }
             new Dfo.Server.Application.Tests.Commands.CommandHandlerArchitectureTests()
-                .ATypeOutsideTheVocabularyIsRefused(typeof(ILifecycleEffectFootprintSource));
-            return Task.CompletedTask;
-        });
+                .ATypeOutsideTheVocabularyIsRefused(typeof(INetworkConnectionLifecycleHandler));
+        }));
     }
 
     [Fact]
@@ -493,11 +498,15 @@ public sealed class ExplicitEffectExecutionTests
         public CeraShopPlanningResult Plan(CeraShopQuote quote, IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held, int gold, AccountCeraBalances balances, int identitySeed) =>
             inner.Plan(quote, held, gold, balances, identitySeed);
     }
-    private sealed class LifecycleWitness : ILifecycleEffectFootprintSource
+    private sealed class LifecycleWitness : INetworkConnectionLifecycleHandler
     {
         public List<InternalCommandOrigin> Origins { get; } = [];
-        public ILifecycleEffectFootprintLease Open(InternalCommandOrigin origin)
-        { Origins.Add(origin); return new LifecycleEffectFootprintSource().Open(origin); }
+        public ValueTask ConnectedAsync(CommandExecutionContext context, NetworkConnectionContext connection, CancellationToken token) => ValueTask.CompletedTask;
+        public ValueTask DisconnectedAsync(CommandExecutionContext context, NetworkConnectionContext connection, CancellationToken token)
+        {
+            Origins.Add(((CommandRequestContext.TrustedInternal)context.Request!).Origin);
+            return ValueTask.CompletedTask;
+        }
     }
     private sealed class QuotaGate(IUsageQuotaDomainService inner) : Pause, IUsageQuotaDomainService
     {

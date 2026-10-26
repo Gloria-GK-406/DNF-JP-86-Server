@@ -18,15 +18,15 @@ namespace Dfo.Server.Protocol.Game;
 public sealed class OnlineUserConnectionObserver(
     IOnlineUserDomainService onlineUsers,
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionCleanupDomainService cleanup,
+    ICommandSelectedSessionCleanup cleanup,
     IChannelEntryPolicy channels,
     IServerConfigService serverConfig,
-    IGameMessageSender gameSender,
+    IGameCommandOutbox gameSender,
     ICleanupNotificationDelivery cleanupDelivery,
-    ILifecycleEffectFootprintSource footprints, TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionObserver
+    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionLifecycleHandler
 {
     public async ValueTask ConnectedAsync(
-        NetworkConnectionContext connection,
+        CommandExecutionContext context, NetworkConnectionContext connection,
         CancellationToken cancellationToken)
     {
         if (connection.EndpointKind != NetworkEndpointKind.Game)
@@ -45,7 +45,7 @@ public sealed class OnlineUserConnectionObserver(
                     $"Game listener '{connection.ListenerPort}' does not resolve to a wire channel ID.");
             }
 
-            await gameSender.SendNotiAsync(
+            await gameSender.RegisterNotiAsync(
                 connection.ConnectionId,
                 new GameInitialConnectionNotice(
                     channel.ChannelId,
@@ -64,7 +64,7 @@ public sealed class OnlineUserConnectionObserver(
     }
 
     public async ValueTask DisconnectedAsync(
-        NetworkConnectionContext connection,
+        CommandExecutionContext context, NetworkConnectionContext connection,
         CancellationToken cancellationToken)
     {
         if (connection.EndpointKind != NetworkEndpointKind.Game)
@@ -72,9 +72,6 @@ public sealed class OnlineUserConnectionObserver(
             return;
         }
 
-        using var footprint = footprints.Open(new InternalCommandOrigin(GameplayCallSource.Lifecycle,
-            GameplayJob.Current ?? throw new InvalidOperationException("Cleanup requires a lifecycle job."),
-            nameof(OnlineUserConnectionObserver) + "." + nameof(CleanupSelectedAsync), SourceConnection: null));
         clientSettings?.ForgetConnection(connection.ConnectionId);
         if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var observed)
             || observed is null)
@@ -84,14 +81,14 @@ public sealed class OnlineUserConnectionObserver(
             // had selected still reads as revoked and its other resources need full cleanup.
             if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
             {
-                _ = await CleanupSelectedAsync(orphaned, footprint.Footprint).ConfigureAwait(false);
+                _ = await CleanupSelectedAsync(context, orphaned).ConfigureAwait(false);
             }
             return;
         }
 
         var selected = selectedSessions.FindByConnection(connection.ConnectionId);
         var cleanedSelected = selected is not null
-            && await CleanupSelectedAsync(selected, footprint.Footprint).ConfigureAwait(false);
+            && await CleanupSelectedAsync(context, selected).ConfigureAwait(false);
         if (onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
             && current is not null && current.OnlineUserId == observed.OnlineUserId
             && (cleanedSelected || current.Generation == observed.Generation))
@@ -103,7 +100,7 @@ public sealed class OnlineUserConnectionObserver(
         }
     }
 
-    private async ValueTask<bool> CleanupSelectedAsync(SelectedSessionIdentity selected, IEffectFootprintRecorder footprint)
+    private async ValueTask<bool> CleanupSelectedAsync(CommandExecutionContext context, SelectedSessionIdentity selected)
     {
         // A command may have completed exact cleanup before this observer ran. Never clean a
         // replacement selected by the same account or a reused connection identifier.
@@ -115,7 +112,7 @@ public sealed class OnlineUserConnectionObserver(
         try
         {
             var notifications = await cleanup.CleanupAsync(
-                selected, includeOwner: false, footprint, CancellationToken.None).ConfigureAwait(false);
+                context, selected, includeOwner: false, cancellationToken: CancellationToken.None).ConfigureAwait(false);
             await cleanupDelivery.DeliverAsync(
                 notifications, CancellationToken.None).ConfigureAwait(false);
         }
@@ -127,13 +124,14 @@ public sealed class OnlineUserConnectionObserver(
                     cleanupFailure.NotificationPlan,
                     CancellationToken.None).ConfigureAwait(false);
             }
-            catch
+            catch (Exception deliveryFailure)
             {
-                // The cleanup failure remains primary; peer delivery stays best effort.
+                cleanup.RecordDisconnectedDeliveryFailure(context, deliveryFailure);
             }
         }
-        catch
+        catch (Exception error)
         {
+            cleanup.RecordDisconnectedDeliveryFailure(context, error);
             // Cleanup is internally compensating and may aggregate individual failures.
             // A closed transport still must release the matching online connection.
         }

@@ -387,12 +387,11 @@ public sealed partial class SelectCharacterLifecycleTests
         var observer = new OnlineUserConnectionObserver(
             fixture.Users,
             fixture.Directory,
-            fixture.Cleanup,
+            new CommandSelectedSessionCleanup(fixture.Cleanup),
             new StubChannelEntryPolicy(),
             new StubServerConfigService(),
-            fixture.Sender,
-            new NoopCleanupDelivery(),
-            new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
+            new LifecycleTestOutbox(fixture.Sender),
+            new NoopCleanupDelivery(), TimeProvider.System);
         await TestGameplay.RunAsync(async () =>
         {
         await observer.DisconnectedAsync(

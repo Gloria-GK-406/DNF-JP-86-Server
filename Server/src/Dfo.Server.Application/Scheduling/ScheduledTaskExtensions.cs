@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,10 @@ public static class ScheduledTaskExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         // Every attempt runs on the executor, so a container with a scheduler has one.
-        services.AddGameplayExecution();
+        services.AddCommandDispatching();
+        services.TryAddScoped<ICommandScheduledTaskDispatch, CommandScheduledTaskDispatch>();
+        if (!services.Any(x => x.ServiceType == typeof(ICommandHandler<ScheduledGameplayTaskCommand, ScheduledGameplayTaskResult>)))
+            services.AddInternalCommandHandler<ScheduledGameplayTaskCommand, ScheduledGameplayTaskResult, ScheduledGameplayTaskCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ScheduledTaskHostedService>());
         return services;

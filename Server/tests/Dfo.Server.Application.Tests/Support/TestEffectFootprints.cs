@@ -33,15 +33,6 @@ internal static class TestEffectFootprints
         public void Dispose() => closed = true;
     }
 
-    internal sealed class LifecycleSource(IReadOnlyList<EffectFootprintOwner> owners) : Dfo.Server.Application.Effects.ILifecycleEffectFootprintSource
-    {
-        public List<InternalCommandOrigin> Origins { get; } = [];
-        public Dfo.Server.Application.Effects.ILifecycleEffectFootprintLease Open(InternalCommandOrigin origin)
-        { Origins.Add(origin); return new LifecycleLease(new Lease(owners)); }
-        private sealed class LifecycleLease(Lease lease) : Dfo.Server.Application.Effects.ILifecycleEffectFootprintLease
-        { public IEffectFootprintRecorder Footprint => lease; public void Dispose() => lease.Dispose(); }
-    }
-
     internal static async ValueTask<T> Run<T>(IEnumerable<SelectedSessionIdentity> owners, Func<IEffectFootprintRecorder, ValueTask<T>> action)
     {
         using var lease = new Lease(owners.Select(owner => new EffectFootprintOwner(owner.AccountId, owner.CharacterId, owner)).ToArray());

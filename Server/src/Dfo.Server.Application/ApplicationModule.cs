@@ -660,6 +660,9 @@ public sealed class ApplicationModule : IServerModule
                     provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(),
                     provider.GetRequiredService<IDungeonParticipationDomainService>()),
                 () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
+        services.TryAddSingleton<ICharacterExperienceInitializationDomainService, CharacterExperienceInitializationDomainService>();
+        services.AddInternalCommandHandler<InitializeCharacterExperienceStorageCommand, CharacterExperienceScale, InitializeCharacterExperienceStorageCommandHandler>();
+        services.AddInternalCommandHandler<InitializeEpicBookCommand, bool, InitializeEpicBookCommandHandler>();
         services.TryAddSingleton<ICharacterDomainService>(
             provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
@@ -705,7 +708,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IReviveCoinDomainService, ReviveCoinDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ReviveCoinClaimRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
-        services.TryAddSingleton<ILifecycleEffectFootprintSource, LifecycleEffectFootprintSource>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();
         services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();
@@ -843,7 +845,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(AuthenticationRuleService.From(configuration));
         services.TryAddSingleton(LoginSessionOptions.From(configuration));
         services.TryAddSingleton<LoginSessionRegistry>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<INetworkConnectionObserver, LoginSessionConnectionObserver>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, LoginSessionConnectionObserver>());
         services.AddTypedGameplayTimer<LoginSessionMaintenanceService>();
         services.TryAddSingleton<Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>>(p => () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>());
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();

@@ -74,16 +74,9 @@ public interface INetworkConnectionCloser
         CancellationToken cancellationToken);
 }
 
-public interface INetworkConnectionObserver
-{
-    ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
-
-    ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
-}
-
 /// <summary>
 /// What the transport calls when a connection is established or lost (RQ-012): every
-/// <see cref="INetworkConnectionObserver"/> runs, in registration order, as one lifecycle CMD.
+/// registered lifecycle handler runs, in registration order, as one lifecycle CMD.
 /// Returns once that CMD has run (not delivered), like <see cref="INetworkMessageDispatcher"/>.
 /// </summary>
 public interface INetworkConnectionLifecycleDispatcher

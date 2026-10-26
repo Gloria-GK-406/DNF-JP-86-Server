@@ -200,7 +200,7 @@ public sealed class TauKingdomTests
             return reselected;
         });
         for (var repeat = 0; repeat < 2; repeat++)
-            Assert.True(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new RefillOnlineTauTicketCommand(reselected)));
+            Assert.True(await Dfo.Server.Application.Tests.Inventory.ScheduledCleanupFixture.RunDomainAsync(f.Services, reselected, token => f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITauKingdomDomainService>().RefillOnlineTicketAsync(reselected, token)));
         items = await containers.GetContainer(new(71), InventoryContainerType.Main).GetAllAsync(default);
         Assert.Equal(2, items.Where(x => x.ItemId == 690001556).Sum(x => x.Count));
         // Books created by the same arrival path carry the next game-day deadline.

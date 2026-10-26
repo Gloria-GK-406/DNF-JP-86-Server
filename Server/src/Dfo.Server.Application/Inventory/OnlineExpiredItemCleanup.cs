@@ -40,47 +40,45 @@ internal sealed class OnlineExpiredItemCleanupDomainService(ISelectedSessionDoma
     }
 }
 
-public sealed record CleanupOnlineExpiredItemsCommand(SelectedSessionIdentity Session)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
+internal sealed class DailyResetTaskSchedule(IDailyResetRuleService daily) : IScheduledTaskSchedule
 {
-    public AccountId AccountId => Session.AccountId;
+    public DateTimeOffset LastOccurrence(DateTimeOffset at) => daily.PeriodStart(at);
+    public DateTimeOffset NextOccurrence(DateTimeOffset after) => daily.PeriodStart(after).AddDays(1);
 }
 
-internal sealed class CleanupOnlineExpiredItemsCommandHandler(IOnlineExpiredItemCleanupDomainService cleanup)
-    : ICommandHandler<CleanupOnlineExpiredItemsCommand, bool>
+internal sealed class OnlineExpiredItemCleanupJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+    IOnlineExpiredItemCleanupDomainService cleanup, ICommandWorkUnits units, Microsoft.Extensions.Logging.ILogger<OnlineExpiredItemCleanupJob> logger) : IScheduledGameplayTask
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context,
-        CleanupOnlineExpiredItemsCommand command, CancellationToken ct) => cleanup.CleanupAsync(command.Session, ct);
-}
-
-internal sealed class OnlineExpiredItemCleanupJob(ISelectedSessionSnapshotQuery online, ICommandBus commands,
-    ISelectedSessionDomainService sessions, ILogger<OnlineExpiredItemCleanupJob> logger)
-{
-    public async ValueTask RunAsync(CancellationToken ct)
+    public async ValueTask<ScheduledTaskBusinessResult> RunAsync(CommandExecutionContext execution, ScheduledTaskContext scheduled, CancellationToken ct)
     {
         var failures = new List<Exception>();
         foreach (var session in online.Snapshot())
         {
             ct.ThrowIfCancellationRequested();
-            try { await commands.SendAsync(new CleanupOnlineExpiredItemsCommand(session), ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception error)
+            if (!sessions.IsInWorld(session)) continue;
+            Exception? actionFailure = null;
+            var result = await units.WriteResultAsync(execution, new("inventory.expiration.online", [ScheduledSessionRecipient.Capture(session, users)]), async (unit, token) =>
             {
-                // A selected command deliberately rejects a generation displaced while queued.
-                if (!sessions.IsInWorld(session)) continue;
-                logger.LogError(error, "Online expired-item cleanup failed account={AccountId} character={CharacterId}",
-                    session.AccountId, session.CharacterId);
+                try { return await cleanup.CleanupAsync(session, token).ConfigureAwait(false); }
+                catch (Exception error) when (error is not OperationCanceledException
+                    && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error)
+                    && !Dfo.Server.Application.DomainEvents.DomainEventScopeCleanupException.Contains(error))
+                {
+                    execution.DemandRequest();
+                    unit.RequireRollback(error);
+                    actionFailure = error;
+                    return false;
+                }
+            }, ct).ConfigureAwait(false);
+            var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
+            if (error is not null && sessions.IsInWorld(session))
+            {
+                logger.LogError(error, "Online expired-item cleanup failed account={AccountId} character={CharacterId}", session.AccountId, session.CharacterId);
                 failures.Add(error);
             }
         }
-        if (failures.Count > 0) throw new AggregateException("Online expired-item cleanup had failed characters.", failures);
+        return ScheduledTaskBusinessResult.Handled(execution, "Online expired-item cleanup had failed characters.", failures);
     }
-}
-
-internal sealed class DailyResetTaskSchedule(IDailyResetRuleService daily) : IScheduledTaskSchedule
-{
-    public DateTimeOffset LastOccurrence(DateTimeOffset at) => daily.PeriodStart(at);
-    public DateTimeOffset NextOccurrence(DateTimeOffset after) => daily.PeriodStart(after).AddDays(1);
 }
 
 internal static class OnlineExpiredItemCleanupRegistration
@@ -89,11 +87,8 @@ internal static class OnlineExpiredItemCleanupRegistration
     {
         services.AddSingleton<IOnlineExpiredItemCleanupDomainService, OnlineExpiredItemCleanupDomainService>();
         services.AddScoped<OnlineExpiredItemCleanupJob>();
-        services.AddCommandHandler<CleanupOnlineExpiredItemsCommand, bool, CleanupOnlineExpiredItemsCommandHandler>(
-            CommandExecutionKind.Transactional);
         services.AddDomainEvent<OnlineExpiredItemsRemoved>("inventory.expired-items-removed", 1);
-        services.AddScheduledTaskFactory(sp => new("inventory.expiration.online",
-            new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
-            (context, ct) => context.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(ct)));
+        services.AddScheduledTaskFactory(sp => new("inventory.expiration.online", new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()), typeof(OnlineExpiredItemCleanupJob)));
+
     }
 }

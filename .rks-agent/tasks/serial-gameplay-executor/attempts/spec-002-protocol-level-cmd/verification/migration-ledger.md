@@ -414,3 +414,10 @@ restatement guard mutation导致真实物品逆向回65资产RED、fresh drag正
 本批仅闭合 message:65791／65794／65853 及旧 AltarDeathBatchCommand 共四行；三个 whole CMD 复用 AltarCommandPhases 实质阶段，死亡批次单事务与 Distinct、完整 cohort 与报告者 physical、Ready 后配额、Difficulty 先 ACK 且抑制重复0129、原 Wake 位置保持。罕见基础设施失败统一引用 VC-B40；没有新能力或注入类别。实际验证在 [task58-verification.md](task58-verification.md)。
 
 AltarActionCommand 仍由 AltarScheduler 及 DungeonPartyWipeService→AltarProjectionDelivery.Fail 消费，RefillOnlineBossTowerTicketCommand 仍由 SelectCharacterHandler 和 BossTowerDailyRefill 消费，保持 pending；两塔其他已闭行不重做，T-008 整簇仍开放。JSON 是唯一进度依据，original、原顺序及非本四行均保持。
+
+
+### TASK-64：生命周期、事件、启动与计划调度
+
+仅闭合 `source:lifecycle-connected`、`source:lifecycle-disconnected`、`source:event-consumer`、`source:event-depth-settlement`、`source:startup-epic-book`、`source:startup-experience-storage`、`source:scheduled-task` 七来源及其五个最后消费者 fine；JSON 是唯一逐行权威。消息159 closed／14 retained；fine202 closed／2 pending；来源73 closed／12 retained；保护2 closed／3 pending，过渡8 pending。ReadReplayState 与 ReportDungeonQuestFacts 留 T-011，original／ID／顺序与非目标不变。
+
+真实业务移入 typed CMD／注册拥有者，Direct事件不排队。原生命周期代次／清理／关闭链、Reliable同事务与独立retry、LiveOnly先提交后投影、启动准备位置、scheduled实际开始时最新Requested及原五业务阶段保持；部分业务失败经固定完成桥保原Aggregate和重试，其他infra按VC-B40。最终证据见 `task64-verification.md`：r2 App＋r1其余七项，9848＝9828通过＋2原Dimension失败＋18原跳过，新增27／删除0；DFO原67＋7、strict及八坏例通过。此Task不宣告T-011／B／最终性能完成。

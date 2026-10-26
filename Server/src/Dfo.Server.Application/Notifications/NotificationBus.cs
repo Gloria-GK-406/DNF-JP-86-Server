@@ -133,9 +133,15 @@ internal sealed class NotificationBus : INotificationBus
             var accepted = false;
             if (contexts is not null && contexts.TryGet(recipient.ConnectionId, out var connection) && connection is not null)
             {
-                if (sender is ICommandMessageOutbox registration)
-                    accepted = await registration.RegisterBatchWithOutcomeAsync(connection, messages, cancellationToken).ConfigureAwait(false);
-                else await sender.SendBatchAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+                using var observation = outboxes.Current.ObserveRecipientRegistration(connection);
+                try
+                {
+                    if (sender is ICommandMessageOutbox registration)
+                        accepted = await registration.RegisterBatchWithOutcomeAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+                    else await sender.SendBatchAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception error) { observation.CompleteFailure(error); throw; }
+
             }
             else if (logger.IsEnabled(LogLevel.Debug))
                 logger.LogDebug("Notification for character {CharacterId} was dropped: {ConnectionId} is no longer registered",

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -12,45 +13,47 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World;
 
-public sealed record RefillOnlineTauTicketCommand(SelectedSessionIdentity Session)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
-{ public AccountId AccountId => Session.AccountId; }
-internal sealed class RefillOnlineTauTicketCommandHandler(ITauKingdomDomainService tau)
-    : ICommandHandler<RefillOnlineTauTicketCommand, bool>
+internal sealed class TauKingdomDailyRefillJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+    ITauKingdomDomainService tau, ICommandWorkUnits units, Microsoft.Extensions.Logging.ILogger<TauKingdomDailyRefillJob> logger) : IScheduledGameplayTask
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, RefillOnlineTauTicketCommand command, CancellationToken ct)
-        => tau.RefillOnlineTicketAsync(command.Session, ct);
-}
-internal sealed class TauKingdomDailyRefillJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions,
-    ICommandBus commands, ILogger<TauKingdomDailyRefillJob> logger)
-{
-    public async ValueTask RunAsync(CancellationToken ct)
+    public async ValueTask<ScheduledTaskBusinessResult> RunAsync(CommandExecutionContext execution, ScheduledTaskContext scheduled, CancellationToken ct)
     {
         var failures = new List<Exception>();
         foreach (var session in online.Snapshot())
         {
             ct.ThrowIfCancellationRequested();
-            try { await commands.SendAsync(new RefillOnlineTauTicketCommand(session), ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception error)
+            if (!sessions.IsInWorld(session)) continue;
+            Exception? actionFailure = null;
+            var result = await units.WriteResultAsync(execution, new("tau-kingdom.ticket-refill.online", [ScheduledSessionRecipient.Capture(session, users)]), async (unit, token) =>
             {
-                if (!sessions.IsInWorld(session)) continue;
+                try { return await tau.RefillOnlineTicketAsync(session, token).ConfigureAwait(false); }
+                catch (Exception error) when (error is not OperationCanceledException
+                    && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error)
+                    && !Dfo.Server.Application.DomainEvents.DomainEventScopeCleanupException.Contains(error))
+                {
+                    execution.DemandRequest();
+                    unit.RequireRollback(error);
+                    actionFailure = error;
+                    return false;
+                }
+            }, ct).ConfigureAwait(false);
+            var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
+            if (error is not null && sessions.IsInWorld(session))
+            {
                 logger.LogError(error, "Tau ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }
         }
-        if (failures.Count > 0) throw new AggregateException("Online Tau ticket refill failed.", failures);
+        return ScheduledTaskBusinessResult.Handled(execution, "Online Tau ticket refill failed.", failures);
     }
 }
+
 internal static class TauKingdomDailyRefillRegistration
 {
     internal static void AddTauKingdomDailyRefill(this IServiceCollection services)
     {
         services.AddScoped<TauKingdomDailyRefillJob>();
-        services.AddCommandHandler<RefillOnlineTauTicketCommand, bool, RefillOnlineTauTicketCommandHandler>(
-            CommandExecutionKind.Transactional);
-        services.AddScheduledTaskFactory(sp => new("tau-kingdom.ticket-refill.online",
-            new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
-            (context, ct) => context.Services.GetRequiredService<TauKingdomDailyRefillJob>().RunAsync(ct)));
+        services.AddScheduledTaskFactory(sp => new("tau-kingdom.ticket-refill.online", new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()), typeof(TauKingdomDailyRefillJob)));
+
     }
 }

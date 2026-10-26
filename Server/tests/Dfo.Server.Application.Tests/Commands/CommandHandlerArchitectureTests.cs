@@ -40,6 +40,9 @@ public sealed class CommandHandlerArchitectureTests
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
             [typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink)] = "仅Joust首次成功在独立当前态读取后登记Inventory与Joust快照；不嵌套派发或授raw。",
             [typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery)] = "仅Joust按原采样点取得广播的精确选中集；只读、不调度或修改状态。",
+            [typeof(Dfo.Server.Application.DomainEvents.ICommandDomainEventConsumption)] = "仅事件注册分发及原可靠消费/重试阶段，不向CMD暴露持久化或动态解析。",
+            [typeof(Dfo.Server.Application.Scheduling.ICommandScheduledTaskDispatch)] = "仅已注册typed计划任务的固定分发，不传业务委托或world输入。",
+            [typeof(ICommandConnectionLifecycle)] = "仅连接生命周期typed注册分发与原深度降级，不接受任意业务委托。",
             [typeof(ICommandSelectedSessionCleanup)] = "只执行已批准选角与回选的固定精确会话清理，不授正常工作或通用恢复。",
             [typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory)] = "既有纯协议帧工厂及完整预校验，不读写世界。",
             [typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions)] = "既有协议尾帧发送配置。",
@@ -56,6 +59,9 @@ public sealed class CommandHandlerArchitectureTests
                 "队伍聚合的权威边界按领域语言明确命名为 PartyService；用户要求该名称不追加 Domain 后缀。",
         };
 
+    private interface IPretendLifecycleDispatch;
+    private interface IPretendScheduledDispatch;
+    private interface IPretendEventConsumption;
     private interface IPretendOutbox;
     private interface IPretendSnapshotQuery;
     private interface IPretendCardPresentationControl { void Cancel(); }
@@ -134,6 +140,9 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Abstractions.Execution.IGameplayQueue))]
     [InlineData(typeof(Dfo.Server.Application.Execution.GameplayExecutor))]
     [InlineData(typeof(IServiceProvider))]
+    [InlineData(typeof(IPretendLifecycleDispatch))]
+    [InlineData(typeof(IPretendScheduledDispatch))]
+    [InlineData(typeof(IPretendEventConsumption))]
     [InlineData(typeof(IPretendOutbox))]
     [InlineData(typeof(IPretendSnapshotQuery))]
     [InlineData(typeof(IPretendCardPresentationControl))]
@@ -152,6 +161,9 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(TimeProvider))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
     [InlineData(typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink))]
+    [InlineData(typeof(ICommandConnectionLifecycle))]
+    [InlineData(typeof(Dfo.Server.Application.Scheduling.ICommandScheduledTaskDispatch))]
+    [InlineData(typeof(Dfo.Server.Application.DomainEvents.ICommandDomainEventConsumption))]
     [InlineData(typeof(ICommandSelectedSessionCleanup))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions))]

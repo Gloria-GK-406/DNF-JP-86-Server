@@ -3435,25 +3435,38 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
-          "line": 20,
-          "source_sha256": "56c7c41eb39a66a11b3bb1ff639fd780233e715846aee9bef3660e10871557ce"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ScheduledGameplayTaskCommand／character.name-tag.expiration：每个原snapshot session先核当前in-world，再以原selected精确session及实际physical声明ordinary WriteResult；直接调用ICharacterNameTagDomainService.ExpireAsync。健康动作失败RequireRollback／已知CommitRolledBack收集后继续，固定完成桥待whole完整健康收口后在原queue body抛原Aggregate，无额外fence；次级infra仍默认保护。",
+          "old": "Transactional"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
-          "line": 20,
-          "source_sha256": "56c7c41eb39a66a11b3bb1ff639fd780233e715846aee9bef3660e10871557ce"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "command:Dfo.Server.Application.Characters.ExpireCharacterNameTagCommand",
       "original": {
         "command": "Dfo.Server.Application.Characters.ExpireCharacterNameTagCommand",
@@ -3480,31 +3493,53 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
-          "line": 20,
-          "source_sha256": "56c7c41eb39a66a11b3bb1ff639fd780233e715846aee9bef3660e10871557ce"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+          "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+          "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+        ],
+        "new": "ScheduledGameplayTaskCommand在注册handler里直接执行该领域动作和原逐session显式单元；record/handler/旧fine注册从产品移除。",
+        "old": "对应真实scheduled callback在同一raw job内逐角色调用此fine。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
-          "line": 20,
-          "source_sha256": "56c7c41eb39a66a11b3bb1ff639fd780233e715846aee9bef3660e10871557ce"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
-          "line": 20,
-          "source_sha256": "56c7c41eb39a66a11b3bb1ff639fd780233e715846aee9bef3660e10871557ce"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。；只用真实显式source，不从目标伪造来源。",
+          "old": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Characters/CharacterNameTagExpiration.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -4577,25 +4612,38 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
-          "line": 49,
-          "source_sha256": "0bdd26cf67df51e055acbf3987f342912e680b9e55ac47d5af9d39403db78342"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ScheduledGameplayTaskCommand／inventory.expiration.online：每个原snapshot session先核当前in-world，再以原selected精确session及实际physical声明ordinary WriteResult；直接调用IOnlineExpiredItemCleanupDomainService.CleanupAsync。健康动作失败RequireRollback／已知CommitRolledBack收集后继续，固定完成桥待whole完整健康收口后在原queue body抛原Aggregate，无额外fence；次级infra仍默认保护。",
+          "old": "Transactional"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
-          "line": 49,
-          "source_sha256": "0bdd26cf67df51e055acbf3987f342912e680b9e55ac47d5af9d39403db78342"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "command:Dfo.Server.Application.Inventory.CleanupOnlineExpiredItemsCommand",
       "original": {
         "command": "Dfo.Server.Application.Inventory.CleanupOnlineExpiredItemsCommand",
@@ -4622,52 +4670,87 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
-          "line": 49,
-          "source_sha256": "0bdd26cf67df51e055acbf3987f342912e680b9e55ac47d5af9d39403db78342"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+          "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+          "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+        ],
+        "new": "ScheduledGameplayTaskCommand在注册handler里直接执行该领域动作和原逐session显式单元；record/handler/旧fine注册从产品移除。",
+        "old": "对应真实scheduled callback在同一raw job内逐角色调用此fine。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
-          "line": 49,
-          "source_sha256": "0bdd26cf67df51e055acbf3987f342912e680b9e55ac47d5af9d39403db78342"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
-          "line": 49,
-          "source_sha256": "0bdd26cf67df51e055acbf3987f342912e680b9e55ac47d5af9d39403db78342"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。；只用真实显式source，不从目标伪造来源。",
+          "old": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Inventory/OnlineExpiredItemCleanup.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "286de38c73ceb253736384e874e22b39edb777706aaae4ad445b32dbc7428704"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ScheduledGameplayTaskCommand／boss-tower.ticket-refill.online：每个原snapshot session先核当前in-world，再以原selected精确session及实际physical声明ordinary WriteResult；直接调用IBossTowerTicketDomainService.RefillOnlineTicketAsync。健康动作失败RequireRollback／已知CommitRolledBack收集后继续，固定完成桥待whole完整健康收口后在原queue body抛原Aggregate，无额外fence；次级infra仍默认保护。",
+          "old": "Transactional"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "286de38c73ceb253736384e874e22b39edb777706aaae4ad445b32dbc7428704"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "command:Dfo.Server.Application.World.BossTower.RefillOnlineBossTowerTicketCommand",
       "original": {
         "command": "Dfo.Server.Application.World.BossTower.RefillOnlineBossTowerTicketCommand",
@@ -4694,52 +4777,87 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "286de38c73ceb253736384e874e22b39edb777706aaae4ad445b32dbc7428704"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+          "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+          "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+        ],
+        "new": "ScheduledGameplayTaskCommand在注册handler里直接执行该领域动作和原逐session显式单元；record/handler/旧fine注册从产品移除。",
+        "old": "对应真实scheduled callback在同一raw job内逐角色调用此fine。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "286de38c73ceb253736384e874e22b39edb777706aaae4ad445b32dbc7428704"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "286de38c73ceb253736384e874e22b39edb777706aaae4ad445b32dbc7428704"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。；只用真实显式source，不从目标伪造来源。",
+          "old": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/BossTower/BossTowerDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "bc9f8212c08a1361f6c38432fc8dcc24d6b32658709da37c1a05da72709133e9"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ScheduledGameplayTaskCommand／southern-dale.ticket-refill.online：每个原snapshot session先核当前in-world，再以原selected精确session及实际physical声明ordinary WriteResult；直接调用ISouthernDaleDomainService.RefillOnlineTicketAsync。健康动作失败RequireRollback／已知CommitRolledBack收集后继续，固定完成桥待whole完整健康收口后在原queue body抛原Aggregate，无额外fence；次级infra仍默认保护。",
+          "old": "Transactional"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "bc9f8212c08a1361f6c38432fc8dcc24d6b32658709da37c1a05da72709133e9"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "command:Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand",
       "original": {
         "command": "Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand",
@@ -4766,52 +4884,87 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "bc9f8212c08a1361f6c38432fc8dcc24d6b32658709da37c1a05da72709133e9"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+          "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+          "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+        ],
+        "new": "ScheduledGameplayTaskCommand在注册handler里直接执行该领域动作和原逐session显式单元；record/handler/旧fine注册从产品移除。",
+        "old": "对应真实scheduled callback在同一raw job内逐角色调用此fine。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "bc9f8212c08a1361f6c38432fc8dcc24d6b32658709da37c1a05da72709133e9"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "bc9f8212c08a1361f6c38432fc8dcc24d6b32658709da37c1a05da72709133e9"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。；只用真实显式source，不从目标伪造来源。",
+          "old": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/SouthernDaleDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "c5fa30f39ff72234efade64a75128068b4c9c8c396e821044821d9128984c629"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ScheduledGameplayTaskCommand／tau-kingdom.ticket-refill.online：每个原snapshot session先核当前in-world，再以原selected精确session及实际physical声明ordinary WriteResult；直接调用ITauKingdomDomainService.RefillOnlineTicketAsync。健康动作失败RequireRollback／已知CommitRolledBack收集后继续，固定完成桥待whole完整健康收口后在原queue body抛原Aggregate，无额外fence；次级infra仍默认保护。",
+          "old": "Transactional"
+        }
+      ],
       "classification": "legacy-command",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "c5fa30f39ff72234efade64a75128068b4c9c8c396e821044821d9128984c629"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "command:Dfo.Server.Application.World.RefillOnlineTauTicketCommand",
       "original": {
         "command": "Dfo.Server.Application.World.RefillOnlineTauTicketCommand",
@@ -4838,31 +4991,53 @@
         "result": "System.Boolean"
       },
       "original_callers": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "c5fa30f39ff72234efade64a75128068b4c9c8c396e821044821d9128984c629"
-        },
-        "state": "pending"
+        "evidence": [
+          ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+          "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+          "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+          "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+          "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+        ],
+        "new": "ScheduledGameplayTaskCommand在注册handler里直接执行该领域动作和原逐session显式单元；record/handler/旧fine注册从产品移除。",
+        "old": "对应真实scheduled callback在同一raw job内逐角色调用此fine。"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "c5fa30f39ff72234efade64a75128068b4c9c8c396e821044821d9128984c629"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
-          "line": 18,
-          "source_sha256": "c5fa30f39ff72234efade64a75128068b4c9c8c396e821044821d9128984c629"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。；只用真实显式source，不从目标伪造来源。",
+          "old": "原IAccount/ISelectedSession fine保护精确selected；现显式捕获同一真实connection引用，不借目标当source。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/World/TauKingdomDailyRefill.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/OnlineExpiredItemCleanupTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": {
@@ -40839,25 +41014,40 @@
   ],
   "sources": [
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 32,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ConnectedLifecycleCommand：bus Begin先于原注册顺序handler；Login无动作，Online原Register→channel→初始NOTI，失败只撤精确本次generation；zero handlers不入队。",
+          "old": "connected observer list in original order"
+        }
+      ],
       "classification": "lifecycle",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 32,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:lifecycle-connected",
       "original": {
         "body": "connected observer list in original order",
@@ -40874,46 +41064,79 @@
         "source_connection": "exact connecting context",
         "target_input": "exact NetworkConnectionContext; original observer list"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 32,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 32,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原精确连接是source，新Lifecycle根，零新增事务和selected保护。；只用真实显式source，不从目标伪造来源。",
+          "old": "原精确连接是source，新Lifecycle根，零新增事务和selected保护。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 42,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "DisconnectedLifecycleCommand：原cause.Child或新根，原LoginSession清理先于Online Forget/精确standing/固定cleanup+delivery/观察generation释放；专用cleanup footprint冻结原owners并关闭，临时LifecycleEffectFootprintSource删净。cleanup/delivery失败保cause但继续原连接释放，最终whole失败；depth拒绝新根先拆除，再CloseLifecycleDepthRootCommand关闭原链根。",
+          "old": "teardown observers; close-cause child or root; depth refusal re-root teardown plus close refused root"
+        }
+      ],
       "classification": "lifecycle",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 42,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+        "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:lifecycle-disconnected",
       "original": {
         "body": "teardown observers; close-cause child or root; depth refusal re-root teardown plus close refused root",
@@ -40930,46 +41153,75 @@
         "source_connection": "none (transport already closed); root chain still identifies original connection",
         "target_input": "exact disconnected context + captured close cause or new root; original observers"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 42,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Dispatching/NetworkConnectionLifecycleDispatcher.cs",
-          "line": 42,
-          "source_sha256": "d2c0693c3cb1330ae4fd83901f14c90dd8762758ec06c6aa6cb215a5cfc5cf35"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "断开source始终null；仅本次精确selected与两塔原owners；不伪造已关闭连接为新失败来源。；只用真实显式source，不从目标伪造来源。",
+          "old": "断开source始终null；仅本次精确selected与两塔原owners；不伪造已关闭连接为新失败来源。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/ConnectionLifecycleDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Dispatching/LifecycleCallChainTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/OnlineUsers/OnlineUserServiceTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Sessions/ExplicitEffectExecutionTests.cs",
+            "Server/tests/Dfo.Server.Networking.Tests/Integration/LifecycleExecutorWireTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 78,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Inventory/InitializeEpicBookCommand.cs",
+            "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Inventory/EpicBookTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "InitializeEpicBookCommand在原CharacterStat准备之后、vending/lottery之前调用原IEpicBookDomainService.InitializeAsync及其原自开事务；不包第二事务。",
+          "old": "epic-book legacy migration"
+        }
+      ],
       "classification": "startup",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 78,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Inventory/InitializeEpicBookCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Inventory/InitializeEpicBookCommand.cs",
+        "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Inventory/EpicBookTests.cs",
+        "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:startup-epic-book",
       "original": {
         "body": "epic-book legacy migration",
@@ -40986,46 +41238,73 @@
         "source_connection": "none",
         "target_input": "no request payload; current epic-book rules/catalog + legacy storage facts read by owner"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 78,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 78,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Inventory/InitializeEpicBookCommand.cs",
+            "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Inventory/EpicBookTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原无selected保护[]；StartupRecovery新根无source，原启动token和失败传播。；只用真实显式source，不从目标伪造来源。",
+          "old": "原无selected保护[]；StartupRecovery新根无source，原启动token和失败传播。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Inventory/InitializeEpicBookCommand.cs",
+            "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Inventory/EpicBookTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 87,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs",
+            "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+            "Server/src/Dfo.Server.Abstractions/Characters/ICharacterExperienceInitializationDomainService.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Characters/CharacterExperienceStoragePolicyTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "InitializeCharacterExperienceStorageCommand经具名ICharacterExperienceInitializationDomainService读CharacterScale并Install；仍在lottery准备后、ContentWarmup及readiness之前，原scale日志返回值保持，不向CMD注入rule/persistence。",
+          "old": "experience storage initialization"
+        }
+      ],
       "classification": "startup",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 87,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs",
+        "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+        "Server/src/Dfo.Server.Abstractions/Characters/ICharacterExperienceInitializationDomainService.cs",
+        "Server/tests/Dfo.Server.Persistence.Tests/Characters/CharacterExperienceStoragePolicyTests.cs",
+        "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:startup-experience-storage",
       "original": {
         "body": "experience storage initialization",
@@ -41042,25 +41321,41 @@
         "source_connection": "none",
         "target_input": "no request payload; current experience rule content and storage facts read by owner"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 87,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
-          "line": 87,
-          "source_sha256": "747f96673fef888956e766fbc58a771d6323dd157daa7b4273d63af399ffe453"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs",
+            "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+            "Server/src/Dfo.Server.Abstractions/Characters/ICharacterExperienceInitializationDomainService.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Characters/CharacterExperienceStoragePolicyTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原无selected保护[]；StartupRecovery新根无source，原启动token和失败传播。；只用真实显式source，不从目标伪造来源。",
+          "old": "原无selected保护[]；StartupRecovery新根无source，原启动token和失败传播。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs",
+            "Server/src/Dfo.Server.GameServer/GameServerStartupService.cs",
+            "Server/src/Dfo.Server.Abstractions/Characters/ICharacterExperienceInitializationDomainService.cs",
+            "Server/tests/Dfo.Server.Persistence.Tests/Characters/CharacterExperienceStoragePolicyTests.cs",
+            "Server/tests/Dfo.Server.Host.Tests/ComponentLifecycleTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [
@@ -41309,25 +41604,38 @@
       "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 72,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ConsumeDomainEventCommand：Reliable claim→fresh subscriber scope→Invoke→Complete同一WriteResult→Commit→Forget→scope Dispose；业务失败先scope Dispose再健康Abort，独立Fail/retry单元，原退避与terminal/Forget。LiveOnly先claim/Complete commit→Forget再freshscope Invoke，不重播，foreign/expired/coalesced原reason。原Direct不排队。未处理必达编码occurrence/独立scope失败不生成retry，NotificationBus固定recipient隔离事实只处理精确本次occurrence。",
+          "old": "due scan outside executor; each delivery one job; Reliable business+completion same transaction; LiveOnly completion committed before projection"
+        }
+      ],
       "classification": "event",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 72,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:event-consumer",
       "original": {
         "body": "due scan outside executor; each delivery one job; Reliable business+completion same transaction; LiveOnly completion committed before projection",
@@ -41344,46 +41652,75 @@
         "source_connection": "none",
         "target_input": "PendingDomainEventDelivery read due off executor; event/subscriber identity, persisted origin and attempt count"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 72,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 72,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原无selected marker保护[]；每delivery一Event子链，重试保原publisher父；foreign StartupRecovery根，SourceConnection=null。；只用真实显式source，不从目标伪造来源。",
+          "old": "原无selected marker保护[]；每delivery一Event子链，重试保原publisher父；foreign StartupRecovery根，SourceConnection=null。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 126,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "SettleDepthExceededDomainEventCommand：新Event根，LiveOnly claim/Complete skipped或Reliable Fail terminal；原普通Write提交→Forget→CloseRoot，未claim不关闭他方已消费根，原深度Warning仍producer负责。",
+          "old": "terminal reliable marker or skipped LiveOnly completion then close refused root"
+        }
+      ],
       "classification": "event",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 126,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+        "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:event-depth-settlement",
       "original": {
         "body": "terminal reliable marker or skipped LiveOnly completion then close refused root",
@@ -41400,46 +41737,77 @@
         "source_connection": "none",
         "target_input": "same delivery + refused chain; body records terminal/skipped status then closes refused root"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 126,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/DomainEvents/DomainEventDispatcher.cs",
-          "line": 126,
-          "source_sha256": "21f31e382d7c81a9ddf7e509f3f3be7f4f3039a8a94067867df86c8acc50b6c2"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原无selected marker保护[]；来源null，关闭目标仅原被拒链根。；只用真实显式source，不从目标伪造来源。",
+          "old": "原无selected marker保护[]；来源null，关闭目标仅原被拒链根。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Executor.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/DomainEventDispatchTests.Chain.cs",
+            "Server/tests/Dfo.Server.Application.Tests/DomainEvents/EventConsumptionFailureBoundaryTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
-      "actual_units": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Scheduling/ScheduledTaskHostedService.cs",
-          "line": 129,
-          "source_sha256": "61d1b1edad1446768bbdedf9697e3a393323ca443fa3e12f6d2c6ca500542ade"
-        },
-        "state": "pending"
-      },
+      "actual_units": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskExecutorTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "ScheduledGameplayTaskCommand按具名handler type分发五真实任务，生产者仅持原调度state ticket；实际开始才锁读最新Requested/设置Started，之后Pending下一轮；due先于completion、Skip/RunOnce、每次freshscope、重试/BodyOnly/停服排空原样。业务Aggregate只由内部绑定report在Explicit完整健康关闭后回原queue body抛出，executor一Error/EndedAJob；scope等失败优先，producer不读写世界。",
+          "old": "definition.Id callback in scope, due time re-read when starts; bounded retry after failure"
+        }
+      ],
       "classification": "scheduled",
-      "completion_task": null,
+      "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-64.md",
       "destination": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Scheduling/ScheduledTaskHostedService.cs",
-          "line": 129,
-          "source_sha256": "61d1b1edad1446768bbdedf9697e3a393323ca443fa3e12f6d2c6ca500542ade"
-        },
-        "state": "pending"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs"
       },
-      "evidence": [],
+      "evidence": [
+        ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+        "Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskExecutorTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+        "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+        "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+        "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+      ],
       "id": "source:scheduled-task",
       "original": {
         "body": "definition.Id callback in scope, due time re-read when starts; bounded retry after failure",
@@ -41456,25 +41824,43 @@
         "source_connection": "none",
         "target_input": "definition ID + latest requested scheduled time + attempt; execute context constructed inside body"
       },
-      "participants": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Scheduling/ScheduledTaskHostedService.cs",
-          "line": 129,
-          "source_sha256": "61d1b1edad1446768bbdedf9697e3a393323ca443fa3e12f6d2c6ca500542ade"
-        },
-        "state": "pending"
-      },
-      "protection_locations": {
-        "inspect": {
-          "file": "Server/src/Dfo.Server.Application/Scheduling/ScheduledTaskHostedService.cs",
-          "line": 129,
-          "source_sha256": "61d1b1edad1446768bbdedf9697e3a393323ca443fa3e12f6d2c6ca500542ade"
-        },
-        "state": "pending"
-      },
+      "participants": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskExecutorTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "原每任务新Timer根、source=null；逐session仍原精确selected/实际physical保护，健康部分失败不额外围栏成功角色。；只用真实显式source，不从目标伪造来源。",
+          "old": "原每任务新Timer根、source=null；逐session仍原精确selected/实际physical保护，健康部分失败不额外围栏成功角色。"
+        }
+      ],
+      "protection_locations": [
+        {
+          "evidence": [
+            ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task64-verification.md",
+            "Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledTaskExecutorTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/ScheduledCompletionBridgeTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Scheduling/OnlineExpiredItemScheduleTests.cs",
+            "Server/tests/Dfo.Server.Application.Tests/Inventory/ScheduledCleanupTransactionTests.cs",
+            "Server/src/Dfo.Server.Application/Commands/CommandBus.cs",
+            "Server/src/Dfo.Server.Application/Transactions/CommandWorkUnits.cs"
+          ],
+          "new": "真实typed Internal CMD及原顺序；普通恢复只用健康WriteResult/RequireRollback，所有其余infra按VC-B40默认收口。scope、guard、编码、未请求取消与不确定不能成为普通重试；具名body action取消须完整旧观察收口且无既有commit。",
+          "old": "原精确连接／会话代次、事务、清理与投影、来源深度、取消及producer重试。"
+        }
+      ],
       "reason": null,
       "refs": [],
-      "state": "pending"
+      "state": "closed"
     },
     {
       "actual_units": [

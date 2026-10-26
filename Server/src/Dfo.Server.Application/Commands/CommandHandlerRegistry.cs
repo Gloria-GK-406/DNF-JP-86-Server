@@ -5,6 +5,7 @@ namespace Dfo.Server.Application.Commands;
 
 public enum CommandSelectedSessionCleanupCapability { None, SelectedSessionLifecycle }
 public enum CommandSelfSettlementCapability { None, SelfSettledAction }
+public enum InternalActionCancellationCapability { None, ConfirmedRollbackWriteResult }
 public enum TimerReadOnlyCancellationCapability { None, PremiumSnapshot, ItemUsageSnapshot }
 public enum CommandRouteKind { LegacyFineGrained, Protocol, Internal }
 public sealed record ProtocolCommandMessageBinding(ClientMessageType MessageType, Type MessageClrType);
@@ -19,7 +20,8 @@ public sealed record CommandHandlerRegistration(
     IReadOnlyCollection<CommandRegistrationExit>? RegistrationExits = null,
     CommandSelfSettlementCapability SelfSettlement = CommandSelfSettlementCapability.None,
     CommandSelectedSessionCleanupCapability SelectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
-    TimerReadOnlyCancellationCapability TimerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None)
+    TimerReadOnlyCancellationCapability TimerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None,
+    InternalActionCancellationCapability InternalActionCancellation = InternalActionCancellationCapability.None)
 {
     internal CommandHandlerRegistration Freeze() => ProtocolMessages is null && RegistrationExits is null ? this : this with
     { ProtocolMessages = ProtocolMessages is null ? null : Array.AsReadOnly(ProtocolMessages.ToArray()),
@@ -55,6 +57,8 @@ public sealed class CommandHandlerRegistry
 
         foreach (var item in registrationList)
         {
+            if (!Enum.IsDefined(item.InternalActionCancellation) || item.InternalActionCancellation != InternalActionCancellationCapability.None && item.Route != CommandRouteKind.Internal)
+                throw new InvalidOperationException("Action cancellation requires its named internal registration.");
             if (!Enum.IsDefined(item.TimerReadOnlyCancellation) || item.TimerReadOnlyCancellation != TimerReadOnlyCancellationCapability.None && item.Route != CommandRouteKind.Internal)
                 throw new InvalidOperationException("Timer snapshot cancellation requires a named internal registration.");
             if (!Enum.IsDefined(item.SelectedSessionCleanup)

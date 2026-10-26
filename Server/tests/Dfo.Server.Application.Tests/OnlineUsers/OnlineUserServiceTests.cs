@@ -490,9 +490,9 @@ public sealed class UserServiceTests
         var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
-            service, sessions, cleanup,
+            service, sessions, new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(cleanup),
             new StubChannelEntryPolicy(), new StubServerConfigService(),
-            new RecordingInitialSender(), new RecordingCleanupDelivery(), new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
+            new LifecycleTestOutbox(new RecordingInitialSender()), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var selected = await TestGameplay.RunAsync(async () =>
@@ -586,8 +586,8 @@ public sealed class UserServiceTests
         var service = CreateService(new AccountId(105));
         var observer = new OnlineUserConnectionObserver(
             service,
-            new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
+            new EmptySelectedSessions(), new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoopCleanup()), new StubChannelEntryPolicy(),
+            new StubServerConfigService(), new LifecycleTestOutbox(new RecordingInitialSender()), new RecordingCleanupDelivery(), TimeProvider.System);
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         await TestGameplay.RunAsync(async () =>
@@ -633,12 +633,12 @@ public sealed class UserServiceTests
         new(
             service,
             sessions,
-            cleanup,
+            new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(cleanup),
             channelPolicy ?? new StubChannelEntryPolicy(),
             new StubServerConfigService(),
-            sender,
+            new LifecycleTestOutbox(sender),
             cleanupDelivery ?? new RecordingCleanupDelivery(),
-            new TestEffectFootprints.LifecycleSource([]), timeProvider);
+            timeProvider);
 
     /// <summary>Records the cleanup plan instead of turning it into frames.</summary>
     /// <remarks>

@@ -1,3 +1,6 @@
+using ScheduledTaskRegistration = Dfo.Server.Application.Tests.Scheduling.TestScheduledTaskRegistration;
+using ScheduledTaskContext = Dfo.Server.Application.Tests.Scheduling.TestScheduledTaskContext;
+using ScheduledTaskCallback = Dfo.Server.Application.Tests.Scheduling.TestScheduledTaskCallback;
 using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Application.Scheduling;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +34,7 @@ public sealed class ScheduledTaskTests
             services.AddLogging();
             services.AddSingleton<TimeProvider>(Clock);
             services.AddTaskScheduling();
-            foreach (var job in jobs) services.AddScheduledTask(job);
+            foreach (var job in jobs) services.AddTestScheduledTask(job);
             configure?.Invoke(services);
             Provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             Worker = Assert.Single(Provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
@@ -271,7 +274,7 @@ public sealed class ScheduledTaskTests
         services.AddLogging(); services.AddTaskScheduling();
         services.AddSingleton<TimeProvider>(clock);
         services.AddSingleton(new TestScheduleConfig(new(6, 0)));
-        services.AddScheduledTaskFactory(root => new("factory",
+        services.AddTestScheduledTaskFactory(root => new("factory",
             new DailyTaskSchedule(root.GetRequiredService<TestScheduleConfig>().Time, TimeSpan.FromHours(8)),
             (_, _) => { called.SetResult(); return ValueTask.CompletedTask; })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce });
@@ -307,7 +310,7 @@ public sealed class ScheduledTaskTests
         var called = new TaskCompletionSource<ScheduledTaskContext>(TaskCreationOptions.RunContinuationsAsynchronously);
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddScheduledTask(new("test.startup", new DailyTaskSchedule(new(6, 0), TimeSpan.FromHours(8)),
+        services.AddTestScheduledTask(new("test.startup", new DailyTaskSchedule(new(6, 0), TimeSpan.FromHours(8)),
             (context, ct) => { called.SetResult(context); return ValueTask.CompletedTask; })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce });
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });

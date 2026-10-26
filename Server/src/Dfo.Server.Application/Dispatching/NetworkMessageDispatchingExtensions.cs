@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,10 @@ public static class NetworkMessageDispatchingExtensions
         services.TryAddSingleton<MessageHandlerRegistry>();
         services.TryAddSingleton<INetworkMessageDispatcher, NetworkMessageDispatcher>();
         services.TryAddSingleton<INetworkConnectionLifecycleDispatcher, NetworkConnectionLifecycleDispatcher>();
+        services.TryAddSingleton<Commands.ICommandConnectionLifecycle, Commands.CommandConnectionLifecycle>();
+        services.AddInternalCommandHandler<Commands.ConnectedLifecycleCommand, bool, Commands.ConnectedLifecycleCommandHandler>();
+        services.AddInternalCommandHandler<Commands.DisconnectedLifecycleCommand, bool, Commands.DisconnectedLifecycleCommandHandler>();
+        services.AddInternalCommandHandler<Commands.CloseLifecycleDepthRootCommand, bool, Commands.CloseLifecycleDepthRootCommandHandler>();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, MessageHandlerRegistryValidationService>());
         return services;

@@ -1,3 +1,6 @@
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
@@ -73,20 +76,19 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
             var dimensionCount = services.GetRequiredService<IDimensionDungeonRuleService>().Initialize();
             logger.LogInformation("Dimension dungeon content initialized: {Count} dungeons", dimensionCount);
             await services.GetRequiredService<ICharacterStatRuleService>().InitializeAsync(cancellationToken);
-            // The two startup writes run as startup jobs on the executor (spec appendix B, last row).
-            var queue = services.GetRequiredService<IGameplayQueue>();
-            await queue.RunAsync(StartupJob("startup:GameServerStartupService/epic-book",
-                token => services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>().InitializeAsync(token)),
+            var commands = services.GetRequiredService<ICommandBus>();
+            const string epicLabel = "startup:GameServerStartupService/epic-book";
+            await commands.SendInternalAsync(new InitializeEpicBookCommand(),
+                new(GameplayCallSource.StartupRecovery, GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery), epicLabel),
                 cancellationToken).ConfigureAwait(false);
             var vendingCount = services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IVendingMachineDefinitionSource>().Initialize();
             logger.LogInformation("Vending machine definitions initialized: {Count} groups", vendingCount);
             var timer = System.Diagnostics.Stopwatch.StartNew();
             var count = await services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync(cancellationToken);
             logger.LogInformation("Lottery definitions initialized: {Count} pots in {ElapsedMs} ms", count, timer.ElapsedMilliseconds);
-            var scale = services.GetRequiredService<IExperienceRuleService>().CharacterScale();
-            await queue.RunAsync(StartupJob("startup:GameServerStartupService/experience-storage",
-                token => services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterExperienceStoragePolicy>()
-                    .InstallAsync(scale, token)),
+            const string progressionLabel = "startup:GameServerStartupService/experience-storage";
+            var scale = await commands.SendInternalAsync(new InitializeCharacterExperienceStorageCommand(),
+                new(GameplayCallSource.StartupRecovery, GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery), progressionLabel),
                 cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Character progression constrained: TopLevel={TopLevel}, MaxExperience={Maximum}",
                 scale.TopLevel, scale.MaximumExperience);
@@ -95,9 +97,6 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
         }
         cancellationToken.ThrowIfCancellationRequested();
     }
-
-    private static GameplayWork StartupJob(string commandType, Func<CancellationToken, ValueTask> body) =>
-        new(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery), commandType, body);
 
     public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     public Task StartedAsync(CancellationToken cancellationToken) => Task.CompletedTask;

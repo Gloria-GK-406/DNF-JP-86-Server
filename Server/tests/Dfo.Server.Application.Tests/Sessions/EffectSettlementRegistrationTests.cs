@@ -82,8 +82,7 @@ public sealed class EffectSettlementRegistrationTests
         }
         var protectedNonMain = services.GetServices<CommandHandlerRegistration>().Where(x => typeof(ISelectedSessionCommand).IsAssignableFrom(x.CommandType)
             && !typeof(IRequestSettlementCommand).IsAssignableFrom(x.CommandType)).Select(x => x.CommandType.Name).Order().ToArray();
-        Assert.Equal(new[] { "CleanupOnlineExpiredItemsCommand",
-               "ReadReplayStateCommand", "RefillOnlineSouthernTicketCommand", "RefillOnlineTauTicketCommand", "ExpireCharacterNameTagCommand" }.Concat(new[] { "RefillOnlineBossTowerTicketCommand" }).Order(), protectedNonMain);
+        Assert.Equal(new[] { "ReadReplayStateCommand" }, protectedNonMain);
         Assert.DoesNotContain(services.GetServices<CommandHandlerRegistration>(), x => x.CommandType.Name.Contains("ReplayGuard"));
         Assert.NotNull(services.GetRequiredService<EffectOperationLedger>());
     }

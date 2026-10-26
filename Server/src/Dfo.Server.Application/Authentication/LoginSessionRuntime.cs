@@ -7,12 +7,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Authentication;
 
-internal sealed class LoginSessionConnectionObserver(LoginSessionRegistry sessions) : INetworkConnectionObserver
+internal sealed class LoginSessionConnectionObserver(LoginSessionRegistry sessions) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
 {
-    public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+    public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext context, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
         ValueTask.CompletedTask;
 
-    public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+    public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext context, NetworkConnectionContext connection, CancellationToken cancellationToken)
     {
         if (connection.EndpointKind == NetworkEndpointKind.Game) sessions.Disconnected(connection.ConnectionId);
         return ValueTask.CompletedTask;

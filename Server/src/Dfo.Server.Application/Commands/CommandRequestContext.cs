@@ -26,6 +26,7 @@ public interface IProtocolCommand<TResult> : ICommand<TResult>, IProtocolCommand
 
 public abstract class CommandRequestContext
 {
+    internal InternalActionCancellationCapability InternalActionCancellation { get; set; }
     internal TimerReadOnlyCancellationCapability TimerReadOnlyCancellation { get; set; }
 
     private readonly Guid job = GameplayJob.Current?.Id ?? throw new InvalidOperationException("A request begins on a gameplay job.");
@@ -69,6 +70,7 @@ public abstract class CommandRequestContext
     private CommandWorkUnit? activeUnit;
     private object? selectedSessionCleanup;
     internal CommandSelectedSessionCleanupCapability SelectedSessionCleanup { get; set; }
+    internal bool DisconnectedLifecycleCleanup { get; set; }
     internal void AttachUnit(CommandWorkUnit unit) => activeUnit = unit;
     internal object BeginSelectedSessionCleanup(CommandWorkUnit? unit)
     {
@@ -86,8 +88,9 @@ public abstract class CommandRequestContext
     }
     private void DemandSelectedSessionCleanupLifetime()
     {
-        if (closed || GameplayJob.Current?.Id != job || this is not ProtocolNonEffect
-            || SelectedSessionCleanup != CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle)
+        if (closed || GameplayJob.Current?.Id != job || !(
+            this is ProtocolNonEffect && SelectedSessionCleanup == CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle
+            || DisconnectedLifecycleCleanup && this is TrustedInternal { Origin.Kind: GameplayCallSource.Lifecycle, Origin.SourceConnection: null }))
             throw new InvalidOperationException("The request has no live selected-session cleanup permission.");
     }
     internal void DemandSelectedSessionCleanup(object invocation, CommandWorkUnit? unit)

@@ -116,6 +116,44 @@ public sealed class GameplayOutboxes
 /// <remarks>Used only from its own job, so it takes no locks.</remarks>
 public sealed class GameplayOutbox
 {
+    private readonly Guid? owningJob = GameplayJob.Current?.Id;
+    private readonly List<RequiredEncodingFailure> requiredEncodingFailures = [];
+    private readonly HashSet<object> recipientHandledEncodingFailures = [];
+    internal int RequiredEncodingFailurePosition => requiredEncodingFailures.Count;
+    internal void RecordRequiredEncodingFailure(NetworkConnectionContext target, Exception error) =>
+        requiredEncodingFailures.Add(new(new object(), target, error));
+    internal Exception? UnhandledRequiredEncodingFailureSince(int position)
+    {
+        DemandEncodingObservation();
+        return requiredEncodingFailures.Skip(position).FirstOrDefault(x => !recipientHandledEncodingFailures.Contains(x.Occurrence))?.Cause;
+    }
+    internal RecipientEncodingObservation ObserveRecipientRegistration(NetworkConnectionContext connection)
+    {
+        DemandEncodingObservation();
+        return new(this, connection, requiredEncodingFailures.Count);
+    }
+    private void DemandEncodingObservation()
+    {
+        if (completed || owningJob is null || GameplayJob.Current?.Id != owningJob)
+            throw new InvalidOperationException("The encoding observation belongs to another or completed job.");
+    }
+    private sealed record RequiredEncodingFailure(object Occurrence, NetworkConnectionContext Target, Exception Cause);
+    internal sealed class RecipientEncodingObservation(GameplayOutbox owner, NetworkConnectionContext target, int position) : IDisposable
+    {
+        private bool closed;
+        internal void CompleteFailure(Exception error)
+        {
+            owner.DemandEncodingObservation();
+            if (closed) throw new InvalidOperationException("The recipient registration observation has ended.");
+            closed = true;
+            if (owner.requiredEncodingFailures.Count != position + 1) return;
+            var actual = owner.requiredEncodingFailures[position];
+            if (ReferenceEquals(actual.Target, target) && ReferenceEquals(actual.Cause, error))
+                owner.recipientHandledEncodingFailures.Add(actual.Occurrence);
+        }
+        public void Dispose() => closed = true;
+    }
+
     private readonly ILogger logger;
     private readonly List<Slot> slots = [];
     private GameplayOutboxUnit? open;

@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Application.Execution;
+using Dfo.Server.Application.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,31 +18,30 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
         public DateTimeOffset? Pending { get; set; }
         public Task? Execution { get; set; }
         public bool Disabled { get; set; }
-        public bool Started { get; set; }
-        public DateTimeOffset Requested { get; set; }
+        public ScheduledTaskRunState State { get; } = new();
     }
 
     private readonly PriorityQueue<Job, long> due = new();
     private readonly Channel<Job> completed = System.Threading.Channels.Channel.CreateUnbounded<Job>(new()
     { SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = false });
     private readonly HashSet<Task> executions = [];
-    private readonly IServiceScopeFactory scopes;
-    private readonly IGameplayQueue queue;
+    private readonly ICommandBus commands;
     private readonly TimeProvider clock;
     private readonly ILogger<ScheduledTaskHostedService> logger;
 
     public ScheduledTaskHostedService(IEnumerable<ScheduledTaskRegistration> registrations,
-        IServiceScopeFactory scopes, IGameplayQueue queue, TimeProvider clock,
+        ICommandBus commands, TimeProvider clock,
         ILogger<ScheduledTaskHostedService> logger)
     {
-        this.scopes = scopes; this.queue = queue; this.clock = clock; this.logger = logger;
+        this.commands = commands; this.clock = clock; this.logger = logger;
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var now = clock.GetUtcNow();
         foreach (var definition in registrations)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(definition.Id);
             ArgumentNullException.ThrowIfNull(definition.Schedule);
-            ArgumentNullException.ThrowIfNull(definition.Execute);
+            if (!typeof(IScheduledGameplayTask).IsAssignableFrom(definition.HandlerType) || definition.HandlerType.IsAbstract)
+                throw new ArgumentException("A scheduled task requires a concrete registered typed handler.");
             if (!ids.Add(definition.Id)) throw new InvalidOperationException($"Duplicate scheduled task '{definition.Id}'.");
             if (!Enum.IsDefined(definition.MissedRun) || definition.MaximumAttempts is < 1 or > 10
                 || definition.RetryDelay < TimeSpan.Zero || definition.RetryDelay > TimeSpan.FromDays(1))
@@ -89,10 +89,10 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                     if (job.Execution is not null)
                     {
                         if (job.Definition.MissedRun == ScheduledTaskMissedRunPolicy.RunOnce)
-                            lock (job)
+                            lock (job.State)
                             {
-                                if (job.Started) job.Pending = latest;
-                                else job.Requested = latest;
+                                if (job.State.Started) job.Pending = latest;
+                                else job.State.Requested = latest;
                             }
                     }
                     else Start(job, latest, stopping.Token);
@@ -120,7 +120,7 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
 
     private void Start(Job job, DateTimeOffset scheduledAt, CancellationToken ct)
     {
-        job.Started = false; job.Requested = scheduledAt;
+        job.State.Reset(scheduledAt);
         // The callback runs as an executor job, so the timing loop only queues it here and never waits for it.
         job.Execution = RunAsync(job, ct);
         executions.Add(job.Execution);
@@ -134,17 +134,15 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
             {
                 // Read again when the attempt starts: a queued run that comes due again runs once, at the latest time.
                 DateTimeOffset scheduledAt;
-                lock (job) scheduledAt = job.Requested;
+                lock (job.State) scheduledAt = job.State.Requested;
                 try
                 {
-                    await GameplayTimerWork.RunAsync(queue, $"timer:ScheduledTaskHostedService/{job.Definition.Id}", async token =>
-                    {
-                        lock (job) { job.Started = true; scheduledAt = job.Requested; }
-                        token.ThrowIfCancellationRequested();
-                        await using (var scope = scopes.CreateAsyncScope())
-                            await job.Definition.Execute(new(scope.ServiceProvider, job.Definition.Id,
-                                scheduledAt, clock.GetUtcNow(), attempt), token).ConfigureAwait(false);
-                    }, ct).ConfigureAwait(false);
+                    var label = $"timer:ScheduledTaskHostedService/{job.Definition.Id}";
+                    var result = await commands.SendInternalAsync(
+                        new ScheduledGameplayTaskCommand(job.Definition.Id, job.State, attempt),
+                        new(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), label,
+                            InternalCommandCancellation.BodyOnly), ct).ConfigureAwait(false);
+                    scheduledAt = result.ScheduledAt;
                     logger.LogInformation("Scheduled task {TaskId} completed due={ScheduledAt} attempt={Attempt}",
                         job.Definition.Id, scheduledAt, attempt);
                     return;
@@ -152,6 +150,7 @@ internal sealed class ScheduledTaskHostedService : BackgroundService
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
                 catch (Exception error)
                 {
+                    lock (job.State) scheduledAt = job.State.ActualScheduledAt ?? scheduledAt;
                     if (attempt == job.Definition.MaximumAttempts)
                     {
                         // The executor logged the attempt's own failure with its stack (F-30).

@@ -56,7 +56,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
             return ValueTask.FromResult(false);
         }
         var outbox = outboxes.Current;
-        var frames = encoder!.EncodeMessage(connection, message);
+        byte[] frames;
+        try { frames = encoder!.EncodeMessage(connection, message); }
+        catch (Exception error) { outbox.RecordRequiredEncodingFailure(connection, error); throw; }
         outbox.Register(OutboundEntry.Batch(connection, [message], frames));
         return ValueTask.FromResult(true);
     }
@@ -90,7 +92,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
         if (encoder is null)
         { _ = Dropped(expectedConnection.ConnectionId); return ValueTask.FromResult(false); }
         var outbox = outboxes.Current;
-        var frames = EncodeBatch(expectedConnection, batch, attempt);
+        byte[] frames;
+        try { frames = EncodeBatch(expectedConnection, batch, attempt); }
+        catch (Exception error) { outbox.RecordRequiredEncodingFailure(expectedConnection, error); throw; }
         outbox.Register(OutboundEntry.Batch(expectedConnection, batch, frames));
         return ValueTask.FromResult(true);
     }
@@ -119,7 +123,9 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
             {
                 attempt?.DemandTarget(direct);
                 var outbox = outboxes.Current;
-                var frames = EncodeEach(direct, delivery.RequiredDirectMessages, attempt);
+                byte[] frames;
+                try { frames = EncodeEach(direct, delivery.RequiredDirectMessages, attempt); }
+                catch (Exception error) { outbox.RecordRequiredEncodingFailure(direct, error); throw; }
                 outbox.Register(OutboundEntry.Batch(direct, delivery.RequiredDirectMessages, frames));
             }
             else

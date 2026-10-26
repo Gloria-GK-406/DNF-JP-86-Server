@@ -301,7 +301,11 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             try { result = await action(unit, ct).ConfigureAwait(false); stage = FailureStage.PostAction; }
             catch (OperationCanceledException cancellation)
             {
-                if (!recoverCommit && declaration.Kind == CommandWorkUnitKind.Ordinary
+                if ((!recoverCommit || !readOnly && declaration.Footprint == CommandFootprintMode.None
+                        && request is CommandRequestContext.TrustedInternal && !request.HasCommittedUnit
+                        && request.SelfSettlement == CommandSelfSettlementCapability.None
+                        && request.InternalActionCancellation == InternalActionCancellationCapability.ConfirmedRollbackWriteResult)
+                    && declaration.Kind == CommandWorkUnitKind.Ordinary
                     && (!readOnly || request is CommandRequestContext.TrustedInternal
                         && (request.HttpOperation is HttpRouteOperation.Events or HttpRouteOperation.WeeklyAttendance or HttpRouteOperation.JoustSettings or HttpRouteOperation.JoustRound
                             || request.TimerReadOnlyCancellation == TimerReadOnlyCancellationCapability.PremiumSnapshot && declaration.Name == "premium.snapshot"

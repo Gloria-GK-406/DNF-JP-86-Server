@@ -238,12 +238,12 @@ public sealed partial class DomainEventDispatchTests
         }
     }
 
-    private sealed class ChainObserver(Probe probe) : INetworkConnectionObserver
+    private sealed class ChainObserver(Probe probe) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
     {
-        public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
 
-        public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+        public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
         {
             probe.LifecycleSeen.Enqueue(Probe.Here("disconnected"));
             return ValueTask.CompletedTask;

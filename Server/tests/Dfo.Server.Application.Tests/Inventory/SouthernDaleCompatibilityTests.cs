@@ -258,7 +258,7 @@ public sealed class SouthernDaleCompatibilityTests
         {
             if (nextDay) clock.Now = clock.Now.AddMinutes(1);
             fixture.Host.Sender.Messages.Clear();
-            Assert.True(await commands.SendAsync(new Dfo.Server.Application.World.RefillOnlineSouthernTicketCommand(session)));
+            Assert.True(await ScheduledCleanupFixture.RunDomainAsync(services, session, token => services.GetRequiredService<Dfo.Server.Abstractions.World.ISouthernDaleDomainService>().RefillOnlineTicketAsync(session, token)));
             await services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();
             Assert.Equal(nextDay, OffersSouthern(fixture));
             Assert.Equal(2, fixture.Host.Count(2680738));

@@ -223,8 +223,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.AddTypedGameplayTimer<DungeonPartyWipeService>();
-        services.AddInternalCommandHandler<MaintainDungeonReturnsCommand, bool, TowerReturnCommandHandler>();
-        services.AddInternalCommandHandler<ReturnDungeonRunCommand, bool, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<MaintainDungeonReturnsCommand, bool, TowerReturnCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+        services.AddInternalCommandHandler<ReturnDungeonRunCommand, bool, TowerReturnCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddProtocolCommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult, GameRecoverStaminaCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRecoverStamina, typeof(RecoverStaminaRequest)));
         services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>();
@@ -238,7 +238,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddTypedGameplayTimer<WeaknessRecoveryService>();
         services.AddInternalCommandHandler<RecoverWeaknessTickCommand, bool, RecoverWeaknessTickCommandHandler>();
         services.AddTypedGameplayTimer<CreatureClockService>();
-        services.AddInternalCommandHandler<AdvanceCreatureTickCommand, bool, AdvanceCreatureTickCommandHandler>();
+        services.AddInternalCommandHandler<AdvanceCreatureTickCommand, bool, AdvanceCreatureTickCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddGameNotiMessageEncoder<CreatureExperienceNotification, CreatureExperienceEncoder>();
         services.AddGameNotiMessageEncoder<CreatureStateNotification, CreatureStateEncoder>();
         services.AddGameNotiMessageEncoder<CreatureDeathNotification, CreatureDeathEncoder>();
@@ -284,8 +284,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<IAltarSchedulerWakeSignal>(p => p.GetRequiredService<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>());
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.Altar.MaintainAltarCommand, Dfo.Server.Protocol.Game.Altar.AltarNextDeadline, Dfo.Server.Protocol.Game.Altar.AltarTimerCommandHandler>();
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.Altar.AdvanceAltarDeadlineCommand, bool, Dfo.Server.Protocol.Game.Altar.AltarTimerCommandHandler>();
+        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.Altar.MaintainAltarCommand, Dfo.Server.Protocol.Game.Altar.AltarNextDeadline, Dfo.Server.Protocol.Game.Altar.AltarTimerCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.Altar.AdvanceAltarDeadlineCommand, bool, Dfo.Server.Protocol.Game.Altar.AltarTimerCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
@@ -316,7 +316,7 @@ public sealed class ProtocolModule : IServerModule
             new ProtocolCommandMessageBinding(ClientMessageType.GameMarriageCapsule, typeof(Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRequest)));
         services.TryAddSingleton<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceWeddingTickCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>();
+        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceWeddingTickCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
         services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(0x03D0, ClientMessageType.GameChargeRentPoint);
         services.RegisterProtocolMessageHandler<RentEquipmentHandler,RentEquipmentRequest,GameRentEquipmentCommand>(ClientMessageType.GameRentEquipment);
@@ -438,8 +438,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage>>();
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse>>();
         services.AddTypedGameplayTimer<TournamentRewardSweepService>();
-        services.AddInternalCommandHandler<SweepTournamentRewardsCommand, bool, SweepTournamentRewardsCommandHandler>();
-        services.AddInternalCommandHandler<SweepTournamentCandidateCommand, bool, SweepTournamentRewardsCommandHandler>();
+        services.AddInternalCommandHandler<SweepTournamentRewardsCommand, bool, SweepTournamentRewardsCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+        services.AddInternalCommandHandler<SweepTournamentCandidateCommand, bool, SweepTournamentRewardsCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.RegisterProtocolMessageHandler<TournamentRewardHandler, TournamentRewardRequest, GameTournamentRewardCommand>(ClientMessageType.GameTournamentRewardStatus);
         services.AddProtocolCommandHandler<GameTournamentRewardCommand, bool, GameTournamentRewardCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentRewardStatus, typeof(TournamentRewardRequest)),
@@ -530,7 +530,7 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<INetworkConnectionObserver, OnlineUserConnectionObserver>());
+            ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, OnlineUserConnectionObserver>());
         RegisterInboundDecoders(services);
         RegisterOutboundEncoders(services);
         RegisterCommands(services);

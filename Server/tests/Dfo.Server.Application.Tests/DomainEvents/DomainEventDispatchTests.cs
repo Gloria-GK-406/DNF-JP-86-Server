@@ -532,7 +532,7 @@ public sealed partial class DomainEventDispatchTests
                 Dfo.Server.Application.Dispatching.NetworkMessageDispatchingExtensions.AddNetworkMessageDispatching(services);
                 services.AddSingleton<IOutboundSender>(Sender);
                 services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionContexts>(Contexts);
-                services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionObserver>(p =>
+                services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(p =>
                     new ChainObserver(p.GetRequiredService<Probe>()));
             }
             if (relay)

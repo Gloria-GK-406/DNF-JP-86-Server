@@ -145,7 +145,7 @@ public sealed class OutboundSendFailureTests
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
             var capture = new ConnectionCapture(channelPort, gamePort);
-            builder.Services.AddSingleton<INetworkConnectionObserver>(capture);
+            builder.Services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(capture);
 
             var host = TestInfrastructure.Build(builder);
             var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -189,7 +189,7 @@ public sealed class OutboundSendFailureTests
         }
     }
 
-    private sealed class ConnectionCapture(int channelPort, int gamePort) : INetworkConnectionObserver
+    private sealed class ConnectionCapture(int channelPort, int gamePort) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
     {
         private readonly Dictionary<NetworkEndpointKind, NetworkConnectionId> connected = [];
         private readonly SemaphoreSlim signal = new(0);
@@ -198,7 +198,7 @@ public sealed class OutboundSendFailureTests
 
         public int GamePort { get; } = gamePort;
 
-        public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+        public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
         {
             lock (connected)
             {
@@ -209,7 +209,7 @@ public sealed class OutboundSendFailureTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
 
         public async Task<NetworkConnectionId> WaitForAsync(

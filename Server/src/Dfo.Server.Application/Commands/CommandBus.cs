@@ -73,8 +73,11 @@ internal sealed class CommandBus(
                 var observation = bodyOnly ? new ProducerCancellationObservation(cancellationToken) : null;
                 try
                 {
-                    return await ExplicitAsync(command, registration, null, origin,
+                    var result = await ExplicitAsync(command, registration, null, origin,
                         bodyOnly ? cancellationToken : token, observation).ConfigureAwait(false);
+                    if (command is Scheduling.ScheduledGameplayTaskCommand scheduled && result is Scheduling.ScheduledGameplayTaskResult report)
+                        report.ThrowCompletedBusinessFailure(scheduled);
+                    return result;
                 }
                 catch (OperationCanceledException error) when (observation?.TryMarshal(error) == true)
                 {
@@ -205,11 +208,15 @@ internal sealed class CommandBus(
                 request.ProducerCancellation = cancellation;
                 if (origin?.Kind == GameplayCallSource.Timer && origin.Cancellation == InternalCommandCancellation.BodyOnly)
                     request.TimerReadOnlyCancellation = registration.TimerReadOnlyCancellation;
+                if (origin is { Kind: GameplayCallSource.Timer or GameplayCallSource.Event or GameplayCallSource.StartupRecovery,
+                    Cancellation: InternalCommandCancellation.BodyOnly })
+                    request.InternalActionCancellation = registration.InternalActionCancellation;
                 cancellation?.Bind(internalRequest);
             }
             request.RegistrationExits = registration.RegistrationExits ?? [];
             request.SelfSettlement = registration.SelfSettlement;
             request.SelectedSessionCleanup = registration.SelectedSessionCleanup;
+            request.DisconnectedLifecycleCleanup = command is DisconnectedLifecycleCommand;
             var context = new CommandExecutionContext(Guid.NewGuid(), registration.CommandType, registration.HandlerType,
                 registration.ExecutionKind) { Request = request };
             request.DemandCurrent();

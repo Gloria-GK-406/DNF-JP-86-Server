@@ -67,8 +67,8 @@ public sealed class InitialConnectionDeliveryFailureTests
             Outbound = new XoDelivery();
             Outbound.Connect(Connection);
             Context = Outbound.Context(Connection);
-            Observer = new OnlineUserConnectionObserver(Online, new SelectedSessionDomainService(state), new NoCleanup(),
-                new GeneralChannel(), new Config(), Outbound.Game, new NoCleanupDelivery(), new TestEffectFootprints.LifecycleSource([]), TimeProvider.System);
+            Observer = new OnlineUserConnectionObserver(Online, new SelectedSessionDomainService(state), new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoCleanup()),
+                new GeneralChannel(), new Config(), new LifecycleTestOutbox(Outbound.Game), new NoCleanupDelivery(), TimeProvider.System);
         }
 
         public XoDelivery Outbound { get; }

@@ -12,6 +12,16 @@ namespace Dfo.Server.Application.Commands;
 internal sealed class CommandSelectedSessionCleanup(ISelectedSessionCleanupDomainService cleanup,
     IIllusionTowerDomainService? illusion = null, IBossTowerDomainService? boss = null) : ICommandSelectedSessionCleanup
 {
+    public void RecordDisconnectedDeliveryFailure(CommandExecutionContext context, Exception cause)
+    {
+        var request = context.Request;
+        if (context.CommandType != typeof(DisconnectedLifecycleCommand) || request is not CommandRequestContext.TrustedInternal
+            { Origin.Kind: GameplayCallSource.Lifecycle, Origin.SourceConnection: null, DisconnectedLifecycleCleanup: true }
+            || request.IsClosed || GameplayJob.Current?.Id != ((CommandRequestContext.TrustedInternal)request).Origin.Chain.Id)
+            throw new InvalidOperationException("Only the live disconnected lifecycle may record its fixed cleanup delivery failure.");
+        request.Failed(cause);
+    }
+
     public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(CommandExecutionContext context,
         SelectedSessionIdentity session, bool includeOwner, CommandWorkUnit? action = null,
         CancellationToken cancellationToken = default)

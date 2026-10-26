@@ -22,8 +22,8 @@ public sealed class ConnectionLifecycleDispatchTests
         var seen = new ConcurrentQueue<Seen>();
         await using var provider = Build(services =>
         {
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("first", seen));
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("second", seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("first", seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("second", seen));
         });
         var connection = Connection("ld1");
         var lifecycle = provider.GetRequiredService<INetworkConnectionLifecycleDispatcher>();
@@ -42,8 +42,8 @@ public sealed class ConnectionLifecycleDispatchTests
         var seen = new ConcurrentQueue<Seen>();
         await using var provider = Build(services =>
         {
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("first", seen));
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("second", seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("first", seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("second", seen));
         });
         var connection = Connection("ld1c");
 
@@ -62,8 +62,8 @@ public sealed class ConnectionLifecycleDispatchTests
         var failure = new InvalidOperationException("observer failed");
         await using var provider = Build(services =>
         {
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("first", seen, failure));
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("second", seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("first", seen, failure));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("second", seen));
         });
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => provider
@@ -78,7 +78,7 @@ public sealed class ConnectionLifecycleDispatchTests
     public async Task Dispatching_a_lifecycle_event_from_a_job_of_the_same_executor_is_a_self_wait()
     {
         await using var provider = Build(services =>
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("only", new())));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("only", new())));
         var lifecycle = provider.GetRequiredService<INetworkConnectionLifecycleDispatcher>();
 
         await Assert.ThrowsAsync<GameplaySelfWaitException>(() => TestGameplay.RunAsync(provider, async () =>
@@ -93,7 +93,7 @@ public sealed class ConnectionLifecycleDispatchTests
         await using var provider = Build(services =>
         {
             services.AddLogging(logging => logging.AddProvider(log));
-            services.AddSingleton<INetworkConnectionObserver>(new Observer("only", seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer("only", seen));
         });
         await provider.GetRequiredService<GameplayExecutor>().StopAsync(CancellationToken.None);
         var connection = Connection("ld4");
@@ -144,12 +144,12 @@ public sealed class ConnectionLifecycleDispatchTests
 
     private sealed record Seen(string Step, bool OnExecutor, GameplayCallChain? Chain);
 
-    private sealed class Observer(string name, ConcurrentQueue<Seen> seen, Exception? failure = null) : INetworkConnectionObserver
+    private sealed class Observer(string name, ConcurrentQueue<Seen> seen, Exception? failure = null) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
     {
-        public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             Record("connected");
 
-        public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             Record("disconnected");
 
         private ValueTask Record(string what)

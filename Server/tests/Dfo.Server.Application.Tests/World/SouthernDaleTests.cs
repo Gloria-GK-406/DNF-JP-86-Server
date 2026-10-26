@@ -258,7 +258,7 @@ public sealed class SouthernDaleTests
         });
         clock.Now = clock.Now.AddMinutes(1);
         for (var retry = 0; retry < 2; retry++)
-            Assert.True(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new RefillOnlineSouthernTicketCommand(f.Session)));
+            Assert.True(await Dfo.Server.Application.Tests.Inventory.ScheduledCleanupFixture.RunDomainAsync(f.Services, f.Session, token => f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ISouthernDaleDomainService>().RefillOnlineTicketAsync(f.Session, token)));
         Assert.Equal(2, await Count(f, 71, 2680738));
         await using var restarted = new LearningFixture(existing: f.Path, useArchive: true,
             configure: s => s.AddSingleton(new Dfo.Server.Infrastructure.Content.PvfContentOptions { ArchivePath = ContentArchive.Path }));

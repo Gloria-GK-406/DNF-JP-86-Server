@@ -85,7 +85,7 @@ internal sealed class LifecycleWireHost : IAsyncDisposable
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         builder.Services.AddSingleton(recorder);
         // After every real observer, so it sees the connection once they have handled it.
-        builder.Services.AddSingleton<INetworkConnectionObserver>(sp =>
+        builder.Services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(sp =>
             new RecordingObserver(recorder, sp.GetRequiredService<GameplayExecutor>()));
         foreach (var type in new[] { ClientMessageType.GameExit, ClientMessageType.ChannelConnect })
         {
@@ -260,15 +260,15 @@ internal sealed class LifecycleRecorder
         [.. Events.Where(x => x.Connection == connection && kinds.Contains(x.Kind)).OrderBy(x => x.Order).Select(x => x.Kind)];
 }
 
-internal sealed class RecordingObserver(LifecycleRecorder recorder, GameplayExecutor executor) : INetworkConnectionObserver
+internal sealed class RecordingObserver(LifecycleRecorder recorder, GameplayExecutor executor) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
 {
-    public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+    public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
     {
         recorder.Record("connected", connection.ConnectionId);
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+    public async ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
     {
         // Flag: whether the executor had already stopped when the teardown ran.
         recorder.Record("disconnect-enter", connection.ConnectionId, executor.Completion.IsCompleted);

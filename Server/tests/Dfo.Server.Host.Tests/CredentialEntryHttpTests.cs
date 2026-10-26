@@ -93,7 +93,7 @@ public sealed class CredentialEntryHttpTests
         // The LOGIN answer names the login environment; the launcher host leaves it unset.
         var settings = new Dictionary<string, string?>(launcher.Settings) { ["GameLogin:Environment"] = "1" };
         await using var host = await GmTestHost.StartAsync(directory: launcher.Directory, configuration: settings,
-            configureServices: services => services.AddSingleton<INetworkConnectionObserver>(teardowns));
+            configureServices: services => services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(teardowns));
         using var http = new HttpClient { BaseAddress = launcher.Url };
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var credentials = new { loginId = "superseded-player", password = "superseded password 1" };
@@ -168,15 +168,15 @@ public sealed class CredentialEntryHttpTests
     }
 
     /// <summary>Read-only: where each teardown ran and as which chain.</summary>
-    private sealed class TeardownRecorder : INetworkConnectionObserver
+    private sealed class TeardownRecorder : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
     {
         private readonly TaskCompletionSource<(bool OnExecutor, GameplayCallChain? Chain)> first =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
 
-        public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+        public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
         {
             if (connection.EndpointKind == NetworkEndpointKind.Game)
                 first.TrySetResult((GameplayJob.IsOnExecutor, GameplayJob.Current));

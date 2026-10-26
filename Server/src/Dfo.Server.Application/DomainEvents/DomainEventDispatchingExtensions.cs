@@ -23,6 +23,12 @@ public static class DomainEventDispatchingExtensions
         services.TryAddSingleton<IEventService>(provider => provider.GetRequiredService<EventService>());
         services.TryAddSingleton<ICommandProjections>(provider => provider.GetRequiredService<EventService>());
         services.TryAddSingleton<DomainEventDispatcher>();
+        services.TryAddScoped<ICommandDomainEventConsumption, CommandDomainEventConsumption>();
+        if (!services.Any(x => x.ServiceType == typeof(ICommandHandler<ConsumeDomainEventCommand, bool>)))
+        {
+            services.AddInternalCommandHandler<ConsumeDomainEventCommand, bool, ConsumeDomainEventCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+            services.AddInternalCommandHandler<SettleDepthExceededDomainEventCommand, string, SettleDepthExceededDomainEventCommandHandler>();
+        }
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DomainEventHostedService>());
         return services;
     }

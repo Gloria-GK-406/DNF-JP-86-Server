@@ -126,9 +126,9 @@ public sealed class NameTagPurchaseTests
         await shop.Buy(CeraShopTestContent.Entry(First));
         shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(shop.Host.Session);
         shop.Host.Clock.Advance(TimeSpan.FromDays(30));
-        var commands = shop.Host.Services.GetRequiredService<ICommandBus>();
-        Assert.True(await commands.SendAsync(new ExpireCharacterNameTagCommand(shop.Host.Session)));
-        Assert.False(await commands.SendAsync(new ExpireCharacterNameTagCommand(shop.Host.Session)));
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(shop.Host.Services, "character.name-tag.expiration");
+        Assert.Equal(Dfo.Server.Data.Characters.CharacterNameTag.Empty, await shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>().ReadEffectiveAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default));
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(shop.Host.Services, "character.name-tag.expiration");
         Assert.Equal(0, shop.Host.Scalar("SELECT name_tag_item_id FROM characters WHERE character_id=1"));
         var pending = await shop.Host.Services.GetRequiredService<IDomainEventPersistence>().ReadDueAsync(
             "character.name-tag.expiration.notifications", shop.Host.Clock.GetUtcNow(), 100, default);

@@ -165,7 +165,7 @@ public sealed class LifecycleCallChainTests
             services.AddNetworkMessageDispatching();
             services.AddSingleton<IOutboundSender>(sender);
             services.AddSingleton<INetworkConnectionContexts>(contexts);
-            services.AddSingleton<INetworkConnectionObserver>(new Observer(seen));
+            services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer(seen));
             return new World(services.BuildServiceProvider(), sender, contexts, seen, logs);
         }
 
@@ -191,12 +191,12 @@ public sealed class LifecycleCallChainTests
         public ValueTask DisposeAsync() => Services.DisposeAsync();
     }
 
-    private sealed class Observer(ConcurrentQueue<Seen> seen) : INetworkConnectionObserver
+    private sealed class Observer(ConcurrentQueue<Seen> seen) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
     {
-        public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
 
-        public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+        public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
         {
             seen.Enqueue(new(GameplayJob.IsOnExecutor, GameplayJob.Current));
             return ValueTask.CompletedTask;
