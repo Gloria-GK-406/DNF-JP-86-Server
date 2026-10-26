@@ -18,12 +18,12 @@ public sealed class PremiumServiceUsageReportTests
         if (subscribed)
             shop.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,584,4000000000)");
         var commands = shop.Services.GetRequiredService<ICommandBus>();
-        var before = await commands.SendAsync(new ReadPremiumSnapshotCommand(shop.Session));
+        var before = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, shop.Session);
         for(var attempt=0;attempt<2;attempt++)
             await EffectRequestTransport.SendRaw(shop,new(1,0x36F,0,7),[1,0,(byte)slot,0,..new byte[72]]);
         Assert.Equal(2, shop.Sender.Messages.Count);
         Assert.All(shop.Sender.Messages, message => Assert.Equal("PremiumServiceStateMessage", message.GetType().Name));
-        var after = await commands.SendAsync(new ReadPremiumSnapshotCommand(shop.Session));
+        var after = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, shop.Session);
         Assert.Equal(before.Usage, after.Usage);
         Assert.DoesNotContain(after.Usage, item => item.SlotIndex == 4 && item.UsedCount != 0);
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters"));

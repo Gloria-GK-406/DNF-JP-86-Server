@@ -327,6 +327,20 @@ internal sealed partial class RecordedOutbound
     /// <summary>Forwards every call to the real adapter; it records nothing and throws nothing of its own.</summary>
     private sealed class Registering(RecordedOutbound owner, OutboxNetworkMessageSender inner) : INetworkMessageSender, ICommandMessageOutbox
     {
+        public ValueTask<bool> RegisterWithOutcomeAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct)
+        {
+            Interlocked.Increment(ref owner.attempts); owner.BeforeSend?.Invoke();
+            return inner.RegisterWithOutcomeAsync(id, message, ct);
+        }
+        public async ValueTask<bool> RegisterBatchWithOutcomeAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
+        {
+            Interlocked.Increment(ref owner.attempts); owner.BeforeSend?.Invoke(); owner.inFlight.Value = messages;
+            bool accepted;
+            try { accepted = await inner.RegisterBatchWithOutcomeAsync(connection, messages, ct); }
+            finally { owner.inFlight.Value = null; }
+            if (messages.Count > 0 && accepted) owner.batchCalls.Enqueue(new BatchCall(connection, [.. messages]));
+            return accepted;
+        }
         public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref owner.attempts);

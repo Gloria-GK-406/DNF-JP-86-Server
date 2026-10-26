@@ -6,23 +6,7 @@ using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Protocol.Game.Altar;
 
 public enum AltarOperation { Ready, Advance, SelectDifficulty, Fail, SettleBeforeExit, SettleParticipantBeforeExit }
-public sealed record AltarActionCommand(
-    SelectedSessionIdentity Session, IReadOnlyList<SelectedSessionIdentity> Sessions,
-    DungeonRunId RunId, long RoomVersion, long Generation, DateTimeOffset At,
-    AltarOperation Operation, byte Difficulty = 0)
-    : ICommand<AltarCommandResult>, IMultiSelectedSessionCommand
-{
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-}
 public sealed record AltarCommandResult(AltarActionResult? Action);
-public sealed class AltarActionCommandHandler(IAltarDungeonDomainService altars)
-    : ICommandHandler<AltarActionCommand, AltarCommandResult>
-{
-    public async ValueTask<AltarCommandResult> HandleAsync(CommandExecutionContext context, AltarActionCommand command, CancellationToken ct) =>
-        new(await AltarCommandPhases.ActionAsync(altars, command.Session, command.RunId, command.RoomVersion,
-            command.Generation, command.At, command.Operation, command.Difficulty, ct).ConfigureAwait(false));
-}
-
 internal static class AltarCommandPhases
 {
     internal static ValueTask<AltarActionResult?> ActionAsync(IAltarDungeonDomainService altars,

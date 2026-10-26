@@ -1,3 +1,4 @@
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
@@ -81,7 +82,10 @@ internal sealed class NotificationBus : INotificationBus
 
         // One scope for the publish rather than one per recipient: the handler is asked repeatedly
         // and owns nothing that should differ between two people in the same audience.
-        await using var scope = scopeFactory.CreateAsyncScope();
+        var scope = scopeFactory.CreateAsyncScope();
+        Exception? invocation = null;
+        try
+        {
         var composer = (INotificationComposer)scope.ServiceProvider
             .GetRequiredService(registration.ComposerType);
 
@@ -89,10 +93,13 @@ internal sealed class NotificationBus : INotificationBus
         {
             var outcome = await AttemptAsync(composer, recipient, notification, cancellationToken)
                 .ConfigureAwait(false);
-            attempts.Add(new NotificationAttempt(recipient.CharacterId, outcome));
+            attempts.Add(new NotificationAttempt(recipient.CharacterId, outcome.Outcome) { RegistrationAccepted = outcome.Accepted });
         }
 
         return new NotificationDelivery(attempts);
+        }
+        catch (Exception error) { invocation = error; throw; }
+        finally { await DomainEventScopeCleanupException.DisposeAsync(scope, invocation).ConfigureAwait(false); }
     }
 
     /// <summary>One recipient, isolated from the rest.</summary>
@@ -102,7 +109,7 @@ internal sealed class NotificationBus : INotificationBus
     /// exception is the caller's own cancellation: that is not this recipient failing, it is the
     /// publish being called off.
     /// </remarks>
-    private async ValueTask<NotificationOutcome> AttemptAsync(
+    private async ValueTask<(NotificationOutcome Outcome, bool Accepted)> AttemptAsync(
         INotificationComposer composer,
         NotificationRecipient recipient,
         object notification,
@@ -115,21 +122,26 @@ internal sealed class NotificationBus : INotificationBus
             // is reported as having left rather than as a failure. Inside the guard with everything
             // else: a session lookup that threw would otherwise take down the whole publish.
             if (!IsStillHere(recipient))
-                return NotificationOutcome.Gone;
+                return (NotificationOutcome.Gone, false);
 
             var messages = await composer
                 .ComposeAsync(recipient, notification, cancellationToken).ConfigureAwait(false);
             if (messages is null || messages.Count == 0)
-                return NotificationOutcome.Declined;
+                return (NotificationOutcome.Declined, false);
 
             cancellationToken.ThrowIfCancellationRequested();
+            var accepted = false;
             if (contexts is not null && contexts.TryGet(recipient.ConnectionId, out var connection) && connection is not null)
-                await sender.SendBatchAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+            {
+                if (sender is ICommandMessageOutbox registration)
+                    accepted = await registration.RegisterBatchWithOutcomeAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+                else await sender.SendBatchAsync(connection, messages, cancellationToken).ConfigureAwait(false);
+            }
             else if (logger.IsEnabled(LogLevel.Debug))
                 logger.LogDebug("Notification for character {CharacterId} was dropped: {ConnectionId} is no longer registered",
                     recipient.CharacterId.Value, recipient.ConnectionId);
 
-            return NotificationOutcome.Registered;
+            return (NotificationOutcome.Registered, accepted);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -143,7 +155,7 @@ internal sealed class NotificationBus : INotificationBus
                 error,
                 "Notification for character {CharacterId} failed.",
                 recipient.CharacterId.Value);
-            return NotificationOutcome.Failed;
+            return (NotificationOutcome.Failed, false);
         }
     }
 

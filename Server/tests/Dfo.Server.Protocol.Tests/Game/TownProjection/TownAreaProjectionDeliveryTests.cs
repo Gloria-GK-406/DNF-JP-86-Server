@@ -102,11 +102,20 @@ public sealed class TownAreaProjectionDeliveryTests
             {
                 Standing = [new MarriageWeddingStanding(bride, new(2, 12, 670, 330, 5)), new MarriageWeddingStanding(groom, new(2, 12, 685, 360, 5))],
             };
-            var scheduler = new MarriageWeddingScheduler(new OneWedding(ceremony.Id), new AdvanceCommands(transition), outbound.Game,
-                wedding, NullLogger<MarriageWeddingScheduler>.Instance, TimeProvider.System, new UnusedQueue(), outbound.Ordering);
-            var tick = typeof(MarriageWeddingScheduler).GetMethod("TickAsync",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-            await (ValueTask)tick.Invoke(scheduler, [CancellationToken.None])!;
+            // Projection oracle with controlled committed transition; production timer/bus tests own lifecycle/FIFO.
+            var handler = new GameMarriageCommandHandler(sessions, new OneWedding(ceremony.Id), null!, null!, null!, null!, views,
+                positions, areas, SharedTownMovementDomainService.Instance, null!, new PartyProjectionStreamRegistry(), null!,
+                new WeddingTransitionUnits(transition), new LegacyCommandProjections(new RecordingNotificationBus()),
+                new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(outbound.Game), TimeProvider.System,
+                NullLogger<GameMarriageCommandHandler>.Instance, ordering: outbound.Ordering);
+            var origin = new InternalCommandOrigin(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "test:wedding");
+            var request = new CommandRequestContext.TrustedInternal(origin);
+            try
+            {
+                await handler.HandleAsync(new(Guid.NewGuid(), typeof(AdvanceWeddingTickCommand), handler.GetType(), CommandExecutionKind.Direct) { Request = request }, new AdvanceWeddingTickCommand(), default);
+            }
+            finally { await request.DrainOperationsAsync(); request.Close(); }
         });
         await outbound.SettledAsync();
 
@@ -136,13 +145,13 @@ public sealed class TownAreaProjectionDeliveryTests
         public ValueTask<IReadOnlyList<AccountId>> CoupleAccountsAsync(SelectedSessionIdentity actor, CancellationToken ct) => throw new NotSupportedException();
     }
 
-    private sealed class AdvanceCommands(MarriageWeddingTransition transition) : ICommandBus
+    private sealed class WeddingTransitionUnits(MarriageWeddingTransition transition) : ICommandWorkUnits
     {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull =>
-            command is AdvanceMarriageWeddingCommand
-                ? ValueTask.FromResult((TResult)(object)new MarriageWeddingAdvanceResult(transition))
-                : throw new NotSupportedException(command.GetType().Name);
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken token = default) where T : notnull =>
+            ValueTask.FromResult<CommandWriteResult<T>>(new CommandWriteResult<T>.Returned((T)(object)new MarriageWeddingAdvanceResult(transition)));
+        public ValueTask<T> WriteAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
     }
 
     private sealed class UnusedQueue : Dfo.Server.Abstractions.Execution.IGameplayQueue

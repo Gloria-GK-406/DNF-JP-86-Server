@@ -25,49 +25,71 @@ public sealed class AltarWakeSignal(TimeProvider clock) : IAltarSchedulerWakeSig
         catch (OperationCanceledException) when (!ct.IsCancellationRequested && timer.IsCancellationRequested) { }
     }
 }
-public sealed class AltarScheduler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
-    ICommandBus commands,
-    AltarProjectionDelivery delivery, AltarWakeSignal wake, TimeProvider clock, ILogger<AltarScheduler> logger,
-    IGameplayQueue queue) : BackgroundService
+public sealed record MaintainAltarCommand : ICommand<AltarNextDeadline>;
+public sealed record AdvanceAltarDeadlineCommand(AltarDeadline Deadline) : ICommand<bool>;
+public sealed record AltarNextDeadline(DateTimeOffset? At);
+public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
+    Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
+    Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService registry,
+    Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
+    ICommandWorkUnits units, Dfo.Server.Abstractions.DomainEvents.ICommandProjections projections,
+    IAltarSchedulerWakeSignal wake, TimeProvider clock, ILogger<AltarTimerCommandHandler> logger)
+    : ICommandHandler<MaintainAltarCommand, AltarNextDeadline>, ICommandHandler<AdvanceAltarDeadlineCommand, bool>
 {
-    private readonly CoalescingGameplaySource ticks = new(queue);
+    public async ValueTask<AltarNextDeadline> HandleAsync(CommandExecutionContext context, MaintainAltarCommand command, CancellationToken token)
+    {
+        var now = clock.GetUtcNow();
+        foreach (var due in altars.Pending().Where(x => x.At <= now))
+            await AdvanceAsync(context, due, token).ConfigureAwait(false);
+        var pending = altars.Pending();
+        var next = pending.Count == 0 ? (DateTimeOffset?)null : pending.Min(x => x.At);
+        if (next is {} expired && expired <= clock.GetUtcNow()) next = clock.GetUtcNow().AddMilliseconds(100);
+        return new(next);
+    }
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceAltarDeadlineCommand command, CancellationToken token)
+    { await AdvanceAsync(context, command.Deadline, token).ConfigureAwait(false); return true; }
+    private async ValueTask AdvanceAsync(CommandExecutionContext context, AltarDeadline due, CancellationToken token)
+    {
+        var cohort = AltarTransitionProjection.Participants(runs, sessions, registry, due.RunId);
+        if (cohort.Count == 0) return;
+        var current = altars.Find(due.RunId);
+        if (current?.Generation != due.Generation || current.RoomVersion != due.RoomVersion || runs.Find(due.RunId)?.RoomVersion != due.RoomVersion) return;
+        Exception? rejected = null;
+        var write = await units.WriteResultAsync(context, new("altar.deadline", TimerRecipientCapture.Capture(cohort, users)), async (_, ct) =>
+        {
+            try { return new AltarCommandResult(await altars.AdvanceAsync(due.RunId, due.RoomVersion, due.Generation, clock.GetUtcNow(), ct).ConfigureAwait(false)); }
+            catch (Exception error) when (error is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            { rejected = error; _.RequireRollback(error); return new AltarCommandResult(null); }
+        }, token).ConfigureAwait(false);
+        if (write is CommandWriteResult<AltarCommandResult>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
+        if (rejected is not null) { logger.LogError(rejected, "Altar deadline failed run={RunId} generation={Generation}", due.RunId, due.Generation); return; }
+        var result = ((CommandWriteResult<AltarCommandResult>.Returned)write).Value;
+        if (result.Action is {} action)
+            await AltarTransitionProjection.ProjectAsync(projections, action, AltarTransitionProjection.Participants(runs, sessions, registry, action.State.RunId),
+                clock, wake, logger, token).ConfigureAwait(false);
+    }
 
+}
+public sealed class AltarScheduler(ICommandBus commands, AltarWakeSignal wake, ILogger<AltarScheduler> logger)
+    : TypedGameplayTimerSource(commands, logger)
+{
+    private DateTimeOffset? next;
+    protected override string SourceName => "timer:AltarScheduler";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+        next = (await SubmitAsync(new MaintainAltarCommand(), root, SourceName, token).ConfigureAwait(false)).At;
+    internal async ValueTask AdvanceAsync(AltarDeadline due, CancellationToken token) =>
+        _ = await SubmitAsync(new AdvanceAltarDeadlineCommand(due), GameplayCallChain.NewRoot(GameplayCallSource.Timer), SourceName, token).ConfigureAwait(false);
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                // One round (due deadlines and the next one) is one timer CMD; only the wait is outside.
-                DateTimeOffset? next = null;
-                await GameplayTimerWork.TickAsync(ticks, "timer:AltarScheduler", async token =>
-                {
-                    var now = clock.GetUtcNow();
-                    foreach (var due in altars.Pending().Where(x => x.At <= now))
-                    {
-                        try { await AdvanceAsync(due, token).ConfigureAwait(false); }
-                        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-                        catch (Exception error) { logger.LogError(error, "Altar deadline failed run={RunId} generation={Generation}", due.RunId, due.Generation); }
-                    }
-                    var pending = altars.Pending();
-                    next = pending.Count == 0 ? (DateTimeOffset?)null : pending.Min(x => x.At);
-                    // Failed or overdue actions back off; an empty scheduler sleeps until a command wakes it.
-                    if (next is { } expired && expired <= clock.GetUtcNow()) next = clock.GetUtcNow().AddMilliseconds(100);
-                }, logger, stoppingToken).ConfigureAwait(false);
+                next = null;
+                await HostedAsync(stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
-    }
-    internal async ValueTask AdvanceAsync(AltarDeadline due, CancellationToken ct)
-    {
-        var cohort = delivery.Participants(due.RunId);
-        if (cohort.Count == 0) return;
-        var current = altars.Find(due.RunId);
-        if (current?.Generation != due.Generation || current.RoomVersion != due.RoomVersion
-            || runs.Find(due.RunId)?.RoomVersion != due.RoomVersion) return;
-        var result = await commands.SendAsync(new AltarActionCommand(cohort[0], cohort, due.RunId, due.RoomVersion,
-            due.Generation, clock.GetUtcNow(), AltarOperation.Advance), ct).ConfigureAwait(false);
-        await delivery.ProjectAsync(result.Action, ct).ConfigureAwait(false);
     }
 }

@@ -61,6 +61,7 @@ public sealed class LockRemovalSourceTests(ITestOutputHelper output)
     private static readonly IReadOnlyDictionary<string, (int Count, string Reason)> Semaphores =
         new Dictionary<string, (int Count, string Reason)>(StringComparer.Ordinal)
     {
+        ["Dfo.Server.Application/Execution/TypedGameplayTimerSource.cs"] = (1, "accepted F-07 scan/session rounds serialize only off the executor; no world-state gate"),
         ["Dfo.Server.Application/Events/JoustRuleService.cs"] = (1, "rule initialization (appendix F keep); stays"),
         ["Dfo.Server.Application/Characters/CharacterStatRuleService.cs"] = (1, "rule initialization (appendix F keep); stays"),
         ["Dfo.Server.Application/Authentication/PasswordComputationLimiter.cs"] = (2, "password hashing limit off the executor (RQ-007); stays"),

@@ -49,7 +49,7 @@ public sealed class DungeonBuffUsageTests
     private static async Task<int> Report(ShopFixture shop)
     {
         await EffectRequestTransport.SendRaw(shop,new(1,0x36F,0,7),[1,0,3,0,..new byte[72]]);
-        var snapshot = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadPremiumSnapshotCommand(shop.Session));
+        var snapshot = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, shop.Session);
         return snapshot.Usage.Single(x => x.SlotIndex == 3).UsedCount;
     }
 

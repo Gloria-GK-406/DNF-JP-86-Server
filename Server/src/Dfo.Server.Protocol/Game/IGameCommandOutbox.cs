@@ -5,6 +5,10 @@ namespace Dfo.Server.Protocol.Game;
 
 public interface IGameCommandOutbox
 {
+    ValueTask<bool> RegisterCmdWithOutcomeAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+        ValueTask.FromException<bool>(new NotSupportedException("This outbox does not report registration acceptance."));
+    ValueTask<bool> RegisterNotiWithOutcomeAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+        ValueTask.FromException<bool>(new NotSupportedException("This outbox does not report registration acceptance."));
     ValueTask RegisterCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken);
     ValueTask RegisterNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken);
     ValueTask RegisterBatchAsync(NetworkConnectionContext expectedConnection, IReadOnlyList<IGameServerMessage> messages, CancellationToken cancellationToken);
@@ -17,6 +21,10 @@ public interface IGameCommandOutbox
 
 internal sealed class GameCommandOutbox(ICommandMessageOutbox outbox) : IGameCommandOutbox
 {
+    public ValueTask<bool> RegisterCmdWithOutcomeAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+        outbox.RegisterWithOutcomeAsync(connectionId, message, cancellationToken);
+    public ValueTask<bool> RegisterNotiWithOutcomeAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+        outbox.RegisterWithOutcomeAsync(connectionId, message, cancellationToken);
     public ValueTask RegisterCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
         outbox.RegisterAsync(connectionId, message, cancellationToken);
     public ValueTask RegisterNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>

@@ -54,7 +54,10 @@ public enum NotificationOutcome
     Failed,
 }
 
-public sealed record NotificationAttempt(CharacterId CharacterId, NotificationOutcome Outcome);
+public sealed record NotificationAttempt(CharacterId CharacterId, NotificationOutcome Outcome)
+{
+    public bool RegistrationAccepted { get; init; }
+}
 
 /// <summary>What one publish reached, and what became of each recipient.</summary>
 /// <remarks>

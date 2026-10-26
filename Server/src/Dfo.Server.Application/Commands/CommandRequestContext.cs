@@ -26,6 +26,8 @@ public interface IProtocolCommand<TResult> : ICommand<TResult>, IProtocolCommand
 
 public abstract class CommandRequestContext
 {
+    internal TimerReadOnlyCancellationCapability TimerReadOnlyCancellation { get; set; }
+
     private readonly Guid job = GameplayJob.Current?.Id ?? throw new InvalidOperationException("A request begins on a gameplay job.");
     private readonly List<SelectedSessionRecipient> committed = [];
     private Exception? failure;

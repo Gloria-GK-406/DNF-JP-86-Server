@@ -112,10 +112,23 @@ public sealed class LoginSessionMaintenanceExecutorTests
         IServiceProvider provider,
         LoginSessionRegistry sessions,
         TimeProvider clock) =>
-        new(sessions, clock, provider.GetRequiredService<IGameplayQueue>(), NullLogger<LoginSessionMaintenanceService>.Instance)
+        new(new MaintenanceBus(provider.GetRequiredService<IGameplayQueue>(), sessions), clock, NullLogger<LoginSessionMaintenanceService>.Instance)
         {
             SweepInterval = TimeSpan.FromMilliseconds(50),
         };
+
+    // This scheduler fixture drives the real maintenance handler; TimerSourceHost covers the real bus registration.
+    private sealed class MaintenanceBus(IGameplayQueue queue, LoginSessionRegistry sessions) : Dfo.Server.Application.Commands.ICommandBus
+    {
+        public ValueTask<T> SendAsync<T>(Dfo.Server.Application.Commands.ICommand<T> command, CancellationToken token = default) where T : notnull => throw new NotSupportedException();
+        public ValueTask<T> SendInternalAsync<T>(Dfo.Server.Application.Commands.ICommand<T> command, Dfo.Server.Application.Commands.InternalCommandOrigin origin, CancellationToken token = default) where T : notnull =>
+            queue.RunAsync(new GameplayWork<T>(GameplayShardKey.World, origin.Chain, origin.CommandType, async _ =>
+            {
+                Assert.IsType<SweepLoginSessionsCommand>(command);
+                var value = await new SweepLoginSessionsCommandHandler(new LoginSessionMaintenanceDomainService(sessions)).HandleAsync(null!, new(), token);
+                return (T)(object)value;
+            }), CancellationToken.None);
+    }
 
     /// <summary>Binds <paramref name="old"/>, then commits a second login of the same account.</summary>
     private static Task SupersedeAsync(DomainTransactionScope scope, LoginSessionRegistry sessions, RecordingClock clock,

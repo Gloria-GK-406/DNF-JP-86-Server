@@ -12,20 +12,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Weakness;
 
-public sealed record AdvanceWeaknessRecoveryCommand : ICommand<IReadOnlyList<CharacterId>>;
-
-public sealed class AdvanceWeaknessRecoveryCommandHandler(IWeaknessDomainService weakness)
-    : ICommandHandler<AdvanceWeaknessRecoveryCommand, IReadOnlyList<CharacterId>>
-{
-    public async ValueTask<IReadOnlyList<CharacterId>> HandleAsync(CommandExecutionContext context,
-        AdvanceWeaknessRecoveryCommand command, CancellationToken cancellationToken)
-    {
-        var recovered = weakness.AdvanceRecovery();
-        var retried = await weakness.RetryPendingWeakness(cancellationToken).ConfigureAwait(false);
-        return recovered.Concat(retried).Distinct().ToArray();
-    }
-}
-
 public sealed class WeaknessProjectionDelivery(
     IWeaknessDomainService weakness, ISelectedSessionDomainService sessions, IGameMessageSender sender)
 {
@@ -38,40 +24,41 @@ public sealed class WeaknessProjectionDelivery(
     }
 }
 
-public sealed class WeaknessRecoveryService(
-    IWeaknessDomainService weakness, ICommandBus commands,
-    ISelectedSessionDomainService sessions,
-    WeaknessProjectionDelivery delivery, TimeProvider clock,
-    ILogger<WeaknessRecoveryService> logger, IGameplayQueue queue) : BackgroundService
+public sealed record RecoverWeaknessTickCommand : ICommand<bool>;
+public sealed class RecoverWeaknessTickCommandHandler(IWeaknessDomainService weakness, ISelectedSessionDomainService sessions,
+    ICommandWorkUnits units, IGameCommandOutbox outbox, ILogger<RecoverWeaknessTickCommandHandler> logger)
+    : ICommandHandler<RecoverWeaknessTickCommand, bool>
 {
-    private readonly CoalescingGameplaySource ticks = new(queue);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, RecoverWeaknessTickCommand command, CancellationToken token)
     {
-        using var timer = new PeriodicTimer(weakness.RecoveryInterval, clock);
-        try
+        var changed = await units.WriteAsync(context, new("weakness.recovery", []), async (_, ct) =>
         {
-            // One tick is one timer CMD on the executor.
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await GameplayTimerWork.TickAsync(ticks, "timer:WeaknessRecoveryService", TickAsync, logger, stoppingToken)
-                    .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
-    }
-
-    private async ValueTask TickAsync(CancellationToken stoppingToken)
-    {
-        var changed = await commands.SendAsync(new AdvanceWeaknessRecoveryCommand(), stoppingToken)
-            .ConfigureAwait(false);
+            var recovered = weakness.AdvanceRecovery();
+            var retried = await weakness.RetryPendingWeakness(ct).ConfigureAwait(false);
+            return recovered.Concat(retried).Distinct().ToArray();
+        }, token).ConfigureAwait(false);
         foreach (var id in changed)
         {
-            try
-            {
-                if (!sessions.TryGetInWorld(id, out var session)) continue;
-                await delivery.SendCurrentAsync(session, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-            catch (Exception exception) { logger.LogWarning(exception, "Weakness projection failed character={CharacterId}", id); }
+            if (!sessions.TryGetInWorld(id, out var session)) continue;
+            WeaknessProjectionNotification message;
+            try { message = new(weakness.For(session.CharacterId).Value); }
+            catch (Exception error) when (error is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            { logger.LogWarning(error, "Weakness projection failed character={CharacterId}", id); continue; }
+            await outbox.RegisterNotiAsync(session.ConnectionId, message, token).ConfigureAwait(false);
         }
+        return true;
+    }
+}
+public sealed class WeaknessRecoveryService(ICommandBus commands, TimeSpan recoveryInterval, TimeProvider clock,
+    ILogger<WeaknessRecoveryService> logger) : TypedGameplayTimerSource(commands, logger)
+{
+    protected override string SourceName => "timer:WeaknessRecoveryService";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+        _ = await SubmitAsync(new RecoverWeaknessTickCommand(), root, SourceName, token).ConfigureAwait(false);
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(recoveryInterval, clock);
+        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await HostedAsync(stoppingToken).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }
 }

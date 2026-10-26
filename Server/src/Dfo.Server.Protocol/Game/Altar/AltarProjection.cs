@@ -65,24 +65,13 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
 }
 
 /// <summary>Projects committed altar changes, with the shared instance lock held by its caller.</summary>
-public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
-    ISelectedSessionDomainService sessions, DungeonRunDeliveryRegistry registry, ICommandBus commands,
+public sealed class AltarProjectionDelivery(IDungeonRunDomainService runs,
+    ISelectedSessionDomainService sessions, DungeonRunDeliveryRegistry registry,
     IEventService events, TimeProvider clock, AltarWakeSignal wake, SelectedSessionSafety safety, ILogger<AltarProjectionDelivery> logger)
 {
     public void Wake() => wake.Wake();
     internal IReadOnlyList<SelectedSessionIdentity> Participants(DungeonRunId runId) => AltarTransitionProjection.Participants(runs, sessions, registry, runId);
 
-    internal async ValueTask<AltarActionResult?> ExecuteAsync(SelectedSessionIdentity requester,
-        DungeonRunId runId, AltarOperation operation, byte difficulty, CancellationToken ct)
-    {
-        var run = runs.Find(requester.CharacterId); var state = altars.Find(runId);
-        if (run?.RunId != runId || state is null) return null;
-        var cohort = Participants(runId);
-        if (!cohort.Contains(requester)) return null;
-        var result = await commands.SendAsync(new AltarActionCommand(requester, cohort, runId, run.RoomVersion,
-            state.Generation, clock.GetUtcNow(), operation, difficulty), ct).ConfigureAwait(false);
-        return result.Action;
-    }
     internal async ValueTask ProjectAsync(AltarActionResult? action, CancellationToken ct)
     {
         if (action is null) return;
@@ -100,12 +89,4 @@ public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, I
         }
     }
 
-    internal async ValueTask<bool> FailAsync(DungeonRunId runId, CancellationToken ct)
-    {
-        if (altars.Find(runId) is null) return false;
-        var requester = Participants(runId).FirstOrDefault();
-        if (requester is null) return true;
-        await ProjectAsync(await ExecuteAsync(requester, runId, AltarOperation.Fail, 0, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
-        return true;
-    }
 }

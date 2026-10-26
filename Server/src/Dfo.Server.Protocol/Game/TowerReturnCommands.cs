@@ -28,7 +28,7 @@ public sealed record ProjectIllusionTowerDepartureCommand(TowerDepartureEntryId 
 public sealed record CaptureIllusionTowerReturnsDueCommand : ICommand<TowerReturnsDue<TowerActionContext>>;
 public sealed record ReturnIllusionTowerRunCommand(TowerActionContext Context, DateTimeOffset CapturedAt) : ICommand<bool>;
 
-internal sealed class TowerReturnCommandHandler : PartyMutationProtocolCommandHandler,
+internal sealed partial class TowerReturnCommandHandler : PartyMutationProtocolCommandHandler,
     ICommandHandler<CaptureBossTowerDeparturesCommand, ImmutableArray<TowerDepartureEntryId>>,
     ICommandHandler<ProjectBossTowerDepartureCommand, bool>,
     ICommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<BossTowerActionContext>>,
@@ -36,7 +36,8 @@ internal sealed class TowerReturnCommandHandler : PartyMutationProtocolCommandHa
     ICommandHandler<CaptureIllusionTowerDeparturesCommand, ImmutableArray<TowerDepartureEntryId>>,
     ICommandHandler<ProjectIllusionTowerDepartureCommand, bool>,
     ICommandHandler<CaptureIllusionTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>>,
-    ICommandHandler<ReturnIllusionTowerRunCommand, bool>
+    ICommandHandler<ReturnIllusionTowerRunCommand, bool>,
+    ICommandHandler<MaintainDungeonReturnsCommand, bool>, ICommandHandler<ReturnDungeonRunCommand, bool>
 {
     private readonly IBossTowerDepartureProjectionDomainService bossDepartures;
     private readonly IIllusionTowerDepartureProjectionDomainService illusionDepartures;
@@ -49,7 +50,11 @@ internal sealed class TowerReturnCommandHandler : PartyMutationProtocolCommandHa
         IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, IBossTowerDepartureProjectionDomainService bossDepartures,
         IIllusionTowerDepartureProjectionDomainService illusionDepartures, TimeProvider clock,
-        ILogger<TowerReturnCommandHandler> logger, IOutboundOrdering? ordering = null)
+        ILogger<TowerReturnCommandHandler> logger, IDungeonRunDomainService wipeRuns,
+        IDungeonRunProjectionDomainService wipeRegistry, Dfo.Server.Abstractions.World.IDungeonCardPresentationControl cards,
+        IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments,
+        Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal wake,
+        IOutboundOrdering? ordering = null)
         : base(sessions, parties, townAreas, projections, projectionState.StreamOf, ordering, logger,
             currentViews, currentState, characters, onlineCharacters, towns, housing, bossTowers, illusionTowers, clock,
             outbox.RegisterExplicitAsync,
@@ -57,7 +62,8 @@ internal sealed class TowerReturnCommandHandler : PartyMutationProtocolCommandHa
                 && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
                 ? closures.RequestCloseAsync(user.Connection, CancellationToken.None) : ValueTask.CompletedTask,
             workUnits: units, onlineUsers: onlineUsers)
-    { this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; }
+    { this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; this.wipeRuns = wipeRuns; this.wipeRegistry = wipeRegistry;
+      this.wipeCards = cards; this.wipeAltars = altars; this.wipeTournaments = tournaments; this.wipeSlots = slots; this.wipeWake = wake; }
 
     public ValueTask<ImmutableArray<TowerDepartureEntryId>> HandleAsync(CommandExecutionContext context,
         CaptureBossTowerDeparturesCommand command, CancellationToken token) => ValueTask.FromResult(bossDepartures.SnapshotPending());

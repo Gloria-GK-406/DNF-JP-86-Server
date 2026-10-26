@@ -604,14 +604,12 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task JoustMaintenanceService_refuses_its_tick_body_off_the_executor_and_runs_it_in_a_job()
     {
-        // The tick body is private: StartAsync and TickAsync only enqueue it as a startup or timer CMD.
-        var joust = Make<Dfo.Server.Application.Events.JoustMaintenanceService>(new QuietJoust());
-        ValueTask Body() => (ValueTask)Invoke(joust, "AdvanceAndPublishAsync", CancellationToken.None, true)!;
+        var maintenance = Make<Dfo.Server.Application.Events.JoustMaintenanceDomainService>();
+        var state = new Dfo.Server.Data.Events.JoustState(false, DateTimeOffset.UnixEpoch, default, null, null, null, null, [], [], 0, 0, 0);
+        ValueTask Body() => maintenance.ObserveAsync(state, true);
         var seen = ViolationCapture.Attach();
-
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Body());
-
-        AssertOneViolation(seen, "JoustMaintenanceService.AdvanceAndPublishAsync");
+        AssertOneViolation(seen, "JoustMaintenanceDomainService.ObserveAsync");
         await TestGameplay.RunAsync(async () => await Body());
     }
 
@@ -678,15 +676,14 @@ public sealed class GameplayWriteAssertionTests
     [InlineData("Dfo.Server.Protocol.Game.Fatigue.FatigueDailyRefreshService")]
     public async Task A_daily_refresh_refuses_its_timer_body_off_the_executor_and_runs_it_in_a_job(string typeName)
     {
-        // The body is private: RefreshAsync and the timer loop only enqueue it as a timer CMD.
-        var type = ProtocolType(typeName);
-        var refresh = Make(type);
-        ValueTask Body() => (ValueTask)Invoke(refresh, "RefreshCoreAsync", CancellationToken.None)!;
+        var refresh = Make<Dfo.Server.Application.Sessions.SelectedSessionRefreshDomainService>();
+        var topicName = typeName.Split('.').Last().Replace("QuotaDailyRefreshService", "", StringComparison.Ordinal)
+            .Replace("DailyRefreshService", "", StringComparison.Ordinal);
+        var topic = Enum.Parse<Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic>(topicName);
+        ValueTask Body() { refresh.Capture(topic); return ValueTask.CompletedTask; }
         var seen = ViolationCapture.Attach();
-
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Body());
-
-        AssertOneViolation(seen, type.Name + ".RefreshCoreAsync");
+        AssertOneViolation(seen, "SelectedSessionRefreshDomainService.Capture");
         await TestGameplay.RunAsync(async () => await Body());
     }
 

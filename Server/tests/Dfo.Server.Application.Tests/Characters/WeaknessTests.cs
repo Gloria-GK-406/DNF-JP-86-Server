@@ -84,9 +84,10 @@ public sealed class WeaknessTests
             Assert.Equal(10, weakness.For(Id).Value);
             Assert.Equal(100, weakness.For(new(2)).Value);
             second.ProgressReader = null;
-            var command = new Dfo.Server.Protocol.Game.Weakness.AdvanceWeaknessRecoveryCommandHandler(weakness);
-            var changed = await command.HandleAsync(null!, new(), default);
-            Assert.Equal(2, changed.Count);
+            var recovered = weakness.AdvanceRecovery();
+            var retried = await weakness.RetryPendingWeakness(default);
+            var changed = recovered.Concat(retried).Distinct().ToArray();
+            Assert.Equal(2, changed.Length);
             Assert.Equal(19, weakness.For(Id).Value);
             Assert.Equal(10, weakness.For(new(2)).Value);
             Assert.Empty(await weakness.RetryPendingWeakness(default));

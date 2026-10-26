@@ -88,15 +88,17 @@ public static class CommandDispatchingExtensions
         where THandler : class, ICommandHandler<TCommand, TResult> =>
         Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Protocol, [.. messages], selectedSessionCleanup: capability);
 
-    public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services)
+    public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
+        TimerReadOnlyCancellationCapability timerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Internal, null);
+        Add<TCommand, TResult, THandler>(services, CommandExecutionKind.Direct, CommandRouteKind.Internal, null, timerReadOnlyCancellation: timerReadOnlyCancellation);
 
     private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
         CommandExecutionKind kind, CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null,
         CommandSelfSettlementCapability selfSettlement = CommandSelfSettlementCapability.None,
-        CommandSelectedSessionCleanupCapability selectedSessionCleanup = CommandSelectedSessionCleanupCapability.None)
+        CommandSelectedSessionCleanupCapability selectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
+        TimerReadOnlyCancellationCapability timerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
     {
@@ -107,7 +109,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            kind, route, messages, exits, selfSettlement, selectedSessionCleanup).Freeze());
+            kind, route, messages, exits, selfSettlement, selectedSessionCleanup, timerReadOnlyCancellation).Freeze());
         return services;
     }
 }

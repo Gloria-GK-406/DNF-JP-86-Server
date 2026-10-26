@@ -18,28 +18,73 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Creatures;
 
-public sealed record AdvanceCreatureClockCommand(SelectedSessionIdentity Session)
-    : ICommand<IReadOnlyList<CreatureRuntimeChange>>;
-
-public sealed class AdvanceCreatureClockCommandHandler(ICreatureRuntimeDomainService creatures)
-    : ICommandHandler<AdvanceCreatureClockCommand, IReadOnlyList<CreatureRuntimeChange>>
+public sealed record AdvanceCreatureTickCommand : ICommand<bool>;
+public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainService creatures,
+    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns,
+    IIllusionTowerDomainService towers, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
+    IInventorySlotMappingRuleService slotMappings, ICommandWorkUnits units, TimeProvider clock,
+    ILogger<AdvanceCreatureTickCommandHandler> logger) : ICommandHandler<AdvanceCreatureTickCommand, bool>
 {
-    public ValueTask<IReadOnlyList<CreatureRuntimeChange>> HandleAsync(CommandExecutionContext context,
-        AdvanceCreatureClockCommand command, CancellationToken cancellationToken) =>
-        creatures.AdvanceAsync(command.Session, cancellationToken);
-}
-
-public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs, ITownAreaDomainService towns, IGameMessageSender sender,
-    ICreatureRuntimeDomainService creatures, INetworkConnectionCloser connections,
-    ILogger<CreatureProjectionDelivery> logger, IInventorySlotMappingRuleService? slotMappings = null,
-    TimeProvider? clock = null, IIllusionTowerDomainService? towers = null)
-{
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceCreatureTickCommand command, CancellationToken token)
+    {
+        foreach (var session in creatures.DueSessions())
+        {
+            if (!sessions.IsInWorld(session)) continue;
+            Exception? rejected = null;
+            var write = await units.WriteResultAsync(context, new("creature.clock", []), async (unit, ct) =>
+            {
+                try { await creatures.AdvanceAsync(session, ct).ConfigureAwait(false); return true; }
+                catch (Exception error) when (error is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+                { rejected = error; unit.RequireRollback(error); return false; }
+            }, token).ConfigureAwait(false);
+            if (write is CommandWriteResult<bool>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
+            if (rejected is not null) logger.LogWarning(rejected, "Creature clock failed character={CharacterId}", session.CharacterId);
+        }
+        foreach (var projection in creatures.DrainProjections())
+        {
+            var phase = new ProjectionPhase();
+            try { await SendCoreAsync(phase, projection.Session, projection.Changes, token).ConfigureAwait(false); }
+            catch (Exception error) when (error is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            {
+                if (phase.Registering) throw;
+                context.Request!.DemandCurrent();
+                logger.LogWarning(error, "Creature projection failed character={CharacterId}; closing the exact connection for authoritative reload", projection.Session.CharacterId);
+                if (sessions.IsInWorld(projection.Session))
+                    await closures.ResolveAndRequestCloseAsync(projection.Session.ConnectionId, token).ConfigureAwait(false);
+            }
+        }
+        return true;
+    }
+    private sealed class ProjectionPhase { public bool Registering; }
     public ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct) =>
-        CreatureVisibleRecipients.DeliverAsync(owner, notification, sessions, runs, towns, towers,
-            sender.SendNotiAsync, (receiver, token) => connections.RequestCloseAsync(receiver.ConnectionId, token), logger, ct);
-
-    public async ValueTask SendAsync(SelectedSessionIdentity owner,
+        VisibleAsync(new(), owner, notification, ct);
+    private async ValueTask<bool> VisibleAsync(ProjectionPhase phase, SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct)
+    {
+        var delivered = await CreatureVisibleRecipients.DeliverAsync(owner, notification, sessions, runs, towns, towers,
+            (id, message, token) => NotiAsync(phase, id, message, token), async (receiver, token) =>
+            {
+                phase.Registering = true;
+                await closures.ResolveAndRequestCloseAsync(receiver.ConnectionId, token).ConfigureAwait(false);
+                phase.Registering = false;
+            }, logger, ct).ConfigureAwait(false);
+        phase.Registering = false;
+        return delivered;
+    }
+    private async ValueTask NotiAsync(ProjectionPhase phase, NetworkConnectionId id, IGameNotiMessage message, CancellationToken token)
+    {
+        phase.Registering = true;
+        await outbox.RegisterNotiAsync(id, message, token).ConfigureAwait(false);
+        phase.Registering = false;
+    }
+    private async ValueTask ExplicitAsync(ProjectionPhase phase, NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken token)
+    {
+        phase.Registering = true;
+        await outbox.RegisterExplicitAsync(id, delivery, token).ConfigureAwait(false);
+        phase.Registering = false;
+    }
+    public ValueTask SendAsync(SelectedSessionIdentity owner, IReadOnlyList<CreatureRuntimeChange> changes, CancellationToken ct) =>
+        SendCoreAsync(new(), owner, changes, ct);
+    private async ValueTask SendCoreAsync(ProjectionPhase phase, SelectedSessionIdentity owner,
         IReadOnlyList<CreatureRuntimeChange> changes, CancellationToken ct)
     {
         if (!sessions.IsInWorld(owner)) return;
@@ -50,7 +95,7 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
             var progressed = pet.Experience != change.Before.Experience || pet.Level != change.Before.Level;
             if (change.Transformation is not null || progressed)
             {
-                await sender.SendNotiAsync(owner.ConnectionId, new CreatureListMessage([
+                await NotiAsync(phase, owner.ConnectionId, new CreatureListMessage([
                     new CharacterPetRuntimeState(pet.ItemUid, pet.Stomach, checked((byte)pet.ModeFlag),
                         pet.Experience, pet.Mode1Field0A, pet.Mode1Field0B, pet.Level,
                         pet.NameBytes, checked((byte)pet.TailFlag))]), ct).ConfigureAwait(false);
@@ -59,78 +104,41 @@ public sealed class CreatureProjectionDelivery(ISelectedSessionDomainService ses
             // at its current position. Never overwrite the old worn slot with a stale receipt.
             if (equipped && change.Transformation is { } transformation)
             {
-                var slot = (slotMappings ?? throw new InvalidOperationException("Creature transformations require slot mapping."))
+                var slot = slotMappings
                     .ToGameSlot(transformation.Slot);
-                await sender.SendExplicitAsync(owner.ConnectionId, new GameExplicitMessageDelivery([GameInventoryDelivery.Notification(
+                await ExplicitAsync(phase, owner.ConnectionId, new GameExplicitMessageDelivery([GameInventoryDelivery.Notification(
                     new CommittedInventoryUpdateState(slot.Space,
                         [new InventoryItemState(null, slot.Index, transformation.Core.ToCore())],
-                        (clock ?? TimeProvider.System).GetUtcNow()))], []), ct).ConfigureAwait(false);
-                await SendVisibleAsync(owner, new CreatureEvolutionNotification(
+                        clock.GetUtcNow()))], []), ct).ConfigureAwait(false);
+                await VisibleAsync(phase, owner, new CreatureEvolutionNotification(
                     checked((ushort)transformation.CreatureId), owner.WireUserId), ct).ConfigureAwait(false);
             }
-            await sender.SendNotiAsync(owner.ConnectionId,
+            await NotiAsync(phase, owner.ConnectionId,
                 new CreatureStateNotification(checked((uint)pet.ItemUid), checked((uint)pet.Stomach)), ct)
                 .ConfigureAwait(false);
             if (equipped && progressed)
-                await sender.SendNotiAsync(owner.ConnectionId, new CreatureExperienceNotification(
+                await NotiAsync(phase, owner.ConnectionId, new CreatureExperienceNotification(
                     checked((byte)pet.Level), checked((byte)pet.ModeFlag), checked((uint)pet.Experience),
                     checked((byte)pet.Mode1Field0A), checked((byte)pet.Mode1Field0B)), ct).ConfigureAwait(false);
             if (!equipped || (change.Before.ExactStomach > 0) == (pet.ExactStomach > 0)) continue;
             if (pet.ExactStomach <= 0)
-                await SendVisibleAsync(owner, new CreatureDeathNotification(owner.WireUserId), ct).ConfigureAwait(false);
+                await VisibleAsync(phase, owner, new CreatureDeathNotification(owner.WireUserId), ct).ConfigureAwait(false);
             else
-                await SendVisibleAsync(owner, new CreatureRevivalNotification(owner.WireUserId), ct).ConfigureAwait(false);
+                await VisibleAsync(phase, owner, new CreatureRevivalNotification(owner.WireUserId), ct).ConfigureAwait(false);
         }
     }
 }
-
-/// <summary>One timer; only creatures reaching a whole-value boundary access their durable store.</summary>
-public sealed class CreatureClockService(ICreatureRuntimeDomainService creatures, ICommandBus commands,
-    ISelectedSessionDomainService sessions,
-    CreatureProjectionDelivery delivery, TimeProvider clock, INetworkConnectionCloser connections,
-    ILogger<CreatureClockService> logger, IGameplayQueue queue) : BackgroundService
+public sealed class CreatureClockService(ICommandBus commands, TimeProvider clock, ILogger<CreatureClockService> logger)
+    : TypedGameplayTimerSource(commands, logger)
 {
-    private readonly CoalescingGameplaySource ticks = new(queue);
-
+    protected override string SourceName => "timer:CreatureClockService";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+        _ = await SubmitAsync(new AdvanceCreatureTickCommand(), root, SourceName, token).ConfigureAwait(false);
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1), clock);
-        try
-        {
-            // One tick (clock advance and projection drain) is one timer CMD on the executor.
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await GameplayTimerWork.TickAsync(ticks, "timer:CreatureClockService", TickAsync, logger, stoppingToken)
-                    .ConfigureAwait(false);
-        }
+        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await HostedAsync(stoppingToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
-    }
-
-    private async ValueTask TickAsync(CancellationToken stoppingToken)
-    {
-        foreach (var session in creatures.DueSessions())
-            try
-            {
-                if (!sessions.IsInWorld(session)) continue;
-                await commands.SendAsync(new AdvanceCreatureClockCommand(session), stoppingToken)
-                    .ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-            catch (Exception exception)
-            {
-                logger.LogWarning(exception, "Creature clock failed character={CharacterId}", session.CharacterId);
-            }
-        foreach (var projection in creatures.DrainProjections())
-            try
-            {
-                await delivery.SendAsync(projection.Session, projection.Changes, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-            catch (Exception exception)
-            {
-                logger.LogWarning(exception, "Creature projection failed character={CharacterId}; closing the exact connection for authoritative reload", projection.Session.CharacterId);
-                if (sessions.IsInWorld(projection.Session))
-                    await connections.RequestCloseAsync(projection.Session.ConnectionId, stoppingToken).ConfigureAwait(false);
-            }
     }
 }
 

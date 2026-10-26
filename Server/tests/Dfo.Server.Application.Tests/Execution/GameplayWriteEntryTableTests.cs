@@ -98,20 +98,12 @@ public sealed class GameplayWriteEntryTableTests
         typeof(ExpertStoreDomainService),
         typeof(PvpLobbyDomainService),
         typeof(DungeonEntryIntentDomainService),
-        typeof(JoustMaintenanceService),
+        typeof(Dfo.Server.Application.Events.JoustMaintenanceDomainService),
+        typeof(Dfo.Server.Application.Sessions.SelectedSessionRefreshDomainService),
+        typeof(Dfo.Server.Application.World.RoomMechanismMaintenanceDomainService),
         typeof(SelectedSessionSafety),
         typeof(EffectOperationLedger),
         typeof(DungeonRunDeliveryRegistry),
-        typeof(AltarQuotaDailyRefreshService),
-        typeof(DimensionQuotaDailyRefreshService),
-        typeof(GoldSilverHornQuotaDailyRefreshService),
-        typeof(ItemUsageDailyRefreshService),
-        typeof(MirrorQuotaDailyRefreshService),
-        typeof(PremiumDailyRefreshService),
-        typeof(ReviveCoinQuotaDailyRefreshService),
-        typeof(HerasQuotaDailyRefreshService),
-        typeof(TournamentQuotaDailyRefreshService),
-        typeof(FatigueDailyRefreshService),
         typeof(PartyProjectionStreamRegistry),
         // Internal to Protocol: the stream handle PartyProjectionStreamRegistry.GetOrAdd hands out.
         typeof(PartyProjectionStreamRegistry).Assembly.GetType("Dfo.Server.Protocol.Game.Party.PartyDeliveryStream", throwOnError: true)!,
@@ -425,8 +417,6 @@ public sealed class GameplayWriteEntryTableTests
         ["DungeonEntryIntentDomainService.TryReplaceExact(SelectedSessionIdentity, DungeonEntryIntent, DungeonEntryIntent)"] = W,
 
         // JoustMaintenanceService (the private tick body AdvanceAndPublishAsync asserts)
-        ["JoustMaintenanceService.StartAsync(CancellationToken)"] = Exempt(StartupRow, "runs the recovery tick as a startup CMD and waits for it before the host is ready; the CMD body asserts"),
-        ["JoustMaintenanceService.TickAsync(CancellationToken, Boolean)"] = Exempt(ProducerRow, TimerEntry),
 
         // SelectedSessionSafety
         ["SelectedSessionSafety.BlockAsync(SelectedSessionRecipient, Exception, String)"] = W,
@@ -449,17 +439,19 @@ public sealed class GameplayWriteEntryTableTests
         ["DungeonRunDeliveryRegistry.RemoveParticipant(DungeonRunId, CharacterId)"] = W,
 
         // The ten daily refreshes (each one's private timer body RefreshCoreAsync asserts)
-        ["AltarQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["DimensionQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["GoldSilverHornQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["ItemUsageDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["MirrorQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["PremiumDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["ReviveCoinQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["HerasQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["TournamentQuotaDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
-        ["FatigueDailyRefreshService.RefreshAsync(CancellationToken)"] = Exempt(ProducerRow, TimerEntry),
 
+        ["JoustMaintenanceDomainService.ObserveAsync(JoustState, Boolean)"] = W,
+        ["JoustMaintenanceDomainService.PublishCompletedAsync(JoustState)"] = W,
+        ["SelectedSessionRefreshDomainService.Capture(SelectedSessionRefreshTopic)"] = W,
+        ["SelectedSessionRefreshDomainService.CurrentPeriod(SelectedSessionRefreshTopic)"] = R,
+        ["SelectedSessionRefreshDomainService.IsCurrent(SelectedSessionRefreshTopic, DateTimeOffset, SelectedSessionIdentity)"] = R,
+        ["SelectedSessionRefreshDomainService.Previous(SelectedSessionRefreshTopic, SelectedSessionIdentity)"] = R,
+        ["SelectedSessionRefreshDomainService.NeedsRefresh(SelectedSessionRefreshTopic, SelectedSessionIdentity, SelectedSessionRefreshState)"] = R,
+        ["SelectedSessionRefreshDomainService.MarkRegistered(SelectedSessionRefreshTopic, DateTimeOffset, SelectedSessionIdentity, SelectedSessionRefreshState)"] = W,
+        ["RoomMechanismMaintenanceDomainService.AdvanceAndProjectAsync(DateTimeOffset, CancellationToken)"] = W,
+        ["RoomMechanismMaintenanceDomainService.Advance(DateTimeOffset)"] = W,
+        ["RoomMechanismMaintenanceDomainService.NeedsProjection(DungeonRoomMechanismView)"] = R,
+        ["RoomMechanismMaintenanceDomainService.MarkProjected(DungeonRoomMechanismView)"] = W,
         // PartyProjectionStreamRegistry and its stream handle
         ["PartyProjectionStreamRegistry.GetOrAdd(Int64)"] = W,
         ["PartyProjectionStreamRegistry.Dfo.Server.Abstractions.Networking.IPartyProjectionStateDomainService.StreamOf(Int64)"] = W,

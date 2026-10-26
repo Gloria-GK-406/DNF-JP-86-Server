@@ -19,32 +19,28 @@ internal sealed class LoginSessionConnectionObserver(LoginSessionRegistry sessio
     }
 }
 
-/// <summary>One expiry sweep per process.</summary>
-/// <remarks>
-/// The loop is a producer: each sweep is a timer CMD on the gameplay executor (spec appendix A row 4); the
-/// loop only reads its trigger and waits. A superseded connection is closed by the CMD that superseded it
-/// (<see cref="LoginSessionRegistry"/>).
-/// </remarks>
-internal sealed class LoginSessionMaintenanceService(
-    LoginSessionRegistry sessions,
-    TimeProvider clock,
-    IGameplayQueue queue,
-    ILogger<LoginSessionMaintenanceService> logger) : BackgroundService
+internal sealed class LoginSessionMaintenanceDomainService(LoginSessionRegistry sessions)
+    : Dfo.Server.Abstractions.Authentication.ILoginSessionMaintenanceDomainService
 {
-    private readonly CoalescingGameplaySource sweeps = new(queue);
-
+    public void SweepExpired() => sessions.SweepExpired();
+}
+internal sealed record SweepLoginSessionsCommand : Dfo.Server.Application.Commands.ICommand<bool>;
+internal sealed class SweepLoginSessionsCommandHandler(Dfo.Server.Abstractions.Authentication.ILoginSessionMaintenanceDomainService sessions)
+    : Dfo.Server.Application.Commands.ICommandHandler<SweepLoginSessionsCommand, bool>
+{
+    public ValueTask<bool> HandleAsync(Dfo.Server.Application.Commands.CommandExecutionContext context, SweepLoginSessionsCommand command, CancellationToken token)
+    { sessions.SweepExpired(); return ValueTask.FromResult(true); }
+}
+internal sealed class LoginSessionMaintenanceService(Dfo.Server.Application.Commands.ICommandBus commands,
+    TimeProvider clock, ILogger<LoginSessionMaintenanceService> logger) : TypedGameplayTimerSource(commands, logger)
+{
     internal TimeSpan SweepInterval { get; init; } = TimeSpan.FromSeconds(30);
-
+    protected override string SourceName => "timer:LoginSessionMaintenanceService";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+        _ = await SubmitAsync(new SweepLoginSessionsCommand(), root, SourceName, token).ConfigureAwait(false);
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(SweepInterval, clock);
-        while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-        {
-            await GameplayTimerWork.TickAsync(sweeps, "timer:LoginSessionMaintenanceService", _ =>
-            {
-                sessions.SweepExpired();
-                return ValueTask.CompletedTask;
-            }, logger, stoppingToken).ConfigureAwait(false);
-        }
+        while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await HostedAsync(stoppingToken).ConfigureAwait(false);
     }
 }

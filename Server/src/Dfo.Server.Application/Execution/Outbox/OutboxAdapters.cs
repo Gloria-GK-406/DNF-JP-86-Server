@@ -43,27 +43,37 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
         this.encoder = encoder;
     }
 
-    public ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message, CancellationToken cancellationToken)
+    public async ValueTask SendAsync(NetworkConnectionId connectionId, IServerNetworkMessage message, CancellationToken cancellationToken) =>
+        _ = await RegisterWithOutcomeAsync(connectionId, message, cancellationToken).ConfigureAwait(false);
+
+    public ValueTask<bool> RegisterWithOutcomeAsync(NetworkConnectionId connectionId, IServerNetworkMessage message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         cancellationToken.ThrowIfCancellationRequested();
         if (!TryFind(connectionId, out var connection))
-            return Dropped(connectionId);
+        {
+            _ = Dropped(connectionId);
+            return ValueTask.FromResult(false);
+        }
         var outbox = outboxes.Current;
         var frames = encoder!.EncodeMessage(connection, message);
         outbox.Register(OutboundEntry.Batch(connection, [message], frames));
-        return ValueTask.CompletedTask;
+        return ValueTask.FromResult(true);
     }
 
     /// <summary>
     /// Registers the whole batch for exactly <paramref name="expectedConnection"/>. Whether that connection
     /// is still the registered one is decided by the sender before delivery (Stale, RQ-035).
     /// </summary>
-    public ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
-        IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken)
-        => RegisterBatchCore(expectedConnection, messages, null, cancellationToken);
+    public async ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken) =>
+        _ = await RegisterBatchCore(expectedConnection, messages, null, cancellationToken).ConfigureAwait(false);
 
-    private ValueTask RegisterBatchCore(NetworkConnectionContext expectedConnection,
+    public ValueTask<bool> RegisterBatchWithOutcomeAsync(NetworkConnectionContext expectedConnection,
+        IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken) =>
+        RegisterBatchCore(expectedConnection, messages, null, cancellationToken);
+
+    private ValueTask<bool> RegisterBatchCore(NetworkConnectionContext expectedConnection,
         IReadOnlyList<IServerNetworkMessage> messages, CommandRegistrationAttempt? attempt, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(expectedConnection);
@@ -74,15 +84,15 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
         if (batch.Length == 0)
         {
             _ = outboxes.Current;
-            return ValueTask.CompletedTask;
+            return ValueTask.FromResult(false);
         }
 
         if (encoder is null)
-            return Dropped(expectedConnection.ConnectionId);
+        { _ = Dropped(expectedConnection.ConnectionId); return ValueTask.FromResult(false); }
         var outbox = outboxes.Current;
         var frames = EncodeBatch(expectedConnection, batch, attempt);
         outbox.Register(OutboundEntry.Batch(expectedConnection, batch, frames));
-        return ValueTask.CompletedTask;
+        return ValueTask.FromResult(true);
     }
 
     /// <summary>
@@ -156,11 +166,11 @@ internal sealed class OutboxNetworkMessageSender : INetworkMessageSender, IComma
     public ValueTask RegisterExplicitAsync(NetworkConnectionId connectionId, ExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
         SendExplicitAsync(connectionId, delivery, cancellationToken);
 
-    public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages,
+    public async ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages,
         ICommandRegistrationAttempt token, CancellationToken cancellationToken)
     {
         var attempt = CommandRegistrationAttempt.EnterBatch(token, connection.ConnectionId);
-        try { return RegisterBatchCore(connection, messages, attempt, cancellationToken); }
+        try { _ = await RegisterBatchCore(connection, messages, attempt, cancellationToken).ConfigureAwait(false); }
         catch (Exception error) { attempt.Failed(error); throw; }
         finally { attempt.Complete(); }
     }

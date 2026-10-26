@@ -117,7 +117,7 @@ public sealed class AltarProjectionFailureTests
                 DateTimeOffset.UtcNow).Run.RunId;
             registry.Register(runId, [First, Second]);
             var delivery = new AltarProjectionDelivery(
-                null!, runs, Sessions, registry, null!, Outbound.Services.GetRequiredService<IEventService>(),
+                runs, Sessions, registry, Outbound.Services.GetRequiredService<IEventService>(),
                 TimeProvider.System, new AltarWakeSignal(TimeProvider.System),
                 new SelectedSessionSafety(Outbound.Services, NullLogger<SelectedSessionSafety>.Instance),
                 NullLogger<AltarProjectionDelivery>.Instance);

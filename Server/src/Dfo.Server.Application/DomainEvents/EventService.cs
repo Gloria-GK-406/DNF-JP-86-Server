@@ -55,8 +55,11 @@ internal sealed class EventService(DomainEventRegistry registry, IServiceProvide
             cancellationToken.ThrowIfCancellationRequested();
             // The ambient transaction is inherited by the awaited subscriber. No queue,
             // new transaction, exception aggregation, or background work is introduced.
-            await using var scope = scopes.CreateAsyncScope();
-            await subscriber.Invoke(scope.ServiceProvider, envelope, cancellationToken).ConfigureAwait(false);
+            var scope = scopes.CreateAsyncScope();
+            Exception? invocation = null;
+            try { await subscriber.Invoke(scope.ServiceProvider, envelope, cancellationToken).ConfigureAwait(false); }
+            catch (Exception error) { invocation = error; throw; }
+            finally { await DomainEventScopeCleanupException.DisposeAsync(scope, invocation).ConfigureAwait(false); }
         }
     }
 
@@ -68,9 +71,15 @@ internal sealed class EventService(DomainEventRegistry registry, IServiceProvide
         ArgumentNullException.ThrowIfNull(notification);
         if (transactions.Current is { IsReadOnly: false })
             throw new InvalidOperationException("Immediate projections cannot observe an uncommitted writable transaction.");
-        await using var scope = scopes.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<NotificationProjectionSubscriber<TNotification>>()
-            .HandleAsync(audience, notification, cancellationToken).ConfigureAwait(false);
+        var scope = scopes.CreateAsyncScope();
+        Exception? invocation = null;
+        try
+        {
+            return await scope.ServiceProvider.GetRequiredService<NotificationProjectionSubscriber<TNotification>>()
+                .HandleAsync(audience, notification, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception error) { invocation = error; throw; }
+        finally { await DomainEventScopeCleanupException.DisposeAsync(scope, invocation).ConfigureAwait(false); }
     }
 
     private static void RequireConcrete<TEvent>(TEvent payload) where TEvent : class, IDomainEvent

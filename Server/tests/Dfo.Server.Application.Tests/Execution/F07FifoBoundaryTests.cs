@@ -28,6 +28,40 @@ public sealed class F07FifoBoundaryTests
         await Task.WhenAll(run, request).WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Equal(new[] { "request", "refresh" }, order);
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Stale_scan_inputs_never_register_and_the_next_scan_covers_the_current_period_or_session(bool replace)
+    {
+        ScanBoundaryQueue? boundary = null;
+        using var shop = new ShopFixture(services => services.AddSingleton<IGameplayQueue>(provider =>
+            boundary = new ScanBoundaryQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>()))));
+        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var first = refresh.RefreshAsync(default); var queue = Assert.IsType<ScanBoundaryQueue>(boundary);
+        await queue.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var change = queue.RunAsync(new GameplayWork(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.Connection), "test:change-current", _ =>
+        { if (replace) shop.Select(2); else shop.Clock.Advance(TimeSpan.FromDays(1)); return ValueTask.CompletedTask; }), default).AsTask();
+        queue.Release.TrySetResult(); await Task.WhenAll(first, change).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Empty(shop.Sender.Messages);
+        await refresh.RefreshAsync(default); await refresh.RefreshAsync(default);
+        Assert.Single(shop.Sender.Messages);
+    }
+    [Fact]
+    public async Task Drain_includes_an_accepted_manual_round_waiting_for_the_entire_previous_round()
+    {
+        ScanBoundaryQueue? boundary = null;
+        using var shop = new ShopFixture(services => services.AddSingleton<IGameplayQueue>(provider =>
+            boundary = new ScanBoundaryQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>()))));
+        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var first = refresh.RefreshAsync(default); var queue = Assert.IsType<ScanBoundaryQueue>(boundary);
+        await queue.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var second = refresh.RefreshAsync(default);
+        var drain = ((IGameplayProducerDrain)refresh).DrainAsync(default).AsTask();
+        Assert.False(first.IsCompleted); Assert.False(second.IsCompleted); Assert.False(drain.IsCompleted);
+        queue.Release.TrySetResult(); await Task.WhenAll(first, second, drain).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Single(shop.Sender.Messages);
+        await Assert.ThrowsAsync<GameplayExecutorStoppedException>(() => refresh.RefreshAsync(default));
+    }
     private sealed class ScanBoundaryQueue(IGameplayQueue inner) : IGameplayQueue
     {
         private int held;

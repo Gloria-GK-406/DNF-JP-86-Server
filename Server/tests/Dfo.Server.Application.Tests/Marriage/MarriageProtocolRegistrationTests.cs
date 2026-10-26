@@ -34,6 +34,7 @@ public sealed class MarriageProtocolRegistrationTests
         var registrations = f.Services.GetServices<CommandHandlerRegistration>().ToArray();
         Assert.DoesNotContain(registrations, x => extinct.Contains(x.CommandType.Name));
         foreach (var retained in new[] { "AdvanceMarriageWeddingCommand", "CompleteWeddingCleanupCommand" })
-            Assert.Contains(registrations, x => x.CommandType.Name == retained && x.Route == CommandRouteKind.LegacyFineGrained);
+            Assert.DoesNotContain(registrations, x => x.CommandType.Name == retained);
+        Assert.Contains(registrations, x => x.CommandType.Name == "AdvanceWeddingTickCommand" && x.Route == CommandRouteKind.Internal);
     }
 }

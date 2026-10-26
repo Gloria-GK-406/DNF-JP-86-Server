@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Marriage;
@@ -50,14 +51,14 @@ public sealed record GameWeddingGiftCommand(NetworkDispatchContext Dispatch, Wed
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal class GameMarriageCommandHandler : PartyMutationProtocolCommandHandler,
+internal partial class GameMarriageCommandHandler : PartyMutationProtocolCommandHandler,
     ICommandHandler<GameWeddingProposalCommand, bool>,
     ICommandHandler<GameWeddingResponseCommand, bool>,
     ICommandHandler<GameWeddingPartnerCommand, bool>,
     ICommandHandler<GameWeddingChurchEnterCommand, bool>,
     ICommandHandler<GameWeddingCommentCommand, bool>,
     ICommandHandler<GameWeddingLetterCommand, bool>,
-    ICommandHandler<GameWeddingGiftCommand, bool>
+    ICommandHandler<GameWeddingGiftCommand, bool>, ICommandHandler<AdvanceWeddingTickCommand, bool>
 {
     private readonly IMarriageQueryDomainService marriage;
     private readonly IMarriageCoupleDomainService couple;
@@ -73,12 +74,14 @@ internal class GameMarriageCommandHandler : PartyMutationProtocolCommandHandler,
         IPartyService parties, IPartyProjectionStateDomainService projectionState, IOnlineUserQueryDomainService users,
         ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
         TimeProvider clock, ILogger<GameMarriageCommandHandler> logger,
-        IMarriageHousingQueryDomainService? housing = null, IMarriageHousingSessionDomainService? housingSessions = null)
+        IMarriageHousingQueryDomainService? housing = null, IMarriageHousingSessionDomainService? housingSessions = null,
+        IOutboundOrdering? ordering = null)
         : base(sessions, parties, townAreas, projections, projectionState.StreamOf, null, logger,
             currentViews: currentViews, characters: characters, onlineCharacters: onlineCharacters,
             towns: towns, housing: housing, clock: clock, register: outbox.RegisterExplicitAsync)
     { this.marriage = marriage; this.couple = couple; this.venue = venue; this.offers = offers;
-      this.users = users; this.units = units; this.outbox = outbox; this.housingSessions = housingSessions; }
+      this.users = users; this.units = units; this.outbox = outbox; this.housingSessions = housingSessions; this.timerOrdering = ordering; }
+    private readonly IOutboundOrdering? timerOrdering;
     private readonly IMarriageHousingSessionDomainService? housingSessions;
     protected override IMarriageHousingSessionDomainService? HousingSessions => housingSessions;
     private SelectedSessionRecipient Recipient(NetworkDispatchContext dispatch, GameMessageMetadata metadata, SelectedSessionIdentity actor)

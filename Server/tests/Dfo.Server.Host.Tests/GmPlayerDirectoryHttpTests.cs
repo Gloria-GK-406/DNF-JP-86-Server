@@ -143,7 +143,10 @@ public sealed class GmPlayerDirectoryHttpTests
                 // Pause automatic supersession cleanup only in this deterministic lifecycle fixture: a superseded
                 // connection is disconnected by the superseding login CMD (F-65), so the registry is built without
                 // the online users and closer it would do that with.
-                foreach (var descriptor in services.Where(item => item.ImplementationType?.Name == "LoginSessionMaintenanceService").ToArray()) services.Remove(descriptor);
+                var timerType = typeof(LoginSessionMaintenanceService);
+                foreach (var descriptor in services.Where(item => item.ServiceType == timerType || item.ImplementationType == timerType
+                    || item.ImplementationFactory?.Method.DeclaringType?.GenericTypeArguments.Contains(timerType) == true).ToArray())
+                    services.Remove(descriptor);
                 services.AddSingleton(provider => new LoginSessionRegistry(
                     provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>(),
                     provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<LoginSessionOptions>()));

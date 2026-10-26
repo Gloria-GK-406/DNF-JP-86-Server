@@ -35,6 +35,3 @@ internal sealed class GmJoustDomainService(IGmAccessDomainService access,IJoustD
         return result;
     }
 }
-public sealed record AdvanceJoustLifecycleCommand(DateTimeOffset Now) : ICommand<JoustLifecycleResult>;
-internal sealed class AdvanceJoustLifecycleCommandHandler(IJoustDomainService joust) : ICommandHandler<AdvanceJoustLifecycleCommand,JoustLifecycleResult>
-{public ValueTask<JoustLifecycleResult> HandleAsync(CommandExecutionContext c,AdvanceJoustLifecycleCommand q,CancellationToken ct)=>joust.AdvanceLifecycleAsync(q.Now,ct);}

@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Application.Execution;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -55,9 +56,7 @@ public sealed class UsageQuotaProjectionTests
         var sessions = new Sessions(); var clock = new Clock();
         var events = new Events { Family = UsageQuotaFamily.GoldSilverHorn };
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
-        using var worker = new GoldSilverHornQuotaDailyRefreshService(sessions, sessions,
-            new UsageQuotaProjectionDelivery(events), new Daily(), clock,
-            NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.GoldSilverHorn, sessions, sessions, events, new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
@@ -90,9 +89,7 @@ public sealed class UsageQuotaProjectionTests
         var sessions = new Sessions(); var clock = new Clock();
         var events = new Events { Family = UsageQuotaFamily.TournamentDungeon };
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
-        using var worker = new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(sessions, sessions,
-            new UsageQuotaProjectionDelivery(events), new Daily(), clock,
-            NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.Tournament, sessions, sessions, events, new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
@@ -221,8 +218,7 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock(); var events = new Events();
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
-        using var worker = new MirrorQuotaDailyRefreshService(sessions, sessions,
-            new UsageQuotaProjectionDelivery(events), clock, NullLogger<MirrorQuotaDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.Mirror, sessions, sessions, events, new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         var exact = Assert.IsType<NotificationAudience.TheseSessions>(events.Projections[0]);
@@ -325,20 +321,13 @@ public sealed class UsageQuotaProjectionTests
             var daily = new Daily();
             Worker = refresh switch
             {
-                "Altar" => new Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
-                    NullLogger<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
-                "Dimension" => new DimensionQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
-                    NullLogger<DimensionQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
-                "GoldSilverHorn" => new GoldSilverHornQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
-                    NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
-                "ReviveCoin" => new ReviveCoinQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
-                    NullLogger<ReviveCoinQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
-                "Mirror" => new MirrorQuotaDailyRefreshService(Sessions, Sessions, delivery, clock,
-                    NullLogger<MirrorQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
-                "Heras" => new Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
-                    NullLogger<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
-                "Tournament" => new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(Sessions, Sessions, delivery, daily, clock,
-                    NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance, queue).RefreshAsync,
+                "Altar" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Altar, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "Dimension" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Dimension, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "GoldSilverHorn" => new TimerRefreshFixture(SelectedSessionRefreshTopic.GoldSilverHorn, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "ReviveCoin" => new TimerRefreshFixture(SelectedSessionRefreshTopic.ReviveCoin, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "Mirror" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Mirror, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), new Daily(), clock, queue).RefreshAsync,
+                "Heras" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Heras, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "Tournament" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Tournament, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
                 _ => throw new ArgumentOutOfRangeException(nameof(refresh)),
             };
         }
@@ -439,7 +428,7 @@ public sealed class UsageQuotaProjectionTests
         {
             Projections.Add(audience); var view = Assert.IsType<UsageQuotaViewChanged>(notification);
             Assert.Equal(Family, view.Family);
-            return ValueTask.FromResult(new NotificationDelivery([new(view.CharacterId, Outcome)]));
+            return ValueTask.FromResult(new NotificationDelivery([new(view.CharacterId, Outcome) { RegistrationAccepted = Outcome == NotificationOutcome.Registered }]));
         }
     }
 }

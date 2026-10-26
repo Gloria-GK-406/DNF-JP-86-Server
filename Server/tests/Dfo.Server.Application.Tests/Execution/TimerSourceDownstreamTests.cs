@@ -58,7 +58,9 @@ public sealed class TimerSourceDownstreamTests
             Assert.True(seen.OnExecutor);
             var chain = Assert.NotNull(seen.Chain);
             Assert.Equal(GameplayCallSource.Timer, chain.Source);
-            Assert.Equal(Fatigue, chain.CommandType);
+            Assert.Equal(Fatigue + "/session", chain.CommandType);
+            Assert.Equal(1, chain.Depth); Assert.NotNull(chain.ParentId); Assert.NotEqual(Guid.Empty, chain.RootId);
+            Assert.Equal(chain.RootId, chain.ParentId);
         });
     }
 

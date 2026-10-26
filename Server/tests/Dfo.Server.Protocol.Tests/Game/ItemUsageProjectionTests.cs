@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Inventory;
@@ -36,7 +37,7 @@ public sealed class ItemUsageProjectionTests
             var sessions = new Sessions(); var bus = new Bus(); var sender = new Sender();
             bus.Items = [new(7518, 1, null, bus.At.AddMinutes(-2), bus.At.AddSeconds(86280)),
                 new(2600026, 1, 1, null, null)];
-            await new ItemUsageProjectionDelivery(bus, sessions, sender).SendAsync(sessions.Current!, default);
+            await new ItemUsageProjectionFixture(bus, sessions, sender).SendAsync(sessions.Current!, default);
             Assert.Equal(new ushort[] { 0x021E, 0x021E, 0x00AC }, sender.Types);
             Assert.Equal(2600026, BinaryPrimitives.ReadInt32LittleEndian(sender.Bodies[1].AsSpan(1)));
             Assert.Equal(Convert.FromHexString("015E1D000008510100"), sender.Bodies[2]);
@@ -53,10 +54,10 @@ public sealed class ItemUsageProjectionTests
     public async Task Daily_worker_only_refreshes_changed_business_day_and_does_not_deliver_to_replaced_session()
     {
         var sessions = new Sessions(); var clock = new Clock(); var bus = new Bus(); var sender = new Sender();
-        var delivery = new ItemUsageProjectionDelivery(bus, sessions, sender);
+        var delivery = new ItemUsageProjectionFixture(bus, sessions, sender);
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
-        using var worker = new ItemUsageDailyRefreshService(sessions, sessions,
-            new Days(), clock, delivery, NullLogger<ItemUsageDailyRefreshService>.Instance, new GameplayQueue(new GameplayShardSelector(executor)));
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.ItemUsage, sessions, sessions, null,
+            new Days(), clock, new GameplayQueue(new GameplayShardSelector(executor)), bus, sender);
         await worker.RefreshAsync(default); Assert.Equal(2, sender.Bodies.Count);
         await worker.RefreshAsync(default); Assert.Equal(2, sender.Bodies.Count);
         clock.Now = clock.Now.AddMinutes(2); bus.Used = 0;
@@ -137,19 +138,30 @@ public sealed class ItemUsageProjectionTests
         public SelectedSessionIdentity? Select(SelectedSessionIdentity s) { var old = Current; Current = s; return old; }
         public bool ReleaseExact(SelectedSessionIdentity s) { if (s != Current) return false; Current = null; return true; }
     }
-    private sealed class Bus : ICommandBus
+    private sealed class Bus : IItemUsageDomainService
     {
         public int Used = 1;
         public DateTimeOffset At = new(2026, 10, 1, 12, 0, 0, TimeSpan.Zero);
         public IReadOnlyList<ItemUsageState>? Items;
         public Action? BeforeReturn;
-        public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken token = default) where T : notnull
+        public ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAtAsync(CharacterId id, DateTimeOffset at, CancellationToken token)
+        { BeforeReturn?.Invoke(); return ValueTask.FromResult(Items ?? (IReadOnlyList<ItemUsageState>)[new(2600026, Used, 1, null, null)]); }
+        public ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAsync(CharacterId id, CancellationToken token) => GetSnapshotAtAsync(id, At, token);
+        public ValueTask<ItemUsageState> GetAsync(CharacterId id, int item, CancellationToken token) => throw new NotSupportedException();
+        public ValueTask<ItemUsageState> RecordUseAsync(CharacterId id, int item, CancellationToken token) => throw new NotSupportedException();
+    }
+    // Direct domain projection oracle; production daily scopes and FIFO use the registered source tests.
+    private sealed class ItemUsageProjectionFixture(Bus usage, Sessions sessions, IGameMessageSender sender)
+    {
+        public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
         {
-            Assert.IsType<ReadItemUsageSnapshotCommand>(command);
-            BeforeReturn?.Invoke();
-            return ValueTask.FromResult((T)(object)new ItemUsageSnapshotResult(Items ?? [new(2600026, Used, 1, null, null)], true) { At = At });
+            var snapshot = await ItemUsageSnapshotReader.ReadAsync(usage, sessions, new FixedClock(usage.At), session, token);
+            if (!snapshot.IsCurrent || !((ISelectedSessionDomainService)sessions).IsInWorld(session)) return;
+            foreach (var message in ItemUsageCountMessage.FullSnapshot(snapshot.Items).Cast<IGameNotiMessage>().Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At)))
+            { if (!((ISelectedSessionDomainService)sessions).IsInWorld(session)) return; await sender.SendNotiAsync(session.ConnectionId, message, token); }
         }
     }
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider { public override DateTimeOffset GetUtcNow() => now; }
     /// <summary>
     /// The state messages a real registration adapter registered, read from its outbox; every call goes to the real
     /// protocol sender over it (TASK-25). A CMD or an explicit delivery fails where it is registered, as the old double

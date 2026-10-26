@@ -207,10 +207,10 @@ public sealed class CreatureProjectionDeliveryTests
         });
     }
 
-    private static CreatureProjectionDelivery Create(Sessions sessions, Towns towns, IGameMessageSender sender,
-        INetworkConnectionCloser closer, TowerDomainStub? tower = null) => new(sessions, DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(),
-            towns, sender, DispatchProxy.Create<ICreatureRuntimeDomainService, NullProxy>(), closer,
-            NullLogger<CreatureProjectionDelivery>.Instance, towers: tower);
+    private static AdvanceCreatureTickCommandHandler Create(Sessions sessions, Towns towns, IGameMessageSender sender,
+        INetworkConnectionCloser closer, TowerDomainStub? tower = null) => new(DispatchProxy.Create<ICreatureRuntimeDomainService, NullProxy>(), sessions,
+            DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(), towns, tower!, new GameOutboxFixture(sender), new ConnectionClosureFixture(closer),
+            new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(), null!, TimeProvider.System, NullLogger<AdvanceCreatureTickCommandHandler>.Instance);
 
     private static SelectedSessionIdentity Session(int id, string connection) =>
         SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id),

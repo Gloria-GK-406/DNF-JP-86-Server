@@ -62,51 +62,29 @@ public sealed class RoomMechanismProjectionDelivery(IEventService events)
     }
 }
 
-/// <summary>One worker sleeps until a room deadline or lifecycle wakeup; no per-room threads.</summary>
-internal sealed class RoomMechanismMaintenanceService(IDungeonRunDomainService runs,
-    IDungeonRoomMechanismRuleService rules, IDungeonRoomMechanismWakeSignal wake, IEventService events,
-    TimeProvider clock, ILogger<RoomMechanismMaintenanceService> logger,
-    IGameplayQueue queue) : BackgroundService
+internal sealed record MaintainRoomMechanismsCommand : ICommand<RoomMechanismNextDeadline>;
+internal sealed record RoomMechanismNextDeadline(DateTimeOffset? At);
+internal sealed class MaintainRoomMechanismsCommandHandler(IRoomMechanismMaintenanceDomainService maintenance, TimeProvider clock)
+    : ICommandHandler<MaintainRoomMechanismsCommand, RoomMechanismNextDeadline>
 {
-    private readonly CoalescingGameplaySource ticks = new(queue);
-
+    public async ValueTask<RoomMechanismNextDeadline> HandleAsync(CommandExecutionContext context, MaintainRoomMechanismsCommand command, CancellationToken token) =>
+        new(await maintenance.AdvanceAndProjectAsync(clock.GetUtcNow(), token).ConfigureAwait(false));
+}
+internal sealed class RoomMechanismMaintenanceService(ICommandBus commands, IDungeonRoomMechanismWakeSignal wake,
+    ILogger<RoomMechanismMaintenanceService> logger) : TypedGameplayTimerSource(commands, logger)
+{
+    private DateTimeOffset? next;
+    protected override string SourceName => "timer:RoomMechanismMaintenanceService";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+        next = (await SubmitAsync(new MaintainRoomMechanismsCommand(), root, SourceName, token).ConfigureAwait(false)).At;
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Read and written only by the timer CMDs below.
-        var delivered = new Dictionary<(DungeonRunId, long), DungeonRoomMechanismState[]>();
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                // One round (advance and deliver) is one timer CMD; only the wait is outside.
-                DateTimeOffset? next = null;
-                await GameplayTimerWork.TickAsync(ticks, "timer:RoomMechanismMaintenanceService", async token =>
-                {
-                    var views = runs.AdvanceRoomMechanisms(clock.GetUtcNow());
-                    var active = views.Select(view => (view.RunId, view.RoomVersion)).ToHashSet();
-                    foreach (var key in delivered.Keys.Where(key => !active.Contains(key)).ToArray()) delivered.Remove(key);
-                    foreach (var view in views)
-                    {
-                        foreach (var state in view.States)
-                            if (rules.NextDeadline(state) is { } deadline && (next is null || deadline < next)) next = deadline;
-                        var key = (view.RunId, view.RoomVersion);
-                        if (delivered.TryGetValue(key, out var previous) && previous.SequenceEqual(view.States)) continue;
-                        try
-                        {
-                            await events.DirectAsync(new DungeonRoomMechanismsChanged(view), token).ConfigureAwait(false);
-                            delivered[key] = view.States.ToArray();
-                            logger.LogInformation("Room mechanism state run={RunId} roomVersion={RoomVersion} states={States}",
-                                view.RunId, view.RoomVersion, string.Join(',', view.States.Select(state => $"{state.Definition.Kind}:{state.Stage}:{state.Outcome}")));
-                        }
-                        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-                        catch (Exception error)
-                        {
-                            logger.LogWarning(error, "Room mechanism projection failed run={RunId}", view.RunId);
-                            var retry = clock.GetUtcNow().AddSeconds(1);
-                            if (next is null || retry < next) next = retry;
-                        }
-                    }
-                }, logger, stoppingToken).ConfigureAwait(false);
+                next = null;
+                await HostedAsync(stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }
         }

@@ -39,21 +39,9 @@ internal sealed record ItemUsageCountMessage(IReadOnlyList<ItemUsageState> Items
     }
 }
 
-public sealed record ReadItemUsageSnapshotCommand(SelectedSessionIdentity Session)
-    : ICommand<ItemUsageSnapshotResult>, IAccountCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
 public sealed record ItemUsageSnapshotResult(IReadOnlyList<ItemUsageState> Items, bool IsCurrent)
 {
     public DateTimeOffset At { get; init; }
-}
-public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService usage, ISelectedSessionDomainService sessions, TimeProvider clock)
-    : ICommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult>
-{
-    public ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
-        ReadItemUsageSnapshotCommand command, CancellationToken token) =>
-        ItemUsageSnapshotReader.ReadAsync(usage, sessions, clock, command.Session, token);
 }
 internal static class ItemUsageSnapshotReader
 {
@@ -65,23 +53,6 @@ internal static class ItemUsageSnapshotReader
         return new(await usage.GetSnapshotAtAsync(session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
     }
 }
-public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedSessionDomainService sessions, IGameMessageSender sender)
-{
-    // Read and delivery (including reset + chunks) run in the caller's job; no other job interleaves them.
-    public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
-    {
-        var snapshot = await commands.SendAsync(new ReadItemUsageSnapshotCommand(session), token).ConfigureAwait(false);
-        if (!snapshot.IsCurrent || !sessions.IsInWorld(session)) return;
-        var messages = ItemUsageCountMessage.FullSnapshot(snapshot.Items).Cast<IGameNotiMessage>()
-            .Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At)).ToArray();
-        foreach (var message in messages)
-        {
-            if (!sessions.IsInWorld(session)) return;
-            await sender.SendNotiAsync(session.ConnectionId, message, token).ConfigureAwait(false);
-        }
-    }
-}
-
 internal static class ItemUsageCooldownProjection
 {
     internal static IReadOnlyList<ItemCooldownStateMessage> Snapshot(IReadOnlyList<ItemUsageState> items, DateTimeOffset at)
@@ -91,43 +62,5 @@ internal static class ItemUsageCooldownProjection
                 checked((int)Math.Ceiling((item.CooldownUntil!.Value - at).TotalSeconds)))).ToArray();
         // 00AC upserts cooldowns. Do not invent a reset packet or restart an expired cooldown.
         return entries.Chunk(byte.MaxValue).Select(chunk => new ItemCooldownStateMessage(chunk)).ToArray();
-    }
-}
-
-// One server timer only checks online sessions. Offline counters remain untouched and reset on read.
-public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions,
-    IDailyResetRuleService days, TimeProvider clock, ItemUsageProjectionDelivery delivery,
-    ILogger<ItemUsageDailyRefreshService> logger, IGameplayQueue queue) : BackgroundService
-{
-    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
-    private const string Command = "timer:ItemUsageDailyRefreshService";
-    private readonly CoalescingGameplaySource ticks = new(queue);
-    // One refresh is one timer CMD on the executor; the entry enqueues it directly, the loop through its source.
-    public Task RefreshAsync(CancellationToken token) => GameplayTimerWork.RunAsync(queue, Command, RefreshCoreAsync, token);
-    private async ValueTask RefreshCoreAsync(CancellationToken token)
-    {
-        GameplayWriteAssertion.Writing(nameof(ItemUsageDailyRefreshService) + "." + nameof(RefreshCoreAsync));
-        var current = directory.Snapshot();
-        foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
-        foreach (var session in current)
-        {
-            var period = days.PeriodStart(clock.GetUtcNow());
-            if (delivered.TryGetValue(session, out var previous) && previous == period) continue;
-            try
-            {
-                if (!sessions.IsInWorld(session)) continue;
-                await delivery.SendAsync(session, token).ConfigureAwait(false);
-                delivered[session] = period;
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception ex) { logger.LogWarning(ex, "Item usage projection failed character={CharacterId}", session.CharacterId); }
-        }
-    }
-    protected override async Task ExecuteAsync(CancellationToken token)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
-        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await GameplayTimerWork.TickAsync(ticks, Command, RefreshCoreAsync, logger, token).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 }

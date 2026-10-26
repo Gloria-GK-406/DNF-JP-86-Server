@@ -103,50 +103,6 @@ internal sealed class TournamentSelectionDecoder : IGameMessageDecoder
 { public IClientNetworkMessage? Decode(GameMessageMetadata meta, ReadOnlySpan<byte> body) => body.Length == 2 ? new TournamentRewardRequest(meta, body[0], body[1]) : null; }
 
 public sealed record TournamentCommandResult(TournamentActionResult? Action);
-public sealed record SelectTournamentRewardCommand(SelectedSessionIdentity Session, DungeonRunId RunId, byte Row, byte Index)
-    : ICommand<TournamentCommandResult>, ISelectedSessionCommand, IAccountCommand
-{
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
-}
-public sealed class SelectTournamentRewardCommandHandler(ITournamentDungeonDomainService tournaments)
-    : ICommandHandler<SelectTournamentRewardCommand, TournamentCommandResult>
-{
-    public async ValueTask<TournamentCommandResult> HandleAsync(CommandExecutionContext context, SelectTournamentRewardCommand command, CancellationToken ct) =>
-        new(await tournaments.SelectRewardAsync(command.Session, command.RunId, command.Row, command.Index, ct).ConfigureAwait(false));
-}
-public sealed record EliminateTournamentCommand(SelectedSessionIdentity Session, DungeonRunId RunId)
-    : ICommand<TournamentCommandResult>, ISelectedSessionCommand, IAccountCommand
-{
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
-}
-public sealed class EliminateTournamentCommandHandler(ITournamentDungeonDomainService tournaments)
-    : ICommandHandler<EliminateTournamentCommand, TournamentCommandResult>
-{
-    public async ValueTask<TournamentCommandResult> HandleAsync(CommandExecutionContext context, EliminateTournamentCommand command, CancellationToken ct) =>
-        new(await tournaments.EliminateAsync(command.Session, command.RunId, ct).ConfigureAwait(false));
-}
-
-public sealed class TournamentProjectionDelivery(ITournamentDungeonDomainService tournaments,
-    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ICommandBus commands,
-    IGameMessageSender sender, IInventorySlotProjectionDomainService slots, TimeProvider clock)
-{
-    internal IReadOnlyList<IGameServerMessage> CompletionFrames(TournamentActionResult action) =>
-        TournamentCompletionFrames.CompletionFrames(action, slots, clock);
-    public async ValueTask<bool> EliminateAsync(DungeonRunId runId, CancellationToken ct)
-    {
-        var run = runs.Find(runId);
-        if (run?.Layout.Tournament is null) return false;
-        var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
-        if (session is null || tournaments.Find(session.CharacterId) is not { IsFinished: false }) return true;
-        var action = (await commands.SendAsync(new EliminateTournamentCommand(session, runId), ct).ConfigureAwait(false)).Action;
-        if (action is not null && sessions.IsInWorld(session))
-            await sender.SendExplicitAsync(session.ConnectionId, new(CompletionFrames(action), []), ct).ConfigureAwait(false);
-        return true;
-    }
-}
-
 public sealed class TournamentRewardHandler(ICommandBus commands) : ClientMessageHandler<TournamentRewardRequest>, IProtocolCommandMessageHandler<GameTournamentRewardCommand>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TournamentRewardRequest message, CancellationToken ct) =>

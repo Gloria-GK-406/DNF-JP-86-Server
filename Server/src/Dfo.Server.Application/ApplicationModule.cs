@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Scheduling;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Mail;
@@ -369,8 +370,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Events.JoustDomainService>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IGmJoustDomainService,Dfo.Server.Application.Events.GmJoustDomainService>();
-        services.AddCommandHandler<Dfo.Server.Application.Events.AdvanceJoustLifecycleCommand,Dfo.Server.Data.Events.JoustLifecycleResult,Dfo.Server.Application.Events.AdvanceJoustLifecycleCommandHandler>(CommandExecutionKind.Transactional);
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService,Dfo.Server.Application.Events.JoustMaintenanceService>());
+        services.AddTypedGameplayTimer<Dfo.Server.Application.Events.JoustMaintenanceService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SaoTowerEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SouthernDaleEntranceEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, Dfo.Server.Application.Events.SealedTreasureEntranceEventDomainService>();
@@ -777,6 +777,12 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IChannelEntryPolicy>(provider => provider.GetRequiredService<ChannelEntryDomainService>());
         services.TryAddSingleton<IEntryPlacementRuleService, EntryPlacementRuleService>();
         services.TryAddSingleton<SelectedSessionDomainService>();
+        services.TryAddSingleton<IRoomMechanismMaintenanceDomainService, RoomMechanismMaintenanceDomainService>();
+        services.TryAddSingleton<ILoginSessionMaintenanceDomainService, LoginSessionMaintenanceDomainService>();
+        services.AddInternalCommandHandler<SweepLoginSessionsCommand, bool, SweepLoginSessionsCommandHandler>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustMaintenanceDomainService, Dfo.Server.Application.Events.JoustMaintenanceDomainService>();
+        services.AddInternalCommandHandler<Dfo.Server.Application.Events.MaintainJoustCommand, bool, Dfo.Server.Application.Events.MaintainJoustCommandHandler>();
+        services.TryAddSingleton<ISelectedSessionRefreshDomainService, SelectedSessionRefreshDomainService>();
         services.TryAddSingleton<ISelectedSessionDomainService>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
         services.TryAddSingleton<ISelectedSessionSnapshotQuery>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
         services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();
@@ -838,7 +844,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(LoginSessionOptions.From(configuration));
         services.TryAddSingleton<LoginSessionRegistry>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INetworkConnectionObserver, LoginSessionConnectionObserver>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, LoginSessionMaintenanceService>());
+        services.AddTypedGameplayTimer<LoginSessionMaintenanceService>();
         services.TryAddSingleton<Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>>(p => () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>());
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
         services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();

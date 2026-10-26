@@ -189,14 +189,12 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Clock.Advance(TimeSpan.FromDays(1));
         await refresh.RefreshAsync(default);
         Assert.Equal(2, shop.Sender.Messages.Count);
-        var next = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new Dfo.Server.Protocol.Game.StateSynchronization.ReadPremiumSnapshotCommand(shop.Session));
+        var next = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, shop.Session);
         Assert.Equal(0, next.Usage.Single(x => x.SlotIndex == 5).UsedCount);
         shop.Select(2);
         await refresh.RefreshAsync(default);
         Assert.Equal(3, shop.Sender.Messages.Count);
-        var stale = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new Dfo.Server.Protocol.Game.StateSynchronization.ReadPremiumSnapshotCommand(old));
+        var stale = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, old);
         Assert.False(stale.IsCurrent);
     }
 
@@ -294,7 +292,7 @@ public sealed class WeaknessGoldRecoveryTests
         using var shop = new ShopFixture();
         var state = await Weaken(shop);
         Assert.Equal(56530, await state.RecoveryGoldCost());
-        await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new AdvanceWeaknessRecoveryCommand());
+        await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.RecoverAsync(shop.Services);
         Assert.Equal(19, state.Value);
         Assert.Equal(50877, await state.RecoveryGoldCost());
         await Recover(shop);

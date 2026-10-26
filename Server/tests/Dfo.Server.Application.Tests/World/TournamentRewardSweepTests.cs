@@ -113,17 +113,10 @@ public sealed class TournamentRewardSweepTests
 
     private static async ValueTask Sweep(ShopFixture shop, TournamentDungeonState candidate)
     {
-        // Protocol's internals are visible only to Protocol.Tests. Invoke the actual worker
-        // method instead of widening its production API or copying its dispatch algorithm.
-        var method = typeof(TournamentRewardSweepService).GetMethod(
-            "SweepAsync", BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.NotNull(method);
-        var worker = shop.Services.GetRequiredService<TournamentRewardSweepService>();
-        // Part of a timer CMD's body, not an entry: called directly, it runs as a job of its own.
-        await TestGameplay.RunAsync(shop.Services, async () =>
-        {
-            await Assert.IsType<ValueTask>(method.Invoke(worker, [candidate, CancellationToken.None]));
-        });
+        await shop.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendInternalAsync(
+            new SweepTournamentCandidateCommand(candidate), new(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer),
+                "timer:TournamentRewardSweepService", Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly), default);
     }
 
     private sealed class TournamentRewards : ITournamentDungeonDomainService
