@@ -14,8 +14,8 @@ state: ready
 
 A 已提供唯一串行执行器、提交后发件箱、发送端、删锁及调用链。B 在这些结果上改造编程模型，并删掉 A 的六类过渡机制；保留保护意图、事务边界和客户端行为。不得用重命名 handler 或增加一层转发，使旧编排原封不动藏在 CMD 后面。
 
-- 已接受的产品起点：A seal `e6f55558182800b656b14c4b863a52fe672ad921`，产品代码冻结于 `0ecb9af3`。
-- 本 Spec baseline：`10a7218a779493494b138bd6b43cc0fc1a84aa6a`；契约为同目录 `TaskContract.md` revision 1。
+- 已接受的产品起点：A seal `2079d98d`，对应产品检查点 `d602592c`；历史文档中的旧提交号按 [历史改写对照表](../../history-rewrite-2026-10-25.md) 换算，A 封存制品不改。
+- 本 Spec baseline：`51bd1e9c`；契约为同目录 `TaskContract.md` revision 1，根契约 revision 4 均保持。
 - 权威来源：根契约 revision 4；父 `../../spec.md` 的 R3 分界、RQ-020～025、RQ-070～072、AC-008～010和附录 C/H；`../../verification/transition-mechanisms.md`；A 最终汇报和18项交接。
 - 本文 CMD 是执行单位，和 Game 出站 `0x01` CMD 类别不是一个概念。出站 CMD/NOTI 的类型安全继续成立。
 
@@ -27,19 +27,21 @@ A 已提供唯一串行执行器、提交后发件箱、发送端、删锁及调
 
 F-130 与 F-127 按既有约定进入 B 首个单元。F-88/F-93 的守护证据先于对应保护迁移；F-132 的区分先于任何工作单元内组装调用。其余局部拆分和接口名称由 Plan 决定，本文不预写 Task 清单。
 
+**当前版本为 B10 ready R1。** 依据用户 [流程 §8](../../process-reset-2026-10-25.md) 统一回写 [phase2-backlog](verification/phase2-backlog.md) 的冲刺裁定。TASK-65 检查点 `5f66b5b0` 已使五类迁移账 pending 全部为零，允许开始第二阶段；此事实不代替结构收口、最终测量或完整结果评审。下文 B10 与 VC-B40 是冲刺后续的当前约束，早期修订记录、旧逐协议取证要求和当时的门禁保留为历史，不要求重做已完成取证。根／子契约、17 项 RQ、11 项 AC、中心方案及外部收尾限制不变。
+
 ## Requirements
 
 | ID | Requirement |
 |---|---|
 | RQ-001 | 对全部**已注册**非遥测入站消息，`ClientMessageType → 协议 CMD 类型` 是单值全映射；一 CMD 可处理多个消息号。未注册的枚举成员不要求补接线，未注册帧的静默丢弃语义不变。网络 handler 只交付解包消息及精确连接身份、入队、等待；不得注入领域服务、登记能力、发送器、门或关闭器。纯遥测例外沿用 A 的14消息/2 handler，只注入日志且不改状态、不写库、不发包。 |
 | RQ-002 | 生命周期、定时/延时、事件消费/重试、GM/HTTP 和启动等非协议来源采用同样的 CMD 执行形状，以自己的显式输入进入唯一执行器；不由外部生产者直接改世界或登记出站。保留来源合并、FIFO、链继承、深度上限、停机排空及入队拒绝语义；事件的 Direct 订阅仍在调用方 CMD 内执行。 两塔返回来源仅按下文 B9 专节，将一轮批处理分成扫描和逐离场／逐副本 CMD；明确允许项间请求交错、分项发件箱交付及新增离场延后，不将该许可扩到其他来源。 |
-| RQ-003 | 协议 CMD 吸收原 handler、Delivery、Coordinator/Coordination 中的具名判定、领域调用、各段工作单元、投影登记、补偿和回滚。CMD 不直接或间接调用另一个 CMD；共用业务收进领域服务或应用服务。旧细粒度命令并入、改成真正共用的应用能力或删除，不留仅转发旧命令的最终结构。纯帧辅助及真实状态所有者不因名字含 Delivery 而删除。 |
+| RQ-003 | 协议 CMD 吸收原 handler、Delivery、Coordinator/Coordination 中的具名判定、领域调用、各段工作单元、投影登记、补偿和回滚。CMD 不直接或间接调用另一个 CMD；共用业务收进领域服务或应用服务。旧细粒度命令并入、改成真正共用的应用能力或删除，不留仅转发旧命令的最终结构。纯帧辅助及真实状态所有者不因名字含 Delivery 而删除。最终协议 CMD 不继承共用基类；生产 CMD 不以可空依赖、null! 或 Func 能力隐藏不完整的协作关系，具体界线与反例见 B10。 |
 | RQ-004 | 请求上下文是本次 CMD 的显式数据，在执行器上、CMD 开始时建立：物理连接、入站元数据、捕获权威、选中接收者及适用的效果账本状态。封锁/被顶替检查与权威捕获在此执行，过期旧连接保持 A 的拒绝/静默丢弃行为。不得依赖请求 AsyncLocal、隐式“当前请求”、单例可变字段，或借环境事务重新隐藏请求状态。把 singleton 换成 scoped 本身不构成完成；所有消费方都须拿到正确的本次输入。 |
 | RQ-005 | 协议请求的三种合法状态按下表区分；效果结算缺应有的状态是程序错误，不能“没有帧就放行”。受信任内部来源须明确由内部入口建立，不能用缺少网络上下文推断；已失效请求或泄漏续体不得降级为受信任内部 CMD。上下文结束后不能继续使用其结算权威。 |
 | RQ-006 | 保留 #185 具名判定、一次效果请求一个主结算、已提交同序号重放、序号前进约束、Pending 结束拒绝、登录顶替检查，以及协议槽位到 BusinessSlot 的边界。参与者集合包含报告会话，逐一复查当前性；结果不确定及既有受保护的提交后非传输失败仍按原范围封锁每个参与者，保留 `DiscardExact` 对精确旧会话的隔离，不得缩减为仅封锁请求者。原细粒度 CMD 返回后的具名即时 raw 编码登记出口按下文“即时登记失败的等价边界”保留，不因编排搬入协议 CMD 而新增围栏，也不据此放宽其他提交后失败保护。Cera 购买旧路径吞并不确定／独立清理失败的行为及本次精确买家纳入默认参与者保护的新增范围，仅按下文 VC-B4 明确改变；Mailbox 的不可恢复失败收口及共享自回滚附加失败的原因图精度仅按下文专节和 VC-B5 明确改变，邮箱不新增 Cera actor／footprint／Fence／DiscardExact。CompoundItem／LotteryOpening／VendingMachine／EpicCraft 与 RentEquipment／ChargeRentPoint 的 NoRoom、独立 scope／刷新失败按下文专节及 VC-B6 明列；三个 raw 出口类型不变，该六消息仅按专节的逐具名旧新证据条件保留既有 committed replay 出口，其余协议保护不变。 |
 | RQ-007 | 每个旧 Transactional/ReadOnly 边界对应 CMD 内一个显式工作单元：写、只读、普通拒绝 `RequireRollback`、主结算声明与确认/冻结语义保留。合并或拆分提交点必须逐项列出理由和行为证据，不能把多阶段选角或补偿包成一个事务。持久提交后立即更新内存的既有临界序列不能因搬迁新增取消点或重新读取世界状态而改变结果。Cera 正常拒绝、可恢复动作失败及提交阶段确认回滚的结果按下文专节区分，不能将正常返回拒绝一律改为回滚。Mailbox 原领域 action 内即时自回滚、Current=null 及共享 caught refusal 后 Commit 必须抛错的语义保持，不能为迁移改为延迟 RequireRollback 或另开第二事务；恢复与原因图结果另按 Mailbox 专节。四 remaining opening 与 Rental 的各自 Main、Lottery mode1 独立只读和 Rental 独立写刷新逐一保留，健康 NoRoom 正常回滚拒绝的有意修正另按 VC-B6，不将正常拒绝、异常确认回滚和已提交后失败混同。 |
 | RQ-008 | 采用工作单元内组装时，真实回滚与提交后的发布/组装失败必须区分。已经提交的写不能记成 ConfirmedRollback 并允许同序号再次生效；单纯 IsSettled 不作为“已提交”的证明。采用工作单元内组装前，先有“持久写已经生效、随后组装取消/失败、重发不重复结算”的区分证据；若未采用，则记录该路径的禁用/不可达边界，不冒称F-132已修。可靠事件的业务写入与完成标记同事务；LiveOnly 仍保持消费提交与外部投递的原有先后，不能套同一默认事务。 |
-| RQ-009 | CMD 仅登记本 CMD 发件箱，不等待网络、不触达传输发送。CMD 注入面只含领域服务/领域 store、既有 TimeProvider/IPartyService 例外，以及有具名理由的发件箱登记、关闭、投影登记、槽位映射、日志、只管理当前CMD显式工作单元的机制能力，以及下文限定的祭坛纯唤醒与翻牌延时生产者控制能力；禁止发送接口、入队点、执行器、门、行网关、持久化接缝、内容源和规则服务。不得经 service locator 或转发门面藏这些依赖。具体机制能力由 Plan 具名说明，不默默放宽父 RQ-070。 |
+| RQ-009 | CMD 仅登记本 CMD 发件箱，不等待网络、不触达传输发送。CMD 注入面只含领域服务/领域 store、既有 TimeProvider/IPartyService 例外，以及有具名理由的发件箱登记、关闭、投影登记、槽位映射、日志、只管理当前CMD显式工作单元的机制能力，以及下文限定的祭坛纯唤醒、翻牌延时生产者控制和 B10 逐项具名的固定机制能力；禁止发送接口、入队点、执行器、门、行网关、持久化接缝、内容源和规则服务。不得经 service locator 或转发门面藏这些依赖。具体机制能力由 Plan 具名说明，不默默放宽父 RQ-070。 |
 | RQ-010 | F-130：Application.Tests 的清理只作用于自己拥有的数据库/连接池，不调用进程级 ClearAllPools；覆盖实际写池和只读池及规范化路径，在自己的服务/连接释放后清理。保持测试类并行与原断言/期限，不用串行整个程序集、新 Skip 或调大超时替代隔离。此项限定已移交的 App25个调用文件；全库92个调用文件跨多个测试进程，不据此扩大本项范围。 |
 | RQ-011 | F-127：发送已经失败且写端确已完成或正在断开时，两条“entry/connection Failed”日志按连接已不在的既有规则降为 Information；普通故障仍 Warning。只改变失败日志的 gone 分类，不把 Resolve 的整体语义改成不可解析，不改变 Failed 结局、关闭/observer 通告、逐连接隔离或队列中条目的处置。不将所有 InvalidOperationException 一律视为关闭。 |
 | RQ-012 | A 的 T1～T6及 B 迁移期间为并存引入的临时路由/适配最终全部删除，语义与检索均清零，见下表。常设发件箱登记适配器、作业身份和环境事务不算残留；但不得在这些机制中重藏请求状态。带来源连接的 CMD 即使从未登记条目就失败，也必须按原顺序关闭来源，不依赖两个 dispatcher 手工触碰 Current。 |
@@ -59,6 +61,86 @@ B7具名增加祭坛纯唤醒能力，只允许CMD在原用例位置向已有祭
 
 B8另具名增加翻牌延时生产者的固定阶段控制能力。CMD只可在原用例位置，向原同一个翻牌延时生产者同步请求“结算后布局”“布局后自动确认”或取消精确角色／run的待办；输入仅为既有精确会话和run身份，不含命令、请求上下文、回调、业务快照或调用方选择的延时。能力本身不查询或修改游戏世界、不发送、不直接入队或等待CMD，不暴露通用调度、任意阶段、任意任务或停机等待；生产者原有待办、替换、取消及drain仍由原单一状态所有者管理。真正到期后，由生产者在当前作业之外使用既有typed内部CMD入口；当前CMD不得借控制能力等待它。接口、同实例接线和精确类型判据由Plan具名。这只保留既有翻牌时点和取消语义，不能把调用挪到薄handler返回后、事务提交钩子或发件箱传输阶段，不扩其它调度者或技术注入类别。
 
+
+### 冲刺裁定与最终模型（B10，RQ-002～009、012～017）
+
+本节把已实施的具名裁定纳入同一个可验收边界。它不新增通用恢复许可、请求 ambient、发送或嵌套派发出口。来源及逐项对应见 [B10 回写记录](verification/spec-b10-consolidation.md)；具体阶段顺序仍由迁移账的旧边界／实际单元对应和既有业务测试负责，不能只凭新的类型名称声称等价。
+
+#### 具名注入与协议能力
+
+领域服务／store 及原 TimeProvider、IPartyService 规则保持。下表是确切契约的有限补充，不能按 Query、Factory、Options、Dispatch 等后缀放行相似类型；注册机制内部可以解析其固定注册项，不能把 resolver、任意业务委托或 Services 交给 CMD。
+
+| 具名能力 | 允许结果及边界 |
+|---|---|
+| IReplayStateProjectionSink、ISelectedSessionSnapshotQuery | Joust 按原采样点捕获精确选中集；下注成功仍 DetailsChanged→独立当前态 Write／Inventory 与 Joust 投影→ACK。首次投影以无登记豁免的调用进入原 sink，不嵌套 ReadReplayState CMD、不新增 raw 权利。 |
+| ICommandSelectedSessionCleanup | 选角／回选及已具名的断开生命周期只能执行固定精确清理；不是可接任意动作的失败后恢复能力，限制见下文。 |
+| ISelectedCharacterStateMessageFactory、SelectCharacterDeliveryOptions、LotteryCounterExperimentOptions | 原选角消息组装与 EncodeBody 预校验、原尾帧配置及默认关闭的彩票实验选项；不查询世界，不成为游戏规则输入或通用 factory／options 类别。 |
+| ICommandHttpFailureAudit | 只为本次合法 HTTP 充值／邮件失败记录执行一次固定终止审计，见 HTTP 专节；不恢复普通单元、投影或请求成功。 |
+| ICommandConnectionLifecycle | 固定 Connected／Disconnected／DepthRootClose 注册分发，保原 observer 顺序及深度处理；仅匹配实际内部 CMD／Lifecycle 来源可用，不接业务 callback。 |
+| ICommandScheduledTaskDispatch | 只分发已注册 typed 计划任务，状态 ticket 只表达调度事实；不传世界快照、任意 Func 或服务定位器。 |
+| ICommandDomainEventConsumption | 仅匹配 Consume／Settle 与 Event／StartupRecovery 来源，执行原可靠或 LiveOnly 消费阶段；不向 CMD 暴露持久化、动态服务解析或任意订阅执行。 |
+
+既有 ICommandConnectionClosures 的 ResolveAndRequestCloseAsync 仅保选角原 pendingCloses 中其他连接 ID 在最后关闭点解析的语义：登记的是当时取得的真实物理 context，来源仍使用 exact 方法，不用可能已删除的在线记录替代传输身份，也不改变 F-131 精度。IChannelEntryPolicy 临时别名删除后，ResolveAsync／Refuse 归现有 IChannelEntryDomainService，与原具体实现同 singleton；不保默认兼容实现。
+
+#### 工作单元、正常拒绝和失败事实
+
+VC-B40 是 TASK-58 起的统一基础设施默认失败规则；正常拒绝、原错误码、实际事务点、受众和帧序仍保持。已经批准的三个具名即时登记出口继续受其严格来源、目标、阶段及完整清理条件约束，不成为一般编码异常恢复。Housing、Capsule、WeddingLovePoint 只增加既有 CommittedReplayCurrentStateBatch 的 owner：仅已提交同序号请求的当前态重放可用，首次成功、拒绝、Main 和其它出口不获许可；没有第四类 raw 出口。
+
+现有 WriteResult 的 Returned 与真实 KnownStorage／FallibleCommit 后健康 ConfirmedRollback 继续区分。Joust 下注复用该结果保原 ACK6；catch 只包原领域动作，槽位映射和守卫在外。七个定时单元 creature.clock、altar.deadline、tournament.auto-reward、wedding.advance、wedding.cleanup、altar.wipe、tournament.wipe，以及五个计划任务的逐角色写、可靠事件消费，按原业务 catch 范围复用健康结果；Joust／Weakness 推进和只读 snapshot 不因此取得同样许可。取消、不确定、guard、scope／独立清理或未知来源失败仍默认失败，不能按异常类型或完成枚举猜测恢复。
+
+ReadOnly action 可显式得到当前只读 unit 并 RequireRollback，以保四个 HTTP Events／Joust 查询原正常拒绝的真实 Abort；不授权写入、Main、footprint、Self 或提交失败恢复。DomainTransaction 在真实 AbortAction 完成处记录的内部事实，只供固定 HTTP 审计辨识原领域已自回滚；它绑定本事务、原 cause、真实完成输出与发生身份，不能复活已结束事务，也不扩大既有 Self 观察／消费／Pin 的资格。
+
+CommandRequestContext.HasOnlyFailure 仅观察本次已记录的一个失败发生及其原 cause；普通传播可保持同一发生，独立清理即使复用同一异常对象仍是第二发生。该观察不清 sticky、不授权新工作；选角过期物品原正常拒绝可保原 0x02，额外基础设施失败不能借此被吞。
+
+#### 选角、回选与连接生命周期
+
+选角原准备、每日补货、任务、宠物、发布及 PvP 阶段，以及回选与失败补偿的原边界保持；不合成一个事务。固定 cleanup 在入口冻结精确目标和两塔当前 run 的原所有 owner，保剩余队员结算与原独立位置事务，owner 不自动扩大失败保护集合。仅本次未关闭 request／job 和具名注册可用；单元内须处于该请求唯一 unit 的真实 action，单元外须无在途操作。清理期间拒绝普通新单元和重叠清理，未 await 的清理仍须排空；结束即失效。失效权威被观察后记录失败，不能恢复成功、另建作业或嵌套派发。
+
+Connected、Disconnected、DepthRootClose 都由真实 typed 入口驱动具名注册 handler，producer 只保来源链、深度降级和入队。Connected 保真实 physical source；已断开的 Disconnected 只在 Lifecycle／无来源连接的真实命令上取得既有精确 cleanup 资格，保 orphan、Standing、代次、固定投递与释放顺序，不虚造来源。RecordDisconnectedDeliveryFailure 仅记录同一活跃 job 的本次断开清理后投递失败或其独立次因，使原匹配连接继续释放；最终请求仍失败，普通业务不得恢复。
+
+#### HTTP 与 GM 的统一边界
+
+四十二条在范围内的 HTTP／GM 路由由同一个路由过滤器提交纯数据 HttpRouteCommand；三十九条普通路由与三个原自入队路由共用同一 CLR 命令。HttpApi／GmWeb 保原解析、鉴权 middleware、凭据计算／限流／重验证与响应映射；framework next 只在执行器外生成封闭输入，HttpContext、IResult、Services、执行委托及隐式 current 不进入 CMD。实际 operation／输入类型／Http 或 Gm 来源必须匹配。前置失败与取消保持原入队边界、None admission、body token 和 FailedBody 语义。
+
+充值／邮件的失败审计必须同时匹配本次合法 requestId、实际输入、HttpRouteCommand、真实 origin／job 及完整 runner 失败事实。一次固定 Cera／Mail RecordFailure 审计不接业务委托，受 request／job／lifetime／无在途操作限制并参与排空；不清 sticky，不恢复普通写或投影，不增加 actor／footprint／raw 或第二作业。审计动作自身不可用可以形成 AuditFailed；它的独立 rollback／dispose、guard、scope 等错误会撤销失败响应搬运资格。
+
+只有完整 drain、关闭 request、scope Dispose、健康检查和默认 FailAsync 都完成后，才能把真实签发的阶段及审计失败图包装为数据响应；原作业仍失败，保原 cause。外部映射必须匹配同一命令对象和实际 origin／job；跨请求复用同一 cause 或同一命令对象都不能借旧资格获得响应。不得从任意内部异常中捞未经确认的 HTTP 结果。
+
+本次 RequestAborted 已实际取消时，四个固定 Events／Joust ReadOnly action 可沿原 body-only 观察规则带回原取消；须同一 producer token、真实 action 发生、完整健康 Abort／Dispose、无既有提交或独立错误。充值／邮件输入已读出后的准备或执行取消，则保原独立五秒 token 的失败审计及原 Rejected／RolledBack／真实 Unknown 记录；它不是未请求取消的豁免。未请求取消、guard、独立清理或未知阶段都不能取得这两项权限。
+
+#### 定时来源、日切水位与取消
+
+十九个剩余定时来源及共用推进体的 Joust 启动恢复使用 typed 内部命令和整轮 producer 生命周期；此前两塔返回和翻牌 delay 的已接受边界保持。公共 producer 只管理触发、明确 origin／链、busy、取消与排空，不持世界事实或任意业务 callback。F-07 整轮串行扫描与逐精确会话 FIFO，单 CMD 来源的 manual 立即入队保 FIFO、hosted 只合并自身；所有已接受轮次都纳入排空，不能提前从跟踪集合移除。唯一整轮 SemaphoreSlim 只在执行器外协调 F-07 producer，不是世界状态门。
+
+Login 会话到期、Joust observed／openedRounds、房间机关 run／roomVersion 投影截止及去重，分别归 ILoginSessionMaintenanceDomainService、IJoustMaintenanceDomainService、IRoomMechanismMaintenanceDomainService 的真实 owner；保三十秒清扫、启动静默基线、完成轮次先发布／发布前消费，以及机关成功后记账／失败下轮重试。经验启动归一由 ICharacterExperienceInitializationDomainService 调原经验规则与存储策略；EpicBook 和经验初始化留原启动位置，不新增外层事务或改变 readiness。
+
+F-07 的 Premium／ItemUsage／Fatigue 及七类 quota 只在真实登记接受后推进当前周期与精确会话水位。单条 RegisterWithOutcomeAsync 与 batch RegisterBatchWithOutcomeAsync 必须沿原 TryFind→Encode→Register 路径；实际 Register 完成才为 true，Dropped／空批及不支持结果的 sender 不猜成功。NotificationAttempt 保原 Outcome，另给默认 false 的 RegistrationAccepted；它不代表落线或客户端收到。保原每条尝试顺序、逐收件人隔离、GM 汇总与旧 void 消费者语义。
+
+PremiumSnapshot／ItemUsageSnapshot 是默认 None 的封闭只读取消资格，仅实际注册的 Internal owner、Timer＋BodyOnly、本次 request 及固定 premium.snapshot／item-usage.snapshot 单元可观察真实 action 取消。ConfirmedRollbackWriteResult 同为显式 Internal 注册资格，仅批准的 Scheduled／Consume 与七个定时单元 owner，在 Timer／Event／StartupRecovery、BodyOnly、ordinary writable、Footprint.None、无既有提交的真实 action 使用。两者都要经过同一已取消 producer token、完整健康 Abort／Dispose、唯一失败发生及既有 Finalize 检查；commit、DI、lookup、Main／Self／Declared、未请求取消、guard 或独立清理不获资格。不能把“取消观察”实现成继续业务或清除失败状态。
+
+Creature 时钟原正常投影业务失败仍按逐目标 Warning、精确目标关闭及继续范围处理，原未声明 selected／account 的单元不新增参与者。真实 outbox／close 阶段必须与普通领域读取／受众解析区分；登记、scope／清理、取消、不确定或 sticky 故障按默认失败，不补 owner 关闭后恢复下一项。Direct、Project、NotificationBus 的实际 scope Dispose 失败以内部阶段事实保双因，Joust／Room 不得把它当普通广播失败；正常订阅和既有逐收件人 Failed 隔离保持。
+
+#### 计划任务与事件消费
+
+计划任务只用 typed ticket 表示 Requested／Started／Attempt／Id 等调度事实；在实际 CMD 入口取最新合并时间，保 due 先于 completion、RunOnce／Skip、开始后 Pending、重试和排空。固定机制在 fresh scope 解析已注册 handler，五个真实逐角色循环保原当前性检查、参与者、各自事务与健康失败后继续；没有任意 Func／service locator 交给 CMD。
+
+五任务收集的健康业务失败由具名完成桥在原作业中抛原 Aggregate：须本次 ScheduledGameplayTaskCommand、TrustedInternal Timer、nullSource、同 request／job，并且 ExplicitAsync 的 drain、request 关闭、scope Dispose 和健康检查全部成功，Failure 为空、操作已结束。这样保一次执行器 Error 和原 producer 重试，不把已成功角色误判为 whole 不确定失败。任何独立 scope、编码、guard、取消或不确定失败先走默认路径；不跳 FailAsync，不新建作业，不公开任意失败构造或后置回调。
+
+Reliable 事件保 claim→fresh subscriber scope→Invoke→Complete、成功 Commit／Forget 后 Dispose 的原顺序，业务写与完成标记同事务。业务动作失败先完成原 subscriber scope 清理，再 RequireRollback；完整健康结果后才执行独立 Fail 重试事务，健康提交确认回滚复用 WriteResult。LiveOnly 先消费提交再提示、不重放，Direct 仍在调用方 CMD 内；深度终结保原终态与 root close。取消、不确定、scope、编码或 guard 失败不签发业务 retry 资格，不能复制工作单元 runner 或清 sticky。
+
+每 job 的 outbox 仅在实际必达单条／batch／required explicit encoder catch 记录无权限的失败发生及原 cause、精确目标；optional explicit 原隔离不记。NotificationBus 的固定逐收件人边界只能在真实批登记的窄 catch 中，匹配同一活跃 job／outbox、同目标引用、同 cause、恰一条新发生且观察未结束时，追加该发生已由原隔离边界处理的事实。原失败事实不删、同 cause 的另一发生不复用；事件 Invoke 区间有未处理必达失败时仍拒绝 retry，即使订阅者吞错返回。没有公开 bypass、任意清错、新 ambient 或恢复权限。
+
+#### 最终结构、删除与文档
+
+协议 CMD 必须自行拥有用例编排，不继承 PartyMutationProtocolCommandHandler 或其它共用 CMD 基类；不能换成一个巨大的依赖袋、转发门面或改名基类来隐藏原编排。共享领域能力归真实领域 owner；只涉及协议的共用阶段可以按明确职责复用，但每个 CMD 的判定、工作单元、补偿和投影顺序须可见，不能再调用另一 CMD。生产 CMD 的构造依赖及协作能力为完整非空契约，删除为不同子类填空的 null!、可空服务参数、默认缺依赖和 Func 传能力。业务数据本身可空、纯值变换、既有显式工作单元 action 不因此被禁止；不能用这些合法形式重藏服务定位或执行任意业务的能力。
+
+判据遍历实际生产 CMD，并有会拒绝的继承、可空依赖和委托能力反例；原注入类别、嵌套、薄 handler、注册闭合、source detach 位置及 Compose 禁用反例保持。六处请求 ambient、legacy 路由／重载、旧 fine、五 pipeline 和两项临时适配语义与检索清零，只保作业身份与领域事务的必要 AsyncLocal。未注册消息的技术拒绝归固定 CommandJobEntry：带真实 Connection 链／source 的作业和 scope 内初始化发件箱，先按原 blocked／superseded 规则处理，再抛原 lookup 失败；已注册消息误入也拒绝，不执行 handler，不收 callback。两个 dispatcher 仅传值，不触 Current／Begin 或重建业务作业。
+
+T5 的唯一 Error 指同一次向执行器传播的未处理失败；四个 scheduled 逐项、Unknown settlement、MoveMap 定位保无栈 Warning，SelectDungeon 纯复述可为 Debug，原 cause、顺序与定位保留。Outbox Submit 拒绝仅在此前健康作业由 hookError 成为执行器最终 Error；此前失败／取消时被隔离的独立 Submit 错误保 Error。DiscardExact 独立清理错误及已按业务契约处理而不再传播的 Error 保留，不以全局 Error 清零改变 A 的失败选择或关闭机制。
+
+内存配置测试宿主可以明确关闭不参与断言的 JSON 热重载，仍使用真实 Host／DI／启动和排空；生产配置及热重载功能测试不受影响。原生 SQLite 提交测试以真实事务阶段、KnownStorage／FallibleCommit 来源、完成事实及原 cause 判断，不用异步栈帧名字替代；完整资产、外键、已执行写、回滚与重试断言不减。既有测试迁当前驱动不得消失其保护意图，删旧状态机专属用例须有明确去向，保失败及跳过准确身份。
+
+最终整理 AGENTS、架构哲学、实现／新增协议文档和误导命名，描述当前 typed CMD、显式单元与真实有限机制；历史 A 和各 Task 取证不改写为当前事实。五账全闭合只是第二阶段入口：之后仍须结构检查、八项目正式全量、表征／线级／codec／Golden、同 A 的 G1 工具和负载测量（每条 CMD max≤2秒）、一次完整结果挑战与独立评审。完成后封存 B 并交最终汇报，停等用户安排外部 Astra；内部 Spec／结果评审都不替代外部审核，也不授权任何推送、PR、合并、删除分支或工作树。
 
 ### 请求状态与结算许可（RQ-004～006）
 
@@ -277,6 +359,13 @@ F-131维持现状不是相对A的新变化。若实施需改变本表之外的�
 | AC-010 | RQ-016 | 冻结状态按A工具和同口径完成测量并和A对照；单条CMD max≤2秒，原目标未达只记录为优化，数量级异常按根约定处置；合成负载与未实机局限明示。 |
 | AC-011 | RQ-013、017 | 文档示例/依赖/新增协议步骤与最终实现一致；最终汇报含结果、VC-B1/B2/B3/B4/B5/B6及其余不变、遗留/保留与证据、原性能口径、Astra待审和不推送不PR状态。A封存资料无修改。 |
 
+### B10 的补充验收归属
+
+- AC-001／007 验收具名注入、真实注册分发、纯数据 HTTP 入口、协议 CMD 无共用基类及生产 CMD 无可空依赖／Func 能力；每条结构规则同时接受真实合法形状并拒绝对应坏例，不靠空扫描或固定 handler 数通过。
+- AC-002～005 验收 cleanup／HTTP 固定终止审计／生产者取消／完成桥与事件编码发生事实的来源、request／job、阶段、清理与独立失败边界。复用各机制已有强例及其反例；正常拒绝、事务点、帧序、受众的真实差异单独守护，VC-B40 罕见路径不新增逐协议矩阵。
+- AC-008／009 验收 F-07 的真实接受水位、整轮排空、事件可靠性、生命周期精确清理、启动顺序和五账完整性；T-011 的删除不删掉旧保护。测试库存、旧用例去向、准确失败／跳过及独立错误日志分类必须闭合。
+- AC-010／011 继续承担冻结后的同工具测量、最终文档、六根条件及17 RQ／11 AC／18交接与另列事项的完整汇报；TASK-65 全量不是结构优化后最终证据，五账闭合和本轮 Spec 审查也不代表 B 完成。
+
 ## Success Evidence
 
 | 根条件 | 本文验收与主要证据 |
@@ -356,3 +445,9 @@ TASK-57 以 `94746fe1` 为产品基线，真实旧来源表征证实两塔 Leave
 主控依据保留隔离的实际证据选择上述有界分解：不把全tick首错停止和其它cohort围栏扩张冒作纯搬迁，也不新开恢复能力。修改只涉及RQ-002、专节、AC-008和VC-B37～B39，17个RQ／11个AC身份及其它要求不变；根／子契约、单执行器、薄handler、CMD不嵌套、显式工作单元中心方案均拟保持，A封存资料不变。根中A“一次定时触发一个作业”的历史形状与本次B来源分解的边界须由独立审查明确核定，不能借F07的既有批准自动放行两塔；若审查判定需改根／子／中心，按既定用户门停止。
 
 本稿为 B9 ready R1，待 TASK-57 唯一 fresh Astra 有界独立Spec审查；通过并由主控消费后才形成P11方法和受影响Plan审查，同一Astra最终审Result。无挑战，不复制来源当证据，不授权任何产品／core变更；当前只有正式旧测试准备。
+
+### B10（2026-10-26）：迁移账闭合后的统一回写与结构收口
+
+依用户流程 §8，在 TASK-65 本地检查点 `5f66b5b0` 确认159业务消息、204旧命令、73在范围内来源、5保护及8过渡均闭合后，统一回写 TASK-58～65 的36条 backlog 裁定；14遥测与12原不入队HTTP技术路由保持既有 retained 分类。本文新增按能力／失败阶段／来源组织的当前边界及结构验收，未改根／子契约、17 RQ／11 AC、A持续不变量、中心方案或既有VC历史。当前介绍的提交号按已接受历史映射更新，历史记录原号不改。
+
+B10 ready R1 仅表示可审。按用户 §8 做一次 fresh 独立 Astra Spec 审查，不重开冲刺 Task 逐项评审或生成本阶段挑战；主控消费并形成规划检查点后才开始结构优化。最终 T-012 仍另有完整结果的一次挑战、独立结果评审、核验与封存；不以本轮批准替代用户安排的整分支外部 Astra。逐项来源及验收归属见 [B10 回写记录](verification/spec-b10-consolidation.md)。
