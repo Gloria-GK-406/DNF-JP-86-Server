@@ -24,14 +24,14 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game;
-internal partial class GameMonsterDeathCommandHandler
+internal sealed partial class GameMonsterDeathCommandHandler
 {
-    protected virtual ValueTask<ObjectDestructionResult> DestroyObjectAsync(CommandExecutionContext execution,
+    private ValueTask<ObjectDestructionResult> DestroyObjectAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, DungeonRunId runId, long roomVersion, int objectCode,
         IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct) =>
-        workUnits!.WriteAsync(execution, new("destroy-dungeon-object", []),
+        workUnits.WriteAsync(execution, new("destroy-dungeon-object", []),
             (_, token) => DestroyObjectAsync(session, runId, roomVersion, objectCode, recipients, token), ct);
-    protected async ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity session,
+    internal async ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity session,
         DungeonRunId runId, long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct)
     {
         if (!sessions.IsInWorld(session))

@@ -10,6 +10,13 @@ state: ready
 
 ## Planning Choice
 
+**当前执行说明（TASK-66，2026-10-26）。** TASK-65 已闭合五类迁移账，用户流程 §8 第二阶段已启动；
+Spec B10 ready R1 的独立审核已批准并由主控消费（`reviews/spec-b10-review.md`、
+`verification/spec-b10-consolidation.md`）。当前按 TASK-66 做结构与文档收口，再执行本文
+T-012 的最终完整验证、同工具测量及一次完整挑战／独立结果评审。下列 P11 和更早的“当前”、
+“待审”及 Next Planning Boundary 均是各次规划时的历史说明，不代表仍待完成那些迁移。
+本说明仅同步实际阶段及用户已批准的流程；不改簇顺序、跨簇共享契约或另立 Plan 方法修订。
+
 本 Plan 当前为 **P11 ready R1**，承接已获唯一 Astra approved 并由主控消费的 **Spec B9 ready R1**（`reviews/spec-b9-review.md`、TASK-57 Controller Consumption）。P11 只补两塔内部来源迁移需要的共享 HOW：TrustedInternal 的显式 owner 声明、BodyOnly 取消发生证明、累计物理连接的引用去重，以及整轮 producer 排空。两条 T-010 来源因真实依赖随 T-008 的五条旧命令迁入 TASK-57，其余路线不变。下文 P11 是本轮权威增量；P10 及更早说明保留为历史。P11 尚待同一 Astra 方法审查、主控消费与 metadata 检查点，产品仍关闭，无挑战。
 
 本 Plan 当前为 **P10 ready R1**，承接待有界独立审查的 **Spec B8 ready R1**。TASK-48须一起消除五个结算／翻牌消息、两条旧fine与card-delay实际消费者；只有保留原固定调度／取消位置并将到期业务变为typed内部CMD，才能同时满足薄handler、无CMD嵌套和旧计时语义。新增能力仅`IDungeonCardPresentationControl`，同原生产者对象；T-010的card-delay因真实依赖提前迁入本Task，其余来源与功能簇次序不变。唯一TASK-48 Astra先审B8、通过后审P10，再审最终Result；主控消费并形成规划检查点前，执行者仅可阅读及补跑旧实现的正式测试，不实施能力／产品增量，无挑战。
@@ -337,15 +344,17 @@ F-07在T-010验证各主题差异：配额同周期余额变化不新增刷新�
 
 T-012在冻结状态运行完整Release构建，0警告0错误；八项目全量（Application、Protocol、Networking、Persistence、Infrastructure、Host、HttpApi、Pvf），保持原xUnit类并行。允许-m:1串行项目，不把程序集串行作为隔离修复。正式dotnet全量在本机FSEvents可用的require_escalated环境执行，保留原deadline，DFO_GAMEPLAY_ASSERTIONS和console detailed完整落盘，环境/命令/退出码及数量同档。sandbox watcher停滞不能解释成业务回归或冒称全部managed根因已证。
 
-8350基线为8330通过、2个已披露DimensionDungeon内容失败、18跳过；表征10/0。保留两条内容失败准确身份及当前AGENTS允许已登记偶发的证明规则，新增失败不能混入基线。逐项目数量与总数按Task增减闭合，原codec/Golden字节/帧序/连接开关断言保持，只有VC-B1/B2/B3/B4/B5/B6明确允许相对A变化。
+8350基线为8330通过、2个已披露DimensionDungeon内容失败、18跳过；表征10/0。保留两条内容失败准确身份及当前AGENTS允许已登记偶发的证明规则，新增失败不能混入基线。逐项目数量与总数按Task增减闭合，原codec/Golden字节/帧序/连接开关断言保持；相对A的有意变化以当前已批准Spec的VC-B1～VC-B40逐项边界为准，不将早期六项名单当作最终完整清单。
 
 同A工具重跑执行器外写/网络等待/自等/泄漏取证，七程序集正对照齐，反例类/对照外0；保留exe0仅为观测而非所有吞错证明的边界。旧机制检索包含六处请求AsyncLocal/旧marker/旧pipeline/legacy路由和重载、bus包装、旧重复Error、两个手工Current；生产AsyncLocal最后只允许GameplayJob.Running与DomainTransactionScope.ambient。把命中按实际职责分类，不能只grep类名为零。
 
 最终同A的工具、负载、口径与环境再测执行分位/max、吞吐/等待、并发登录/灌包、冷启；每条CMD max≤2秒即接受。原目标作对照优化，数量级异常按根约定报告；套件总时长/内存只记录。报告合成/非A21实机边界。若测量后再改影响执行的产品，受影响检查/测量需重跑。
 
-最终文档更新AGENTS与架构哲学/新增协议步骤、真实分层及typed登记/单元用法、F-128①。报告包括六根条件、17RQ/11AC与18交接去向、VC-B1/B2/B3/B4/B5/B6、F-131保留及F-132禁用、基线/遗留、测量证据、Astra待审及不推送/PR状态。A封存文件不修改；B最终核验/封存由主控按工作流推进，本Plan不自行宣告完成。
+最终文档更新AGENTS与架构哲学/新增协议步骤、真实分层及typed登记/单元用法、F-128①。报告包括六根条件、17RQ/11AC与18交接去向、VC-B1～VC-B40、F-131保留及F-132禁用、基线/遗留、测量证据、Astra待审及不推送/PR状态。A封存文件不修改；B最终核验/封存由主控按工作流推进，本Plan不自行宣告完成。
 
 ## Next Planning Boundary
+
+以下保留 P7 当时的规划边界；当前阶段以本文件顶部说明及 TASK-66 为准。
 
 当前HEAD为已committed done TASK-32的17d924a06b1237ca2b4f5997983c0a4923dfc050；Task31已交Mailbox，Task32仅调查四remaining opening/Rental六消息旧边界，未闭它们的canonical行。Task31的9075/DFO74+7及Task32的52场/142focused分别是历史全量与有界调查，不是本轮P7执行。Task01～32和P1～P6已接受结果保持；T-004其余Rename/Hatch/SharedEffect/GenCeraTicket、T-005实际租赁/刷新、T-006～012及全部未闭来源/过渡机制仍完整有责。
 

@@ -1,3 +1,32 @@
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -51,7 +80,7 @@ public sealed record GameWeddingGiftCommand(NetworkDispatchContext Dispatch, Wed
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal partial class GameMarriageCommandHandler : PartyMutationProtocolCommandHandler,
+internal sealed partial class GameMarriageCommandHandler :
     ICommandHandler<GameWeddingProposalCommand, bool>,
     ICommandHandler<GameWeddingResponseCommand, bool>,
     ICommandHandler<GameWeddingPartnerCommand, bool>,
@@ -60,6 +89,20 @@ internal partial class GameMarriageCommandHandler : PartyMutationProtocolCommand
     ICommandHandler<GameWeddingLetterCommand, bool>,
     ICommandHandler<GameWeddingGiftCommand, bool>, ICommandHandler<AdvanceWeddingTickCommand, bool>
 {
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService projectionState;
+    private readonly ILogger logger;
+    private readonly ISelectedCharacterCurrentViewDomainService currentViews;
+    private readonly ICharacterDomainService characters;
+    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
+    private readonly ITownMovementDomainService towns;
+    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly TimeProvider clock;
+    private readonly IPartyService parties;
+    private readonly IOutboundOrdering ordering;
+
     private readonly IMarriageQueryDomainService marriage;
     private readonly IMarriageCoupleDomainService couple;
     private readonly IMarriageVenueDomainService venue;
@@ -74,16 +117,14 @@ internal partial class GameMarriageCommandHandler : PartyMutationProtocolCommand
         IPartyService parties, IPartyProjectionStateDomainService projectionState, IOnlineUserQueryDomainService users,
         ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
         TimeProvider clock, ILogger<GameMarriageCommandHandler> logger,
-        IMarriageHousingQueryDomainService? housing = null, IMarriageHousingSessionDomainService? housingSessions = null,
-        IOutboundOrdering? ordering = null)
-        : base(sessions, parties, townAreas, projections, projectionState.StreamOf, null, logger,
-            currentViews: currentViews, characters: characters, onlineCharacters: onlineCharacters,
-            towns: towns, housing: housing, clock: clock, register: outbox.RegisterExplicitAsync)
-    { this.marriage = marriage; this.couple = couple; this.venue = venue; this.offers = offers;
+        IMarriageHousingQueryDomainService housing, IMarriageHousingSessionDomainService housingSessions,
+        IOutboundOrdering ordering)
+
+    {
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.clock = clock; this.parties = parties; this.ordering = ordering; this.marriage = marriage; this.couple = couple; this.venue = venue; this.offers = offers;
       this.users = users; this.units = units; this.outbox = outbox; this.housingSessions = housingSessions; this.timerOrdering = ordering; }
-    private readonly IOutboundOrdering? timerOrdering;
-    private readonly IMarriageHousingSessionDomainService? housingSessions;
-    protected override IMarriageHousingSessionDomainService? HousingSessions => housingSessions;
+    private readonly IOutboundOrdering timerOrdering;
+    private readonly IMarriageHousingSessionDomainService housingSessions;
     private SelectedSessionRecipient Recipient(NetworkDispatchContext dispatch, GameMessageMetadata metadata, SelectedSessionIdentity actor)
     {
         var connection = actor.ConnectionId == dispatch.Connection.ConnectionId ? dispatch.Connection
@@ -130,7 +171,7 @@ internal partial class GameMarriageCommandHandler : PartyMutationProtocolCommand
         if (!sessions.IsInWorld(actor) || townAreas.Find(actor.CharacterId) is not { } previous || !actor.Owns(previous)
             || await currentViews.TryLoadAsync(actor, ct).ConfigureAwait(false) is not { } view) return false;
         var moved = onlineCharacters.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
-        return await TownTransferAsync(actor.ConnectionId, actor, view, channel, moved, previous, true, ct).ConfigureAwait(false);
+        return await TownMovementProjection.TownTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, channel, moved, previous, true, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameWeddingProposalCommand command, CancellationToken ct)
@@ -310,7 +351,7 @@ internal partial class GameMarriageCommandHandler : PartyMutationProtocolCommand
         {
             var entry = result.Snapshot!;
             var moved = onlineCharacters.CrossInto(actor, entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y);
-            if (!await TownTransferAsync(actor.ConnectionId, actor, view, entry.Room.ChannelId,
+            if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, entry.Room.ChannelId,
                 moved, previous, true, ct).ConfigureAwait(false)) result = new(-10);
             if (result.Succeeded)
                 await AppearanceAsync(actor, entry, false, ct).ConfigureAwait(false);

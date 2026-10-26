@@ -527,14 +527,7 @@ public sealed class SelectDungeonHandlerTests
                 Identity,
                 true,
                 11));
-            var townProjection = new TownAreaProjectionDelivery(
-                areas,
-                sessions,
-                runtime,
-                new NoopNotifications(),
-                new NoopPartyTownProjection(),
-                sender,
-                SharedTownMovementDomainService.Instance);
+            var townProjection = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, runtime, new NoopNotifications(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance);
             var handler = SelectDungeonDriver.Create(Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(),
                 new UnchangedState(),
                 sessions,
@@ -579,14 +572,7 @@ public sealed class SelectDungeonHandlerTests
                 true,
                 11));
             var sender = new RecordingSender();
-            var townProjection = new TownAreaProjectionDelivery(
-                areas,
-                sessions,
-                runtime,
-                new NoopNotifications(),
-                new NoopPartyTownProjection(),
-                sender,
-                SharedTownMovementDomainService.Instance);
+            var townProjection = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, runtime, new NoopNotifications(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance);
             var character = new Dfo.Server.Application.Tests.Support.CurrentCharacterStub
             {
                 Id = Identity.CharacterId,

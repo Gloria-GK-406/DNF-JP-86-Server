@@ -93,7 +93,7 @@ public sealed class JoustQueryHandlerTests
         var state=new JoustState(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
             [],[1,2,3,4,1,3,1],0,1000,17);
         var session=SelectedSessionIdentity.Create(new(1),new(1),new("joust-test"),1,10010);
-        var handler=new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),new EventProjection(state));
+        var handler=new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),new EventProjection(state), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Characters.ICharacterDomainService>(), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>());
         for(var i=0;i<2;i++)
         {
             var messages=await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
@@ -111,7 +111,7 @@ public sealed class JoustQueryHandlerTests
         var state = new JoustState(false,DateTimeOffset.UnixEpoch,JoustPhase.Betting,"round",null,null,null,[],[],0,0,0);
         var session = SelectedSessionIdentity.Create(new(1),new(1),new("schedule-test"),1,10010);
         var handler = new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),
-            new EventProjection(state,[new(3700,open)]));
+            new EventProjection(state,[new(3700,open)]), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Characters.ICharacterDomainService>(), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>());
         var messages = await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
         var schedule = Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>());
         Assert.Equal((ushort)0x033F,schedule.Type);

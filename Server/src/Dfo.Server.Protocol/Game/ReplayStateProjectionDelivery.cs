@@ -20,9 +20,9 @@ namespace Dfo.Server.Protocol.Game;
 
 /// <summary>Replaces current client state after a committed operation; never repeats the original ACK or reward.</summary>
 internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety, IGameCommandOutbox outbox,
-    Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService? mirrorQuests = null,
-    IOnlineCharacterRuntimeDomainService? online = null, ITownAreaDomainService? towns = null,
-    ISelectedCharacterCurrentViewDomainService? currentViews = null, TownAreaProjectionDelivery? townDelivery = null) : IReplayStateProjectionSink
+    Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService mirrorQuests,
+    IOnlineCharacterRuntimeDomainService online, ITownAreaDomainService towns,
+    ISelectedCharacterCurrentViewDomainService currentViews, TownAreaProjectionDelivery townDelivery) : IReplayStateProjectionSink
 {
     public async ValueTask ProjectAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
         GameMessageMetadata? metadata, ReplayStateSnapshot snapshot, Dfo.Server.Abstractions.Networking.ICommandRegistrationAttempt? attempt, CancellationToken ct)
@@ -55,11 +55,11 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
             var view = await views.TryLoadAsync(session, ct).ConfigureAwait(false);
             safety.DemandCurrent(recipient);
             if (member is not null && session.Owns(member) && position is not null && view is not null)
-                await (townDelivery ?? throw new InvalidOperationException("Town replay requires delivery.")).ProjectTransferAsync(session.ConnectionId,
+                await townDelivery.ProjectTransferAsync(session.ConnectionId,
                     session, view, member, ct).ConfigureAwait(false);
             foreach (var area in request.TouchedTownAreas)
                 if (area != member?.Area && areas.Find(area) is { } townSnapshot)
-                    await (townDelivery ?? throw new InvalidOperationException("Town replay requires delivery.")).PublishRosterAsync(townSnapshot, ct).ConfigureAwait(false);
+                    await townDelivery.PublishRosterAsync(townSnapshot, ct).ConfigureAwait(false);
         }
     }
 

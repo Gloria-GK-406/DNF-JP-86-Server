@@ -115,7 +115,7 @@ public sealed class PartySelectDungeonHandlerTests
             var handler = new EplpDriver(
                 sessions, runtime, new PartyPositions(), runs, deliveries, sender,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-                NullLogger<EplpCommandHandler>.Instance);
+                NullLogger<EplpCommandHandler>.Instance, parties: new Parties(Snapshot()));
             var request = new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2);
 
             await handler.HandleAsync(Dispatch(Member), request, CancellationToken.None);
@@ -174,7 +174,7 @@ public sealed class PartySelectDungeonHandlerTests
             var handler = new EplpDriver(
                 sessions, runtime, new PartyPositions(), runs, deliveries, outbound.Game,
                 TownAreaProjectionTestFactory.Create(sessions, runtime, outbound.Game),
-                NullLogger<EplpCommandHandler>.Instance, ordering: outbound.Ordering);
+                NullLogger<EplpCommandHandler>.Instance, parties: new Parties(Snapshot()), ordering: outbound.Ordering);
 
             await handler.HandleAsync(Dispatch(Leader),
                 new EplpCommandRequest(GameMessageMetadata.Empty, 2, 2), CancellationToken.None);
@@ -610,7 +610,7 @@ public sealed class PartySelectDungeonHandlerTests
         {
             var world = World(
                 withTownProjection: true,
-                partyTownProjection: new ThrowingPartyTownProjection());
+                departureObserver: Bystander, departureFailure: true);
             world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
@@ -767,12 +767,12 @@ public sealed class PartySelectDungeonHandlerTests
     public async Task The_town_departure_after_a_party_entry_is_not_in_the_entry_group()
     {
         await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
-        var bystander = new NetworkConnectionId("bystander");
+        var bystander = Bystander.ConnectionId;
         outbound.Connect(Leader, Member);
         outbound.Connect(bystander);
         await outbound.RunAsync(async () =>
         {
-            var world = World(partyTownProjection: new BystanderTownProjection(outbound.Game, bystander), outbound: outbound);
+            var world = World(departureObserver: Bystander, outbound: outbound);
             world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
             await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
         });
@@ -783,21 +783,6 @@ public sealed class PartySelectDungeonHandlerTests
         var departures = outbound.Recorder.Entries.Where(entry => entry.Connection.ConnectionId == bystander).ToList();
         Assert.NotEmpty(departures);
         Assert.All(departures, entry => Assert.Null(entry.Order));
-    }
-
-    /// <summary>A party projection that tells someone still in town that a member left it.</summary>
-    private sealed class BystanderTownProjection(IGameMessageSender game, NetworkConnectionId bystander)
-        : IPartyTownProjectionDelivery
-    {
-        public ValueTask RefreshObservedPartiesAsync(
-            IReadOnlyList<SelectedSessionIdentity> recipients,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-
-        public ValueTask RefreshMovedPartyAsync(
-            SelectedSessionIdentity mover,
-            PartyDirectoryScope? previousScope,
-            CancellationToken cancellationToken) =>
-            game.SendNotiAsync(bystander, new SupportTagNotification(), cancellationToken);
     }
 
     /// <summary>The batch that carries the session's START_MAP.</summary>
@@ -811,14 +796,15 @@ public sealed class PartySelectDungeonHandlerTests
         bool replaceMemberDuringPrelude = false,
         bool advanceEntryRevisionDuringPrelude = false,
         bool withTownProjection = false,
-        IPartyTownProjectionDelivery? partyTownProjection = null,
+        SelectedSessionIdentity? departureObserver = null,
+        bool departureFailure = false,
         NetworkConnectionId? failRequiredConnection = null,
         Dfo.Server.Protocol.Tests.Outbox.XoDelivery? outbound = null)
     {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = memberRuntimeAvailable
-            ? new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)))
-            : new PartyRuntime((Leader, EntryFor(Leader)));
+        var members = departureObserver is null ? new[] { Leader, Member } : [Leader, Member, departureObserver];
+        var sessions = new Sessions(members);
+        var runtimeMembers = memberRuntimeAvailable ? members : members.Where(member => member != Member).ToArray();
+        var runtime = new PartyRuntime(runtimeMembers.Select(member => (member, EntryFor(member))).ToArray());
         var runs = new RollbackRuns();
         var visits = new PartyVisits(runs);
         var intents = new Intents();
@@ -829,7 +815,7 @@ public sealed class PartySelectDungeonHandlerTests
         var closer = new RecordingCloser();
         INetworkConnectionCloser closing = outbound?.Closer ?? closer;
         var areas = new SessionPresenceDomainService();
-        foreach (var member in new[] { Leader, Member })
+        foreach (var member in members)
         {
             areas.Admit(new SessionPresence(
                 member.CharacterId,
@@ -841,14 +827,7 @@ public sealed class PartySelectDungeonHandlerTests
                 true,
                 1));
         }
-        var townProjection = new TownAreaProjectionDelivery(
-            areas,
-            sessions,
-            runtime,
-            new NoopNotificationBus(),
-            partyTownProjection ?? new NoopPartyTownProjection(),
-            game,
-            SharedTownMovementDomainService.Instance);
+        var townProjection = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, runtime, departureObserver is null ? new NoopNotificationBus() : new TownDepartureEvents(game, departureObserver, departureFailure), new NoopPartyTownProjection(), game, SharedTownMovementDomainService.Instance);
         var state = new UnchangedState(() =>
         {
             if (!replaceMemberDuringPrelude)
@@ -940,6 +919,9 @@ public sealed class PartySelectDungeonHandlerTests
 
     private static readonly SelectedSessionIdentity Member = SelectedSessionIdentity.Create(
         new AccountId(2), new CharacterId(1002), new NetworkConnectionId("member"), 21, 10011);
+
+    private static readonly SelectedSessionIdentity Bystander = SelectedSessionIdentity.Create(
+        new AccountId(3), new CharacterId(1003), new NetworkConnectionId("bystander"), 31, 10010);
 
     private const ushort DungeonId = 10000;
     private const DungeonDifficulty Difficulty = (DungeonDifficulty)3;
@@ -1286,7 +1268,11 @@ public sealed class PartySelectDungeonHandlerTests
 
         public Sender(NetworkConnectionId? failRequiredConnection = null)
         {
-            outbound.RefuseOutsideExplicit();
+            // The real selection CMD also projects current weakness as a single NOTI.
+            // Every unrelated non-explicit send still fails at registration.
+            outbound.Encoder.FailAny(message => outbound.ExplicitInFlight is null
+                && message is not Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification,
+                () => new NotSupportedException());
             if (failRequiredConnection is { } connection)
                 outbound.FailDirect(connection, () => new InvalidOperationException("required delivery failed"));
         }
@@ -1336,16 +1322,22 @@ public sealed class PartySelectDungeonHandlerTests
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
-    private sealed class ThrowingPartyTownProjection : IPartyTownProjectionDelivery
+    private sealed class TownDepartureEvents(IGameMessageSender game, SelectedSessionIdentity observer, bool fail)
+        : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask RefreshObservedPartiesAsync(
-            IReadOnlyList<SelectedSessionIdentity> recipients,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-
-        public ValueTask RefreshMovedPartyAsync(
-            SelectedSessionIdentity mover,
-            PartyDirectoryScope? previousScope,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("projection failed");
+        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,
+            TNotification notification, CancellationToken token)
+        {
+            if (notification is not TownAreaRosterReconciled roster)
+                throw new InvalidOperationException($"Unexpected departure projection {typeof(TNotification).Name}.");
+            var exact = Assert.IsType<NotificationAudience.TheseSessions>(audience);
+            Assert.Equal(observer, Assert.Single(exact.Sessions));
+            if (fail) throw new InvalidOperationException("projection failed");
+            var messages = await new TownAreaRosterReconciledHandler().ComposeAsync(
+                new(observer.CharacterId, observer.ConnectionId, observer), roster, token);
+            foreach (var message in messages)
+                await game.SendNotiAsync(observer.ConnectionId, Assert.IsAssignableFrom<IGameNotiMessage>(message), token);
+            return new NotificationDelivery([new(observer.CharacterId, NotificationOutcome.Registered)]);
+        }
     }
 }

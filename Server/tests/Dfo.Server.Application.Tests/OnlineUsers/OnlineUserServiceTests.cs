@@ -1,3 +1,4 @@
+
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -490,9 +491,7 @@ public sealed class UserServiceTests
         var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
-            service, sessions, new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(cleanup),
-            new StubChannelEntryPolicy(), new StubServerConfigService(),
-            new LifecycleTestOutbox(new RecordingInitialSender()), new RecordingCleanupDelivery(), TimeProvider.System);
+            service,sessions,new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(cleanup),            new StubChannelEntryPolicy(),new StubServerConfigService(),            new LifecycleTestOutbox(new RecordingInitialSender()),new RecordingCleanupDelivery(),TimeProvider.System,clientSettings: EmptyConnectionProfiles());
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
         var selected = await TestGameplay.RunAsync(async () =>
@@ -585,9 +584,7 @@ public sealed class UserServiceTests
     {
         var service = CreateService(new AccountId(105));
         var observer = new OnlineUserConnectionObserver(
-            service,
-            new EmptySelectedSessions(), new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoopCleanup()), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new LifecycleTestOutbox(new RecordingInitialSender()), new RecordingCleanupDelivery(), TimeProvider.System);
+            service,            new EmptySelectedSessions(),new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoopCleanup()),new StubChannelEntryPolicy(),            new StubServerConfigService(),new LifecycleTestOutbox(new RecordingInitialSender()),new RecordingCleanupDelivery(),TimeProvider.System,clientSettings: EmptyConnectionProfiles());
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
         await TestGameplay.RunAsync(async () =>
@@ -622,6 +619,13 @@ public sealed class UserServiceTests
         Port: port,
         Mtu: 1472);
 
+    // These connection fixtures never activate a profile. Forgetting one is valid even when
+    // none was activated; every other client-settings operation remains an unexpected call.
+    private static IClientSettingsDomainService EmptyConnectionProfiles() =>
+        ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<IClientSettingsDomainService>(),
+            (method, args) => method.Name == nameof(IClientSettingsDomainService.ForgetConnection)
+                ? (true, null) : (false, null));
+
     private static OnlineUserConnectionObserver CreateObserver(
         IOnlineUserDomainService service,
         ISelectedSessionDomainService sessions,
@@ -638,7 +642,7 @@ public sealed class UserServiceTests
             new StubServerConfigService(),
             new LifecycleTestOutbox(sender),
             cleanupDelivery ?? new RecordingCleanupDelivery(),
-            timeProvider);
+            timeProvider, clientSettings: EmptyConnectionProfiles());
 
     /// <summary>Records the cleanup plan instead of turning it into frames.</summary>
     /// <remarks>

@@ -1,3 +1,26 @@
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
@@ -31,16 +54,39 @@ public sealed record GameGiveUpGameCommand(NetworkDispatchContext Dispatch, Give
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolCommandHandler,
+internal sealed partial class GameDungeonExitCommandHandler :
     ICommandHandler<GameEplpCommand, bool>, ICommandHandler<GameGiveUpGameCommand, bool>
 {
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService projectionState;
+    private readonly ILogger logger;
+    private readonly ISelectedCharacterCurrentViewDomainService currentViews;
+    private readonly ICharacterStateProjectionDomainService currentState;
+    private readonly ICharacterDomainService characters;
+    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
+    private readonly ITownMovementDomainService towns;
+    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly IBossTowerDomainService bossTowers;
+    private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly TimeProvider clock;
+    private readonly IGameCommandOutbox outbox;
+    private readonly ICommandConnectionClosures closures;
+    private readonly IWeaknessDomainService weaknessState;
+    private readonly ICommandWorkUnits workUnits;
+    private readonly IOnlineUserQueryDomainService onlineUsers;
+    private readonly IDungeonRunDomainService dungeonRuns;
+    private readonly IPartyService parties;
+    private const bool projectWeakness = true;
+
     private readonly IDungeonRunDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly IDungeonCardPresentationControl cardPresentation;
     private readonly IDungeonEntryIntentDomainService entryIntents;
     private readonly IAltarDungeonDomainService altars;
     private readonly IAltarSchedulerWakeSignal wake;
-    private readonly IOutboundOrdering? ordering;
+    private readonly IOutboundOrdering ordering;
     public GameDungeonExitCommandHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
         IDungeonRunDomainService runs, IDungeonRunProjectionDomainService registry, IPartyService parties,
@@ -52,18 +98,10 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
         ICommandConnectionClosures closures, IDungeonCardPresentationControl cardPresentation,
         IDungeonEntryIntentDomainService entryIntents, IAltarDungeonDomainService altars,
         IAltarSchedulerWakeSignal wake, IWeaknessDomainService weakness, TimeProvider clock,
-        ILogger<GameDungeonExitCommandHandler> logger, IOutboundOrdering? ordering = null)
-        : base(sessions, parties, townAreas, projections, projectionState is null ? null! : projectionState.StreamOf, ordering, logger,
-            currentViews, currentState, characters, onlineCharacters, towns, housing, bossTowers, illusionTowers, clock,
-            outbox.RegisterExplicitAsync,
-            session => onlineUsers.TryGetByConnection(session.ConnectionId, out var user) && user is not null
-                && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
-                ? closures.RequestCloseAsync(user.Connection, CancellationToken.None) : ValueTask.CompletedTask,
-            (session, token) => sessions.IsInWorld(session)
-                ? outbox.RegisterNotiAsync(session.ConnectionId, new WeaknessProjectionNotification(weakness.For(session.CharacterId).Value), token)
-                : ValueTask.CompletedTask,
-            units, onlineUsers, runs, registry)
+        ILogger<GameDungeonExitCommandHandler> logger, IOutboundOrdering ordering)
+
     {
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.parties = parties;
         this.runs = runs; this.registry = registry; this.cardPresentation = cardPresentation;
         this.entryIntents = entryIntents; this.altars = altars; this.wake = wake; this.ordering = ordering;
     }
@@ -71,7 +109,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
     { await EplpAsync(execution, command.Dispatch, command.Input, ct).ConfigureAwait(false); return true; }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameGiveUpGameCommand command, CancellationToken ct)
     { await GiveUpAsync(execution, command.Dispatch, command.Input, ct).ConfigureAwait(false); return true; }
-    protected async ValueTask EplpAsync(
+    private async ValueTask EplpAsync(
         CommandExecutionContext execution, NetworkDispatchContext context,
         EplpCommandRequest message,
         CancellationToken cancellationToken)
@@ -103,8 +141,8 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
                 context.Connection.ConnectionId, message.State, message.Option, message.Metadata.Sequence, message.Metadata.InboundOrdinal);
             return;
         }
-        var roster = currentRun is not null && PartyService is not null
-            ? PartyService.FindParty(new PartyCharacterSnapshot(
+        var roster = currentRun is not null
+            ? parties.FindParty(new PartyCharacterSnapshot(
                 session.AccountId, session.CharacterId, session.WireUserId, null))
             : null;
         var leaderWireUserId = roster?.LeaderWireUserId ?? session.WireUserId;
@@ -152,11 +190,11 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
         {
             if (!sessions.IsInWorld(session)
                 || returning.Any(x => !sessions.IsInWorld(x.Session))
-                || (!isAltar && returning.Any(x => entryIntents?.Find(x.Session) is not null)))
+                || (!isAltar && returning.Any(x => entryIntents.Find(x.Session) is not null)))
                 return;
-            if (roster is not null && PartyService is not null && returning.Count != roster.Members.Length)
+            if (roster is not null && returning.Count != roster.Members.Length)
                 return;
-            if (currentRun is null && townAreas is not null
+            if (currentRun is null
                 && (townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)))
                 return;
         }
@@ -171,7 +209,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
             if (currentRun is not null)
             {
                 foreach (var member in returning)
-                    cardPresentation?.Cancel(member.Session.CharacterId, currentRun.RunId);
+                    cardPresentation.Cancel(member.Session.CharacterId, currentRun.RunId);
                 var ended = await EndOrdinaryRunAsync(returning.Select(x => x.Session).ToArray(), currentRun.RunId, cancellationToken).ConfigureAwait(false);
                 foreach (var character in ended)
                 {
@@ -194,7 +232,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
                         EntryKind: DungeonEntryKind.Normal, Mirror: null, Sao: null, Despair: null,
                         Tournament: null })
                     foreach (var member in returning)
-                        entryIntents?.RestoreIfAbsent(member.Session,
+                        entryIntents.RestoreIfAbsent(member.Session,
                             DungeonEntryIntent.OrdinaryRechallenge(currentRun.Layout.DungeonId));
             }
         }
@@ -211,7 +249,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
 
         // Peers must see the decision before the leader's ACK can open another selection (XO-2:
         // delivered before it, each BestEffort).
-        using (ordering?.Begin("XO-2 peer decisions before the leader's ACK", OutboundDelivery.BestEffort))
+        using (ordering.Begin("XO-2 peer decisions before the leader's ACK", OutboundDelivery.BestEffort))
         {
             foreach (var member in returning.Where(value => value.Session != session))
             {
@@ -219,7 +257,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
                     continue;
                 try
                 {
-                    await register(
+                    await outbox.RegisterExplicitAsync(
                         member.Session.ConnectionId,
                         new GameExplicitMessageDelivery(
                             [new EplpCommandResponse(message.State, message.Option)], []),
@@ -234,7 +272,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
             }
             if (!sessions.IsInWorld(session))
                 return;
-            await register(
+            await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
                     [new EplpCommandResponse(message.State, message.Option)], []),
@@ -255,7 +293,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
         SelectedSessionIdentity Session,
         SelectCharacterResult Runtime,
         CharacterPositionState Position);
-    protected async ValueTask GiveUpAsync(
+    private async ValueTask GiveUpAsync(
         CommandExecutionContext execution, NetworkDispatchContext context,
         GiveUpGameRequest message,
         CancellationToken cancellationToken)
@@ -291,13 +329,13 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
         if (currentRun?.Layout.Altar is not null)
             await SettleAltarExitAsync(execution, session, currentRun.RunId, true, cancellationToken).ConfigureAwait(false);
         if (currentRun is not null)
-            cardPresentation?.Cancel(session.CharacterId, currentRun.RunId);
+            cardPresentation.Cancel(session.CharacterId, currentRun.RunId);
         ended = currentRun is not null
             && await runs.EndAsync(session.CharacterId, currentRun.RunId)
                 .ConfigureAwait(false);
         if (ended && currentRun is not null)
             registry.ParticipantDeparted(currentRun.RunId, session.CharacterId);
-        if (ended && townAreas is not null && PartyService is not null)
+        if (ended)
         {
             var partyResult = await MutatePartyAsync(PartyChange.Leave, session, null, cancellationToken).ConfigureAwait(false);
             partyExecution = new PartyCommandExecution(
@@ -319,7 +357,7 @@ internal partial class GameDungeonExitCommandHandler : PartyMutationProtocolComm
             session.CharacterId.Value,
             ended);
 
-        await register(
+        await outbox.RegisterExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
             cancellationToken).ConfigureAwait(false);

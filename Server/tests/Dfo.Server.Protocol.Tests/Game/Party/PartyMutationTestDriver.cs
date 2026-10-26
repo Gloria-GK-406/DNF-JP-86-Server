@@ -20,8 +20,8 @@ internal static class PartyMutationTestDriver
     internal static GamePartyMutationCommandHandler Handler(ISelectedSessionDomainService sessions, IPartyService parties,
         ITownAreaDomainService? town = null, IEventService? events = null, PartyProjectionStreamRegistry? streams = null,
         IGameMessageSender? sender = null, IDungeonRunDomainService? runs = null) =>
-        new(sessions, parties, town!, new LegacyCommandProjections(events!), streams ?? new(),
-            NullLogger<GamePartyMutationCommandHandler>.Instance, outbox: sender is null ? null : new Outbox(sender), runs: runs);
+        ProtocolAlgorithmFixture.Create<GamePartyMutationCommandHandler>(sessions, parties, town, events,
+            streams ?? new PartyProjectionStreamRegistry(), sender, runs);
 
     internal static ICommandBus Bus(GamePartyMutationCommandHandler handler, Action<ICommand>? observe = null) => new Driver(handler, observe);
 
@@ -80,16 +80,17 @@ internal sealed class PartyMutationProbe(IPartyService inner, Action<string, Cha
 
 internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = null) : IPartyService
 {
+    private readonly IPartyService directory = Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IPartyService>();
     internal List<CharacterId> Left { get; } = [];
     public PartyOperationResult LeaveParty(CharacterId character) { Left.Add(character); observed?.Invoke(character); return PartyOperationResult.Success(); }
-    public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => throw new NotSupportedException();
-    public void UpdateDirectoryPresence(CharacterId character, PartyDirectoryScope? scope) => throw new NotSupportedException();
+    public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => directory.Query(query);
+    public void UpdateDirectoryPresence(CharacterId character, PartyDirectoryScope? scope) => directory.UpdateDirectoryPresence(character, scope);
     public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
     public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();
     public PartyOperationResult AcceptInvite(PartyCharacterSnapshot invitee, PartyCharacterSnapshot inviter) => throw new NotSupportedException();
     public PartyOperationResult TransferLeadership(CharacterId leader, CharacterId target) => throw new NotSupportedException();
     public PartyOperationResult RemoveMember(CharacterId leader, CharacterId target) => throw new NotSupportedException();
     public PartyOperationResult CleanupCharacter(CharacterId character) => throw new NotSupportedException();
-    public PartySnapshot FindParty(PartyCharacterSnapshot character) => throw new NotSupportedException();
-    public PartyMembershipSnapshot? FindByKey(PartyKey key) => throw new NotSupportedException();
+    public PartySnapshot FindParty(PartyCharacterSnapshot character) => directory.FindParty(character);
+    public PartyMembershipSnapshot? FindByKey(PartyKey key) => directory.FindByKey(key);
 }

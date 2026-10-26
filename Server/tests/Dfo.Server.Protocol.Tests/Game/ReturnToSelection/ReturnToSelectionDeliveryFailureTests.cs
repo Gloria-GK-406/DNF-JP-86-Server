@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Networking;
@@ -65,16 +70,46 @@ public sealed class ReturnToSelectionDeliveryFailureTests
             new GameReturnToSelectionCommand(new NetworkDispatchContext(context), new ReturnToSelectionRequest(GameMessageMetadata.Empty)), CancellationToken.None);
     }
 
-    private sealed class ReturnWorkflow : GameReturnToSelectionCommandHandler
+    // Exercise the real preparation and completion against a selected session. Count the
+    // existing cleanup capability, rather than overriding the command's completion stage.
+    private sealed class ReturnWorkflow
     {
-        private readonly ReturnCommands stages;
+        private readonly GameReturnToSelectionCommandHandler command;
         public ReturnWorkflow(IOnlineUserQueryDomainService users, ReturnCommands stages, XoDelivery outbound)
-            : base(users,null!,null!,null!,null!,new TestOutbox(outbound),null!,new TestClosures(outbound),null!,new PartyProjectionStreamRegistry(),NullLogger<GameReturnToSelectionCommandHandler>.Instance)
-            { this.stages=stages; }
-        protected override ValueTask<PreparedReturnToSelection> PrepareAsync(CommandExecutionContext x, AccountId id, NetworkConnectionId c, long g, CancellationToken ct) =>
-            ValueTask.FromResult(new PreparedReturnToSelection(id,c,g,null,new AccountCharacterRoster(id,8,[]),false));
-        protected internal override ValueTask<SelectedSessionCleanupNotificationPlan?> CompleteAsync(CommandExecutionContext x, PreparedReturnToSelection p, CancellationToken ct)
-        { stages.Completed++; return ValueTask.FromResult<SelectedSessionCleanupNotificationPlan?>(null); }
+        {
+            var sessions = TestSessions.Directory(out var state);
+            sessions.InWorld(state, new AccountId(8501), new CharacterId(1), Connection.Value);
+            command = ProtocolAlgorithmFixture.Create<GameReturnToSelectionCommandHandler>(
+                users, sessions, new Roster(), new Cleanup(stages), new TestOutbox(outbound),
+                new TestClosures(outbound));
+        }
+        public ValueTask<bool> HandleAsync(CommandExecutionContext execution,
+            GameReturnToSelectionCommand input, CancellationToken ct) => command.HandleAsync(
+                execution with { Request = new CommandRequestContext.ProtocolNonEffect(input.Dispatch, input.Input,
+                    new ProtocolFrameMetadata.Game(input.Input.Metadata), () => true) }, input, ct);
+    }
+    private sealed class Cleanup(ReturnCommands stages) : ICommandSelectedSessionCleanup
+    {
+        public void RecordDisconnectedDeliveryFailure(CommandExecutionContext context, Exception cause) => throw new NotSupportedException();
+        public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(CommandExecutionContext context,
+            SelectedSessionIdentity session, bool includeOwner, CommandWorkUnit? action = null,
+            CancellationToken cancellationToken = default)
+        {
+            stages.Completed++;
+            return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
+        }
+    }
+    private sealed class Roster : ICharacterDomainService
+    {
+        public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(AccountId account, CancellationToken ct) =>
+            ValueTask.FromResult(new AccountCharacterRoster(account, 8, []));
+        public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(AccountId account, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId account, ushort slot, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(AccountId account, ushort index, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<CharacterCreationResult> CreateCharacterAsync(AccountId account, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
+        public ICharacter Get(CharacterId id) => throw new NotSupportedException();
+        public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(AccountId account, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
     }
 
     private sealed class TestClosures(XoDelivery outbound) : ICommandConnectionClosures

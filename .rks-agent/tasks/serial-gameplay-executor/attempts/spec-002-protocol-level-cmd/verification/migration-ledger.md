@@ -427,4 +427,11 @@ AltarActionCommand 仍由 AltarScheduler 及 DungeonPartyWipeService→AltarProj
 
 仅闭合最后 ReadReplayState／ReportDungeonQuestFacts 两旧命令、F-93两保护与F-132禁用边界、八项过渡机制。消息159 closed／14 retained，旧命令204 closed，来源73 closed／12 retained，保护5 closed，过渡8 closed；全部五类无pending。原ID、original、行序与非目标逐项保持。频道临时policy别名亦按TASK06原责任删除，六消费者使用同一正式领域singleton。真实事务、精确参与者、重放ordinal／footprint与各工作单元失败收口保留；F-132不冒修复，F-131保原已批准因果精度。
 
-最终证据与旧测试逐项去向见 `verification/task65-verification.md`，JSON仍是唯一逐行权威。此处只结束第一阶段迁移账，不声明第二阶段结构整理、性能／完整结果评审或B封存完成。
+最终证据与旧测试逐项去向见 [task65-verification.md](task65-verification.md)，JSON仍是唯一逐行权威。此处只结束第一阶段迁移账，不声明第二阶段结构整理、性能／完整结果评审或B封存完成。
+
+### TASK-66：结构拆分后的当前证据路径
+
+仅维护34行的当前证据／目标路径：六个已删共享阶段文件改指具体 CMD 的 Stages 或小型投影算法；
+五条原两塔 fine 的目标类别按实际 CMD owner 更新。原 ID、original、行序、classification、state 和
+completion_task 不变，历史删除路径不改。strict 与原八个坏例通过，五账仍全部无 pending。
+路径维护及边界说明见 [task66-documentation.md](task66-documentation.md)；此记录不提前声明结构测试、测量或封存完成。

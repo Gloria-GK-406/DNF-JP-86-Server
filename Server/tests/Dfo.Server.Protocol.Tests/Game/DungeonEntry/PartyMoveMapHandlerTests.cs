@@ -37,8 +37,8 @@ public sealed class PartyMoveMapHandlerTests
             await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
             Assert.Equal(1, visits.Moves);
-            Assert.Single(sender.Messages(Leader.ConnectionId));
-            Assert.Single(sender.Messages(Member.ConnectionId));
+            AssertRoomAndFatigue(sender, Leader.ConnectionId);
+            AssertRoomAndFatigue(sender, Member.ConnectionId);
             Assert.DoesNotContain(logger.Entries, x => x.Level >= LogLevel.Information);
             if (minimum == LogLevel.Information) Assert.Empty(logger.Entries);
             else
@@ -96,10 +96,8 @@ public sealed class PartyMoveMapHandlerTests
 
             await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-            var leaderRoom = Assert.IsType<StartMapNotification>(
-                Assert.Single(sender.Messages(Leader.ConnectionId)));
-            var memberRoom = Assert.IsType<StartMapNotification>(
-                Assert.Single(sender.Messages(Member.ConnectionId)));
+            var leaderRoom = AssertRoomAndFatigue(sender, Leader.ConnectionId);
+            var memberRoom = AssertRoomAndFatigue(sender, Member.ConnectionId);
             Assert.Equal(0, leaderRoom.Run.Participant!.Slot);
             Assert.Equal(1, memberRoom.Run.Participant!.Slot);
             Assert.Equal(1, visits.Moves);
@@ -130,7 +128,7 @@ public sealed class PartyMoveMapHandlerTests
 
             await handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-            Assert.Single(sender.Messages(Leader.ConnectionId));
+            AssertRoomAndFatigue(sender, Leader.ConnectionId);
             Assert.Empty(sender.Messages(Member.ConnectionId));
             Assert.Empty(sender.Messages(replacement.ConnectionId));
         });
@@ -254,7 +252,7 @@ public sealed class PartyMoveMapHandlerTests
             Assert.Equal(1, visits.Moves);
             Assert.Empty(sender.Messages(Leader.ConnectionId));
             Assert.Empty(sender.Messages(replacement.ConnectionId));
-            Assert.IsType<StartMapNotification>(Assert.Single(sender.Messages(Member.ConnectionId)));
+            AssertRoomAndFatigue(sender, Member.ConnectionId);
         });
     }
 
@@ -346,6 +344,7 @@ public sealed class PartyMoveMapHandlerTests
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
         public DungeonRunState? Find(CharacterId characterId) => states.GetValueOrDefault(characterId);
+        public DungeonRunState? Find(DungeonRunId id) => id == state.RunId ? state : null;
         public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw new NotSupportedException();
         public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => throw new NotSupportedException();
         public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => throw new NotSupportedException();
@@ -434,13 +433,25 @@ public sealed class PartyMoveMapHandlerTests
     /// delivery fail to encode where they are registered, with that very exception; a CMD or NOTI outside an explicit
     /// delivery fails there as the old double refused one.
     /// </summary>
+    private static StartMapNotification AssertRoomAndFatigue(Sender sender, NetworkConnectionId id)
+    {
+        var messages = sender.Messages(id);
+        Assert.Equal(2, messages.Count);
+        var room = Assert.IsType<StartMapNotification>(messages[0]);
+        var fatigue = Assert.IsType<Dfo.Server.Protocol.Game.Fatigue.FatigueNotification>(messages[1]);
+        Assert.Equal(new Dfo.Server.Abstractions.Characters.CharacterFatigueBalance(156, 17) { ConsumedToday = 23 }, fatigue.Balance);
+        Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.Fatigue.FatigueNotification>());
+        return room;
+    }
+
     private sealed class Sender : IGameMessageSender
     {
         private readonly RecordedOutbound outbound = new();
 
         public Sender()
         {
-            outbound.RefuseOutsideExplicit();
+            outbound.FailAny(message => outbound.ExplicitInFlight is null
+                && message is not Dfo.Server.Protocol.Game.Fatigue.FatigueNotification, () => new NotSupportedException());
             outbound.FailAny(message => Failure is not null && outbound.ExplicitInFlight is not null && outbound.IsDirect(message),
                 () => Failure!);
         }

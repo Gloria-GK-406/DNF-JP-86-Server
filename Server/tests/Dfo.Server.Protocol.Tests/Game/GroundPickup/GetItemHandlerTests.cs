@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -103,10 +108,10 @@ public sealed class GetItemHandlerTests
                 1,
                 [Leader.CharacterId, Helper.CharacterId]));
             var projection = new PickupProjectionDriver(
-                sessions, registry, sender, TimeProvider.System);
+                sessions, runs, run, registry, sender, TimeProvider.System);
             var postCommit = new PickupClearDriver(
                 evaluator,
-                new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender));
             var result = new GroundPickupResult(
                 GroundPickupStatus.PickedUp,
                 10149163,
@@ -161,10 +166,10 @@ public sealed class GetItemHandlerTests
                 runs,
                 new ClearedRoom());
             var projection = new PickupProjectionDriver(
-                sessions, registry, sender, TimeProvider.System);
+                sessions, runs, run, registry, sender, TimeProvider.System);
             var postCommit = new PickupClearDriver(
                 clear,
-                new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender));
             var result = new GroundPickupResult(
                 GroundPickupStatus.PickedUp,
                 10149163,
@@ -357,7 +362,7 @@ public sealed class GetItemHandlerTests
         var sender = new RecordingSender();
         return (
             new PickupProjectionDriver(
-                new Sessions(current), registry, sender, TimeProvider.System),
+                new Sessions(current), runs, run, registry, sender, TimeProvider.System),
             sender,
             run);
     }
@@ -403,7 +408,7 @@ public sealed class GetItemHandlerTests
         deliveries.Register(run.RunId, frozen);
         var sender = new RecordingSender();
         var projection = new PickupProjectionDriver(
-            new Sessions(current ?? frozen), deliveries, sender, TimeProvider.System);
+            new Sessions(current ?? frozen), runs, run, deliveries, sender, TimeProvider.System);
         return (
             new PickupHandlerDriver(new Sessions(current ?? frozen),runs,deliveries,results,sender),
             sender);
@@ -434,27 +439,59 @@ public sealed class GetItemHandlerTests
 
     // Calls the same owning whole body, with only its write outcome supplied by this projection fixture.
     // Production inbound scope/disposal and failure protection are asserted by Application's real-wire oracle.
-    private sealed class PickupHandlerDriver : GameGetItemCommandHandler
+    private sealed class PickupHandlerDriver
     {
-        private readonly IDungeonRunDomainService runSource;
-        private readonly DungeonRunDeliveryRegistry registry;
-        private readonly IReadOnlyList<GroundPickupResult> results;
+        private readonly GameGetItemCommandHandler handler;
         internal PickupHandlerDriver(ISelectedSessionDomainService current, IDungeonRunDomainService runSource,
-            DungeonRunDeliveryRegistry registry,IReadOnlyList<GroundPickupResult> results,RecordingSender sender)
-            : base(current,runSource,registry,null!,new RecordingClearEvaluator(null),null!,null!,null!,null!,null!,null!,null!,null!,null!,null!,null!,new DriverOutbox(sender),null!,TimeProvider.System,null!,NullLogger<GameGetItemCommandHandler>.Instance)
-        { this.runSource=runSource;this.registry=registry;this.results=results; }
-        private int index; private long revision;
-        protected override IReadOnlyList<SelectedSessionIdentity> FindRecipients(SelectedSessionIdentity requester,DungeonRunId id)=>registry.Find(id);
-        protected override ValueTask<GroundPickupResult> SettleAsync(CommandExecutionContext execution,GroundPickupInput input,CancellationToken ct)
+            DungeonRunDeliveryRegistry registry, IReadOnlyList<GroundPickupResult> results, RecordingSender sender)
         {
-            var result=results[index++];var run=runSource.Find(input.CharacterId)!;
-            if(result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked or GroundPickupStatus.EpicPieceCollected)
-                result=result with { Change=new DungeonPickupChange(run.RunId,++revision,input.CharacterId,new GroundDropId(run.CurrentCell,input.GroundDropNumber),
-                    result.Status is GroundPickupStatus.Banked?DungeonPickupKind.Gold:result.Status is GroundPickupStatus.EpicPieceCollected?DungeonPickupKind.EpicPiece:DungeonPickupKind.Item,registry.Find(run.RunId).Select(x=>x.CharacterId).ToArray()) };
-            return ValueTask.FromResult(result);
+            var session = current.FindByConnection(Leader.ConnectionId)
+                ?? throw new InvalidOperationException("The pickup fixture needs its original leader.");
+            var run = runSource.Find(session.CharacterId)!;
+            handler = ProtocolAlgorithmFixture.Create<GameGetItemCommandHandler>(current, runSource, registry,
+                new Dfo.Server.Protocol.Tests.Support.DungeonProjectionParty(run), new RecordingClearEvaluator(null),
+                new PickupResultUnit(runSource, registry, results), new DriverOutbox(sender));
         }
-        internal async ValueTask HandleAsync(NetworkDispatchContext context,GetItemRequest input,CancellationToken token)
-        { _=await base.HandleAsync(null!,new GameGetItemCommand(context,input),token); }
+        internal async ValueTask HandleAsync(NetworkDispatchContext context, GetItemRequest input, CancellationToken token)
+        {
+            var command = new GameGetItemCommand(context, input);
+            var execution = new CommandExecutionContext(Guid.NewGuid(), command.GetType(), handler.GetType())
+            {
+                Request = new CommandRequestContext.ProtocolNonEffect(context, input,
+                    new ProtocolFrameMetadata.Game(input.Metadata), () => true),
+            };
+            _ = await handler.HandleAsync(execution, command, token);
+        }
+    }
+    // This projection fixture already supplied complete settlement outcomes. It now observes
+    // that same boundary through the exact existing unit; it does not prove durable settlement.
+    private sealed class PickupResultUnit(IDungeonRunDomainService runs, DungeonRunDeliveryRegistry registry,
+        IReadOnlyList<GroundPickupResult> results) : ICommandWorkUnits
+    {
+        private int index;
+        private long revision;
+        public ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
+        {
+            if (declaration.Name != "pick-up-ground-drop" || typeof(T) != typeof(GroundPickupResult)
+                || context.Request is not CommandRequestContext.ProtocolNonEffect { Message: GetItemRequest input } request)
+                throw new NotSupportedException("Only the pickup projection fixture's settlement is supplied.");
+            var actor = registry.Find(runs.Find(Leader.CharacterId)!.RunId)
+                .Single(value => value.ConnectionId == request.Dispatch.Connection.ConnectionId);
+            var run = runs.Find(actor.CharacterId)!;
+            var result = results[index++];
+            if (result.Status is GroundPickupStatus.PickedUp or GroundPickupStatus.Banked or GroundPickupStatus.EpicPieceCollected)
+                result = result with { Change = new DungeonPickupChange(run.RunId, ++revision, actor.CharacterId,
+                    new GroundDropId(run.CurrentCell, input.GroundDropNumber),
+                    result.Status is GroundPickupStatus.Banked ? DungeonPickupKind.Gold
+                        : result.Status is GroundPickupStatus.EpicPieceCollected ? DungeonPickupKind.EpicPiece : DungeonPickupKind.Item,
+                    registry.Find(run.RunId).Select(value => value.CharacterId).ToArray()) };
+            return ValueTask.FromResult((T)(object)result);
+        }
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
     }
     private sealed class DriverOutbox(IGameMessageSender sender):IGameCommandOutbox
     {

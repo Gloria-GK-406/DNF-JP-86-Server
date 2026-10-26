@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
@@ -135,9 +139,9 @@ public sealed class CharacterDeathHandlerTests
     }
     // Same whole body in an existing gameplay fixture; this does not prove inbound scope lifecycle.
     private sealed class DeathDriver(Sessions selected,Runs runs,DungeonRunDeliveryRegistry registry,Sender sender)
-        : GameCharacterDeathCommandHandler(selected,runs,registry,null!,null!,null!,null!,null!,new DeathOutbox(sender),null!,TimeProvider.System,NullLogger<GameCharacterDeathCommandHandler>.Instance)
-    {
-        public ValueTask<bool> HandleAsync(NetworkDispatchContext dispatch,CharacterDeathRequest input,CancellationToken ct)=>base.HandleAsync(null!,new(dispatch,input),ct);
+        {
+        private readonly GameCharacterDeathCommandHandler handler = new(selected,runs,registry,ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(selected),ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),new DeathOutbox(sender),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),TimeProvider.System,NullLogger<GameCharacterDeathCommandHandler>.Instance);
+        public ValueTask<bool> HandleAsync(NetworkDispatchContext dispatch,CharacterDeathRequest input,CancellationToken ct)=>handler.HandleAsync(null!,new(dispatch,input),ct);
     }
     private sealed class DeathOutbox(IGameMessageSender sender):IGameCommandOutbox
     {

@@ -33,7 +33,7 @@ public sealed class GameMoveItemSpaceCommandHandler(
     ICharacterInventoryEntryDomainService characterInventories,
     IAccountInventoryEntryDomainService accountInventories,
     TimeProvider time,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null) : ICommandHandler<GameMoveItemSpaceCommand, bool>
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing) : ICommandHandler<GameMoveItemSpaceCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(
         CommandExecutionContext execution,

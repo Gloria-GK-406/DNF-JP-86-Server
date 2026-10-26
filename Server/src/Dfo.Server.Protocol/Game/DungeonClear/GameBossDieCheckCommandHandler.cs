@@ -8,14 +8,14 @@ using Microsoft.Extensions.Logging;
 
 using Dfo.Server.Application.Commands;
 namespace Dfo.Server.Protocol.Game.DungeonClear;
-internal class GameBossDieCheckCommandHandler(
+internal sealed class GameBossDieCheckCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     IDungeonRunDomainService runs,
     ILogger<GameBossDieCheckCommandHandler> logger) : ICommandHandler<GameBossDieCheckCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameBossDieCheckCommand command, CancellationToken ct)
     { await RunAsync(command.Dispatch, command.Input, ct).ConfigureAwait(false); return true; }
-    protected ValueTask RunAsync(
+    internal ValueTask RunAsync(
         NetworkDispatchContext context,
         BossDieCheckRequest message,
         CancellationToken cancellationToken)

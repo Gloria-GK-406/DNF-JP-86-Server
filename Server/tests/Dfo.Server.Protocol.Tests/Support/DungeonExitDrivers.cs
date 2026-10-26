@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -29,27 +30,37 @@ internal class DungeonExitDriver(ISelectedSessionDomainService selected, ISelect
     IPartyService? parties = null, PartyNotificationDelivery? partyNotifications = null, IDungeonCardPresentationControl? cards = null,
     IDungeonEntryIntentDomainService? intents = null, IOutboundOrdering? ordering = null,
     BossTowerPartyDriver? bossParties = null, IllusionTowerPartyDriver? towerParties = null,
-    Func<SelectedSessionIdentity, DungeonRunId, bool, CancellationToken, ValueTask>? altarExit = null,
     IBossTowerDomainService? boss = null, Func<BossTowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
-    : GameDungeonExitCommandHandler(selected, views, positions, runs, registry, parties!, areas!, null!, null!,
-        null!, null!, null!, null!, boss!, null!, null!, null!, new CardTestOutbox(sender), null!, cards!, intents!,
-        null!, null!, null!, TimeProvider.System, new TestLogger<GameDungeonExitCommandHandler>(logger), ordering)
 {
-    protected override ValueTask<int> ReturnTownAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken ct) => town.EnterAsync(entries, ct);
-    protected override ValueTask ProjectPartyAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients, CancellationToken ct) =>
-        partyNotifications?.DeliverAsync(plan, recipients, ct) ?? ValueTask.CompletedTask;
-    protected override ValueTask SettleAltarExitAsync(CommandExecutionContext execution, SelectedSessionIdentity session, DungeonRunId run, bool onlyCaller, CancellationToken ct) =>
-        altarExit?.Invoke(session, run, onlyCaller, ct) ?? ValueTask.CompletedTask;
-    protected override async ValueTask<bool> TryGiveUpTowersAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct)
+    private GameDungeonExitCommandHandler? handler;
+    private GameDungeonExitCommandHandler Handler => handler ??= Build();
+    private GameDungeonExitCommandHandler Build()
     {
-        if (bossParties is not null && (await bossParties.TryLeaveAsync(session, true, new GiveUpGameResponse(), ct)).Handled) return true;
-        return towerParties is not null && (await towerParties.TryLeaveAsync(session, true, new GiveUpGameResponse(), ct)).Handled;
+        var supplied = new List<object>();
+        if (bossParties is not null) supplied.AddRange(bossParties.Dependencies);
+        if (towerParties is not null) supplied.AddRange(towerParties.Dependencies);
+        if (town is not null) supplied.AddRange(ProtocolAlgorithmFixture.TownDependencies(town));
+        supplied.AddRange(new object?[] { selected, views, positions, runs, registry, parties, areas, cards, intents, ordering,
+            sender, logger is null ? null : new TestLogger<GameDungeonExitCommandHandler>(logger) }.OfType<object>());
+        if (partyNotifications is not null)
+            supplied.Add(new LegacyCommandProjections(ProtocolAlgorithmFixture.Field<IEventService>(partyNotifications)));
+        if (boss is not null)
+            supplied.Add(choose is null ? boss : ProtocolAlgorithmFixture.Decorate(boss, (method, args) =>
+                method.Name == nameof(IBossTowerDomainService.SelectResultAsync)
+                    ? (true, choose((BossTowerActionContext)args[0]!, (byte)args[1]!, (CancellationToken)args[2]!))
+                    : (false, null)));
+        return ProtocolAlgorithmFixture.Create<GameDungeonExitCommandHandler>(supplied.ToArray());
     }
-    protected override ValueTask<BossTowerActionResult> SelectBossResultAsync(CommandExecutionContext execution, BossTowerSnapshot expected, SelectedSessionIdentity session, byte option, CancellationToken ct) =>
-        choose!(new(session, expected.RunId, expected.Room.Version), option, ct);
-    public ValueTask HandleAsync(NetworkDispatchContext dispatch, EplpCommandRequest message, CancellationToken ct) => EplpAsync(Context(), dispatch, message, ct);
-    public ValueTask HandleAsync(NetworkDispatchContext dispatch, GiveUpGameRequest message, CancellationToken ct) => GiveUpAsync(Context(), dispatch, message, ct);
-    private static CommandExecutionContext Context() => new(Guid.NewGuid(), typeof(GameEplpCommand), typeof(GameDungeonExitCommandHandler));
+    public async ValueTask HandleAsync(NetworkDispatchContext dispatch, EplpCommandRequest message, CancellationToken ct)
+    {
+        var command = new GameEplpCommand(dispatch, message);
+        _ = await Handler.HandleAsync(ComponentContext.For(command, Handler.GetType()), command, ct);
+    }
+    public async ValueTask HandleAsync(NetworkDispatchContext dispatch, GiveUpGameRequest message, CancellationToken ct)
+    {
+        var command = new GameGiveUpGameCommand(dispatch, message);
+        _ = await Handler.HandleAsync(ComponentContext.For(command, Handler.GetType()), command, ct);
+    }
 }
 internal sealed class EplpDriver(ISelectedSessionDomainService selectedSessions, ISelectedCharacterCurrentViewDomainService currentViews,
     IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunDomainService runs, DungeonRunDeliveryRegistry deliveries,
@@ -66,10 +77,9 @@ internal sealed class GiveUpDriver(ISelectedSessionDomainService selectedSession
     ITownAreaDomainService? townAreas = null, IPartyService? parties = null, PartyNotificationDelivery? partyNotifications = null,
     IDungeonCardPresentationControl? cardPresentation = null,
     IllusionTowerPartyDriver? towerParties = null,
-    Func<SelectedSessionIdentity, DungeonRunId, bool, CancellationToken, ValueTask>? altarExit = null,
     BossTowerPartyDriver? bossParties = null)
     : DungeonExitDriver(selectedSessions, currentViews, onlineCharacters, runs, deliveries, sender, townAreaProjection, logger,
-        townAreas, parties, partyNotifications, cardPresentation, bossParties: bossParties, towerParties: towerParties, altarExit: altarExit);
+        townAreas, parties, partyNotifications, cardPresentation, bossParties: bossParties, towerParties: towerParties);
 
 internal sealed record LeaveDungeonAlgorithmCommand(SelectedSessionIdentity Session, IReadOnlyList<SelectedSessionIdentity> Sessions, DungeonRunId RunId)
     : ICommand<LeaveDungeonAlgorithmResult>;

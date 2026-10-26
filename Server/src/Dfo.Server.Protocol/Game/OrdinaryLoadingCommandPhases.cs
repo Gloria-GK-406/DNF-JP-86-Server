@@ -23,14 +23,12 @@ using Dfo.Server.Protocol.Game.IllusionTowerMap;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game;
-internal partial class GameMapLoadingCommandHandler
+internal sealed partial class GameMapLoadingCommandHandler
 {
-    protected virtual async ValueTask<bool> CompleteOrdinaryLoadingAsync(
+    internal async ValueTask<bool> CompleteOrdinaryLoadingAsync(
         NetworkConnectionId connectionId,
-        Func<CancellationToken, ValueTask> releaseClient,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(releaseClient);
         var session = sessions.FindByConnection(connectionId);
         if (session is null)
             return false;
@@ -42,7 +40,7 @@ internal partial class GameMapLoadingCommandHandler
         {
             if (!IsCurrentSession(session, connectionId))
                 return false;
-            await releaseClient(cancellationToken).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(connectionId, new([new LoadingCompleteNotification()], []), cancellationToken).ConfigureAwait(false);
             return true;
         }
 
@@ -73,7 +71,7 @@ internal partial class GameMapLoadingCommandHandler
             return false;
 
         // The direct response belongs to this frozen generation too; it follows the validation above.
-        await releaseClient(cancellationToken).ConfigureAwait(false);
+        await outbox.RegisterExplicitAsync(connectionId, new([new LoadingCompleteNotification()], []), cancellationToken).ConfigureAwait(false);
         await LoadingMechanismsAsync(session, current!, cancellationToken).ConfigureAwait(false);
         if (current!.Layout.Mirror is not null)
             _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
@@ -91,7 +89,7 @@ internal partial class GameMapLoadingCommandHandler
         return true;
     }
 
-    protected virtual async ValueTask MoveOrdinaryAsync(CommandExecutionContext execution,
+    private async ValueTask MoveOrdinaryAsync(CommandExecutionContext execution,
         NetworkDispatchContext context,
         MoveMapRequest message,
         CancellationToken cancellationToken)
@@ -109,15 +107,14 @@ internal partial class GameMapLoadingCommandHandler
             return;
         }
 
-        if (bossTowers is not null && await AdvanceBossAsync(execution, context.Connection.ConnectionId,
+        if (await AdvanceBossAsync(execution, context.Connection.ConnectionId,
             message.Metadata, message.NextX, message.NextY, cancellationToken).ConfigureAwait(false))
         {
             logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=BossTower", context.Connection.ConnectionId, message.Metadata.Sequence);
             return;
         }
 
-        if (illusionTowers is not null
-            && await AdvanceIllusionAsync(
+        if (await AdvanceIllusionAsync(
                 execution, context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
         {
             logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=IllusionTower", context.Connection.ConnectionId, message.Metadata.Sequence);
@@ -251,7 +248,7 @@ internal partial class GameMapLoadingCommandHandler
 
         try
         {
-            await register(
+            await outbox.RegisterExplicitAsync(
                 required.Session.ConnectionId,
                 new GameExplicitMessageDelivery(
                     FramesFor(required.Run),

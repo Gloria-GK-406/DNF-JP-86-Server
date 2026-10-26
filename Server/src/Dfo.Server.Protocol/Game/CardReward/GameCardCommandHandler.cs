@@ -14,7 +14,7 @@ using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CardReward;
-internal partial class GameCardCommandHandler(
+internal sealed partial class GameCardCommandHandler(
     ISelectedSessionDomainService selectedSessions, ISelectedCharacterCurrentViewDomainService currentViews,
     IDungeonRunDomainService runs, ICardRewardDomainService cards, ICharacterDomainService characters,
     IItemDeliveryDomainService itemDelivery, ICardFlipCostDomainService flipCosts,
@@ -54,17 +54,17 @@ internal partial class GameCardCommandHandler(
         catch (OperationCanceledException) when (command.PendingCancellation.IsCancellationRequested) { }
         return true;
     }
-    protected ISelectedSessionDomainService Sessions => selectedSessions;
-    protected IDungeonRunDomainService Runs => runs;
-    protected virtual bool Admitted(SelectedSessionIdentity session, DungeonRunId runId) =>
+    private ISelectedSessionDomainService Sessions => selectedSessions;
+    private IDungeonRunDomainService Runs => runs;
+    private bool Admitted(SelectedSessionIdentity session, DungeonRunId runId) =>
         DungeonPartyRecipients.FindCurrent(parties, selectedSessions, runs, deliveries, session, runId).Contains(session);
-    protected bool IsCurrent(SelectedSessionIdentity session, DungeonRunId runId, out DungeonRunState run)
+    private bool IsCurrent(SelectedSessionIdentity session, DungeonRunId runId, out DungeonRunState run)
     {
         var current = runs.Find(session.CharacterId);
         if (selectedSessions.IsInWorld(session) && current is not null && current.RunId == runId) { run = current; return true; }
         run = null!; return false;
     }
-    protected async ValueTask OpenLayoutAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken cancellationToken)
+    internal async ValueTask OpenLayoutAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken cancellationToken)
     {
         if (!this.IsCurrent(session, runId, out var run)
             || run.ClearRewardCards is null
@@ -108,7 +108,7 @@ internal partial class GameCardCommandHandler(
         runs.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
         cardPresentation.ScheduleAutoFlip(session, runId);
     }
-    protected async ValueTask SelectAsync(CommandExecutionContext execution, NetworkDispatchContext context, SelectCardRequest message, CancellationToken cancellationToken)
+    private async ValueTask SelectAsync(CommandExecutionContext execution, NetworkDispatchContext context, SelectCardRequest message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
 
@@ -165,22 +165,21 @@ internal partial class GameCardCommandHandler(
             result.GoldPaid);
 
         if (message.Kind is ClearRewardCardKind.Free)
-            cardPresentation?.Cancel(session.CharacterId, run.RunId);
+            cardPresentation.Cancel(session.CharacterId, run.RunId);
 
         await ProjectAsync(session, result, published.World.PreparedAt, cancellationToken).ConfigureAwait(false);
     }
-    protected virtual async ValueTask ProjectAsync(SelectedSessionIdentity session, SelectCardResult result, DateTimeOffset at, CancellationToken ct)
+    private async ValueTask ProjectAsync(SelectedSessionIdentity session, SelectCardResult result, DateTimeOffset at, CancellationToken ct)
     {
         var delivery = DungeonCardSelectionProjection.CreateDelivery(selectedSessions, runs, DungeonPartyRecipients.FindCurrent(parties, selectedSessions, runs, deliveries, session, result.Change!.RunId), session, result, at, out _);
         if (delivery is not null) await outbox.RegisterExplicitAsync(session.ConnectionId, delivery, ct).ConfigureAwait(false);
     }
-    protected async ValueTask ScrollAsync(NetworkDispatchContext context, ScoreScrollStateRequest message, CancellationToken cancellationToken)
+    private async ValueTask ScrollAsync(NetworkDispatchContext context, ScoreScrollStateRequest message, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
 
         if (session is not null
-            && runs?.Find(session.CharacterId) is { Layout.Despair: null } run
-            && cardPresentation is not null)
+            && runs.Find(session.CharacterId) is { Layout.Despair: null } run)
         {
             logger.LogInformation(
                 "Score scroll state {ConnectionId} character={CharacterId}: "
@@ -192,25 +191,18 @@ internal partial class GameCardCommandHandler(
             return;
         }
 
-        logger.LogInformation(
-            "Score scroll state {ConnectionId} character={CharacterId}: acknowledged, "
-                + "card layout sent here={LayoutSentHere}",
-            context.Connection.ConnectionId,
-            session?.CharacterId.Value,
-            cardPresentation is null);
-
-        IReadOnlyList<IGameServerMessage> frames = cardPresentation is null
-            ? [new ScoreScrollStateResponse(), new CardSelectRightStateResponse()]
-            : [new ScoreScrollStateResponse()];
+        logger.LogInformation("Score scroll state {ConnectionId} character={CharacterId}: acknowledged",
+            context.Connection.ConnectionId, session?.CharacterId.Value);
+        IReadOnlyList<IGameServerMessage> frames = [new ScoreScrollStateResponse()];
         await outbox.RegisterExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
     }
-    protected async ValueTask RightAsync(NetworkDispatchContext context, CardSelectRightStateRequest message, CancellationToken ct)
+    private async ValueTask RightAsync(NetworkDispatchContext context, CardSelectRightStateRequest message, CancellationToken ct)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is not null && runs?.Find(session.CharacterId) is { } run && cardPresentation is not null)
+        if (session is not null && runs.Find(session.CharacterId) is { } run)
         { await OpenLayoutAsync(session, run.RunId, ct).ConfigureAwait(false); return; }
         logger.LogInformation("Card layout {ConnectionId} character={CharacterId}: layout sent", context.Connection.ConnectionId, session?.CharacterId.Value);
         await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new CardSelectRightStateResponse(), ct).ConfigureAwait(false);

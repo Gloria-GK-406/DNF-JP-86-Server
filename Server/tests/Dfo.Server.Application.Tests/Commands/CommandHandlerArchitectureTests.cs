@@ -185,6 +185,75 @@ public sealed class CommandHandlerArchitectureTests
     public void EveryExemptionCarriesItsReason() =>
         Assert.All(Exempt, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Value)));
 
+    [Fact]
+    public void ActualProtocolRegistrationsAreCoveredByTheStructuralSweep()
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        new Dfo.Server.Protocol.ProtocolModule().ConfigureServices(services,
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        var registrations = services.Where(descriptor => descriptor.ServiceType == typeof(CommandHandlerRegistration))
+            .Select(descriptor => Assert.IsType<CommandHandlerRegistration>(descriptor.ImplementationInstance)).ToArray();
+        Assert.NotEmpty(registrations);
+        Assert.Contains(registrations, entry => entry.Route == CommandRouteKind.Internal);
+        Assert.Contains(registrations, entry => entry.Route == CommandRouteKind.Protocol);
+        var swept = ProductionCommandHandlers().ToHashSet();
+        Assert.All(registrations, entry => Assert.Contains(entry.HandlerType, swept));
+        Assert.All(registrations.Select(entry => entry.HandlerType).Distinct(), handler =>
+            Assert.Empty(IncompleteCollaborations(handler)));
+    }
+
+    [Fact]
+    public void ProductionCommandsOwnTheirWorkflowAndRequireCompleteCollaborations() =>
+        Assert.All(ProductionCommandHandlers(), handler => Assert.Empty(IncompleteCollaborations(handler)));
+
+    [Theory]
+    [InlineData(typeof(InheritedWorkflow), "A command inherits a shared class.")]
+    [InlineData(typeof(NullableCollaboration), "characters is an incomplete nullable collaboration.")]
+    [InlineData(typeof(MissingCollaboration), "characters defaults to a missing collaboration.")]
+    [InlineData(typeof(DeferredCollaboration), "characters supplies executable capability.")]
+    public void StructuralRuleRejectsRealIncompleteShapes(Type handler, string reason) =>
+        Assert.Contains(reason, IncompleteCollaborations(handler));
+
+    [Fact]
+    public void CompleteDependenciesAndNullableBusinessValuesAreDifferentShapes()
+    {
+        Assert.Empty(IncompleteCollaborations(typeof(CompleteCollaboration)));
+        Assert.True(IsPermitted(typeof(ICommandWorkUnits)));
+        var input = new OptionalBusinessInput(null);
+        Assert.Null(input.Character);
+        Func<int, int> pureTransform = value => value + 1;
+        Assert.Equal(2, pureTransform(1));
+    }
+
+    private static string[] IncompleteCollaborations(Type handler)
+    {
+        var violations = new List<string>();
+        if (handler.BaseType != typeof(object)) violations.Add("A command inherits a shared class.");
+        var nullability = new NullabilityInfoContext();
+        foreach (var parameter in handler.GetConstructors().SelectMany(constructor => constructor.GetParameters()))
+        {
+            if (typeof(Delegate).IsAssignableFrom(parameter.ParameterType))
+                violations.Add($"{parameter.Name} supplies executable capability.");
+            if (!parameter.ParameterType.IsValueType && nullability.Create(parameter).ReadState != NullabilityState.NotNull)
+                violations.Add($"{parameter.Name} is an incomplete nullable collaboration.");
+            if (parameter.HasDefaultValue && parameter.DefaultValue is null)
+                violations.Add($"{parameter.Name} defaults to a missing collaboration.");
+        }
+        return violations.ToArray();
+    }
+
+    private class SharedWorkflow;
+    private sealed class InheritedWorkflow : SharedWorkflow;
+    private sealed class NullableCollaboration(ICharacterDomainService? characters)
+    { public ICharacterDomainService? Characters { get; } = characters; }
+    private sealed class MissingCollaboration(ICharacterDomainService characters = null!)
+    { public ICharacterDomainService Characters { get; } = characters; }
+    private sealed class DeferredCollaboration(Func<ICharacterDomainService> characters)
+    { public Func<ICharacterDomainService> Characters { get; } = characters; }
+    private sealed class CompleteCollaboration(ICharacterDomainService characters, ICommandWorkUnits units)
+    { public ICharacterDomainService Characters { get; } = characters; public ICommandWorkUnits Units { get; } = units; }
+    private sealed record OptionalBusinessInput(Dfo.Server.Data.Characters.CharacterId? Character);
+
     private static IEnumerable<Type> ProductionCommandHandlers() =>
         new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.Commands.HttpRouteCommand).Assembly }
             .Distinct().SelectMany(assembly => assembly.GetTypes())

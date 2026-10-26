@@ -8,13 +8,13 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.CardReward;
-internal partial class GameCardCommandHandler
+internal sealed partial class GameCardCommandHandler
 {
-    protected virtual ValueTask<SelectCardResult> AwardAsync(CommandExecutionContext execution, AccountId accountId, CharacterId characterId,
+    private ValueTask<SelectCardResult> AwardAsync(CommandExecutionContext execution, AccountId accountId, CharacterId characterId,
         ClearRewardCardKind kind, int index, DungeonRunId expectedRunId, CancellationToken token) =>
         units.WriteAsync(execution, new("select-card", []),
             (_, ct) => AwardBodyAsync(accountId, characterId, kind, index, expectedRunId, ct), token);
-    protected async ValueTask<SelectCardResult> AwardBodyAsync(AccountId accountId, CharacterId characterId,
+    internal async ValueTask<SelectCardResult> AwardBodyAsync(AccountId accountId, CharacterId characterId,
         ClearRewardCardKind kind, int index, DungeonRunId expectedRunId, CancellationToken cancellationToken)
     {
 

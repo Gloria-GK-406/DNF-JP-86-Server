@@ -1,48 +1,76 @@
-using Dfo.Server.Abstractions.Networking;
-using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
-// Shared protocol CMD stages. Legacy consumers adapt to these same stages until their migration.
-// The only retained state is the original generation stream owner.
-internal abstract class PartyProtocolCommandProjection(
-    ICommandProjections notifications,
-    Func<long, IPartyDeliveryStream> streamOf,
-    IPartyService? parties,
-    IOutboundOrdering? ordering)
+internal static class PartyNotificationStages
 {
-    protected IPartyService? PartyService { get; } = parties;
-
-    protected async ValueTask DeliverPartyNotificationsAsync(
+    internal static async ValueTask DeliverPartyNotificationsAsync(ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IPartyService parties, IOutboundOrdering ordering, 
         PartyNotificationPlan plan,
         PartyNotificationRecipientPlan recipients,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(recipients);
-        ValidatePlanShape(plan);
+        PartyNotificationStages.ValidatePlanShape(plan);
         var resolver = new PartyNotificationRecipientResolver(recipients);
         if (plan.Invitation is { } invitation)
         {
             var target = resolver.Characters([invitation.TargetCharacterId]);
             await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
+                projections,
                 target,
                 new PartyInviteIssued(invitation),
                 cancellationToken).ConfigureAwait(false);
         }
 
-        if (!TryGetPartyVersion(plan, out var generation, out var revision))
+        if (!PartyNotificationStages.TryGetPartyVersion(plan, out var generation, out var revision))
             return;
 
         var clearAudience = resolver.Characters(plan.ClearAudience);
-        var stream = streamOf(generation);
+        var stream = projectionState.StreamOf(generation);
         // A party command and its projection run in one CMD, and CMDs deliver in the order they
         // complete (RQ-032), so every stage of this projection is registered before any later
         // revision's. The stream's revision watermark still keeps an older snapshot from being
@@ -53,7 +81,7 @@ internal abstract class PartyProtocolCommandProjection(
             var staleClearAudience = clearAudience
                 .Where(session => !stream.CurrentMembers.Contains(session))
                 .ToImmutableArray();
-            var delivered = await DeliverStaleSideEffectsAsync(
+            var delivered = await PartyNotificationStages.DeliverStaleSideEffectsAsync(projections, 
                 plan,
                 staleClearAudience,
                 stream.CurrentMembers,
@@ -71,9 +99,9 @@ internal abstract class PartyProtocolCommandProjection(
         // Required, so a recipient whose delivery fails stops the later stages, as a stage with
         // a failure stops the advance here (TASK-23 ruling 5).
         bool stateDelivered;
-        using (ordering?.Begin("XO-6 party state stages", OutboundDelivery.Required))
+        using (ordering.Begin("XO-6 party state stages", OutboundDelivery.Required))
         {
-            stateDelivered = await DeliverPartyStateAsync(
+            stateDelivered = await PartyNotificationStages.DeliverPartyStateAsync(projections, parties, 
                 plan, promoteSettingsUpdate, resolver, cancellationToken).ConfigureAwait(false);
         }
         if (!stateDelivered)
@@ -100,30 +128,24 @@ internal abstract class PartyProtocolCommandProjection(
         }
     }
 
-    /// <summary>
-    /// Answers one member's explicit realtime query without broadcasting another refresh to the
-    /// whole party. The shared generation stream keeps a delayed old query below a newer
-    /// roster revision, while equal revisions remain answerable because HP can change independently
-    /// of party membership. A requester-only answer never advances the full-mutation watermark.
-    /// </summary>
-    protected async ValueTask DeliverPartyRealtimeAsync(
+    internal static async ValueTask DeliverPartyRealtimeAsync(ICommandProjections projections, IPartyProjectionStateDomainService projectionState, 
         SelectedSessionIdentity requester,
         PartySnapshot snapshot,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(snapshot);
-        var stream = streamOf(snapshot.Generation);
+        var stream = projectionState.StreamOf(snapshot.Generation);
         if (snapshot.Revision < stream.LatestRevision)
             return;
         await PartyExactNotificationDelivery.PublishWithRetryAsync(
-            notifications,
+            projections,
             [requester],
             new PartyRealtimeChanged(snapshot),
             cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask<bool> DeliverPartyStateAsync(
+    internal static async ValueTask<bool> DeliverPartyStateAsync(ICommandProjections projections, IPartyService parties, 
         PartyNotificationPlan plan,
         bool promoteSettingsUpdate,
         PartyNotificationRecipientResolver resolver,
@@ -136,12 +158,12 @@ internal abstract class PartyProtocolCommandProjection(
             var settingsAudience = resolver.Characters(
                 settingsSnapshot.Members.Select(value => value.CharacterId));
             var settingsDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
+                projections,
                 settingsAudience,
                 new PartySettingsChanged(settingsSnapshot),
                 cancellationToken).ConfigureAwait(false);
             return !settingsDelivery.HasFailures
-                && await DeliverObserverStateAsync(plan, resolver, cancellationToken)
+                && await PartyNotificationStages.DeliverObserverStateAsync(projections, parties, plan, resolver, cancellationToken)
                     .ConfigureAwait(false);
         }
 
@@ -150,14 +172,14 @@ internal abstract class PartyProtocolCommandProjection(
             var transferAudience = resolver.Characters(
                 transfer.Members.Select(value => value.CharacterId));
             var transferDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications, transferAudience,
+                projections, transferAudience,
                 new PartyLeadershipChanged(transfer), cancellationToken).ConfigureAwait(false);
             return !transferDelivery.HasFailures
-                && await DeliverObserverStateAsync(plan, resolver, cancellationToken)
+                && await PartyNotificationStages.DeliverObserverStateAsync(projections, parties, plan, resolver, cancellationToken)
                     .ConfigureAwait(false);
         }
 
-        if (!await DeliverClearAsync(
+        if (!await PartyNotificationStages.DeliverClearAsync(projections, 
             resolver.Characters(plan.ClearAudience),
             plan.ClearPartyId,
             cancellationToken).ConfigureAwait(false))
@@ -166,13 +188,13 @@ internal abstract class PartyProtocolCommandProjection(
         }
 
         if (plan.Snapshot is not { } snapshot)
-            return await DeliverObserverStateAsync(plan, resolver, cancellationToken)
+            return await PartyNotificationStages.DeliverObserverStateAsync(projections, parties, plan, resolver, cancellationToken)
                 .ConfigureAwait(false);
 
         var memberAudience = resolver.Characters(
             snapshot.Members.Select(value => value.CharacterId));
         var realtimeDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-            notifications,
+            projections,
             memberAudience,
             new PartyRealtimeChanged(snapshot),
             cancellationToken).ConfigureAwait(false);
@@ -180,19 +202,19 @@ internal abstract class PartyProtocolCommandProjection(
             return false;
         if (plan.Acceptance is { } acceptance)
         {
-            if (!await DeliverAcceptanceAsync(acceptance, resolver, cancellationToken)
+            if (!await PartyNotificationStages.DeliverAcceptanceAsync(projections, acceptance, resolver, cancellationToken)
                     .ConfigureAwait(false))
                 return false;
         }
         var endpointsDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-            notifications,
+            projections,
             memberAudience,
             new PartyEndpointsChanged(snapshot),
             cancellationToken).ConfigureAwait(false);
         if (endpointsDelivery.HasFailures)
             return false;
         var rosterDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-            notifications,
+            projections,
             memberAudience,
             PartyRosterChanged.Refresh(
                 snapshot,
@@ -206,7 +228,7 @@ internal abstract class PartyProtocolCommandProjection(
             // Replay the same immutable snapshot after the full roster so both clients can bind
             // the current HP without relying on an optional per-client 0x00A6 follow-up query.
             var replayDelivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
+                projections,
                 memberAudience,
                 new PartyRealtimeChanged(snapshot),
                 cancellationToken).ConfigureAwait(false);
@@ -214,11 +236,11 @@ internal abstract class PartyProtocolCommandProjection(
                 return false;
         }
 
-        return await DeliverObserverStateAsync(plan, resolver, cancellationToken)
+        return await PartyNotificationStages.DeliverObserverStateAsync(projections, parties, plan, resolver, cancellationToken)
             .ConfigureAwait(false);
     }
 
-    private async ValueTask<bool> DeliverObserverStateAsync(
+    internal static async ValueTask<bool> DeliverObserverStateAsync(ICommandProjections projections, IPartyService parties, 
         PartyNotificationPlan plan,
         PartyNotificationRecipientResolver resolver,
         CancellationToken cancellationToken)
@@ -227,9 +249,8 @@ internal abstract class PartyProtocolCommandProjection(
             return true;
 
         if (plan.Snapshot is { } projected
-            && PartyService is not null
             && projected.Members
-                .Select(member => PartyService.FindParty(member.Character))
+                .Select(member => parties.FindParty(member.Character))
                 .FirstOrDefault(current => !current.IsVirtual
                     && current.Generation == projected.Generation)
                 is { } latest
@@ -265,7 +286,7 @@ internal abstract class PartyProtocolCommandProjection(
             var partyId = plan.ClearPartyId ?? plan.Snapshot?.PartyId
                 ?? throw new InvalidOperationException("A moved party directory entry requires its party ID.");
             var clear = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
+                projections,
                 previousObservers,
                 PartyRosterChanged.Clear(
                     previousObservers.Select(value => value.CharacterId).ToImmutableArray(),
@@ -278,7 +299,7 @@ internal abstract class PartyProtocolCommandProjection(
         if (plan.Snapshot is { } refresh && !currentObservers.IsEmpty)
         {
             var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
+                projections,
                 currentObservers,
                 PartyRosterChanged.Refresh(
                     refresh,
@@ -293,7 +314,7 @@ internal abstract class PartyProtocolCommandProjection(
             var partyId = plan.ClearPartyId
                 ?? throw new InvalidOperationException("An observer party clear requires its party ID.");
             var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                notifications,
+                projections,
                 previousObservers,
                 PartyRosterChanged.Clear(
                     previousObservers.Select(value => value.CharacterId).ToImmutableArray(),
@@ -305,14 +326,14 @@ internal abstract class PartyProtocolCommandProjection(
         return true;
     }
 
-    private async ValueTask<bool> DeliverStaleSideEffectsAsync(
+    internal static async ValueTask<bool> DeliverStaleSideEffectsAsync(ICommandProjections projections, 
         PartyNotificationPlan plan,
         ImmutableArray<SelectedSessionIdentity> staleClearAudience,
         HashSet<SelectedSessionIdentity> currentMembers,
         PartyNotificationRecipientResolver resolver,
         CancellationToken cancellationToken)
     {
-        if (!await DeliverClearAsync(
+        if (!await PartyNotificationStages.DeliverClearAsync(projections, 
             staleClearAudience,
             plan.ClearPartyId,
             cancellationToken).ConfigureAwait(false))
@@ -325,14 +346,14 @@ internal abstract class PartyProtocolCommandProjection(
             && currentMembers.Contains(inviter)
             && currentMembers.Contains(invitee))
         {
-            return await DeliverAcceptanceAsync(acceptance, resolver, cancellationToken)
+            return await PartyNotificationStages.DeliverAcceptanceAsync(projections, acceptance, resolver, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         return true;
     }
 
-    private async ValueTask<bool> DeliverClearAsync(
+    internal static async ValueTask<bool> DeliverClearAsync(ICommandProjections projections, 
         ImmutableArray<SelectedSessionIdentity> clearAudience,
         ushort? clearPartyId,
         CancellationToken cancellationToken)
@@ -343,7 +364,7 @@ internal abstract class PartyProtocolCommandProjection(
         var partyId = clearPartyId
             ?? throw new InvalidOperationException("A party clear requires its party ID.");
         var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-            notifications,
+            projections,
             clearAudience,
             PartyRosterChanged.Clear(
                 clearAudience.Select(value => value.CharacterId).ToImmutableArray(),
@@ -352,21 +373,21 @@ internal abstract class PartyProtocolCommandProjection(
         return !delivery.HasFailures;
     }
 
-    private async ValueTask<bool> DeliverAcceptanceAsync(
+    internal static async ValueTask<bool> DeliverAcceptanceAsync(ICommandProjections projections, 
         PartyAcceptanceNotification acceptance,
         PartyNotificationRecipientResolver resolver,
         CancellationToken cancellationToken)
     {
         var inviter = resolver.Characters([acceptance.InviterCharacterId]);
         var delivery = await PartyExactNotificationDelivery.PublishWithRetryAsync(
-            notifications,
+            projections,
             inviter,
             new PartyInviteAccepted(acceptance),
             cancellationToken).ConfigureAwait(false);
         return !delivery.HasFailures;
     }
 
-    private static void ValidatePlanShape(PartyNotificationPlan plan)
+    internal static void ValidatePlanShape(PartyNotificationPlan plan)
     {
         if (plan.LeadershipTransfer is { } transfer
             && (plan.Snapshot is not { } final
@@ -443,7 +464,7 @@ internal abstract class PartyProtocolCommandProjection(
         }
     }
 
-    private static bool TryGetPartyVersion(
+    internal static bool TryGetPartyVersion(
         PartyNotificationPlan plan,
         out long generation,
         out long revision)
@@ -475,16 +496,4 @@ internal abstract class PartyProtocolCommandProjection(
         revision = 0;
         return false;
     }
-
-}
-
-// Transitional adapter for remaining legacy consumers; owns no algorithm or state.
-internal sealed class PartyLegacyProjection(ICommandProjections projections,
-    Func<long, IPartyDeliveryStream> streamOf, IPartyService? parties, IOutboundOrdering? ordering)
-    : PartyProtocolCommandProjection(projections, streamOf, parties, ordering)
-{
-    internal ValueTask DeliverAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients,
-        CancellationToken cancellationToken) => DeliverPartyNotificationsAsync(plan, recipients, cancellationToken);
-    internal ValueTask DeliverRealtimeAsync(SelectedSessionIdentity requester, PartySnapshot snapshot,
-        CancellationToken cancellationToken) => DeliverPartyRealtimeAsync(requester, snapshot, cancellationToken);
 }

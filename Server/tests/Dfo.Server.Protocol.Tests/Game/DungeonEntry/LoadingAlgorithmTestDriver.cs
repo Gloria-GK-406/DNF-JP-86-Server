@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
@@ -17,41 +22,51 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 // These minimal drivers preserve existing algorithm/byte assertions. They do not exercise
 // production dispatcher, scope disposal or transaction units; separate wire oracles do that.
-internal sealed class MoveMapAlgorithmDriver : GameMapLoadingCommandHandler
+internal sealed class MoveMapAlgorithmDriver(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    IDungeonVisitDomainService visits, DungeonRunDeliveryRegistry registry, IGameMessageSender sender,
+    ILogger logger, DungeonPartyRecipients? partyRecipients = null)
 {
-        private readonly IDungeonVisitDomainService visits;
-    private readonly DungeonRunDeliveryRegistry registry;
-    private readonly DungeonPartyRecipients? recipients;
-    private readonly Dfo.Server.Protocol.Game.Fatigue.FatigueProjectionDelivery? fatigue;
-    public MoveMapAlgorithmDriver(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
-        IDungeonVisitDomainService visits, DungeonRunDeliveryRegistry registry, IGameMessageSender sender,
-        ILogger logger, DungeonPartyRecipients? partyRecipients = null,
-        Dfo.Server.Protocol.Game.Fatigue.FatigueProjectionDelivery? fatigueProjection = null)
-        : base(sessions, runs, visits, registry, null!, null!, null!, null!, null!, null!, new LoadingOutbox(sender), null!, null!, null!, new ForwardLogger(logger))
-    { this.visits = visits; this.registry = registry; recipients = partyRecipients; fatigue = fatigueProjection; }
-    public ValueTask HandleAsync(NetworkDispatchContext dispatch, MoveMapRequest request, CancellationToken token) => MoveOrdinaryAsync(null!, dispatch, request, token);
-    protected override IReadOnlyList<SelectedSessionIdentity> FindMoveRecipients(SelectedSessionIdentity actor, DungeonRunId id)
-    { var found = recipients?.Find(actor, id) ?? registry.Find(id); return found.Count == 0 && recipients is null ? [actor] : found; }
-    protected override ValueTask<DungeonMoveAttempt> MoveRoomAsync(CommandExecutionContext execution, SelectedSessionIdentity session, DungeonRunState current, MazeCell target, CancellationToken token) => visits.TryMoveAsync(session.CharacterId, current, target, token);
-    protected override ValueTask MoveFatigueAsync(SelectedSessionIdentity session, CancellationToken token) => fatigue?.SendAsync(session, token) ?? ValueTask.CompletedTask;
+    public async ValueTask HandleAsync(NetworkDispatchContext dispatch, MoveMapRequest input, CancellationToken token)
+    {
+        var actor = sessions.FindByConnection(dispatch.Connection.ConnectionId);
+        var run = actor is null ? null : runs.Find(actor.CharacterId);
+        var parties = partyRecipients is not null ? ProtocolAlgorithmFixture.Field<IPartyService>(partyRecipients)
+            : run is not null ? new Dfo.Server.Protocol.Tests.Support.DungeonProjectionParty(run)
+            : ProtocolAlgorithmFixture.Default<IPartyService>();
+        var handler = ProtocolAlgorithmFixture.Create<GameMapLoadingCommandHandler>(sessions, runs, visits, registry,
+            parties, new CurrentFatigue(), new LoadingOutbox(sender), new ForwardLogger(logger));
+        var command = new GameMoveMapCommand(dispatch, input);
+        _ = await handler.HandleAsync(Dfo.Server.Protocol.Tests.Support.ComponentContext.For(command, handler.GetType()), command, token);
+    }
+    private sealed class CurrentFatigue : ICharacterFatigueDomainService
+    {
+        public ValueTask<CharacterFatigueBalance> BalanceOfAsync(Dfo.Server.Data.Characters.CharacterId id, CancellationToken ct) =>
+            ValueTask.FromResult(new CharacterFatigueBalance(156, 17) { ConsumedToday = 23 });
+        public ValueTask SpendAsync(Dfo.Server.Data.Characters.CharacterId id, ushort points, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask RefundAsync(Dfo.Server.Data.Characters.CharacterId id, ushort points, CancellationToken ct) => throw new NotSupportedException();
+    }
 }
 internal interface ILoadingAlgorithm
 { ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, Func<CancellationToken, ValueTask> release, CancellationToken token); }
-internal sealed class DungeonLoadingAlgorithmDriver : GameMapLoadingCommandHandler, ILoadingAlgorithm
+internal sealed class DungeonLoadingAlgorithmDriver : ILoadingAlgorithm
 {
-    private readonly Func<Dfo.Server.Data.Characters.CharacterId, DungeonRunId, long, CancellationToken, ValueTask> ready;
-    private readonly WeaknessProjectionDelivery? weaknessProjectionDriver;
-    private readonly UsageQuotaProjectionDelivery? quota;
-    public DungeonLoadingAlgorithmDriver(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, DungeonRunDeliveryRegistry registry,
-        Func<Dfo.Server.Data.Characters.CharacterId, DungeonRunId, long, CancellationToken, ValueTask> ready,
-        WeaknessProjectionDelivery? weaknessProjection = null, UsageQuotaProjectionDelivery? quotaProjection = null)
-        : base(sessions, runs, null!, registry, null!, null!, null!, null!, null!, null!, new LoadingOutbox(null!), null!, null!, null!, NullLogger<GameMapLoadingCommandHandler>.Instance)
-    { this.ready = ready; weaknessProjectionDriver = weaknessProjection; quota = quotaProjection; }
-    public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, Func<CancellationToken, ValueTask> release, CancellationToken token) => CompleteOrdinaryLoadingAsync(id, release, token);
-    protected override ValueTask LoadingReadyAsync(SelectedSessionIdentity session, DungeonRunState expected, CancellationToken token) => ready(session.CharacterId, expected.RunId, expected.RoomVersion, token);
-    protected override ValueTask LoadingWeaknessAsync(SelectedSessionIdentity session, CancellationToken token) => weaknessProjectionDriver?.SendCurrentAsync(session, token) ?? ValueTask.CompletedTask;
-    protected override ValueTask LoadingMechanismsAsync(SelectedSessionIdentity session, DungeonRunState current, CancellationToken token) => ValueTask.CompletedTask;
-    protected override ValueTask<Dfo.Server.Abstractions.Notifications.NotificationDelivery> LoadingQuotaAsync(SelectedSessionIdentity session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily family, CancellationToken token) => quota!.SendAsync(session, family, token);
+    private readonly GameMapLoadingCommandHandler command;
+    private readonly ReleaseOutbox outbox;
+    public DungeonLoadingAlgorithmDriver(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+        DungeonRunDeliveryRegistry registry, WeaknessProjectionDelivery weaknessProjection,
+        UsageQuotaProjectionDelivery? quotaProjection = null)
+    {
+        outbox = new ReleaseOutbox(ProtocolAlgorithmFixture.Field<IGameMessageSender>(weaknessProjection));
+        command = ProtocolAlgorithmFixture.Create<GameMapLoadingCommandHandler>(sessions, runs, registry, outbox,
+            ProtocolAlgorithmFixture.Field<IWeaknessDomainService>(weaknessProjection),
+            quotaProjection is null ? ProtocolAlgorithmFixture.Default<ICommandProjections>()
+                : new LegacyCommandProjections(ProtocolAlgorithmFixture.Field<IEventService>(quotaProjection)));
+    }
+    public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, Func<CancellationToken, ValueTask> release, CancellationToken token)
+    {
+        outbox.Release = release;
+        return command.CompleteOrdinaryLoadingAsync(id, token);
+    }
 }
 internal sealed class FinishLoadingAlgorithmDriver(IGameMessageSender sender, ILoadingAlgorithm projection)
     : ClientMessageHandler<FinishLoadingRequest>
@@ -71,4 +86,15 @@ internal sealed class ForwardLogger(ILogger logger) : ILogger<GameMapLoadingComm
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => logger.BeginScope(state);
     public bool IsEnabled(LogLevel level) => logger.IsEnabled(level);
     public void Log<TState>(LogLevel level, EventId id, TState state, Exception? e, Func<TState,Exception?,string> formatter) => logger.Log(level,id,state,e,formatter);
+}
+
+internal sealed class ReleaseOutbox(IGameMessageSender sender) : IGameCommandOutbox
+{
+    internal Func<CancellationToken, ValueTask> Release { get; set; } = _ => throw new InvalidOperationException("No fixture response observer.");
+    public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage m, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage m, CancellationToken ct) => sender.SendNotiAsync(id, m, ct);
+    public ValueTask RegisterBatchAsync(NetworkConnectionContext c,IReadOnlyList<IGameServerMessage> m,CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery d,CancellationToken ct) =>
+        d.RequiredDirectMessages is [LoadingCompleteNotification] && d.BestEffortTargets.Count == 0
+            ? Release(ct) : throw new NotSupportedException("Only the loading-release observation is supplied.");
 }

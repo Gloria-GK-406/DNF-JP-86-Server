@@ -30,4 +30,5 @@
     <Compile Include="../Support/RecordedOutbound.Game.cs" Link="Support/RecordedOutbound.Game.cs" />
     <ProjectReference Include="..\..\src\Dfo.Server.Host\Dfo.Server.Host.csproj" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../Support/ProtocolAlgorithmFixture.cs" Link="Support/ProtocolAlgorithmFixture.cs" /></ItemGroup>
 </Project>

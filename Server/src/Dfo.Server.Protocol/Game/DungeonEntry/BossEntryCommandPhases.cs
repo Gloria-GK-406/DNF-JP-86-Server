@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Party;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
@@ -40,21 +41,20 @@ using Dfo.Server.Protocol.Game.BossTowerMap;
 using Dfo.Server.Protocol.Game.BossTowerReward;
 using Dfo.Server.Protocol.Game.BossTowerContinue;
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
-internal partial class GameSelectDungeonCommandHandler
+internal sealed partial class GameSelectDungeonCommandHandler
 {
-    protected async ValueTask<bool> EnterBossAsync(
+    internal async ValueTask<bool> EnterBossAsync(
         CommandExecutionContext execution,
         NetworkConnectionId requesterConnection,
         SelectedSessionIdentity requester,
         PartySnapshot roster,
         DungeonEntryIntent intent,
-        Action restoreIntent,
         CancellationToken token, byte requestMode = 0, byte difficulty = 0, byte practiceMode = 0)
     {
         var attachments = await BossEntryResolveAttachmentsAsync(requester, roster, token).ConfigureAwait(false);
         if (attachments is null)
         {
-            restoreIntent();
+            RestoreEntryIntent(requester, intent);
             await BossEntryRefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
             return true;
         }
@@ -67,7 +67,7 @@ internal partial class GameSelectDungeonCommandHandler
         {
             if (!BossEntryCurrent(attachments) || !BossEntryPartyCurrent(requester, roster, attachments))
             {
-                restoreIntent();
+                RestoreEntryIntent(requester, intent);
                 await BossEntryRefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
                 return true;
             }
@@ -75,7 +75,7 @@ internal partial class GameSelectDungeonCommandHandler
             var entered = await AdmitBossAsync(execution, attachments.Select(value => new TowerEntryMember(value.Session, value.Slot)).ToArray(), requester, unchecked((uint)Random.Shared.Next()), token, requestMode, difficulty, practiceMode).ConfigureAwait(false);
             if (entered.Run is null)
             {
-                restoreIntent();
+                RestoreEntryIntent(requester, intent);
                 await BossEntryRefuseAsync(requesterConnection,
                     entered.Failure is { } failure ? DungeonEntryRefusalCodes.For(failure, false) : entered.Rejection switch
                     {
@@ -144,13 +144,13 @@ internal partial class GameSelectDungeonCommandHandler
             }
 
             // XO-3: every member's batch is delivered before the requester's, each BestEffort.
-            using (ordering?.Begin("XO-3 boss tower entry", OutboundDelivery.BestEffort))
+            using (ordering.Begin("XO-3 boss tower entry", OutboundDelivery.BestEffort))
             {
                 foreach (var batch in batches.OrderBy(value => value.Session == requester ? 1 : 0))
-                    await register(batch.Session.ConnectionId,
+                    await outbox.RegisterExplicitAsync(batch.Session.ConnectionId,
                         new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
             }
-            await TownLeaveManyAsync(ordered.Select(value => value.Session).ToArray(),
+            await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, projections, projectionState, currentViews, parties, ordered.Select(value => value.Session).ToArray(),
                 TownAreaDepartureReason.DungeonEntry, token).ConfigureAwait(false);
         }
         catch (Exception error) when (committed)
@@ -197,7 +197,7 @@ internal partial class GameSelectDungeonCommandHandler
     private bool BossEntryPartyCurrent(SelectedSessionIdentity requester, PartySnapshot expected,
         IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members)
     {
-        var current = PartyService!.FindParty(new PartyCharacterSnapshot(
+        var current = parties.FindParty(new PartyCharacterSnapshot(
             requester.AccountId, requester.CharacterId, requester.WireUserId, null));
         return current.Key == expected.Key
             && current.Generation == expected.Generation
@@ -219,7 +219,7 @@ internal partial class GameSelectDungeonCommandHandler
     }
 
     private ValueTask BossEntryRefuseAsync(NetworkConnectionId connection, byte code, CancellationToken token, byte context = 0) =>
-        register(connection,
+        outbox.RegisterExplicitAsync(connection,
             new GameExplicitMessageDelivery([new SelectDungeonRefusal(code, context)], []), token);
 
 }

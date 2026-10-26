@@ -22,7 +22,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonClear;
 
-internal partial class GameSetPlayResultCommandHandler(
+internal sealed partial class GameSetPlayResultCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
@@ -36,8 +36,8 @@ internal partial class GameSetPlayResultCommandHandler(
     IGameCommandOutbox outbox,
     ILogger<GameSetPlayResultCommandHandler> logger,
     IDungeonCardPresentationControl cardPresentation,
-    Dfo.Server.Abstractions.DomainEvents.ICommandProjections? eventNotices = null,
-    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService? inventoryProjection = null)
+    Dfo.Server.Abstractions.DomainEvents.ICommandProjections eventNotices,
+    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService inventoryProjection)
     : ICommandHandler<GameSetPlayResultCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetPlayResultCommand command, CancellationToken cancellationToken)
@@ -46,10 +46,10 @@ internal partial class GameSetPlayResultCommandHandler(
         return true;
     }
 
-    protected virtual ValueTask<DungeonSettlementRules> RulesAsync(SelectedSessionIdentity session, DungeonRunState run, CancellationToken ct) =>
+    private ValueTask<DungeonSettlementRules> RulesAsync(SelectedSessionIdentity session, DungeonRunState run, CancellationToken ct) =>
         runs.SettlementRulesForAsync(session.AccountId, session.CharacterId, run, ct);
 
-    protected async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context, SetPlayResultRequest message, CancellationToken cancellationToken)
+    private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context, SetPlayResultRequest message, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         var capturedRecipient = session is null ? null : new SelectedSessionRecipient(session, context.Connection, message.Metadata);
@@ -260,7 +260,7 @@ internal partial class GameSetPlayResultCommandHandler(
                     "The dungeon settlement claim was no longer current after its durable award.");
             }
             settlementCommitted = true;
-            if (paid.AttendanceChanged && eventNotices is not null)
+            if (paid.AttendanceChanged)
                 await eventNotices.ProjectAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
                     new Dfo.Server.Abstractions.Events.EventsChanged(),cancellationToken);
             var level = currentProgress.Level;
@@ -342,7 +342,7 @@ internal partial class GameSetPlayResultCommandHandler(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(frames, []),
                 cancellationToken).ConfigureAwait(false);
-            if (run.Layout.Despair is null) cardPresentation?.ScheduleAfterSettlement(session, currentRun.RunId);
+            if (run.Layout.Despair is null) cardPresentation.ScheduleAfterSettlement(session, currentRun.RunId);
         }
         catch (Exception failure)
         {

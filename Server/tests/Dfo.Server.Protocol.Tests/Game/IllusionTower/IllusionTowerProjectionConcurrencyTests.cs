@@ -631,7 +631,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var views = new NoViews();
             var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.IllusionLegacy(
                 towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
-                new Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery(null!, sessions, views, null!, null!, outbound.Game, null!),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(null!, sessions, views, null!, null!, outbound.Game, null!),
                 TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDriver>.Instance);
             await delivery.ProjectCommittedDepartureAsync(towers.Leave(leaving), returning: null, response: null, CancellationToken.None);
         });
@@ -724,8 +724,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         INetworkConnectionCloser? closer = null)
     {
         var views = new NoViews();
-        var town = new TownAreaProjectionDelivery(
-            null!, sessions, views, null!, null!, sender, null!);
+        var town = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(null!, sessions, views, null!, null!, sender, null!);
         return Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.IllusionLegacy(
             towers,
             commands,
@@ -777,8 +776,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     private static PartyNotificationDelivery Notifications(
         IPartyService parties, ISelectedSessionDomainService sessions,
         ITownAreaDomainService town) =>
-        new(new NoopNotifications(), new PartyProjectionStreamRegistry(),
-            sessions, town, parties);
+        global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotifications(), new PartyProjectionStreamRegistry(), sessions, town, parties);
 
     private sealed class TowerDomain(params IllusionTowerSnapshot[] values) : IIllusionTowerDomainService
     {

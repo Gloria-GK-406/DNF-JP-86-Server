@@ -36,14 +36,7 @@ internal static class TownAreaProjectionTestFactory
         ISelectedCharacterCurrentViewDomainService currentViews,
         IGameMessageSender sender,
         ITownAreaDomainService? areas = null) =>
-        new(
-            areas ?? new SessionPresenceDomainService(),
-            sessions,
-            currentViews,
-            new NoopNotificationBus(),
-            new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
+        global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas ?? new SessionPresenceDomainService(), sessions, currentViews, new NoopNotificationBus(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance);
 
     private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {

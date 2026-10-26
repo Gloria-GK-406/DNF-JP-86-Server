@@ -24,8 +24,8 @@ public sealed class GameSortItemCommandHandler(IInventorySortDomainService sorti
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory,
     TimeProvider clock, ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
-    Dfo.Server.Abstractions.World.IDungeonRunDomainService? runs = null,
-    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService? towers = null)
+    Dfo.Server.Abstractions.World.IDungeonRunDomainService runs,
+    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService towers)
     : ICommandHandler<GameSortItemCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameSortItemCommand command, CancellationToken ct)

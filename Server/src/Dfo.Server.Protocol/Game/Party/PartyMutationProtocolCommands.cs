@@ -1,3 +1,29 @@
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
@@ -35,30 +61,47 @@ internal sealed record GameChangePartyLeaderCommand(NetworkDispatchContext Dispa
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-internal sealed class GamePartyMutationCommandHandler : PartyMutationProtocolCommandHandler,
+internal sealed partial class GamePartyMutationCommandHandler :
     ICommandHandler<GameLeavePartyCommand, bool>, ICommandHandler<GameRemovePartyMemberCommand, bool>,
     ICommandHandler<GameChangePartyLeaderCommand, bool>
 {
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService projectionState;
+    private readonly ILogger logger;
+    private readonly ISelectedCharacterCurrentViewDomainService currentViews;
+    private readonly ICharacterStateProjectionDomainService currentState;
+    private readonly ICharacterDomainService characters;
+    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
+    private readonly ITownMovementDomainService towns;
+    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly IBossTowerDomainService bossTowers;
+    private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly TimeProvider clock;
+    private readonly IGameCommandOutbox outbox;
+    private readonly ICommandConnectionClosures closures;
+    private readonly IWeaknessDomainService weaknessState;
+    private readonly ICommandWorkUnits workUnits;
+    private readonly IOnlineUserQueryDomainService onlineUsers;
+    private readonly IDungeonRunDomainService dungeonRuns;
+    private readonly IDungeonRunProjectionDomainService departureSink;
+    private readonly IPartyService parties;
+    private readonly IOutboundOrdering ordering;
+    private const bool projectWeakness = true;
+
     public GamePartyMutationCommandHandler(ISelectedSessionDomainService sessions, IPartyService parties,
         ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState,
-        ILogger<GamePartyMutationCommandHandler> logger, IOutboundOrdering? ordering = null,
-        ISelectedCharacterCurrentViewDomainService? currentViews = null, ICharacterStateProjectionDomainService? currentState = null,
-        ICharacterDomainService? characters = null, IOnlineCharacterRuntimeDomainService? onlineCharacters = null, ITownMovementDomainService? towns = null,
-        IMarriageHousingQueryDomainService? housing = null, IBossTowerDomainService? bossTowers = null, IIllusionTowerDomainService? illusionTowers = null,
-        TimeProvider? clock = null, IGameCommandOutbox? outbox = null, ICommandConnectionClosures? closures = null,
-        IOnlineUserQueryDomainService? onlineUsers = null, IWeaknessDomainService? weakness = null, ICommandWorkUnits? workUnits = null,
-        IDungeonRunDomainService? runs = null, IDungeonRunProjectionDomainService? departureSink = null)
-        : base(sessions, parties, townAreas, projections, projectionState.StreamOf, ordering, logger,
-            currentViews, currentState, characters, onlineCharacters, towns, housing, bossTowers, illusionTowers, clock,
-            outbox is null ? null : outbox.RegisterExplicitAsync,
-            session => onlineUsers?.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null
-                && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
-                    ? closures!.RequestCloseAsync(user.Connection, CancellationToken.None) : ValueTask.CompletedTask,
-            (session, token) => sessions.IsInWorld(session)
-                ? outbox!.RegisterNotiAsync(session.ConnectionId, new WeaknessProjectionNotification(weakness!.For(session.CharacterId).Value), token)
-                : ValueTask.CompletedTask,
-            workUnits: workUnits, onlineUsers: onlineUsers, dungeonRuns: runs, departureSink: departureSink)
+        ILogger<GamePartyMutationCommandHandler> logger, IOutboundOrdering ordering,
+        ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState,
+        ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService onlineCharacters, ITownMovementDomainService towns,
+        IMarriageHousingQueryDomainService housing, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        TimeProvider clock, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
+        IOnlineUserQueryDomainService onlineUsers, IWeaknessDomainService weakness, ICommandWorkUnits workUnits,
+        IDungeonRunDomainService runs, IDungeonRunProjectionDomainService departureSink)
+
     {
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = workUnits; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties; this.ordering = ordering;
     }
 
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameLeavePartyCommand command, CancellationToken token) =>
@@ -67,71 +110,4 @@ internal sealed class GamePartyMutationCommandHandler : PartyMutationProtocolCom
         HandleMutationAsync(execution, command.Dispatch, command.Input.Metadata, PartyChange.Remove, command.Input.TargetSlot, token);
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameChangePartyLeaderCommand command, CancellationToken token) =>
         HandleMutationAsync(execution, command.Dispatch, command.Input.Metadata, PartyChange.Transfer, command.Input.TargetSlot, token);
-}
-
-internal abstract partial class PartyMutationProtocolCommandHandler
-{
-    protected async ValueTask<bool> HandleMutationAsync(CommandExecutionContext execution, NetworkDispatchContext dispatch,
-        GameMessageMetadata metadata, PartyChange change, byte? targetSlot, CancellationToken token)
-    {
-        var request = execution.Request ?? throw new InvalidOperationException("A party protocol request is required.");
-        request.DemandCurrent();
-        if (TowerProtocol.IsStale(metadata)) return false;
-        var caller = sessions.FindByConnection(dispatch.Connection.ConnectionId);
-        if (caller is null) return false;
-
-        var boss = bossTowers is null ? new BossTowerPartyAttempt(false, PartyOperationResult.Success()) : await CoordinateBossTowerPartyAsync(execution, change, caller, targetSlot, false, null, token).ConfigureAwait(false);
-        if (boss.Handled) return boss.Result.Succeeded;
-        var illusion = illusionTowers is null ? new IllusionTowerPartyAttempt(false, PartyOperationResult.Success()) : await CoordinateIllusionTowerPartyAsync(execution, change, caller, targetSlot, false, null, token).ConfigureAwait(false);
-        if (illusion.Handled)
-        {
-            if (change == PartyChange.Remove && !illusion.Result.Succeeded)
-                await register(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
-            LogPartyMutation(change, caller, illusion.Target, targetSlot, illusion.Result);
-            return illusion.Result.Succeeded;
-        }
-
-        SelectedSessionIdentity? target = null;
-        if (change != PartyChange.Leave)
-        {
-            var roster = PartyService!.FindParty(new(caller.AccountId, caller.CharacterId, caller.WireUserId, null));
-            var member = roster.IsVirtual ? null : roster.Members.SingleOrDefault(member => member.Slot == targetSlot);
-            target = member is not null && sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
-            if (target is null)
-            {
-                if (change == PartyChange.Remove)
-                    await register(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
-                return false;
-            }
-        }
-        var departing = change == PartyChange.Leave ? caller : change == PartyChange.Remove ? target : null;
-        var departingRun = departing is null ? null : dungeonRuns?.Find(departing.CharacterId);
-        var runtime = change == PartyChange.Remove && departingRun is not null && currentViews is not null
-            ? await currentViews.TryLoadAsync(target!, token).ConfigureAwait(false) : null;
-        var position = change == PartyChange.Remove && departingRun is not null ? onlineCharacters?.PositionOf(target!) : null;
-        var result = !sessions.IsInWorld(caller) || target is not null && !sessions.IsInWorld(target)
-            ? PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)
-            : await MutatePartyAsync(change, caller, target, token).ConfigureAwait(false);
-        var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
-        if (!result.Succeeded)
-        {
-            if (change == PartyChange.Remove)
-                await register(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
-        }
-        else
-        {
-            if (departingRun is not null && dungeonRuns?.Find(departing!.CharacterId) is null)
-                departureSink?.ParticipantDeparted(departingRun.RunId, departing!.CharacterId);
-            await ProjectPartyAsync(result.Notifications, recipients, token).ConfigureAwait(false);
-            if (change == PartyChange.Remove && departingRun is not null && runtime is not null && position is not null && sessions.IsInWorld(target!))
-                await ReturnTownAsync([new TownAreaEntry(target!, runtime, position)], token).ConfigureAwait(false);
-        }
-        LogPartyMutation(change, caller, target, targetSlot, result);
-        return result.Succeeded;
-    }
-
-    private void LogPartyMutation(PartyChange change, SelectedSessionIdentity caller, SelectedSessionIdentity? target,
-        byte? slot, PartyOperationResult result) => logger.LogInformation(
-            "Party operation={Operation} caller={Caller} target={Target} slot={Slot} accepted={Accepted} failure={Failure}",
-            change, caller.CharacterId, target?.CharacterId, slot, result.Succeeded, result.Failure);
 }

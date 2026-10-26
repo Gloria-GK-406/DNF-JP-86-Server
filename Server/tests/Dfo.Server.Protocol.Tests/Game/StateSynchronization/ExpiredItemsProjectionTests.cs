@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Mail;
+using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
@@ -39,7 +41,7 @@ public sealed class ExpiredItemsProjectionTests
                 towns.Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(), new(1, 1, 2), new(1, 2, 1, 1, 0), true));
             var visibility = new CharacterVisibleSessionDomainService(sessions, towns, new DungeonRunDomainService());
             var reads = new ReadModel(source);
-            var handler = new ExpiredItemsRefreshHandler(sessions, reads, visibility, reads, reads);
+            var handler = new ExpiredItemsRefreshHandler(sessions, reads, visibility, reads, reads, housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(), mailbox: ProtocolAlgorithmFixture.Default<IMailboxQueryDomainService>());
             var notice = new ExpiredItemsRefresh(owner, [InventoryContainerType.Equipment], DateTimeOffset.UtcNow);
             var own = await handler.ComposeAsync(new(owner.CharacterId, owner.ConnectionId, owner), notice, default);
             Assert.Empty(Assert.Single(own.OfType<ExtendedUserStateMessage>()).Equipment);

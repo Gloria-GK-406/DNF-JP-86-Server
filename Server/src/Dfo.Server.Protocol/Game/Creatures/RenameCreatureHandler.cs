@@ -75,8 +75,39 @@ internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainSer
             cancellationToken).ConfigureAwait(false);
         return true;
     }
-    private ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct) =>
-        CreatureVisibleRecipients.DeliverAsync(owner, notification, sessions, runs, towns, towers, outbox.RegisterNotiAsync, CloseAsync, logger, ct);
+    private async ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct)
+    {
+        if (!sessions.IsInWorld(owner)) return false;
+        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
+        var ownerDelivered = true;
+        foreach (var receiver in receivers)
+        {
+            if (towerRunId is { } expectedRun
+                && (!sessions.IsInWorld(owner)
+                    || towers.Find(owner)?.RunId != expectedRun))
+                break;
+            if (towerRunId is not null
+                && (!sessions.IsInWorld(receiver)
+                    || towers.Find(receiver)?.RunId != towerRunId))
+                continue;
+            try
+            {
+                await outbox.RegisterNotiAsync(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                if (receiver == owner) ownerDelivered = false;
+                logger.LogWarning(exception,
+                    "Creature notification failed for receiver={CharacterId}; closing that connection",
+                    receiver.CharacterId);
+                if (sessions.IsInWorld(receiver))
+                    await CloseAsync(receiver, CancellationToken.None)
+                        .ConfigureAwait(false);
+            }
+        }
+        return ownerDelivered;
+    }
     private ValueTask CloseAsync(SelectedSessionIdentity receiver, CancellationToken ct) =>
         users.TryGetByConnection(receiver.ConnectionId, out var user) && user is not null
             ? connections.RequestCloseAsync(user.Connection, ct) : ValueTask.CompletedTask;

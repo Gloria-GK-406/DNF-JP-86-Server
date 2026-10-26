@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -26,19 +28,14 @@ internal static class TownMovementTestDriver
     internal static SetUserAreaHandler Area(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService views,
         IOnlineCharacterRuntimeDomainService online, ITownAreaDomainService areas, IChannelEntryDomainService channels,
         ITownMovementDomainService towns, ProjectionInput input, ILogger<SetUserAreaHandler> logger, ICharacterLocationDomainService persistence) =>
-        new(new Driver(new Handler(sessions,views,online,areas,channels,towns,persistence,input)));
+        new(new Driver(CreateHandler(sessions,views,online,areas,channels,towns,persistence,input)));
     internal static SetUserPositionHandler Position(ISelectedSessionDomainService sessions,IOnlineCharacterRuntimeDomainService online,
         ITownAreaDomainService areas,ProjectionInput input,ILogger<SetUserPositionHandler> logger) =>
-        new(new Driver(new Handler(sessions,input.Views,online,areas,null!,input.Towns,null!,input)));
-    private sealed class Handler(ISelectedSessionDomainService sessions,ISelectedCharacterCurrentViewDomainService views,
+        new(new Driver(CreateHandler(sessions,input.Views,online,areas,null!,input.Towns,null!,input)));
+    private static GameTownMovementCommandHandler CreateHandler(ISelectedSessionDomainService sessions,ISelectedCharacterCurrentViewDomainService views,
         IOnlineCharacterRuntimeDomainService online,ITownAreaDomainService areas,IChannelEntryDomainService channels,
         ITownMovementDomainService towns,ICharacterLocationDomainService persistence,ProjectionInput input)
-        : GameTownMovementCommandHandler(sessions,views,online,areas,channels,towns,persistence,new Units(),
-            new LegacyCommandProjections(input.Events),new Outbox(input.Sender),null!,new PartyProjectionStreamRegistry(),NullLogger<GameTownMovementCommandHandler>.Instance)
-    {
-        protected override ValueTask PartyTownRefreshMovedPartyAsync(SelectedSessionIdentity session,PartyDirectoryScope? scope,CancellationToken ct)=>input.Parties.RefreshMovedPartyAsync(session,scope,ct);
-        protected override ValueTask PartyTownRefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients,CancellationToken ct)=>input.Parties.RefreshObservedPartiesAsync(recipients,ct);
-    }
+        => new(sessions,views,online,areas,channels,towns,persistence,new Units(),            new LegacyCommandProjections(input.Events),new Outbox(input.Sender),ProtocolAlgorithmFixture.Default<IPartyService>(),new PartyProjectionStreamRegistry(),NullLogger<GameTownMovementCommandHandler>.Instance,marriage: ProtocolAlgorithmFixture.Default<IMarriageQueryDomainService>(),housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),housingSessions: ProtocolAlgorithmFixture.Default<IMarriageHousingSessionDomainService>());
     private sealed class Driver(GameTownMovementCommandHandler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
@@ -23,22 +24,36 @@ public interface IPartyTownProjectionDelivery
         CancellationToken cancellationToken);
 }
 
-public sealed class PartyTownProjectionDelivery(
-    IPartyService parties,
-    ITownAreaDomainService townAreas,
-    ISelectedSessionDomainService selectedSessions,
-    IEventService notifications,
-    PartyProjectionStreamRegistry streams) : IPartyTownProjectionDelivery
+public sealed class PartyTownProjectionDelivery : IPartyTownProjectionDelivery
 {
-    private readonly PartyTownCommandProjection projection = new(parties, townAreas,
-        selectedSessions, new LegacyCommandProjections(notifications), generation => streams.GetOrAdd(generation));
+    private readonly IPartyService parties;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ISelectedSessionDomainService selectedSessions;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService streams;
+
+    public PartyTownProjectionDelivery(IPartyService parties, ITownAreaDomainService townAreas,
+        ISelectedSessionDomainService selectedSessions, IEventService notifications,
+        PartyProjectionStreamRegistry streams)
+        : this(parties, townAreas, selectedSessions, new LegacyCommandProjections(notifications), streams) { }
+
+    internal PartyTownProjectionDelivery(IPartyService parties, ITownAreaDomainService townAreas,
+        ISelectedSessionDomainService selectedSessions, ICommandProjections projections,
+        IPartyProjectionStateDomainService streams)
+    {
+        this.parties = parties;
+        this.townAreas = townAreas;
+        this.selectedSessions = selectedSessions;
+        this.projections = projections;
+        this.streams = streams;
+    }
 
     public ValueTask RefreshMovedPartyAsync(SelectedSessionIdentity mover,
         PartyDirectoryScope? previousScope, CancellationToken cancellationToken) =>
-        projection.RefreshMovedPartyAsync(mover, previousScope, cancellationToken);
+        PartyTownProjection.PartyTownRefreshMovedPartyAsync(selectedSessions, townAreas, projections, streams, parties, mover, previousScope, cancellationToken);
 
     public ValueTask RefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken cancellationToken) =>
-        projection.RefreshObservedPartiesAsync(recipients, cancellationToken);
+        PartyTownProjection.PartyTownRefreshObservedPartiesAsync(townAreas, projections, streams, parties, recipients, cancellationToken);
 }
 
 internal readonly record struct PartyExactNotificationDeliveryResult(

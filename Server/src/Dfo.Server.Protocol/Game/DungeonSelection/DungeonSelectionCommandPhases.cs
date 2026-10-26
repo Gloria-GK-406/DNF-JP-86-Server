@@ -21,9 +21,9 @@ using Microsoft.Extensions.Logging;
 
 using Dfo.Server.Protocol.Game.Party;
 namespace Dfo.Server.Protocol.Game.DungeonSelection;
-internal partial class GameDungeonSelectionCommandHandler
+internal sealed partial class GameDungeonSelectionCommandHandler
 {
-    protected async ValueTask<bool> BackToVillageAsync(CommandExecutionContext execution,
+    private async ValueTask<bool> BackToVillageAsync(CommandExecutionContext execution,
         NetworkDispatchContext context,
         BackToVillageRequest message,
         CancellationToken cancellationToken)
@@ -51,9 +51,9 @@ internal partial class GameDungeonSelectionCommandHandler
         // follower can still have its own button request queued behind that push; acknowledging it
         // is required, but replaying a self-only town projection would erase the party roster that
         // the leader has just restored.
-        if (entryIntents is not null && !entryIntents.ClearExact(session))
+        if (!entryIntents.ClearExact(session))
         {
-            await register(
+            await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery([new BackToVillageResponse()], []),
                 cancellationToken).ConfigureAwait(false);
@@ -79,12 +79,12 @@ internal partial class GameDungeonSelectionCommandHandler
 
         foreach (var member in returning)
         {
-            var currentRun = dungeonRuns!.Find(member.Session.CharacterId);
+            var currentRun = dungeonRuns.Find(member.Session.CharacterId);
             var ended = currentRun is not null
-                && await dungeonRuns!.EndAsync(member.Session.CharacterId, currentRun.RunId).ConfigureAwait(false);
+                && await dungeonRuns.EndAsync(member.Session.CharacterId, currentRun.RunId).ConfigureAwait(false);
             if (ended && currentRun is not null)
             {
-                departureSink!.ParticipantDeparted(currentRun.RunId, member.Session.CharacterId);
+                departureSink.ParticipantDeparted(currentRun.RunId, member.Session.CharacterId);
                 endedRuns++;
             }
 
@@ -106,7 +106,7 @@ internal partial class GameDungeonSelectionCommandHandler
             returning.Length,
             endedRuns);
 
-        await register(
+        await outbox.RegisterExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery([new BackToVillageResponse()], []),
             cancellationToken).ConfigureAwait(false);
@@ -127,7 +127,7 @@ internal partial class GameDungeonSelectionCommandHandler
         };
         var requesterCharacter = new PartyCharacterSnapshot(
             requester.AccountId, requester.CharacterId, requester.WireUserId, null);
-        var party = PartyService!.FindParty(requesterCharacter);
+        var party = parties.FindParty(requesterCharacter);
         if (entryIntents is null
             || party.IsVirtual
             || party.LeaderWireUserId != requester.WireUserId)
@@ -161,7 +161,7 @@ internal partial class GameDungeonSelectionCommandHandler
         SelectedSessionIdentity Session,
         SelectCharacterResult Runtime,
         CharacterPositionState Position);
-    protected async ValueTask<bool> EnterSelectDungeonAsync(CommandExecutionContext execution,
+    private async ValueTask<bool> EnterSelectDungeonAsync(CommandExecutionContext execution,
         NetworkDispatchContext context,
         EnterSelectDungeonRequest message,
         CancellationToken cancellationToken)
@@ -186,7 +186,7 @@ internal partial class GameDungeonSelectionCommandHandler
         var spawn = result.World.Channel.Spawn;
         var requesterCharacter = new PartyCharacterSnapshot(
             session.AccountId, session.CharacterId, session.WireUserId, null);
-        var roster = PartyService!.FindParty(requesterCharacter);
+        var roster = parties.FindParty(requesterCharacter);
         if (roster.LeaderWireUserId != session.WireUserId)
         {
             logger.LogWarning(
@@ -213,7 +213,7 @@ internal partial class GameDungeonSelectionCommandHandler
         {
             entryIntents!.Record(member.Session, intent);
         }
-        await TownLeaveManyAsync(
+        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, projections, projectionState, currentViews, parties,
             attached.Select(member => member.Session).ToArray(),
             TownAreaDepartureReason.DungeonSelection,
             cancellationToken).ConfigureAwait(false);
@@ -284,7 +284,7 @@ internal partial class GameDungeonSelectionCommandHandler
                 if (tower is not null)
                     notifications.AddRange(tower.DungeonIds.Select(id =>
                         new DungeonRemainingEntriesMessage(id, tower.FreeEntriesRemaining)));
-                if (sao is not null && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
+                if (await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
                     notifications.Add(new SaoCurrentFloorNotification(saoProgress));
                 notifications.Add(new EnterSelectDungeonNotification(wireUserIds, checked((ushort)(tower?.NextFloor ?? 1))));
             }
@@ -306,7 +306,7 @@ internal partial class GameDungeonSelectionCommandHandler
         // reporting path unless the handler provides one.
         try
         {
-            await register(
+            await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
                     direct.Messages,

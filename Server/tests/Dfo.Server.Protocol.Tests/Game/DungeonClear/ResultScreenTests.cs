@@ -217,8 +217,8 @@ public sealed class ResultScreenTests
 
         await Scroll(sender, new NoSession());
 
-        Assert.IsType<ScoreScrollStateResponse>(sender.Sent[0]);
-        Assert.IsType<CardSelectRightStateResponse>(sender.Sent[1]);
+        // The registered non-null presentation control cannot open a layout without a session.
+        Assert.IsType<ScoreScrollStateResponse>(Assert.Single(sender.Sent));
     }
 
     /// <summary>The acknowledgement goes out under the type the client's frame arrived on.</summary>
@@ -255,13 +255,21 @@ public sealed class ResultScreenTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            var session = sessions.FindByConnection(Identity.ConnectionId);
+            var runs = session is null ? null : SettledCardRun.Create(session);
+            var signals = new ProtocolAlgorithmFixture.CardSignals();
             var handler = new ScoreScrollDriver(
-                sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance);
+                sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance, signals, runs);
 
             await handler.HandleAsync(
                 Dispatch(),
                 new ScoreScrollStateRequest(GameMessageMetadata.Empty),
                 CancellationToken.None);
+            if (session is not null)
+            {
+                Assert.True(runs!.Find(session.CharacterId)!.CardLayoutOpen);
+                Assert.Equal("auto", Assert.Single(signals.Calls).Phase);
+            }
         });
     }
 

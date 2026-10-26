@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -183,10 +188,9 @@ public sealed class DungeonRevivalTests
     // These existing domain/transaction fixtures invoke the owning CMD settlement algorithm;
     // real inbound scope/physical failure evidence belongs to CharacterDeathFailureBoundaryTests.
     private sealed record RevivalInput(SelectedSessionIdentity Payer, Dfo.Server.Data.Characters.CharacterId Target, DungeonRunId Run);
-    private sealed class RevivalDriver(IServiceProvider services) : GameUseRevivalCoinCommandHandler(null!,null!,null!,null!,
-        services.GetRequiredService<IDungeonRevivalDomainService>(),services.GetRequiredService<ICommandWorkUnits>(),null!,
-        services.GetRequiredService<TimeProvider>(),Microsoft.Extensions.Logging.Abstractions.NullLogger<GameUseRevivalCoinCommandHandler>.Instance,null!)
+    private sealed class RevivalDriver(IServiceProvider services)
     {
+        private readonly GameUseRevivalCoinCommandHandler handler = new(ProtocolAlgorithmFixture.Default<ISelectedSessionDomainService>(),ProtocolAlgorithmFixture.Default<IOnlineUserQueryDomainService>(),ProtocolAlgorithmFixture.Default<IDungeonRunDomainService>(),ProtocolAlgorithmFixture.Default<IDungeonRunProjectionDomainService>(),        services.GetRequiredService<IDungeonRevivalDomainService>(),services.GetRequiredService<ICommandWorkUnits>(),ProtocolAlgorithmFixture.Default<IGameCommandOutbox>(),        services.GetRequiredService<TimeProvider>(),Microsoft.Extensions.Logging.Abstractions.NullLogger<GameUseRevivalCoinCommandHandler>.Instance,ProtocolAlgorithmFixture.Default<IBossTowerDomainService>());
         public async ValueTask<DungeonRevivalResult> SendAsync(RevivalInput input)
         {
             return await TestGameplay.RunAsync(services,async()=>
@@ -196,7 +200,7 @@ public sealed class DungeonRevivalTests
             var command=new GameUseRevivalCoinCommand(dispatch,message);
             var request=new CommandRequestContext.ProtocolNonEffect(dispatch,message,command.Frame,()=>true);
             var context=DomainCommandFixture.Context(Guid.NewGuid(),command.GetType(),GetType()) with{Request=request};
-            try{return await ReviveAsync(context,input.Payer,input.Target,input.Run,default);}finally{await request.DrainOperationsAsync();request.Close();}
+            try{return await handler.ReviveAsync(context,input.Payer,input.Target,input.Run,default);}finally{await request.DrainOperationsAsync();request.Close();}
             });
         }
     }

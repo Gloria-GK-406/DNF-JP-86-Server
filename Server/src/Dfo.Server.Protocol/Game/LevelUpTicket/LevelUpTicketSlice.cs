@@ -71,7 +71,7 @@ public sealed class GameLevelUpTicketCommandHandler(ISelectedSessionDomainServic
     ILevelUpTicketDomainService tickets, TimeProvider clock, ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
     ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<GameLevelUpTicketCommandHandler> logger,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
     : ICommandHandler<GameLevelUpTicketCommand,bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameLevelUpTicketCommand command, CancellationToken ct)

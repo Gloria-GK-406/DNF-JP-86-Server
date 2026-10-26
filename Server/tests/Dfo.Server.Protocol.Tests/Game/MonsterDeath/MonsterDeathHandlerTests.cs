@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -50,7 +54,7 @@ public sealed class MonsterDeathHandlerTests
     private static DeathAlgorithmDriver CreateHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService unusedView, ICharacterDomainService characters,
         IDungeonRunDomainService runs, IMonsterKillDomainService kills, IDungeonClearDomainService clear,
-        DungeonClearProjectionDelivery clearProjection, ICommandBus rewards, IQuestOfferRefreshDomainService offers,
+        DungeonClearProjectionDriver clearProjection, ICommandBus rewards, IQuestOfferRefreshDomainService offers,
         DungeonRunDeliveryRegistry registry, IGameMessageSender sender, ExperienceDiagnostics diagnostics,
         Microsoft.Extensions.Logging.ILogger<MonsterDeathHandler> logger, DungeonPartyRecipients? partyRecipients = null,
         Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService? creatures = null,
@@ -88,33 +92,84 @@ public sealed class MonsterDeathHandlerTests
     // Same whole-owned ordinary algorithm and real domain transaction. A focused algorithm
     // fixture: its injected results and manual failure policy do not prove the inbound bus/scope.
     private sealed class DeathAlgorithmDriver(ISelectedSessionDomainService selected, IDungeonRunDomainService runs,
-        IDungeonClearDomainService clear, DungeonClearProjectionDelivery clearProjection,
+        IDungeonClearDomainService clear, DungeonClearProjectionDriver clearProjection,
         Dfo.Server.Application.Transactions.DomainTransactionScope scope, IMonsterDeathDomainService service, ICommandBus fallback,
         DungeonRunDeliveryRegistry registry, IGameMessageSender sender, ExperienceDiagnostics diagnostics,
         DungeonPartyRecipients? recipients, Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService? creatures,
-        SelectedSessionSafety? safety) : GameMonsterDeathCommandHandler(selected,runs,registry,null!,clear,null!,creatures!,null!,
-            null!,null!,null!,null!,null!,null!,null!,null!,null!,new DriverOutbox(sender),null!,TimeProvider.System,null!,null!,NullLogger<GameMonsterDeathCommandHandler>.Instance)
+        SelectedSessionSafety? safety)
     {
-        private IReadOnlyList<SelectedSessionRecipient> captured=[];
-        internal async ValueTask HandleAsync(NetworkDispatchContext dispatch,MonsterDeathRequest input,CancellationToken ct)
+        internal async ValueTask HandleAsync(NetworkDispatchContext dispatch, MonsterDeathRequest input, CancellationToken ct)
         {
-            try { await RunAsync(new(Guid.NewGuid(),typeof(GameMonsterDeathCommand),GetType()),dispatch,input,diagnostics.LabelProbe,ct); }
-            catch(Exception error) when(Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            var actor = selected.FindByConnection(dispatch.Connection.ConnectionId);
+            var run = actor is null ? null : runs.Find(actor.CharacterId);
+            var parties = recipients is not null ? ProtocolAlgorithmFixture.Field<IPartyService>(recipients)
+                : run is { Participants.Count: > 0 } ? new Dfo.Server.Protocol.Tests.Support.DungeonProjectionParty(run)
+                : ProtocolAlgorithmFixture.Default<IPartyService>();
+            var units = new DeathUnits(scope, fallback, selected, runs, registry, parties);
+            var handler = ProtocolAlgorithmFixture.Create<GameMonsterDeathCommandHandler>(selected, runs, registry, parties,
+                clear, service, creatures ?? ProtocolAlgorithmFixture.Create<Dfo.Server.Application.Creatures.CreatureRuntimeDomainService>(selected, scope),
+                ProtocolAlgorithmFixture.Field<IQuestQueryDomainService>(clearProjection),
+                new DeathUsers(selected, dispatch, safety), units, new DriverOutbox(sender));
+            var command = new GameMonsterDeathCommand(dispatch, input with { LabelProbe = diagnostics.LabelProbe });
+            try { _ = await handler.HandleAsync(Dfo.Server.Protocol.Tests.Support.ComponentContext.For(command, handler.GetType()), command, ct); }
+            catch (Exception error) when (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
             {
-                if(safety is not null) foreach(var recipient in captured) await safety.BlockAsync(recipient,error,nameof(DeathAlgorithmDriver));
+                if (safety is not null)
+                    foreach (var recipient in units.Captured) await safety.BlockAsync(recipient, error, nameof(DeathAlgorithmDriver));
                 throw;
             }
         }
-        protected override IReadOnlyList<SelectedSessionRecipient> CaptureDeathRecipients(IReadOnlyList<SelectedSessionIdentity> participants,NetworkDispatchContext dispatch,GameMessageMetadata metadata) =>
-            captured=participants.Select(x=>safety?.Capture(x,metadata)??new SelectedSessionRecipient(x,x.ConnectionId==dispatch.Connection.ConnectionId?dispatch.Connection:null,metadata)).ToArray();
-        protected override IReadOnlyList<SelectedSessionIdentity> FindRecipients(SelectedSessionIdentity actor,DungeonRunId id)=>recipients?.Find(actor,id)??registry.Find(id);
-        protected override async ValueTask<MonsterDeathSettlementResult> SettleDeathAsync(CommandExecutionContext unused,MonsterDeathSettlementRequest request,IReadOnlyList<SelectedSessionRecipient> captures,CancellationToken ct)
+    }
+    private sealed class DeathUsers(ISelectedSessionDomainService sessions, NetworkDispatchContext dispatch,
+        SelectedSessionSafety? safety) : Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService
+    {
+        public Dfo.Server.Data.OnlineUsers.OnlineUserSnapshot GetRequired(Dfo.Server.Data.OnlineUsers.OnlineUserId id) => throw new NotSupportedException();
+        public bool TryGetByConnection(NetworkConnectionId id, out Dfo.Server.Data.OnlineUsers.OnlineUserSnapshot? user)
         {
-            await using var tx=scope.Begin();var result=await TestEffectFootprints.Run(request.Participants,cap=>service.SettleAsync(request,cap,ct));await tx.CommitAsync(ct);return result;
+            var session = sessions.FindByConnection(id);
+            var connection = session is null ? null : safety is not null ? safety.Capture(session, null).Connection
+                : id == dispatch.Connection.ConnectionId ? dispatch.Connection : null;
+            user = session is null || connection is null ? null : new(Dfo.Server.Data.OnlineUsers.OnlineUserId.New(),
+                connection, session.AccountId, session.CharacterId, Dfo.Server.Data.OnlineUsers.OnlineUserState.CharacterActive,
+                session.ConnectionGeneration);
+            return user is not null;
         }
-        protected override ValueTask<ObjectDestructionResult> DestroyObjectAsync(CommandExecutionContext unused,SelectedSessionIdentity session,DungeonRunId run,long version,int code,IReadOnlyList<SelectedSessionIdentity> participants,CancellationToken ct)=>
-            fallback.SendAsync(new ObjectDestructionFacts(session,run,version,code,participants),ct);
-        protected override ValueTask<int> ProjectClearAsync(SelectedSessionIdentity actor,DungeonClearChange change,CancellationToken ct)=>clearProjection.DeliverAsync(actor,change,ct);
+    }
+    private sealed class DeathUnits(Dfo.Server.Application.Transactions.DomainTransactionScope scope, ICommandBus objectResults,
+        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, DungeonRunDeliveryRegistry registry,
+        IPartyService parties) : ICommandWorkUnits
+    {
+        internal IReadOnlyList<SelectedSessionRecipient> Captured { get; private set; } = [];
+        public async ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
+        {
+            if (declaration.Name == "destroy-dungeon-object" && typeof(T) == typeof(ObjectDestructionResult)
+                && context.Request is CommandRequestContext.ProtocolNonEffect { Message: MonsterDeathRequest { ObjectCode: { } code } } request)
+            {
+                var session = sessions.FindByConnection(request.Dispatch.Connection.ConnectionId)!;
+                var run = runs.Find(session.CharacterId)!;
+                var participants = run.PartyMemberCount > 1
+                    ? DungeonPartyRecipients.FindCurrent(parties, sessions, runs, registry, session, run.RunId) : [session];
+                return (T)(object)await objectResults.SendAsync(new ObjectDestructionFacts(session, run.RunId,
+                    run.RoomVersion, code, participants), ct);
+            }
+            if (declaration.Name != "settle-monster-death" || typeof(T) != typeof(MonsterDeathSettlementResult))
+                throw new NotSupportedException("Only the original death fixture transaction and object-result boundary are supplied.");
+            Captured = declaration.Participants;
+            await using var tx = scope.Begin();
+            var result = await TestEffectFootprints.Run(declaration.FootprintOwners!, async footprint =>
+            {
+                var unit = new CommandWorkUnit(scope.Current!, context.Request!, footprint);
+                try { return await action(unit, ct); }
+                finally { unit.Close(); }
+            });
+            await tx.CommitAsync(ct);
+            return result;
+        }
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
     }
     private sealed class RewardAdapter(ICommandBus bus) : IMonsterKillRewardsDomainService
     {
@@ -437,7 +492,7 @@ public sealed class MonsterDeathHandlerTests
                 run,
                 killRules,
                 new DungeonClearDomainService(run, killRules),
-                new DungeonClearProjectionDelivery(sessions, run, registry, sender),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -502,7 +557,7 @@ public sealed class MonsterDeathHandlerTests
             var handler = CreateHandler(sessions, new PartyRuntimeSessions([leader, member]),
                 new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
                 new DungeonClearDomainService(run, kills),
-                new DungeonClearProjectionDelivery(sessions, run, registry, sender), bus,
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender), bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
                     new RecordingQuestLogs(), CurrentCharacterStub.Domain()), registry, sender,
                 ExperienceDiagnostics.None, NullLogger<MonsterDeathHandler>.Instance);
@@ -581,7 +636,7 @@ public sealed class MonsterDeathHandlerTests
                 run,
                 killRules,
                 new DungeonClearDomainService(run, killRules),
-                new DungeonClearProjectionDelivery(sessions, run, registry, sender),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -635,7 +690,7 @@ public sealed class MonsterDeathHandlerTests
                 run,
                 killRules,
                 new DungeonClearDomainService(run, killRules),
-                new DungeonClearProjectionDelivery(sessions, run, registry, sender),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -747,7 +802,7 @@ public sealed class MonsterDeathHandlerTests
                 run,
                 killRules,
                 new DungeonClearDomainService(run, killRules),
-                new DungeonClearProjectionDelivery(sessions, run, registry, sender),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -905,7 +960,7 @@ public sealed class MonsterDeathHandlerTests
                 new PartyCharacters([leader.CharacterId, member.CharacterId]),
                 runs, killRules,
                 new DungeonClearDomainService(runs, killRules),
-                new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
@@ -978,7 +1033,7 @@ public sealed class MonsterDeathHandlerTests
                 runs,
                 killRules,
                 new DungeonClearDomainService(runs, killRules),
-                new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender),
                 new FixedKillAward(leveledUp: false),
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(),
@@ -1040,7 +1095,7 @@ public sealed class MonsterDeathHandlerTests
         await TestGameplay.RunAsync(provider, async () =>
         {
             var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
-                run,killRules,new DungeonClearDomainService(run,killRules),new DungeonClearProjectionDelivery(sessions,run,registry,sender),bus,
+                run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
                 registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
             await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
@@ -1081,7 +1136,7 @@ public sealed class MonsterDeathHandlerTests
         await outbound.RunFromAsync(leader.ConnectionId, async () =>
         {
             var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
-                run,killRules,new DungeonClearDomainService(run,killRules),new DungeonClearProjectionDelivery(sessions,run,registry,outbound.Game),bus,
+                run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, outbound.Game),bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
                 registry,outbound.Game,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default);
@@ -1159,7 +1214,7 @@ public sealed class MonsterDeathHandlerTests
             effectiveRun,
             effectiveKills,
             new DungeonClearDomainService(effectiveRun, effectiveKills),
-            new DungeonClearProjectionDelivery(sessions, effectiveRun, registry, sender),
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),

@@ -103,8 +103,8 @@ public sealed class WeeklyAttendanceHandler(ICommandBus commands) : ClientMessag
         _ = await commands.SendAsync(new GameWeeklyAttendanceCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection,
-    Dfo.Server.Abstractions.Characters.ICharacterDomainService? characters = null,
-    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService? quests = null) : INotificationHandler<EventsChanged>
+    Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
+    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService quests) : INotificationHandler<EventsChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
@@ -117,10 +117,10 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
             .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(joust) : []];
         if (notice.RefreshQuestOffers)
         {
-            var progress = await (characters ?? throw new InvalidOperationException("Character queries are unavailable."))
+            var progress = await characters
                 .Get(session.CharacterId).ProgressAsync(ct).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Character progression is unavailable.");
-            var offers = await (quests ?? throw new InvalidOperationException("Quest queries are unavailable."))
+            var offers = await quests
                 .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             messages.Add(new AvailableQuestListMessage(progress.Level, offers));
         }

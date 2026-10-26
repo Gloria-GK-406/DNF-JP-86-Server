@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Testing;
 using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
@@ -67,8 +69,16 @@ public sealed class InitialConnectionDeliveryFailureTests
             Outbound = new XoDelivery();
             Outbound.Connect(Connection);
             Context = Outbound.Context(Connection);
-            Observer = new OnlineUserConnectionObserver(Online, new SelectedSessionDomainService(state), new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoCleanup()),
-                new GeneralChannel(), new Config(), new LifecycleTestOutbox(Outbound.Game), new NoCleanupDelivery(), TimeProvider.System);
+            Observer = new OnlineUserConnectionObserver(Online,new SelectedSessionDomainService(state),new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoCleanup()),                new GeneralChannel(),new Config(),new LifecycleTestOutbox(Outbound.Game),new NoCleanupDelivery(),TimeProvider.System,clientSettings: ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<IClientSettingsDomainService>(),
+                (method, args) =>
+                {
+                    if (method.Name != nameof(IClientSettingsDomainService.ForgetConnection)) return (false, null);
+                    // No profile was activated by this connection-only fixture.
+                    var target = args[0] is NetworkConnectionId id ? id
+                        : Assert.IsType<Dfo.Server.Data.OnlineUsers.GameSessionIdentity>(args[0]).ConnectionId;
+                    Assert.Equal(Connection, target);
+                    return (true, null);
+                }));
         }
 
         public XoDelivery Outbound { get; }

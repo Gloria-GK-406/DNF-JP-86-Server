@@ -283,27 +283,6 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
     }
 }
 
-internal static class PartyTransitionExecution
-{
-    public static async ValueTask<PartyCommandExecution> RunPartyAsync(
-        ISelectedSessionDomainService sessions,
-        ITownAreaDomainService? townAreas,
-        Func<ValueTask<PartyOperationResult>> action)
-    {
-        var result = await action().ConfigureAwait(false);
-        return new PartyCommandExecution(
-            result,
-            PartyNotificationRecipientCapture.Capture(
-                result.Notifications,
-                sessions,
-                townAreas));
-    }
-}
-
-internal sealed record PartyCommandExecution(
-    PartyOperationResult Result,
-    PartyNotificationRecipientPlan Recipients);
-
 internal static class PartyCharacterProjection
 {
     public static bool TryCapture(

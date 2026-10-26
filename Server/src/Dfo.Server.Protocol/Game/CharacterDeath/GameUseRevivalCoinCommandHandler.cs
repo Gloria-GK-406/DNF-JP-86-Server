@@ -10,7 +10,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CharacterDeath;
-internal class GameUseRevivalCoinCommandHandler(ISelectedSessionDomainService sessions,
+internal sealed class GameUseRevivalCoinCommandHandler(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, IDungeonRunDomainService runs, IDungeonRunProjectionDomainService registry,
     IDungeonRevivalDomainService revival, ICommandWorkUnits units, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<GameUseRevivalCoinCommandHandler> logger, IBossTowerDomainService bossTower)
@@ -18,14 +18,14 @@ internal class GameUseRevivalCoinCommandHandler(ISelectedSessionDomainService se
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameUseRevivalCoinCommand command, CancellationToken token)
     {await RunAsync(execution,command.Dispatch,command.Input,token).ConfigureAwait(false);return true;}
-    protected ValueTask<DungeonRevivalResult> ReviveAsync(CommandExecutionContext execution,SelectedSessionIdentity payer,CharacterId target,DungeonRunId run,CancellationToken token) =>
+    internal ValueTask<DungeonRevivalResult> ReviveAsync(CommandExecutionContext execution,SelectedSessionIdentity payer,CharacterId target,DungeonRunId run,CancellationToken token) =>
         units.WriteAsync(execution,new("use-revival-coin",[]),(unit,ct)=>revival.ReviveAsync(payer,target,run,ct),token);
-    protected async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context,
+    private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context,
         UseRevivalCoinRequest message, CancellationToken cancellationToken)
     {
         var payer = sessions.FindByConnection(context.Connection.ConnectionId);
         if (payer is null) return;
-        if (bossTower?.Find(payer) is not null)
+        if (bossTower.Find(payer) is not null)
         {
             await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
             return;

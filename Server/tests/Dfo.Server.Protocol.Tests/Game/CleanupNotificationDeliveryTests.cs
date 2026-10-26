@@ -71,15 +71,10 @@ public sealed class CleanupNotificationDeliveryTests
             10011);
         await using var outbound = Outbound(Peer(9), partyMember, townObserver);
         var notifications = outbound.Projections;
-        var partyDelivery = new PartyNotificationDelivery(
-            notifications,
-            new PartyProjectionStreamRegistry(),
-            new FixedSelectedSessions(partyMember, townObserver),
-            new FixedPresence(partyMember, townObserver),
-            ordering: outbound.Ordering);
+        var partyDelivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(notifications, new PartyProjectionStreamRegistry(), new FixedSelectedSessions(partyMember, townObserver), new FixedPresence(partyMember, townObserver), outbound.Ordering);
 
         await outbound.RunAsync(async () =>
-        await new CleanupNotificationDelivery(outbound.Game, notifications, partyDelivery, outbound.Ordering).DeliverAsync(
+        await global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.StateSynchronization.CleanupNotificationDelivery>(outbound.Game, notifications, partyDelivery, outbound.Ordering).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
                 Owner,
                 [StoreClosed],
@@ -252,7 +247,7 @@ public sealed class CleanupNotificationDeliveryTests
     }
 
     private static CleanupNotificationDelivery Delivery(XoDelivery outbound) =>
-        new(outbound.Game, outbound.Projections, new PartyNotificationDelivery(outbound.Projections), outbound.Ordering);
+        global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.StateSynchronization.CleanupNotificationDelivery>(outbound.Game, outbound.Projections, global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(outbound.Projections), outbound.Ordering);
 
     /// <summary>What was registered, in registration order, as owner / peers / party.</summary>
     private static IReadOnlyList<string> Order(XoDelivery outbound) =>

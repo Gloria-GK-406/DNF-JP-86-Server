@@ -9,7 +9,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 namespace Dfo.Server.Protocol.Game.QuestProgress;
 
 internal sealed class QuestProgressViewChangedHandler(IQuestQueryDomainService quests,
-    ISelectedSessionDomainService sessions, IDungeonRunDomainService? runs = null) : INotificationHandler<QuestProgressViewChanged>
+    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs) : INotificationHandler<QuestProgressViewChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
         QuestProgressViewChanged notification, CancellationToken ct)

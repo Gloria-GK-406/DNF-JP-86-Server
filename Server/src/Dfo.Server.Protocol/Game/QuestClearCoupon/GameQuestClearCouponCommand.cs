@@ -36,7 +36,7 @@ public sealed class GameQuestClearCouponCommandHandler(
     ICharacterQuestLogDomainService questLogs, IQuestOfferRefreshDomainService offers,
     IItemUsageDomainService usage, TimeProvider clock,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
-    ILogger<GameQuestClearCouponCommandHandler> logger, IMirrorAradQuestDomainService? mirror = null)
+    ILogger<GameQuestClearCouponCommandHandler> logger, IMirrorAradQuestDomainService mirror)
     : ICommandHandler<GameQuestClearCouponCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameQuestClearCouponCommand command, CancellationToken ct)

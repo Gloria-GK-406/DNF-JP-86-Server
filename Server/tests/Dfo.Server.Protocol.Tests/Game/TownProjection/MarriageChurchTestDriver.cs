@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -19,17 +23,11 @@ internal static class MarriageChurchTestDriver
 {
     internal static WeddingChurchEnterHandler Create(ISelectedSessionDomainService sessions, IGameMessageSender sender,
         IOnlineCharacterRuntimeDomainService positions, ITownAreaDomainService areas, ISelectedCharacterCurrentViewDomainService views,
-        IEventService notifications, MarriageChurchRoom room) => new(new Driver(new Handler(sessions, sender, positions, areas, views, notifications, room)));
-    private sealed class Handler(ISelectedSessionDomainService sessions, IGameMessageSender sender,
+        IEventService notifications, MarriageChurchRoom room) => new(new Driver(CreateHandler(sessions, sender, positions, areas, views, notifications, room)));
+    private static GameMarriageCommandHandler CreateHandler(ISelectedSessionDomainService sessions, IGameMessageSender sender,
         IOnlineCharacterRuntimeDomainService positions, ITownAreaDomainService areas, ISelectedCharacterCurrentViewDomainService views,
         IEventService notifications, MarriageChurchRoom room)
-        : GameMarriageCommandHandler(sessions, null!, null!, null!, null!, null!, views, positions, areas,
-            SharedTownMovementDomainService.Instance, null!, new PartyProjectionStreamRegistry(), null!, new Units(room),
-            new LegacyCommandProjections(notifications), new Outbox(sender), TimeProvider.System, NullLogger<GameMarriageCommandHandler>.Instance)
-    {
-        protected override ValueTask PartyTownRefreshMovedPartyAsync(SelectedSessionIdentity actor, PartyDirectoryScope? scope, CancellationToken ct) => ValueTask.CompletedTask;
-        protected override ValueTask PartyTownRefreshObservedPartiesAsync(IReadOnlyList<SelectedSessionIdentity> actors, CancellationToken ct) => ValueTask.CompletedTask;
-    }
+        => new(sessions,ProtocolAlgorithmFixture.Default<IMarriageQueryDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageCoupleDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageVenueDomainService>(),ProtocolAlgorithmFixture.Default<IQuestOfferRefreshDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),views,positions,areas,            SharedTownMovementDomainService.Instance,ProtocolAlgorithmFixture.Default<IPartyService>(),new PartyProjectionStreamRegistry(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(sessions),new Units(room),            new LegacyCommandProjections(notifications),new Outbox(sender),TimeProvider.System,NullLogger<GameMarriageCommandHandler>.Instance,housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),housingSessions: ProtocolAlgorithmFixture.Default<IMarriageHousingSessionDomainService>(),ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>());
     private sealed class Driver(GameMarriageCommandHandler handler) : ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

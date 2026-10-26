@@ -1,3 +1,25 @@
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -36,8 +58,17 @@ public sealed record GameSelectCharacterCommand(NetworkDispatchContext Dispatch,
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandHandler, ICommandHandler<GameSelectCharacterCommand, bool>
+internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandler<GameSelectCharacterCommand, bool>
 {
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService projectionState;
+    private readonly ILogger logger;
+    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly TimeProvider clock;
+    private readonly IPartyService parties;
+
     private readonly IOnlineUserQueryDomainService users;
     private readonly IChannelEntryDomainService channels;
     private readonly ISelectedCharacterStateMessageFactory stateMessages;
@@ -55,16 +86,16 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
     private readonly IQuestHelperPuppetDomainService puppets;
     private readonly IMarriageHousingDomainService housingEntry;
     private readonly SelectCharacterDeliveryOptions delivery;
-    private readonly LotteryCounterExperimentOptions? lotteryCounterExperiment;
-    private readonly IWeaknessDomainService? weaknessState;
-    private readonly IItemUsageDomainService? itemUsage;
-    private readonly IUsageQuotaSnapshotDomainService? quotaSnapshots;
-    private readonly IClientSettingsDomainService? clientSettings;
-    private readonly ISaoTowerDomainService? sao;
-    private readonly ITauKingdomDomainService? tau;
-    private readonly ISouthernDaleDomainService? southern;
-    private readonly IBossTowerTicketDomainService? bossTickets;
-    private readonly IOutboundOrdering? ordering;
+    private readonly LotteryCounterExperimentOptions lotteryCounterExperiment;
+    private readonly IWeaknessDomainService weaknessState;
+    private readonly IItemUsageDomainService itemUsage;
+    private readonly IUsageQuotaSnapshotDomainService quotaSnapshots;
+    private readonly IClientSettingsDomainService clientSettings;
+    private readonly ISaoTowerDomainService sao;
+    private readonly ITauKingdomDomainService tau;
+    private readonly ISouthernDaleDomainService southern;
+    private readonly IBossTowerTicketDomainService bossTickets;
+    private readonly IOutboundOrdering ordering;
     public GameSelectCharacterCommandHandler(IOnlineUserQueryDomainService users, IChannelEntryDomainService channels,
         ISelectedCharacterStateMessageFactory stateMessages, ISelectedSessionDomainService selectedSessions,
         IGameCommandOutbox outbox, ICommandProjections projections, ICommandConnectionClosures closures,
@@ -74,14 +105,15 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
         IExpiredCharacterItemCleanupDomainService expiredItems, IQuestHelperPuppetDomainService puppets,
         IMarriageHousingDomainService housingEntry, IPartyService parties, IPartyProjectionStateDomainService projectionState,
         ITownAreaDomainService townAreas, ILogger<GameSelectCharacterCommandHandler> logger,
-        SelectCharacterDeliveryOptions delivery, TimeProvider clock, LotteryCounterExperimentOptions? lotteryCounterExperiment = null,
-        IWeaknessDomainService? weaknessState = null, IItemUsageDomainService? itemUsage = null,
-        IUsageQuotaSnapshotDomainService? quotaSnapshots = null, IClientSettingsDomainService? clientSettings = null,
-        ISaoTowerDomainService? sao = null, ITauKingdomDomainService? tau = null,
-        ISouthernDaleDomainService? southern = null, IBossTowerTicketDomainService? bossTickets = null,
-        IOutboundOrdering? ordering = null)
-        : base(selectedSessions, parties, townAreas, projections, projectionState.StreamOf, ordering, logger, clock: clock, register: outbox.RegisterExplicitAsync)
+        SelectCharacterDeliveryOptions delivery, TimeProvider clock, LotteryCounterExperimentOptions lotteryCounterExperiment,
+        IWeaknessDomainService weaknessState, IItemUsageDomainService itemUsage,
+        IUsageQuotaSnapshotDomainService quotaSnapshots, IClientSettingsDomainService clientSettings,
+        ISaoTowerDomainService sao, ITauKingdomDomainService tau,
+        ISouthernDaleDomainService southern, IBossTowerTicketDomainService bossTickets,
+        IOutboundOrdering ordering, IMarriageHousingQueryDomainService housing)
+
     {
+        this.sessions = selectedSessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.housing = housing; this.clock = clock; this.parties = parties;
         this.users=users; this.channels=channels; this.stateMessages=stateMessages; this.selectedSessions=selectedSessions;
         this.outbox=outbox; this.closures=closures; this.cleanup=cleanup; this.units=units; this.preparation=preparation;
         this.inventoryEntry=inventoryEntry; this.sessionEntry=sessionEntry; this.questEntry=questEntry; this.petEntry=petEntry;
@@ -309,16 +341,12 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
         EnsureCurrent(session);
         // Selection can straddle 06:00 while the scheduled snapshot sees it as unpublished.
         // Recheck the current period after publication using the same durable ticket claim.
-        if (tau is not null)
             await RefillTauAsync(execution, session, cancellationToken)
                 .ConfigureAwait(false);
-        if (southern is not null)
             await RefillSouthernAsync(execution, session, cancellationToken)
                 .ConfigureAwait(false);
-        if (bossTickets is not null)
             await RefillBossAsync(execution, session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (clientSettings is not null)
         {
             if (!users.TryGetByConnection(session.ConnectionId, out var current) || current is null)
                 throw new InvalidOperationException("Selected hotkey profile has no current connection.");
@@ -396,7 +424,7 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
                 cancellationToken).ConfigureAwait(false);
         }
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && weaknessState is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             await ProjectWeaknessAsync(session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker)
@@ -405,35 +433,35 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
                     prepared.CharacterEntry.Progression.PremiumUsageSlots, prepared.World.PreparedAt)], []),
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && itemUsage is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             await ProjectItemUsageAsync(execution, session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DimensionDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.DespairTower,
                 cancellationToken).ConfigureAwait(false);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.AltarDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
                 cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && quotaSnapshots is not null)
+        if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.GoldSilverHorn, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
-        if (SendsFramesAfterTheCompletionMarker && sao is not null
+        if (SendsFramesAfterTheCompletionMarker
             && await sao.ReadStatusAsync(cancellationToken).ConfigureAwait(false) is { } saoProgress)
             await outbox.RegisterExplicitAsync(session.ConnectionId,
                 new GameExplicitMessageDelivery([new SaoCurrentFloorNotification(saoProgress)], []), cancellationToken).ConfigureAwait(false);
@@ -512,7 +540,7 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
     }
 
 
-    protected virtual ValueTask<PreparedSelectedCharacterSession> PrepareSessionAsync(CommandExecutionContext execution,
+    private ValueTask<PreparedSelectedCharacterSession> PrepareSessionAsync(CommandExecutionContext execution,
         Dfo.Server.Data.Accounts.AccountId accountId, ushort rosterIndex, ChannelEntryIdentity channel,
         NetworkConnectionId connectionId, long generation, CancellationToken cancellationToken) =>
         units.WriteAsync(execution, new("PrepareSelectedCharacterSession", []), (unit, token) =>
@@ -620,20 +648,20 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
                 error, pendingCloses, cleanupNotifications);
         }
     }
-    protected internal virtual ValueTask<bool> CleanupExpiredAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
+    internal ValueTask<bool> CleanupExpiredAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
         Action<Exception> failed, CancellationToken ct) => units.WriteAsync(execution, new("CleanupExpiredCharacterItems", []), async (_, token) =>
         {
             try { return (await expiredItems.CleanupAsync(session.AccountId, session.CharacterId, token).ConfigureAwait(false)).Owned; }
             catch (Exception error) { failed(error); throw; }
         }, ct);
-    protected virtual ValueTask<bool> EnsurePuppetsAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
+    private ValueTask<bool> EnsurePuppetsAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
         units.WriteAsync(execution, new("EnsureDailyContractPuppets", []), (_, token) =>
         {
             if (!selectedSessions.IsSelected(session))
                 throw new InvalidOperationException("Selected session changed before puppet delivery.");
             return puppets.EnsureDailyAsync(session.AccountId, session.CharacterId, token);
         }, ct);
-    protected virtual ValueTask<bool> InitializeHousingAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
+    private ValueTask<bool> InitializeHousingAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
         units.WriteAsync(execution, new("InitializeHousing", []), async (_, token) =>
         {
             return await InitializeHousingStageAsync(selectedSessions, housingEntry, session, token).ConfigureAwait(false);
@@ -645,7 +673,7 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
         await housing.InitializeAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         return true;
     }
-    protected internal virtual ValueTask<SelectCharacterResult> PrepareStateAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
+    internal ValueTask<SelectCharacterResult> PrepareStateAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
         ActiveCharacterState selected, ChannelEntryIdentity channel, CancellationToken ct) =>
         units.WriteAsync(execution, new("PrepareSelectedCharacterState", []), async (_, token) =>
         {
@@ -653,10 +681,10 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
             result = await preparation.PlaceAtSpawnAsync(session, result, token).ConfigureAwait(false);
             return await inventoryEntry.PrepareLeaseAsync(session, result, token).ConfigureAwait(false);
         }, ct);
-    protected internal virtual ValueTask<EntryInventoryPreparation> DailyRefillAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
+    internal ValueTask<EntryInventoryPreparation> DailyRefillAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
         SelectCharacterResult prepared, CancellationToken ct) => units.WriteAsync(execution, new("ApplySelectedCharacterDailyRefill", []),
             (_, token) => inventoryEntry.ApplyDailyRefillAsync(session, prepared, token), ct);
-    protected internal virtual async ValueTask<PublishedSelectedCharacterSession> PublishAsync(SelectedSessionIdentity session,
+    internal async ValueTask<PublishedSelectedCharacterSession> PublishAsync(SelectedSessionIdentity session,
         SelectCharacterResult prepared, CancellationToken ct)
     {
         selectedSessions.EnterWorld(session);
@@ -671,13 +699,13 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
         var connection = users.TryGetByConnection(session.ConnectionId, out var user) ? user?.Connection : null;
         return new(session, connection, ((ProtocolFrameMetadata.Game)request.Metadata).Value);
     }
-    protected virtual ValueTask<bool> RefillTauAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
-        units.WriteAsync(execution, new("RefillOnlineTauTicket", [TicketRecipient(execution, session)]), (_, token) => tau!.RefillOnlineTicketAsync(session, token), ct);
-    protected virtual ValueTask<bool> RefillSouthernAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
-        units.WriteAsync(execution, new("RefillOnlineSouthernTicket", [TicketRecipient(execution, session)]), (_, token) => southern!.RefillOnlineTicketAsync(session, token), ct);
-    protected virtual ValueTask<bool> RefillBossAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
-        units.WriteAsync(execution, new("RefillOnlineBossTowerTicket", [TicketRecipient(execution, session)]), (_, token) => bossTickets!.RefillOnlineTicketAsync(session, token), ct);
-    protected virtual ValueTask<bool> ActivateHotkeysAsync(CommandExecutionContext execution, ClientSettingsOrigin origin, byte keyType, CancellationToken ct)
+    private ValueTask<bool> RefillTauAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
+        units.WriteAsync(execution, new("RefillOnlineTauTicket", [TicketRecipient(execution, session)]), (_, token) => tau.RefillOnlineTicketAsync(session, token), ct);
+    private ValueTask<bool> RefillSouthernAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
+        units.WriteAsync(execution, new("RefillOnlineSouthernTicket", [TicketRecipient(execution, session)]), (_, token) => southern.RefillOnlineTicketAsync(session, token), ct);
+    private ValueTask<bool> RefillBossAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
+        units.WriteAsync(execution, new("RefillOnlineBossTowerTicket", [TicketRecipient(execution, session)]), (_, token) => bossTickets.RefillOnlineTicketAsync(session, token), ct);
+    private ValueTask<bool> ActivateHotkeysAsync(CommandExecutionContext execution, ClientSettingsOrigin origin, byte keyType, CancellationToken ct)
     {
         execution.Request!.DemandCurrent();
         if (origin.SelectedSession is { } session)
@@ -688,59 +716,59 @@ internal class GameSelectCharacterCommandHandler : PartyMutationProtocolCommandH
                 && (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId))
                 throw new InvalidOperationException("The recipient connection no longer owns the selected character.");
         }
-        return ValueTask.FromResult(clientSettings!.ActivateHotkeyProfile(origin, keyType));
+        return ValueTask.FromResult(clientSettings.ActivateHotkeyProfile(origin, keyType));
     }
-    protected internal virtual ValueTask<SelectedCharacterPvpPublication> MarkPvpReadyAsync(SelectedSessionIdentity session, SelectCharacterResult prepared, CancellationToken ct)
+    internal ValueTask<SelectedCharacterPvpPublication> MarkPvpReadyAsync(SelectedSessionIdentity session, SelectCharacterResult prepared, CancellationToken ct)
     {
         var publication = sessionEntry.PlanPvpPublication(session, prepared);
         sessionEntry.MarkPvpReady(session, prepared);
         return ValueTask.FromResult(new SelectedCharacterPvpPublication(publication));
     }
-    protected internal virtual ValueTask<SynchronizedSelectedCharacterQuests> SynchronizeQuestsAsync(CommandExecutionContext execution,
+    internal ValueTask<SynchronizedSelectedCharacterQuests> SynchronizeQuestsAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, SelectCharacterResult prepared, CancellationToken ct) =>
         units.WriteAsync(execution, new("SynchronizeSelectedCharacterQuests", []), async (_, token) =>
             new SynchronizedSelectedCharacterQuests(await questEntry.SynchronizeAsync(session, prepared, token).ConfigureAwait(false)), ct);
-    protected internal virtual ValueTask<RevivedSelectedCharacterPet> RevivePetAsync(CommandExecutionContext execution,
+    internal ValueTask<RevivedSelectedCharacterPet> RevivePetAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, SelectCharacterResult prepared, CancellationToken ct) =>
         units.WriteAsync(execution, new("ReviveSelectedCharacterPet", []), async (_, token) =>
             new RevivedSelectedCharacterPet(await petEntry.ReviveAsync(session, prepared, token).ConfigureAwait(false)), ct);
-    protected internal virtual async ValueTask<SelectedSessionCleanupNotificationPlan> CompensateAsync(CommandExecutionContext execution,
+    internal async ValueTask<SelectedSessionCleanupNotificationPlan> CompensateAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, CancellationToken ct)
     {
         try { return await cleanup.CleanupAsync(execution, session, includeOwner: true, cancellationToken: ct).ConfigureAwait(false); }
         finally { selectedSessions.ReleaseExact(session); }
     }
-    protected virtual async ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct)
+    private async ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct)
     {
-        using var order = ordering?.Begin("XO-5 session cleanup",
+        using var order = ordering.Begin("XO-5 session cleanup",
             plan.RequiredOwnerNotices.Count > 0 ? OutboundDelivery.Required : OutboundDelivery.BestEffort);
         if (plan.RequiredOwnerNotices.Count > 0)
             await outbox.RegisterExplicitAsync(plan.OwnerConnectionId,
                 new([.. plan.RequiredOwnerNotices.Select(CleanupNoticeMessages.ToMessage)], []), ct).ConfigureAwait(false);
-        if (order is not null) order.Delivery = OutboundDelivery.BestEffort;
+        order.Delivery = OutboundDelivery.BestEffort;
         if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
             await projections.ProjectAsync(new NotificationAudience.TheseSessions(plan.PeerAudience), new SessionCleanupAnnounced(plan.PeerNotices), ct).ConfigureAwait(false);
-        await DeliverPartyNotificationsAsync(plan.PartyNotifications, plan.PartyRecipients, ct).ConfigureAwait(false);
+        await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering, plan.PartyNotifications, plan.PartyRecipients, ct).ConfigureAwait(false);
     }
-    protected virtual async ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity session, TownParticipantPublicationPlan publication, CancellationToken ct)
+    private async ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity session, TownParticipantPublicationPlan publication, CancellationToken ct)
     {
         if (!selectedSessions.IsInWorld(session)) return;
         await outbox.RegisterExplicitAsync(session.ConnectionId, new(TownPresenceMessages.ForNewcomer(publication.State), []), ct).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session)) return;
-        await PartyTownRefreshObservedPartiesAsync([session], ct).ConfigureAwait(false);
+        await PartyTownProjection.PartyTownRefreshObservedPartiesAsync(townAreas, projections, projectionState, parties, [session], ct).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session)) return;
         var registered = await PartyExactNotificationDelivery.PublishWithRetryAsync(projections, publication.Audience,
             new TownParticipantPublished(publication.State), ct).ConfigureAwait(false);
         if (!registered.Registered.IsEmpty)
-            await PartyTownRefreshObservedPartiesAsync(registered.Registered, ct).ConfigureAwait(false);
+            await PartyTownProjection.PartyTownRefreshObservedPartiesAsync(townAreas, projections, projectionState, parties, registered.Registered, ct).ConfigureAwait(false);
     }
     private ValueTask ProjectWeaknessAsync(SelectedSessionIdentity session, CancellationToken ct) => selectedSessions.IsInWorld(session)
-        ? outbox.RegisterNotiAsync(session.ConnectionId, new Weakness.WeaknessProjectionNotification(weaknessState!.For(session.CharacterId).Value), ct)
+        ? outbox.RegisterNotiAsync(session.ConnectionId, new Weakness.WeaknessProjectionNotification(weaknessState.For(session.CharacterId).Value), ct)
         : ValueTask.CompletedTask;
     private async ValueTask ProjectItemUsageAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct)
     {
         var snapshot = await units.ReadOnlyAsync(execution, new("ReadItemUsageSnapshot", []),
-            token => ItemUsageSnapshotReader.ReadAsync(itemUsage!, selectedSessions, clock, session, token), ct).ConfigureAwait(false);
+            token => ItemUsageSnapshotReader.ReadAsync(itemUsage, selectedSessions, clock, session, token), ct).ConfigureAwait(false);
         if (!snapshot.IsCurrent || !selectedSessions.IsInWorld(session)) return;
         var messages = ItemUsageCountMessage.FullSnapshot(snapshot.Items).Cast<IGameNotiMessage>()
             .Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At));

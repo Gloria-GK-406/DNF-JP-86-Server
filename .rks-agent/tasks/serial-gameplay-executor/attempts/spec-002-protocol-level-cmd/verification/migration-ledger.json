@@ -8186,7 +8186,6 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -8206,7 +8205,6 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
         "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -8245,7 +8243,6 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -8260,7 +8257,6 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -8276,7 +8272,6 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -9436,7 +9431,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9458,7 +9454,8 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
         "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9496,7 +9493,8 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
           "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9512,7 +9510,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9530,7 +9529,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9759,7 +9759,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9781,7 +9782,8 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
         "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9819,7 +9821,8 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
           "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9835,7 +9838,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9853,7 +9857,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9875,7 +9880,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9897,7 +9903,8 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
         "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9935,7 +9942,8 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
           "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9951,7 +9959,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -9969,7 +9978,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -11787,8 +11797,10 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11802,14 +11814,16 @@
       "classification": "legacy-command",
       "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "kind": "application-service",
-        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs"
       },
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11845,8 +11859,10 @@
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11860,8 +11876,10 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11877,8 +11895,10 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11898,8 +11918,10 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11913,14 +11935,16 @@
       "classification": "legacy-command",
       "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "kind": "application-service",
-        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs"
       },
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11956,8 +11980,10 @@
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11971,8 +11997,10 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -11988,8 +12016,10 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -15610,7 +15640,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -15662,7 +15692,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -15679,7 +15709,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
           ],
@@ -15696,7 +15726,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
@@ -15731,7 +15761,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
           ],
           "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
@@ -15741,7 +15771,7 @@
       "participants": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
           ],
@@ -15753,7 +15783,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
@@ -15786,7 +15816,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -15838,7 +15868,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -15855,7 +15885,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
           ],
@@ -15872,7 +15902,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
@@ -15907,7 +15937,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
           ],
           "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
@@ -15917,7 +15947,7 @@
       "participants": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
           ],
@@ -15929,7 +15959,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
@@ -15962,7 +15992,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -16014,7 +16044,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -16046,7 +16076,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -16098,7 +16128,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -16115,7 +16145,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
           ],
@@ -16132,7 +16162,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
@@ -16167,7 +16197,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
           ],
           "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
@@ -16177,7 +16207,7 @@
       "participants": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
           ],
@@ -16189,7 +16219,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
@@ -17191,7 +17221,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -17213,7 +17243,7 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -17252,7 +17282,7 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -17268,7 +17298,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -17286,7 +17316,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -20069,8 +20099,11 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20084,14 +20117,17 @@
       "classification": "legacy-command",
       "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "kind": "application-service",
-        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
+        "kind": "internal-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs"
       },
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20127,8 +20163,11 @@
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.Stages.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20142,8 +20181,11 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20159,8 +20201,11 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20574,8 +20619,9 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20589,14 +20635,15 @@
       "classification": "legacy-command",
       "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "kind": "application-service",
-        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs"
       },
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20632,8 +20679,9 @@
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20647,8 +20695,9 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20664,8 +20713,9 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20685,8 +20735,9 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20700,14 +20751,15 @@
       "classification": "legacy-command",
       "completion_task": ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-57.md",
       "destination": {
-        "kind": "application-service",
-        "location": "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs"
+        "kind": "protocol-cmd",
+        "location": "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs"
       },
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20743,8 +20795,9 @@
         "evidence": [
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
           ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+          "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20758,8 +20811,9 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -20775,8 +20829,9 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.Stages.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -22954,7 +23009,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -23002,7 +23057,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -23658,7 +23713,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -23706,7 +23761,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -23754,7 +23809,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -23802,7 +23857,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -23850,7 +23905,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -23898,7 +23953,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -23930,7 +23985,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
           ],
@@ -23948,7 +24003,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
@@ -23979,7 +24034,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
           ],
           "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
@@ -23989,7 +24044,7 @@
       "participants": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
           ],
@@ -24001,7 +24056,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
@@ -24034,7 +24089,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
           ],
@@ -24052,7 +24107,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
@@ -24083,7 +24138,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
           ],
           "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
@@ -24093,7 +24148,7 @@
       "participants": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
           ],
@@ -24105,7 +24160,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
@@ -24141,7 +24196,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -24164,7 +24219,7 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -24199,7 +24254,7 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -24215,7 +24270,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -24233,7 +24288,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -24264,7 +24319,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -24287,7 +24343,8 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
         "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -24321,7 +24378,8 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
           "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -24337,7 +24395,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -24355,7 +24414,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -26221,7 +26281,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "无新工作单元；原内存动作和单NOTI登记保持。",
@@ -26239,7 +26299,7 @@
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
       ],
       "id": "message:65571",
@@ -26268,7 +26328,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "薄handler只入队本消息唯一CMD；共享Town/Party阶段在CMD partial，未迁调用方经窄适配复用同算法。",
@@ -26280,7 +26340,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "空Participants且无footprint，不新增选中session围栏。",
@@ -26292,7 +26352,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "原精确guard和失败不发布位置保持；F109只删无语义参数、保真实收件人顺序；Area提交后默认失败见VC-B10，仍空selected。",
@@ -26311,7 +26371,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "每个实际持久写对应ordinary Write([])；101目的跳过无意义单元，原先提交后记内存顺序保持。",
@@ -26329,7 +26389,7 @@
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
       ],
       "id": "message:65572",
@@ -26358,7 +26418,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "薄handler只入队本消息唯一CMD；共享Town/Party阶段在CMD partial，未迁调用方经窄适配复用同算法。",
@@ -26370,7 +26430,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "空Participants且无footprint，不新增选中session围栏。",
@@ -26382,7 +26442,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/TownMovementProtocolCommandFlowTests.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownMovementProjection.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-41.md"
           ],
           "new": "原精确guard和失败不发布位置保持；F109只删无语义参数、保真实收件人顺序；Area提交后默认失败见VC-B10，仍空selected。",
@@ -29409,7 +29469,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
           ],
@@ -29427,7 +29487,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-39.md"
@@ -29458,7 +29518,7 @@
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonClear/DungeonClearSlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationLegacyDeparture.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/ProtocolModule.cs"
           ],
           "new": "薄 handler 只发唯一 whole CMD；共享 CMD 阶段拥有协调、投影和返城。未迁 GiveUp／塔投影经窄适配共用同一算法及原状态所有者。三个 fine 类型、注册和源码／测试引用删除；仍有生产消费者的塔 fine 保持 pending。",
@@ -29468,7 +29528,7 @@
       "participants": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs"
           ],
@@ -29480,7 +29540,7 @@
         {
           "evidence": [
             "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/GamePartyMutationCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/PartyTowerFootprintBoundaryTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Transactions/DeclaredNonRequestFootprintTests.cs",
             "Server/src/Dfo.Server.Protocol/Game/Party/BossTowerPartyCommandCoordination.cs",
@@ -29667,7 +29727,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -29690,7 +29750,7 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -29725,7 +29785,7 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -29741,7 +29801,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -29759,7 +29819,7 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -30246,7 +30306,7 @@
       },
       "evidence": [
         "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
         "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-38.md"
       ],
@@ -30294,7 +30354,7 @@
       "protection_locations": [
         {
           "evidence": [
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommandProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/PartyNotificationStages.cs",
             "Server/tests/Dfo.Server.Networking.Tests/Integration/PartyEstablishmentWireTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/Party/PartyCommandHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Execution/GameplayWriteEntryTableTests.cs"
@@ -36519,7 +36579,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -36542,7 +36603,8 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+        "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
         "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -36576,7 +36638,8 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+          "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+          "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
           "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -36592,7 +36655,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -36610,7 +36674,8 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/DungeonEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/BossEntryCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/IllusionEntryCommandPhases.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/Party/TownDepartureProjection.cs",
+            "Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommandHandler.Stages.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonEntryFailureBoundaryTests.cs",
             "Server/tests/Dfo.Server.Protocol.Tests/Game/DungeonEntry/PartySelectDungeonHandlerTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/IllusionTowerPublicFlowTests.cs"
@@ -37255,7 +37320,6 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -37276,7 +37340,6 @@
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
         "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
         "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -37311,7 +37374,6 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -37326,7 +37388,6 @@
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
           "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
           "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-          "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
           "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
           "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -37342,7 +37403,6 @@
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/DungeonSelection/DungeonSelectionCommandPhases.cs",
             "Server/src/Dfo.Server.Protocol/Game/CycleDungeonEntry/CycleDungeonEntrySlice.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
             "Server/tests/Dfo.Server.Application.Tests/Quests/CyclePreparationWireTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/Inventory/DungeonSelectionProtocolFlowTests.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/DungeonSelectionTowerBoundaryTests.cs",
@@ -42280,8 +42340,7 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42304,8 +42363,7 @@
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42419,8 +42477,7 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42439,8 +42496,7 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42780,8 +42836,7 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42804,8 +42859,7 @@
       "evidence": [
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
         ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-        "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-        "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+        "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
         "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
         "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42915,8 +42969,7 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",
@@ -42935,8 +42988,7 @@
           "evidence": [
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-verification.md",
             ".rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/task57-old-preparation.md",
-            "Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationCommandUnits.cs",
-            "Server/src/Dfo.Server.Protocol/Game/Party/TowerReturnCommandPhases.cs",
+            "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommandHandler.Stages.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnCommands.cs",
             "Server/src/Dfo.Server.Protocol/Game/TowerReturnSweepSources.cs",
             "Server/tests/Dfo.Server.Application.Tests/World/TowerReturnSourceCharacterizationTests.cs",

@@ -36,7 +36,7 @@ internal sealed partial class TowerReturnCommandHandler
             var cohort = AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId);
             if (cohort.Count == 0) return;
             Exception? rejected = null;
-            var write = await workUnits!.WriteResultAsync(context, new("altar.wipe", ProtectedParticipants(cohort, cohort[0])), async (unit, ct) =>
+            var write = await workUnits.WriteResultAsync(context, new("altar.wipe", ProtectedParticipants(cohort, cohort[0])), async (unit, ct) =>
             {
                 try { return new Altar.AltarCommandResult(await wipeAltars.FailAsync(runId, ct).ConfigureAwait(false)); }
                 catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
@@ -57,7 +57,7 @@ internal sealed partial class TowerReturnCommandHandler
             var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
             if (session is null || wipeTournaments.Find(session.CharacterId) is not { IsFinished: false }) return;
             Exception? rejected = null;
-            var write = await workUnits!.WriteResultAsync(context, new("tournament.wipe", [CaptureParticipant(session)]), async (unit, ct) =>
+            var write = await workUnits.WriteResultAsync(context, new("tournament.wipe", [CaptureParticipant(session)]), async (unit, ct) =>
             {
                 try { return new TournamentCommandResult(await wipeTournaments.EliminateAsync(session, runId, ct).ConfigureAwait(false)); }
                 catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
@@ -67,7 +67,7 @@ internal sealed partial class TowerReturnCommandHandler
             if (rejected is not null) { logger.LogError(rejected, "Party wipe return failed run={RunId}", runId); return; }
             var action = ((CommandWriteResult<TournamentCommandResult>.Returned)write).Value.Action;
             if (action is not null && sessions.IsInWorld(session))
-                await register(session.ConnectionId, new(TournamentCompletionFrames.CompletionFrames(action, wipeSlots, clock), []), token).ConfigureAwait(false);
+                await outbox.RegisterExplicitAsync(session.ConnectionId, new(TournamentCompletionFrames.CompletionFrames(action, wipeSlots, clock), []), token).ConfigureAwait(false);
             return;
         }
         var entries = new List<TownAreaEntry>();

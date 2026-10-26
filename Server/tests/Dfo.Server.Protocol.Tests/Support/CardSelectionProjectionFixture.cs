@@ -9,6 +9,8 @@ namespace Dfo.Server.Protocol.Tests.Support;
 internal sealed class CardSelectionProjectionFixture(ISelectedSessionDomainService sessions,IDungeonRunDomainService runs,
     DungeonRunDeliveryRegistry deliveries,IGameMessageSender sender,DungeonPartyRecipients? parties=null)
 {
+    internal DungeonRunDeliveryRegistry Deliveries => deliveries;
+    internal DungeonPartyRecipients? Parties => parties;
     internal async ValueTask<int> DeliverAsync(SelectedSessionIdentity actor,SelectCardResult result,DateTimeOffset at,CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(result);

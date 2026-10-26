@@ -1,3 +1,4 @@
+
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -132,9 +133,15 @@ public sealed class PartyCommandHandlerTests
                 [
                     "invite:1->2:64",
                     "accept:2<-1",
+                    "query:2", // Boss and illusion domains each capture current party facts.
+                    "query:2",
                     "leave:2",
                     "query:1",
+                    "query:1",
+                    "query:1",
                     "lead:1->2",
+                    "query:1",
+                    "query:1",
                     "query:1",
                     "remove:1->2",
                     "query:1",
@@ -252,7 +259,7 @@ public sealed class PartyCommandHandlerTests
                     CancellationToken.None);
 
             Assert.IsType<GameRemovePartyMemberCommand>(Assert.Single(commands.Commands));
-            Assert.Equal(["query:1"], parties.Writes);
+            Assert.Equal(["query:1", "query:1", "query:1"], parties.Writes);
             Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
         });
     }
@@ -610,7 +617,8 @@ public sealed class PartyCommandHandlerTests
         private ISelectedSessionDomainService? Sessions { get; } = sessions;
         private ITownAreaDomainService? Town { get; } = town;
         public static implicit operator PartyNotificationDelivery(TestProjection value) =>
-            new(value.Events, value.Streams, value.Sessions, value.Town);
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<PartyNotificationDelivery>(
+                value.Events, value.Streams, value.Sessions, value.Town);
     }
 
     private sealed class DirectBus<T>(ICommandHandler<T, bool> handler, RecordingCommandBus? recording = null) : ICommandBus
@@ -644,31 +652,23 @@ public sealed class PartyCommandHandlerTests
 
     private static SetUdpIpPortHandler DriveSetUdpIpPort(IOnlineUserQueryDomainService online,
         IGameSessionEndpointDomainService endpoints, ILogger<SetUdpIpPortHandler> _) =>
-        new(new DirectBus<GameSetUdpIpPortCommand>(new GameSetUdpIpPortCommandHandler(online, endpoints, NullLogger<GameSetUdpIpPortCommandHandler>.Instance)));
+        new(new DirectBus<GameSetUdpIpPortCommand>(new GameSetUdpIpPortCommandHandler(online,endpoints,NullLogger<GameSetUdpIpPortCommandHandler>.Instance)));
 
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
-        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,
-            town, commands.Domain, new FixedPartyMemberStatus(), new LegacyCommandProjections(projection.Events), projection.Streams,
-            null!, NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new LegacyCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
 
     private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
-        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,
-            town, commands.Domain, new LegacyCommandProjections(projection.Events), projection.Streams,
-            null!, NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new LegacyCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
 
     private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
-        new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,
-            town, commands.Domain, new LegacyCommandProjections(projection.Events), projection.Streams,
-            null!, NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
+        new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,            town,commands.Domain,new LegacyCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
 
     private static CallPartyMemberRealtimeInfoHandler DriveCallPartyMemberRealtimeInfo(ISelectedSessionDomainService sessions,
         RecordingCommandBus commands, TestProjection projection, ILogger<CallPartyMemberRealtimeInfoHandler> _) =>
-        new(new DirectBus<GameCallPartyMemberRealtimeInfoCommand>(new GameCallPartyMemberRealtimeInfoCommandHandler(sessions,
-            commands.Domain, new LegacyCommandProjections(projection.Events), projection.Streams,
-            null!, NullLogger<GameCallPartyMemberRealtimeInfoCommandHandler>.Instance), commands));
+        new(new DirectBus<GameCallPartyMemberRealtimeInfoCommand>(new GameCallPartyMemberRealtimeInfoCommandHandler(sessions,            commands.Domain,new LegacyCommandProjections(projection.Events),projection.Streams,            NullLogger<GameCallPartyMemberRealtimeInfoCommandHandler>.Instance), commands));
 
     private static SessionEndpoint Endpoint() => new(
         5,

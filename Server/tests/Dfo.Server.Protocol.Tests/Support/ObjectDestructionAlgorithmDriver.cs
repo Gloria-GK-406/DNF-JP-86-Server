@@ -1,3 +1,10 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
@@ -17,9 +24,11 @@ internal sealed record ObjectDestructionFacts(SelectedSessionIdentity Session,Du
 // They do not emulate a production work unit or its request scope.
 internal sealed class ObjectDestructionAlgorithmDriver(IDungeonRunDomainService runs,ISelectedSessionDomainService sessions,
     ICharacterQuestLogDomainService logs,ICharacterContainerDomainService containers,IItemDeliveryDomainService items,
-    IQuestProgressDomainService progress) : GameMonsterDeathCommandHandler(sessions,runs,null!,null!,null!,null!,null!,null!,
-        logs,containers,items,progress,null!,null!,null!,null!,null!,new Dfo.Server.Protocol.Tests.Game.MonsterDeath.DriverOutbox(null!),null!,TimeProvider.System,null!,null!,NullLogger<GameMonsterDeathCommandHandler>.Instance)
+    IQuestProgressDomainService progress)
 {
+    private readonly GameMonsterDeathCommandHandler command = ProtocolAlgorithmFixture.Create<GameMonsterDeathCommandHandler>(
+        sessions, runs, logs, containers, items, progress, new NoProjectionOutbox());
+
     internal ValueTask<ObjectDestructionResult> HandleAsync(CommandExecutionContext unused,ObjectDestructionFacts input,CancellationToken ct)=>
-        DestroyObjectAsync(input.Session,input.RunId,input.RoomVersion,input.ObjectCode,input.Recipients,ct);
+        command.DestroyObjectAsync(input.Session,input.RunId,input.RoomVersion,input.ObjectCode,input.Recipients,ct);
 }

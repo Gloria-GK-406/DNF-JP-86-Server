@@ -256,28 +256,16 @@ public sealed class TownProjectionHandlerTests
             var sender = new RecordingSender(order);
             var notifications = new RecordingNotifications(order);
             var partyProjection = new RecordingPartyTownProjectionDelivery(order);
-            var handler = TownMovementTestDriver.Area(
-                sessions,
-                currentViews,
-                positions,
-                presence,
-                new OneChannel(),
-                new EveryTownDeclared(),
-                new TownMovementTestDriver.ProjectionInput(
-                    presence,
-                    sessions,
-                    currentViews,
-                    notifications,
-                    partyProjection,
-                    sender,
-                    new EveryTownDeclared()),
-                NullLogger<SetUserAreaHandler>.Instance, new RecordingPersistence());
-
-            await handler.HandleAsync(
-                Dispatch(),
-                new SetUserAreaRequest(
-                    GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
-                CancellationToken.None);
+            // This observation starts at the town-transfer protocol stage. Business crossing
+            // remains covered through the real CMD in the other area-change cases above.
+            var previous = ((ITownAreaDomainService)presence).Find(Identity.CharacterId)!;
+            var moved = positions.CrossInto(Identity, CrossedTownId, CrossedAreaId, CrossedX, CrossedY);
+            await TownMovementProjection.TownTransferAsync(
+                sessions, presence, new LegacyCommandProjections(notifications), partyProjection,
+                currentViews, Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
+                new Dfo.Server.Testing.ProtocolAlgorithmFixture.Outbox(sender),
+                Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(),
+                Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, 10, moved, previous, true, CancellationToken.None);
 
             Assert.Collection(
                 notifications.Published,

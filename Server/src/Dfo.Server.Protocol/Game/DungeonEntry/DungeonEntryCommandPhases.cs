@@ -21,9 +21,9 @@ using Dfo.Server.Protocol.Game.Party;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
 
-internal partial class GameSelectDungeonCommandHandler
+internal sealed partial class GameSelectDungeonCommandHandler
 {
-    protected async ValueTask EnterOrdinaryAsync(
+    private async ValueTask EnterOrdinaryAsync(
         CommandExecutionContext execution,
         NetworkConnectionId requesterConnection,
         SelectedSessionIdentity requester,
@@ -70,7 +70,7 @@ internal partial class GameSelectDungeonCommandHandler
         var entry = new DungeonEntryContext(message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId);
         var protectedMembers = attachments.Members.Select(value => value.Session == requester
             ? CaptureParticipant(value.Session) : new SelectedSessionRecipient(value.Session, null)).ToArray();
-        var attempt = await workUnits!.WriteAsync(execution, new("dungeon-entry", protectedMembers),
+        var attempt = await workUnits.WriteAsync(execution, new("dungeon-entry", protectedMembers),
             (_, ct) => RouteEntryAsync(entry, ct), cancellationToken).ConfigureAwait(false);
         var entered = attempt.Entry;
         if (entered is null)
@@ -120,7 +120,7 @@ internal partial class GameSelectDungeonCommandHandler
             if (previousRuns[participant.CharacterId] is { } previous
                 && previous.RunId != runId)
             {
-                departureSink!.ParticipantDeparted(previous.RunId, participant.CharacterId);
+                departureSink.ParticipantDeparted(previous.RunId, participant.CharacterId);
             }
         }
 
@@ -141,7 +141,7 @@ internal partial class GameSelectDungeonCommandHandler
         var deliveries = new List<(SelectedSessionIdentity Session, IReadOnlyList<IGameServerMessage> Frames)>();
         try
         {
-            departureSink!.Register(runId, attachments.Members.Select(value => value.Session).ToArray());
+            departureSink.Register(runId, attachments.Members.Select(value => value.Session).ToArray());
 
             var refreshed = new Dictionary<CharacterId, SelectCharacterResult>();
             foreach (var attachment in attachments.Members.OrderBy(value => value.Slot))
@@ -308,7 +308,7 @@ internal partial class GameSelectDungeonCommandHandler
             // XO-1: their batches are delivered before the requester's; a follower whose delivery
             // fails is closed alone and the requester's batch still goes (BestEffort, VC-3).
             // The group ends with the requester's batch, before the town departure below.
-            using (ordering?.Begin("XO-1 party dungeon entry", OutboundDelivery.BestEffort))
+            using (ordering.Begin("XO-1 party dungeon entry", OutboundDelivery.BestEffort))
             {
                 var delivered = new List<SelectedSessionIdentity>();
                 foreach (var delivery in deliveries
@@ -316,7 +316,7 @@ internal partial class GameSelectDungeonCommandHandler
                 {
                     try
                     {
-                        await register(
+                        await outbox.RegisterExplicitAsync(
                             delivery.Session.ConnectionId,
                             new GameExplicitMessageDelivery(delivery.Frames, []),
                             cancellationToken).ConfigureAwait(false);
@@ -342,7 +342,7 @@ internal partial class GameSelectDungeonCommandHandler
         }
 
         // Town memberships are removed right after the dungeon delivery, before any other job runs.
-        await TownLeaveManyAsync(
+        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, projections, projectionState, currentViews, parties,
             attachments.Members.Select(attachment => attachment.Session).ToArray(),
             TownAreaDepartureReason.DungeonEntry,
             cancellationToken).ConfigureAwait(false);
@@ -450,7 +450,7 @@ internal partial class GameSelectDungeonCommandHandler
             return;
         foreach (var participant in participants)
         {
-            departureSink!.ParticipantDeparted(runId, participant.CharacterId);
+            departureSink.ParticipantDeparted(runId, participant.CharacterId);
         }
     }
 
@@ -476,7 +476,7 @@ internal partial class GameSelectDungeonCommandHandler
         byte errorCode,
         byte context,
         CancellationToken cancellationToken, bool mirror = false) =>
-        register(
+        outbox.RegisterExplicitAsync(
             connectionId,
             new GameExplicitMessageDelivery([new SelectDungeonRefusal(errorCode, context, mirror)], []),
             cancellationToken);

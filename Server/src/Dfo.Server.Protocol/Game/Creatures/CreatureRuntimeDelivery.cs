@@ -60,15 +60,40 @@ public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainServ
         VisibleAsync(new(), owner, notification, ct);
     private async ValueTask<bool> VisibleAsync(ProjectionPhase phase, SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct)
     {
-        var delivered = await CreatureVisibleRecipients.DeliverAsync(owner, notification, sessions, runs, towns, towers,
-            (id, message, token) => NotiAsync(phase, id, message, token), async (receiver, token) =>
+        if (!sessions.IsInWorld(owner)) return false;
+        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
+        var ownerDelivered = true;
+        foreach (var receiver in receivers)
+        {
+            if (towerRunId is { } expectedRun
+                && (!sessions.IsInWorld(owner)
+                    || towers.Find(owner)?.RunId != expectedRun))
+                break;
+            if (towerRunId is not null
+                && (!sessions.IsInWorld(receiver)
+                    || towers.Find(receiver)?.RunId != towerRunId))
+                continue;
+            try
             {
-                phase.Registering = true;
-                await closures.ResolveAndRequestCloseAsync(receiver.ConnectionId, token).ConfigureAwait(false);
-                phase.Registering = false;
-            }, logger, ct).ConfigureAwait(false);
+                await NotiAsync(phase, receiver.ConnectionId, notification, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                if (receiver == owner) ownerDelivered = false;
+                logger.LogWarning(exception,
+                    "Creature notification failed for receiver={CharacterId}; closing that connection",
+                    receiver.CharacterId);
+                if (sessions.IsInWorld(receiver))
+                {
+                    phase.Registering = true;
+                    await closures.ResolveAndRequestCloseAsync(receiver.ConnectionId, CancellationToken.None).ConfigureAwait(false);
+                    phase.Registering = false;
+                }
+            }
+        }
         phase.Registering = false;
-        return delivered;
+        return ownerDelivered;
     }
     private async ValueTask NotiAsync(ProjectionPhase phase, NetworkConnectionId id, IGameNotiMessage message, CancellationToken token)
     {
@@ -144,48 +169,12 @@ public sealed class CreatureClockService(ICommandBus commands, TimeProvider cloc
 
 internal static class CreatureVisibleRecipients
 {
-    internal static async ValueTask<bool> DeliverAsync(SelectedSessionIdentity owner, IGameNotiMessage notification,
-        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns, IIllusionTowerDomainService? towers,
-        Func<NetworkConnectionId, IGameNotiMessage, CancellationToken, ValueTask> send,
-        Func<SelectedSessionIdentity, CancellationToken, ValueTask> close, ILogger logger, CancellationToken ct)
-    {
-        if (!sessions.IsInWorld(owner)) return false;
-        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
-        var ownerDelivered = true;
-        foreach (var receiver in receivers)
-        {
-            if (towerRunId is { } expectedRun
-                && (!sessions.IsInWorld(owner)
-                    || towers?.Find(owner)?.RunId != expectedRun))
-                break;
-            if (towerRunId is not null
-                && (!sessions.IsInWorld(receiver)
-                    || towers?.Find(receiver)?.RunId != towerRunId))
-                continue;
-            try
-            {
-                await send(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception exception)
-            {
-                if (receiver == owner) ownerDelivered = false;
-                logger.LogWarning(exception,
-                    "Creature notification failed for receiver={CharacterId}; closing that connection",
-                    receiver.CharacterId);
-                if (sessions.IsInWorld(receiver))
-                    await close(receiver, CancellationToken.None)
-                        .ConfigureAwait(false);
-            }
-        }
-        return ownerDelivered;
-    }
     internal static (IEnumerable<SelectedSessionIdentity> Receivers, Guid? TowerRunId) Resolve(SelectedSessionIdentity owner,
-        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns, IIllusionTowerDomainService? towers)
+        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns, IIllusionTowerDomainService towers)
     {
         IEnumerable<SelectedSessionIdentity> receivers;
         Guid? towerRunId = null;
-        if (towers?.Find(owner) is { } tower)
+        if (towers.Find(owner) is { } tower)
         {
             towerRunId = tower.RunId;
             receivers = new[] { owner }.Concat(tower.Members.Select(member => member.Session)).Distinct();

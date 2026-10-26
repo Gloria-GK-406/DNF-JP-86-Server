@@ -1,3 +1,25 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Characters;
@@ -24,8 +46,19 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game;
-internal partial class GameMonsterDeathCommandHandler : PartyMutationProtocolCommandHandler, ICommandHandler<GameMonsterDeathCommand, bool>
+internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<GameMonsterDeathCommand, bool>
 {
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ILogger logger;
+    private readonly ICharacterDomainService characters;
+    private readonly IBossTowerDomainService bossTowers;
+    private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly TimeProvider clock;
+    private readonly IGameCommandOutbox outbox;
+    private readonly ICommandWorkUnits workUnits;
+    private readonly IOnlineUserQueryDomainService onlineUsers;
+    private readonly IPartyService parties;
+
     private readonly IDungeonRunDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly IDungeonClearDomainService clearEvaluator;
@@ -47,18 +80,17 @@ internal partial class GameMonsterDeathCommandHandler : PartyMutationProtocolCom
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
         ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
-        TimeProvider clock, IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal altarWake, ILogger<GameMonsterDeathCommandHandler> logger)
-        : base(sessions, parties, null, null!, null!, null, logger, characters: characters,
-            bossTowers: bossTowers, illusionTowers: illusionTowers, clock: clock,
-            register: outbox.RegisterExplicitAsync, workUnits: units, onlineUsers: onlineUsers)
+        TimeProvider clock, IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal altarWake, ILogger<GameMonsterDeathCommandHandler> logger )
+
     {
+        this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs; this.registry=registry; this.clearEvaluator=clearEvaluator; this.deaths=deaths;
         this.creatures=creatures; this.quests=quests; this.questLogs=questLogs; this.containers=containers;
         this.items=items; this.progress=progress; this.closures=closures; this.slots=slots; this.altarWake=altarWake;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMonsterDeathCommand command, CancellationToken ct)
     { await RunAsync(execution, command.Dispatch, command.Input, command.Input.LabelProbe, ct).ConfigureAwait(false); return true; }
-    protected async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context, MonsterDeathRequest message, bool labelProbe, CancellationToken ct)
+    private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context, MonsterDeathRequest message, bool labelProbe, CancellationToken ct)
     {
         if (logger.IsEnabled(LogLevel.Debug))
             logger.LogDebug("Monster death received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} actor={Actor} object={ObjectCode}",
@@ -69,20 +101,20 @@ internal partial class GameMonsterDeathCommandHandler : PartyMutationProtocolCom
             logger.LogDebug("Monster death ignored connection={ConnectionId} reason=NoSession", context.Connection.ConnectionId);
             return;
         }
-        if (bossTowers?.Find(reporter) is not null)
+        if (bossTowers.Find(reporter) is not null)
         {
             if (message.ObjectCode is null)
                 _ = await KillBossAsync(execution, reporter.ConnectionId, message.Metadata, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
             return;
         }
-        if (message.ObjectCode is null && illusionTowers is not null
+        if (message.ObjectCode is null
             && await KillIllusionAsync(execution, reporter.ConnectionId, message.Metadata,
                 message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false)) return;
         var run = runs.Find(reporter.CharacterId);
         if (run is null)
         {
             logger.LogDebug("Monster death ignored connection={ConnectionId} actor={Actor} reason=NoRun", reporter.ConnectionId, message.ActorSequence);
-            await register(reporter.ConnectionId,
+            await outbox.RegisterExplicitAsync(reporter.ConnectionId,
                 new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
         }
@@ -112,13 +144,13 @@ internal partial class GameMonsterDeathCommandHandler : PartyMutationProtocolCom
             if (logger.IsEnabled(LogLevel.Debug))
                 logger.LogDebug("Monster death not committed connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} actor={Actor}; sending empty acknowledgement",
                     reporter.ConnectionId, run.RunId, run.CurrentRoomMapId, run.RoomVersion, message.ActorSequence);
-            await register(reporter.ConnectionId,
+            await outbox.RegisterExplicitAsync(reporter.ConnectionId,
                 new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
         }
         try
         {
-            if (creatures is not null && change.Run.Layout.ConsumesFatigue && change.IsCellCleared)
+            if (change.Run.Layout.ConsumesFatigue && change.IsCellCleared)
                 foreach (var participant in settled.Participants)
                     creatures.QueueRoomExperience(participant.Session, change.Run.RunId, change.Run.CurrentCell, 1);
             var clear = await clearEvaluator.EvaluateAsync(reporter.AccountId, reporter.CharacterId,
@@ -155,7 +187,7 @@ internal partial class GameMonsterDeathCommandHandler : PartyMutationProtocolCom
     }
 
     private ValueTask DeliverAsync(SelectedSessionIdentity reporter, IReadOnlyList<GameExplicitMessageTarget> targets, CancellationToken ct) =>
-        register(reporter.ConnectionId, new GameExplicitMessageDelivery(
+        outbox.RegisterExplicitAsync(reporter.ConnectionId, new GameExplicitMessageDelivery(
             targets.FirstOrDefault(x => x.ConnectionId == reporter.ConnectionId)?.OrderedMessages ?? [],
             targets.Where(x => x.ConnectionId != reporter.ConnectionId).ToArray()), ct);
 
@@ -175,18 +207,18 @@ internal partial class GameMonsterDeathCommandHandler : PartyMutationProtocolCom
         return frames;
     }
 
-    protected virtual IReadOnlyList<SelectedSessionRecipient> CaptureDeathRecipients(IReadOnlyList<SelectedSessionIdentity> participants, NetworkDispatchContext dispatch, GameMessageMetadata metadata) =>
+    private IReadOnlyList<SelectedSessionRecipient> CaptureDeathRecipients(IReadOnlyList<SelectedSessionIdentity> participants, NetworkDispatchContext dispatch, GameMessageMetadata metadata) =>
         participants.Select(x => CaptureParticipant(x) with { Metadata = metadata }).ToArray();
-    protected virtual IReadOnlyList<SelectedSessionIdentity> FindRecipients(SelectedSessionIdentity reporter, DungeonRunId id) =>
-        DungeonPartyRecipients.FindCurrent(PartyService!, sessions, runs, registry, reporter, id);
-    protected virtual ValueTask<MonsterDeathSettlementResult> SettleDeathAsync(CommandExecutionContext execution,
+    private IReadOnlyList<SelectedSessionIdentity> FindRecipients(SelectedSessionIdentity reporter, DungeonRunId id) =>
+        DungeonPartyRecipients.FindCurrent(parties, sessions, runs, registry, reporter, id);
+    private ValueTask<MonsterDeathSettlementResult> SettleDeathAsync(CommandExecutionContext execution,
         MonsterDeathSettlementRequest request, IReadOnlyList<SelectedSessionRecipient> captured, CancellationToken ct) =>
-        workUnits!.WriteAsync(execution, new("settle-monster-death", captured,
+        workUnits.WriteAsync(execution, new("settle-monster-death", captured,
             Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: request.Participants),
             (unit, token) => deaths.SettleAsync(request, unit.Footprint, token), ct);
-    protected virtual ValueTask<int> ProjectClearAsync(SelectedSessionIdentity reporter, DungeonClearChange clear, CancellationToken ct) =>
-        DungeonClearCommandProjection.DeliverAsync(sessions, runs, FindRecipients, quests, register, reporter, clear, ct);
-    protected virtual IReadOnlyList<IGameServerMessage> TournamentFrames(TournamentActionResult result) =>
+    private ValueTask<int> ProjectClearAsync(SelectedSessionIdentity reporter, DungeonClearChange clear, CancellationToken ct) =>
+        DungeonClearCommandProjection.DeliverAsync(sessions, runs, FindRecipients(reporter, clear.RunId), quests, outbox, reporter, clear, ct);
+    private IReadOnlyList<IGameServerMessage> TournamentFrames(TournamentActionResult result) =>
         TournamentCompletionFrames.CompletionFrames(result, slots, clock);
-    protected virtual void WakeAltar() => altarWake.Wake();
+    private void WakeAltar() => altarWake.Wake();
 }

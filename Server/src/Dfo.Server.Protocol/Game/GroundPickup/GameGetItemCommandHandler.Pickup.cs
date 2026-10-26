@@ -21,7 +21,7 @@ using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.GroundPickup;
-internal partial class GameGetItemCommandHandler
+internal sealed partial class GameGetItemCommandHandler
 {
     internal async ValueTask<GroundPickupResult> PickUpAsync(
         GroundPickupInput command,
@@ -321,7 +321,7 @@ internal partial class GameGetItemCommandHandler
                 [notification]))
             .ToArray();
 
-        await register(
+        await outbox.RegisterExplicitAsync(
             requester.ConnectionId,
             new GameExplicitMessageDelivery(required, secondary),
             cancellationToken).ConfigureAwait(false);
@@ -332,7 +332,7 @@ internal partial class GameGetItemCommandHandler
     internal ValueTask RefuseInventoryFullAsync(
         SelectedSessionIdentity requester,
         CancellationToken cancellationToken) =>
-        register(
+        outbox.RegisterExplicitAsync(
             requester.ConnectionId,
             new GameExplicitMessageDelivery([new GetItemResponse(Accepted: false)], []),
             cancellationToken);

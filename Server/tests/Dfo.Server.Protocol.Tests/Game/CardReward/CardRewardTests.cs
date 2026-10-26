@@ -257,8 +257,10 @@ public sealed class CardRewardTests
         await TestGameplay.RunAsync(async () =>
         {
             var sender = new RecordingSender();
+            var runs = SettledCardRun.Create(Identity);
+            var signals = new ProtocolAlgorithmFixture.CardSignals();
             var handler = new ScoreScrollDriver(
-                new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance);
+                new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance, signals, runs);
 
             await handler.HandleAsync(
                 Dispatch(), new ScoreScrollStateRequest(GameMessageMetadata.Empty), CancellationToken.None);
@@ -267,6 +269,8 @@ public sealed class CardRewardTests
                 sender.Sent,
                 first => Assert.IsType<ScoreScrollStateResponse>(first),
                 second => Assert.IsType<CardSelectRightStateResponse>(second));
+            Assert.True(runs.Find(Identity.CharacterId)!.CardLayoutOpen);
+            Assert.Equal("auto", Assert.Single(signals.Calls).Phase);
         });
     }
 

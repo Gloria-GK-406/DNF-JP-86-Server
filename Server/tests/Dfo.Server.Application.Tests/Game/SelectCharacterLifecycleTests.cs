@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Abstractions.World.BossTower;
 using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -50,11 +55,42 @@ public sealed partial class SelectCharacterLifecycleTests
                 < types.IndexOf(typeof(SynchronizeSelectedCharacterQuestsStage)));
         });
     }
+    private static readonly UsageQuotaFamily[] SelectionQuotaOrder =
+    [UsageQuotaFamily.DimensionDungeon, UsageQuotaFamily.MirrorDungeon, UsageQuotaFamily.DespairTower,
+        UsageQuotaFamily.AltarDungeon, UsageQuotaFamily.TournamentDungeon, UsageQuotaFamily.HerasDungeon,
+        UsageQuotaFamily.GoldSilverHorn];
+    private static string[] WithSupplementalStages(string[] lifecycle) =>
+        lifecycle.SelectMany(stage => stage == "premium"
+            ? new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}"))
+            : [stage]).ToArray();
+    private static IReadOnlyList<(NotificationAudience Audience, object Notification)> AssertSupplementalDelivery(Fixture fixture)
+    {
+        // Baseline DI supplies these dependencies; the old nullable fixture omitted their work.
+        // Preserve every actual registration, including the exact position between pet and premium.
+        var (target, weakness) = Assert.Single(fixture.Sender.Weakness);
+        Assert.Equal(fixture.ConnectionId, target);
+        Assert.Equal((byte)0, weakness.Value);
+        Assert.Equal(new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}")),
+            fixture.Ledger.TakeLast(9));
+        Assert.Equal(1, fixture.Ledger.Count(stage => stage == "weakness"));
+        var quotaEntries = fixture.Notifications.Published.Where(entry => entry.Notification is UsageQuotaViewChanged).ToArray();
+        Assert.Equal(SelectionQuotaOrder, quotaEntries.Select(entry => ((UsageQuotaViewChanged)entry.Notification).Family));
+        var selected = fixture.Directory.FindByConnection(fixture.ConnectionId);
+        Assert.NotNull(selected);
+        Assert.All(quotaEntries, entry =>
+        {
+            Assert.Equal(selected.CharacterId, ((UsageQuotaViewChanged)entry.Notification).CharacterId);
+            Assert.Equal(selected, Assert.Single(Assert.IsType<NotificationAudience.TheseSessions>(entry.Audience).Sessions));
+        });
+        var other = fixture.Notifications.Published.Where(entry => entry.Notification is not UsageQuotaViewChanged).ToArray();
+        Assert.Equal(other.Concat(quotaEntries), fixture.Notifications.Published);
+        return other;
+    }
     private sealed class TauMarker : ITauKingdomDomainService
     {
         public bool Supports(int dungeonId) => dungeonId == 3700;
         public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct) => ValueTask.FromResult(true);
     }
     [Fact]
     public async Task Success_OrdersRequiredDeliveryBeforePublicationAndPostEntryStages()
@@ -77,9 +113,10 @@ public sealed partial class SelectCharacterLifecycleTests
             // USER_POSITION, ahead of the invisibility flags, the clone title, the roster payload and
             // the honour level.
             Assert.Equal(
-                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                    "plan-pvp", "x11", "quest", "pet", "premium"],
+                WithSupplementalStages(["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                    "plan-pvp", "x11", "quest", "pet", "premium"]),
                 fixture.Ledger);
+            AssertSupplementalDelivery(fixture);
             Assert.Equal(
                 [
                     typeof(PrepareSelectedCharacterSessionStage),
@@ -121,9 +158,10 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None);
 
             Assert.Equal(
-                ["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
-                    "plan-pvp", "x11", "quest", "pet", "premium"],
+                WithSupplementalStages(["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
+                    "plan-pvp", "x11", "quest", "pet", "premium"]),
                 fixture.Ledger);
+            AssertSupplementalDelivery(fixture);
         });
     }
 
@@ -214,11 +252,9 @@ public sealed partial class SelectCharacterLifecycleTests
         await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
         var peer = SelectedSessionIdentity.Create(
             new AccountId(777), new CharacterId(4243), new NetworkConnectionId("Game:peer"), 1, 10011);
-        var cleanupDelivery = (ICleanupNotificationDelivery)Activator.CreateInstance(
-            typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType(
-                "Dfo.Server.Protocol.Game.StateSynchronization.CleanupNotificationDelivery", throwOnError: true)!,
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public,
-            binder: null, args: [outbound.Game, outbound.Projections], culture: null)!;
+        var cleanupDelivery = ProtocolAlgorithmFixture.Create<CleanupNotificationDelivery>(
+            outbound.Game, outbound.Projections,
+            ProtocolAlgorithmFixture.Create<PartyNotificationDelivery>(outbound.Projections));
         var fixture = await Fixture.CreateAsync(failQuest: true,
             gameSender: outbound.Game, connectionCloser: outbound.Closer, cleanupDelivery: cleanupDelivery);
         fixture.Cleanup.Plan = session => new SelectedSessionCleanupNotificationPlan(
@@ -385,13 +421,8 @@ public sealed partial class SelectCharacterLifecycleTests
         });
 
         var observer = new OnlineUserConnectionObserver(
-            fixture.Users,
-            fixture.Directory,
-            new CommandSelectedSessionCleanup(fixture.Cleanup),
-            new StubChannelEntryPolicy(),
-            new StubServerConfigService(),
-            new LifecycleTestOutbox(fixture.Sender),
-            new NoopCleanupDelivery(), TimeProvider.System);
+            fixture.Users,            fixture.Directory,            new CommandSelectedSessionCleanup(fixture.Cleanup),            new StubChannelEntryPolicy(),            new StubServerConfigService(),            new LifecycleTestOutbox(fixture.Sender),            new NoopCleanupDelivery(),TimeProvider.System,clientSettings: ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<IClientSettingsDomainService>(),
+                (method, args) => method.Name == nameof(IClientSettingsDomainService.ForgetConnection) ? (true, null) : (false, null)));
         await TestGameplay.RunAsync(async () =>
         {
         await observer.DisconnectedAsync(
@@ -515,15 +546,16 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None);
 
             Assert.Equal(
-                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
-                    "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "premium"],
+                WithSupplementalStages(["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                    "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "premium"]),
                 fixture.Ledger);
+            AssertSupplementalDelivery(fixture);
             Assert.NotNull(fixture.Directory.Find(fixture.AccountId));
             Assert.Empty(fixture.Closer.Closed);
 
             // Who was told, and what about. The fan-out used to be a list of connections built by the
             // domain service; it is the same people and the same subject, said in characters.
-            var (audience, notification) = Assert.Single(fixture.Notifications.Published);
+            var (audience, notification) = Assert.Single(AssertSupplementalDelivery(fixture));
             Assert.Equal(
                 [new CharacterId(4242)],
                 Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
@@ -546,7 +578,7 @@ public sealed partial class SelectCharacterLifecycleTests
             await fixture.Handler.HandleAsync(
                 fixture.Context, fixture.Command, CancellationToken.None);
 
-            var (audience, notification) = Assert.Single(fixture.Notifications.Published);
+            var (audience, notification) = Assert.Single(AssertSupplementalDelivery(fixture));
             Assert.Equal(
                 [new CharacterId(4243)],
                 Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
@@ -580,7 +612,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 ["party:501", "party:4243"],
                 fixture.Ledger
                     .Where(value => value.StartsWith("party:", StringComparison.Ordinal)));
-            Assert.Equal(2, fixture.Notifications.Published.Count);
+            Assert.Equal(2, AssertSupplementalDelivery(fixture).Count);
         });
     }
 
@@ -813,14 +845,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 var sessionEntry = new SessionEntry(ledger, planPvp);
                 var notifications = new RecordingNotifications(ledger, failFirstTownPublication);
                 var partyProjection = new RecordingPartyTownProjectionDelivery(ledger);
-                var townAreaProjection = new TownAreaProjectionDelivery(
-                    new SessionPresenceDomainService(),
-                    directory,
-                    new EmptyCurrentViews(),
-                    notifications,
-                    partyProjection,
-                    gameSender ?? sender,
-                    new EveryTownMovement());
+                var townAreaProjection = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(new SessionPresenceDomainService(), directory, new EmptyCurrentViews(), notifications, partyProjection, gameSender ?? sender, new EveryTownMovement());
                 var preparation = refuseAdmission
                     ? null
                     : new Preparation(result, ledger, failPreparation, mutations);
@@ -845,7 +870,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     new CompensateSelectedCharacterSessionStageHandler(cleanup, directory));
                 bus.Workflow = new LifecycleWorkflow(users, new TestEntryChannel(), new StubStateMessageFactory(), directory,
                     gameSender ?? sender, notifications, connectionCloser ?? closer, bus,
-                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau);
+                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger);
                 var handler = new SelectCharacterHandler(bus);
                 var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
                 return new Fixture(
@@ -900,66 +925,28 @@ public sealed partial class SelectCharacterLifecycleTests
             { Request = new CommandRequestContext.ProtocolNonEffect(whole.Dispatch,whole.Input,new ProtocolFrameMetadata.Game(whole.Input.Metadata),()=>true) };
             return (TResult)(object)await Workflow!.HandleAsync(ctx, whole, cancellationToken);
         }
-        public async ValueTask<TResult> SendStageAsync<TResult>(ISelectionStage<TResult> command, CancellationToken cancellationToken=default) where TResult:notnull
+        public object[] Dependencies =>
+        [
+            ProtocolAlgorithmFixture.Field<ISelectCharacterPreparationDomainService>(prepare),
+            ProtocolAlgorithmFixture.Field<IExpiredCharacterItemCleanupDomainService>(cleanupExpired),
+            ProtocolAlgorithmFixture.Field<ISelectCharacterEntryInventoryDomainService>(prepareState),
+            ProtocolAlgorithmFixture.Field<ISelectCharacterEntryInventoryDomainService>(refill),
+            ProtocolAlgorithmFixture.Field<ISelectedSessionDomainService>(publish),
+            ProtocolAlgorithmFixture.Field<ISelectCharacterSessionEntryDomainService>(publish),
+            ProtocolAlgorithmFixture.Field<ISelectCharacterSessionEntryDomainService>(markPvpReady),
+            ProtocolAlgorithmFixture.Field<ISelectCharacterQuestEntryDomainService>(quests),
+            ProtocolAlgorithmFixture.Field<ISelectCharacterPetEntryDomainService>(pet),
+            ProtocolAlgorithmFixture.Field<ISelectedSessionCleanupDomainService>(compensate),
+        ];
+        public void Observe(object result)
         {
-            DispatchedCommands.Add(command.GetType());
-            object result = command switch
-            {
-                PrepareSelectedCharacterSessionStage value =>
-                    await RunAsync(prepare, value, cancellationToken),
-                CleanupExpiredCharacterItemsStage value =>
-                    await RunAsync(cleanupExpired, value, cancellationToken),
-                EnsureDailyContractPuppetsStage => false,
-                InitializeHousingStage => false,
-                RefillTauStage => true,
-                PrepareSelectedCharacterStateStage value =>
-                    await RunAsync(prepareState, value, cancellationToken),
-                ApplySelectedCharacterDailyRefillStage value =>
-                    await RunAsync(refill, value, cancellationToken),
-                PublishSelectedCharacterSessionStage value =>
-                    await RunAsync(publish, value, cancellationToken),
-                MarkSelectedCharacterPvpReadyStage value =>
-                    await RunAsync(markPvpReady, value, cancellationToken),
-                SynchronizeSelectedCharacterQuestsStage value =>
-                    await RunAsync(quests, value, cancellationToken),
-                ReviveSelectedCharacterPetStage value =>
-                    await RunAsync(pet, value, cancellationToken),
-                CompensateSelectedCharacterSessionStage value =>
-                    await RunAsync(compensate, value, cancellationToken),
-                _ => throw new InvalidOperationException(
-                    $"Unexpected command '{command.GetType().Name}'."),
-            };
-
             switch (result)
             {
-                case SelectCharacterResult value:
-                    State = value;
-                    break;
-                case EntryInventoryPreparation value:
-                    State = value.Result;
-                    break;
-                case SynchronizedSelectedCharacterQuests { Change: { } value }:
-                    State = value.Result;
-                    break;
-                case RevivedSelectedCharacterPet { Change: { } value }:
-                    State = value.Result;
-                    break;
+                case SelectCharacterResult value: State = value; break;
+                case EntryInventoryPreparation value: State = value.Result; break;
+                case SynchronizedSelectedCharacterQuests { Change: { } value }: State = value.Result; break;
+                case RevivedSelectedCharacterPet { Change: { } value }: State = value.Result; break;
             }
-
-            return (TResult)result;
-        }
-
-        private static async ValueTask<TResult> RunAsync<TCommand, TResult>(
-            ISelectionStageHandler<TCommand, TResult> handler,
-            TCommand command,
-            CancellationToken cancellationToken)
-            where TCommand : class, ISelectionStage<TResult>
-            where TResult : notnull
-        {
-            using var footprint = new TestEffectFootprints.Lease(Array.Empty<Dfo.Server.Abstractions.Effects.EffectFootprintOwner>());
-            var context = DomainCommandFixture.Context(Guid.NewGuid(), command.GetType(), handler.GetType());
-
-            return await handler.HandleAsync(context, command, cancellationToken);
         }
     }
 
@@ -969,37 +956,106 @@ public sealed partial class SelectCharacterLifecycleTests
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => new StubChannelEntryPolicy().Refuse(channel, level);
         public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
     }
-    private sealed class LifecycleWorkflow : GameSelectCharacterCommandHandler
+    // The real sealed CMD owns every phase. These adapters only observe existing domain and
+    // unit boundaries; every work-unit action executes, and unexpected fixture calls fail.
+    private sealed class LifecycleWorkflow
     {
-        private readonly RecordingCommandBus stages;
-        private readonly ICleanupNotificationDelivery cleanupDelivery;
-        private readonly TownAreaProjectionDelivery town;
+        private readonly GameSelectCharacterCommandHandler handler;
         public LifecycleWorkflow(IOnlineUserQueryDomainService users, Dfo.Server.Abstractions.Channel.IChannelEntryDomainService channels,
             ISelectedCharacterStateMessageFactory factory, ISelectedSessionDomainService sessions, IGameMessageSender sender,
             IEventService events, INetworkConnectionCloser closer, RecordingCommandBus stages,
-            ICleanupNotificationDelivery cleanupDelivery, TownAreaProjectionDelivery town, ITauKingdomDomainService? tau)
-            : base(users, channels, factory, sessions, new TestGameOutbox(sender), new TestProjections(events), new TestClosures(closer),
-                cleanup: null!, units: null!, preparation: null!, inventoryEntry: null!, sessionEntry: null!, questEntry: null!, petEntry: null!,
-                expiredItems: null!, puppets: null!, housingEntry: null!, parties: null!, projectionState: new PartyProjectionStreamRegistry(), townAreas: null!,
-                logger: NullLogger<GameSelectCharacterCommandHandler>.Instance, delivery: SelectCharacterDeliveryOptions.Everything, clock: TimeProvider.System, tau: tau)
-        { this.stages=stages; this.cleanupDelivery=cleanupDelivery; this.town=town; }
-        protected override ValueTask<PreparedSelectedCharacterSession> PrepareSessionAsync(CommandExecutionContext x, AccountId account,
-            ushort slot, ChannelEntryIdentity channel, NetworkConnectionId id, long generation, CancellationToken ct) =>
-            stages.SendStageAsync(new PrepareSelectedCharacterSessionStage(account, slot, channel, id, generation), ct);
-        protected internal override async ValueTask<bool> CleanupExpiredAsync(CommandExecutionContext x, SelectedSessionIdentity session, Action<Exception> failed, CancellationToken ct)
-        { try { return await stages.SendStageAsync(new CleanupExpiredCharacterItemsStage(session), ct); } catch (Exception error) { failed(error); x.Request!.Failed(error); throw; } }
-        protected override ValueTask<bool> EnsurePuppetsAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => stages.SendStageAsync(new EnsureDailyContractPuppetsStage(s), ct);
-        protected override ValueTask<bool> InitializeHousingAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => stages.SendStageAsync(new InitializeHousingStage(s), ct);
-        protected internal override ValueTask<SelectCharacterResult> PrepareStateAsync(CommandExecutionContext x, SelectedSessionIdentity s, ActiveCharacterState selected, ChannelEntryIdentity channel, CancellationToken ct) => stages.SendStageAsync(new PrepareSelectedCharacterStateStage(s, selected, channel), ct);
-        protected internal override ValueTask<EntryInventoryPreparation> DailyRefillAsync(CommandExecutionContext x, SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new ApplySelectedCharacterDailyRefillStage(s, prepared), ct);
-        protected internal override ValueTask<PublishedSelectedCharacterSession> PublishAsync(SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new PublishSelectedCharacterSessionStage(s, prepared), ct);
-        protected override ValueTask<bool> RefillTauAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => stages.SendStageAsync(new RefillTauStage(s), ct);
-        protected internal override ValueTask<SelectedCharacterPvpPublication> MarkPvpReadyAsync(SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new MarkSelectedCharacterPvpReadyStage(s, prepared), ct);
-        protected internal override ValueTask<SynchronizedSelectedCharacterQuests> SynchronizeQuestsAsync(CommandExecutionContext x, SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new SynchronizeSelectedCharacterQuestsStage(s, prepared), ct);
-        protected internal override ValueTask<RevivedSelectedCharacterPet> RevivePetAsync(CommandExecutionContext x, SelectedSessionIdentity s, SelectCharacterResult prepared, CancellationToken ct) => stages.SendStageAsync(new ReviveSelectedCharacterPetStage(s, prepared), ct);
-        protected internal override async ValueTask<SelectedSessionCleanupNotificationPlan> CompensateAsync(CommandExecutionContext x, SelectedSessionIdentity s, CancellationToken ct) => (await stages.SendStageAsync(new CompensateSelectedCharacterSessionStage(s), ct)).Notifications;
-        protected override ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) => cleanupDelivery.DeliverAsync(plan, ct);
-        protected override ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity s, TownParticipantPublicationPlan plan, CancellationToken ct) => town.PublishCommittedEntryAsync(s, plan, ct);
+            ICleanupNotificationDelivery cleanupDelivery, TownAreaProjectionDelivery town, ITauKingdomDomainService? tau,
+            List<string> ledger)
+        {
+            var dependencies = stages.Dependencies.ToList();
+            var entry = dependencies.OfType<ISelectCharacterSessionEntryDomainService>().First();
+            dependencies.Add(ProtocolAlgorithmFixture.Decorate(entry, (method, args) =>
+            {
+                if (method.Name == nameof(ISelectCharacterSessionEntryDomainService.Publish))
+                    stages.DispatchedCommands.Add(typeof(PublishSelectedCharacterSessionStage));
+                if (method.Name == nameof(ISelectCharacterSessionEntryDomainService.PlanPvpPublication))
+                    stages.DispatchedCommands.Add(typeof(MarkSelectedCharacterPvpReadyStage));
+                return (false, null);
+            }));
+            var cleanup = new ProductionSelectionStages.CleanupAdapter(dependencies.OfType<ISelectedSessionCleanupDomainService>().Single());
+            dependencies.Add(ProtocolAlgorithmFixture.Decorate<ICommandSelectedSessionCleanup>(cleanup, (method, args) =>
+            {
+                if (method.Name == nameof(ICommandSelectedSessionCleanup.CleanupAsync))
+                    stages.DispatchedCommands.Add(typeof(CompensateSelectedCharacterSessionStage));
+                return (false, null);
+            }));
+            var areas = ProtocolAlgorithmFixture.Field<ITownAreaDomainService>(town);
+            dependencies.Add(ProtocolAlgorithmFixture.Decorate(areas, (method, args) =>
+            {
+                if (method.Name == nameof(ITownAreaDomainService.Find) && args[0] is CharacterId character)
+                    ledger.Add($"party:{character.Value}");
+                return (false, null);
+            }));
+            dependencies.AddRange(new object[]
+            {
+                users, channels, factory, new TestGameOutbox(sender), new TestClosures(closer),
+                new SelectionUnits(stages, tau is not null), new SelectionProjections(events, cleanupDelivery),
+                FixtureMethod<IQuestHelperPuppetDomainService>(nameof(IQuestHelperPuppetDomainService.EnsureDailyAsync), ValueTask.FromResult(false)),
+                FixtureMethod<IMarriageHousingDomainService>(nameof(IMarriageHousingDomainService.InitializeAsync), ValueTask.CompletedTask),
+                tau ?? new TauMarker(),
+                FixtureMethod<ISouthernDaleDomainService>(nameof(ISouthernDaleDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false)),
+                FixtureMethod<IBossTowerTicketDomainService>(nameof(IBossTowerTicketDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false)),
+                FixtureMethod<IClientSettingsDomainService>(nameof(IClientSettingsDomainService.ActivateHotkeyProfile), true),
+                FixtureMethod<IItemUsageDomainService>(nameof(IItemUsageDomainService.GetSnapshotAtAsync), ValueTask.FromResult<IReadOnlyList<ItemUsageState>>([])),
+                SelectCharacterDeliveryOptions.Everything,
+            });
+            handler = ProtocolAlgorithmFixture.Create<GameSelectCharacterCommandHandler>(dependencies.ToArray());
+        }
+        public ValueTask<bool> HandleAsync(CommandExecutionContext context, GameSelectCharacterCommand command, CancellationToken ct) =>
+            handler.HandleAsync(context, command, ct);
+        private static T FixtureMethod<T>(string name, object result) where T : class =>
+            ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<T>(), (method, args) =>
+                method.Name == name ? (true, result) : (false, null));
+    }
+    private sealed class SelectionUnits(RecordingCommandBus stages, bool observeTau) : ICommandWorkUnits
+    {
+        private readonly ProtocolAlgorithmFixture.Units actual = new();
+        public async ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
+        {
+            Type? stage = declaration.Name switch
+            {
+                "PrepareSelectedCharacterSession" => typeof(PrepareSelectedCharacterSessionStage),
+                "CleanupExpiredCharacterItems" => typeof(CleanupExpiredCharacterItemsStage),
+                "EnsureDailyContractPuppets" => typeof(EnsureDailyContractPuppetsStage),
+                "InitializeHousing" => typeof(InitializeHousingStage),
+                "PrepareSelectedCharacterState" => typeof(PrepareSelectedCharacterStateStage),
+                "ApplySelectedCharacterDailyRefill" => typeof(ApplySelectedCharacterDailyRefillStage),
+                "RefillOnlineTauTicket" => observeTau ? typeof(RefillTauStage) : null,
+                "RefillOnlineSouthernTicket" or "RefillOnlineBossTowerTicket" => null,
+                "SynchronizeSelectedCharacterQuests" => typeof(SynchronizeSelectedCharacterQuestsStage),
+                "ReviveSelectedCharacterPet" => typeof(ReviveSelectedCharacterPetStage),
+                _ => throw new InvalidOperationException($"Unexpected selection unit {declaration.Name}."),
+            };
+            if (stage is not null) stages.DispatchedCommands.Add(stage);
+            try
+            {
+                var result = await actual.WriteAsync(context, declaration, action, ct);
+                stages.Observe(result);
+                return result;
+            }
+            catch (Exception error) { context.Request!.Failed(error); throw; }
+        }
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
+        {
+            Assert.Equal("ReadItemUsageSnapshot", declaration.Name);
+            return actual.ReadOnlyAsync(context, declaration, action, ct);
+        }
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+    }
+    private sealed class SelectionProjections(IEventService events, ICleanupNotificationDelivery cleanupDelivery) : ICommandProjections
+    {
+        public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken ct = default)
+            where T : class, INotification<T> =>
+            (notification is SessionCleanupAnnounced && cleanupDelivery is not NoopCleanupDelivery
+                ? ProtocolAlgorithmFixture.Field<IEventService>(cleanupDelivery) : events).ProjectAsync(audience, notification, ct);
     }
     private sealed class TestGameOutbox(IGameMessageSender sender) : IGameCommandOutbox
     {
@@ -1412,6 +1468,7 @@ public sealed partial class SelectCharacterLifecycleTests
             _ = failPvpTarget;
         }
 
+        public List<(NetworkConnectionId Target, Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification Message)> Weakness { get; } = [];
         public bool FailStatic { get; set; }
         private readonly TaskCompletionSource staticRelease = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1425,14 +1482,14 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            SendClassifiedAsync(message, () => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken));
+            SendClassifiedAsync(connectionId, message, () => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken));
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            SendClassifiedAsync(message, () => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken));
+            SendClassifiedAsync(connectionId, message, () => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken));
 
-        private async ValueTask SendClassifiedAsync(IGameServerMessage message, Func<ValueTask> register)
+        private async ValueTask SendClassifiedAsync(NetworkConnectionId target, IGameServerMessage message, Func<ValueTask> register)
         {
             var firstStatic = false;
             if (message.MessageType == ServerMessageType.GameStateSynchronization)
@@ -1448,6 +1505,11 @@ public sealed partial class SelectCharacterLifecycleTests
                         await staticRelease.Task;
                     }
                 }
+            }
+            else if (message is Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification weakness)
+            {
+                Weakness.Add((target, weakness));
+                ledger.Add("weakness");
             }
             else ledger.Add("message");
             failingStatic = firstStatic && FailStatic;
@@ -1516,7 +1578,7 @@ public sealed partial class SelectCharacterLifecycleTests
             TNotification notification,
             CancellationToken cancellationToken)
         {
-            ledger.Add("target");
+            ledger.Add(notification is UsageQuotaViewChanged quota ? $"quota:{quota.Family}" : "target");
             Published.Add((audience, notification));
             var attempts = audience is NotificationAudience.TheseSessions exact
                 ? exact.Sessions.Select(session =>

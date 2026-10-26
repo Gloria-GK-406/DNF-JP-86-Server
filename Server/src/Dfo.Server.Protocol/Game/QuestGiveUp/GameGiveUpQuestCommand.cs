@@ -27,8 +27,8 @@ public sealed class GameGiveUpQuestCommandHandler(
     IQuestOfferRefreshDomainService offers,
     ILogger<GameGiveUpQuestCommandHandler> logger,
     ICharacterQuestLogDomainService logs,
-    IQuestDefinitionDomainService? definitions = null,
-    IMirrorAradQuestDomainService? mirror = null)
+    IQuestDefinitionDomainService definitions,
+    IMirrorAradQuestDomainService mirror)
     : ICommandHandler<GameGiveUpQuestCommand, GiveUpQuestOutcome>
 {
     public async ValueTask<GiveUpQuestOutcome> HandleAsync(CommandExecutionContext execution, GameGiveUpQuestCommand command, CancellationToken cancellationToken)

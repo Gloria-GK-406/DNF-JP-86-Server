@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -101,8 +102,7 @@ internal sealed class DirectCommandBus(
         Dfo.Server.Protocol.Game.IGameMessageSender sender,
         Microsoft.Extensions.Logging.ILogger<Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler> logger)
     {
-        report = new Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommandHandler(users, sessions,
-            rewards, reward!.Containers, reward.Delivery, null!, this, new TestOutbox(sender), logger);
+        report = new Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommandHandler(users,sessions,            rewards,reward!.Containers,reward.Delivery,ProtocolAlgorithmFixture.Default<ITutorialCompletionDomainService>(),this,new TestOutbox(sender),logger);
         return new(this);
     }
     private sealed class TestOutbox(Dfo.Server.Protocol.Game.IGameMessageSender sender):Dfo.Server.Protocol.Game.IGameCommandOutbox {
@@ -335,7 +335,7 @@ internal static class MoveWholeTestDriver
         Microsoft.Extensions.Logging.ILogger<GameMoveItemSpaceCommandHandler> logger,
         ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
         TimeProvider time,Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing=null)=>
-        new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Scope),new Outbox(sender),logger,character,account,time,housing)));
+        new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Scope),new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

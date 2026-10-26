@@ -608,7 +608,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             });
             var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
             positions.Begin(party.First, new CharacterPositionState(1, 1, 100, 100, 0), 100);
-            var sender = new RecordingSender();
+            var sender = new GiveUpOwnerSender(party.First.ConnectionId);
 
             await new GiveUpDriver(party.Sessions, views, positions,
                     new DungeonRunDomainService(party.Parties), new DungeonRunDeliveryRegistry(), sender,
@@ -620,7 +620,44 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             Assert.IsType<GiveUpGameResponse>(sender.Sent[0]);
             Assert.Single(sender.Sent.OfType<GiveUpGameResponse>());
             Assert.Equal(0, party.Commands.PartyCalls);
+            Assert.Collection(sender.Sent,
+                message => Assert.IsType<GiveUpGameResponse>(message),
+                message => Assert.Equal((byte)0, Assert.IsType<Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification>(message).Value),
+                message =>
+                {
+                    var state = Assert.IsType<Dfo.Server.Protocol.Game.DungeonSelection.UserStateNotification>(message);
+                    Assert.Equal(party.First.WireUserId, state.WireUserId);
+                    Assert.Equal((byte)0, state.UserState);
+                },
+                message =>
+                {
+                    var area = Assert.IsType<Dfo.Server.Protocol.Game.DungeonSelection.UserAreaNotification>(message);
+                    Assert.Equal(party.First.WireUserId, area.WireUserId);
+                    Assert.Equal((byte)1, area.Spawn.TownId);
+                    Assert.Equal((byte)1, area.AreaId);
+                    Assert.Equal((short)100, area.Spawn.X);
+                    Assert.Equal((short)100, area.Spawn.Y);
+                },
+                message =>
+                {
+                    var area = Assert.IsType<AreaUsersNotification>(message);
+                    Assert.Equal((byte)1, area.TownId);
+                    Assert.Equal((byte)1, area.AreaId);
+                    Assert.Equal(party.First.WireUserId, Assert.Single(area.Users).WireUserId);
+                });
         });
+    }
+
+    private sealed class GiveUpOwnerSender(NetworkConnectionId owner) : IGameMessageSender
+    {
+        private readonly RecordingSender actual = new();
+        public List<IGameServerMessage> Sent => actual.Sent;
+        public ValueTask SendCmdAsync(NetworkConnectionId target, IGameCmdMessage message, CancellationToken ct)
+        { Assert.Equal(owner, target); return actual.SendCmdAsync(target, message, ct); }
+        public ValueTask SendNotiAsync(NetworkConnectionId target, IGameNotiMessage message, CancellationToken ct)
+        { Assert.Equal(owner, target); Assert.IsType<Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification>(message); return actual.SendNotiAsync(target, message, ct); }
+        public ValueTask SendExplicitAsync(NetworkConnectionId target, GameExplicitMessageDelivery delivery, CancellationToken ct)
+        { Assert.Equal(owner, target); Assert.Empty(delivery.BestEffortTargets); return actual.SendExplicitAsync(target, delivery, ct); }
     }
 
     private static OrdinaryPartyFixture OrdinaryParty()
@@ -645,8 +682,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var closer = new Closer();
         var town = new NoTown();
         var projections = new RecordingProjections();
-        var delivery = new PartyNotificationDelivery(projections, new PartyProjectionStreamRegistry(),
-            sessions, town, parties);
+        var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(projections, new PartyProjectionStreamRegistry(), sessions, town, parties);
         var coordinator = new BossTowerPartyDriver(
             tower, commands.Parties, sessions, commands, delivery,
             Delivery(tower, sessions, commands, new Sender(), closer),
@@ -685,8 +721,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         INetworkConnectionCloser? closer = null)
     {
         var views = new NoViews();
-        var town = new TownAreaProjectionDelivery(
-            null!, sessions, views, null!, null!, sender, null!);
+        var town = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(null!, sessions, views, null!, null!, sender, null!);
         return Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.BossLegacy(
             towers,
             commands,
@@ -738,8 +773,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
     private static PartyNotificationDelivery Notifications(
         IPartyService parties, ISelectedSessionDomainService sessions,
         ITownAreaDomainService town) =>
-        new(new NoopNotifications(), new PartyProjectionStreamRegistry(),
-            sessions, town, parties);
+        global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotifications(), new PartyProjectionStreamRegistry(), sessions, town, parties);
 
     private sealed class TowerDomain(params BossTowerSnapshot[] values) : IBossTowerDomainService
     {

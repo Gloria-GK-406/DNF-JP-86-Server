@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Protocol.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Networking;
@@ -132,21 +136,49 @@ public sealed partial class BossTowerProjectionConcurrencyTests
 
     // Same production phase body; fake domain actions below intentionally do not prove bus/scope behavior.
     private sealed class LoadingFlow(TowerDomain towers, Sessions selected, FlowCommands commands, Sender sender)
-        : GameMapLoadingCommandHandler(selected, null!, null!, null!, null!, null!, null!, towers, null!, null!,
-            new Dfo.Server.Protocol.Tests.Game.DungeonEntry.LoadingOutbox(sender), null!, null!, null!, NullLogger<GameMapLoadingCommandHandler>.Instance)
     {
-        public ValueTask HandleAsync(NetworkDispatchContext dispatch, FinishLoadingRequest input, CancellationToken token) =>
-            new(CompleteBossLoadingAsync(null!, dispatch.Connection.ConnectionId, input.Metadata, token).AsTask());
-        public ValueTask HandleAsync(NetworkDispatchContext dispatch, MoveMapRequest input, CancellationToken token) =>
-            new(AdvanceBossAsync(null!, dispatch.Connection.ConnectionId, input.Metadata, input.NextX, input.NextY, token).AsTask());
-        public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, GameMessageMetadata metadata, CancellationToken token) => CompleteBossLoadingAsync(null!, id, metadata, token);
-        protected override ValueTask<BossTowerActionResult> BossLoadingUnitAsync(CommandExecutionContext execution, string name,
-            BossTowerSnapshot run, SelectedSessionIdentity actor, Func<CancellationToken, ValueTask<BossTowerActionResult>> action, CancellationToken token) => name switch
+        private readonly GameMapLoadingCommandHandler handler = ProtocolAlgorithmFixture.Create<GameMapLoadingCommandHandler>(
+            selected, LoadingDomain.Create(towers, commands), new Dfo.Server.Protocol.Tests.Game.DungeonEntry.LoadingOutbox(sender));
+        public async ValueTask HandleAsync(NetworkDispatchContext dispatch, FinishLoadingRequest input, CancellationToken token)
         {
-            "load-boss-tower" => ValueTask.FromResult(commands.Load(new(actor, run.RunId, run.Room.Version))),
-            "start-boss-tower" => commands.Start(new(actor, run.RunId, run.Room.Version)),
-            _ => ValueTask.FromResult(new BossTowerActionResult(false, run)),
-        };
+            var command = new GameFinishLoadingCommand(dispatch, input);
+            _ = await handler.HandleAsync(ComponentContext.For(command, handler.GetType()), command, token);
+        }
+        public async ValueTask HandleAsync(NetworkDispatchContext dispatch, MoveMapRequest input, CancellationToken token)
+        {
+            var command = new GameMoveMapCommand(dispatch, input);
+            _ = await handler.HandleAsync(ComponentContext.For(command, handler.GetType()), command, token);
+        }
+        public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, GameMessageMetadata metadata, CancellationToken token)
+        {
+            var command = new GameFinishLoadingCommand(new(new(id, NetworkEndpointKind.Game, 10011)), new(metadata, 0, 0));
+            return handler.CompleteBossLoadingAsync(ComponentContext.For(command, handler.GetType()), id, metadata, token);
+        }
+    }
+    private class LoadingDomain : System.Reflection.DispatchProxy
+    {
+        private TowerDomain towers = null!;
+        private FlowCommands commands = null!;
+        internal static IBossTowerDomainService Create(TowerDomain towers, FlowCommands commands)
+        {
+            var result = Create<IBossTowerDomainService, LoadingDomain>();
+            ((LoadingDomain)result).towers = towers;
+            ((LoadingDomain)result).commands = commands;
+            return result;
+        }
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            if (method is null || args is null) throw new NotSupportedException();
+            if (method.Name == nameof(IBossTowerDomainService.LoadAsync))
+                return ValueTask.FromResult(commands.Load((BossTowerActionContext)args[0]!));
+            if (method.Name == nameof(IBossTowerDomainService.StartAsync))
+                return commands.Start((BossTowerActionContext)args[0]!);
+            if (method.Name == nameof(IBossTowerDomainService.NextLevelAsync))
+                return ValueTask.FromResult(new BossTowerActionResult(false, towers.Find(((BossTowerActionContext)args[0]!).Session)));
+            try { return method.Invoke(towers, args); }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException is not null)
+            { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
+        }
     }
     private sealed class FlowCommands(TowerDomain towers) : ICommandBus
     {

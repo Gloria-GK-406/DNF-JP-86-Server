@@ -522,12 +522,9 @@ internal static class PartyNotificationRecipientCapture
 {
     public static PartyNotificationRecipientPlan Capture(
         PartyNotificationPlan plan,
-        ISelectedSessionDomainService? sessions,
-        ITownAreaDomainService? townAreas)
+        ISelectedSessionDomainService sessions,
+        ITownAreaDomainService townAreas)
     {
-        if (sessions is null)
-            return PartyNotificationRecipientPlan.Empty;
-
         var characterIds = new HashSet<CharacterId>(plan.ClearAudience);
         if (plan.Snapshot is { } snapshot)
             characterIds.UnionWith(snapshot.Members.Select(member => member.CharacterId));
@@ -545,9 +542,6 @@ internal static class PartyNotificationRecipientCapture
             .Cast<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
-        if (townAreas is null)
-            return new PartyNotificationRecipientPlan(characterRecipients, []);
-
         var directoryRecipients = new[]
             {
                 plan.DirectoryChange?.Previous,
@@ -610,15 +604,11 @@ internal sealed class PartyNotificationRecipientResolver(PartyNotificationRecipi
 public sealed class PartyNotificationDelivery(
     IEventService notifications,
     PartyProjectionStreamRegistry streams,
-    ISelectedSessionDomainService? sessions = null,
-    ITownAreaDomainService? townAreas = null,
-    IPartyService? parties = null,
-    IOutboundOrdering? ordering = null)
+    ISelectedSessionDomainService sessions,
+    ITownAreaDomainService townAreas,
+    IPartyService parties,
+    IOutboundOrdering ordering)
 {
-    internal PartyNotificationDelivery(IEventService notifications)
-        : this(notifications, new PartyProjectionStreamRegistry(), null, null, null)
-    {
-    }
 
     public async ValueTask DeliverAsync(
         PartyNotificationPlan plan,
@@ -632,13 +622,11 @@ public sealed class PartyNotificationDelivery(
         PartyNotificationPlan plan,
         PartyNotificationRecipientPlan recipients,
         CancellationToken cancellationToken) =>
-        new PartyLegacyProjection(new LegacyCommandProjections(notifications), streams.GetOrAdd,
-            parties, ordering).DeliverAsync(plan, recipients, cancellationToken);
+        PartyNotificationStages.DeliverPartyNotificationsAsync(new LegacyCommandProjections(notifications), streams, parties, ordering, plan, recipients, cancellationToken);
 
     public ValueTask DeliverRealtimeAsync(
         SelectedSessionIdentity requester,
         PartySnapshot snapshot,
         CancellationToken cancellationToken) =>
-        new PartyLegacyProjection(new LegacyCommandProjections(notifications), streams.GetOrAdd,
-            parties, ordering).DeliverRealtimeAsync(requester, snapshot, cancellationToken);
+        PartyNotificationStages.DeliverPartyRealtimeAsync(new LegacyCommandProjections(notifications), streams, requester, snapshot, cancellationToken);
 }

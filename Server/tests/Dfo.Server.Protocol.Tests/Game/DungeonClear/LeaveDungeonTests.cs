@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -282,8 +286,9 @@ public sealed class LeaveDungeonTests
             Assert.True(runs.Ended);
             Assert.Equal(
                 [typeof(EplpCommandResponse), typeof(UserStateNotification),
-                 typeof(UserAreaNotification), typeof(AreaUsersNotification)],
+                 typeof(UserAreaNotification), typeof(AreaUsersNotification), typeof(WeaknessProjectionNotification)],
                 sent.Select(frame => frame.GetType()));
+            Assert.Equal((byte)37, Assert.Single(sent.OfType<WeaknessProjectionNotification>()).Value);
         });
     }
 
@@ -350,8 +355,13 @@ public sealed class LeaveDungeonTests
             var runs = new OneRun(hasRun: false);
             var sent = await Leave(LeaveState, runs);
 
-            Assert.Equal(4, sent.Count);
+            Assert.Equal(5, sent.Count);
             Assert.Contains(sent, frame => frame is AreaUsersNotification);
+            Assert.Equal(
+                [typeof(EplpCommandResponse), typeof(UserStateNotification), typeof(UserAreaNotification),
+                 typeof(AreaUsersNotification), typeof(WeaknessProjectionNotification)],
+                sent.Select(frame => frame.GetType()));
+            Assert.Equal((byte)37, Assert.Single(sent.OfType<WeaknessProjectionNotification>()).Value);
         });
     }
 
@@ -410,20 +420,12 @@ public sealed class LeaveDungeonTests
                 runs,
                 deliveries,
                 sender,
-                new TownAreaProjectionDelivery(
-                    new SessionPresenceDomainService(),
-                    new OneSession(Identity),
-                    new OneRuntimeSession(Entry()),
-                    new NoopNotificationBus(),
-                    new NoopPartyTownProjection(),
-                    sender,
-                    SharedTownMovementDomainService.Instance,
-                    weaknessProjection: new WeaknessProjectionDelivery(
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(new SessionPresenceDomainService(), new OneSession(Identity), new OneRuntimeSession(Entry()), new NoopNotificationBus(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance, new WeaknessProjectionDelivery(
                         new FixedWeakness(weaknessValue), new OneSession(Identity), sender)),
                 NullLogger<GiveUpGameHandler>.Instance,
                 new SessionPresenceDomainService(),
                 parties,
-                new PartyNotificationDelivery(new NoopNotificationBus()));
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotificationBus()));
 
             await handler.HandleAsync(
                 Dispatch(),
@@ -466,7 +468,7 @@ public sealed class LeaveDungeonTests
                 NullLogger<GiveUpGameHandler>.Instance,
                 new SessionPresenceDomainService(),
                 parties,
-                new PartyNotificationDelivery(new NoopNotificationBus()));
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotificationBus()));
 
             await handler.HandleAsync(
                 Dispatch(),
@@ -509,15 +511,11 @@ public sealed class LeaveDungeonTests
     }
     private sealed class ExitBusHandler(OneSession selected, OneRun runs, DungeonRunDeliveryRegistry registry, RecordingSender sender,
         RecordingPartyMutations parties, ICommandWorkUnits units, IAltarDungeonDomainService altars)
-        : GameDungeonExitCommandHandler(selected, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(), runs, registry,
-            parties, new SessionPresenceDomainService(), null!, null!, null!, null!, null!, null!, null!, null!, null!, units,
-            new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender), null!, null!, null!, altars, null!, null!, TimeProvider.System,
-            NullLogger<GameDungeonExitCommandHandler>.Instance)
+        : ICommandHandler<GameGiveUpGameCommand, bool>
     {
-        protected override ValueTask<bool> TryGiveUpTowersAsync(CommandExecutionContext context, SelectedSessionIdentity session, CancellationToken token) => ValueTask.FromResult(false);
-        protected override ValueTask<int> ReturnTownAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) =>
-            TownAreaProjectionTestFactory.Create(selected, new OneRuntimeSession(Entry()), sender).EnterAsync(entries, token);
-        protected override ValueTask ProjectPartyAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients, CancellationToken token) => ValueTask.CompletedTask;
+        private readonly GameDungeonExitCommandHandler handler = new(selected,new OneRuntimeSession(Entry()),new StandingWhereTheyAre(),runs,registry,            parties,new SessionPresenceDomainService(),ProtocolAlgorithmFixture.Default<ICommandProjections>(),ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterStateProjectionDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),ProtocolAlgorithmFixture.Default<ITownMovementDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),ProtocolAlgorithmFixture.NoOnline(),units,            new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),ProtocolAlgorithmFixture.Default<IDungeonCardPresentationControl>(),ProtocolAlgorithmFixture.Default<IDungeonEntryIntentDomainService>(),altars,ProtocolAlgorithmFixture.Default<IAltarSchedulerWakeSignal>(),ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(),TimeProvider.System,            NullLogger<GameDungeonExitCommandHandler>.Instance,ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>());
+        public ValueTask<bool> HandleAsync(CommandExecutionContext context, GameGiveUpGameCommand command, CancellationToken ct) =>
+            handler.HandleAsync(context, command, ct);
     }
     private sealed class TracedAltar(DungeonRunId id, ExitCommandTrace trace, IDomainTransactionAccessor transactions) : AltarView(id)
     {
@@ -602,10 +600,10 @@ public sealed class LeaveDungeonTests
                 runs,
                 deliveries,
                 sender,
-                TownAreaProjectionTestFactory.Create(
-                    new OneSession(Identity),
-                    new OneRuntimeSession(Entry()),
-                    sender),
+                ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(new SessionPresenceDomainService(),
+                    new OneSession(Identity), new OneRuntimeSession(Entry()), sender,
+                    new NoopNotificationBus(), new NoopPartyTownProjection(), SharedTownMovementDomainService.Instance,
+                    new FixedWeakness(37)),
                 NullLogger<BackToVillageHandler>.Instance,
                 new VirtualOnlyPartyService());
 
@@ -616,8 +614,9 @@ public sealed class LeaveDungeonTests
 
             Assert.Equal(
                 [typeof(BackToVillageResponse), typeof(UserStateNotification),
-                 typeof(UserAreaNotification), typeof(AreaUsersNotification)],
+                 typeof(UserAreaNotification), typeof(AreaUsersNotification), typeof(WeaknessProjectionNotification)],
                 sender.Sent.Select(frame => frame.GetType()));
+            Assert.Equal((byte)37, Assert.Single(sender.Sent.OfType<WeaknessProjectionNotification>()).Value);
 
             // The same values the dungeon's exit projects, asserted the same way rather than by
             // comparing the two message objects: the roster notification holds a list, and records
@@ -637,6 +636,10 @@ public sealed class LeaveDungeonTests
     private static async Task<IReadOnlyList<IGameServerMessage>> Leave(byte state, OneRun runs)
     {
         var sender = new RecordingSender();
+        var areas = new SessionPresenceDomainService();
+        if (runs.Find(Identity.CharacterId) is null)
+            areas.Admit(new SessionPresence(Identity.CharacterId, Identity.ListenerPort, StandingTownId, StandingAreaId,
+                true, Identity, true, Entry().World.Channel.ChannelId));
         var handler = new EplpDriver(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
@@ -644,11 +647,11 @@ public sealed class LeaveDungeonTests
             runs,
             new DungeonRunDeliveryRegistry(),
             sender,
-            TownAreaProjectionTestFactory.Create(
-                new OneSession(Identity),
-                new OneRuntimeSession(Entry()),
-                sender),
-            NullLogger<EplpCommandHandler>.Instance);
+            ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(areas,
+                new OneSession(Identity), new OneRuntimeSession(Entry()), sender,
+                new NoopNotificationBus(), new NoopPartyTownProjection(), SharedTownMovementDomainService.Instance,
+                new FixedWeakness(37)),
+            NullLogger<EplpCommandHandler>.Instance, townAreas: areas);
 
         await handler.HandleAsync(
             Dispatch(),

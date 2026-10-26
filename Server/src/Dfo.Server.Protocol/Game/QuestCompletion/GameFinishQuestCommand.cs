@@ -59,8 +59,8 @@ public sealed class GameFinishQuestCommandHandler(
     IDungeonRunProjectionDomainService runGenerations,
     Dfo.Server.Abstractions.Settlement.IQuestCompletionSettlementDomainService completion,
     IBusinessInventorySlotDomainService inventorySlots,
-    IIllusionTowerDomainService? towers = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
+    IIllusionTowerDomainService towers,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
     : ICommandHandler<GameFinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(CommandExecutionContext execution, GameFinishQuestCommand command, CancellationToken cancellationToken)

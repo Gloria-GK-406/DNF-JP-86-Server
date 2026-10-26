@@ -109,8 +109,6 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     }
 
     private static TestWorld World(
-        TaskCompletionSource? enteredCommand = null,
-        TaskCompletionSource? releaseCommand = null,
         byte weaknessValue = 19,
         long roomVersion = 0,
         bool mirror = false,
@@ -145,15 +143,13 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         var runs = new Runs(run);
         var registry = new DungeonRunDeliveryRegistry();
         registry.Register(run.RunId, [Current]);
-        var commands = new ReadyCommandBus(runs, enteredCommand, releaseCommand);
         var sender = new WeaknessSender();
         var delivery = new DungeonLoadingAlgorithmDriver(
             sessions,
             runs,
             registry,
-            commands.ReadyAsync,
             new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender), quotaProjection);
-        return new TestWorld(delivery, sessions, runs, commands, sender);
+        return new TestWorld(delivery, sessions, runs, runs, sender);
     }
 
     private static readonly SelectedSessionIdentity Current = SelectedSessionIdentity.Create(
@@ -169,7 +165,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         DungeonLoadingAlgorithmDriver Delivery,
         Sessions Sessions,
         Runs Runs,
-        ReadyCommandBus Commands,
+        Runs Commands,
         WeaknessSender Sender);
 
     private sealed class WeaknessState(byte value) : IWeaknessDomainService, IWeakness
@@ -289,11 +285,14 @@ public sealed class DungeonLoadingProjectionDeliveryTests
     {
         private DungeonRunState current = initial;
 
-        public DungeonEntryChange? MarkReady(
+        public int Submissions { get; private set; }
+
+        public DungeonEntryChange? TryMarkParticipantReady(
             CharacterId characterId,
             DungeonRunId runId,
             long roomVersion)
         {
+            Submissions++;
             if (current.RunId != runId
                 || current.RoomVersion != roomVersion
                 || current.ReadyParticipants.Contains(characterId))
@@ -354,19 +353,4 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         }
     }
 
-    private sealed class ReadyCommandBus(
-        Runs runs,
-        TaskCompletionSource? entered,
-        TaskCompletionSource? release)
-    {
-        public int Submissions { get; private set; }
-
-        public async ValueTask ReadyAsync(CharacterId characterId, DungeonRunId runId, long roomVersion, CancellationToken cancellationToken)
-        {
-            Submissions++;
-            entered?.SetResult();
-            if (release is not null) await release.Task.WaitAsync(cancellationToken);
-            _ = runs.MarkReady(characterId, runId, roomVersion);
-        }
-    }
 }

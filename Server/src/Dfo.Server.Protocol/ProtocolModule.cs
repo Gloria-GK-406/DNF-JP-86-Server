@@ -451,7 +451,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<TournamentRewardMessage, TournamentRewardEncoder>();
         services.AddGameCmdMessageEncoder<TournamentStatusResponse, TournamentStatusEncoder>();
         services.AddGameCmdMessageEncoder<TournamentSelectionResponse, TournamentSelectionEncoder>();
-        services.TryAddSingleton<DungeonClearProjectionDelivery>();
         services.TryAddSingleton(DungeonCardPresentationTiming.Production);
         services.TryAddSingleton<IDungeonCardPresentationDelay,
             SystemDungeonCardPresentationDelay>();

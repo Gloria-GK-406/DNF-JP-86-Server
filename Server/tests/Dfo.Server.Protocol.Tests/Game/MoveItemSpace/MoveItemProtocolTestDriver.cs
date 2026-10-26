@@ -1,3 +1,4 @@
+
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
@@ -23,7 +24,7 @@ internal static class MoveItemProtocolTestDriver
         ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
         TimeProvider time,IMarriageHousingQueryDomainService? housing=null) =>
         new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Fixture),
-            new Outbox(sender),logger,character,account,time,housing)));
+            new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

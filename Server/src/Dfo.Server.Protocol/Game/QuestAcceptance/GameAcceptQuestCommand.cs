@@ -45,10 +45,10 @@ public sealed class GameAcceptQuestCommandHandler(
     ICharacterContainerDomainService containers,
     IQuestProgressDomainService questProgress,
     IItemDeliveryDomainService delivery,
-    ICycleDungeonEntryDomainService? cycles = null,
-    IMirrorAradQuestDomainService? mirror = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null,
-    ISouthernDaleQuestDomainService? southern = null)
+    ICycleDungeonEntryDomainService cycles,
+    IMirrorAradQuestDomainService mirror,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
+    ISouthernDaleQuestDomainService southern)
     : ICommandHandler<GameAcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(CommandExecutionContext execution, GameAcceptQuestCommand command, CancellationToken cancellationToken)

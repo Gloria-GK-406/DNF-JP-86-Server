@@ -182,10 +182,10 @@ public sealed class QuestClearVerticalTests
                 registry.Register(run.RunId, [LeaderSession, HelperSession]);
                 var sender = new RecordingSender();
                 var projection = new PickupProjectionDriver(
-                    sessions, registry, sender, TimeProvider.System);
+                    sessions, runs, run, registry, sender, TimeProvider.System);
                 var postCommit = new PickupClearDriver(
                     clear,
-                    new DungeonClearProjectionDelivery(sessions, runs, registry, sender));
+                    global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender));
                 Assert.Null(await postCommit.EvaluateAsync(LeaderSession, pickup));
                 var pickupDelivered = await projection.DeliverAsync(
                     LeaderSession, pickup, default);

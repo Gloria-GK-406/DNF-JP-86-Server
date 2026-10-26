@@ -93,7 +93,7 @@ public sealed class GameRecoverStaminaCommandHandler(
     IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<GameRecoverStaminaCommandHandler> logger,
-    IIllusionTowerDomainService? towers = null)
+    IIllusionTowerDomainService towers)
     : ICommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult>
 {
     public async ValueTask<RecoverStaminaResult> HandleAsync(CommandExecutionContext context,

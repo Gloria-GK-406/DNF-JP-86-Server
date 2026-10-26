@@ -1,3 +1,11 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Characters;
@@ -9,7 +17,13 @@ namespace Dfo.Server.Application.Tests.Support;
 internal sealed class GroundPickupAlgorithmDriver(IDungeonRunDomainService runs,IGroundPickupDomainService floor,
     ICharacterContainerDomainService containers,ICharacterDomainService characters,IQuestProgressDomainService progress,
     IItemGrantDomainService grants,IEpicBookDomainService? epicBook=null)
-    : GameGetItemCommandHandler(null!,runs,null!,null!,null!,floor,containers,characters,progress,grants,epicBook!,null!,null!,null!,null!,null!,new NoProjectionOutbox(),null!,TimeProvider.System,null!,NullLogger<GameGetItemCommandHandler>.Instance);
+{
+    private readonly GameGetItemCommandHandler command = ProtocolAlgorithmFixture.Create<GameGetItemCommandHandler>(
+        runs, floor, containers, characters, progress, grants,
+        epicBook ?? ProtocolAlgorithmFixture.Default<IEpicBookDomainService>(), new NoProjectionOutbox());
+    internal ValueTask<GroundPickupResult> PickUpAsync(GroundPickupInput input, CancellationToken ct) =>
+        command.PickUpAsync(input, ct);
+}
 
 internal sealed class NoProjectionOutbox:Dfo.Server.Protocol.Game.IGameCommandOutbox
 {

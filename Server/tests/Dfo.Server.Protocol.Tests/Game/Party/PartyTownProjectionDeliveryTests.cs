@@ -179,7 +179,7 @@ public sealed class PartyTownProjectionDeliveryTests
             var bus = new RecordingNotificationBus();
             var sessions = new FixedSelectedSessions();
             var presence = Presence();
-            var mutation = new PartyNotificationDelivery(bus, streams, sessions, presence);
+            var mutation = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(bus, streams, sessions, presence);
             await mutation.DeliverAsync(
                 new PartyNotificationPlan([], oldSnapshot), CancellationToken.None);
             bus.Publications.Clear();

@@ -23,7 +23,7 @@ public sealed class OnlineUserConnectionObserver(
     IServerConfigService serverConfig,
     IGameCommandOutbox gameSender,
     ICleanupNotificationDelivery cleanupDelivery,
-    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionLifecycleHandler
+    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService clientSettings) : INetworkConnectionLifecycleHandler
 {
     public async ValueTask ConnectedAsync(
         CommandExecutionContext context, NetworkConnectionContext connection,

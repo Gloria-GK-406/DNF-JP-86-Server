@@ -41,7 +41,7 @@ Docs/        四类东西混在一个平面上，读之前先认清是哪一类�
 | `Dfo.Pvf` | — | 只读 PVF 档案库（cipher/zlib/索引/token），无游戏概念 |
 | `Dfo.Server.Data` | — | 纯模型：领域记录 + 协议身份契约（`Networking/NetworkMessages.cs` 只留两个枚举、两个消息接口、两个帧元数据 record） |
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 + 通用只读服务器配置契约 |
-| `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：玩法执行器与发件箱、命令总线与管线、消息分发机制、领域服务 |
+| `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：玩法执行器与发件箱、命令总线与显式工作单元、消息分发机制、领域服务 |
 | `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | PVF 内容源 + 频道脚本 + 启动配置内存快照 |
 | `Dfo.Server.Persistence` | Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + `Database/` 事务参与者。**全部类型 `internal`**，对外只经 Abstractions 契约 |
 | `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、出站编码器、发送端（每连接发送队列、交付期限、队列上限、失败即关连接）、注册表。收发路径上不含任何单个协议的知识；发送端也只表达必达/尽力、跨连接的交付顺序和逐目标失败隔离 |
@@ -78,35 +78,26 @@ Docs/        四类东西混在一个平面上，读之前先认清是哪一类�
 
 ## 架构设计
 
-一句话：**领域服务承载业务能力，命令执行总线执行领域命令，
-socket 层的 handler 驱动领域命令完成任务；一切玩法在唯一的执行器上按作业串行执行，
-出站先登记进作业的发件箱，作业完成后才由发送端发出。**
+一句话：**薄消息 handler 提交一个协议 CMD；CMD 在唯一玩法执行器中完成整个用例，
+显式划出各段事务、调用领域服务并登记投影；发件箱在作业结束后交给发送端。**
 
 ```
-TCP 字节
-  → TouchSocket 适配器（Networking/Framing，入站 14B Game 头 / 11B Channel 头；
-     出站 Game 15B。入站长度是 A21 客户端的形状，A12 为 13B）
-  → NetworkPlugin.OnTcpReceived（Networking/Runtime/NetworkPlugins.cs）
-      按线级键查解包器注册表；查不到即丢弃。传输侧到此为止，不认识任何具体协议
-  → IGameMessageDecoder / IChannelMessageDecoder
-      （Protocol/<Endpoint>/<Protocol>/*MessageDecoder.cs）
-      调本切片的 payload codec → 强类型 IClientNetworkMessage
-  → INetworkMessageDispatcher（Abstractions 接缝，实现在 Application）
-  → NetworkMessageDispatcher：按 ClientMessageType 查注册表 → 入队 inbound:<ClientMessageType>
-      作业并等它完成，之后传输才读这条连接的下一帧（纯遥测 handler 例外，留在收包回调里）
-  → GameplayExecutor（Application/Execution）：唯一的玩法执行器，一次执行一个作业；
-      作业内新 DI scope
-  → ClientMessageHandler<TMessage>（Protocol/<Endpoint>/<Protocol>/*Handler.cs）
-      身份检查（IOnlineUserQueryDomainService）→ commandBus.SendAsync(...) → 发响应
-  → CommandBus 管线（机制在 Application；在作业里内联执行）→ ICommandHandler（在切片内）
-      → 领域服务（Application）→ 仓储与存储（Persistence）
-                              → 规则服务（Application）→ 内容源（Infrastructure）
-  → Game 由 IGameMessageSender 约束 CMD/NOTI，Channel 直接用 INetworkMessageSender；
-      两者都在登记时按消息 CLR 类型查编码器注册表，由 IServerMessageEncoder（Protocol 切片内）
-      产出完整帧 → 登记进本作业的发件箱 → 作业结束后交给 OutboundSender（Networking/Outbound）
-      → 每连接发送队列 → 出站
+TCP 字节 → Networking 帧适配（A21 入站 Game 14B／Channel 11B，出站 Game 15B）
+  → 按线级键查 Protocol 解包器 → 本切片 payload codec → 强类型消息
+  → NetworkMessageDispatcher 按消息注册调用薄 handler（执行器外）
+  → handler 将原消息和精确 NetworkDispatchContext 交给 CommandBus.SendAsync
+  → 唯一 GameplayExecutor FIFO 作业
+  → 初始化发件箱 → 新 CMD scope → 显式 CommandExecutionContext / CommandRequestContext
+  → ICommandHandler：身份／业务阶段／显式工作单元／补偿／投影顺序
+      → 领域服务 → 仓储与存储；领域服务 → 规则服务 → 内容源
+  → IGameCommandOutbox / ICommandMessageOutbox / ICommandProjections 即时编码并登记
+  → 收口工作单元、request、scope 与失败 → 作业发件箱交给 OutboundSender
+  → 每连接发送队列 → 网络
 ```
 
+纯遥测只在收包回调中记日志，不进入 CMD；其它已注册消息均绑定协议 CMD。
+Networking 不认识单个协议；传输等待本条处理完成后才读该连接下一帧。
+当前模型及新增协议示例见 [协议 CMD 开发指南](Document/ProtocolCommands.md)。
 
 ### 设计哲学与重构判断
 
@@ -137,15 +128,15 @@ TCP 字节
 **三层是上下关系，不是三选一。**
 
 ```
-CMD handler          驱动用例，不承载业务语义
+协议 CMD handler     拥有用例阶段、事务与投影顺序，调用领域业务能力
   → 业务服务         （领域服务）读写世界状态，编排用例
     → 规则服务       内容 + 传入的 facts + 显式种子 → 不可变规则实例/值/决定，无角色状态
       → 纯规则       静态类，纯函数，不碰 I/O
 ```
 
 每一层只调它下面那层。业务服务问规则服务「规则怎么说」，规则服务读内容源并调静态规则类算出
-答案；业务服务不自己读内容源，handler 也不自己问规则服务——端点解析（`IChannelEntryPolicy`）
-是唯一的例外，它列在下面「handler 业务语义规则」允许的四类里。
+答案；业务服务不自己读内容源，CMD 也不自己问规则服务。频道准入与登录端点经
+`IChannelEntryDomainService` 取得具名结果，规则和部署配置仍由各自所有者读取。
 
 **规则输入只经规则服务进入本服务器。** 规则输入指游戏规则依赖的、来自运行中世界之外的值：
 PVF 内容源、游戏规则配置、以及表达归档或游戏语义的常量。它们的读取点只有一个，就是拥有该
@@ -154,32 +145,22 @@ PVF 内容源、游戏规则配置、以及表达归档或游戏语义的常量�
 反过来的一半早就写在 `Docs/领域结构重构设计.md` §6 里：规则服务不许自己查世界状态，只能接收
 facts。两半合起来才是一条线——一边不许往上摸世界，一边不许绕过它去够内容。
 
-### 命令处理器只够得到领域形状
+### 命令处理器的注入与结构
 
-命令处理器的构造器里只允许出现两种东西：
+业务依赖只允许 `Abstractions` 中的 `*DomainService`、`*DomainStore`，以及既有具名
+`IPartyService`。角色／任务簿／容器实例从领域服务取得，事实值从命令输入传入；不注入行网关、
+持久化接缝、运行时容器、内容源、规则服务、总线、队列、执行器、传输 sender／closer 或 service locator。
 
-| 形状 | 是什么 | 怎么认 |
-|---|---|---|
-| 领域服务 | 编排一项业务能力；规则判断由它在内部向规则服务索取 | `Dfo.Server.Abstractions` 里以 `DomainService` 结尾的接口 |
-| 领域 store | 领域状态的事务结算真源，被要一个会话、由事务收口 | 同一程序集里以 `DomainStore` 结尾的接口 |
+协议编排另有封闭的机制能力：显式工作单元、当前作业发件箱／关闭登记／即时投影、出站顺序、
+固定槽位换算、时钟和日志。选角、翻牌、祭坛、Joust、HTTP 审计、生命周期、事件消费和调度的少量
+特殊能力必须有具名理由；精确类型与理由只维护在
+`Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs`，
+不能凭相似名称、后缀或转发门面扩权。规则服务仍不得直接注入 CMD。
 
-**实例与快照不在这张表上，因为它们不是被注入的**：实例由领域服务交出来
-（`characters.Get(id)`、`logs.LogOf(...)`、`containers.FindContainer(...)`），快照作为命令
-自己的字段送进来。
-
-除此之外的一切都不许注入——行网关（`*Table`）、持久化接缝（`*Persistence`）、运行时容器
-（`*Directory` / `*Registry`）、内容源、规则服务、命令总线。要用它们，就把用法收进拥有那件事
-的领域服务里。
-
-例外必须进入具名豁免清单并写明理由。目前包括 `TimeProvider`（环境时钟，不是这个游戏知道的
-东西），以及用户明确采用领域名称的 `IPartyService`（队伍聚合与目录的权威服务边界，不追加
-`Domain` 后缀）。清单与它每一项的理由都写在守它的判据旁边；其它接口不得借此绕过后缀规则。
-
-**这条由判据守着**：`Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs`
-反射遍历全部 `ICommandHandler<,>` 实现的构造器参数。它按类型判定而不是按一张类型名单——
-名单要人手维护，而没人维护的名单等于没有规则。同一个判据另有一条用例专门证明它会拒绝
-（喂给它行网关、持久化接缝、运行时容器与命令总线，断言全部被拒），否则一条什么都放行的规则
-和一个没有违规的仓库看起来一模一样。
+协议 CMD 不继承共用 CMD 基类，每个 CMD 直接显露自身用例顺序。可复用的协议阶段按明确职责组织，
+共享业务归真正的领域 owner；不能把巨型基类换成依赖袋。服务依赖必须非空且完整，不用 `null!`、
+可空构造参数、缺省服务或 `Func` 能力为不同调用者填空。业务可空值、纯值函数及显式单元 action 合法，
+不构成服务定位或任意业务回调的许可。判据须检查真实生产类型，并有会拒绝违规形状的反例。
 
 ### 角色自己的数，问角色
 
@@ -256,7 +237,7 @@ AD／1C7／187在已有登录与选角序列回放。内部字段语义、其他
 **宿主部署配置不是规则输入。** `IServerConfigService` 的实际消费方包括启动服务、连接观察者、每日重置／疲劳／黑钻服务，
 以及 Infrastructure 的 `ChannelLoginDeploymentSource`。它们沿用下面「接口后缀标明类别」的部署配置例外。
 LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，不直接 `GetConfig`；来源持同一只读快照，
-仅在成功响应阶段按需读取。旧 `IChannelEntryPolicy` 暂为同一领域 singleton 的兼容别名。同样不算规则输入的还有两类，各自在代码里写明了理由：
+仅在成功响应阶段按需读取。同样不算规则输入的还有两类，各自在代码里写明了理由：
 纯测量开关（`ExperienceDiagnostics`）与协议投递行为（`SelectCharacterDeliveryOptions`）。
 
 **在线身份只有一条记录、一把锁。** “这个账号/角色/连接现在是哪个会话、走到哪一阶段”只在
@@ -270,7 +251,7 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 - `IsInWorld(session)`：有效且已从它自己的游戏连接进入世界。其余玩法、投影、投递都用它。
 - `TryGetInWorld(角色 / 线上号 / 连接)`：手里只有键、要找在世界的会话时用。
 
-拆除、补偿、断线清理处理的是连接已撤销的残留记录，问 `StandingOf` / `ReleaseExact`。三个判定都不看隔离标记，隔离归管线。
+拆除、补偿、断线清理处理的是连接已撤销的残留记录，问 `StandingOf` / `ReleaseExact`。三个判定都不看隔离标记，隔离由 CMD 入口与显式工作单元的精确保护检查负责。
 
 不再手写「`Find…` 出来再比较」「查不到就当不在线」，也不再拼在线用户的 `CharacterActive` 标志（#185）。
 `Find…` 只剩下面几种用法：
@@ -283,19 +264,19 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 玩法执行器、发件箱与发送端
 
-**一条队列。** 进程内只有一个玩法执行器 `GameplayExecutor`（`Application/Execution/`）：先进先出、
-单消费者，一个作业执行完才取下一个。作业只经入队点 `IGameplayQueue` 进入。作业类型名按来源：
-`inbound:<ClientMessageType>`；`lifecycle:connected`／`lifecycle:disconnected`／`lifecycle:depth-exceeded`；
-`timer:<类型名>`（调度任务为 `timer:ScheduledTaskHostedService/<任务 ID>`，卡牌计时器为
-`timer:DungeonCardPresentationCoordinator/layout`／`/auto-flip`）；`event:<订阅 ID>`（别的进程留下的 delivery 为
-`startup:event/<订阅 ID>`，超过深度上限的落定加 `/depth-exceeded`）；`gm:<METHOD> <路由模板>`、
-`http:<METHOD> <路由模板>`；启动作业 `startup:<服务名>[/<作业>]`。在执行器外直接调用命令总线得到
-`bus:<命令类型名>`，生产中没有这样的调用方。
+**一条队列。** 进程内只有一个 `GameplayExecutor`，FIFO、单消费者，一个作业结束才取下一个。
+生产入口通过 `CommandBus.SendAsync`（协议）或 `SendInternalAsync`（具名内部来源）提交 typed CMD；
+底层 `IGameplayQueue` 由机制使用，不把任意业务委托当作新的内部命令输入。协议作业以 CMD 类型命名，
+内部来源明确给出 timer／event／lifecycle／http／gm／startup 标签与调用链。
 
-**生产者只入队、等待。** 两个 dispatcher、定时源、事件组循环、GM／HTTP 路由过滤器与启动服务只组织作业、
-入队并等它完成，不读写玩法状态、不开写事务、不发包。入站 dispatcher 等作业完成之后传输才读这条连接的
-下一帧，所以一条连接在队列里至多有一个待执行的入站作业；同一个定时源的上一个作业没完成，不再入队
-（旧源由 `CoalescingGameplaySource` 合并，两塔 typed 来源合并完整扫描与逐项提交轮次；手工 Tick 不合并）。经 `RegisterTelemetryMessageHandler` 注册的纯遥测 handler 是唯一留在收包回调里的 handler。
+**生产者只组织输入、提交、等待。** 薄 handler、定时源、事件组循环、HTTP／GM 路由与启动服务不在队列外
+读写玩法世界、开写事务或发包。HTTP 的解析、身份输入、密码计算与响应映射属于外侧边界，42 个路由操作
+由同一种 `HttpRouteCommand` 按纯数据输入执行；不能传入业务 `Func`。定时源按原规则合并 hosted tick，
+两塔与每日刷新跟踪完整扫描／逐项轮次，手工已接受轮次仍须排空；同一轮的不同 CMD 之间允许正常 FIFO 插入。
+每日刷新在真实 outbox 登记接受后才推进当前周期和精确会话水位，不把“尝试过”当成接受。
+
+纯遥测经 `RegisterTelemetryMessageHandler` 注册，只注入日志，留在收包回调中。普通消息的双向注册绑定
+消息 CLR、handler 与 CMD；有限请求家族明确列成员，拒绝未知派生。
 
 **玩法路径上不加门、信号量与「锁内复查、重试」循环**，串行只靠这条队列（`LockRemovalSourceTests` 按名字与文件守着）。
 短 `lock(sync)`、PVF 内容源与规则初始化的锁保留；执行器外的口令哈希限流保留它的信号量。
@@ -311,29 +292,31 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 只有 `GameplayExecutor` 能进出作业（`GameplayJobHostStructureTests`）。
 口令哈希只经 `PasswordComputationLimiter`，在执行器外计算，结果作为作业的输入；在执行器上调用即失败。
 
-**请求级上下文**今天是作业内的 AsyncLocal 帧：`NetworkCommandAuthorization`、`SelectedSessionCommandScope`、
-`EffectOperationContext` 与 `CommandBus` 的静态分派深度，都在作业内进入与退出（普查豁免 E3）。
-这是过渡形态：新代码不要在作业之外读写这些帧，也不要新增同类的 AsyncLocal 帧。
+**请求上下文显式传递。** 每个 CMD 的 `CommandExecutionContext.Request` 只属于当前作业、当前调用；
+结束后关闭，不能由 DI、静态字段、job slot 或 AsyncLocal 获取“当前请求”。ProtocolNonEffect、
+ProtocolEffectRejected、ProtocolEffectSelected、TrustedInternal 是封闭状态，不以 null 会话推断内部权限。
+仅执行器当前 job 和领域事务保留各自必要的 ambient；它们都不是请求权限的替代。
 
 **调用链。** 每个作业带根、父、深度、来源种类与来源连接。事件作业是发布它的那个作业的子；作业登记的关连接
 引起的 `lifecycle:disconnected` 是登记它的那个作业的子；入站、定时、GM、HTTP、启动恢复与传输层自发的关闭是新根。
 深度上限 `GameplayCallDepth.Limit`（32）：超限的作业不入队，执行器记一条带完整链的 `Error`，根来源是客户端连接的，
 关闭该连接；超限的事件 delivery 由系统作业落定，超限的拆除改作新根执行。
 
-**失败与日志。** 作业体失败由执行器记一条 `Error`，带调用链与来源连接。生产者与中间件拿到失败时用
-`GameplayJob.EndedAJob` 认出这是作业体自己的失败，不再记 `Error`（降为 `Debug`，带额外事实的记不附异常的
-`Warning`）；新写的生产者照此写 catch。旧定时源经 `GameplayTimerWork.TickAsync`，作业失败在那里吸收，
-记一条不附异常的 `Warning`，服务继续下一拍；绕过它的定时循环一次作业失败就结束托管服务，宿主随之停下
-（`TimerSourceJobFailureTests` 按组合里的每个 `BackgroundService` 守着）。两塔来源只提交 typed 内部 CMD：离场身份快照不出队，逐项精确领取后投影，再取时钟扫描并逐 run 返回；各项失败隔离，项间允许正常 FIFO 请求插入。来源 drain 等完整已接受轮次完成。拒绝入队（执行器已停止、深度超限）不是作业体失败，照旧由生产者记。
-细粒度命令失败时 `CommandLoggingBehavior` 另记一条 `Error`。这是过渡形态：读日志时，同一次失败今天可能有两条 `Error`。
+**失败与日志。** 作业失败由执行器记一条带调用链与来源连接的 Error。生产者用 `GameplayJob.EndedAJob`
+识别已经报告的失败，同一传播链降为 Debug 或带额外事实且不附异常的 Warning；独立业务／清理错误仍按真实
+发生报告。定时源只隔离已经执行的项失败，拒绝入队不伪装作已执行成功；原重试、取消与停机规则保持。
+同一 cause 的独立清理失败也是另一发生，不能用异常引用相同来抹掉。
 
-**发件箱。** 作业内的一切出站——`IGameMessageSender`、`INetworkMessageSender`、`IEventService.ProjectAsync`、
-`INetworkConnectionCloser`——都只登记进本作业的发件箱（`GameplayOutbox`），消息在登记时编码。工作单元内登记的条目
-在该单元提交时组装，回滚或结果不确定即丢弃；工作单元外的条目与关连接请求总会保留。作业结束时发件箱按登记顺序
-交给发送端，之后作业的调用方才看到结果。作业以未处理异常结束时，保留的条目照发，最后关闭来源连接。
-为某个收件人组装失败只丢他的条目并记 `Warning`，不关他的连接。
-失败作业关闭来源连接，今天依赖作业里已经打开过发件箱，两个 dispatcher 都在作业一开始打开它。
-这是过渡形态：新的带来源连接的作业要在开始时打开发件箱（读一次 `GameplayOutboxes.Current`），不要依赖别处替它打开。
+**发件箱。** CMD 通过具名 outbox／projection／closure 接缝登记，登记时立即编码，不等网络。
+单元内条目随真实完成状态保留或丢弃；单元外条目及关闭请求按原规则保留，作业结束后按登记顺序交发送端。
+生产禁止调用事务内延迟 `ComposeAsync`；其存在与机制测试不代表已启用或问题已修。
+`CommandJobEntry.Begin` 在身份检查、CMD scope 建立前初始化发件箱；即使没有任何消息条目，失败仍可关闭
+精确来源。不存在要求各 dispatcher 或调用者顺手读取 Current 的过渡约定。
+
+提交后的编码失败、scope 释放失败、未请求取消及不确定结果走默认失败：保留完整原因，保护已声明的精确
+参与者，关闭实际来源，不补失败 ACK。正常拒绝仍按各协议原语义处理。已批准的三类即时登记 raw 出口与
+有限健康回滚结果另有真实阶段证明，不能从异常类型或“可重放”推导许可。通知总线原逐收件人 Failed 隔离
+保持；它不代表其它调用者可以清除 request failure。
 
 **发送端** `OutboundSender`（`Networking/Outbound/`）：每连接一个发送队列；条目分必达与尽力；跨连接的有序组
 按登记顺序交付，组内一条必达条目没交付成功，其后的条目一律跳过（关连接请求除外）。交付超过
@@ -350,131 +333,40 @@ LOGIN 的真实 `IChannelEntryDomainService` 通过 typed 来源取得事实，�
 
 ### 2) 命令执行总线（Application/Commands）
 
-**新协议级路由与旧细命令路线并存。** 下表是已走同一 `CommandBus` 的完整协议入口；清单以
-[实际注册](Server/src/Dfo.Server.Protocol/ProtocolModule.cs)与[迁移账](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/verification/migration-ledger.md)为准，后续迁移只增清单，共同规则变化才改正文；表中 `TASK-NN` 均指[本轮任务目录](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks)的同名文件。
+只保留 `ICommand<TResult>`、`ICommandHandler<TCommand,TResult>` 与一个 `CommandBus`。注册类别只有
+Protocol／Internal，没有细粒度内联路由、ExecutionKind、标记接口管线或逐命令自动事务。
+协议 handler 提交一个 `IProtocolCommand` 并等待；内部来源显式提供 `InternalCommandOrigin`。
+CMD 内禁止直接或间接再次 dispatch，执行器内入队等待、泄漏续体或已关闭请求都会失败。
 
-| 已迁协议 | 特有边界与出处 |
-|---|---|
-| Channel Connect／ScriptVersion／Script／Info | 无工作单元；[源码](Server/src/Dfo.Server.Protocol/Channel)。 |
-| LOGIN、名册／查名／创建／删除角色 | 只保兑换／创建／删除的原写段，创建 ACK 后刷新名册，其余只读；[源码](Server/src/Dfo.Server.Protocol/ProtocolModule.cs)。 |
-| OtherCharacterDetail | 领域执行／投影时复查当前目标代次与精确收件人；[源码](Server/src/Dfo.Server.Protocol/Game/AccountRoster/GameOtherCharacterDetailCommand.cs)。 |
-| UseStackable | 无 selected 仅 Silent ACK、不 Main；[源码](Server/src/Dfo.Server.Protocol/Game/UseStackable/GameUseStackableCommand.cs)。 |
-| BuyItem（普通／Housing） | 双精确 CLR，普通 NonRequest／Housing Main，couple audience 不扩参与者；[源码](Server/src/Dfo.Server.Protocol/Game/BuyItem/GameBuyItemCommand.cs)。 |
-| Reinforce／Disjoint（NPC／Portable）／EnchantByBead | 仅原有效领域分支 Main；`TASK-13`。 |
-| MagicSeal／Forging／Outworld（含 twist） | unseal 拒绝静默、失败 roll 提交材料、action2 早拒绝；`TASK-14`。 |
-| PackageOpening／AvatarPackageOpening／MagicBoxSingleOpening／MagicBoxBatchOpening | 仅此四 opening，Freeze 后确认回滚可保投影；`TASK-15`。 |
-| CompoundItem／LotteryOpening／VendingMachine／EpicCraft | 原 Main 与失败 ACK 边界；Lottery mode1 在 Main 后独立读取 premium；[源码](Server/src/Dfo.Server.Protocol/Game/LotteryOpening/GameLotteryOpeningCommand.cs)。 |
-| RenameCreature／HatchCreature／SharedEffect／GenCeraTicket | Rename／SharedEffect 保原 Main 与足迹，Hatch 仅普通写，CERA 票据无事务；[源码](Server/src/Dfo.Server.Protocol/Game/Creatures/RenameCreatureHandler.cs)。 |
-| ResetItemQuality／ResetRandomOption | 无 domain footprint，reseal 返回 null 才回落 quality；`TASK-16`。 |
-| Socket（四 logical） | 零消耗仍验证 pile，保 target／物料槽足迹；`TASK-17`。 |
-| AvatarCompound | 先建新 UID 再扣输入，重放 UI Recovery＋当前库存；`TASK-18`。 |
-| Warehouse（六 logical） | 首成功用事务内 receipt，01AF 只有 Main NOTI／全结果无 ACK；`TASK-19`。 |
-| CollectionBox（一个 logical／四 wire） | Main 内记槽位，Main 后逐条 clock，拒绝无首成功许可；`TASK-20`。 |
-| InventorySort（排序／锁定／解锁、两个 CMD） | 两库存 Load／clock／装备归一仍同事务；`TASK-21`。 |
-| SellItem／DeleteItem（三操作）／RepairItem（普通／自动）／CrystalContract（选择） | 保原单写与投影顺序；`TASK-22`～`TASK-25`。 |
-| MoveItemSpace | 两处仓库／外观／Housing 降级保已追加帧；[源码](Server/src/Dfo.Server.Protocol/Game/MoveItemSpace/GameMoveItemSpaceCommand.cs)。 |
-| CeraShopPurchase | 普通 WriteResult＋唯一买家 NonRequest，无 Main／账本／重放／raw；`TASK-29`。 |
-| Mailbox（Send／SendMulti／Claim／Action／Open／Query） | 保原领域自结算与封闭恢复；`TASK-31`。 |
-| RentEquipment／ChargeRentPoint | 原 Main 后独立普通 Write 刷新；[源码](Server/src/Dfo.Server.Protocol/Game/Rental/RentalSlice.cs)。 |
-| SetUdpIpPort／RequestPeer／ResponsePeer／SetPartyInfo／CallPartyMemberRealtimeInfo | 原无事务的直接能力，精确队伍阶段与城镇共享唯一代际水位；`TASK-38`。 |
-| LeaveParty／RemovePartyMember／ChangePartyLeader | [源码](Server/src/Dfo.Server.Protocol/Game/Party/PartyMutationProtocolCommands.cs)。 |
-| RecoverStamina／DailyReviveCoin | 普通写、空保护参与者；Daily 仅声明原查询 session 为效果 owner；[源码](Server/src/Dfo.Server.Protocol/Game/ReviveCoin/DailyReviveCoinSlice.cs)。 |
-| SetUserPosition／SetUserArea／Teleport | [源码](Server/src/Dfo.Server.Protocol/Game/TownProjection/GameTownMovementCommands.cs)；`TASK-41`。 |
-| EnterSelectDungeon／BackToVillage／PrepareCycleDungeonEntry | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonSelection/GameDungeonSelectionCommands.cs)；`TASK-42`。 |
-| SelectDungeon／MirrorDungeonEntry（含Boss／Illusion入场） | [源码](Server/src/Dfo.Server.Protocol/Game/DungeonEntry/GameSelectDungeonCommand.cs)；`TASK-43`。 |
-| FinishLoading／MoveMap／IllusionTowerStage（含两塔加载与换层） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMapLoadingCommandHandler.cs)；`TASK-44`。 |
-| MonsterDeath（普通／物件／两塔击杀） | [源码](Server/src/Dfo.Server.Protocol/Game/GameMonsterDeathCommandHandler.cs)；`TASK-45`，祭坛仅具名纯唤醒接缝，Timer来源保持。 |
-| AltarPrepare／AltarDeathBatch／AltarDifficulty | [源码](Server/src/Dfo.Server.Protocol/Game/Altar/GameAltarCommands.cs)。 |
-| JoustInfo／JoustBet／JoustHistory、TournamentRewardStatus／TournamentSelectReward | [源码](Server/src/Dfo.Server.Protocol/Game/Joust/GameJoustCommands.cs)。 |
-| WeddingProposal／WeddingResponse／WeddingPartner／WeddingChurchEntry／WeddingComment（Post／Delete／Read）／WeddingLetter／WeddingGift／WeddingLovePoint／MarriageHousing／MarriageCapsule | [源码](Server/src/Dfo.Server.Protocol/Game/MarriageProposal/GameMarriageCommands.cs)。 |
-| HTTP／GM：`HttpRouteCommand` | [源码](Server/src/Dfo.Server.Application/Commands/HttpRouteCommand.cs)。 |
-| SelectCharacter／ReturnToSelection／Exit | [源码](Server/src/Dfo.Server.Protocol/Game/SelectCharacter/GameSelectCharacterCommand.cs)。 |
-| GetItem（普通／两塔地面拾取） | [源码](Server/src/Dfo.Server.Protocol/Game/GroundPickup/GameGetItemCommandHandler.cs)；`TASK-46`，默认whole生命周期与拾取精确关闭差异见 Spec VC-B19／20。 |
-| CharacterDeath／UseRevivalCoin（普通／两塔死亡与复活） | [源码](Server/src/Dfo.Server.Protocol/Game/CharacterDeath/GameCharacterDeathCommandHandler.cs)；`TASK-47`，普通死亡零事务，默认whole生命周期与两塔死亡精确关闭见 Spec VC-B21／22。 |
-| SetPlayResult／ScoreScrollState／CardSelectRightState／SelectCard／BossDieCheck | 结算、卡牌与两固定阶段 typed Timer；[源码](Server/src/Dfo.Server.Protocol/Game/CardReward/GameCardCommandHandler.cs)，`TASK-48`，默认生命周期／单次自动确认见 Spec VC-B23／24。 |
-| GiveUpGame／EplpCommand | 普通退出保零事务，两塔选择与逐成员离场保原独立单元；[源码](Server/src/Dfo.Server.Protocol/Game/DungeonClear/GameDungeonExitCommandHandler.cs)。 |
-| ChangeSkillSlot／LearnSkill／IncreaseStatus／SwitchSkillBuild／LevelUpTicket／TutorialLevelUp | 技能与成长保三个 Main、三个空 selected 普通写；[源码](Server/src/Dfo.Server.Protocol/Game/LearnSkill/GameLearnSkillCommand.cs)，`TASK-50`，默认生命周期边界见 Spec VC-B28／29。 |
-| AcceptQuest／GiveUpQuest／SetQuestTrigger／FinishQuest | 三普通空 selected 写与 Finish 单 Main；[源码](Server/src/Dfo.Server.Protocol/Game/QuestCompletion/GameFinishQuestCommand.cs)，`TASK-51`，默认生命周期边界见 Spec VC-B30／31。 |
-| QuestClearCoupon（三条消耗分支） | 实际物品优先分类，单 Main 后保原各投影；疲劳使用量另读普通 ReadOnly；[源码](Server/src/Dfo.Server.Protocol/Game/QuestClearCoupon/GameQuestClearCouponCommand.cs)。 |
-| StoreTitle／WithdrawTitle／QueryTitleBook／SetTitleAppearance／AchievementTrigger／WeeklyAttendance | 五个 ordinary whole，Query 只读且仅保护请求者；[源码](Server/src/Dfo.Server.Protocol/Game/TitleBook/GameTitleBookMutationCommand.cs)，`TASK-53`；可靠事件与日切来源保留。 |
-| SaveGameOption1／SaveHotkeys／SaveQuickChat／SaveCharacterOption／NoticeSeen／InformNoticeSecond | 原 blob／profile 捕获与无 ACK，nullable selected 及通知空保护；[源码](Server/src/Dfo.Server.Protocol/Game/SaveHotkeys/GameSaveHotkeysCommand.cs)，`TASK-54`。 |
-| TaggedIdReport／DecreaseDurability／PremiumServiceUsageReport | 三普通写与 Premium slot4 独立只读均空 selected；[源码](Server/src/Dfo.Server.Protocol/Game/StateSynchronization/GamePremiumServiceUsageReportCommand.cs)，`TASK-55`。 |
-| CeraQuery／RuntimeTingStatistic、CreatureResponseReport／CreatureScriptMessage、四硬件与会话报告、StoryPause、MercenaryInfo／SecurityStatus／RosterFollowUp／ContentsPlayInfo／ConnectionCheck、ShopPurchaseCount | 原直接读取、日志及静态应答，无事务或新增选中保护；[源码](Server/src/Dfo.Server.Protocol/Game/ShopPurchaseCount/GameShopPurchaseCountCommand.cs)。 |
-| LoginSessionMaintenance／JoustMaintenance（启动／定时）／AltarScheduler／DungeonPartyWipe／CreatureClock／MarriageWedding／RoomMechanismMaintenance／TournamentRewardSweep／WeaknessRecovery；Altar／Dimension／GoldSilverHorn／ReviveCoin／Mirror／Heras／Tournament／ItemUsage／Premium／Fatigue 日切 | [源码](Server/src/Dfo.Server.Application/Execution/TypedGameplayTimerSource.cs)。 |
-| Lifecycle Connected／Disconnected／DepthRootClose | [源码](Server/src/Dfo.Server.Application/Commands/ConnectionLifecycleCommands.cs)。 |
-| ConsumeDomainEvent／SettleDepthExceededDomainEvent | [源码](Server/src/Dfo.Server.Application/DomainEvents/DomainEventConsumptionCommands.cs)。 |
-| InitializeEpicBook／InitializeCharacterExperienceStorage | [源码](Server/src/Dfo.Server.Application/Characters/CharacterExperienceInitialization.cs)。 |
-| ScheduledGameplayTask（在线物品过期／名字标签／三处入场券补给） | [源码](Server/src/Dfo.Server.Application/Scheduling/ScheduledGameplayTaskCommand.cs)。 |
+总线初始化发件箱，创建 CMD scope 和显式 request，调用 handler；随后排空已开始的操作、关闭 request、
+释放 scope、检查作业健康并裁决默认失败。未 await 的单元不会因 handler 提前返回就越过收口。
+注册检查消息／CMD 类型绑定、来源、有限能力和重复注册；未知内部命令仍在 dispatch 时拒绝，
+没有按所有 `ICommand` 类型枚举补注册的规则。
 
-**共同规则。** 新消息 handler 只注入总线／日志，交付原消息和精确连接上下文；注册双向闭合绑定消息
-CLR、handler 与 CMD，有限请求家族拒绝未知派生。新路由一次入队，身份检查前建作业发件箱；请求上下文
-是显式方法数据，结束关闭，不从 DI、AsyncLocal 或 job slot 查“当前请求”。GM 启动初始化是显式 Internal
-路由（声明种类与原调用链）；其余仍走 LegacyQueued／LegacyFineGrained，新 CMD 不得回调旧命令。
-协议 CMD 可注入领域服务／store，以及具名 `ICommandWorkUnits`、`ICommandMessageOutbox`、
-`ICommandConnectionClosures`、`ICommandProjections`、Protocol 的 `IGameCommandOutbox`、既有顺序／槽位映射
-与日志；`IAltarSchedulerWakeSignal`仅供原祭坛同步无参唤醒，`IDungeonCardPresentationControl`仅同步请求原翻牌生产者的结算后布局／自动确认／精确取消三项固定阶段。禁止旧 sender／closer、总线、队列、执行器及动态服务解析。
+**一条 CMD 可以有多段事务。** `ICommandWorkUnits.WriteAsync`、`ReadOnlyAsync` 接受当前 execution、
+具名 declaration 和 action。单元各自拥有实际事务，不把整个协议或选角工作流合成一个事务。
+参与者保护声明与事务参与者不同，空 selected 列表不表示没有数据库或内存参与者。
+`RequireRollback(cause)` 可表达正常业务拒绝；Committed、ConfirmedRollback、Uncertain 是不同事实，
+不能拿 `IsSettled` 推断成功。补偿保留各阶段的原独立落定与收集顺序。
 
-显式工作单元复用领域事务，不把整协议包成事务；空 selected 列表不表示没有 SQLite／内存参与者。
-普通 NonEffect 不取得 Main／操作账本／raw 许可，同序号仍按当前事实执行业务；需要效果的分支先显式
-admission，前置拒绝不 claim Main，Pending 结束为 Rejected，不升权。Main 只允许一次写结算，footprint
-绑定请求、作业、owner、活跃事务；正常领域拒绝是否提交沿原边界，不能一概改回滚。新旧入口共用唯一
-物理连接账本，确认回滚重试不延长原 entry.Ordinal 窗口。成功／拒绝投影保原帧序、时钟和精确收件人，
-`ICommandProjections` 保原通知逐目标 Warning／Failed 隔离；直接 ACK 登记外抛默认保护，不因能重放而授予首成功 raw。
+**结算权限不靠会话存在推断。** 普通 NonEffect 没有 Main／操作账本／raw 权限；效果消息经过真实 admission，
+唯一 Main 绑定原精确物理连接账本与 entry。同帧确认回滚重试复用 entry，不能延长原 Ordinal 窗口。
+已提交重放读当前投影，不重做资产写；Pending 收尾为拒绝。Footprint 必须显式传入，绑定 request、job、
+owner、活跃 action 与事务。NonRequest／DeclaredNonRequest owner 声明不扩 Main 或恢复权限，
+保护目标仅取本次真正声明的精确 session／physical 引用；早期 null 不遮掉后来声明的 physical。
 
-`ICommandWorkUnits` 的确认回滚、提交与不确定是不同完成状态，`IsSettled` 不代表提交成功；未等待的已启动
-单元须在请求关闭／scope 释放前全部收口，再一次裁决失败，提交后失败默认围栏全部精确参与者。
-具名 `WriteResultAsync` 的 `Returned` 包含正常 `RequireRollback(cause)`；只有实际 CommitAsync span 中新鲜的
-同 participant／phase／原 cause 的已知 SQLite 存储失败，在确认回滚、无 guard／sticky 且 cleanup 全完成后
-才可返回 `CommitRolledBack`。未知参与者／来源、custody／绑定／版本／facet guard、取消、typed、不确定或
-提交后错误仍默认失败，旧 Write／ReadOnly 不取得此恢复；窄 action catch 只覆盖各协议原有的动作恢复范围
-（包括已有的普通存储异常映射），带 cause 回滚确认后才映原失败 ACK，不覆盖 guard／sticky／cleanup 失败。
-Mailbox 的领域自结算恢复另见上表，不扩成通用 catch 白名单。
-受信任内部 CMD 与普通 NonEffect 可在 ordinary Write 显式声明非空唯一 owner 集合，owner 与失败保护参与者分开；不会取得 Main、raw 或恢复许可。累计保护保留每个实际声明的精确 session／physical 引用，先前的 null 不能遮掉后续 physical，不查在线状态补充目标。BodyOnly 仅将已证明的单独原 body／健康 action 取消在完整清理和队列完成后重抛给 producer；独立 lease／scope、guard、typed 与已提交后错误仍是作业失败。
-`RequireRollback` 保留业务原因；独立 rollback／cleanup／后置 current 错误即使复用同一异常仍是独立发生，
-本层已签名失败的正常同栈传播则不得重复登记（[TASK-31](.rks-agent/tasks/serial-gameplay-executor/attempts/spec-002-protocol-level-cmd/tasks/TASK-31.md)）。
+**有限结果入口不是通用恢复。** `WriteResultAsync` 仅在获准的真实阶段、健康确认回滚和完整清理后返回
+`CommitRolledBack`；Mailbox 自结算另用唯一具名事实。选角精确 cleanup、HTTP 固定失败审计、BodyOnly
+取消观察及调度完成桥各有固定 owner／来源／发生阶段，不能对外暴露任意回调、跳过默认保护或清 sticky。
+独立 guard、rollback、lease／scope 清理错误都会否定单一健康恢复依据。实现与边界见
+[协议 CMD 开发指南](Document/ProtocolCommands.md)。
 
-`EffectExecutionContext.Footprint` 是必需非空的每次调用能力，Apply 不再隐式查请求；legacy frame 与新 selected
-请求各持 accumulator、共用唯一映射。受迁入口在自身写入／业务委托前校验，Apply 在 owner／Preview／逐
-Validate 的 await 后复验，消费在读容器后 Consume 前复验，Heras 在额度验证后发布 Direct 前复验；未传能力
-的下层内部 await 不宣称全保护。Quest／Mirror Prepare 在同次 Finish 用相同能力，只 Preview 不结算；
-AccountId／CharacterId／At／Session 是普通事实，合法 commit callback 在租约关闭后仍可读取。
-普通 XP 多参与者、CERA／每日复活币用明确 NonRequest，不以 Session 推 selected 或借报告者能力给其他成员。
-直接 slots／rental 的受迁入口和仍存细 handler 显式收 recorder；仅真实 LegacyFineGrained 最内层在主结算／
-事务进入后捕获旧 frame／execution／rejection，能力绑定精确 context、注册、job 与关闭租约，只检查捕获引用。
-网络来源按实际消息分 Effect／NonEffect／Unknown，只有真正执行器外分支可 Standalone；缺帧、TestGameplay
-与连接信息不补权，Protocol／Internal 调旧能力遭拒后请求保持失败。
+只保留三类已批准即时编码 raw 出口：UseStackable 的 SettledRequiredExplicit、具名 committed replay 的
+CommittedReplayCurrentStateBatch、CollectionBox 的 SettledInitialBatch。它们须贯通本次 actual encoder
+的 opaque attempt，匹配精确目标、原 cause 与完整健康清理；业务、lookup、登记守卫和额外失败仍默认处理。
+重放 owner 的许可不延伸到首次成功。不得为新的协议凭异常类别加入第四出口。
 
-仅三个具名即时登记出口保留原 raw 编码失败：UseStackable Main Settled 后 `RequiredExplicit`、committed replay
-普通 Write 后 `CurrentStateBatch`、CollectionBox 首成功 Main 后 `SettledInitialBatch`。本次精确物理目标的 opaque
-attempt 必须贯通 actual encoder，最终仅单一原 cause、无 typed 不确定性或独立 cleanup 错误才保持 Committed
-且不新增 participant fence；callback、业务、lookup、登记守卫及其它来源仍默认保护，源连接按发件箱原序关闭。
-重放 reader 显式带 metadata，普通 Write 内直接读，事务外按 MirrorMerge→Create→batch→Town 投影，无 nested bus；
-`LegacyReplayStateProjectionDelivery` 仍服务旧 ledger／Joust，ReadReplayStateCommand 与旧 ambient 尚未删除，
-事务内延迟 Compose 禁止生产调用。断线 cleanup 是唯一临时 `ILifecycleEffectFootprintSource` 生产入口：Lifecycle
-origin、原 chain、空物理 SourceConnection，健康 job 与每次关闭租约；经 cleanup／两塔奖励传到 XP，保原异常
-收集顺序，不拿被关闭目标冒充根来源，不给 CMD 注入新增豁免，真正 Internal 迁移时删除，来源／过渡账仍 pending。
-
-**仍在消费的旧细命令机制。** 以下契约／管线只描述 legacy，不授权新协议沿用：
-
-- `ICommand<TResult>` 以 CLR 为身份；`ISelectedSessionCommand` 携精确会话（null 为可信离线工作），
-  `IRequestSettlementCommand` 标唯一主结算，`IMultiSelectedSessionCommand` 带参与者集合，
-  `IAccountCommand` 只校验所属账号；Kind = Direct／Transactional／Workflow／ReadOnly，无访问方式或租约。
-- `SendAsync` 作业内新 scope 内联执行，作业外包装 `bus:<类型名>` 入队等待（过渡入口，新玩法不要依赖）；
-  legacy handler 可顺序派多条，每条 Transactional 各一事务，跨阶段补偿仍由 handler 派专用命令。
-  **所有命令处理器禁止嵌套或间接 dispatch**，共享业务放领域服务；玩法串行由执行器保证。
-- 管线从外到内：Logging（0）→ SelectedSessionExecution（45，主结算、账号／参与者／接收者当前性与选中作用域）
-  → SelectedSessionSettlement（58，复查授权／接收者及 Settled／Failed）→ UnitOfWork（60）→ Policy（100）。
-  45／58 按标记接口工作，结果不确定分别围栏参与者／接收者；UoW 的 Order 严格在 58 与 100 间，
-  Transactional 正常提交、RequireRollback 正常拒绝先回滚再返回、异常回滚，ReadOnly 开只读事务；
-  Direct／Workflow 无总线回滚，未知 Kind 抛异常，Policy 复查授权。
-- 旧路线凡持久写须 Transactional，例如 SelectCharacter 的 Prepare／DailyRefill／Quests／Pet 与
-  GrantTutorialReward；已迁的 LOGIN／创建／删除／MoveItemSpace 等不再列作旧 fine。Workflow 仍是
-  Publish／PvpReady／Compensate／CompleteReturnToSelection；Compensate 逐项收集失败，不能整段事务撤销
-  已成功补偿，离场位置无环境事务时由 `SelectedSessionPositionPersistence.PersistAsync` 自开边界。
-  机制在 Application，具体注册在 ProtocolModule／ApplicationModule；旧命令表无枚举启动完备性检查，
-  未知命令 dispatch 才失败，区别于新协议路由闭合检查。
-
-**两条路线共用的领域事务／载体。** 参与者按 identity 去重，全部 Prepare → 唯一可失败者 Commit → 其余
+**领域事务／载体。** 参与者按 identity 去重，全部 Prepare → 唯一可失败者 Commit → 其余
 Commit；一次事务只允许一个 `CommitCanFail`，第二个 Enlist 即拒，回滚只涵盖已登记参与者。SQLite identity
 是连接字符串，一个数据库一个参与者，物品／人物／任务／暗骑页是同一个参与者的四个 `ISqliteStoreFacet`，
 可读本次未提交写。`IDomainTransactionAccessor` 用 AsyncLocal 暴露事务，不能用它取得当前请求。
@@ -483,29 +375,16 @@ Commit；一次事务只允许一个 `CommitCanFail`，第二个 Enlist 即拒�
 具名分区、Quest 的 Carried／Cleared／Tracked 分区组合成各自 session。`AmbientStoreAccess` 边界内用环境事务，
 边界外读放行、持久写拒绝、易失写自开一次性边界；实例／快照不因共享词汇丢失类型。
 
-### 3) Socket 层：handler 驱动领域命令
+### 3) Socket 层：薄 handler 提交协议 CMD
 
-- Networking 只做传输：`ChannelNetworkPlugin`/`GameNetworkPlugin` 把帧交给
-  注册表查出的解包器，拿到类型化消息后交给 dispatcher，等它入队的作业完成。**传输侧没有任何
-  `switch`，也不认识任何具体协议**：线级键（Game 是 selector+type，Channel 是
-  消息号）查不到就是未注册，帧被静默丢弃。
-- 解包与编码都由 DI 注册表驱动，注册表在 `ProtocolModule` 里被填满：
-  入站按线级键注册并**声明该解包器能产出哪些目录成员**，出站按消息 CLR 类型
-  注册并声明允许的端点。
-- 消息注册表（`MessageHandlerRegistry`）**没有**枚举完备性检查——目录是服务器
-  自己的协议总账，可以远大于已接线的集合。它检查的是**闭合性**：任何已注册
-  解包器声明能产出的消息类型，必须有已注册的 handler，否则启动即抛。
-  解包成功却没人接的消息才是接线错误。
-- handler 统一模式：解析连接身份 →（可选）`IChannelEntryPolicy` 解析频道 →
-  发命令 → 用端点对应 sender 回响应。没有领域状态或领域决策的纯协议交互
-  可以直接发送，例如 Channel Connect 直接返回 Protocol 所有的当日密钥。
-  **handler 不得承载业务语义**：见下面的"handler 业务语义规则"。
-- 出站消息在登记时按端点校验（`RegistryOutboundEncoder`：Channel 消息只能发往 Channel 连接），Channel 载荷走
-  AES-128-ECB + zlib + 当日密钥；Game 出站 15 字节头。
-- 连接生命周期：TCP 连接与断开经 `NetworkConnectionLifecycleDispatcher` 作为 `lifecycle:connected`／
-  `lifecycle:disconnected` 作业在执行器上运行，`OnlineUserConnectionObserver`（`Protocol/Game/`）在作业内
-  调在线服务/清理服务/发送器（**不经过命令总线**——连接事件不建模为命令）。它落在 Protocol 而非 Application，
-  是因为连接建立时要发 `GameInitialConnectionNotice`，而消息 DTO 在切片里。
+Networking 只做帧适配、线级注册查找与传输。未注册线级键静默丢弃；已注册 decoder 产出的目录成员必须
+都有 handler，启动检查闭合性而不要求目录枚举完备。普通 handler 在执行器外将原消息与精确连接上下文
+交给一个协议 CMD，不先建立 inbound 作业，不查世界、不自行回包。
+
+CMD 拥有身份解析、业务阶段、显式单元与出站登记。Game 的 CMD／NOTI 类别只在 Protocol 解释；
+Channel 经通用 `ICommandMessageOutbox` 登记，保持原 AES-128-ECB、zlib 和当日密钥规则。
+连接建立／断开由 typed Internal CMD 驱动固定生命周期 handler；`OnlineUserConnectionObserver`
+拥有 Game 初始消息等协议知识，在作业内调用领域能力与精确清理，传输 observer 只提交并等待。
 
 ### 切片边界规则
 
@@ -518,7 +397,7 @@ Commit；一次事务只允许一个 `CommitCanFail`，第二个 Enlist 即拒�
 | 入站解包器 | `*MessageDecoder.cs` | 纯出站协议 |
 | 出站编码器 | `*ResponseEncoder.cs` / `*NoticeEncoder.cs` | 纯入站协议（遥测类） |
 | 消息 handler | `*Handler.cs` | 纯出站协议 |
-| 命令 + 命令 handler | `<Verb>Command.cs` | handler 只读或只记日志时 |
+| 命令 + 命令 handler | `<Verb>Command.cs` | 仅纯遥测无命令；只读或纯协议响应仍有 CMD |
 
 规则：
 
@@ -530,53 +409,27 @@ Commit；一次事务只允许一个 `CommitCanFail`，第二个 Enlist 即拒�
 - 新协议只改一处接线：`ProtocolModule`。`ApplicationModule` 不再承载任何
   单个协议的注册。
 
-### handler 业务语义规则
+### handler 与 CMD 的边界
 
-**handler 内部不得操作任何业务语义。** 带业务含义的行为必须经命令或领域服务，
-不许在 handler 里就地完成。
+普通消息 handler 只注入 `ICommandBus` 和可选日志，将原消息、dispatch 原样交给注册的 CMD 并等待。
+它不读在线身份、不派多条细命令、不登记出站、不执行补偿。纯遥测仅日志的例外由注册表检查。
+选角也遵守这条规则：原多阶段编排已经属于 `GameSelectCharacterCommandHandler`。
 
-理由是防一类隐性 bug：handler 直接改了状态，而领域服务层对此一无所知，
-于是执行次序、补偿与日志全部绕过。
+CMD 可以按用例顺序调用领域服务、开多个具名单元、登记即时投影及精确关闭；不直接读内容／规则、
+不发送 socket、不调用另一个 CMD，不绕过明确的事务／保护声明。共享领域事实由实际变更的领域服务
+记录，CMD 不凭投影发布持久事实。协议共用的纯帧能力留在 Protocol，不污染 Application。
 
-普通 handler 里允许出现的只有四类：
-
-1. 从 `NetworkDispatchContext` 解出连接身份，取不到就抛；
-2. 只读查询与端点解析（`IOnlineUserQueryDomainService`、`IChannelEntryPolicy`）；
-3. 不含领域状态或领域决策的确定性协议能力，例如 Channel Connect 读取
-   Protocol 所有的当日密钥。LOGIN 已 opt-in 薄入口，仅构造原 request/context 的 `GameLoginCommand`；
-   CMD 经 `IChannelEntryDomainService` 取得 LOGIN 具名部署事实；
-4. `commandBus.SendAsync(...)`、sender 的单连接或显式收件人发送方法、
-   `IEventService.ProjectAsync(...)`，以及把两者按顺序打包好的投递服务
-   （如 `ICleanupNotificationDelivery.DeliverAsync`）——见下面的「领域事件与即时投影」。
-   即时投影是投递，不是业务：谁该收到由前面的命令决定，投影只负责按原顺序送出。
-   handler 不发布领域事实；事实由实际变更所属的领域服务在事务中记录。
-   **一份计划要分两条路送出去时，把顺序封进一个投递服务，不要在每个调用点各写一遍**——
-   清理通告的投递调用（`cleanupDelivery.DeliverAsync(`）在 `Server/src` 中有 7 处，**其中四个在 catch 里**
-   （`OnlineUserConnectionObserver.cs:120`、`SelectCharacterHandler.cs:171` / `:208` / `:214`），`:208` 那个还在补偿命令之后。
-
-Game 出站还必须遵守一条协议边界：`0x01` 是 CMD，`0x00` 是 NOTI，二者由客户端的
-两张独立注册表接收。这个语义只属于 Protocol。每个 Game 出站 message 必须且只能实现
-`IGameCmdMessage` 或 `IGameNotiMessage` 之一；编码器分别继承对应的固定类别基类，handler
-分别调用 `IGameMessageSender.SendCmdAsync` / `SendNotiAsync`。批量或显式收件人发送使用
-`GameExplicitMessageDelivery`，其中每条消息仍携带自身类别，调用方不能覆盖首字节。
-Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧，不解释 CMD/NOTI。
-
-`SelectCharacterHandler` 是批准的多阶段协议工作流例外：除上述四类外，它可以在
-`inbound:GameSelectCharacter` 作业内用只读目录/在线查询检查 session 仍为 current、
-维护待关闭连接集合，并在失败时派发专用补偿命令；关闭在工作流与补偿都结束之后才请求，
-请求登记进作业的发件箱，排在此前登记的消息之后执行。这个例外只授权生命周期**协调**，不授权 handler 直接修改领域状态；所有准备、
-补货、发布、PVP、任务、宠物与补偿动作仍分别由阶段命令处理器完成。
-
-**禁止命令处理器嵌套 dispatch**：协议 handler 可以为一个入站工作流按顺序派发
-多条命令；但 `ICommandHandler` 内部不得通过 `ICommandBus` 递归或间接派发另一条
-命令。命令之间需要共享的业务逻辑应抽成应用服务，由各命令处理器直接调用。
-纯遥测协议（无领域变更、无响应）可以只打日志不发命令，这是有意的例外，
-必须在协议记录的 Implementation mapping 里写明。
+Game `0x01` 是 CMD、`0x00` 是 NOTI；每个出站消息必须且只能实现 `IGameCmdMessage` 或
+`IGameNotiMessage` 之一，编码器继承固定类别基类。CMD 用 `IGameCommandOutbox.RegisterCmdAsync`／
+`RegisterNotiAsync`；批量和显式收件人登记保每条消息自己的类别，不让调用者覆盖首字节。
+Networking 仅把此字节当不透明 Selector。
 
 ### 端到端示例：GameLogin
 
 1. 14B 头帧 → `GameClientFrameDataHandlingAdapter` → `GameNetworkPlugin` 按 selector 0x01/type 0x0001 查表；
-   `GameLoginPayloadCodec` 解出 MId + 票据。
+   `GameLoginPayloadCodec` 解出两个 int32-LE 长度前缀 ASCII 字符串：MId 和 Ticket。
+   它们来自 launcher HTTP 登录结果，不是账号名／密码，也不是角色 ID。MId 为当前签发的六位随机字符串，
+   Ticket 为16随机字节的32位十六进制文本；示例只取 HTTP 实际返回值，不能硬编码。
 2. dispatcher 按 `ProtocolCommand` 注册调用薄 `GameLoginHandler` → 同一总线将 `GameLoginCommand` 入队一次，
    全程保原 request 和物理连接 context；不先建立旧 `inbound:GameLogin` 作业。
    匿名在线注册由 TCP connected 生命周期先建立；匿名协议请求不因此变为内部请求。
@@ -594,19 +447,18 @@ Networking 只把该字节当作不透明 `Selector` 做拆帧、查表与写帧
 
 ### SelectCharacter：接受与状态同步工作流
 
-`SelectCharacterHandler` 是协议工作流协调者：它在 `inbound:GameSelectCharacter` 作业内
-顺序派发准备、每日补货、发布、PVP、任务、宠物与补偿等顶层命令，并在阶段之间登记具体状态同步消息，
-这些消息在作业结束后一起交付。
-`01/0004` 只表示接受进入，后续消息是可复用的生命周期状态同步。发送前会先验证
-已准备的全部必达接受/前置状态可编码；失败时派发 exact-session 补偿命令，之后才请求
-关闭连接，关闭排在已登记的消息之后。每个命令 handler 只执行单一领域动作，禁止持有
-`ICommandBus` 递归编排。同步消息按自身协议身份分类，不按工作流位置猜测：进入接受、
-PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝保持相邻的 CMD
-`01/0004` 与 NOTI `00/01F7` 两条消息。Networking 只执行通用传输与显式收件人失败隔离。
+薄 `SelectCharacterHandler` 只提交 `GameSelectCharacterCommand`。其 CMD 顺序执行准备、补货、发布、
+PVP、任务、宠物和同步投影，保留每段原事务及当前性检查，不嵌套派发。`01/0004` 是进入接受，
+发送前完整预校验必达接受／前置状态；失败走具名精确 cleanup 与原补偿顺序，再登记连接关闭。
+清理自己的独立失败不能被原失败遮盖，也不能借 cleanup 重新开启普通业务。
+
+进入接受、PremiumService、CloneTitle 为 CMD，其余当前状态推送为 NOTI；拒绝仍为相邻的
+`01/0004` 与 `00/01F7`。关闭登记排在此前消息之后，真正发送和关闭由作业外发送端执行。
+入场 DTO 仅供当次组包，后续投影从当前领域事实重建。
 
 ### 领域事件与即时投影
 
-组件统一依赖 `IEventService`；领域服务发布事实，订阅者自行决定如何响应。通知只是消费者之一。
+领域服务经 `IEventService` 发布事实，订阅者决定如何响应；协议 CMD 经 `ICommandProjections` 登记即时投影。通知只是消费者之一。
 组件不得直接依赖 `INotificationBus`：只有 `NotificationProjectionSubscriber<T>` 适配器、
 通知运输机制与组合注册接触该接口。协议编码和 Socket 发送仍由 Protocol/Networking 拥有。
 
@@ -619,13 +471,13 @@ PremiumService、CloneTitle 是 CMD，其余当前状态推送是 NOTI；拒绝�
   查询不发布；启动恢复静默、变化去重、失败不重复公告。
 - `ProjectAsync<TNotification>`：在当前作业里组装即时协议投影并登记进发件箱，原样返回 NotificationDelivery；
   不持久化 Session/CMD 回复，也不能在未提交的可写事务内调用。登录、队伍、库存等流程
-  保持批次、精确会话与 ACK 顺序。单连接直接 sender 和明确协议投递工作流仍可使用。
+  保持批次、精确会话与 ACK 顺序；CMD 使用具名登记接缝，不能注入传输 sender。
 
 事件稳定名称/版本与 subscriber ID 在组合根注册。每个订阅组一个生产者循环：在执行器外读出到期的
-delivery，把每次消费入队为一个 `event:<订阅 ID>` 作业并等它完成，再处理下一条；闲时 await
+delivery，把每次消费通过 typed Internal CMD 入队为 `event:<订阅 ID>` 作业并等它完成，再处理下一条；闲时 await
 唤醒或最近重试时间，启动扫描遗留工作，停服取消未完成消费。Reliable 订阅在作业内的新 scope
 与新事务中处理，业务更新与完成标记同事务；失败回滚后另事务记录重试。
-Reliable 不能重入命令管线。组内串行，失败退避期间后续到期事实可先处理，不保证严格 FIFO；
+Reliable 的注册分发在当前 CMD 内完成，不嵌套 dispatch。组内串行，失败退避期间后续到期事实可先处理，不保证严格 FIFO；
 订阅组之间不并发，因为都在同一个执行器上。当前只注册每个稳定名称的一个版本；未知版本保留
 诊断，不自动 upcast；新订阅不回填历史 delivery，完成记录暂不自动清理。
 
@@ -633,16 +485,9 @@ LiveOnly 只处理本进程的新鲜事件：发送前提交一次消费决定�
 失败不补播；崩溃窗口允许漏提示。邮件每封记录 MailCreated，提醒按 BatchId/角色合并，
 不以合并提醒丢失事实。GM 活动配置在领域事务记录变化，HTTP 不负责广播。
 
-协议即时投影仍是明确的“命令完成，然后发送结果”：
-
-```csharp
-var result = await commandBus.SendAsync(new MarkSelectedCharacterPvpReadyCommand(...), ct);
-if (result.Publication.Audience.Count > 0)
-    await eventService.ProjectAsync(
-        new NotificationAudience.TheseCharacters(result.Publication.Audience),
-        new PvpParticipantPublished(result.Publication.Newcomer),
-        ct);
-```
+协议即时投影在 CMD 内按原阶段登记。领域动作完成及所属事务落定之后，CMD 将具名结果交给
+`ICommandProjections.ProjectAsync`，最后由作业发件箱统一交付；不在薄 handler 中再次调用总线或 sender。
+选角的 PVP 发布、精确清理等流程保自己的受众和顺序，不能为了统一写法移动事务点。
 
 要点，按重要性：
 
@@ -666,8 +511,9 @@ if (result.Publication.Audience.Count > 0)
   只允许 `Dfo.Server.Abstractions` 里以 `DomainService` 结尾的接口。
 - **通知没有重试，也没有每收件人期限。** 组装或编码失败的收件人记为 `Failed`，只丢他的条目；
   交付失败由发送端关闭该连接，之后的清理是那条连接的 `lifecycle:disconnected` 作业。
-  `NotificationOutcome.Registered` 表示消息已组装、编码并接受登记进发件箱（连接已不在时条目被丢弃，
-  也记作它），不表示已交给传输层；按它记「本期已送」的调用方，记的是「已登记」。
+  `NotificationOutcome.Registered` 保留原摘要口径，连接已不在而丢弃时也可能为此值。
+  真正 outbox 接受由 `NotificationAttempt.RegistrationAccepted` 单独表示；周期水位只能依据这个事实推进。
+  两者均不证明已落线或客户端收到，不支持接受结果的旧 sender 默认 false。
 - **通知类型必须在 `ProtocolModule` 里注册处理器**，且该程序集要 `AddNotificationCatalog`。
   漏注册会在**开始接受连接之前**让服务器起不来（宿主先实例化 hosted service 再启动）。
 
@@ -836,7 +682,7 @@ Main 与 SharedMaterial 不切换。实现及实机边界见 `Document/TowerQuic
 **量具本身留着**，它对「下一个槽号问题」仍然管用——下面三条注意事项也仍然成立，
 只是第 1 条与第 3 条描述的现象，起因已经变了（时装现在有槽号了）。
 
-**留下的是量具，不是修法。** `MoveItemSpaceHandler.ResolveAsync` 的拒绝记录写作
+**留下的是量具，不是修法。** 当前 `GameMoveItemSpaceCommandHandler.ResolveAsync` 的拒绝记录写作
 `item {ItemId} from list {FromList} slot {From} to list {ToList} slot {To} refused as {Status}`：
 `{ItemId}` 是被拒的模板号，`{To}` 是**客户端自己写下的**目标槽号
 （判据 `RefusedEquipIsRecordedWithItsTemplateTests` 整句比对）。
@@ -934,12 +780,11 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
   这一在线查询使它不属于纯遥测。
   纯遥测的判据是「构造器只注入日志」：经 `RegisterTelemetryMessageHandler` 注册的 handler 留在收包回调里，
   构造器注入了日志以外的东西时 `MessageHandlerRegistry` 构造即抛。
-  EXIT 与 Channel Connect 均为纯协议直接响应，不修改领域状态。
+  EXIT 与 Channel Connect 均由协议 CMD 登记纯协议响应，不修改领域状态。
   ScriptVersion、Script、Info 三个命令曾直接读基础设施内容源，现已改为经
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
 - 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
   异常形态存在，客户端看不到错误。
-- handler 仍在入站作业内编排多条细粒度命令，业务编排与协议处理没有分开（见「命令执行总线」）。
 - **修改协议 handler 前检查具体行为覆盖。** 历史的“48 个 handler、19 个无测试”清单已失效；
   `GetItemHandler`、`MoveMapHandler`、`GiveUpGameHandler` 等已有测试。
   类名搜索只能定位候选测试，不能证明覆盖充分。重点检查当前事实读取、事务结果、
@@ -992,14 +837,17 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
    （见"切片边界规则"）：`Messages.cs` → payload codec → 解包器 → 编码器 →
    消息 handler → 命令与命令 handler。业务逻辑留在领域服务里。
 4. `ProtocolModule` 加四类注册行——入站解包器（线级键 + 声明可产出的目录成员）、
-   出站编码器（消息 CLR 类型 + 允许端点）、命令（ExecutionKind）、
-   消息 handler（目录成员）。**这是唯一需要改的接线点**；传输侧不动，
+   出站编码器（消息 CLR 类型 + 允许端点）、`AddProtocolCommandHandler`（CMD、handler、精确消息绑定）、
+   `RegisterProtocolMessageHandler`（目录成员、消息 CLR、CMD）。**这是唯一需要改的接线点**；传输侧不动，
    `ApplicationModule` 不动。
-5. 测试三件套：codec 向量、handler/命令单测、Networking.Tests 线级集成测试。
+5. 在 CMD 中显式定义每段 Write／ReadOnly 及保护参与者，保持正常拒绝与帧序；不要为整个 CMD 自动包事务。
+   测试 codec 向量、薄 handler 的原样输入、真实 CMD／工作单元／精确会话与 Networking 线级行为；
+   路由闭合和构造器判据必须包含该类型。完整示例见 [协议 CMD 开发指南](Document/ProtocolCommands.md)。
    注意测试仍按功能组织，尚未跟随切片重排。
 6. 客户端提供、会扇出给其他连接（或累积进其他连接一次作业的出站）的变长字段，解码器或规则服务必须有上限，
    并在协议记录里写明上限的依据与依据等级。超过发送队列上限（`OutboundLimits.QueueByteLimit`）的出站会让
-   收件的第三方连接被关闭。这条没有判据守着。
+   收件的第三方连接被关闭。现有字段由具名 codec／领域规则及线级边界测试守护；尚无能从任意新字段
+   自动证明第三方扇出字节上限的通用判据，不能以统一 string 长度检查替代协议分析。
 
 ## 约定
 
@@ -1017,7 +865,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 | `*Repository` / `*Registry` / `*Directory` / `*Persistence` | 持久化与运行时注册表 | 各自后缀已表明。**不得注入命令处理器** |
 | `*DomainStore` | 领域 store | 领域状态的事务结算真源，被要一个会话、由事务收口。是命令处理器可注入的两种形状之一 |
 | `*DefinitionSource` / `*ContentSource` / `*Catalog` | 内容源 | 读归档，确定性、可缓存。**只被规则服务注入** |
-| `*Policy` | 策略 | 规则服务的一种，回答"允不允许"；`IChannelEntryPolicy` 即此类 |
+| `*Policy` | 策略 | 规则服务的一种，回答"允不允许"；频道规则由领域服务内部调用 |
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
 | `*Decoder` / `*Encoder` / `*Sender` / `*Dispatcher` / `*Handler` / `*Observer` / `*Closer` | 传输与协议 | 各自后缀已表明 |
 | `*Module` | 组合根接线 | `IServerModule`，只注册不执行业务 |
@@ -1050,8 +898,8 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
   "为什么被推翻"（见 `protocol/README.md` 安全边界一节）。
 - 分层问题主要看项目引用图。唯一的分层判据是
   `Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs`，
-  它只覆盖**命令处理器**的构造器注入面；普通消息 handler 的能力清单仍然只写在本文档里，
-  没有判据守着。
+  它覆盖 CMD 构造器与结构的允许／拒绝形状；消息／CMD 双向绑定、薄 handler 和纯遥测注入由
+  注册检查及对应结构测试共同约束。类型后缀和文档不能替代这些判据。
 
 ## 记什么，不记什么
 

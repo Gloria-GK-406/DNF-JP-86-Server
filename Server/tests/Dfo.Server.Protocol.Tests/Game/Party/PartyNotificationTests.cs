@@ -848,11 +848,7 @@ public sealed class PartyNotificationTests
             var bus = new RecordingNotificationBus();
             var sessions = new SessionDirectory(Inviter, Invitee, Observer);
             var presence = new FixedPresence(Inviter, Invitee, Observer);
-            var delivery = new PartyNotificationDelivery(
-                bus,
-                new PartyProjectionStreamRegistry(),
-                sessions,
-                presence);
+            var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(bus, new PartyProjectionStreamRegistry(), sessions, presence);
             var plan = new PartyNotificationPlan([], Invitation: Invitation());
             var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
             var replacement = Invitee with
@@ -896,12 +892,7 @@ public sealed class PartyNotificationTests
                 Inviter.CharacterId,
                 new PartyDirectoryScope(11, 1, 2));
             var bus = new RecordingNotificationBus();
-            var delivery = new PartyNotificationDelivery(
-                bus,
-                new PartyProjectionStreamRegistry(),
-                sessions,
-                presence,
-                parties);
+            var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(bus, new PartyProjectionStreamRegistry(), sessions, presence, parties);
 
             await delivery.DeliverAsync(plan, captured, CancellationToken.None);
 
@@ -1205,12 +1196,7 @@ public sealed class PartyNotificationTests
         IOutboundOrdering? ordering = null)
     {
         var sessions = new SessionDirectory(Inviter, Invitee, Observer);
-        return new PartyNotificationDelivery(
-            bus,
-            streams ?? new PartyProjectionStreamRegistry(),
-            sessions,
-            new FixedPresence(Inviter, Invitee, Observer),
-            ordering: ordering);
+        return global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(bus, streams ?? new PartyProjectionStreamRegistry(), sessions, new FixedPresence(Inviter, Invitee, Observer), ordering);
     }
 
     private static PartySettings DefaultSettings() => new(

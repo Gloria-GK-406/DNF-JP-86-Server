@@ -26,7 +26,7 @@ public sealed record GameUseStackableCommand(NetworkDispatchContext Dispatch, Us
 public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings, IBusinessInventorySlotDomainService inventory,
     IItemUseEffectDomainService effects, ICommandWorkUnits units, IGameCommandOutbox outbox,
-    ILogger<GameUseStackableCommandHandler> logger, TimeProvider? timeProvider = null)
+    ILogger<GameUseStackableCommandHandler> logger, TimeProvider timeProvider)
     : ICommandHandler<GameUseStackableCommand, ItemUseResult>
 {
     public async ValueTask<ItemUseResult> HandleAsync(CommandExecutionContext context, GameUseStackableCommand command, CancellationToken cancellationToken)

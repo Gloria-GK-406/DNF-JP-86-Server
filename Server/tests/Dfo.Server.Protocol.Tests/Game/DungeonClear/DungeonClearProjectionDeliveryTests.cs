@@ -224,7 +224,7 @@ public sealed class DungeonClearProjectionDeliveryTests
         registry.Register(run.RunId, frozen);
         var sender = new RecordingSender();
         return new TestWorld(
-            new DungeonClearProjectionDelivery(new Sessions(current), runs, registry, sender, quests: queries),
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(new Sessions(current), runs, registry, sender, queries),
             runs,
             run,
             sender);
@@ -250,7 +250,7 @@ public sealed class DungeonClearProjectionDeliveryTests
             10010);
 
     private sealed record TestWorld(
-        DungeonClearProjectionDelivery Projection,
+        DungeonClearProjectionDriver Projection,
         DungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender);

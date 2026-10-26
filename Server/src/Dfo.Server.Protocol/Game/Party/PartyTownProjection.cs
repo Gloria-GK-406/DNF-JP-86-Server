@@ -1,20 +1,53 @@
-using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
-using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
-internal abstract partial class PartyMutationProtocolCommandHandler
+internal static class PartyTownProjection
 {
-    protected virtual async ValueTask PartyTownRefreshMovedPartyAsync(
+    internal static async ValueTask PartyTownRefreshMovedPartyAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IPartyService parties, 
         SelectedSessionIdentity mover,
         PartyDirectoryScope? previousScope,
         CancellationToken cancellationToken)
@@ -24,12 +57,12 @@ internal abstract partial class PartyMutationProtocolCommandHandler
 
         var character = new PartyCharacterSnapshot(
             mover.AccountId, mover.CharacterId, mover.WireUserId, null);
-        var candidate = PartyService!.FindParty(character);
+        var candidate = parties.FindParty(character);
         if (candidate.IsVirtual)
             return;
 
-        var stream = streams(candidate.Generation);
-        var current = PartyService!.FindParty(character);
+        var stream = projectionState.StreamOf(candidate.Generation);
+        var current = parties.FindParty(character);
         if (current.IsVirtual
             || current.Generation != candidate.Generation
             || current.Revision < stream.LatestRevision
@@ -40,7 +73,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         }
 
         var memberSessions = current.Members
-            .Select(member => PartyTownExactSession(member.CharacterId))
+            .Select(member => PartyTownProjection.PartyTownExactSession(sessions, townAreas, member.CharacterId))
             .Where(session => session is not null)
             .Cast<SelectedSessionIdentity>()
             .Distinct()
@@ -61,7 +94,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
             var memberIds = current.Members.Select(value => value.CharacterId).ToHashSet();
             var oldObservers = previousScope is null
                 ? []
-                : PartyTownSessionsInScope(previousScope, mover.CharacterId)
+                : PartyTownProjection.PartyTownSessionsInScope(sessions, townAreas, previousScope, mover.CharacterId)
                 .Where(value => !memberIds.Contains(value.CharacterId))
                 .Distinct()
                 .ToArray();
@@ -81,7 +114,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
             var currentScope = current.LeaderMember.Character.DirectoryScope;
             var newObservers = currentScope is null
                 ? []
-                : PartyTownSessionsInScope(currentScope, mover.CharacterId)
+                : PartyTownProjection.PartyTownSessionsInScope(sessions, townAreas, currentScope, mover.CharacterId)
                     .Where(value => !memberIds.Contains(value.CharacterId))
                     .Distinct()
                     .ToArray();
@@ -105,20 +138,20 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         stream.CurrentMembers.UnionWith(memberSessions);
     }
 
-    protected SelectedSessionIdentity[] PartyTownSessionsInScope(
+    internal static SelectedSessionIdentity[] PartyTownSessionsInScope(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, 
         PartyDirectoryScope scope,
         CharacterId excludingCharacterId) =>
         (townAreas.Find(new TownAreaKey(scope.ChannelId, scope.TownId, scope.AreaId, scope.Instance))
             ?.Members ?? [])
             .Where(value => value.SharesTownPresence
                 && value.CharacterId != excludingCharacterId)
-            .Select(value => PartyTownExactSession(value.CharacterId))
+            .Select(value => PartyTownProjection.PartyTownExactSession(sessions, townAreas, value.CharacterId))
             .Where(value => value is not null)
             .Cast<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
 
-    protected virtual async ValueTask PartyTownRefreshObservedPartiesAsync(
+    internal static async ValueTask PartyTownRefreshObservedPartiesAsync(ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IPartyService parties, 
         IReadOnlyList<SelectedSessionIdentity> recipients,
         CancellationToken cancellationToken)
     {
@@ -143,13 +176,13 @@ internal abstract partial class PartyMutationProtocolCommandHandler
                 currentPresence.Area.ChannelId,
                 currentPresence.Area.TownId,
                 currentPresence.Area.AreaId, currentPresence.Area.Instance));
-            foreach (var candidate in PartyService!.Query(query))
+            foreach (var candidate in parties.Query(query))
             {
                 if (candidate.Members.Any(member => member.CharacterId == recipient.CharacterId))
                     continue;
 
-                var stream = streams(candidate.Generation);
-                var current = PartyService!.Query(query).SingleOrDefault(snapshot =>
+                var stream = projectionState.StreamOf(candidate.Generation);
+                var current = parties.Query(query).SingleOrDefault(snapshot =>
                     snapshot.PartyId == candidate.PartyId
                     && snapshot.Generation == candidate.Generation);
                 if (current is null
@@ -173,7 +206,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         }
     }
 
-    protected SelectedSessionIdentity? PartyTownExactSession(CharacterId characterId)
+    internal static SelectedSessionIdentity? PartyTownExactSession(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, CharacterId characterId)
     {
         var member = townAreas.Find(characterId);
         return member is not null
@@ -182,5 +215,4 @@ internal abstract partial class PartyMutationProtocolCommandHandler
             ? session
             : null;
     }
-
 }

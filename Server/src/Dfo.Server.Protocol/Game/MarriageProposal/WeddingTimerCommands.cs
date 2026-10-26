@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Execution;
@@ -12,7 +13,7 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.MarriageProposal;
 public sealed record AdvanceWeddingTickCommand : ICommand<bool>;
-internal partial class GameMarriageCommandHandler
+internal sealed partial class GameMarriageCommandHandler
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceWeddingTickCommand command, CancellationToken token)
     {
@@ -82,13 +83,13 @@ internal partial class GameMarriageCommandHandler
                 || await currentViews.TryLoadAsync(actor, token).ConfigureAwait(false) is not {} currentView) return;
             previous = observed; view = currentView;
             var moved = onlineCharacters.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
-            var instance = moved.TownId == 101 && housing is not null ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
+            var instance = moved.TownId == 101 ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
             if (moved.TownId == 101 && instance is not > 0) return;
             if (townAreas.TransferExact(actor.CharacterId, actor.TownAreaLease(), new(channel, moved.TownId, moved.AreaId, instance ?? 0), moved, true) is null) return;
         }
         catch (Exception error) when (IsWeddingBusinessFailure(error))
         { context.Request!.DemandCurrent(); logger.LogWarning(error, "Committed wedding projection failed for one recipient; other recipients continue."); return; }
-        await TownProjectTransferAsync(actor.ConnectionId, actor, view, previous, token).ConfigureAwait(false);
+        await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, previous, token).ConfigureAwait(false);
     }
     private static bool IsWeddingBusinessFailure(Exception error) => error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error);
     private async ValueTask WeddingPositionAsync(CommandExecutionContext context, MarriageWeddingStanding standing, CancellationToken token)
@@ -112,7 +113,7 @@ internal partial class GameMarriageCommandHandler
         var own = movement.Area.Members.Single(member => actor.Owns(member));
         var message = new ForcedTownPositionNotification(actor.WireUserId, own.Position.X, own.Position.Y, own.Position.Direction);
         var targets = own.SharesTownPresence ? movement.Area.Members.Where(member => member.SharesTownPresence && member.CharacterId != actor.CharacterId)
-            .Select(TownExactSession).Where(candidate => candidate is not null).Select(candidate => new GameExplicitMessageTarget(candidate!.ConnectionId, [message])).ToArray() : [];
+            .Select((member => TownArrivalProjection.TownExactSession(sessions, member))).Where(candidate => candidate is not null).Select(candidate => new GameExplicitMessageTarget(candidate!.ConnectionId, [message])).ToArray() : [];
         await outbox.RegisterExplicitAsync(actor.ConnectionId, new([message], targets), token).ConfigureAwait(false);
     }
 }

@@ -1,3 +1,11 @@
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -134,18 +142,18 @@ internal static class ProductionSelectionStages
         IExpiredCharacterItemCleanupDomainService? expiredItems=null,ISelectCharacterQuestEntryDomainService? quests=null,ISelectCharacterPetEntryDomainService? pets=null) =>
         new(users!,null!,null!,sessions!,new UnusedOutbox(),null!,null!,new CleanupAdapter(cleanup!),new InlineUnits(),preparation!,
             inventory!,entry!,quests!,pets!,expiredItems!,null!,null!,null!,new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry(),null!,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<GameSelectCharacterCommandHandler>.Instance,SelectCharacterDeliveryOptions.Everything,TimeProvider.System);
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<GameSelectCharacterCommandHandler>.Instance,SelectCharacterDeliveryOptions.Everything,TimeProvider.System, lotteryCounterExperiment: ProtocolAlgorithmFixture.Default<LotteryCounterExperimentOptions>(), weaknessState: ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), itemUsage: ProtocolAlgorithmFixture.Default<IItemUsageDomainService>(), quotaSnapshots: ProtocolAlgorithmFixture.Default<IUsageQuotaSnapshotDomainService>(), clientSettings: ProtocolAlgorithmFixture.Default<IClientSettingsDomainService>(), sao: ProtocolAlgorithmFixture.Default<ISaoTowerDomainService>(), tau: ProtocolAlgorithmFixture.Default<ITauKingdomDomainService>(), southern: ProtocolAlgorithmFixture.Default<ISouthernDaleDomainService>(), bossTickets: ProtocolAlgorithmFixture.Default<IBossTowerTicketDomainService>(), ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>());
     internal static GameReturnToSelectionCommandHandler Return(IOnlineUserQueryDomainService users,ISelectedSessionDomainService sessions,
         ICharacterDomainService characters,ISelectedSessionCleanupDomainService cleanup) =>
         new(users,sessions,characters,null!,new CleanupAdapter(cleanup),null!,null!,null!,null!,
-            new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry(),Microsoft.Extensions.Logging.Abstractions.NullLogger<GameReturnToSelectionCommandHandler>.Instance);
+            new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry(),(Dfo.Server.Abstractions.Execution.IOutboundOrdering)ProtocolAlgorithmFixture.Default(typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)));
     private sealed class InlineUnits : ICommandWorkUnits
     {
         public ValueTask<T> WriteAsync<T>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> action,CancellationToken ct=default) where T:notnull => action(null!,ct);
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CancellationToken,ValueTask<T>> action,CancellationToken ct=default) where T:notnull => action(ct);
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> action,CancellationToken ct=default) where T:notnull => throw new NotSupportedException();
     }
-    private sealed class CleanupAdapter(ISelectedSessionCleanupDomainService cleanup) : ICommandSelectedSessionCleanup
+    internal sealed class CleanupAdapter(ISelectedSessionCleanupDomainService cleanup) : ICommandSelectedSessionCleanup
     {
         public void RecordDisconnectedDeliveryFailure(CommandExecutionContext context, Exception cause) => throw new NotSupportedException("This fixture only drives selection stages.");
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(CommandExecutionContext context,SelectedSessionIdentity session,

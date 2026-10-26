@@ -1,20 +1,55 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+
 namespace Dfo.Server.Protocol.Game.Party;
-internal abstract partial class PartyMutationProtocolCommandHandler
+
+internal static class TownMovementProjection
 {
-    protected virtual Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? HousingSessions => null;
-    protected virtual ValueTask TownRegisterNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken token) => register(connection, new([message], []), token);
-    /// <summary>Restores the accepted location after a refused channel-boundary crossing.</summary>
-    protected ValueTask TownRefuseTownChangeAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
+    internal static ValueTask TownRegisterNotiAsync(IGameCommandOutbox outbox, NetworkConnectionId connection, IGameNotiMessage message, CancellationToken token) => outbox.RegisterExplicitAsync(connection, new([message], []), token);
+
+    internal static ValueTask TownRefuseTownChangeAsync(IGameCommandOutbox outbox, NetworkConnectionId connectionId, SelectedSessionIdentity session,
         SelectCharacterResult result, Dfo.Server.Data.Characters.CharacterPositionState standing,
         string reason, CancellationToken cancellationToken)
     {
@@ -23,12 +58,12 @@ internal abstract partial class PartyMutationProtocolCommandHandler
             TownId = standing.TownId, AreaId = standing.AreaId,
             X = standing.X, Y = standing.Y, Direction = standing.Direction,
         };
-        return register(connectionId, new GameExplicitMessageDelivery(
+        return outbox.RegisterExplicitAsync(connectionId, new GameExplicitMessageDelivery(
             [new UserAreaNotification(session.WireUserId, spawn, standing.AreaId),
              new GameServerNoticeMessage(reason)], []), cancellationToken);
     }
 
-    protected async ValueTask<bool> TownTransferAsync(
+    internal static async ValueTask<bool> TownTransferAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyTownProjectionDelivery partyTown, ISelectedCharacterCurrentViewDomainService currentViews, IMarriageHousingQueryDomainService housing, IGameCommandOutbox outbox, IMarriageHousingSessionDomainService housingSessions, 
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,
         SelectCharacterResult result,
@@ -42,7 +77,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(moved);
         ArgumentNullException.ThrowIfNull(previousMember);
-        var instance = moved.TownId == 101 && housing is not null ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
+        var instance = moved.TownId == 101 ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
         if (moved.TownId == 101 && instance is not > 0) return false;
         var destination = new TownAreaKey(
             channelId,
@@ -57,17 +92,16 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         if (change is null)
             return false;
 
-        return await TownProjectTransferAsync(connectionId, session, result, previousMember, cancellationToken).ConfigureAwait(false);
+        return await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, partyTown, currentViews, housing, outbox, housingSessions, connectionId, session, result, previousMember, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Projects an already committed town movement without mutating membership.</summary>
-    protected async ValueTask<bool> TownProjectTransferAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
+    internal static async ValueTask<bool> TownProjectTransferAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyTownProjectionDelivery partyTown, ISelectedCharacterCurrentViewDomainService currentViews, IMarriageHousingQueryDomainService housing, IGameCommandOutbox outbox, IMarriageHousingSessionDomainService housingSessions, NetworkConnectionId connectionId, SelectedSessionIdentity session,
         SelectCharacterResult result, TownAreaMember previousMember, CancellationToken cancellationToken)
     {
         var member = townAreas.Find(session.CharacterId);
         if (member is null || !session.Owns(member)) return false;
         var changedArea = previousMember.Area != member.Area;
-        if (changedArea && previousMember.Area.TownId == 101) HousingSessions?.CloseExact(session);
+        if (changedArea && previousMember.Area.TownId == 101) housingSessions.CloseExact(session);
         var currentKey = member.Area;
         var current = townAreas.Find(currentKey);
         var own = current?.Members.SingleOrDefault(member => session.Owns(member));
@@ -76,13 +110,13 @@ internal abstract partial class PartyMutationProtocolCommandHandler
             if (changedArea
                 && previousMember.SharesTownPresence)
             {
-                await TownPublishCurrentRosterCoreAsync(previousMember.Area, cancellationToken)
+                await TownArrivalProjection.TownPublishCurrentRosterCoreAsync(sessions, townAreas, projections, currentViews, previousMember.Area, cancellationToken)
                     .ConfigureAwait(false);
             }
             return false;
         }
 
-        var visible = await TownVisibleParticipantsAsync(current!, session, cancellationToken)
+        var visible = await TownArrivalProjection.TownVisibleParticipantsAsync(sessions, currentViews, current!, session, cancellationToken)
             .ConfigureAwait(false);
         var peers = visible.Select(candidate => candidate.Participant).ToArray();
         var peerSessions = visible.Select(candidate => candidate.Session).ToArray();
@@ -122,32 +156,32 @@ internal abstract partial class PartyMutationProtocolCommandHandler
                 new UserAreaNotification(session.WireUserId, spawn, currentPosition.AreaId),
                 .. TownPresenceMessages.ForNewcomer(state),
             ];
-        await register(
+        await outbox.RegisterExplicitAsync(
             connectionId,
             new GameExplicitMessageDelivery(direct, []),
             cancellationToken).ConfigureAwait(false);
 
         if (changedArea && previousMember.SharesTownPresence)
-            await TownPublishCurrentRosterCoreAsync(previousMember.Area, cancellationToken).ConfigureAwait(false);
+            await TownArrivalProjection.TownPublishCurrentRosterCoreAsync(sessions, townAreas, projections, currentViews, previousMember.Area, cancellationToken).ConfigureAwait(false);
         if (changedArea && peerSessions.Length > 0 && state is not null)
-            await TownPublishArrivalCoreAsync(session, state, peerSessions, cancellationToken)
+            await TownArrivalProjection.TownPublishArrivalCoreAsync(townAreas, projections, partyTown, session, state, peerSessions, cancellationToken)
                 .ConfigureAwait(false);
         if (peerSessions.Length > 0)
         {
-            await PartyTownRefreshObservedPartiesAsync(
+            await partyTown.RefreshObservedPartiesAsync( 
                 [session], cancellationToken).ConfigureAwait(false);
         }
         if (changedArea)
         {
-            await PartyTownRefreshMovedPartyAsync(
-                session, TownScope(previousMember.Area), cancellationToken).ConfigureAwait(false);
+            await partyTown.RefreshMovedPartyAsync( 
+                session, TownArrivalProjection.TownScope(previousMember.Area), cancellationToken).ConfigureAwait(false);
         }
         var marriageFrames = await HousingCurrentProjection.ReadAsync(housing, session, cancellationToken).ConfigureAwait(false);
-        if (marriageFrames.Count > 0) await register(connectionId, new(marriageFrames, []), cancellationToken).ConfigureAwait(false);
+        if (marriageFrames.Count > 0) await outbox.RegisterExplicitAsync(connectionId, new(marriageFrames, []), cancellationToken).ConfigureAwait(false);
         return true;
     }
 
-    protected async ValueTask<bool> TownMoveAsync(
+    internal static async ValueTask<bool> TownMoveAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IGameCommandOutbox outbox, 
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,
         Dfo.Server.Data.Characters.CharacterPositionState position,
@@ -158,7 +192,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         var previous = townAreas.Find(session.CharacterId);
         if (previous is null || !session.Owns(previous))
         {
-            await TownRegisterNotiAsync(
+            await TownMovementProjection.TownRegisterNotiAsync(outbox, 
                 connectionId,
                 new UserPositionNotification(
                     session.WireUserId,
@@ -176,7 +210,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         var area = movement?.Area ?? townAreas.Find(previous.Area);
         if (area is null)
         {
-            await TownRegisterNotiAsync(
+            await TownMovementProjection.TownRegisterNotiAsync(outbox, 
                 connectionId,
                 new UserPositionNotification(
                     session.WireUserId,
@@ -193,7 +227,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         if (own is null)
             return false;
 
-        await TownRegisterNotiAsync(
+        await TownMovementProjection.TownRegisterNotiAsync(outbox, 
             connectionId,
             new UserPositionNotification(
                 session.WireUserId,
@@ -208,7 +242,7 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         var audience = current!.Members
             .Where(member => member.SharesTownPresence
                 && member.CharacterId != session.CharacterId)
-            .Select(TownExactSession)
+            .Select((member => TownArrivalProjection.TownExactSession(sessions, member)))
             .Where(candidate => candidate is not null)
             .Cast<SelectedSessionIdentity>()
             .ToArray();
@@ -226,5 +260,4 @@ internal abstract partial class PartyMutationProtocolCommandHandler
         }
         return true;
     }
-
 }

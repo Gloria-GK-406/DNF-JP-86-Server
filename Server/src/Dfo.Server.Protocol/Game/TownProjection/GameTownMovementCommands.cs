@@ -1,3 +1,33 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -25,13 +55,24 @@ public sealed record GameSetUserPositionCommand(NetworkDispatchContext Dispatch,
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHandler,
+internal sealed partial class GameTownMovementCommandHandler :
     ICommandHandler<GameSetUserAreaCommand, bool>, ICommandHandler<GameSetUserPositionCommand, bool>
 {
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService projectionState;
+    private readonly ILogger logger;
+    private readonly ISelectedCharacterCurrentViewDomainService currentViews;
+    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
+    private readonly ITownMovementDomainService towns;
+    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly IPartyService parties;
+
     private readonly IChannelEntryDomainService channels;
     private readonly ICharacterLocationDomainService persistence;
-    private readonly IMarriageQueryDomainService? marriage;
-    private readonly IMarriageHousingSessionDomainService? housingSessions;
+    private readonly IMarriageQueryDomainService marriage;
+    private readonly IMarriageHousingSessionDomainService housingSessions;
     private readonly ICommandWorkUnits units;
     private readonly IGameCommandOutbox outbox;
     public GameTownMovementCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
@@ -39,14 +80,11 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
         ITownMovementDomainService towns, ICharacterLocationDomainService persistence, ICommandWorkUnits units,
         ICommandProjections projections, IGameCommandOutbox outbox, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ILogger<GameTownMovementCommandHandler> logger,
-        IMarriageQueryDomainService? marriage = null, IMarriageHousingQueryDomainService? housing = null,
-        IMarriageHousingSessionDomainService? housingSessions = null)
-        : base(sessions, parties, townAreas, projections, projectionState.StreamOf, null, logger,
-            currentViews: currentViews, onlineCharacters: onlineCharacters, towns: towns, housing: housing, register: outbox.RegisterExplicitAsync)
-    { this.channels = channels; this.persistence = persistence; this.units = units; this.outbox = outbox; this.marriage = marriage; this.housingSessions = housingSessions; }
-    protected override IMarriageHousingSessionDomainService? HousingSessions => housingSessions;
-    protected override ValueTask TownRegisterNotiAsync(NetworkConnectionId target, IGameNotiMessage message, CancellationToken token) =>
-        outbox.RegisterNotiAsync(target, message, token);
+        IMarriageQueryDomainService marriage, IMarriageHousingQueryDomainService housing,
+        IMarriageHousingSessionDomainService housingSessions)
+
+    {
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.parties = parties; this.channels = channels; this.persistence = persistence; this.units = units; this.outbox = outbox; this.marriage = marriage; this.housingSessions = housingSessions; }
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetUserAreaCommand command, CancellationToken cancellationToken) =>
         AreaAsync(execution, command.Dispatch, command.Input, cancellationToken);
     private async ValueTask<bool> AreaAsync(CommandExecutionContext execution, NetworkDispatchContext context, SetUserAreaRequest message, CancellationToken cancellationToken)
@@ -108,7 +146,7 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
                 "Set user area {ConnectionId}: channel refuses town {TownId}",
                 context.Connection.ConnectionId,
                 message.TownId);
-            await TownRefuseTownChangeAsync(
+            await TownMovementProjection.TownRefuseTownChangeAsync(outbox,
                 context.Connection.ConnectionId, session, result, standing,
                 channel.Kind is Dfo.Server.Data.Channel.ChannelEntryKind.SaintHorn
                     ? "请切换频道离开圣者之鸣号。"
@@ -122,36 +160,35 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
 
         if (message.TownId == 101)
         {
-            if (message.AreaId != 0 || housing is null || housingSessions is null
-                || standing.TownId != 101 && !housing.IsEntrySource(standing.TownId, standing.AreaId)
+            if (message.AreaId != 0 || standing.TownId != 101 && !housing.IsEntrySource(standing.TownId, standing.AreaId)
                 || await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) is not > 0)
             {
-                await TownRefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+                await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
                     "请由已婚角色通过赛丽亚房间的婚房入口进入。", cancellationToken).ConfigureAwait(false); return false;
             }
         }
         if (standing.TownId == 101 && message.TownId != 101)
         {
-            var home = housingSessions?.ReturnFor(session);
+            var home = housingSessions.ReturnFor(session);
             if (home is null || home.TownId != message.TownId || home.AreaId != message.AreaId)
             {
-                await TownRefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+                await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
                     "请从婚房出口返回原来的城镇。", cancellationToken).ConfigureAwait(false); return false;
             }
         }
         var sharesTownPresence = message.TownId == 101 || await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
-        if (marriage is not null && !await marriage.CanCrossAsync(session, channel.ChannelId,
+        if (!await marriage.CanCrossAsync(session, channel.ChannelId,
                 message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
         {
-            await TownRefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+            await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
                 "请通过自己的婚礼预约进入教堂。", cancellationToken).ConfigureAwait(false);
             return false;
         }
-        if (marriage is not null && !await marriage.CanLeaveAsync(session, message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
+        if (!await marriage.CanLeaveAsync(session, message.TownId, message.AreaId, cancellationToken).ConfigureAwait(false))
         {
-            await TownRefuseTownChangeAsync(context.Connection.ConnectionId, session, result, standing,
+            await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
                 "婚礼即将开始，请留在礼堂等待仪式。", cancellationToken).ConfigureAwait(false);
             return false;
         }
@@ -166,7 +203,7 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
             if (message.TownId == 101)
             {
                 await PersistAsync(execution, session, standing, cancellationToken).ConfigureAwait(false);
-                housingSessions!.RememberReturn(session, standing);
+                housingSessions.RememberReturn(session, standing);
             }
             if (destination.TownId != 101)
                 await PersistAsync(execution, session, destination, cancellationToken).ConfigureAwait(false);
@@ -174,7 +211,7 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
         var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
         var moved = onlineCharacters.CrossInto(
             session, message.TownId, message.AreaId, message.X, message.Y);
-        if (!await TownTransferAsync(
+        if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions,
                 context.Connection.ConnectionId,
                 session,
                 result,
@@ -194,7 +231,7 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
             && (message.TownId != weddingAppearance.Room.TownId || message.AreaId != weddingAppearance.Room.AreaId)
             && await marriage!.WeddingPhaseAsync(weddingAppearance.Room.CeremonyId, cancellationToken).ConfigureAwait(false)
                 != Dfo.Server.Data.Marriage.MarriageWeddingPhase.Preparing)
-            await register(session.ConnectionId, new([new Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification(weddingAppearance, true)], []), cancellationToken).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(session.ConnectionId, new([new Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification(weddingAppearance, true)], []), cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Set user area {ConnectionId} user={WireUserId}: {FromTown}:{FromArea} -> "
@@ -219,6 +256,6 @@ internal class GameTownMovementCommandHandler : PartyMutationProtocolCommandHand
         if (session is null || !sessions.IsInWorld(session) || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)) return false;
         var input = command.Input;
         var moved = onlineCharacters.StepTo(session, input.X, input.Y, input.Direction);
-        return await TownMoveAsync(command.Dispatch.Connection.ConnectionId, session, moved, input.Trailer, token).ConfigureAwait(false);
+        return await TownMovementProjection.TownMoveAsync(sessions, townAreas, projections, outbox, command.Dispatch.Connection.ConnectionId, session, moved, input.Trailer, token).ConfigureAwait(false);
     }
 }

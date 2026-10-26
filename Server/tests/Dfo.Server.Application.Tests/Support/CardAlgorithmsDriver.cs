@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -20,11 +24,12 @@ internal sealed record CardAwardAlgorithmInput(AccountId AccountId, CharacterId 
     int Index, DungeonRunId ExpectedRunId = default) : ICommand<SelectCardResult>;
 internal class CardAwardAlgorithmDriver(ICardRewardDomainService cards, IDungeonRunDomainService runs,
     ICharacterDomainService characters, TimeProvider clock, IItemDeliveryDomainService itemDelivery, ICardFlipCostDomainService flipCosts)
-    : GameCardCommandHandler(null!,null!,runs,cards,characters,itemDelivery,flipCosts,new Slots(),null!,null!,null!,null!,null!,clock,NullLogger<GameCardCommandHandler>.Instance),
-      ICommandHandler<CardAwardAlgorithmInput,SelectCardResult>
+    : ICommandHandler<CardAwardAlgorithmInput, SelectCardResult>
 {
+    private readonly GameCardCommandHandler command = ProtocolAlgorithmFixture.Create<GameCardCommandHandler>(
+        runs, cards, characters, itemDelivery, flipCosts, new Slots(), clock);
     public ValueTask<SelectCardResult> HandleAsync(CommandExecutionContext c,CardAwardAlgorithmInput q,CancellationToken ct) =>
-        AwardBodyAsync(q.AccountId,q.CharacterId,q.Kind,q.Index,q.ExpectedRunId,ct);
+        command.AwardBodyAsync(q.AccountId,q.CharacterId,q.Kind,q.Index,q.ExpectedRunId,ct);
     private sealed class Slots : IInventorySlotProjectionDomainService
     { private readonly InventorySlotMappingRuleService slots=new(); public Dfo.Server.Data.Inventory.GameSlot Project(Dfo.Server.Data.Inventory.BusinessSlot slot)=>slots.ToGameSlot(slot); }
 }
@@ -35,9 +40,10 @@ internal sealed record ClearExperienceAlgorithmInput(AccountId AccountId,Charact
 internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,TimeProvider clock,ICharacterDungeonDifficultyDomainService difficulties,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance=null,IQuestProgressDomainService? quests=null,
     IDungeonRunDomainService? runs=null,IDespairTowerDomainService? despair=null,Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars=null)
-    : GameSetPlayResultCommandHandler(null!,null!,grant,runs!,null!,null!,difficulties,clock,attendance!,quests!,despair!,luckyStars!,null!,null!,NullLogger<GameSetPlayResultCommandHandler>.Instance,null!),
-      ICommandHandler<ClearExperienceAlgorithmInput,ClearExperienceResult>
+    : ICommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult>
 {
+    private readonly GameSetPlayResultCommandHandler command = ProtocolAlgorithmFixture.Create<GameSetPlayResultCommandHandler>(
+        grant, runs, difficulties, clock, attendance, quests, despair, luckyStars);
     public ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext c,ClearExperienceAlgorithmInput q,CancellationToken ct)
     {
         if(DomainCommandFixture.Kind(c)!=FixtureUnitKind.Transactional)throw new InvalidOperationException("Awarding experience requires a transaction.");
@@ -46,7 +52,7 @@ internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,Time
         async ValueTask<ClearExperienceResult> Run()
         {
             using var fallback=new DomainCommandFixture.FootprintLease(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(q.AccountId,q.CharacterId,q.Session));
-            return await GrantBodyAsync(q.AccountId,q.CharacterId,q.DungeonId,q.Clear,q.Session,q.RunId,q.SettlementLevel,q.SettledAt,q.Footprint ?? fallback,ct);
+            return await command.GrantBodyAsync(q.AccountId,q.CharacterId,q.DungeonId,q.Clear,q.Session,q.RunId,q.SettlementLevel,q.SettledAt,q.Footprint ?? fallback,ct);
         }
     }
 }

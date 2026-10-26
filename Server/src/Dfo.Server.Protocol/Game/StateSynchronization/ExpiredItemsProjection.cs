@@ -35,8 +35,8 @@ internal sealed class ExpiredItemsNotificationSubscriber(IEventService events,
 internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, ICharacterVisibleSessionDomainService visible,
     ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IMailboxQueryDomainService? mailbox = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
+    IMailboxQueryDomainService mailbox)
     : INotificationHandler<ExpiredItemsRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,

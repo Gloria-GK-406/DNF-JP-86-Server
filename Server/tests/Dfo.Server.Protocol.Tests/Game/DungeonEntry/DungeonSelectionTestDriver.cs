@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using System;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
@@ -31,19 +34,19 @@ internal static class DungeonSelectionTestDriver
     private sealed class Handler(ISelectedSessionDomainService sessions,ISelectedCharacterCurrentViewDomainService views,IOnlineCharacterRuntimeDomainService online,
         ITownAreaDomainService areas,IPartyService parties,ICharacterStateProjectionDomainService current,IDungeonVisitDomainService visits,IDungeonRunDomainService runs,
         IDungeonRunProjectionDomainService registry,IGameMessageSender sender,TownAreaProjectionDelivery town,IDungeonEntryIntentDomainService? intents,IBossTowerDomainService? boss)
-        :GameDungeonSelectionCommandHandler(sessions,views,online,areas,parties,new PartyProjectionStreamRegistry(),current,null!,null!,visits,runs,registry,null!,new Outbox(sender),new Units(),null!,null!,NullLogger<GameDungeonSelectionCommandHandler>.Instance,intents,bossTowers:boss)
+
     {
-        protected override ValueTask<IReadOnlyList<TownAreaMembershipChange>> TownLeaveManyAsync(IReadOnlyList<SelectedSessionIdentity> members,TownAreaDepartureReason reason,CancellationToken ct)=>town.LeaveManyAsync(members,reason,ct);
-        protected override ValueTask<int> ReturnTownAsync(IReadOnlyList<TownAreaEntry> entries,CancellationToken ct)=>town.EnterAsync(entries,ct);
-        protected override ValueTask SelectionQuotaAsync(SelectedSessionIdentity session,CancellationToken ct)=>ValueTask.CompletedTask;
+        internal GameDungeonSelectionCommandHandler Command { get; } = new GameDungeonSelectionCommandHandler(sessions,views,online,areas ?? ProtocolAlgorithmFixture.TownField<ITownAreaDomainService>(town),parties,new PartyProjectionStreamRegistry(),current,ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.TownField<global::Dfo.Server.Abstractions.World.ITownMovementDomainService>(town),visits,runs,registry,new global::Dfo.Server.Protocol.Game.LegacyCommandProjections(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.TownField<global::Dfo.Server.Abstractions.DomainEvents.IEventService>(town)),new Outbox(sender),new Units(),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(sessions),NullLogger<GameDungeonSelectionCommandHandler>.Instance,intents ?? (IDungeonEntryIntentDomainService)ProtocolAlgorithmFixture.Default(typeof(IDungeonEntryIntentDomainService)),bossTowers:boss ?? (IBossTowerDomainService)ProtocolAlgorithmFixture.Default(typeof(IBossTowerDomainService)),housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),illusionTowers: ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),despair: ProtocolAlgorithmFixture.Default<IDespairTowerDomainService>(),sao: ProtocolAlgorithmFixture.Default<ISaoTowerDomainService>(),clock: ProtocolAlgorithmFixture.Default<TimeProvider>(),weakness: ProtocolAlgorithmFixture.TownField<IWeaknessDomainService>(town));
+        internal void PrepareBack(NetworkConnectionId id)
+        { if (intents is null && ProtocolAlgorithmFixture.Field<ISelectedSessionDomainService>(Command).FindByConnection(id) is { } session) ProtocolAlgorithmFixture.Field<IDungeonEntryIntentDomainService>(Command).Record(session, DungeonEntryIntent.Interactive); }
     }
-    private sealed class Driver(GameDungeonSelectionCommandHandler handler):ICommandBus
+    private sealed class Driver(Handler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
             ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
 
         public async ValueTask<T> SendAsync<T>(ICommand<T> value,CancellationToken token=default)where T:notnull
-        {var command=(IProtocolCommand)value;var request=new CommandRequestContext.ProtocolNonEffect(command.Dispatch,command.Message,command.Frame,()=>true);var context=DomainCommandFixture.Context(Guid.NewGuid(),value.GetType(),handler.GetType()) with{Request=request};var result=value switch{GameEnterSelectDungeonCommand enter=>await handler.HandleAsync(context,enter,token),GameBackToVillageCommand back=>await handler.HandleAsync(context,back,token),_=>throw new NotSupportedException()};return(T)(object)result;}
+        {var command=(IProtocolCommand)value;if(value is GameBackToVillageCommand backInput)handler.PrepareBack(backInput.Dispatch.Connection.ConnectionId);var request=new CommandRequestContext.ProtocolNonEffect(command.Dispatch,command.Message,command.Frame,()=>true);var context=DomainCommandFixture.Context(Guid.NewGuid(),value.GetType(),handler.Command.GetType()) with{Request=request};var result=value switch{GameEnterSelectDungeonCommand enter=>await handler.Command.HandleAsync(context,enter,token),GameBackToVillageCommand back=>await handler.Command.HandleAsync(context,back,token),_=>throw new NotSupportedException()};return(T)(object)result;}
     }
     private sealed class Units:ICommandWorkUnits
     {

@@ -23,9 +23,13 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
-internal partial class GameSelectDungeonCommandHandler
+internal sealed partial class GameSelectDungeonCommandHandler
 {
-    protected async ValueTask SelectDungeonAsync(
+    private void RestoreEntryIntent(SelectedSessionIdentity requester, DungeonEntryIntent intent)
+    {
+        if (sessions.IsInWorld(requester)) entryIntents.RestoreIfAbsent(requester, intent);
+    }
+    internal async ValueTask SelectDungeonAsync(
         CommandExecutionContext execution,
         NetworkDispatchContext context,
         SelectDungeonRequest message,
@@ -56,7 +60,7 @@ internal partial class GameSelectDungeonCommandHandler
             || (intent.Value.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle or DungeonEntryIntentKind.OrdinaryRechallenge
                 && intent.Value.DirectedDungeonId != message.DungeonId && message.MirrorQuestId is null
                 && !(intent.Value.Kind == DungeonEntryIntentKind.Directed
-                    && intent.Value.DirectedDungeonId is { } prior && sao?.Supports(prior) == true
+                    && intent.Value.DirectedDungeonId is { } prior && sao.Supports(prior) == true
                     && sao.Supports(message.DungeonId))))
         {
             if (intent is { } refusedIntent && sessions.IsInWorld(session))
@@ -66,7 +70,7 @@ internal partial class GameSelectDungeonCommandHandler
                 context.Connection.ConnectionId,
                 intent,
                 message.DungeonId);
-            await register(
+            await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(
                     [new SelectDungeonRefusal(SelectDungeonRefusal.InvalidSelectionState, 0, message.MirrorQuestId is not null)], []),
@@ -94,7 +98,7 @@ internal partial class GameSelectDungeonCommandHandler
         // already moved the whole party into one selection context for both interactive gates and
         // directed story entries. Resolve the same party here so the final confirmation creates
         // one shared run instead of silently turning an interactive party into parallel solo runs.
-        var roster = PartyService!.FindParty(new PartyCharacterSnapshot(
+        var roster = parties.FindParty(new PartyCharacterSnapshot(
             session.AccountId, session.CharacterId, session.WireUserId, null));
         if (roster.LeaderWireUserId != session.WireUserId)
         {
@@ -108,7 +112,7 @@ internal partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        if (bossTowers?.Supports(message.DungeonId) == true)
+        if (bossTowers.Supports(message.DungeonId) == true)
         {
             if (message.MirrorQuestId is not null)
             {
@@ -117,14 +121,13 @@ internal partial class GameSelectDungeonCommandHandler
                 return;
             }
             _ = await EnterBossAsync(execution, context.Connection.ConnectionId, session, roster, intent.Value,
-                () => { if (sessions.IsInWorld(session)) entryIntents.RestoreIfAbsent(session, intent.Value); },
                 cancellationToken, message.RequestMode, (byte)message.Difficulty, message.PracticeMode).ConfigureAwait(false);
             return;
         }
 
         // The legacy tower shortcut accepts ordinary entry only. Manual hell must reach the
         // CMD decision/hell admission path, where towers have no valid hell declaration.
-        if (message.MirrorQuestId is null && message.RequestMode != 1 && illusionTowers is not null
+        if (message.MirrorQuestId is null && message.RequestMode != 1
             && await illusionTowers.SupportsDungeonAsync(message.DungeonId, cancellationToken).ConfigureAwait(false))
         {
             _ = await EnterIllusionAsync(execution,
@@ -132,11 +135,6 @@ internal partial class GameSelectDungeonCommandHandler
                 session,
                 roster,
                 intent.Value,
-                () =>
-                {
-                    if (sessions.IsInWorld(session))
-                        entryIntents.RestoreIfAbsent(session, intent.Value);
-                },
                 cancellationToken, message.DungeonId).ConfigureAwait(false);
             return;
         }
