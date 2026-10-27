@@ -42,12 +42,14 @@ internal sealed class DungeonRoomRuleService(
             {
                 Level = ResolveMonsterLevel(context.Layout, actor),
                 BasisLevelOffset = null,
+                IsHostile = actor.IsHostile || context.Layout.RequiredCombatantCodes.Contains(actor.Code),
             }
             : actor).ToArray();
         IReadOnlyList<RoomActorDescription> described = this.Describe(resolved)
             .Select(actor => actor with
             {
                 IsNamedMonster = actor.IsNamedMonster || context.Layout.NamedMonsterCodes.Contains(actor.Actor.Code),
+                RequiredCombatant = context.Layout.RequiredCombatantCodes.Contains(actor.Actor.Code),
             }).ToArray();
         if (context.Layout.Mode is DungeonRunMode.Hell { Plan: var hell } && context.Cell == hell.Cell)
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
@@ -73,7 +75,7 @@ internal sealed class DungeonRoomRuleService(
         // Object templates and conditional summons may be script-owned helpers/controllers.
         // Do not turn them into scaled combat monsters merely because their rank is 0..3.
         if (layout.FixedMonsterLevel is byte level && level > 0 && actor.ActorType <= 3
-            && actor.Declaration is not { IsDummy: true }
+            && (actor.Declaration is not { IsDummy: true } || layout.RequiredCombatantCodes.Contains(actor.Code))
             && (actor.Declaration is null || actor.Declaration.Source is
                 DungeonActorSpawnSource.Monster or DungeonActorSpawnSource.ConditionalMonster))
             return level;

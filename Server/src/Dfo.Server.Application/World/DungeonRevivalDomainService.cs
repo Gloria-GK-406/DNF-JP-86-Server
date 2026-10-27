@@ -8,7 +8,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService sessions,
     ICharacterContainerDomainService containers, IDungeonRunParticipantDomainService runs,
-    ITournamentDungeonDomainService tournaments, IAltarDungeonDomainService altars,
+    ITournamentDungeonDomainService tournaments, IAltarDungeonDomainService altars, IDarkElfRuinsDomainService ruins,
     Dfo.Server.Abstractions.Quests.IQuestProgressDomainService? quests = null) : IDungeonRevivalDomainService
 {
     public async ValueTask<DungeonRevivalResult> ReviveAsync(SelectedSessionIdentity payer,
@@ -22,6 +22,7 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
             DungeonRevivalPolicy.Forbidden => false,
             DungeonRevivalPolicy.TournamentLife => tournaments.CanRevive(target, runId),
             DungeonRevivalPolicy.AltarLife => altars.CanRevive(target, runId),
+            DungeonRevivalPolicy.DarkElfRuinsLife => ruins.CanRevive(payer.CharacterId, runId),
         };
         if (!permitted) return new(false);
         var bag = containers.FindContainer(payer.CharacterId, InventoryContainerType.Main);

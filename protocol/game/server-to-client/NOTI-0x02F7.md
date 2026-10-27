@@ -1,4 +1,4 @@
-# NOTI `0x02F7` `ADVANCE_ALTAR_CLEAR_STAGE`
+# NOTI `0x02F7` `CHARAC_DUNGEON_LICENSE_INFO`
 
 <!-- rks:machine:begin -->
 
@@ -52,6 +52,11 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- rks:machine:end -->
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+
+## 当前实现
+
+本仓发送 `u16 count + count*(dungeonId:u32, license:u32, opaque:u32)`，三个区域共享星级，各发送当前星级对应的一张 DGN，第三字段固定0。
+读取宽度已由 VA `011575D0` 复核；业务映射参考上游，第三字段不解释为通关次数。见[遗迹流程](../../patterns/flow-darkelf-ruins.md)，尚无本次 WireCaptured / ClientVerified。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

@@ -1,0 +1,47 @@
+id 2656 -> historic/historic_02.qst
+=== n_quest/historic/historic_02.qst ===
+[grade]
+[side]
+[difficulty]
+g
+[npc index]
+303
+[complete npc index]
+385
+[pre required quest]
+2655
+[/pre required quest]
+[job]
+[all]
+[grow type]
+-1
+[level]
+40 99
+[type]
+[meet npc]
+[sub type]
+-1
+[int data]
+385
+[/int data]
+[reward type]
+[item]
+[reward int data]
+0 0
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[relation quest]
+2657
+[name]
+暗精灵遗迹 (2/6)
+[depend message]
+最近有个难题一直困扰着我。 居然出现了连接到暗黑城内部的异次元裂缝……而且我还接到了密报， 有迹象表明可能会从中窜出来自远古的怪物……
+现在我们严守着这个秘密， 元老院还没有发现。 但是万一被发现的话， 他们一定会找各种借口开展政治攻势， 用尽手段独占异次元裂缝。
+如果异次元裂缝的情况传到元老院耳中， 他们肯定会利用这股力量酝酿什么阴谋。 最重要的是暗黑城和百姓们的安全。 我们必须尽快封印异次元裂缝， 让这个秘密永远沉寂。
+米内特， 请带冒险家去见他们。
+[condition message]
+    找艾丽西亚谈谈。
+[solve message]
+<npc::64>冒险家， 你好。 这位艾丽西亚小姐将会全力协助你。
+<npc::385>见到你很高兴， 我是调查队的首领艾丽西亚·亚丁。

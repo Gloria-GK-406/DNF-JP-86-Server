@@ -315,6 +315,8 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
+                notifications.AddRange(Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.Selection(
+                    await ruins.SelectionAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 var tower = despair is null ? null
                     : await despair.ReadStatusAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false);
                 if (tower is not null)

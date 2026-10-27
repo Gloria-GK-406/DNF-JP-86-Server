@@ -1,0 +1,2 @@
+E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+SHA256 6bd2746da3858e6f29b3e2d386af4938056269bad6c9fff9455e133e7d953507

@@ -16,6 +16,12 @@ ACT 路径 `02276516` 调用读取该标志的 `006D3F60`。反汇编中的分�
 ClientVerified 结论。流程和业务边界分别见 [入场流程](../../patterns/flow-dungeon-entry.md#巨龙候选流程)、
 [任务说明](../../../Document/tasks/giant-dragon/README.md)。
 
+## 暗精灵遗迹随机对象
+
+CurrentImplementation / 上游参考：遗迹从 DGN 冻结房间对象，本房尾部投影一组 `u8 count + count*(i32 x,y,index,team,mode)`，
+被动对象 mode1、中立200；重访只投影 `[regenerate]` 声明的对象。雾及艾丽西亚传送门的脚本和验证边界见[遗迹流程](../../patterns/flow-darkelf-ruins.md)。
+非空对象尾尚待本次 A21 实机，既有普通空尾验收不扩大到此路径。
+
 ## 2026-10-07 主动深渊当前投影
 
 **CurrentImplementation / UpstreamImplementation**：offset7写冻结A/B值（1/2），普通保留2；深渊run fog=1。仅首次进入冻结深渊房附加hidden actor模板，order来自已选PVF组，模板flag1/FF；普通演员维持原向量。重访不再次发演员/掉落，也不重抽。首次深渊房的START_MAP之后发送[NOTI02A7](NOTI-0x02A7.md) APC资料。模式/隐藏位的主动深渊效果还待实机；不代表柱交互、怪物波次或奖励已经实现。见[实现边界](../../../Document/tasks/manual-hell-entry/implementation.md)。

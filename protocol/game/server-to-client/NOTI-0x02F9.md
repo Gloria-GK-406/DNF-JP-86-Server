@@ -1,4 +1,4 @@
-# NOTI `0x02F9` `OCCUPY_DUNGEON_INFO`
+# NOTI `0x02F9` `LICENSE_DUNGEON_CLEAR_INFO`
 
 <!-- rks:machine:begin -->
 
@@ -53,6 +53,12 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- rks:machine:end -->
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+
+## 当前实现
+
+本仓采用21B：`guardian:u8, elapsedMs:u32, dailyItem:u32, dailyCount:u32, clearItem:u32, clearCount:u32`。
+VA `011497B0` 证明读取宽度及顺序，奖励槽解释采用上游，仍待当前客户端差分验证。
+所有值来自实际 Boss 清场冻结奖励，不采用客户端成绩计算。见[遗迹流程](../../patterns/flow-darkelf-ruins.md)；未新增 ClientVerified。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

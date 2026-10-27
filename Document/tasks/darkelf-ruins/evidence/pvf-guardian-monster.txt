@@ -1,0 +1,131 @@
+id 61379 -> NewMonsters/DarkelfTemple/groop/groop.mob
+=== monster/NewMonsters/DarkelfTemple/groop/groop.mob ===
+[name]
+卡洛夫
+[face image]
+Monster/monsterFace.img 1193
+[die effect]
+0 1 0
+[category]
+[dragon] [undead] [groop]
+[/category]
+[immune active status]
+slow freeze stun curse blind stone sleep weapon break haste bless confuse hold armor break
+[/immune active status]
+[scale active status effect]
+poison 250 burn 250 bleeding 200 lightning 200
+[/scale active status effect]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+
+[die sound]
+
+[ability category]
+[EQUIPMENT_PHYSICAL_ATTACK] * 300 [EQUIPMENT_PHYSICAL_DEFENSE] * 300 [EQUIPMENT_MAGICAL_ATTACK] * 300 [EQUIPMENT_MAGICAL_DEFENSE] * 300 [HP MAX] * 9000
+[/ability category]
+[level]
+85 85
+[fire resistance]
+30 30
+[water resistance]
+30 30
+[dark resistance]
+30 30
+[light resistance]
+80 80
+[poison resistance]
+90 90
+[burn resistance]
+70 70
+[bleeding resistance]
+90 90
+[lightning resistance]
+200 200
+[move speed]
+0 0
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1000000 1000000
+[weight]
+100000 100000
+[HP regen speed]
+0 0
+[hp regen rate]
+0 0
+[stuckbonus on damage]
+0 0 0 0
+[fix direction]
+[right]
+[come in action]
+Action/groop_01_appear.act groop_01_appear.act 8000 8000
+[waiting action]
+Action/groop_02_stay.act
+[last action]
+Action/groop_15_dead.act
+[attack action]
+Action/groop_05_attackhand1start.act Action/groop_05_attackhand1loop.act Action/groop_05_attackhand1end.act Action/groop_06_attackhand2start.act Action/groop_06_attackhand2loop.act Action/groop_06_attackhand2end.act Action/groop_07_attackhowl.act Action/groop_08_attackstruggle.act Action/groop_10_destroy1howl.act Action/groop_14_recycle.act Action/groop_02_stay1.act Action/groop_09_destroy1.act Action/groop_11_destroy1stay.act Action/groop_12_destroy2.act Action/groop_13_destroy2stay.act Action/groop_03_movefront.act Action/groop_04_moveback.act Action/groop_02_stay1.act Action/groop_11_destroy1stay1.act
+[/attack action]
+[attack info]
+  attackinfo/Attack_0.atk   attackinfo/Attack_0.atk attackinfo/Attack_0.atk attackinfo/Attack_0.atk attackinfo/Attack_9_2.atk attackinfo/Attack_9_1.atk
+[/attack info]
+[proc action]
+Action/Proc.act
+[cooltime]
+10000 0 0 10000 0 0 20000 30000 10000 0 0 0 0 0 0 0 0
+[/cooltime]
+[think term]
+300
+[destination change term]
+1000
+[ai pattern]
+[normal]
+ai/Event_d1.ai ai/DestinationSelect.ai ai/Action_d1.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event_d1.ai ai/DestinationSelect.ai ai/Action_d1.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event_d1.ai ai/DestinationSelect.ai ai/Action_d1.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event_d1.ai ai/DestinationSelect.ai ai/Action_d1.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event_d1.ai ai/DestinationSelect.ai ai/Action_d1.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[holdable off]
+1
+[keep distance with target]
+200
+[keep range distance with target]
+0 0 0 0
+[intelligence]
+60 60 2500
+[vision]
+8000
+[lie frame]
+1 2 3 3 4
+[groop monster]
+[resist value]
+[/resist value]
+[resist entry]
+[accept damage]
+1500000 10
+[accept hit]
+100 10
+[cube]
+10 10
+[character kill]
+1 -20
+[character down]
+1 -1
+[/resist entry]

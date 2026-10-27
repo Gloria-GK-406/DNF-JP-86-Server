@@ -25,7 +25,7 @@ public sealed class DungeonRevivalTests
             .FindContainer(shop.Session.CharacterId, InventoryContainerType.Main)!
             .GetAsync(1, default))?.Snapshot.ToCore().Value ?? 0;
 
-    private static DungeonRunId EnterDead(ShopFixture shop, bool tournament = false)
+    private static DungeonRunId EnterDead(ShopFixture shop, bool tournament = false, bool ruins = false)
     {
         return TestGameplay.Run(shop.Services, () =>
         {
@@ -37,6 +37,7 @@ public sealed class DungeonRevivalTests
                 Mode = new DungeonRunMode.Tournament(new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
                     { CoinLimit = 1 }, [], [], 1)),
             };
+            if (ruins) layout = layout with { Mode = new DungeonRunMode.DarkElfRuins(new(new(2026, 10, 26), false, 1)) };
             var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
                 layout, DungeonDifficulty.Normal)).Run;
             runs.TryMarkParticipantReady(shop.Session.CharacterId, run.RunId, run.RoomVersion);
@@ -44,6 +45,29 @@ public sealed class DungeonRevivalTests
             runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
             return run.RunId;
         });
+    }
+
+    [Fact]
+    public async Task Ruins_four_coin_limit_uses_committed_run_counts_and_a_new_run_starts_fresh()
+    {
+        using var shop = new ShopFixture();
+        await shop.Seed(1, 1, 10, 0);
+        var id = EnterDead(shop, ruins: true);
+        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+        var driver = new RevivalDriver(shop.Services);
+        for (var i = 0; i < 4; i++)
+        {
+            if (i > 0) TestGameplay.Run(shop.Services, () =>
+                runs.TryMarkParticipantDead(shop.Session.CharacterId, id, runs.Find(shop.Session.CharacterId)!.RoomVersion));
+            Assert.True((await driver.SendAsync(new(shop.Session, shop.Session.CharacterId, id))).Succeeded);
+            Assert.Equal(i + 1, runs.Find(shop.Session.CharacterId)!.RevivalCounts[shop.Session.CharacterId]);
+        }
+        TestGameplay.Run(shop.Services, () => runs.TryMarkParticipantDead(shop.Session.CharacterId, id, runs.Find(shop.Session.CharacterId)!.RoomVersion));
+        Assert.False((await driver.SendAsync(new(shop.Session, shop.Session.CharacterId, id))).Succeeded);
+        Assert.Equal(6, await Coins(shop));
+        var next = EnterDead(shop, ruins: true);
+        Assert.NotEqual(id, next);
+        Assert.Empty(runs.Find(shop.Session.CharacterId)!.RevivalCounts);
     }
 
     [Theory]

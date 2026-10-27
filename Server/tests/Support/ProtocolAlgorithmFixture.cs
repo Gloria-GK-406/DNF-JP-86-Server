@@ -118,6 +118,8 @@ internal static class ProtocolAlgorithmFixture
         typeof(Dfo.Server.Abstractions.World.ISaoTowerDomainService),
         typeof(Dfo.Server.Abstractions.World.ITauKingdomDomainService),
         typeof(Dfo.Server.Abstractions.World.ISouthernDaleDomainService),
+        typeof(Dfo.Server.Abstractions.World.IDarkElfRuinsDomainService),
+        typeof(Dfo.Server.Abstractions.World.ILostLandDungeonDomainService),
         typeof(Dfo.Server.Abstractions.World.IHerasDungeonDomainService),
         typeof(Dfo.Server.Abstractions.World.ICoupleDungeonDomainService),
         typeof(Dfo.Server.Abstractions.World.ISealedTreasureDomainService),
@@ -246,6 +248,12 @@ internal static class ProtocolAlgorithmFixture
     {
         protected override object? Invoke(MethodInfo? method, object?[]? args)
         {
+            if (method!.DeclaringType == typeof(IDarkElfRuinsDomainService))
+            {
+                if (method.Name == nameof(IDarkElfRuinsDomainService.SelectionAsync))
+                    return ValueTask.FromResult(new DarkElfRuinsSelection(0, 0, 1, 0, []));
+                if (method.Name == nameof(IDarkElfRuinsDomainService.RecoverRewardsAsync)) return ValueTask.CompletedTask;
+            }
             if (method!.DeclaringType == typeof(IDespairTowerDomainService) && method.Name == nameof(IDespairTowerDomainService.ReadStatusAsync))
                 return ValueTask.FromResult(new DespairTowerStatus(1, 0, []));
             if (method.DeclaringType == typeof(ISaoTowerDomainService) && method.Name == nameof(ISaoTowerDomainService.ReadStatusAsync))

@@ -20,10 +20,11 @@ public sealed class DungeonEntryRoutingDomainService(
     ICycleDungeonEntryDomainService cycles,
     IDungeonEntryDecisionDomainService decisions,
     IDimensionDungeonDomainService dimensions,
-    IHellDungeonEntryDomainService hell) : IDungeonEntryRoutingDomainService
+    IHellDungeonEntryDomainService hell, IDarkElfRuinsDomainService ruins) : IDungeonEntryRoutingDomainService
 {
     public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct) =>
-        lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)
+        ruins.Supports(entry.DungeonId) ? ruins.EnterAsync(entry, ct)
+        : lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)
         : guardian.Supports(entry.DungeonId) ? guardian.EnterAsync(entry, ct)
         : giantDragon.Supports(entry.DungeonId) ? giantDragon.EnterAsync(entry, ct)
         : couples.Supports(entry.DungeonId) ? couples.EnterAsync(entry, ct)

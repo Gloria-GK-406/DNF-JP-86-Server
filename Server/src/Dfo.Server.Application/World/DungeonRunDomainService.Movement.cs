@@ -85,7 +85,10 @@ internal sealed partial class DungeonRunDomainService
         if (this.preparedGroundDropClaims.Any(key =>
                 key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
             return Refused("GroundDropPrepared", aggregate);
-        if (aggregate.Layout.Mode is not DungeonRunMode.LostLand && Math.Abs(target.X - aggregate.CurrentCell.X)
+        var warp = aggregate.Layout.IsWarp(aggregate.CurrentCell, target);
+        if (warp && !aggregate.Cells[aggregate.CurrentCell].IsCleared)
+            return Refused("WarpRoomNotCleared", aggregate);
+        if (!warp && aggregate.Layout.Mode is not DungeonRunMode.LostLand && Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1)
             return Refused("NotAdjacent", aggregate);
         if (lostLandItem && (aggregate.Layout.Mode is not DungeonRunMode.LostLand || !aggregate.Layout.Cells.TryGetValue(target, out var destination)

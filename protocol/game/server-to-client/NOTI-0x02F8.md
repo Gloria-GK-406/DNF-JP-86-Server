@@ -1,4 +1,4 @@
-# NOTI `0x02F8` `ADVANCE_ALTAR_UPDATE_RIDABLE`
+# NOTI `0x02F8` `LICENSE_DUNGEON_DAY_INDEX_INFO`
 
 <!-- rks:machine:begin -->
 
@@ -48,6 +48,11 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- rks:machine:end -->
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+
+## 当前实现
+
+正文1B，取本服统一日切后的曜日索引，周日0、周一1，直至周六6。读取宽度 VA `01148460` 已复核，曜日解释参考 ETC 与上游。
+见[遗迹流程](../../patterns/flow-darkelf-ruins.md)，界面显示待 A21 实机。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

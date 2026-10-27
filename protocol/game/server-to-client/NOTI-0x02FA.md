@@ -1,4 +1,4 @@
-# NOTI `0x02FA` `OCCUPY_DUNGEON_INFO_AND_MYRECORD`
+# NOTI `0x02FA` `LICENSE_DUNGEON_SHOT_COUNT_INFO`
 
 <!-- rks:machine:begin -->
 
@@ -48,6 +48,11 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- rks:machine:end -->
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+
+## 当前实现
+
+VA `01148490` 将读取的 u8 转为布尔值。本仓保留1B零值，不能根据枚举名称把升星通关次数写入此处。
+真实业务含义仍为 Unknown；见[遗迹流程](../../patterns/flow-darkelf-ruins.md)，没有新增 ClientVerified。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

@@ -25,6 +25,7 @@ public enum DungeonRevivalPolicy : byte
     Forbidden,
     TournamentLife,
     AltarLife,
+    DarkElfRuinsLife,
 }
 
 /// <summary>
@@ -80,6 +81,11 @@ public sealed record DungeonRunCapabilities(
         DungeonRunKind.Despair => OrdinaryRun with
         {
             DrawsClearCards = false, UnlocksDifficulty = false, AllowsOrdinaryRechallenge = false,
+        },
+        DungeonRunKind.DarkElfRuins => OrdinaryRun with
+        {
+            DrawsClearCards = false, UnlocksDifficulty = false, AllowsOrdinaryRechallenge = false,
+            Revival = DungeonRevivalPolicy.DarkElfRuinsLife,
         },
         DungeonRunKind.Tournament => OrdinaryRun with
         {

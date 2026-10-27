@@ -93,6 +93,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly ISouthernDaleDomainService southern;
     private readonly IBossTowerTicketDomainService bossTickets;
     private readonly IOutboundOrdering ordering;
+    private readonly IDarkElfRuinsDomainService ruins;
     public GameSelectCharacterCommandHandler(IOnlineUserQueryDomainService users, IChannelEntryDomainService channels,
         ISelectedCharacterStateMessageFactory stateMessages, ISelectedSessionDomainService selectedSessions,
         IGameCommandOutbox outbox, ICommandProjections projections, ICommandConnectionClosures closures,
@@ -107,7 +108,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         IClientSettingsDomainService clientSettings,
         ISaoTowerDomainService sao, ITauKingdomDomainService tau,
         ISouthernDaleDomainService southern, IBossTowerTicketDomainService bossTickets,
-        IOutboundOrdering ordering)
+        IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -118,6 +119,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.lotteryCounterExperiment=lotteryCounterExperiment; this.weaknessState=weaknessState; this.itemUsage=itemUsage;
         this.clientSettings=clientSettings; this.sao=sao; this.tau=tau;
         this.southern=southern; this.bossTickets=bossTickets; this.ordering=ordering;
+        this.ruins = ruins;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -340,6 +342,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
 
         var publication = await PublishAsync(session, prepared, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
+        await units.WriteAsync(execution, new("RecoverDarkElfRuinsRewards", [TicketRecipient(execution, session)]),
+            async (_, token) => { await ruins.RecoverRewardsAsync(session, token).ConfigureAwait(false); return true; }, cancellationToken).ConfigureAwait(false);
         // Selection can straddle 06:00 while the scheduled snapshot sees it as unpublished.
         // Recheck the current period after publication using the same durable ticket claim.
             await RefillTauAsync(execution, session, cancellationToken)

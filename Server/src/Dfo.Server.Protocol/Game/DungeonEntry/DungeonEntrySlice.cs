@@ -305,7 +305,17 @@ internal static class DungeonEntryPayloadCodec
         }
 
         writer.Write(run.Layout.Mode is DungeonRunMode.Hell ? (byte)1 : (byte)0); // abyss fog
-        writer.Write((byte)0); // no ridable object groups
+        var objects = layout.RandomObjects.Where(x => x.Cell == run.CurrentCell && (firstEntry || x.Regenerate)).ToArray();
+        writer.Write(objects.Length > 0 ? (byte)1 : (byte)0);
+        if (objects.Length > 0)
+        {
+            writer.Write(checked((byte)objects.Length));
+            foreach (var item in objects)
+            {
+                writer.Write(item.X); writer.Write(item.Y); writer.Write(item.ObjectId);
+                writer.Write(item.Team); writer.Write(item.SpawnMode);
+            }
+        }
         // The client binds its local dungeon actor and party HUD to this frozen entry slot. 0xFF is
         // only the solo/default sentinel; sending it to a party participant leaves the shared run
         // alive on the server while the client constructs a one-player room.

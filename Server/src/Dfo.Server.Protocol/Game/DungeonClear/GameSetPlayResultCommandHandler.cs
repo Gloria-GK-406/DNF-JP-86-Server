@@ -37,7 +37,8 @@ internal sealed partial class GameSetPlayResultCommandHandler(
     ILogger<GameSetPlayResultCommandHandler> logger,
     IDungeonCardPresentationControl cardPresentation,
     Dfo.Server.Abstractions.DomainEvents.ICommandProjections eventNotices,
-    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService inventoryProjection)
+    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService inventoryProjection,
+    IDarkElfRuinsDomainService ruins)
     : ICommandHandler<GameSetPlayResultCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetPlayResultCommand command, CancellationToken cancellationToken)
@@ -64,6 +65,18 @@ internal sealed partial class GameSetPlayResultCommandHandler(
         }
 
         var currentRun = runs.Find(session.CharacterId);
+        if (currentRun?.Layout.Mode is DungeonRunMode.DarkElfRuins)
+        {
+            var read = await units.WriteAsync(execution, new("ruins-legacy-play-result", [new SelectedSessionRecipient(session, context.Connection)]),
+                async (_, token) => new Dfo.Server.Protocol.Game.DarkElfRuins.RuinsResultRead(
+                    await ruins.ResultAsync(session, token).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
+            var reward = read.Reward;
+            if (reward is not null && selectedSessions.IsInWorld(session))
+                await outbox.RegisterExplicitAsync(session.ConnectionId,
+                    new(Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.Result(reward,
+                        await ruins.SelectionAsync(session.CharacterId, cancellationToken).ConfigureAwait(false), 0x002E), []), cancellationToken).ConfigureAwait(false);
+            return;
+        }
         if (currentRun is null)
         {
             logger.LogWarning(

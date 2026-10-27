@@ -1,0 +1,97 @@
+=== etc/dungeonetc/licensedungeoninfo.etc ===
+[dungeon license info]
+1 5006 1 10 2 1 5007 2 7 4 1 5008 3 5 8 1 5009 4 0 0 2 5016 1 10 2 2 5017 2 7 4 2 5018 3 5 8 2 5019 4 0 0 3 5026 1 10 2 3 5027 2 7 4 3 5028 3 5 8 3 5029 4 0 0
+[/dungeon license info]
+[daily open dungeon]
+[day]
+0
+[dungeon]
+5006 5007 5008 5009 5016 5017 5018 5019 5026 5027 5028 5029
+[/dungeon]
+[/daily open dungeon]
+[daily open dungeon]
+[day]
+1
+[dungeon]
+5006 5007 5008 5009
+[/dungeon]
+[/daily open dungeon]
+[daily open dungeon]
+[day]
+2
+[dungeon]
+5016 5017 5018 5019
+[/dungeon]
+[/daily open dungeon]
+[daily open dungeon]
+[day]
+3
+[dungeon]
+5026 5027 5028 5029
+[/dungeon]
+[/daily open dungeon]
+[daily open dungeon]
+[day]
+4
+[dungeon]
+5006 5007 5008 5009
+[/dungeon]
+[/daily open dungeon]
+[daily open dungeon]
+[day]
+5
+[dungeon]
+5016 5017 5018 5019
+[/dungeon]
+[/daily open dungeon]
+[daily open dungeon]
+[day]
+6
+[dungeon]
+5026 5027 5028 5029
+[/dungeon]
+[/daily open dungeon]
+[daily enter count]
+2
+[groop appear count on month]
+2
+[dungeon difficulty by license]
+1 normal 2 expert 3 master 4 king
+[/dungeon difficulty by license]
+[groop appear rate by enter count]
+1 10 2 20 3 30 4 40 5 50 6 100 7 150 8 200 9 250 10 300 11 350 12 400 13 450 14 500 15 600 16 700 17 800 18 900 19 1000 20 1500 21 2000 22 3000 23 4000 24 5000 25 10000 26 10000 27 10000 28 10000 29 10000 30 10000 31 10000 32 10000
+[/groop appear rate by enter count]
+[license dungeon reward info]
+[license]
+1
+[dungeon clear reward]
+10155143 1
+[/license]
+[license]
+2
+[dungeon clear reward]
+10155143 2
+[/license]
+[license]
+3
+[dungeon clear reward]
+10155143 3
+[groop drop item info]
+100320752 800 100320753 800 100310912 700 100310913 700 100310652 600 100310653 600 100320754 500 100320755 500 100310915 400 100310914 400 100310654 200 100310655 200
+[/groop drop item info]
+[/license]
+[license]
+4
+[dungeon clear reward]
+10155143 4
+[groop drop item info]
+100320752 800 100320753 800 100310912 700 100310913 700 100310652 600 100310653 600 100320754 500 100320755 500 100310915 400 100310914 400 100310654 200 100310655 200 100320756 100 100310916 100 100310656 100
+[/groop drop item info]
+[/license]
+[daily clear reward]
+5006 10155137 1 5007 10155137 1 5008 10155137 2 5009 10155137 2 5016 10155138 1 5017 10155138 1 5018 10155138 2 5019 10155138 2 5026 10155139 1 5027 10155139 1 5028 10155139 2 5029 10155139 2
+[/daily clear reward]
+[/license dungeon reward info]
+[groop apply licence]
+3 4
+[/groop apply licence]

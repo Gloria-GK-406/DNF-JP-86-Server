@@ -73,9 +73,10 @@ public sealed record DungeonCellActorState(
 {
     public bool IsNamedMonster { get; init; }
     public LostLandKillBonus? LostLandBonus { get; init; }
+    public bool RequiredCombatant { get; init; }
     /// <summary>Clear participation is independent of ordinary monster experience eligibility.</summary>
     public bool BlocksClear => !IsHellTemplate && Actor.IsHostile
-        && Actor.Declaration?.IsDummy != true
+        && (RequiredCombatant || Actor.Declaration?.IsDummy != true)
         && (Actor.Declaration?.MonsterTeam is null or 100)
         && (Actor.Declaration?.Source != DungeonActorSpawnSource.SpecialPassiveObject
             || Actor.Declaration.IsSceneOwnedWave);

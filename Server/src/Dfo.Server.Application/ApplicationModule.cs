@@ -203,6 +203,10 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IGiantDragonRuleService, GiantDragonRuleService>();
         services.TryAddSingleton<IGiantDragonDomainService, GiantDragonDomainService>();
         services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
+        services.TryAddSingleton<IDarkElfRuinsRuleService, DarkElfRuinsRuleService>();
+        services.TryAddSingleton<IDarkElfRuinsDomainService, DarkElfRuinsDomainService>();
+        services.AddSingleton<IDungeonBossClearHook>(sp => sp.GetRequiredService<IDarkElfRuinsDomainService>());
+        services.AddDomainEvent<DarkElfRuinsInventoryChanged>("darkelf-ruins.inventory-changed", 1);
         services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
         services.TryAddSingleton<IGoldSilverHornRuleService, GoldSilverHornRuleService>();
         services.TryAddSingleton<IBossTowerRuleService, BossTowerRuleService>();

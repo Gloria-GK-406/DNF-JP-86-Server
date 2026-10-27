@@ -11,6 +11,9 @@ public enum ClientMessageType
     GameGuardianAltarPause = 0x0001_0398,
     GameGuardianAltarAchievement = 0x0001_0399,
     GameGuardianAltarReset = 0x0001_039A,
+
+    GameRuinsPlayResult = 0x0001_032C,
+    GameRuinsReward = 0x0001_032D,
     GameRentEquipment = 0x0001_03CF,
     GameChargeRentPoint = 0x0001_03D0,
     GameCollectionBox = 0x0001_03E5,

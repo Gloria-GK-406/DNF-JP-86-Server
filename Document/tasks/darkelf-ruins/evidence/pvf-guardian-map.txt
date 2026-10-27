@@ -1,0 +1,66 @@
+id 57742 -> TempleLabyrinth/57742_groop.map
+=== map/TempleLabyrinth/57742_groop.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+5019
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/tile_green1.til Tile/tile_green2.til Tile/tile_green3.til Tile/tile_green1.til Tile/tile_green2.til Tile/tile_green3.til
+[/tile]
+[far sight scroll]
+56
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/smfar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/smmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+-1 224 1210 203 676 -271 377 459
+[dungeon start area]
+13 215 118 73
+[sound]
+M_TEMPLE_GROOP_BOSS AMB_MAZE
+[/sound]
+[animation]
+Animation/graffiti_wall1.ani [closeback] 95 30 0 Animation/graffiti_bottom1.ani [closeback] 64 143 0 Animation/graffiti_wall3.ani [closeback] 547 -137 0 Animation/graffiti_wall4.ani [closeback] 422 38 0 Animation/graffiti_bottom3.ani [closeback] 453 183 0 Animation/graffiti_bottom4.ani [closeback] 598 141 0 Animation/graffiti_bottom5.ani [closeback] 307 133 0
+[/animation]
+[passive object]
+57580 1132 179 0 57581 1349 356 0 57579 1194 278 0 57599 1194 278 0 57522 1331 285 0 57522 1333 191 0 57522 932 133 0 57522 1027 134 0 57522 1060 133 0
+[/passive object]
+[monster]
+61379 1 0 903 265 0 1 1 [fixed] [dummy] [boss]
+[/monster]
+[monster specific AI]
+[normal]
+[/monster specific AI]
+[event monster position]
+745 287 0 743 172 0 779 301 0 800 260 0
+[/event monster position]
+[pathgate object]
+76103 76104 -1 57615 57614 -1 57578 57574 57575 57571
+[map name]
+PVP无名
