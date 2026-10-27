@@ -17,7 +17,7 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
     private static readonly PvfField<IReadOnlyList<PvfToken>> Expiration = PvfField.Tokens("[expiration date]", optional: true);
     private static readonly PvfField<IReadOnlyList<string>> EmblemTypes = PvfField.Strings("[avatar emblem target type]", optional: true);
     private readonly Lock gate = new();
-    private Dictionary<int, string>? equipmentPaths, stackablePaths;
+    private IReadOnlyDictionary<int, string>? equipmentPaths, stackablePaths;
     private Dictionary<string, ImmutableArray<ushort>>? equipmentTypes;
     private readonly Dictionary<int, ItemSocketDefinition?> targets = [];
     private readonly Dictionary<int, SocketDrillDefinition?> drills = [];
@@ -141,8 +141,8 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
             return ValueTask.FromResult(result);
         }
     }
-    private static Dictionary<int, string> Paths(PvfArchive archive, string folder) =>
-        PvfListFile.Read(archive, folder + "/" + folder + ".lst").ToDictionary(x => x.Id, x => folder + "/" + x.RelativePath);
+    private static IReadOnlyDictionary<int, string> Paths(PvfArchive archive, string folder) =>
+        PvfListFile.Paths(archive, folder + "/" + folder + ".lst", prefix: folder + "/");
     private static string FirstText(PvfArchive archive, PvfDocument document, PvfField<IReadOnlyList<PvfToken>> field) =>
         document.TryRead(field, out var values) && values.Count > 0 && values[0].IsString ? archive.ResolveString(values[0].Value) : "";
     private static ImmutableArray<ushort> ReadTypes(PvfArchive archive, IReadOnlyList<PvfToken> values)

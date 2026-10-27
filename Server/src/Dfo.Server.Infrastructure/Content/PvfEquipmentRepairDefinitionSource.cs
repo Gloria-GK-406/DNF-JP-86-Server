@@ -18,7 +18,7 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, EquipmentRepairDefinition?> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
     private (float CostRate, IReadOnlyList<float> UpgradeRates)? rates;
 
     public string Name => "equipment-repair";
@@ -36,8 +36,7 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        paths ??= PvfListFile.Paths(archive, "equipment/equipment.lst");
     }
 
     public ValueTask<EquipmentRepairDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)

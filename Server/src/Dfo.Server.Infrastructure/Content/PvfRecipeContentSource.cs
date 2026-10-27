@@ -23,7 +23,7 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, RecipePlan?> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
     public string Name => "recipe-index";
 
     public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
@@ -40,7 +40,7 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+        paths ??= PvfListFile.Paths(archive, "stackable/stackable.lst");
     }
 
     public ValueTask<RecipePlan?> GetAsync(int drawingId, CancellationToken ct)

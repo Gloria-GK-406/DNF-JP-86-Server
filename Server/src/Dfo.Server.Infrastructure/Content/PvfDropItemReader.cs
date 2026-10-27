@@ -32,8 +32,8 @@ internal sealed class PvfDropItemReader
         foreach (var (list, folder, kind) in new[] {
             ("stackable/stackable.lst", "stackable/", DropItemKind.Stackable),
             ("equipment/equipment.lst", "equipment/", DropItemKind.Equipment) })
-            foreach (var row in PvfListFile.Read(archive, list))
-                paths.TryAdd(row.Id, (folder + row.RelativePath, kind));
+            foreach (var row in PvfListFile.Paths(archive, list, PvfListDuplicates.First, folder))
+                paths.TryAdd(row.Key, (row.Value, kind));
     }
 
     public RolledDrop? Get(int id)

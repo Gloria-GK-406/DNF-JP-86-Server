@@ -32,7 +32,7 @@ internal sealed class PvfTeleportConsumableDefinitionSource(PvfArchiveProvider p
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+        paths ??= PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
     }
 
     public ValueTask<TeleportConsumableDefinition?> GetAsync(int itemId, CancellationToken ct)

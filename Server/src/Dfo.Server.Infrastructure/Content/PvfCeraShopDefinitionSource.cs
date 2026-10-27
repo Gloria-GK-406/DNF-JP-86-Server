@@ -74,7 +74,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
     private readonly HashSet<int> serviceItems = [], serviceProducts = [], restricted = [], onlyCera = [], onlyPoint = [];
     private readonly Dictionary<int, CeraShopPurchaseRestrictionDeclaration> purchaseRestrictions = [];
     private readonly List<CeraShopDiagnostic> contentDiagnostics = [];
-    private Dictionary<int, string>? equipment, stackables, creatures;
+    private IReadOnlyDictionary<int, string>? equipment, stackables, creatures;
     private IReadOnlyList<Section>? avatarAbilityCases;
     private bool loaded;
     private Dictionary<int, (int Type, TimeSpan Duration)> premiumTerms = [];
@@ -558,8 +558,8 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             .Select(s => new CeraShopDiagnostic("UnsupportedInstanceDeclaration", source, s.Name))
             .ToImmutableArray();
     private static bool ServiceCategory(string category) => (category == Fields.VisualField.Name || category == Fields.SelectableCharacterPremiumField.Name || category == Fields.CharacPremiumPackageField.Name);
-    private static Dictionary<int, string> Paths(PvfArchive archive, string path) => archive.FindFile(path) < 0 ? []
-        : PvfListFile.Read(archive, path).GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.First().RelativePath);
+    private static IReadOnlyDictionary<int, string> Paths(PvfArchive archive, string path) => archive.FindFile(path) < 0 ? System.Collections.ObjectModel.ReadOnlyDictionary<int, string>.Empty
+        : PvfListFile.Paths(archive, path, Dfo.Pvf.PvfListDuplicates.First);
     private void AddIntegers(HashSet<int> set, Section section, PvfField<IReadOnlyList<int>> field)
     { foreach (var value in field.Decode(provider.Archive, section.Values, "Cera shop classification")) set.Add(value); }
     private void AddColumn(HashSet<int> set, Section section, PvfField<IReadOnlyList<int>> field, int stride, int column)

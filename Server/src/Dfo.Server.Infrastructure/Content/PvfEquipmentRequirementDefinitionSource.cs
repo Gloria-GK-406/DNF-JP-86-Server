@@ -14,7 +14,7 @@ internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, int?> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
     public string Name => "equipment-requirement-index";
 
     public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
@@ -30,8 +30,7 @@ internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex()
     {
-        paths ??= PvfListFile.Read(provider.Archive, "equipment/equipment.lst")
-                .ToDictionary(row => row.Id, row => "equipment/" + row.RelativePath);
+        paths ??= PvfListFile.Paths(provider.Archive, "equipment/equipment.lst", prefix: "equipment/");
     }
 
     public ValueTask<int?> MinimumLevelAsync(int itemId, CancellationToken cancellationToken)

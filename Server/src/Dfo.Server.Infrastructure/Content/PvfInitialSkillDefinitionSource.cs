@@ -72,9 +72,7 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
         if (_paths is not null)
             return _paths;
 
-        var paths = new Dictionary<int, string>();
-        foreach (var (job, relativePath) in PvfListFile.Read(_provider.Archive, ListPath))
-            paths.TryAdd(job, relativePath);
+        var paths = PvfListFile.Paths(_provider.Archive, ListPath, Dfo.Pvf.PvfListDuplicates.First);
         if (paths.Count == 0)
             throw new InvalidOperationException($"{ListPath} resolved no character files.");
         return _paths = paths;
@@ -151,9 +149,7 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
         var listPath = $"skill/{JobSkillListName(archive, job)}";
         if (archive.FindFile(listPath) < 0)
             return new Dictionary<int, string>();
-        var paths = new Dictionary<int, string>();
-        foreach (var (skillId, relative) in PvfListFile.Read(archive, listPath))
-            paths.TryAdd(skillId, relative);
+        var paths = PvfListFile.Paths(archive, listPath, Dfo.Pvf.PvfListDuplicates.First);
         return paths;
     }
 

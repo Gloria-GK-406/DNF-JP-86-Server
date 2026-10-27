@@ -64,8 +64,7 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
         }
     }
 
-    private IReadOnlyDictionary<int, string> Paths() => paths ??= PvfListFile.Read(provider.Archive, "map/map.lst")
-        .GroupBy(value => value.Id).ToDictionary(group => group.Key, group => group.First().RelativePath);
+    private IReadOnlyDictionary<int, string> Paths() => paths ??= PvfListFile.Paths(provider.Archive, "map/map.lst", Dfo.Pvf.PvfListDuplicates.First);
 
     private DungeonMapDefinition? Read(int mapId)
     {

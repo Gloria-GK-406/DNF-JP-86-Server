@@ -110,9 +110,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         if (_paths is not null)
             return _paths;
 
-        var paths = new Dictionary<int, string>();
-        foreach (var (dungeonId, relativePath) in PvfListFile.Read(_provider.Archive, ListPath))
-            paths.TryAdd(dungeonId, relativePath);
+        var paths = PvfListFile.Paths(_provider.Archive, ListPath, Dfo.Pvf.PvfListDuplicates.First);
         if (paths.Count == 0)
             throw new InvalidOperationException($"{ListPath} resolved no dungeon files.");
         return _paths = paths;

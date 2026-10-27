@@ -42,10 +42,10 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     private readonly Lock gate = new();
     private readonly Dictionary<int, NpcShopDefinition?> shops = [];
     private readonly Dictionary<int, NpcShopItemDefinition?> items = [];
-    private Dictionary<int, string>? npcs;
-    private Dictionary<int, string>? shopPaths;
-    private Dictionary<int, string>? stackables;
-    private Dictionary<int, string>? equipment;
+    private IReadOnlyDictionary<int, string>? npcs;
+    private IReadOnlyDictionary<int, string>? shopPaths;
+    private IReadOnlyDictionary<int, string>? stackables;
+    private IReadOnlyDictionary<int, string>? equipment;
 
     public string Name => "npc-shop-index";
 
@@ -277,8 +277,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     private static string? Text(PvfArchive archive, PvfToken token) =>
         token.IsString ? archive.ResolveString(token.Value).ToLowerInvariant() : null;
 
-    private static Dictionary<int, string> Paths(PvfArchive archive, string list) =>
-        PvfListFile.Read(archive, list).ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+    private static IReadOnlyDictionary<int, string> Paths(PvfArchive archive, string list) =>
+        PvfListFile.Paths(archive, list);
 
     internal sealed record Section(string Name, List<PvfToken> Values);
 

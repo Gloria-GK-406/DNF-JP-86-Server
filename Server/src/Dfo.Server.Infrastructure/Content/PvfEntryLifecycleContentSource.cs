@@ -61,18 +61,43 @@ internal sealed class PvfEntryLifecycleContentSource(
 
     public ValueTask<IReadOnlyList<DailyRefillRule>> GetDeclaredDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => ReadRules(at, ct, true);
     public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) => ReadRules(at, ct, false);
+    private readonly Lock refillGate = new();
+    private IReadOnlyList<RefillDeclaration>? declarations;
+    private IReadOnlyDictionary<int, (int Id, string RelativePath)>? refillStackables;
+    private IReadOnlyDictionary<int, string>? refillEquipment;
+    private readonly Dictionary<RefillDeclaration, DailyRefillRule?> compiledRules = [];
+    private readonly Dictionary<int, RefillItemMetadata> refillMetadata = [];
+
     private ValueTask<IReadOnlyList<DailyRefillRule>> ReadRules(
-        DateTimeOffset preparedAt,
-        CancellationToken cancellationToken, bool includeInactive)
+        DateTimeOffset preparedAt, CancellationToken cancellationToken, bool includeInactive)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var archive = provider.Archive;
-        var values = ReadSectionValues(archive, RefillPath, Fields.RefillItemField);
-        var stackables = PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
-        var equipment = ReadEquipmentPaths(archive);
-        var parsed = Parse(values, preparedAt,
-            id => ResolveItemMetadata(archive, id, stackables, equipment), slotMappings, includeInactive);
-        return ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(parsed);
+        lock (refillGate)
+        {
+            var archive = provider.Archive;
+            declarations ??= ParseDeclarations(ReadSectionValues(archive, RefillPath, Fields.RefillItemField));
+            // Keep the original list validation even when all declarations are inactive.
+            refillStackables ??= PvfListFile.EntriesById(archive, StackableListPath);
+            refillEquipment ??= ReadEquipmentPaths(archive);
+            var result = new List<DailyRefillRule>();
+            foreach (var declaration in declarations)
+            {
+                if (!includeInactive && !declaration.IsActive(preparedAt)) continue;
+                if (!compiledRules.TryGetValue(declaration, out var rule))
+                {
+                    if (!refillMetadata.TryGetValue(declaration.ItemId, out var metadata))
+                    {
+                        metadata = ResolveItemMetadata(archive, declaration.ItemId,
+                            refillStackables, refillEquipment);
+                        refillMetadata.Add(declaration.ItemId, metadata);
+                    }
+                    rule = Compile(declaration, metadata, slotMappings);
+                    compiledRules.Add(declaration, rule);
+                }
+                if (rule is not null) result.Add(rule);
+            }
+            return ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>(result.AsReadOnly());
+        }
     }
 
     /// <summary>
@@ -85,9 +110,7 @@ internal sealed class PvfEntryLifecycleContentSource(
     /// </remarks>
     internal static IReadOnlyDictionary<int, string> ReadEquipmentPaths(PvfArchive archive)
     {
-        var paths = new Dictionary<int, string>();
-        foreach (var (id, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
-            paths.TryAdd(id, relativePath);
+        var paths = PvfListFile.Paths(archive, EquipmentListPath, Dfo.Pvf.PvfListDuplicates.First);
         return paths;
     }
 
@@ -98,47 +121,55 @@ internal sealed class PvfEntryLifecycleContentSource(
         int SlotEnd,
         ItemWorldClass WorldClass);
 
-    internal static IReadOnlyList<DailyRefillRule> Parse(
-        IReadOnlyList<string> values,
-        DateTimeOffset preparedAt,
-        Func<int, RefillItemMetadata> metadata,
-        IInventorySlotMappingRuleService? slotMappings = null, bool includeInactive = false)
+    private sealed record RefillDeclaration(int ItemId, int Quantity, DateTimeOffset ExpiresAt, DailyRefillMode Mode)
     {
-        slotMappings ??= new InventorySlotMappingRuleService();
+        public bool IsActive(DateTimeOffset at) => Quantity > 0 && ExpiresAt > at;
+    }
+
+    private static IReadOnlyList<RefillDeclaration> ParseDeclarations(IReadOnlyList<string> values)
+    {
         if (values.Count % 4 != 0)
             throw new FormatException($"PVF [{RefillPath}] [refill item] token count {values.Count} is not divisible by 4.");
-
-        var nowBeijing = preparedAt.ToOffset(TimeSpan.FromHours(8));
-        var result = new List<DailyRefillRule>();
+        var result = new List<RefillDeclaration>();
         for (var index = 0; index < values.Count; index += 4)
         {
             if (!int.TryParse(values[index], NumberStyles.Integer, CultureInfo.InvariantCulture, out var itemId)
                 || !int.TryParse(values[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity)
                 || !DateTime.TryParseExact(values[index + 2], "yyyy-MM-dd HH:mm:ss",
                     CultureInfo.InvariantCulture, DateTimeStyles.None, out var expiresLocal)
-                || !int.TryParse(values[index + 3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var modeValue))
+                || !int.TryParse(values[index + 3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var modeValue)
+                || itemId <= 0 || quantity < 0 || modeValue is < (int)DailyRefillMode.RefillToTarget or > (int)DailyRefillMode.Add)
                 continue;
             var expiresAt = new DateTimeOffset(DateTime.SpecifyKind(expiresLocal, DateTimeKind.Unspecified), TimeSpan.FromHours(8));
-            if (itemId <= 0 || quantity < 0 || (!includeInactive && (quantity == 0 || expiresAt <= nowBeijing))
-                || modeValue is < (int)DailyRefillMode.RefillToTarget
-                    or > (int)DailyRefillMode.Add)
-                continue;
-            var item = metadata(itemId);
-            if (item.SlotEnd < item.SlotStart)
-                continue;
-            var first = slotMappings.ToBusinessSlot(
-                new GameSlot(InventoryContainerType.Main, item.SlotStart));
-            var last = slotMappings.ToBusinessSlot(
-                new GameSlot(InventoryContainerType.Main, item.SlotEnd));
-            if (first.Space != last.Space)
-                throw new InvalidDataException(
-                    $"PVF daily refill Main/{item.SlotStart}..{item.SlotEnd} crosses business spaces.");
-            result.Add(new DailyRefillRule(
-                itemId, quantity, expiresAt, (DailyRefillMode)modeValue,
-                item.StackLimit, item.ItemKind,
-                new BusinessSlotRange(first.Space, first.Index, last.Index)));
+            result.Add(new(itemId, quantity, expiresAt, (DailyRefillMode)modeValue));
         }
-        return result;
+        return result.AsReadOnly();
+    }
+
+    private static DailyRefillRule? Compile(RefillDeclaration declaration, RefillItemMetadata item,
+        IInventorySlotMappingRuleService slotMappings)
+    {
+        if (item.SlotEnd < item.SlotStart) return null;
+        var first = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.SlotStart));
+        var last = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.SlotEnd));
+        if (first.Space != last.Space)
+            throw new InvalidDataException($"PVF daily refill Main/{item.SlotStart}..{item.SlotEnd} crosses business spaces.");
+        return new(declaration.ItemId, declaration.Quantity, declaration.ExpiresAt, declaration.Mode,
+            item.StackLimit, item.ItemKind, new BusinessSlotRange(first.Space, first.Index, last.Index));
+    }
+
+    internal static IReadOnlyList<DailyRefillRule> Parse(
+        IReadOnlyList<string> values, DateTimeOffset preparedAt, Func<int, RefillItemMetadata> metadata,
+        IInventorySlotMappingRuleService? slotMappings = null, bool includeInactive = false)
+    {
+        slotMappings ??= new InventorySlotMappingRuleService();
+        var result = new List<DailyRefillRule>();
+        foreach (var declaration in ParseDeclarations(values))
+        {
+            if (!includeInactive && !declaration.IsActive(preparedAt)) continue;
+            if (Compile(declaration, metadata(declaration.ItemId), slotMappings) is { } rule) result.Add(rule);
+        }
+        return result.AsReadOnly();
     }
 
     private static IReadOnlyList<string> ReadSectionValues(PvfArchive archive, string path, PvfField<IReadOnlyList<PvfToken>> tag)

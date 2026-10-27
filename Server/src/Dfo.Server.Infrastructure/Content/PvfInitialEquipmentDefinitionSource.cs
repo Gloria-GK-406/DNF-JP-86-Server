@@ -72,9 +72,7 @@ internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDef
         if (_characterPaths is not null)
             return _characterPaths;
 
-        var paths = new Dictionary<int, string>();
-        foreach (var (job, relativePath) in PvfListFile.Read(_provider.Archive, ListPath))
-            paths.TryAdd(job, relativePath);
+        var paths = PvfListFile.Paths(_provider.Archive, ListPath, Dfo.Pvf.PvfListDuplicates.First);
         if (paths.Count == 0)
             throw new InvalidOperationException($"{ListPath} resolved no character files.");
         return _characterPaths = paths;
@@ -85,9 +83,7 @@ internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDef
         if (_equipmentPaths is not null)
             return _equipmentPaths;
 
-        var paths = new Dictionary<int, string>();
-        foreach (var (itemId, relativePath) in PvfListFile.Read(_provider.Archive, EquipmentListPath))
-            paths.TryAdd(itemId, relativePath);
+        var paths = PvfListFile.Paths(_provider.Archive, EquipmentListPath, Dfo.Pvf.PvfListDuplicates.First);
         return _equipmentPaths = paths;
     }
 

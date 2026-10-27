@@ -311,7 +311,7 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         if (archive.FindFile(path) < 0) return [];
         var paths = new Dictionary<int, string>();
         var ambiguous = new HashSet<int>();
-        List<(int Id, string RelativePath)> entries;
+        IReadOnlyList<(int Id, string RelativePath)> entries;
         try { entries = PvfListFile.Read(archive, path); }
         catch (InvalidOperationException) { return []; }
         foreach (var (id, relativePath) in entries)

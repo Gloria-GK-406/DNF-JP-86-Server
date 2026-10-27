@@ -24,7 +24,7 @@ internal sealed class PvfDespairTowerContentSource(PvfArchiveProvider provider) 
             var daily = root.Read(PvfField.Int32("[enterable count]", minimum: 1));
             var rows = root.Read(PvfField.Int32List("[each layer matching dungeon]"));
             if (rows.Count != maximum * 3) throw new InvalidDataException("Invalid despair floor table.");
-            var listed = PvfListFile.Read(archive, "dungeon/dungeon.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+            var listed = PvfListFile.Paths(archive, "dungeon/dungeon.lst");
             var floors = new List<DespairTowerFloor>();
             for (var i = 0; i < rows.Count; i += 3)
             {
