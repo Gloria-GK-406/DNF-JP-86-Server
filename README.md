@@ -72,7 +72,7 @@ PVF_ARCHIVE_PATH=<Script.pvf 的路径> dotnet test Server/86JP.Server.slnx --no
    只记不修，等实机样本。
 
 **事实该写在哪、什么值得写、过期的怎么办**，一处写清，见
-[`AGENTS.md` 的「记什么，不记什么」](AGENTS.md#记什么不记什么)。
+[文档与注释规范](Document/DocumentationGuidelines.md)。
 
 ## 独立客户端项目
 
