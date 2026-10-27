@@ -245,6 +245,7 @@ public sealed class DungeonVisitDomainServiceTests
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(rules, runs, new ImmediateSelection(), cells,
                 new MaximumDifficulty(), new DungeonDifficultyRuleService(), fatigue);
             DungeonRunParticipant[] party = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
+            TestParties.EnsureEntryParty(runs, party);
             runs.PreparePartyEntry(party, layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
                 DungeonRunId.New(), DateTimeOffset.UtcNow);
             DungeonRoomVisit? entered = null;
