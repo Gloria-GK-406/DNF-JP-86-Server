@@ -439,7 +439,7 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 
 /// <summary>The dungeon runs the server currently has going, and who is in them.</summary>
 /// <remarks>
-/// This is the process-local dungeon-instance boundary. It owns the frozen participants, layout,
+/// This is the process-local dungeon-instance boundary. It owns the entry roster, layout,
 /// current Cell reference and the set of already-created Cells. Each Cell exclusively owns its
 /// Actors, pending loot, ground items, clear state and Cell revision; the Run does not rebuild
 /// those facts in parallel collections.
@@ -448,9 +448,12 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// reappears in town -- so a run has nothing to survive and nothing to restore.
 /// </para>
 /// <para>
-/// A shared run has its own identifier and a frozen participant set. Character ids are secondary
-/// lookup keys into that aggregate so existing command paths can resolve the caller's participant
-/// view without using a connection or a mutable party as the domain identity.
+/// A run belongs to one party, real or a character's virtual one, by its <c>PartyKey</c>, and has its
+/// own identifier. Who is in it is the party's answer: its members are the party's current members
+/// who are on the entry roster, and slots and leader are the party's. The run keeps no roster of its
+/// own beyond that entry roster and each entrant's state in the run. A character reaches a run
+/// through the party they belong to; leaving the run means leaving that party first, and a party
+/// bound to a run takes no new members.
 /// </para>
 /// </remarks>
 public interface IDungeonRunDomainService
@@ -697,7 +700,7 @@ public interface IDungeonRunDomainService
     bool ReleaseActorDeath(DungeonActorDeathClaim claim) => false;
 
     /// <summary>
-    /// Claims the durable kill effects of one frozen participant. Null means that participant's
+    /// Claims the durable kill effects of one entrant. Null means that participant's
     /// effects were already committed (or are being attempted by another caller).
     /// </summary>
     DungeonParticipantKillEffectClaim? TryClaimParticipantKillEffect(
@@ -857,7 +860,7 @@ public interface IDungeonRunDomainService
     /// <summary>Releases a reserved clear-card position after durable delivery fails.</summary>
     bool ReleaseClearRewardCard(DungeonClearRewardCardClaim claim) => false;
 
-    /// <summary>Ends the run. False when the character was not in one.</summary>
+    /// <summary>The synchronous <see cref="EndAsync"/> without lifecycle or failure weakness. False when refused or not in a run.</summary>
     bool End(CharacterId characterId);
 
     /// <summary>Ends only the named run, leaving a replacement run untouched.</summary>
