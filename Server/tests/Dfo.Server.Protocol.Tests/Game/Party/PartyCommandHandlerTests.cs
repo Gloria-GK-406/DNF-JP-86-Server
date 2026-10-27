@@ -26,7 +26,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
-public sealed class PartyCommandHandlerTests
+public sealed partial class PartyCommandHandlerTests
 {
     [Fact]
     public async Task Leaving_party_in_a_run_detaches_only_the_departing_character()
@@ -659,11 +659,11 @@ public sealed class PartyCommandHandlerTests
 
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
-        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
 
     private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
-        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
 
     private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
