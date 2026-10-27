@@ -10,6 +10,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('mode', choices=['window', 'calls', 'pointer'])
 parser.add_argument('addresses', nargs='+', type=lambda x: int(x, 16))
 parser.add_argument('--length', type=lambda x: int(x, 16), default=0x400)
+parser.add_argument('--scan-start', type=lambda x: int(x, 16), default=0x1000)
+parser.add_argument('--scan-end', type=lambda x: int(x, 16), default=0x2C29000)
 args = parser.parse_args()
 if not 0 < args.length <= 0x4000:
     parser.error('window must be at most 16 KiB')
@@ -29,16 +31,16 @@ with path.open('rb') as f, mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as 
         elif args.mode == 'calls':
             # Only candidate E8/E9 instructions in the bounded executable section.
             for opcode in (b'\xe8', b'\xe9'):
-                start = 0x1000
-                while (start := data.find(opcode, start, 0x2C00000)) >= 0:
+                start = args.scan_start
+                while (start := data.find(opcode, start, args.scan_end)) >= 0:
                     displacement = struct.unpack_from('<i', data, start + 1)[0]
                     if start + 5 + displacement == target:
                         mnemonic = 'call' if opcode[0] == 0xE8 else 'jmp'
                         print(f'{start:08X} {mnemonic}')
                     start += 1
         else:
-            start = 0x1000
+            start = args.scan_start
             needle = struct.pack('<I', target + 0x400000)
-            while (start := data.find(needle, start, min(len(data), 0x3500000))) >= 0:
+            while (start := data.find(needle, start, min(len(data), args.scan_end))) >= 0:
                 print(f'{start:08X} pointer candidate')
                 start += 4

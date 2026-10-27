@@ -5,6 +5,22 @@ using Dfo.Pvf.Tokens;
 
 // Task-local, read-only evidence scanner. Keeps at most one script in memory.
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+if (args[0] == "hud")
+{
+    var index = new GmIconPack.NpkIndex();
+    using (var pack = File.OpenRead(args[1])) index.AddPack(args[1], pack);
+    var bytes = index.ReadImg("Interface2/SpecialDungeon/NateramWarden_UI.img");
+    if (bytes is null) { Console.WriteLine("HUD not in this pack"); return; }
+    var image = GmIconPack.ImgFile.Parse(bytes);
+    Directory.CreateDirectory(args[2]);
+    for (var frame = 0; frame < image.FrameCount; frame++)
+    {
+        var decoded = image.Decode(frame);
+        File.WriteAllBytes(Path.Combine(args[2], $"frame-{frame}.png"), GmIconPack.PngEncoder.Encode(decoded.Width, decoded.Height, decoded.Rgba));
+        Console.WriteLine($"{frame}: {decoded.Width}x{decoded.Height}");
+    }
+    return;
+}
 if (args[0] == "audit-base")
 {
     PvfBaseAudit.Run(args[1], args[2], args[3], args[4]);
