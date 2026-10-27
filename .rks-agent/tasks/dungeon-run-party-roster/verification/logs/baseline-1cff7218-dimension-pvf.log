@@ -1,0 +1,55 @@
+  正在确定要还原的项目…
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Pvf/Dfo.Pvf.csproj (用时 31 毫秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Data/Dfo.Server.Data.csproj (用时 31 毫秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Abstractions/Dfo.Server.Abstractions.csproj (用时 2.37 秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/Dfo.Server.Application.csproj (用时 2.37 秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Infrastructure/Dfo.Server.Infrastructure.csproj (用时 2.37 秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Persistence/Dfo.Server.Persistence.csproj (用时 2.37 秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Networking/Dfo.Server.Networking.csproj (用时 2.37 秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Protocol/Dfo.Server.Protocol.csproj (用时 2.37 秒)。
+  已还原 /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj (用时 2.39 秒)。
+  Dfo.Pvf -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Pvf/bin/Debug/net10.0/Dfo.Pvf.dll
+  Dfo.Server.Data -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Data/bin/Debug/net10.0/Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Abstractions/bin/Debug/net10.0/Dfo.Server.Abstractions.dll
+  Dfo.Server.Networking -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Networking/bin/Debug/net10.0/Dfo.Server.Networking.dll
+  Dfo.Server.Persistence -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Persistence/bin/Debug/net10.0/Dfo.Server.Persistence.dll
+  Dfo.Server.Infrastructure -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Infrastructure/bin/Debug/net10.0/Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/bin/Debug/net10.0/Dfo.Server.Application.dll
+  Dfo.Server.Protocol -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Protocol/bin/Debug/net10.0/Dfo.Server.Protocol.dll
+  Dfo.Server.Application.Tests -> /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/bin/Debug/net10.0/Dfo.Server.Application.Tests.dll
+/private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/bin/Debug/net10.0/Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:01.23]     Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource [FAIL]
+  失败 Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource [707 ms]
+  错误消息:
+   System.IO.InvalidDataException : Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'.
+  堆栈跟踪:
+     at Dfo.Server.Application.World.DungeonStructureRuleService.ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 206
+   at Dfo.Server.Application.World.DungeonStructureRuleService.PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 142
+   at Dfo.Server.Application.World.DungeonStructureRuleService.ResolveAsync(Int32 dungeonId, DungeonEntryFacts facts, Int32 seed, CancellationToken cancellationToken) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 93
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 72
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:03.81]     Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot [FAIL]
+  失败 Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot [2 s]
+  错误消息:
+   System.IO.InvalidDataException : Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'.
+  堆栈跟踪:
+     at Dfo.Server.Application.World.DungeonStructureRuleService.ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 206
+   at Dfo.Server.Application.World.DungeonStructureRuleService.PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 142
+   at Dfo.Server.Application.World.DungeonStructureRuleService.ResolveAsync(Int32 dungeonId, DungeonEntryFacts facts, Int32 seed, CancellationToken cancellationToken) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 93
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.<>c.<<All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot>b__0_0>d.MoveNext() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 33
+--- End of stack trace from previous location ---
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.<>c.<<All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot>b__0_0>d.MoveNext() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 57
+--- End of stack trace from previous location ---
+   at Dfo.Server.Testing.TestGameplay.<>c__DisplayClass11_0.<<Untyped>b__0>d.MoveNext() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Support/TestGameplay.cs:line 99
+--- End of stack trace from previous location ---
+   at Dfo.Server.Testing.TestGameplay.<>c__DisplayClass12_0`1.<<RunCoreAsync>b__0>d.MoveNext() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Support/TestGameplay.cs:line 111
+--- End of stack trace from previous location ---
+   at Dfo.Server.Application.Execution.GameplayExecutor.Job`1.RunAsync() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/src/Dfo.Server.Application/Execution/GameplayExecutor.cs:line 276
+   at Dfo.Server.Testing.TestGameplay.OnOwnExecutorAsync[T](GameplayWork`1 work, Action`1 released) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Support/TestGameplay.cs:line 122
+   at Dfo.Server.Testing.TestGameplay.OnOwnExecutorAsync[T](GameplayWork`1 work, Action`1 released) in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Support/TestGameplay.cs:line 127
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot() in /private/tmp/claude-501/-Users-puxianguo-project-DNF-JP-86-Server/808579c3-b965-4b38-9388-8be538d33465/scratchpad/baseline-1cff7218/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 22
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     2，通过:     0，已跳过:     0，总计:     2，持续时间: 3 s - Dfo.Server.Application.Tests.dll (net10.0)
+exit=1

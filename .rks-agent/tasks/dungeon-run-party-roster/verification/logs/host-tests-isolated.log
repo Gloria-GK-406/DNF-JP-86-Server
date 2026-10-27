@@ -1,0 +1,29 @@
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Host.Tests/bin/Debug/net10.0/Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:01.87]     Dfo.Server.Host.Tests.ItemCatalogHttpTests.Pvf_metadata_keeps_avatars_while_current_grant_purposes_exclude_them [SKIP]
+  已跳过 Dfo.Server.Host.Tests.ItemCatalogHttpTests.Pvf_metadata_keeps_avatars_while_current_grant_purposes_exclude_them [1 ms]
+[xUnit.net 00:00:04.16]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Creation_stays_committed_when_the_following_appearance_read_fails [SKIP]
+[xUnit.net 00:00:04.16]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Real_registration_and_creation_apply_current_templates_once_in_the_creation_transaction [SKIP]
+[xUnit.net 00:00:04.16]     Dfo.Server.Host.Tests.GmInitializationHttpTests.Initialization_failure_rolls_back_the_new_identity_and_every_granted_asset [SKIP]
+[xUnit.net 00:00:04.16]     Dfo.Server.Host.Tests.GmDailyRefillHttpTests.Real_archive_lists_live_expired_and_zero_quantity_rules_and_filters_item_catalog [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmInitializationHttpTests.Creation_stays_committed_when_the_following_appearance_read_fails [1 ms]
+  已跳过 Dfo.Server.Host.Tests.GmInitializationHttpTests.Real_registration_and_creation_apply_current_templates_once_in_the_creation_transaction [1 ms]
+  已跳过 Dfo.Server.Host.Tests.GmInitializationHttpTests.Initialization_failure_rolls_back_the_new_identity_and_every_granted_asset [1 ms]
+  已跳过 Dfo.Server.Host.Tests.GmDailyRefillHttpTests.Real_archive_lists_live_expired_and_zero_quantity_rules_and_filters_item_catalog [1 ms]
+[xUnit.net 00:00:05.11]     Dfo.Server.Host.Tests.GmCeraHttpTests.RealShopPurchasesCompeteWithGrantsWithoutLostSpendingOrRoleMultiplication [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmCeraHttpTests.RealShopPurchasesCompeteWithGrantsWithoutLostSpendingOrRoleMultiplication [1 ms]
+[xUnit.net 00:00:06.11]     Dfo.Server.Host.Tests.GmGameplayRouteTests.Startup_writes_and_the_gm_bootstrap_run_as_startup_jobs [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmGameplayRouteTests.Startup_writes_and_the_gm_bootstrap_run_as_startup_jobs [1 ms]
+[xUnit.net 00:00:10.34]     Dfo.Server.Host.Tests.GmEventsHttpTests.Durable_clear_command_decoder_dispatcher_claim_and_online_close_refresh_the_native_frames [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmEventsHttpTests.Durable_clear_command_decoder_dispatcher_claim_and_online_close_refresh_the_native_frames [1 ms]
+[xUnit.net 00:00:10.75]     Dfo.Server.Host.Tests.GmEventsHttpTests.Actual_A21_archive_uses_client_script_reward_order_and_delivers_declared_first_reward [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmEventsHttpTests.Actual_A21_archive_uses_client_script_reward_order_and_delivers_declared_first_reward [1 ms]
+[xUnit.net 00:00:18.21]     Dfo.Server.Host.Tests.GmOfficialMailHttpTests.ActualPvfEquipmentStackAndAccountMaterialsAreDetachedThenClaimedThroughExistingMailbox [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmOfficialMailHttpTests.ActualPvfEquipmentStackAndAccountMaterialsAreDetachedThenClaimedThroughExistingMailbox [1 ms]
+[xUnit.net 00:00:21.93]     Dfo.Server.Host.Tests.GmOfficialMailHttpTests.ActualPvfConfiguredJewelrySurvivesClaimAndRestart [SKIP]
+[xUnit.net 00:00:21.93]     Dfo.Server.Host.Tests.GmOfficialMailHttpTests.ActualPvfItemCatalogFiltersAndPagesOnlyMailableItems [SKIP]
+  已跳过 Dfo.Server.Host.Tests.GmOfficialMailHttpTests.ActualPvfConfiguredJewelrySurvivesClaimAndRestart [1 ms]
+  已跳过 Dfo.Server.Host.Tests.GmOfficialMailHttpTests.ActualPvfItemCatalogFiltersAndPagesOnlyMailableItems [1 ms]
+
+已通过! - 失败:     0，通过:   200，已跳过:    12，总计:   212，持续时间: 22 s - Dfo.Server.Host.Tests.dll (net10.0)
+exit=0
