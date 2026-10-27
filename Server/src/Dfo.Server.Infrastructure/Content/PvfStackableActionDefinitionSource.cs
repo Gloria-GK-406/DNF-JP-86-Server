@@ -39,8 +39,7 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-                .ToDictionary(e => e.Id, e => "stackable/" + e.RelativePath);
+        paths ??= PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
     }
 
     public ValueTask<StackableActionDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)

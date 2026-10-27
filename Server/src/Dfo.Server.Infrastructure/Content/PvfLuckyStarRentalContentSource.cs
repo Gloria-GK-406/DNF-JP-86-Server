@@ -35,13 +35,13 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
     private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
     {
-        stackables??=PvfListFile.Read(archive,"stackable/stackable.lst").ToDictionary(x=>x.Id,x=>"stackable/"+x.RelativePath);
+        stackables??=PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
     }
 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipment))]
     private void EquipmentIndex(Dfo.Pvf.PvfArchive archive)
     {
-        equipment??=PvfListFile.Read(archive,"equipment/equipment.lst").ToDictionary(x=>x.Id,x=>"equipment/"+x.RelativePath);
+        equipment??=PvfListFile.Paths(archive, "equipment/equipment.lst", prefix: "equipment/");
     }
 
     public LuckyStarRentalCatalog Load()

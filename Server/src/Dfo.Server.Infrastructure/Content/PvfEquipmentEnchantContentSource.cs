@@ -112,7 +112,7 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private static Dictionary<int, string> Paths(PvfArchive archive, string path)
     {
         if (archive.FindFile(path) < 0) return [];
-        List<(int Id, string RelativePath)> entries;
+        IReadOnlyList<(int Id, string RelativePath)> entries;
         try { entries = PvfListFile.Read(archive, path); }
         catch (InvalidOperationException) { return []; }
         var result = new Dictionary<int, string>();

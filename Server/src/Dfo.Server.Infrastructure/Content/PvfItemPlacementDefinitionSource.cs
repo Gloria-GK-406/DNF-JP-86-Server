@@ -43,7 +43,7 @@ internal sealed class PvfItemPlacementDefinitionSource(
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stackables), nameof(_equipment))]
     private void Index(Dfo.Pvf.PvfArchive archive)
     {
-        _stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
+        _stackables ??= PvfListFile.EntriesById(archive, StackableListPath);
         _equipment ??= PvfEntryLifecycleContentSource.ReadEquipmentPaths(archive);
     }
 

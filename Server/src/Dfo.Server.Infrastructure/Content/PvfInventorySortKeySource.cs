@@ -23,7 +23,7 @@ internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, InventorySortKeys> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
 
     public string Name => "inventory-sort-index";
 
@@ -40,10 +40,7 @@ internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex()
     {
-        paths ??= new[] { "equipment", "stackable" }.SelectMany(root =>
-                PvfListFile.Read(provider.Archive, $"{root}/{root}.lst")
-                    .Select(row => new KeyValuePair<int, string>(row.Id, root + "/" + row.RelativePath)))
-                .ToDictionary();
+        paths ??= new PvfItemPathView(provider.Archive);
     }
 
     public async ValueTask<InventorySortKeys> GetAsync(int itemId, CancellationToken ct)

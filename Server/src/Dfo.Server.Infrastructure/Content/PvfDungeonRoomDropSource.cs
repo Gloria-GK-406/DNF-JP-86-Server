@@ -112,9 +112,7 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
     private IReadOnlyDictionary<int, string> Paths(string folder)
     {
         if (paths.TryGetValue(folder, out var value)) return value;
-        var result = new Dictionary<int, string>();
-        foreach (var (id, path) in PvfListFile.Read(provider.Archive, $"{folder}/{folder}.lst"))
-            result.TryAdd(id, path);
+        var result = PvfListFile.Paths(provider.Archive, $"{folder}/{folder}.lst", Dfo.Pvf.PvfListDuplicates.First);
         return paths[folder] = result;
     }
 

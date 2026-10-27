@@ -69,8 +69,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         lock (gate)
         {
             if (lotteryDefinitions is not null) return ValueTask.FromResult(lotteryDefinitions.Count);
-            paths ??= PvfListFile.Read(provider.Archive, "stackable/stackable.lst")
-                .ToDictionary(row => row.Id, row => "stackable/" + row.RelativePath);
+            paths ??= PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", prefix: "stackable/");
             var definitions = new Dictionary<int, OpeningPackageDefinition>();
             foreach (var (id, path) in paths)
             {
@@ -115,7 +114,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, OpeningPackageDefinition?> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
     private Dictionary<int, (int Type, TimeSpan Duration)>? premiums;
 
     public async ValueTask<OpeningPackageDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)
@@ -126,8 +125,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         {
             if (lotteryDefinitions is not null && lotteryDefinitions.TryGetValue(itemId, out result)) return result;
             if (cache.TryGetValue(itemId, out result)) return result;
-            paths ??= PvfListFile.Read(provider.Archive, "stackable/stackable.lst")
-                .ToDictionary(row => row.Id, row => "stackable/" + row.RelativePath);
+            paths ??= PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", prefix: "stackable/");
             result = paths.TryGetValue(itemId, out var path) ? Parse(itemId,
                 PvfNpcShopDefinitionSource.Sections(provider.Archive, path),
                 token => provider.Archive.ResolveString(token.Value)) : null;
