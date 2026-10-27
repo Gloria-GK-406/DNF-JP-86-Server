@@ -637,6 +637,12 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
         IReadOnlyList<int> subType,
         IReadOnlyList<int> values)
     {
+        // A21 quest 20728 declares [3538, -1, 2] and explicitly requires at least two
+        // party members. Party clears consume the confirmed map-clear participant fact.
+        if (string.Equals(objectiveType.Trim().Trim('[', ']'), "condition under clear", StringComparison.OrdinalIgnoreCase)
+            && subType.Count == 1 && subType[0] == 5 && values.Count == 3 && values[0] > 0
+            && values[1] >= -1 && values[2] is >= 1 and <= 4)
+            return new(values[0], values[1]) { MinimumPartyMembers = values[2] };
         // Other clear objectives have different operand layouts and remain client-counted.
         return string.Equals(objectiveType.Trim().Trim('[', ']'), "condition under clear",
                 StringComparison.OrdinalIgnoreCase)

@@ -1,0 +1,25 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 82 99
+[pre required quest] 20725
+[/pre required quest]
+[type] [seeking]
+[sub type] -1
+[int data] 10002517 15
+[/int data]
+[reward type] [item]
+[reward int data] 100330569 1
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 燃烧的念气
+[depend message] 现在已经确认了， 魔焰之源里的能量也是念气的一种。
+真是无法相信， 念气还有这样的功用。 这可是一件很值得研究的事情呢。 冒险家， 你能帮我收集一些炽热的魔焰之源吗？
+[condition message]     收集15个[炽热的魔焰之源]交给阿斯卡。
+[solve message] 谢谢你了， 冒险家， 等我的研究有了成果一定会第一时间告诉你。

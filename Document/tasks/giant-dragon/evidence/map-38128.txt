@@ -1,0 +1,73 @@
+id 38128 -> Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad/38128_nest_(2.0)real_boss.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad/38128_nest_(2.0)real_boss.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3202
+[/dungeon]
+[type]
+[boss]
+[greed]
+EE EE
+[tile]
+Tile/Tile00.til Tile/Tile02_8200_1.til Tile/Tile00.til Tile/Tile00.til Tile/boss_Tile02_8200_1.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Tile00_Ex.til 1 Tile/Tile02_Ex.til 2 Tile/Tile01_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 1 2 1 2 1
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+94 242 556 891 0 0 546 886
+[sound]
+M_THE_NEST_OF_NEITRAM AMB_CAVE_03
+[/sound]
+[animation]
+Animation/midle_black_boss3.ani [closeback] 951 -154 0 Animation/midle_black_boss2.ani [closeback] -43 -154 0 Animation/midle_black_boss1.ani [closeback] 315 -154 0 Animation/tile_deck3.ani [bottom] 121 253 0 Animation/tile_deck3.ani [bottom] 424 343 0 Animation/tile_deck3.ani [bottom] 176 427 0 Animation/tile_deck3.ani [bottom] 59 372 0 Animation/tile_deck3.ani [bottom] 741 299 0 Animation/tile_deck3.ani [bottom] 504 201 0 Animation/tile_deck3.ani [bottom] 696 420 0 Animation/tile_deck3.ani [bottom] 957 190 0 Animation/tile_deck3.ani [bottom] 977 435 0 Animation/tile_deck3.ani [bottom] 974 287 0 Animation/tile_deck3.ani [bottom] 477 271 0 Animation/tile_deck3.ani [bottom] 240 210 0 Animation/tile_deck0.ani [bottom] 388 213 0 Animation/tile_deck0.ani [bottom] 380 376 0 Animation/tile_deck0.ani [bottom] 90 177 0 Animation/tile_deck0.ani [bottom] 636 185 0 Animation/tile_deck2.ani [closeback] 1028 123 0 Animation/tile_quake_boss2.ani [bottom] 764 281 0 Animation/tile_quake_boss1.ani [bottom] 877 408 0 Animation/tile_quake_boss1.ani [bottom] 1035 255 0 Animation/tile_quake_boss0.ani [bottom] 890 245 0 Animation/tile_quake_boss2.ani [bottom] 1128 375 0 Animation/tile_quake_boss1.ani [bottom] 308 296 0 Animation/tile_quake_boss0.ani [bottom] 603 382 0 Animation/fire_00.ani [close] -35 483 0 Animation/fire_00.ani [close] 518 484 0 Animation/fire_00.ani [close] 1071 485 0 Animation/up_stone.ani [closeback] 222 -163 0 Animation/up_stone.ani [closeback] 836 -163 0 Animation/crystal_stone4.ani [bottom] 132 504 0 Animation/crystal_stone3.ani [bottom] 227 504 0 Animation/crystal_stone3.ani [bottom] 878 488 0 Animation/crystal_stone4.ani [bottom] 745 496 0 Animation/crystal_stone4.ani [bottom] 340 506 0 Animation/crystal_stone4.ani [bottom] 435 504 0 Animation/crystal_stone3.ani [bottom] 677 499 0 Animation/crystal_stone4.ani [bottom] 963 489 0
+[/animation]
+[passive object]
+18328 96 152 0 18327 173 149 0 18329 58 150 0 18327 298 501 0 18326 581 466 0 18328 827 490 0 18329 785 488 0 18327 398 153 0 18331 1120 473 0 18333 271 143 0 18329 332 141 0 18332 -8 497 0 18335 51 206 0 18334 8 301 0 18398 950 137 0
+[/passive object]
+[monster]
+69761 1 0 674 365 0 1 1 [fixed] [boss]
+[/monster]
+[monster specific AI]
+[normal]
+[/monster specific AI]
+[NPC]
+1000 [left] -1 0 0
+[/NPC]
+[event monster position]
+414 284 0 472 245 0 472 288 0 440 251 0
+[/event monster position]
+[map name]
+PVP无名

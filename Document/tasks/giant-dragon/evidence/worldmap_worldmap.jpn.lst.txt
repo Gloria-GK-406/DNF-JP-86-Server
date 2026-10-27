@@ -1,0 +1,2 @@
+=== worldmap/worldmap.jpn.lst ===
+1 GranFloris1.wdm 2 GranFloris2.wdm 3 SkyCastle.wdm 4 Behemoth.wdm 5 UnderFoot.wdm

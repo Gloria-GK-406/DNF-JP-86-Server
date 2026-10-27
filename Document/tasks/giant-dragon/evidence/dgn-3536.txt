@@ -1,0 +1,51 @@
+id 3536 -> Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_01_tranning_area.dgn
+=== dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_01_tranning_area.dgn ===
+[name]
+纳特拉的复仇
+[explain]
+    巨龙纳特拉已经派遣各种魔物守护在月轮山的入口。 烈焰石巨人莱斯利用自己幻象强大的身体挡在了洞穴入口。 随后纳特拉在幻象的身体中注入了强大的力量， 使它变成“巨龙石像”。 想要进入月轮山， 就必须消灭巨龙石像！
+[cutscene image]
+Map/CutScene/CutScene_cn.img 6
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 14
+[difficulty level]
+1 1 1 1 1
+[minimum required level]
+80
+[basis level]
+83
+[experience increasing point]
+3
+[champion]
+6 28 45 70 80
+[limit party count]
+3
+[prohibit practice]
+1
+[pathgate object]
+54203 54209 -1 54204 54210 -1 -1 -1 -1 -1
+[maze info]
+[size]
+5 1
+[greed]
+BBFFFFFFEE
+[map specification]
+map 0 0 25275 map 1 0 25276 map 2 0 25277 map 3 0 25278 map 4 0 25279
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[special passive object item]
+0 -1 1 10002832 4000 1 -1 0
+[/special passive object item]
+[recommend equipment]
+0 2 0 2 0 3 12 3 12 6
+[/recommend equipment]
+[recommend party]
+> 1 > 2 > 2 > 3 > 3
+[/recommend party]

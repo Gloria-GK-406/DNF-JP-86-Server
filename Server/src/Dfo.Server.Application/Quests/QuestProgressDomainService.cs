@@ -155,7 +155,9 @@ public sealed class QuestProgressDomainService(
         {
             var definition = await definitions.FindAsync(active.QuestId, cancellationToken)
                 .ConfigureAwait(false);
-            if (definition?.Grade == QuestGrade.Crack) continue;
+            // Party-conditioned clears require the frozen participants in DungeonMapCleared.
+            // A scalar QuestDungeonCleared cannot prove who was present at the clear.
+            if (definition?.Grade == QuestGrade.Crack || definition?.ObjectiveSubType == 5) continue;
             var target = definition?.DungeonClearRequirement;
             if (target is null || target.DungeonId != clear.DungeonId
                 || (target.Difficulty >= 0 && target.Difficulty != (int)clear.Difficulty))

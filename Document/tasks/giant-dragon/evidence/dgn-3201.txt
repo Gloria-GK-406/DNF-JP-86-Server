@@ -1,0 +1,68 @@
+id 3201 -> Event/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins.dgn
+=== dungeon/Event/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins.dgn ===
+[name]
+双子巨人的背叛
+[explain]
+    纳特拉千方百计地希望收归月轮山守卫双子巨人为手下。 寒冰石巨人普鲁森对此嗤之以鼻， 但烈焰巨人莱斯早已投靠纳特拉， 并设计猎捕寒冰巨人普鲁森。 冒险家， 快去帮助寒冰石巨人！
+[cutscene image]
+Map/CutScene/dragon_cut.img 1
+[minimap image]
+Map/MiniMap/Act3.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 15
+[limit party count]
+3
+[prohibit practice]
+1
+[difficulty]
+1
+[minimum required level]
+84
+[basis level]
+87
+[experience increasing point]
+1.14
+[champion]
+6 28 45 70 80
+[pathgate object]
+18386 18390 -1 18387 18391 -1 18364 -1 18363 -1
+[maze info]
+[size]
+3 3
+[greed]
+AAIIAA
+ BBOOAA
+ AADDEE
+[map specification]
+map 1 0 38122 map 0 1 38120 map 1 1 38121 map 1 2 38123 map 2 2 38124
+[/map specification]
+[start map]
+0 1
+[/start map]
+[boss map]
+2 2
+[/boss map]
+[use fatigue only start dungeon]
+8
+[/use fatigue only start dungeon]
+[clear_party_buff_card]
+110 20 111 20 112 10 113 10 114 20 115 20
+[/clear_party_buff_card]
+[special passive object item]
+0 -1 1 10094793 10000
+[/special passive object item]
+[dungeon minimap icon setting]
+[grid]
+0 0 1 0 Dungeon/Event/Dragon_Kurun_kor/MinimapIcon/icon.ani 0
+[/dungeon minimap icon setting]
+[enable apc stackable]
+0
+[nateram time attack info]
+7 45000 100000
+[/nateram time attack info]
+[recommend equipment]
+0 3 0 3 0 3 0 0 0 0
+[/recommend equipment]
+[recommend party]
+> 1 > 1 > 1 > 1 > 1
+[/recommend party]

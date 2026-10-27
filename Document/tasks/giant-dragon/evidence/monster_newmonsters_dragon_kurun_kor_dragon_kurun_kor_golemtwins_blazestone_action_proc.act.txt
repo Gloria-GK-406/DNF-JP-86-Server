@@ -1,0 +1,34 @@
+=== monster/newmonsters/dragon_kurun_kor/dragon_kurun_kor_golemtwins/blazestone/action/proc.act ===
+[TRIGGER]
+[ON DAMAGE]
+[DO PROC BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[PLAY SOUND]
+R_DRAGONSTONE_HIT
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[IF]
+1
+[=]
+[GET NATERAM CURRENT TIME]
+[/IF]
+[DO BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[APPENDAGE]
+0
+[equipment physical defense]
+[%]
+-50
+[equipment magical defense]
+[%]
+-50
+[/APPENDAGE]
+[/BEHAVIOR]

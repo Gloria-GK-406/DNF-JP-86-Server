@@ -1,0 +1,60 @@
+id 3538 -> Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_dragon_nest.dgn
+=== dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_dragon_nest.dgn ===
+[background pos]
+80
+[name]
+圣地 : 龙之魂
+[explain]
+    这里是纳特拉的所在地。 他吸收圣地的念气并获得了天界的力量， 比以往更加强大了……冒险家， 一定浇灭巨龙贪婪的欲望！
+[entering title]
+Title/chn_Dragon_Dungeon_03.ani
+[cutscene image]
+Map/CutScene/CutScene_cn.img 8
+[minimap image]
+Map/MiniMap/Act6.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 16
+[limit party count]
+3
+[prohibit practice]
+1
+[designate dungeon difficulty]
+2
+[recommended level]
+84 87
+[required item]
+10002520 1 1
+[/required item]
+[minimum required level]
+84
+[basis level]
+84
+[experience increasing point]
+3
+[champion]
+0 0 0 0 0
+[pathgate object]
+54207 54209 -1 54208 54210 -1 -1 -1 -1 -1
+[maze info]
+[size]
+3 1
+[greed]
+BBFFEE
+[map specification]
+map 0 0 25285 map 1 0 25286 map 2 0 25296
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 0
+[/boss map]
+[special passive object item]
+0 -1 1 10002838 3000 1 -1 1 10002902 3000 2 -1 0
+[/special passive object item]
+[recommend equipment]
+0 2 0 2 0 3 12 3 12 6
+[/recommend equipment]
+[recommend party]
+> 3 > 3 > 3 > 3 > 3
+[/recommend party]

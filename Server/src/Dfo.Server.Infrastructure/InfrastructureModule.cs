@@ -25,6 +25,11 @@ public sealed class InfrastructureModule : IServerModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+        services.TryAddSingleton(new Dfo.Server.Abstractions.World.GiantDragonOptions
+        {
+            Enabled = bool.Parse(configuration["GiantDragon:Enabled"] ?? "true"),
+            RestoredVariantsEnabled = bool.Parse(configuration["GiantDragon:RestoredVariantsEnabled"] ?? "false"),
+        });
 
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();

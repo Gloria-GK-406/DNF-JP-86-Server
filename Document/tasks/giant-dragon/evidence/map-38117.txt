@@ -1,0 +1,68 @@
+id 38117 -> Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25277_tranning_(2.0)normal.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25277_tranning_(2.0)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3200
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/Step2_Tile00.til Tile/Step2_Tile01.til Tile/Step2_Tile00.til Tile/Step2_Tile01.til Tile/Step2_Tile00.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Step2_Tile_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Step2_Mid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+22 359 1111 319 0 0 0 0
+[sound]
+M_NEN_AREA AMB_FOREST_04
+[/sound]
+[animation]
+Animation/Step2_bamboo1.ani [normal] 192 158 0 Animation/Step2_Stone4.ani [normal] 132 472 0 Animation/Step2_Stone4.ani [normal] 168 292 0 Animation/Step2_Stone4.ani [normal] 91 227 0 Animation/Step2_Stone4.ani [normal] 399 585 0 Animation/Step2_Stone4.ani [normal] 885 457 0 Animation/Step2_Stone4.ani [normal] 902 370 0 Animation/Step2_Stone4.ani [normal] 692 240 0 Animation/Step2_Stone4.ani [normal] 730 166 0 Animation/Step2_Stone4.ani [normal] 962 171 0 Animation/Step2_Stone4.ani [normal] 934 171 0 Animation/Step2_Stone4.ani [normal] 1107 202 0 Animation/Step2_Stone4.ani [normal] 1083 190 0 Animation/Step2_Stone4.ani [normal] 1046 169 0 Animation/Step2_Stone4.ani [normal] 354 315 0 Animation/Step2_Stone4.ani [normal] 376 316 0 Animation/Step2_Stone4.ani [normal] 652 308 0 Animation/Step2_Stone4.ani [normal] 614 313 0 Animation/Step2_Stone4.ani [normal] 602 306 0 Animation/Step2_Stone4.ani [normal] 813 379 0 Animation/Step2_Stone4.ani [normal] 830 383 0
+[/animation]
+[scroll animation]
+Animation/Step2_bamboo1.ani [close] -12 632 0 100 Animation/Step2_bamboo2.ani [close] 590 644 0 100 Animation/Step2_bamboo2.ani [close] 843 651 0 100 Animation/Step2_bamboo2.ani [close] 807 666 0 100 Animation/Step2_bamboo1.ani [close] 941 668 0 100 Animation/Step2_bamboo1.ani [closeback] 1062 141 0 100
+[/scroll animation]
+[passive object]
+37130 1126 383 0 37130 1020 287 0 52992 259 657 0 52993 432 841 0 52992 1015 757 0 52993 649 161 0 52972 176 134 0 52973 402 147 0 52974 939 161 0 52973 847 145 0 52972 760 134 0 52974 683 229 0 52978 457 181 0 52978 1039 558 0 52975 772 571 0 52974 816 583 0 52978 476 163 0 52975 22 136 0 52974 849 560 0 52975 1089 574 0 52978 119 210 0 52978 264 164 0 52977 68 570 0 52975 41 541 0 52975 173 581 0 52978 26 588 0 52978 90 587 0 52975 -27 565 0 52978 707 585 0 52978 758 575 0 52975 1112 524 0 52976 363 576 0 52975 320 157 0 52978 327 536 0 52974 578 594 0 52974 529 152 0 52975 1110 140 0 52975 1123 174 0 52974 878 576 0 52978 910 585 0 52978 956 582 0 52976 1016 586 0 52976 424 460 0 52981 0 0 0 52993 0 529 0 52978 370 454 0 52975 549 568 0 52978 627 465 0 52978 377 179 0 52976 952 242 0 52976 209 274 0 52974 123 461 0 52975 175 533 0 52974 114 440 0 52974 92 428 0 52978 138 443 0 52978 404 307 0 52978 866 381 0 37131 4 409 0 37131 74 302 0 52894 -7 324 0 52894 -17 374 0 52894 1073 608 0 52894 971 607 0 52894 897 610 0 52894 808 607 0 52894 730 606 0 52894 556 601 0 52894 360 605 0 52894 101 594 0 52894 23 580 0
+[/passive object]
+[monster]
+69027 1 0 313 299 0 1 1 [fixed] [normal] 69027 1 0 308 440 0 1 1 [fixed] [normal] 69028 1 0 563 460 0 1 1 [fixed] [normal] 69028 1 0 554 299 0 1 1 [fixed] [normal] 69027 1 0 767 368 0 1 1 [fixed] [normal] 69035 1 0 488 371 0 1 1 [fixed] [normal] 69035 1 0 801 281 0 1 1 [fixed] [normal] 69035 1 0 810 478 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+0 1 -1 -1 0 0 1 -1 -1 0
+[/special passive object]
+[event monster position]
+626 348 0 684 309 0 684 352 0 652 315 0
+[/event monster position]
+[map name]
+PVP无名

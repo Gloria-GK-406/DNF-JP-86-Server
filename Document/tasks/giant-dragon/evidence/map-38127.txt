@@ -1,0 +1,70 @@
+id 38127 -> Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad/38127_nest_(0.0)start.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad/38127_nest_(0.0)start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3202
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/Tile00.til Tile/Tile01.til Tile/Tile02_8200_0.til Tile/Tile02_8200_1.til Tile/Tile00.til Tile/Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Tile01_Ex.til 1 Tile/Tile02_Ex.til
+[/tile files]
+[tile map]
+0 0 1 0 1 1
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+92 245 1329 229 0 0 0 0
+[sound]
+M_THE_NEST_OF_NEITRAM AMB_CAVE_03
+[/sound]
+[animation]
+Animation/midle_black_boss0.ani [closeback] -75 -159 0 Animation/midle_black_boss1.ani [closeback] 569 -159 0 Animation/midle_black_boss2.ani [closeback] 1205 -159 0 Animation/tile_quake1.ani [bottom] 91 207 0 Animation/fire_00.ani [close] -31 397 0 Animation/fire_00.ani [close] 522 397 0 Animation/tile_deck0.ani [bottom] 295 200 0 Animation/tile_dust0.ani [bottom] 580 225 0 Animation/tile_dust0.ani [bottom] 429 270 0 Animation/tile_dust0.ani [bottom] 245 192 0 Animation/tile_dust0.ani [bottom] 1001 186 0 Animation/tile_dust0.ani [bottom] 976 304 0 Animation/fire_00.ani [close] 1075 397 0 Animation/up_stone.ani [closeback] 766 -168 0 Animation/up_stone.ani [closeback] 196 -166 0 Animation/up_stone.ani [closeback] 1402 -166 0 Animation/crystal_stone4.ani [bottom] 409 146 0 Animation/crystal_stone3.ani [bottom] 505 142 0 Animation/crystal_stone4.ani [bottom] 986 149 0 Animation/crystal_stone3.ani [bottom] 888 146 0 Animation/crystal_stone3.ani [bottom] 202 135 0 Animation/crystal_stone4.ani [bottom] 282 382 0 Animation/crystal_stone3.ani [bottom] 587 382 0 Animation/crystal_stone3.ani [bottom] 1029 378 0 Animation/crystal_stone4.ani [bottom] 896 386 0 Animation/crystal_stone4.ani [bottom] 670 389 0 Animation/crystal_stone4.ani [bottom] 749 389 0 Animation/crystal_stone3.ani [bottom] 828 389 0 Animation/crystal_stone4.ani [bottom] 1114 379 0
+[/animation]
+[passive object]
+18325 -30 1 0 18326 613 205 0 18327 570 172 0 18328 563 219 0 18332 741 272 0 18329 772 236 0 18327 799 257 0 18328 812 293 0 18328 668 292 0 18331 1303 133 0 18333 318 138 0 18333 1174 156 0 18332 1086 147 0 18326 649 239 0 18332 86 129 0 18328 123 381 0 18327 200 378 0 18329 81 379 0 18335 50 212 0 18334 9 311 0 18335 1263 199 0 18334 1333 297 0 18332 1276 368 0 18332 1339 323 0
+[/passive object]
+[monster]
+69762 1 0 593 328 0 1 1 [fixed] [normal] 69027 1 0 484 325 0 1 1 [fixed] [normal] 69027 1 0 537 278 0 1 1 [fixed] [normal] 69585 1 0 1003 269 0 1 1 [fixed] [normal] 69585 1 0 935 213 0 1 1 [fixed] [normal] 69760 1 0 1656 245 0 1 1 [fixed] [normal] 59823 1 0 1059 246 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+983 274 0 1041 235 0 1041 278 0 1009 241 0
+[/event monster position]
+[map name]
+PVP无名

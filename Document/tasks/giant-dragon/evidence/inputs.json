@@ -1,0 +1,14 @@
+{
+  "client_mapped_image": {
+    "path": "E:\\Project\\DNF\\DNFClient-A21-debug\\dumps\\dnf-dump-20260922-194214-883-23144\\DNF-memory-rva.bin",
+    "sha256": "aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d"
+  },
+  "server70": {
+    "path": "E:\\Project\\DNF\\Research\\1995chen-dnf\\other\\\u7b49\u7ea7\u8865\u4e01\\70\\df_game_r",
+    "sha256": "cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7"
+  },
+  "content": {
+    "path": "E:\\Project\\DNF\\DNFClient-A21-protocol2\\Script.pvf",
+    "sha256": "d45cf58b1a2b3d16d6b35abe0d4e302e052f0b6bc43e9d3e98d815fed54aef84"
+  }
+}

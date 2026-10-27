@@ -1,0 +1,7 @@
+
+[map image] WorldMap/chn_shonan_holy.img 0
+[ui path] WorldMap/UI/Kor_Shonan_holy.xui
+[dungeon] 3200 -1 3201 -1 3202 -1
+[/dungeon]
+[name] 月轮山
+[quick party] 0

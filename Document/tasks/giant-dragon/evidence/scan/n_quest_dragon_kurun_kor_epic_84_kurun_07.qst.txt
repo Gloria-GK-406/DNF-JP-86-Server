@@ -1,0 +1,29 @@
+
+[name] 夺回圣地
+[depend message] 冒险家[myname]， 这段时间真的辛苦你了。
+邪恶的巨龙再次展开翅膀称霸天空的日子应该不会来到了。
+冒险家， 你将是敢与纳特拉对抗的英雄， 百姓一定会永远记得你。
+等征战部队到达后， 我会立刻前去支援冒险家。
+请一定要消灭掉巨龙， 夺回圣地！
+[condition message]     前往月轮山地区的『圣地 : 龙之魂』， 消灭巨龙纳特拉。
+[solve message] 哈哈！ 我就知道你一定可以的！
+冒险家[myname]是真正的英雄， 真的非常感谢你。
+[level] 84 99
+[type] [hunt monster]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 333
+[complete npc index] 333
+[grow type] -1
+[int data] 3202 -1 69761 1
+[/int data]
+[reward type] [item]
+[reward int data] 3326 1
+[/reward int data]
+[pre required quest] 13706 13707
+[/pre required quest]
+[dungeon info] 3202 -1
+[/dungeon info]

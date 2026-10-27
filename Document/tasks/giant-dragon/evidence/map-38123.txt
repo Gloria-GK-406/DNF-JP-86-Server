@@ -1,0 +1,70 @@
+id 38123 -> Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38123_cave_(1.2)normal.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38123_cave_(1.2)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3201
+[/dungeon]
+[type]
+[normal]
+[greed]
+DD DD
+[tile]
+Tile/Fire/Tile01.til Tile/Fire/Tile01.til Tile/Fire/Tile01.til Tile/Fire/Tile01.til Tile/Fire/Tile01.til Tile/Fire/Tile01.til Tile/Fire/Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Fire/Tile01_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Fire/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Fire/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+-79 250 1559 283 1245 178 -107 117
+[sound]
+M_IN_CAVE AMB_FIRE
+[/sound]
+[animation]
+Animation/Fire/midle_black3.ani [closeback] -1 -118 0 Animation/Fire/midle_black0.ani [closeback] 406 -118 0 Animation/Fire/tile_quake1.ani [bottom] 499 312 0 Animation/Fire/midle_black_srv0.ani [normal] 1659 128 0 Animation/Fire/tile_quake3.ani [bottom] 1199 307 0 Animation/Fire/tile_quake4.ani [bottom] 912 298 0 Animation/fire_00.ani [middleback] -37 -38 0 Animation/fire_00.ani [middleback] 526 -55 0 Animation/fire_00.ani [close] 1428 266 0 Animation/Fire/tile_stone6.ani [middleback] 831 152 0 Animation/Fire/tile_stone6.ani [middleback] 1063 146 0 Animation/Fire/tile_stone6.ani [middleback] 447 145 0 Animation/fire_00.ani [close] -32 267 0 Animation/fire_00.ani [close] 698 265 0 Animation/Fire/midle_black4.ani [normal] 1050 -117 0 Animation/fire_00.ani [middleback] 1256 -55 0 Animation/Fire/crystal_stone3.ani [bottom] 383 188 0 Animation/Fire/crystal_stone4.ani [bottom] 252 419 0 Animation/Fire/crystal_stone3.ani [bottom] 177 187 0 Animation/Fire/crystal_stone4.ani [bottom] 492 188 0 Animation/Fire/crystal_stone4.ani [bottom] 956 192 0
+[/animation]
+[passive object]
+11189 956 370 0 11189 945 226 0 11189 1357 353 0 11189 1258 250 0 54228 1069 543 0 54228 1464 530 0 11183 1553 409 0 11183 1516 199 0 18337 1160 185 0 18338 1328 185 0 18337 1563 347 0 18338 1473 250 0 18339 16 270 0 18340 40 409 0 18341 59 357 0 18342 16 323 0 18343 419 409 0 18344 17 209 0 18345 1060 196 0 18346 361 419 0 18339 773 393 0 18340 698 182 0 18341 764 188 0 18342 769 284 0 18340 667 411 0 18340 874 409 0
+[/passive object]
+[monster]
+69029 1 0 964 318 0 1 1 [fixed] [normal] 69027 1 0 539 223 0 1 1 [fixed] [normal] 69027 1 0 609 314 0 1 1 [fixed] [normal] 69030 1 0 642 217 0 1 1 [fixed] [normal] 69027 1 0 1051 355 0 1 1 [fixed] [normal] 69027 1 0 845 220 0 1 1 [fixed] [normal] 69029 1 0 955 214 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+461 300 0 519 261 0 519 304 0 487 267 0
+[/event monster position]
+[map name]
+PVP无名

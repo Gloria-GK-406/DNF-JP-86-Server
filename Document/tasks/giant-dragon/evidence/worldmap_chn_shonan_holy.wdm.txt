@@ -1,0 +1,12 @@
+=== worldmap/chn_shonan_holy.wdm ===
+[map image]
+WorldMap/chn_shonan_holy.img 0
+[ui path]
+WorldMap/UI/chn_Shonan_holy.xui
+[dungeon]
+3536 20720 3537 20722 3538 20728 3539 20728 3540
+[in progress]
+20727
+[/dungeon]
+[name]
+月轮山

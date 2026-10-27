@@ -1,0 +1,74 @@
+# 巨龙系列 #167
+
+状态：实现候选，等待独占玩家库部署与A21用户验收；未创建PR。基线 `63fb3993`，分支 `codex/167-giant-dragon`，暂定版本 `0.2.10`，合并前按最新main重新核对版本。
+范围见 [#167](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/167)、[#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。用户明确授权“恢复世界图98原生入口，并明确作为本服新增开放规则”。本会话独立工作区，不使用subagent，不修改其他并行任务。
+
+## 证据边界
+
+输入路径与SHA-256见 [inputs.json](evidence/inputs.json)。原PVF为 `D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84`。
+
+| 来源 | 本次确认 | 边界 |
+|---|---|---|
+| Content | town18/area0 → worldmap30 → 3200–3202；素喃11/area1原通往18/area2；两组世界图及XUI资源均存在 | 资源路径不等于实机可达 |
+| Content | chn城镇内部使用town100，area2→worldmap98；3536/3537/3538与3539分别关联20720/20722/20728，3540关联进行中的20727 | 原town.lst未登记100，原quest.lst也未登记20720–20735；这些是恢复资源，不能声称现行日服入口 |
+| ClientStatic | A21已有识别3200–3202的manager；START_MAP调用计时对象，ACT读取manager状态 | 精确RVA及指令证据统一见 [001D协议页](../../../protocol/game/server-to-client/NOTI-0x001D.md#巨龙原生计时调用)；未证明3539使用同一manager |
+| 70Reference | 本次70 ELF符号表未命中nateram/kurun/巨龙专用符号 | 不推断A21没有该功能，不搬用其他版本数值 |
+| UpstreamReference | ServerS4A21枚举含巨龙名称，检索Game/SelfTests未找到专用生命周期 | 未取得可用Git提交身份；03F4/03F5不能按上游枚举直接当本仓巨龙通知 |
+| CurrentImplementation | 复用普通迷宫、真实房间演员及物件、怪物掉落、任务、翻牌、退出、疲劳持久化和统一日切；增加入口编排与两项通用内容语义 | 自动建房不证明客户端机关或Boss阶段正常 |
+| WireCaptured / ClientVerified | 本次均无 | 不以自动测试、Content或参照代码替代 |
+
+## 变体与本服规则
+
+| DGN | 内容最低等级/人数上限 | 成本 | 入口资格和结构 |
+|---|---|---|---|
+| 3200 | 84/3 | 仅入场8疲劳，无票 | town18/area0；5房，Boss69037，MAP38115–38119 |
+| 3201 | 84/3 | 仅入场8疲劳，无票 | 同入口；5格分支，Boss69033，MAP38120–38124 |
+| 3202 | 84/3 | 仅入场8疲劳，无票 | 同入口；4房，Boss69761，MAP38125–38128 |
+| 3536 | 80/3 | 逐房疲劳，无票 | town100/area2，完成20720；5房 |
+| 3537 | 82/3 | 逐房疲劳，无票 | 完成20722；5房 |
+| 3538 | 84/3 | 任务栏10002520×1，逐房疲劳 | 20728已接或已完成；3房 |
+| 3539 | 84/3 | 任务栏10002519×1，逐房疲劳 | 极·巨龙，完成20728；3房 |
+| 3540 | 84/1 | 无票、无疲劳 | 20727进行中；专用QuestLinked两房 |
+
+3538允许20728进行中是本服恢复政策：该任务本身要求通关3538，若先要求完成会形成死锁。各成员分别检查真实任务簿、在线会话、账号及入口位置；不能用队长提供的任务集合代替。3538/3539按内容使用难度2，3200–3202固定难度1。禁止练习及非普通请求模式；重复入场在扣费前拒绝，已结算的普通重试沿既有重试链重新收费。
+
+`GiantDragon:Enabled` 默认true；`GiantDragon:RestoredVariantsEnabled` 默认false，验收部署明确开启后才接收3536–3540。开关控制服务端准入；PVF内按钮仍可能可见，没有已证的专用动态显隐通知。恢复包和服务端开关须配套，不能把入口拒绝称为客户端隐藏已实现。
+
+没有可靠内容证据支持额外每日入场上限，不新建每日计数。20729–20731为原生每日任务，复用任务日切；疲劳规则由 [现行角色事实](../../CurrentCharacterFacts.md#疲劳) 与 [准入说明](../../DungeonAdmission.md#疲劳边界) 维护。
+
+## 内容恢复包
+
+候选文件为工作区 `artifacts/giant-dragon/resources/Script-giant-dragon-quests.pvf`，SHA-256：
+`56CE679A73E32132BFF7E1B2003E68804639A90F07C05898A1967C1A0D4FB48C`。
+同名 `.json` 保存原/新身份和修改清单。只修改4项：
+
+1. `town/town.lst` 登记原有 `chn_shonan_holy.twn` 为town100。
+2. 素喃Workshop原通往18:2的门连接100:3。
+3. chn Gate原通往101:0的门连接18:2，形成素喃→100→18→素喃通路。
+4. `n_quest/quest.lst` 登记原文件20720–20735共16项，追加字符串，保留已有字符串offset。
+
+原WDM30、WDM98、XUI、DGN、任务正文、地图矩形及其他712006个文件条目保持不变。工具流式复制原body，读取回验4项字节、16个任务路径和未修改条目。旧的 `Script-giant-dragon.pvf` 仅含入口，不再用于验收。二进制不提交Git。
+
+生成命令（输出必须不存在，工具拒绝原地覆盖且锁定原始SHA）：
+
+```powershell
+dotnet run --project Document/tasks/giant-dragon/probe/Probe.csproj -- restore-entry 'E:\Project\DNF\DNFClient-A21-protocol2\Script.pvf' 'artifacts/giant-dragon/resources/Script-giant-dragon-quests.pvf'
+```
+
+**部署前必须核实当前主服务实际使用的PVF。** 若与原始SHA不同，先审计既有内容差异、重新适配补丁和回归，不能用本研究源覆盖现役资源或其他任务补丁。客户端与服务端都需要同一恢复资源；本包未写入共享客户端。
+
+## 实现与机制边界
+
+- Infrastructure从DGN解析仅入场疲劳，Structure冻结到本局，Visit是疲劳扣费owner；Admission在消费前统一检查人数和练习限制。无第二个计费器或巨龙余额表。
+- GiantDragon领域服务只编排入口、任务与既有Admission→Structure→Visit。门票使用既有任务物品容器和事务；建房失败整体回滚门票、疲劳与run。
+- 20728及20731的subtype5按原文和 `3538/-1/2` 解析两人通关目标。Quest owner消费既有可靠 `DungeonMapCleared`，检查Boss房、DGN、难度、不同角色数和接取时间；幂等更新任务后沿现有进度通知投影。裸通关事实和客户端计数不能推进，不新增平行清图状态。
+- MAP/OBJ/ACT仍由原客户端资源驱动机关与Boss阶段，服务端发送真实声明演员/物件并沿既有死亡、掉落、清场和结算链处理。不增加猜测的巨龙计时opcode。静态指令支持沿原生START_MAP链运行计时，但不能证明实机机关正常。
+- `[nateram time attack info]` 三参数原样保留；未将45000推断为总时限。20735的六分钟挑战是另一项可选任务，目前沿既有客户端计数，**没有新增服务端耗时校验**；不把它计为服务器可信限时验收。
+- 材料与任务奖励沿内容源和既有清算，不直接发放“巨龙奖励包”。20731包含10002519挑战函；20732/20733材料兑换、20735挑战及正常每日链的客户端展示、提交与到账均须实机。
+
+## 验证与交付
+
+自动结果、已知基线失败和自查边界见 [Verification.md](Verification.md)。具体测试按 [Human-Test-List.md](Human-Test-List.md) 编号执行。
+[Smoke.ps1](Smoke.ps1) 使用独立临时库，启动前核实候选23070/23071/23072的TCP与UDP占用，关闭频道脚本目录以避免端口被 `10000+channel.Id` 改写，记录实际PID/EXE及监听。当前UDP发现实现固定17200/17201，隔离烟测关闭它；多人实机需要先协调独占服务时段。
+
+用户确认时段前不结束共享Host、不同时写玩家库、不替换共享PVF。授权后先从实际进程、命令行及配置覆盖核定数据库/PVF，保留原服务产物和配置，并用SQLite backup API取得可验证备份；在备份副本确认兼容性，再切换到原玩家库。用户实机通过前不创建PR、不将issue范围标为完成。

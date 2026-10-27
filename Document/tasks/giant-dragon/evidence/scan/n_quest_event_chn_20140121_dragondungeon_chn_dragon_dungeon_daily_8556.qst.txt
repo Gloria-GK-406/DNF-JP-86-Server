@@ -1,0 +1,27 @@
+
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 100
+[npc index] 333
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[account quest] 1
+[exposed by npc] 1
+[first exposed by npc] 0
+[event] 1
+[level] 84 99
+[type] [hunt monster]
+[sub type] -1
+[int data] 3200 -1 69037 1 3201 -1 69033 1 3202 -1 69761 1
+[/int data]
+[reward type] [item]
+[reward int data] 490000338 1 490000395 1
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 进击月轮山
+[depend message] 邪恶的巨龙纳特拉占领了月轮山， 想要吸收圣地的念气能量， 再犯我虚祖。 冒险家， 我需要你的力量， 消灭占领月轮山的所有领主怪物， 灭巨龙， 夺回圣地， 守护虚祖的安宁！
+[condition message]     前往月轮山地区， 消灭以下敌人。
+[solve message] 圣地终于喧嚣不再， 恢复了安宁。 虚祖也获得了拯救。 这些都是冒险家的功劳， 老朽感激不尽！

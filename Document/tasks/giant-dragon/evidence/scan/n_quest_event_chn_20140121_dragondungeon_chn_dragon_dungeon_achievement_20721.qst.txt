@@ -1,0 +1,25 @@
+
+[grade] [achievement]
+[difficulty] E
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 80 99
+[pre required quest] 20720
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 6
+[int data] 3536 -1
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 3326 5 10002515 3
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 调查开始
+[depend message] 有人曾在修炼场中看到过可疑的影子， 似乎和某种巨龙非常相像。 如果这个传闻是真的， 那么这件事情可就没那么简单了。 一定要调查清楚。
+[condition message]     通关素喃郊外地区的『念气修炼场』。
+[solve message]  <npc::0>我在念气修炼场的最深处发现了魔法巨龙石像， 它似乎在看守着什么东西。
+ <NPC::125>传闻竟然是真的……看样子， 不击败魔法巨龙石像， 是没有办法继续调查了。

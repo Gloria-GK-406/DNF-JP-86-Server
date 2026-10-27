@@ -1,0 +1,28 @@
+
+[name] 强大的敌人——拉巴之魂
+[depend message] 念气……不稳定……
+啊！ 我又再瞎叨叨了， 哈哈！
+事情是这样的， 有一个叫做拉巴之魂的强大火焰灵物， 他不仅是一个特殊的神兽， 同时还会同人类一样修炼。
+现在念气暴走， 气息极度不稳定， 还参杂着亡者和邪恶的气息。
+不用说也知道这是纳特拉搞的鬼。 拉巴之魂也受到了感染， 现在唯一的方法就是消灭它， 才能逐渐稳定这混乱的气息。
+[condition message]     消灭拉巴之魂。
+[solve message] 不要觉得可惜。 不知道它们什么时候回来， 而且回来的时候也并不纯洁， 你说是吧？
+[level] 84 99
+[type] [hunt monster]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 334
+[complete npc index] 334
+[grow type] -1
+[int data] 3202 -1 59823 1
+[/int data]
+[reward type] [item]
+[reward int data] 3326 1
+[/reward int data]
+[pre required quest] 13706 13707
+[/pre required quest]
+[dungeon info] 3202 -1
+[/dungeon info]

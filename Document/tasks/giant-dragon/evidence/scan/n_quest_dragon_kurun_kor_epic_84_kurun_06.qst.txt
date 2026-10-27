@@ -1,0 +1,30 @@
+
+[name] 冰石的主人
+[depend message] 石巨人本来是用月轮山的念气聚集而成的神兽。
+尤其是它们的首领， 是极其强大的双子巨人， 分别掌握着火焰和冰霜的力量。
+虽然烈焰石巨人成为了纳特拉的手下， 但是寒冰石巨人却仍在主张对抗纳特拉。
+寒冰石巨人普鲁森经过很长时间的抵抗最终败北。
+如果你见到了烈焰石巨人莱斯， 那么寒冰石巨人一定在附近。
+他们的力量是互补的， 莱斯一定不会杀了普鲁森。
+[condition message]     前往月轮山地区， 保护寒冰石巨人普鲁森， 并收集[冰石]。
+[solve message] 嘿嘿， 你居然做到了！
+纳特拉现在心里一定很愤怒。
+[level] 84 99
+[type] [seeking]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 334
+[complete npc index] 334
+[grow type] -1
+[int data] 10094793 1
+[/int data]
+[reward type] [item]
+[reward int data] 3326 1
+[/reward int data]
+[pre required quest] 13701 13703
+[/pre required quest]
+[dungeon info] 3201 -1
+[/dungeon info]

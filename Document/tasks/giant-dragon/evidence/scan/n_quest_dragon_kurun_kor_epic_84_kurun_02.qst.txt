@@ -1,0 +1,29 @@
+
+[name] 前往圣地的路
+[depend message] 现在除了等待征战部队， 也没有别的办法。
+但事实上， 即使征战部队到了也没有办法立即进攻。
+月轮山地势险恶， 前往圣地的路途也十分狭窄。
+石巨人制造出与自己样子相似的魔物守护在这里。
+那些魔物吸收了纳特拉的力量， 因此很多冒险家去了都没再回来。
+[myname]， 你能帮忙打通前进的道路吗？
+[condition message]     5分钟内通关月轮山的『纳特拉的复仇』。
+[solve message] 真了不起！ 冒险家[myname]。 你的美名一定会再次被世人传扬。
+[level] 84 99
+[type] [condition under clear]
+[job] [all]
+[sub type] 0
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 333
+[complete npc index] 333
+[grow type] -1
+[int data] 3200 -1 300
+[/int data]
+[reward type] [item]
+[reward int data] 3326 1
+[/reward int data]
+[pre required quest] 13700
+[/pre required quest]
+[dungeon info] 3200 -1
+[/dungeon info]

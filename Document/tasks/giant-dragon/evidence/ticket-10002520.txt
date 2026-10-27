@@ -1,0 +1,33 @@
+id 10002520 -> event/chn_2014_dragondungeon_2014/chn_qst_Big_Dragon_invitation_10002520.stk
+=== stackable/event/chn_2014_dragondungeon_2014/chn_qst_Big_Dragon_invitation_10002520.stk ===
+[name]
+纳特拉的龙鳞
+[explain]
+持有此物， 才有资格挑战巨龙纳特拉。
+[flavor text]
+从这坚硬的龙鳞中， 真的能感受到龙族的力量。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+1000
+[icon]
+Item/stackable/quest_cn.img 10
+[stackable type]
+[quest] 0
+[move wav]
+PAPER_TOUCH
+[impossible contents]
+gift
+[/impossible contents]
+[need material]
+10007531 2
+[/need material]

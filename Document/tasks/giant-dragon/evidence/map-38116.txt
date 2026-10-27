@@ -1,0 +1,73 @@
+id 38116 -> Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25276_tranning_(1.0)normal.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25276_tranning_(1.0)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3200
+[/dungeon]
+[type]
+[normal]
+[greed]
+FF FF
+[tile]
+Tile/Step1_Tile00.til Tile/Step1_Tile01.til Tile/Step1_Tile00.til Tile/Step1_Tile01.til Tile/Step1_Tile00.til Tile/Step1_Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Step1_Tile_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Step1_Mid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Step1_far2.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+28 237 1325 285 -73 10 -67 -57
+[sound]
+M_NEN_AREA AMB_FOREST_04
+[/sound]
+[animation]
+Animation/GateLight1.ani [normal] 461 -201 0 Animation/Step2_Floor_glue1.ani [bottom] 395 393 0 Animation/Step1_tree.ani [closeback] 760 137 0 Animation/Step1_tree.ani [middleback] 129 138 0 Animation/Step1_bamboo_glue.ani [normal] 1136 -140 0 Animation/Step1_bamboo_glue.ani [normal] 1081 -140 0
+[/animation]
+[scroll animation]
+Animation/Step1_Bamboo1.ani [close] 41 480 0 100 Animation/Step1_Bamboo2.ani [close] 162 491 0 100 Animation/Step1_Bamboo1.ani [close] 1222 480 0 100 Animation/Step1_Bamboo2.ani [close] 1364 495 0 100 Animation/Step1_Bamboo2.ani [close] 735 506 0 100
+[/scroll animation]
+[passive object]
+37129 4 290 0 37129 82 204 0 52946 4 -199 0 52990 323 173 0 52991 566 421 0 52975 923 143 0 52976 701 456 0 52978 297 439 0 52978 342 432 0 52978 549 180 0 52978 600 183 0 52975 743 437 0 52976 1043 461 0 52978 975 409 0 52978 965 219 0 52978 193 334 0 52976 804 304 0 52988 1063 136 0 52989 963 140 0 52989 447 147 0 52980 0 0 0 37128 1239 265 0 37128 1334 342 0 52894 39 207 0 52894 -15 249 0 52894 738 474 0 52894 611 469 0
+[/passive object]
+[monster]
+69027 1 0 401 406 0 1 1 [fixed] [normal] 69027 1 0 825 417 0 1 1 [fixed] [normal] 69035 1 0 467 266 0 1 1 [fixed] [normal] 69035 1 0 934 317 0 1 1 [fixed] [normal] 69027 1 0 1090 397 0 1 1 [fixed] [normal] 69027 1 0 682 184 0 1 1 [fixed] [normal] 69027 1 0 1078 204 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+672 288 0 730 249 0 730 292 0 698 255 0
+[/event monster position]
+[map name]
+PVP无名

@@ -1,0 +1,25 @@
+
+[grade] [achievement]
+[difficulty] E
+[gold multiple] 10
+[npc index] 125
+[complete npc index] 125
+[job] [all]
+[grow type] -1
+[level] 80 99
+[type] [meet npc]
+[sub type] -1
+[int data] 125
+[/int data]
+[reward type] [item]
+[reward int data] 0 100
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 阿斯卡的请求
+[depend message] 冒险家， 你来得正好， 现在有一件紧急的事情需要你帮忙呢。
+在素喃的郊外， 有一处地方非常适合修炼念气， 几乎所有的念气大师都曾经在那里修行过。 久而久之那里也就成了我们虚祖国的圣地。
+可是最近在圣地修行的国民告诉我那里出现了邪恶的气息， 让所有人都感到不安。
+我不能让我的国民生活在不安和恐惧之中， 冒险家， 你愿意帮我调查一下吗？
+[condition message]     前往虚祖首都素喃， 拜访阿斯卡。
+[solve message] 这里就是我们虚祖国的圣地， 往前走不远就是念气修炼场了。

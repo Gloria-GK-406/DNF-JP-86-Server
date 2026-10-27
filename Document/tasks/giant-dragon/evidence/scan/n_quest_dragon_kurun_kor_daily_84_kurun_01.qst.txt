@@ -1,0 +1,28 @@
+
+[name] 陷入险境的念气修炼者
+[depend message] 成事在天。 即使是巨龙， 为了占领那里也会留下破绽。
+很多冒险家之前就是为了寻找念气的奥义， 才深入险境， 被巨龙控制。
+希望你帮助那些冒险家摆脱傀儡的命运， 这样苍天也会助你。
+[condition message]     前往月轮山地区， 消灭被控制的念气修炼者。
+[solve message] 我只是找回了自己的位置。
+不要感到遗憾。
+[level] 84 99
+[type] [hunt monster]
+[job] [all]
+[sub type] -1
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 200
+[npc index] 334
+[complete npc index] 334
+[grow type] -1
+[int data] 3200 -1 69035 3
+[/int data]
+[reward type] [item]
+[reward int data] 10094603 5
+[/reward int data]
+[pre required quest] 13703
+[/pre required quest]
+[dungeon info] 3200 -1
+[/dungeon info]

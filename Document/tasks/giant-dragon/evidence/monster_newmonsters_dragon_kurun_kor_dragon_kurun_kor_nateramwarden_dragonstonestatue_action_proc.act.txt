@@ -1,0 +1,89 @@
+=== monster/newmonsters/dragon_kurun_kor/dragon_kurun_kor_nateramwarden/dragonstonestatue/action/proc.act ===
+[TRIGGER]
+[DUNGEON SYMBOL COMPARE]
+Dragon_State_DJ
+[=]
+1
+[WHICH]
+[PASSIVE]
+[CHECKUP]
+[IS INDEX]
+52995
+[/IS INDEX]
+[/CHECKUP]
+[CHECKED NO]
+[=]
+0
+[DO BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[SET WHOLE DAMAGETYPE]
+0
+[CHANGE AI]
+[NORMAL]
+2 TRNS_Action.ai
+[CHANGE AI]
+[EXPERT]
+2 TRNS_Action.ai
+[CHANGE AI]
+[MASTER]
+2 TRNS_Action.ai
+[CHANGE AI]
+[KING]
+2 TRNS_Action.ai
+[CHANGE AI]
+[SLAYER]
+2 TRNS_Action.ai
+[/BEHAVIOR]
+[TRIGGER]
+[CHECK TIME]
+1000
+[DUNGEON SYMBOL COMPARE]
+Dragon_State_DJ
+[=]
+1
+[WHICH]
+[MONSTER]
+[CHECKUP]
+[IS INDEX]
+69027 69028
+[/IS INDEX]
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[CHECKUP OBJECT]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+0
+[NOW]
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[IF]
+1
+[=]
+[GET NATERAM CURRENT TIME]
+[/IF]
+[DO BEHAVIOR]
+[ME]
+2
+[/TRIGGER]
+[BEHAVIOR]
+[APPENDAGE]
+0
+[equipment physical defense]
+[%]
+-50
+[equipment magical defense]
+[%]
+-50
+[/APPENDAGE]
+[/BEHAVIOR]

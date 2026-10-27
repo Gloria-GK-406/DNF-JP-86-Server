@@ -54,6 +54,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         internal static readonly PvfField<bool> SpiciesField = PvfField.Marker("[spicies dungeon]", optional: true);
         internal static readonly PvfField<int> PartyLimitField = PvfField.Int32("[limit party count]", optional: true);
         internal static readonly PvfField<int> ProhibitPracticeField = PvfField.Int32("[prohibit practice]", optional: true);
+        internal static readonly PvfField<int> EntryOnlyFatigueField = PvfField.Int32("[use fatigue only start dungeon]", optional: true);
         internal static readonly PvfField<int> TournamentField = PvfField.Int32("[tournament dungeon]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> NamedMonsterField = PvfField.Int32List("[named monster]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RevengeField = PvfField.Int32List("[village attack revenge dungeon]", optional: true);
@@ -138,6 +139,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         byte basisLevel = 1;
         var experienceWeight = 1.0;
         var consumesFatigue = true;
+        ushort? entryOnlyFatigue = null;
         var noGiveupPenalty = false;
         var offersPaidCard = true;
         DungeonQuestConnection? questConnection = null;
@@ -160,6 +162,14 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         }
         foreach (var section in document.Sections)
         {
+            if (Fields.EntryOnlyFatigueField.Matches(section.Name))
+            {
+                Unique(Fields.EntryOnlyFatigueField);
+                var value = Fields.EntryOnlyFatigueField.Decode(archive, section.Values, archivePath);
+                Require(value is > 0 and <= ushort.MaxValue, archivePath, Fields.EntryOnlyFatigueField, "expected positive UInt16 fatigue");
+                entryOnlyFatigue = (ushort)value;
+                continue;
+            }
             if (Fields.NamedMonsterField.Matches(section.Name))
             {
                 foreach (var code in Fields.NamedMonsterField.Decode(archive, section.Values, archivePath))
@@ -382,7 +392,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems,
             EventRequiredItems = eventRequiredItems, IsSpiciesDungeon = isSpicies, PartyLimit = partyLimit, ProhibitsPractice = prohibitsPractice,
             HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable(),
-            LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath) };
+            LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath), EntryOnlyFatigue = entryOnlyFatigue };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

@@ -1,0 +1,24 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 84 99
+[pre required quest] 20727
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 5
+[int data] 3538 -1 2
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 3326 50 10002515 3
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 与巨龙战斗 (2/2)
+[depend message] 一个人的力量还不足以消灭纳特拉， 冒险家， 和你的伙伴们一起战斗吧！
+[condition message]     前往素喃郊外地区的『巨龙盘踞之地』， 消灭巨龙纳特拉。 (必须组成2人以上的队伍)
+[solve message] 终于消灭了纳特拉！ 我以虚祖国国王的名义， 对你表示衷心的感谢， 你永远都是我们虚祖的朋友。

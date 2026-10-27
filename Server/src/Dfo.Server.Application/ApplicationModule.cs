@@ -184,6 +184,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<IGiantDragonRuleService, GiantDragonRuleService>();
+        services.TryAddSingleton<IGiantDragonDomainService, GiantDragonDomainService>();
         services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
         services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
         services.TryAddSingleton<IGoldSilverHornRuleService, GoldSilverHornRuleService>();

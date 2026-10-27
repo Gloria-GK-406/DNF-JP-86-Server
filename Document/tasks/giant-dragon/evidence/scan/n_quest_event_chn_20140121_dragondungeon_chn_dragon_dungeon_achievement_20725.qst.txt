@@ -1,0 +1,30 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 82 99
+[pre required quest] 20724
+[/pre required quest]
+[monster reward item] 100006 3537 0 10002516 1 10 3 100006 3537 1 10002516 1 25 3 100006 3537 2 10002516 1 40 3 100006 3537 3 10002516 1 66 3
+[/monster reward item]
+[type] [seeking]
+[sub type] -1
+[int data] 10002516 3
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 3326 15 10002515 3
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 烈焰巨人
+[depend message] 一定要搞清楚巨型烈焰傀儡再生的原因。
+这种机械再生的技术， 据我所知只有天界中的人才会拥有。
+如果纳特拉是用天界的技术制作的这些傀儡， 那么一定可以在烈焰傀儡身上找到它的能量核心。
+[condition message]     前往素喃郊外地区的『念气洞穴深处』， 收集3个[爆烈的魔焰之源]。 (地下城的难度越高， 越容易获得任务物品)
+[solve message] 就是这个， 魔焰之源！
+天界的朋友以前来拜访虚祖的时候， 曾经给我展示过类似的东西。
+现在基本可以确定， 制作这个傀儡的巨龙纳特拉， 绝对和天界有关系， 或许还是巴卡尔的得力部下呢！

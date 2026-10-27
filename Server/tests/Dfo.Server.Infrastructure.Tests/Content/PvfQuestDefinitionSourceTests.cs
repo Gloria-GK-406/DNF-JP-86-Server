@@ -218,7 +218,8 @@ public sealed class PvfQuestDefinitionSourceTests
         // former four-field initial-trigger projection excluded. Keep exact catalogue counts
         // alongside the field-level checks so accidental projection changes remain visible.
         // 3253 existing quests plus 42 Circle quests with job-filtered reward declarations.
-        Assert.Equal(3_295, quests.Count);
+        // Exclude the separately verified optional dragon restoration from this old snapshot.
+        Assert.Equal(3_295, quests.Count(quest => quest.QuestId is < 20720 or > 20735));
         Assert.Equal(quests.Count, questIds.Count);
         Assert.All(quests, quest => Assert.InRange(quest.QuestId, 1, 29_999));
         Assert.Equal(444, quests.Count(quest => quest.IsExposedByNpc.HasValue));

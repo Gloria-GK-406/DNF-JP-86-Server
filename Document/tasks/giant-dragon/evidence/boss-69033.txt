@@ -1,0 +1,136 @@
+id 69033 -> NewMonsters/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/BlazeStone/BlazeStone.mob
+=== monster/NewMonsters/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/BlazeStone/BlazeStone.mob ===
+[name]
+烈焰石巨人莱斯
+[face image]
+Monster/monsterFace.img 1038
+[die effect]
+0 3 1
+[width]
+80 90
+[category]
+[hybrid] [fort armor] [fixture]
+[/category]
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+R_BLAZE_GOLEM_HIT
+[die sound]
+BLAZE_GOLEM_DIE
+[ability category]
+[HP MAX] * 2500 [EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 140 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 140
+[/ability category]
+[level]
+84 84
+[fire resistance]
+300 300
+[water resistance]
+75 75
+[dark resistance]
+200 200
+[light resistance]
+200 200
+[slow resistance]
+1000 1000
+[freeze resistance]
+1000 1000
+[poison resistance]
+1000 1000
+[stun resistance]
+1000 1000
+[curse resistance]
+1000 1000
+[blind resistance]
+1000 1000
+[lightning resistance]
+1000 1000
+[stone resistance]
+1000 1000
+[sleep resistance]
+1000 1000
+[burn resistance]
+1000 1000
+[weapon break resistance]
+400 400
+[bleeding resistance]
+1000 1000
+[confuse resistance]
+1000 1000
+[hold resistance]
+1000 1000
+[HP regen speed]
+1300 1300
+[MP regen speed]
+1300 1300
+[move speed]
+300 300
+[attack speed]
+700 700
+[cast speed]
+1000 1000
+[hit recovery]
+1000 1000
+[weight]
+300000 300000
+[warlike]
+100
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/Awaken.act
+[attack action]
+Action/DarkShower.act Action/FireTrap.act Action/FireTrap_End.act Action/StoneBreath.act Action/FireWall.act Action/ExplosionBlow.act
+[/attack action]
+[last action]
+Action/Death.Act
+[proc action]
+Action/Proc.act
+[attack info]
+Attackinfo/DarkShower.atk   Attackinfo/StoneBreath.atk  Attackinfo/ExplosionBlow.atk
+[/attack info]
+[cooltime]
+35000 10000 99999 20000 60000 60000
+[/cooltime]
+[think term]
+5000
+[destination change term]
+700
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[keep distance with target]
+300
+[vision]
+3000
+[hp regen rate]
+0 0
+[lie frame]
+2 3 2 3 4
+[level of difficulty]
+[normal]
+-40 10000
+[expert]
+-20 6000
+[master]
+0 0
+[king]
+0 0
+[slayer]
+0 0
+[/level of difficulty]

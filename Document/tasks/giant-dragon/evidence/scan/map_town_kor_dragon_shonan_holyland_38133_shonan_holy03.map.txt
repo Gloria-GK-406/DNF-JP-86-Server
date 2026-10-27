@@ -1,0 +1,28 @@
+
+[player number] 2 8
+[pvp start area] 211 206 650 155 179 204 50 150 842 210 50 150
+[pvp practice start area] 181 205 50 150 843 211 50 150
+[type] [normal]
+[tile] Tile/new_chn_dragon_zone_tile_04.til Tile/new_chn_dragon_zone_tile_05.til Tile/new_chn_dragon_zone_tile_05.til Tile/new_chn_dragon_zone_tile_05.til Tile/new_chn_dragon_zone_tile_05.til
+[/tile]
+[far sight scroll] 70
+[middle sight scroll] 90
+[near sight scroll] 110
+[background animation]
+[ani info]
+[filename] Animation/chn_dragon_zone_far2.ani
+[layer] [distantback]
+[order] [below]
+[/ani info]
+[/background animation]
+[town movable area] 1105 204 20 160 18 2 165 174 90 30 18 1 17 204 30 160 18 0
+[/town movable area]
+[virtual movable area] 15 204 1110 160 165 178 90 30
+[/virtual movable area]
+[sound] M_SHONAN_OUTSIDE AMB_FOREST_06
+[/sound]
+[animation] Animation/town.ani [closeback] 783 161 0 Animation/chn_Seriagate.ani [closeback] 202 107 0 Animation/SeriaLight00.ani [normal] 197 181 0 Animation/chn_dragon_zone_twinkle_A.ani [distantback] 409 77 0 Animation/chn_dragon_zone_twinkle_A.ani [distantback] 433 111 0 Animation/chn_dragon_zone_river .ani [distantback] 0 -209 0 Animation/SeriaLight01.ani [normal] 197 180 0
+[/animation]
+[NPC] 333 [right] 892 201 0 334 [right] 569 195 0
+[/NPC]
+[map name] PVP无名

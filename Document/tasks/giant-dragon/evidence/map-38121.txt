@@ -1,0 +1,73 @@
+id 38121 -> Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38121_cave_(1.1)normal.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38121_cave_(1.1)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3201
+[/dungeon]
+[type]
+[normal]
+[greed]
+OO OO
+[tile]
+Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Normal/Tile01_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Normal/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Normal/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+96 268 1655 277 596 193 1136 415
+[sound]
+M_IN_CAVE AMB_DIMENSION_01
+[/sound]
+[animation]
+Animation/Normal/midle_black3.ani [closeback] -1 -121 0 Animation/Normal/midle_black0.ani [closeback] 888 -113 0 Animation/Normal/midle_black_srv0.ani [closeback] 1659 136 0 Animation/Normal/tile_quake3.ani [bottom] 1278 295 0 Animation/Normal/tile_stone6.ani [middleback] 166 142 0 Animation/Normal/tile_stone7.ani [close] 1602 367 0 Animation/Normal/tile_stone6.ani [close] 785 476 0 Animation/Normal/tile_stone6.ani [close] 52 464 0 Animation/Normal/tile_quake1.ani [bottom] 178 296 0 Animation/Normal/midle_black4.ani [closeback] 405 -113 0 Animation/Normal/crystal_stone3.ani [normal] 415 183 0 Animation/Normal/crystal_stone4.ani [normal] 180 178 0 Animation/Normal/crystal_stone3.ani [normal] 821 181 0 Animation/Normal/crystal_stone3.ani [normal] 329 412 0
+[/animation]
+[passive object]
+18334 82 244 0 18335 14 357 0 18336 606 187 0 18337 1052 414 0 18338 1221 419 0 18360 986 183 0 18361 237 403 0 18362 970 416 0 18355 308 356 0 18356 870 412 0 18359 355 353 0 18361 658 414 0 18355 1526 207 0 18356 1562 246 0 18356 1243 193 0 18362 1148 190 0 18356 390 332 0
+[/passive object]
+[monster]
+69036 1 0 676 240 0 1 1 [fixed] [normal] 69036 1 0 588 283 0 1 1 [fixed] [normal] 69027 1 0 1030 243 0 1 1 [fixed] [normal] 69027 1 0 963 324 0 1 1 [fixed] [normal] 69029 1 0 931 270 0 1 1 [fixed] [normal]
+[/monster]
+[monster team]
+0 0 100 100 100
+[/monster team]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+626 277 0 684 238 0 684 281 0 652 244 0
+[/event monster position]
+[map name]
+PVP无名

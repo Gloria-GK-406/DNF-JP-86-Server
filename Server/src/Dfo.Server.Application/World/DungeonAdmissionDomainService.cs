@@ -42,6 +42,9 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
         }
         catch (InvalidDataException error) { return new(null, DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message)); }
         if (options.RequireMinimumLevel && definition is null) return Refuse(DungeonEntryFailure.DungeonNotFound);
+        if (definition?.PartyLimit is { } partyLimit && context.Participants.Count > partyLimit
+            || definition?.ProhibitsPractice == true && context.PracticeMode != 0)
+            return Refuse(DungeonEntryFailure.MissingPrerequisite);
         var permits = ImmutableArray.CreateBuilder<IDungeonAdmissionPermit>();
         var eligible = new List<(DungeonRunParticipant Member, SelectedSessionIdentity? Selected)>();
         foreach (var member in context.Participants)

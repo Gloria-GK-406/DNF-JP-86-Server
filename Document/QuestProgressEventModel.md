@@ -9,8 +9,8 @@
 | `ClientQuestTriggerReport` | `SET_QUEST_TRIGGER`，客户端声明，需按任务类型和副本上下文校验 | 仅允许客户端计数的目标推进 | 原请求的 `0x0021` CMD 回复；这次变化不再触发 NOTI |
 | `QuestEnemyDefeated` | 地下城确认并占用的死亡事实；同一次击杀在事务内交给各受影响角色 | 匹配进行中 `hunt enemy` 的地下城、难度、目标和通道 | 有进度变化时，向该角色发送一次 `0x023F` 活动任务快照 |
 | `QuestEnemyDefeated`（含怪物阶级及可选作用域事实） | 同一已确认死亡事实 | 读取统一击杀目标；四字段副本目标及五字段区域目标使用同一模型，区域／推荐等级目标要求明确的上下文 | 与同次击杀的其他任务变化合并为一次 `0x023F` |
-| `QuestDungeonCleared` | Boss 房最终 Boss 已由当前 Cell 确认死亡 | 匹配 `condition under clear` 的副本和难度，置目标通道为完成；不由后到的 `BOSS_DIE_CHECK` 触发 | 与同次击杀的其他任务变化合并为一次 `0x023F` |
-| `DungeonMapCleared` | 普通房间首次由未清空变为清空，或死亡／迷妄塔清空当前层；随死亡结算事务持久化入队 | 可靠订阅者按事件内的地图 ID 推进 `clear map`；镜像任务按原运行 ID 更新 | 更新 trigger 并提交后，发布任务变化事件，通知订阅者读取当前任务查询结果发送 `0x023F` |
+| `QuestDungeonCleared` | Boss 房最终 Boss 已由当前 Cell 确认死亡 | 匹配已解析的 subtype6 `condition under clear` 副本和难度；缺少队伍证据，不处理subtype5；不由后到的 `BOSS_DIE_CHECK` 触发 | 与同次击杀的其他任务变化合并为一次 `0x023F` |
+| `DungeonMapCleared` | 普通房间首次由未清空变为清空，或死亡／迷妄塔清空当前层；随死亡结算事务持久化入队 | 可靠订阅者按事件内地图 ID 推进 `clear map`；subtype5通关目标使用Boss房和冻结参与者；镜像任务按原运行 ID 更新 | 更新 trigger 并提交后，发布任务变化事件，通知订阅者读取当前任务查询结果发送 `0x023F` |
 | `InventoryContentsChanged` | 持久化容器的成员、数量或物品模板改变；与物品写入共用事务入队，携带容器及变化物品 ID | 可靠订阅者只重算与这些物品相关的已接材料任务，从持久化最终持有量推导进度 | trigger 有变化才持久化并发布 `QuestProgressChanged`，沿既有通知订阅者发送 `0x023F` |
 | `QuestHoldingsChanged` | 拾取、击杀直发任务物品、接受任务的起始物品、交任务奖励、NPC 购买或丢弃已改变服务端持有量 | 从当前背包和金币重算 `seeking`，不按事件数量累加 | 有进度变化时，向该角色发送一次 `0x023F` 活动任务快照 |
 | `QuestCleared` | 交任务的日志写入、奖励与经验在同一事务内成功 | 从已完成任务集合重算仍未完成的 `clear quest` 依赖；奖励引发的持有量变化一并重算 | 完成 CMD 后，若其他任务进度改变，再发一次 `0x023F` |
@@ -32,6 +32,8 @@
 事件冻结运行 ID、副本 ID、难度、Cell、地图 ID、房间版本、清房时间和参与者。消费时不读取玩家的当前位置来决定清的是哪张图。普通任务更新持久化日志，退出副本后仍可消费；镜像任务只查询原运行的临时状态，被移除的状态不重建，也不会作用于下一场。镜像探索房间数同样消费该事件。旧的同步 `QuestRoomCleared` 已移除。
 
 `IQuestMapClearRuleService.TargetMapOf` 统一解释当前支持的单值／双值 `clear map` 声明，以第一项作为目标地图 ID，其他长度不推测。第二项同行 APC 的额外存活／救援语义仍需独立取证；本次保持镜像任务原先的地图匹配语义。觉醒任务 975 的 PVF 单值为 `30030`，与地下城 `11000` 死亡之塔第 30 层地图一致；初值为 1，不是需要清 30 次。实现没有该任务、地图或层数的专用分支。
+
+`IQuestMapClearRuleService.Matches` 同时处理已解析的 subtype5 `condition under clear`：三个整数为副本、难度（-1表示不限定）和最少人数，人数限1–4；消费 `IsBossRoom` 及按CharacterId去重的冻结参与者。原生20728/20731的 `3538/-1/2` 与“两人以上通关”文本相符。目标解析后归服务端负责，客户端 `SET_QUEST_TRIGGER` 保持当前值；裸 `QuestDungeonCleared` 不含队伍证据，不能推进该目标。其他未核定的通关子类型不推测。巨龙资源恢复及限时目标边界见 [巨龙说明](tasks/giant-dragon/README.md)。
 
 新接取任务将接取时间写入独立的 `character_quest_acceptance_times` 表，与接取／放弃／完成共用事务；不改变旧活动任务表及协议字段。旧任务没有该记录时按历史任务处理。消费会跳过清房之后才接取或重新接取的任务；已完成的 trigger 不重复写入或重复通知。
 

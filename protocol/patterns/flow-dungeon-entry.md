@@ -10,6 +10,16 @@
 
 进城本身在 [进入世界](world-entry.md) 收尾。本页从那一页的终点接手。
 
+## 巨龙候选流程
+
+**CurrentImplementation**：原生选图仍走 `000F → 0010`，成功后沿既有地下城信息、
+`001D START_MAP → 0025 加载完成 → 001E FINISH_LOADING` 组织首房。
+本服恢复的 worldmap98 共用该链；没有新增计时通知或绕过客户端选图请求。
+仅入场疲劳、任务资格与恢复资源属于业务规则，统一见
+[巨龙任务说明](../../Document/tasks/giant-dragon/README.md)。
+`START_MAP` 接入客户端计时 manager 的证据见 [001D](../game/server-to-client/NOTI-0x001D.md#巨龙原生计时调用)。
+当前没有本轮巨龙双向实帧和客户端验收；不能将通用入场既有验收覆盖到恢复入口或Boss机关。
+
 > **引用约定。** 只写文件名加行号的引用，根目录是：
 >
 > - 上游（86JP 参照实现）：`.worktrees/legacy-reference/Server/DfoServer/`。

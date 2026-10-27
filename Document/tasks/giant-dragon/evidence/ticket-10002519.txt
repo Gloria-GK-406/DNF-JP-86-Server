@@ -1,0 +1,30 @@
+id 10002519 -> event/chn_2014_dragondungeon_2014/chn_qstl_Big_Dragon_time_invitation_10002519.stk
+=== stackable/event/chn_2014_dragondungeon_2014/chn_qstl_Big_Dragon_time_invitation_10002519.stk ===
+[name]
+巨龙挑战函
+[explain]
+你有勇气挑战巨龙吗？
+[flavor text]
+荣耀就在你的手上， 就看你有没有胆识握住它了！
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+3
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[stack limit]
+2
+[icon]
+Item/stackable/quest_cn.img 9
+[stackable type]
+[quest] 0
+[move wav]
+PAPER_TOUCH
+[impossible contents]
+gift
+[/impossible contents]

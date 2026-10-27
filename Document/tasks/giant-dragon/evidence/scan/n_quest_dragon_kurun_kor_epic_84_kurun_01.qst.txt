@@ -1,0 +1,26 @@
+
+[name] 向月轮山出发
+[depend message] 冒险家[myname]， 很高兴你能来到这里。
+目前情况危急， 很抱歉不能好好招待你。
+现在月溪镇的白鸣正在密切关注着巨龙纳特拉的行动。
+征战部队还没有到达， 在这段时间里我希望冒险家你能帮助我。
+白鸣就在前面。
+我阿斯卡作为虚祖国王会同所有百姓一起， 记住冒险家[myname]的恩德。
+[condition message] 寻找白鸣
+[solve message] 你好， 冒险家[myname]。
+我是白鸣， 现在向你表达最崇高的敬意。
+[level] 84 99
+[type] [meet npc]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 125
+[complete npc index] 333
+[grow type] -1
+[int data] 333
+[/int data]
+[reward type] [item]
+[reward int data] 0 0
+[/reward int data]

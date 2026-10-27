@@ -96,6 +96,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly ISouthernDaleDomainService southern;
     private readonly ISealedTreasureDomainService sealedTreasure;
     private readonly IGoldSilverHornDomainService goldSilverHorn;
+    private readonly IGiantDragonDomainService giantDragon;
     public GameSelectDungeonCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
         IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ICharacterStateProjectionDomainService currentState,
@@ -124,7 +125,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         ICoupleDungeonDomainService couples,
         ISouthernDaleDomainService southern,
         ISealedTreasureDomainService sealedTreasure,
-        IGoldSilverHornDomainService goldSilverHorn)
+        IGoldSilverHornDomainService goldSilverHorn, IGiantDragonDomainService giantDragon)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.workUnits = units; this.onlineUsers = onlineUsers; this.departureSink = departureSink; this.parties = parties;
@@ -151,13 +152,16 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         this.southern = southern;
         this.sealedTreasure = sealedTreasure;
         this.goldSilverHorn = goldSilverHorn;
+        this.giantDragon = giantDragon;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSelectDungeonCommand command, CancellationToken token)
     {
         await SelectDungeonAsync(execution, command.Dispatch, command.Input, token).ConfigureAwait(false);
         return true;
     }
-    internal ValueTask<DungeonEntryAttempt> RouteEntryAsync(DungeonEntryContext entry, CancellationToken cancellationToken) => couples.Supports(entry.DungeonId)
+    internal ValueTask<DungeonEntryAttempt> RouteEntryAsync(DungeonEntryContext entry, CancellationToken cancellationToken) => giantDragon.Supports(entry.DungeonId)
+        ? giantDragon.EnterAsync(entry, cancellationToken)
+        : couples.Supports(entry.DungeonId)
         ? couples.EnterAsync(entry, cancellationToken)
         : goldSilverHorn.Supports(entry.DungeonId)
         ? goldSilverHorn.EnterAsync(entry, cancellationToken)

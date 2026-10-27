@@ -1,0 +1,30 @@
+
+[name] 念气矿石的价值
+[depend message] 念气？ 呵呵……念气是种玄而又玄的东西， 它可能哪里都不在， 也可能哪里的在。
+唔哈哈……你的表情很耐人寻味嘛！
+很长时间没这么开心的笑了， 作为报答我要送你些东西才行啊。
+虽然我可以口授与你念气的奥秘， 但是如果你自己不亲自体会的话， 恐怕不能领悟。
+月轮山现在到处都是那些邪恶的龙头石像。
+如果你可以消灭他们， 应该就能有所体会了。
+[condition message]     前往月轮山地区， 破坏龙头石像并获得2次Buff。
+[solve message] 嘿嘿， 表情不一样了啊。
+怎么样？ 被贪婪的巨龙占领的地方是不是很危险？
+[level] 84 99
+[type] [hunt enemy]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 334
+[complete npc index] 334
+[grow type] -1
+[int data] 3200 -1 37135 3 2
+[/int data]
+[reward type] [item]
+[reward int data] 3326 1
+[/reward int data]
+[pre required quest] 13702
+[/pre required quest]
+[dungeon info] 3200 -1
+[/dungeon info]

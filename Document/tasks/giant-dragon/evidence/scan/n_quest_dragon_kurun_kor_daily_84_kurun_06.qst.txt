@@ -1,0 +1,29 @@
+
+[name] 平安归来
+[depend message] 冒险家[myname]， 我果然没有信错你！
+多亏了冒险家[myname]的帮助， 征战部队才可以顺利到达。
+我相信巨龙纳特拉一定会被消灭掉！
+不过我不希望冒险家[myname]遇到什么意外。
+不管遇到什么情况， 请一定要平安归来。
+[condition message]     通关月轮山地区的『圣地 : 龙之魂』， 要求不使用复活币。
+[solve message] 冒险家[myname]， 真是万幸啊！ 现在终于可以松一口气了。
+[level] 84 99
+[type] [condition under clear]
+[job] [all]
+[sub type] 4
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 200
+[npc index] 333
+[complete npc index] 333
+[grow type] -1
+[int data] 3202 -1
+[/int data]
+[reward type] [item]
+[reward int data] 10094603 5
+[/reward int data]
+[pre required quest] 13706 13707
+[/pre required quest]
+[dungeon info] 3202 -1
+[/dungeon info]

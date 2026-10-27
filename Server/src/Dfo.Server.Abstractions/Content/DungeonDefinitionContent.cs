@@ -155,6 +155,8 @@ public sealed record DungeonDefinition(
     public int? PartyLimit { get; init; }
     public bool ProhibitsPractice { get; init; }
     public LinkedDungeonDefinition? LinkedDungeon { get; init; }
+    /// <summary>When declared, charge this amount only on entry instead of per new room.</summary>
+    public ushort? EntryOnlyFatigue { get; init; }
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>

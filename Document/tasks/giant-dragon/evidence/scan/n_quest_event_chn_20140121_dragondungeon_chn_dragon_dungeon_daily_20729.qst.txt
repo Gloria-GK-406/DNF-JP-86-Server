@@ -1,0 +1,26 @@
+
+[grade] [daily]
+[difficulty] D
+[gold multiple] 200
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 80 99
+[pre required quest] 20722
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 5
+[int data] 3536 2 2
+[/int data]
+[reward type] [item]
+[dungeon info] 3536 2
+[/dungeon info]
+[reward int data] 0 100 3326 8 10002514 1 10002515 6
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 协同 : 念气修炼场
+[depend message] 那些可恶的小龙还是赖在念气修炼场中继续捣乱， 真是太可恶了， 你愿意帮我赶走它们吗？
+[condition message]     组成2人以上的队伍通关『念气修炼场』， 要求地下城难度为勇士级以上。
+[solve message] 感谢你消灭了那些捣乱的小龙。
