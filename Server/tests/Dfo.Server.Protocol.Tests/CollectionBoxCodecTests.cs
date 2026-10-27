@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class CollectionBoxCodecTests
 {
     [Fact]

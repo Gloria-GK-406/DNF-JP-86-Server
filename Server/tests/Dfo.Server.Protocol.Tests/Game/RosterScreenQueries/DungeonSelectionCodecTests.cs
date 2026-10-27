@@ -12,6 +12,7 @@ namespace Dfo.Server.Protocol.Tests.Game.RosterScreenQueries;
 /// these notification types were not walked. The tests pin what is being sent so a later capture
 /// can be diffed against a known baseline rather than against whatever the code happened to do.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class DungeonSelectionCodecTests
 {
     private static readonly EntrySpawnState Spawn =

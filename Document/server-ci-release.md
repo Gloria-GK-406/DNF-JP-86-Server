@@ -8,7 +8,7 @@
 - PR 面向 main 时运行 CI；合并产生 main push 后再次运行 CI。
 - 当前版本为 `0.2.8`，唯一声明位于 `Server/Directory.Build.props` 的 `VersionPrefix`。每个 PR 默认将目标 main 的 PATCH 加一，同一 PR 追加提交不再加。用户明确指定版本时以用户要求为准；并行 PR 在合并前重新核对 main。该递增由开发流程执行，不由 Actions 额外向主干提交。
 - 日常构建及 CI 候选包使用源码版本，程序集信息保留提交标识。版本递增本身不打 tag、不创建 Release；只有用户明确要求发布时才走下面的 tag 流程。
-- Windows x64 / Linux x64 分别还原、Release 构建、运行测试、生成候选包并启动验证；任一失败均标红。CI 不创建 GitHub Release。
+- PR、main push 和手动 Server CI 只在 Linux 上构建并运行显式标记 `Category=Unit` 的服务端单元测试、GM 前端单元测试及单元报告判据，不生成候选包。完整集成与跨平台测试只在 Release 执行。
 - `vMAJOR.MINOR.PATCH` 或 `vMAJOR.MINOR.PATCH-rc.1` tag 推送后触发 Release。
 - Release 必须先通过 tag 校验、两个平台的测试、自包含发布与启动冒烟测试，再创建 GitHub Release。预发行 tag 自动标记为 prerelease。
 - tag 必须指向 main 历史上的提交。校验使用完整 Git 历史和 `merge-base --is-ancestor`，不要求恰好等于最新 main，避免并行合并造成误拒。
@@ -29,11 +29,11 @@ git push origin v1.2.3
 
 不移动、不覆盖已经发布的 tag。失败时先看 Actions；测试/打包失败不会创建 Release。资产上传或发布失败可能留下 draft，核对后删除这个 draft 再重跑原工作流；不要删除已公开使用的发布版本来覆盖产物。
 
-Actions 中手动运行 **Server CI**，可验证两个平台的发布包，不创建 tag 或 Release。常规 PR/main CI 只上传测试报告，手动 CI 和 tag 工作流另外上传候选包。产物和测试报告保留 7 天；正式 Release 附件长期保留，除非人工删除。
+Actions 中手动运行 **Server CI** 与 PR/main 使用相同的 Linux 单元测试门，只上传单元测试报告。tag 触发的 Release 才运行 Windows/Linux 完整测试、发布包构建和启动冒烟，并上传候选包。产物和测试报告保留 7 天；正式 Release 附件长期保留，除非人工删除。
 
 ## 发布包与运行
 
-附件为 Windows `.zip`、Linux `.tar.gz`，各有 `.sha256` 校验文件。压缩包带单一顶层目录，包含 .NET 10 自包含运行时、服务端程序、默认配置、频道资源、经验配置、GM 页面资源与模块说明/验收表，及 `release.json`（版本、提交、SDK、目标平台和GM资源SHA256）。无需另装 .NET 或 Node；Linux 仍需要系统的 glibc、ICU、OpenSSL 等原生运行库。CI 平台为 Ubuntu 24.04 x64 / Windows Server 2022 x64；具体版本的双平台测试及发布包检查以该提交的 Server CI 结果为准，本机浏览器验证不替代 Linux CI。
+附件为 Windows `.zip`、Linux `.tar.gz`，各有 `.sha256` 校验文件。压缩包带单一顶层目录，包含 .NET 10 自包含运行时、服务端程序、默认配置、频道资源、经验配置、GM 页面资源与模块说明/验收表，及 `release.json`（版本、提交、SDK、目标平台和GM资源SHA256）。无需另装 .NET 或 Node；Linux 仍需要系统的 glibc、ICU、OpenSSL 等原生运行库。CI 平台为 Ubuntu 24.04 x64 / Windows Server 2022 x64；具体版本的双平台测试及发布包检查以该版本的 Server Release 验证结果为准，本机浏览器验证不替代 Linux CI。
 
 运行入口：Windows `Dfo.Server.Host.exe`；Linux `./Dfo.Server.Host`。Linux tar 包保留可执行权限。
 
@@ -50,7 +50,7 @@ Host 内组合 HttpApi、GmWeb 与 GameServer，仍为一份发布包和一个�
 
 ## 从源码构建 GM 与候选包
 
-构建机使用 Node 22.19.0/npm、固定 .NET SDK 和 Python；标准CI按lockfile执行 `npm ci`、前端测试、TypeScript/Vite构建，然后运行原服务端构建/测试。所有步骤正常失败即停止，不忽略错误。
+构建机使用 Node 22.19.0/npm、固定 .NET SDK 和 Python；PR CI 按 lockfile 执行 `npm ci` 和前端单元测试，并构建服务端、运行显式 Unit 分类。Release 另外执行 TypeScript/Vite 构建、完整服务端测试及发布包验证。所有步骤正常失败即停止，不忽略错误。
 
 ```powershell
 npm.cmd --prefix Web/gm-admin ci
@@ -72,15 +72,17 @@ Linux原生构建使用 `RELEASE_RID=linux-x64`。package入口每次重新 `npm
 
 ## 测试范围与维护
 
-云端不分发 PVF，已有内容依赖测试及新增 PvfFact/PvfTheory 会明确显示跳过。普通业务、协议编解码、持久化、网络和 Host 测试继续执行。TRX 和 Actions Summary 都保留通过、失败、跳过数量，不能把绿灯解读为全部内容或客户端已验证。
+PR 使用正向筛选 `Category=Unit`。只有经源代码依赖检查确认的纯规则、协议字节编解码及内存替身机制测试才标记 Unit；真实 SQLite、socket、完整 Host、外部 PVF 及混合类留在 Release 全量测试中。新增单元测试须显式添加该 Trait，不用名称规则或 `Category!=Integration` 猜测。报告要求整个筛选至少执行一项测试，零匹配会失败；未纳入 PR 的集成测试不算作已通过或条件跳过。
+
+Release 云端不分发 PVF，已有内容依赖测试及新增 PvfFact/PvfTheory 会明确显示跳过；其余业务、协议、持久化、网络和 Host 测试完整执行。TRX 和 Actions Summary 都保留通过、失败、跳过数量，不能把绿灯解读为全部内容或客户端已验证。
 
 GM 业务测试固定使用显式内容夹具，事务回滚、幂等、附件配置与领取判据不依赖开发机档案。真实 PVF 的物品目录、装备领取和商城消费竞争另有内容集成测试；有档案时必须执行，缺档案时明确跳过。邮件浏览器夹具仍使用真实 PVF。
 
 本机完整内容验证：设置 `PVF_ARCHIVE_PATH` 后运行 `dotnet test Server/86JP.Server.slnx -c Release`。不得用 continue-on-error 或宽泛过滤来掩盖失败。
 
-CI 使用 .NET 10 最新稳定维护版（setup-dotnet 10.0.x，符合 global.json），实际 SDK 写入发布包清单。Actions 依赖固定提交 SHA；更新 SDK/Action 时仍应经过 PR 和两个平台验证。
+CI 使用 .NET 10 最新稳定维护版（setup-dotnet 10.0.x，符合 global.json），实际 SDK 写入发布包清单。Actions 依赖固定提交 SHA；更新 SDK/Action 时仍应经过 PR 单元门，发布前由 Release 双平台验证。
 
-Windows总任务预算90分钟，Linux仍30分钟（以当前 `validate.yml` 为准）。0.2.2第四轮Windows构建、前端143项与服务端八项目5,370通过/0失败/590条件跳过，但因整任务30分钟预算在保存结果后进入发布步骤时被取消，发布冒烟未完成；这不是完整CI通过。该轮Persistence测试耗时5分10秒，慢于上一轮2分33秒，需给完整串行验证和发布留出预算。单项测试仍保留3分钟无进展挂起检测，不过滤失败或跳过发布步骤。合并必须等新提交的两个平台包含发布冒烟在内的任务全部成功。
+PR Linux 单元任务预算 15 分钟。Release Windows 总任务预算 90 分钟、Linux 30 分钟（以 `validate.yml` 为准）。0.2.2第四轮Windows构建、前端143项与服务端八项目5,370通过/0失败/590条件跳过，但因整任务30分钟预算在保存结果后进入发布步骤时被取消，发布冒烟未完成；这不是完整CI通过。该轮Persistence测试耗时5分10秒，慢于上一轮2分33秒，需给完整串行验证和发布留出预算。单项测试仍保留3分钟无进展挂起检测，不过滤失败或跳过发布步骤。合并等待当前提交的 Linux 单元 CI 成功；Release 必须等待两个平台含发布冒烟的任务全部成功后才能发布。
 
 工作流只读权限为默认值，只有最后发布 job 获得 contents:write。未配置额外 PAT、PVF 下载凭证或生产部署密钥。
 

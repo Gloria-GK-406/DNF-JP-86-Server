@@ -5,6 +5,7 @@ using Dfo.Server.Protocol.Game.AccountRoster;
 
 namespace Dfo.Server.Protocol.Tests.Game.AccountRoster;
 
+[Trait("Category", "Unit")]
 public sealed class AccountCharacterRosterCodecTests
 {
     /// <summary>

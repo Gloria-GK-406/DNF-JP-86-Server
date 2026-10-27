@@ -8,6 +8,7 @@ using static Dfo.Server.Application.Tests.Commands.ProtocolCommandExecutionTests
 
 namespace Dfo.Server.Application.Tests.Transactions;
 
+[Trait("Category", "Unit")]
 public sealed class CommandSelfSettledWorkUnitsTests
 {
     // The oracle observes recovery, admission and original causes, rather than a chosen constructor shape.

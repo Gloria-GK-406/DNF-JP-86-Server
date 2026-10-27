@@ -17,6 +17,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// reader had to find a session before it could ask. The cases here report a movement and then ask,
 /// which is the pair that a service ignoring its reports would fail.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CharacterPositionTests
 {
     private static readonly CharacterPositionState Gate = new(

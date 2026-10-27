@@ -5,6 +5,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
+[Trait("Category", "Unit")]
 public sealed class QuestClearCouponRuleServiceTests
 {
     [Fact]

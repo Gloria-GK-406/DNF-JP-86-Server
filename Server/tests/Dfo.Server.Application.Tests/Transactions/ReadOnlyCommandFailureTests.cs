@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Transactions;
 
+[Trait("Category", "Unit")]
 public sealed class ReadOnlyCommandFailureTests
 {
     [Fact]

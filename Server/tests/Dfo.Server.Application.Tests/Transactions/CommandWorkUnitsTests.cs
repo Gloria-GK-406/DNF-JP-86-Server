@@ -16,6 +16,7 @@ using static Dfo.Server.Application.Tests.Commands.ProtocolCommandExecutionTests
 
 namespace Dfo.Server.Application.Tests.Transactions;
 
+[Trait("Category", "Unit")]
 public sealed class CommandWorkUnitsTests
 {
     [Fact]

@@ -3,6 +3,7 @@ using Dfo.Pvf.Tokens;
 
 namespace Dfo.Pvf.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class TokenReaderTests
 {
     private static byte[] Script(params (PvfTokenKind Kind, int Value)[] tokens)

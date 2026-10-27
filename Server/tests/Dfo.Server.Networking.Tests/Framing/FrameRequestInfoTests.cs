@@ -3,6 +3,7 @@ using Dfo.Server.Networking.Framing;
 
 namespace Dfo.Server.Networking.Tests.Framing;
 
+[Trait("Category", "Unit")]
 public sealed class FrameRequestInfoTests
 {
     [Fact]

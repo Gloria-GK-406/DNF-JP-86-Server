@@ -18,6 +18,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Parties;
 
+[Trait("Category", "Unit")]
 public sealed class PartyServiceTests
 {
     [Fact]

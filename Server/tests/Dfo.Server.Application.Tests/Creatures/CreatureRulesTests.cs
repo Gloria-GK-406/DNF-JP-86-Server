@@ -3,6 +3,7 @@ using Dfo.Server.Application.Creatures;
 
 namespace Dfo.Server.Application.Tests.Creatures;
 
+[Trait("Category", "Unit")]
 public sealed class CreatureRulesTests
 {
     private static readonly CreatureRule Rule = new(

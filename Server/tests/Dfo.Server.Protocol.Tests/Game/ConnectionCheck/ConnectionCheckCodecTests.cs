@@ -5,6 +5,7 @@ using Dfo.Server.Protocol.Game.ConnectionCheck;
 
 namespace Dfo.Server.Protocol.Tests.Game.ConnectionCheck;
 
+[Trait("Category", "Unit")]
 public sealed class ConnectionCheckCodecTests
 {
     private static GameMessageMetadata Probe(ushort sequence) =>

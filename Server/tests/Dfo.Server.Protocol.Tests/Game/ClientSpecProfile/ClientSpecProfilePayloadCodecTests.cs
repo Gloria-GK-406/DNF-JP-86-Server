@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game.ClientSpecProfile;
 
 namespace Dfo.Server.Protocol.Tests.Game.ClientSpecProfile;
 
+[Trait("Category", "Unit")]
 public sealed class ClientSpecProfilePayloadCodecTests
 {
     // The A21 header, from the reference server's own capture of this client on 2026-08-27: the

@@ -4,6 +4,7 @@ using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class ExperienceBonusRulesTests
 {
     private static readonly DateTimeOffset Now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);

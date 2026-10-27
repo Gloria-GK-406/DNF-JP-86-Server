@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Channel;
 
+[Trait("Category", "Unit")]
 public sealed class ChannelEntryDomainServiceTests
 {
     [Theory]

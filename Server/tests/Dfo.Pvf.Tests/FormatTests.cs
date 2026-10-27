@@ -5,6 +5,7 @@ using Dfo.Pvf.Index;
 
 namespace Dfo.Pvf.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class HeaderTests
 {
     private static byte[] BuildHeader(
@@ -91,6 +92,7 @@ public sealed class HeaderTests
     }
 }
 
+[Trait("Category", "Unit")]
 public sealed class CipherTests
 {
     // The cipher xors against a key-derived stream, so applying it twice restores the
@@ -152,6 +154,7 @@ public sealed class CipherTests
     }
 }
 
+[Trait("Category", "Unit")]
 public sealed class ZlibCodecTests
 {
     private static byte[] Compress(byte[] payload)
@@ -201,6 +204,7 @@ public sealed class ZlibCodecTests
     }
 }
 
+[Trait("Category", "Unit")]
 public sealed class ArchivePathTests
 {
     [Theory]

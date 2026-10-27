@@ -5,6 +5,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class AltarDungeonRuleServiceTests
 {
     private static AltarDungeonDefinition Definition() => new(11006, AltarDungeonKind.Endless, 60, 60, 15, 5, [],

@@ -21,6 +21,7 @@ namespace Dfo.Server.Application.Tests.Commands;
 /// handlers broke it while every check stayed green.
 /// </para>
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CommandHandlerArchitectureTests
 {
     /// <summary>

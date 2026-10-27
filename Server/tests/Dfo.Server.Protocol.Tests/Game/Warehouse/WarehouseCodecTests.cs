@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game.Warehouse;
 
 namespace Dfo.Server.Protocol.Tests.Game.Warehouse;
 
+[Trait("Category", "Unit")]
 public sealed class WarehouseCodecTests
 {
     [Theory]

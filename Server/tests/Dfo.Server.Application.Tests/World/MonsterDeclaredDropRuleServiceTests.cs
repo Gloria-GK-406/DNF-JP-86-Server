@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 namespace Dfo.Server.Application.Tests.World;
+[Trait("Category", "Unit")]
 public sealed class MonsterDeclaredDropRuleServiceTests
 {
     private static readonly MonsterDeclaredDropTable Table = new(1, [

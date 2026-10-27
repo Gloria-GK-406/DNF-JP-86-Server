@@ -22,6 +22,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
+[Trait("Category", "Unit")]
 public sealed class SessionGenerationOwnershipTests
 {
     [Fact]

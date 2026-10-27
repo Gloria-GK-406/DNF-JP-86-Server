@@ -4,6 +4,7 @@ using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Tests.Channel;
 
+[Trait("Category", "Unit")]
 public sealed class ChannelAdmissionTests
 {
     [Theory]

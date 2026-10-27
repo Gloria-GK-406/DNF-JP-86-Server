@@ -6,6 +6,7 @@ using Dfo.Server.Protocol.Game.MirrorDungeonEntry;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
+[Trait("Category", "Unit")]
 public sealed class MirrorDungeonEntryCodecTests
 {
     [Fact]

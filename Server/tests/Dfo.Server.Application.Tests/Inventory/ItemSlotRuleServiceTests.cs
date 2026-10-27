@@ -8,6 +8,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 /// <summary>
 /// Where an item may sit in the main inventory: its own band, plus the quick slots.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class ItemSlotRuleServiceTests
 {
     private static readonly ItemSlotRuleService Rules = new();

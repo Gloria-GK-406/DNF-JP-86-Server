@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
+[Trait("Category", "Unit")]
 public sealed class EquipmentUpgradeRuleServiceTests
 {
     [Theory]

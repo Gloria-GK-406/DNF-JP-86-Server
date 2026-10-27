@@ -19,6 +19,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 /// Who a connection is, as one record behind one lock: the online user, the account it has
 /// authenticated as, the session that account has selected, and how far that session has got.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class OnlineIdentityTests
 {
     private static readonly AccountId Account = new(41);

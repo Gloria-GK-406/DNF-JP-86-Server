@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
+[Trait("Category", "Unit")]
 public sealed class CharacterSkillRuleServiceTests
 {
     private static readonly CharacterCareer Career = new(0, 1, 1);

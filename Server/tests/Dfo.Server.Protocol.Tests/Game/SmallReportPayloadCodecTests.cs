@@ -8,6 +8,7 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// The two smallest confirmed reports. Both have a fully static layout across every client builder
 /// site, so the interesting cases are the length boundaries and value preservation.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class SmallReportPayloadCodecTests
 {
     /// <remarks>

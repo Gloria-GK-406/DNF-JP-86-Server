@@ -6,6 +6,7 @@ using Dfo.Server.Protocol.Game.Rental;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class RentalCodecTests
 {
     [Fact]

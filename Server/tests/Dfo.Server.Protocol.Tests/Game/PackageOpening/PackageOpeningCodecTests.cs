@@ -10,6 +10,7 @@ using Dfo.Server.Protocol.Game.PackageOpening;
 
 namespace Dfo.Server.Protocol.Tests.Game.PackageOpening;
 
+[Trait("Category", "Unit")]
 public sealed class PackageOpeningCodecTests
 {
     private static readonly OpeningRewardDisplay Reward = new(new(BusinessInventorySpace.Consumable, 5), 10007368, 2, 123, 7, 0x12345678);

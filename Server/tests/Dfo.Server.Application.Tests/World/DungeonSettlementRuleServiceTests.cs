@@ -7,6 +7,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class DungeonSettlementRuleServiceTests
 {
     private static readonly AccountId Account = new(1);

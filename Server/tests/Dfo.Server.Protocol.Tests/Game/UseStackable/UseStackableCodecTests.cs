@@ -13,6 +13,7 @@ namespace Dfo.Server.Protocol.Tests.Game.UseStackable;
 /// virtual call whose payload depends on the item type -- but the prefix the reference server reads
 /// matches the observed frame field for field.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class UseStackableCodecTests
 {
     private static readonly byte[] ObservedBody =

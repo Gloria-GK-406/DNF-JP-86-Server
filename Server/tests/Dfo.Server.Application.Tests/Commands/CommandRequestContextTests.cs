@@ -5,6 +5,7 @@ using static Dfo.Server.Application.Tests.Commands.ProtocolCommandExecutionTests
 
 namespace Dfo.Server.Application.Tests.Commands;
 
+[Trait("Category", "Unit")]
 public sealed class CommandRequestContextTests
 {
     [Fact]

@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.MagicSeal;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
+[Trait("Category", "Unit")]
 public sealed class MagicSealWireTests
 {
     [Fact]

@@ -10,6 +10,7 @@ namespace Dfo.Server.Application.Tests.Transactions;
 /// protocol command does, so what they prove is what a handler gets for free: the handler
 /// itself never mentions a transaction.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class UnitOfWorkBehaviorTests
 {
     [Fact]

@@ -1,39 +1,58 @@
 name: Server CI
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: socket-regression-${{ github.ref }}
+  group: server-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  windows-networking:
-    name: Windows networking regression
-    runs-on: windows-2022
+  unit:
+    name: Unit tests (Linux)
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_NOLOGO: 1
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        env:
-          GIT_CONFIG_COUNT: 1
-          GIT_CONFIG_KEY_0: core.longpaths
-          GIT_CONFIG_VALUE_0: true
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
-      - name: Restore networking tests
-        run: dotnet restore Server/tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj
-      - name: Run Windows networking regression
-        run: dotnet test Server/tests/Dfo.Server.Networking.Tests/Dfo.Server.Networking.Tests.csproj -c Release --no-restore --logger trx --results-directory artifacts/windows-networking-results --blame-hang-timeout 3m --blame-hang-dump-type none
-      - name: Retain regression results
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.1
         with:
-          name: windows-networking-regression
-          path: artifacts/windows-networking-results
+          node-version: 22.19.0
+          package-manager-cache: false
+      - name: Prepare GM unit tests
+        working-directory: Web/gm-admin
+        run: npm ci
+      - name: Test GM frontend
+        working-directory: Web/gm-admin
+        run: npm test
+      - name: Test report guard
+        run: python -m unittest discover -s Tool/Release -p test_summary.py
+      - name: Restore
+        run: dotnet restore Server/86JP.Server.slnx
+      - name: Build
+        run: dotnet build Server/86JP.Server.slnx -c Release --no-restore -p:ContinuousIntegrationBuild=true
+      - name: Test units
+        run: dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore -m:1 --filter "Category=Unit" --logger trx --results-directory artifacts/unit-test-results --blame-hang-timeout 3m --blame-hang-dump-type none
+      - name: Unit test summary
+        if: always()
+        run: python Tool/Release/release.py summary artifacts/unit-test-results --unit-only
+      - name: Retain unit test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-test-results-linux-x64
+          path: |
+            artifacts/unit-test-results/**/*.trx
+            artifacts/unit-test-results/**/*Sequence.xml
           if-no-files-found: warn
           retention-days: 7

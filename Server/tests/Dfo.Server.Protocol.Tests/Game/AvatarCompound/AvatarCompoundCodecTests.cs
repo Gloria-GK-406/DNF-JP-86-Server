@@ -4,6 +4,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.AvatarCompound;
 
 namespace Dfo.Server.Protocol.Tests.Game.AvatarCompound;
+[Trait("Category", "Unit")]
 public sealed class AvatarCompoundCodecTests
 {
     [Theory]

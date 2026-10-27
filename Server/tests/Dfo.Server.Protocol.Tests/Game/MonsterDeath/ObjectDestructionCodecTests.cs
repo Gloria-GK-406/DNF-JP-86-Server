@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 
 namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 
+[Trait("Category", "Unit")]
 public sealed class ObjectDestructionCodecTests
 {
     [Theory]

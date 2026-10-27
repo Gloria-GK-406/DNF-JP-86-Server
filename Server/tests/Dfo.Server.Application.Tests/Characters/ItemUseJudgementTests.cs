@@ -18,6 +18,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// What a character is and where it stands is covered where the character is; this covers the
 /// comparisons and the order they are made in.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class ItemUseJudgementTests
 {
     private static readonly IItemUseJudgementService Judgement =

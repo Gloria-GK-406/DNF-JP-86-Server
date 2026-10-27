@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game.Login;
 
 namespace Dfo.Server.Protocol.Tests.Game.Login;
 
+[Trait("Category", "Unit")]
 public sealed class GameLoginCodecTests
 {
     /// <summary>

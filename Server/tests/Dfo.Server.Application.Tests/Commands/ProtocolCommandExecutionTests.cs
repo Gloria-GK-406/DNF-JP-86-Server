@@ -15,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.Tests.Commands;
 
+[Trait("Category", "Unit")]
 public sealed class ProtocolCommandExecutionTests
 {
     [Theory]

@@ -5,6 +5,7 @@ using Dfo.Server.Protocol.Game.InventorySort;
 
 namespace Dfo.Server.Protocol.Tests.Game.InventorySort;
 
+[Trait("Category", "Unit")]
 public sealed class SortItemCodecTests
 {
     [Fact]

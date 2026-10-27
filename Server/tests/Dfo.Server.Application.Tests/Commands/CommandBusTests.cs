@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Tests.Commands;
 
+[Trait("Category", "Unit")]
 public sealed class CommandBusTests
 {
     [Fact]

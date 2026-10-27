@@ -8,6 +8,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class MarriageProposalCodecTests
 {
     [Fact]

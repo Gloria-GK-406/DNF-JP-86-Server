@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game.ReinforceItem;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
+[Trait("Category", "Unit")]
 public sealed class ReinforceItemWireTests
 {
     [Theory]

@@ -24,6 +24,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// that the second answer moved with it. An answer kept from the first question would pass every
 /// other case in this file.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CharacterIdentityTests
 {
     private static readonly CharacterId Who = new(60);

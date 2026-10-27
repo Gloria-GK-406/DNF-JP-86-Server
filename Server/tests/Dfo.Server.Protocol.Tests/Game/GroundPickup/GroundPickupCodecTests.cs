@@ -12,6 +12,7 @@ namespace Dfo.Server.Protocol.Tests.Game.GroundPickup;
 /// shoulder on the ground, the player standing on it. The answers are the reference builder's --
 /// a one-byte acknowledgement and an eighteen-byte notification.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class GroundPickupCodecTests
 {
     /// <remarks>

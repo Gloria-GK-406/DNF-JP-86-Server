@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 
+[Trait("Category", "Unit")]
 public sealed class AvatarAppearanceWireTests
 {
     [Theory]

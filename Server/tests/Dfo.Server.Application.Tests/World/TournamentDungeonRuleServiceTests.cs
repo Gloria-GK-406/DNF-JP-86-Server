@@ -3,6 +3,7 @@ using Dfo.Server.Application.World;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class TournamentDungeonRuleServiceTests
 {
     [Theory]

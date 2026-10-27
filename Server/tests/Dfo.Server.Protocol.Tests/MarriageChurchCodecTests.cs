@@ -7,6 +7,7 @@ using Dfo.Server.Protocol.Game.MarriageProposal;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class MarriageChurchCodecTests
 {
     [Fact]

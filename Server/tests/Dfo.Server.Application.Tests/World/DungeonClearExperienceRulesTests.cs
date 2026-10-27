@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class DungeonClearExperienceRulesTests
 {
     private static readonly ExperienceParameters Rates = new([1], [1, 1.5, 2, 2.5], 1, 1, [0.05, 0.1, 0.12, 0.15, 0.2]);
