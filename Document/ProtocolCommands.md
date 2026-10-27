@@ -81,10 +81,14 @@ busy／取消／排空，不预读世界、不传业务 callback。整轮扫描�
 关闭请求已登记、尚未执行时，若传输先关闭，disconnect 仍可能继承登记的关闭链（F-131），
 该链证明登记因果，不保证最后触发物理关闭的唯一原因。
 
-有序关闭在 flush 已确认的帧之后取得 transport 的唯一关闭权，取消管道等待并执行 `Shutdown(Both)`，
-等待原接收／发送任务退出后，才在关闭阶段丢弃 socket 剩余本地入站缓冲，最后执行默认 socket
-`Close()`，让 TCP 保留已接受的发送尾部。整个物理关闭阶段有独立的两秒期限；超时仍释放 socket 并
-保留错误。不等待对端 FIN，也不把本地关闭后的 EOF 说成对端已完成或任意持续输入都能无损关闭。
+有序关闭在 flush 已确认的帧之后取得 transport 的唯一关闭权，取消管道等待，再停止原接收／发送
+任务。macOS／Linux 通过 `Shutdown(Both)` 解除不支持取消 token 的 native receive，原任务退出后
+才丢弃剩余本地入站缓冲。Windows 的 Winsock `SD_RECEIVE` 会禁止后续接收、并使未读输入触发
+reset，因此只执行 `Shutdown(Send)`，通过 `CancelIoEx` 撤销该 socket 的旧 overlapped I/O；
+`ERROR_NOT_FOUND` 只代表本次没有 pending I/O，仍需等待原任务真正退出后才读取当前可用的本地
+入站数据。最后默认 socket `Close()`，让 TCP 保留已接受的发送尾部。整个物理关闭阶段使用同一个
+独立两秒期限，包含重试取消和缓冲丢弃；超时仍释放 socket 并保留错误。不等待对端 FIN，也不把
+本地 EOF／Available=0 说成所有在途输入完成或任意持续输入都能无损关闭。
 随后调用框架会话关闭完成生命周期清理，该阶段也独立受 `OutboundLimits.DeliveryTimeout` 限制，
 均发生在发送端独立循环中。连接回调等待物理阶段结束才继续清理和回池；物理阶段不等待该回调。
 TouchSocket 4.3.1 的 transport 固定调用 `Socket.Close(0)`，在 Linux 上属于 abortive close；其公开

@@ -1,6 +1,8 @@
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 
@@ -116,16 +118,33 @@ public abstract class DrainingTcpService : TcpService<TcpSessionClient>, ITcpSer
                     cancellationToken.ThrowIfCancellationRequested();
                     SignalTransportClose(transport);
                     socket.LingerState = new LingerOption(false, 0);
-                    socket.Shutdown(SocketShutdown.Both);
-                    // Native receives in 4.3.1 have no cancellation token. Shutdown releases that
-                    // owner; its two transport tasks must finish before this close-only reader starts.
-                    await WaitForTransportClosedAsync(transport, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
                     var discarded = new byte[8192];
-                    while (true)
+                    if (OperatingSystem.IsWindows())
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (await socket.ReceiveAsync(discarded.AsMemory(), SocketFlags.None, cancellationToken).ConfigureAwait(false) == 0)
-                            break;
+                        // Winsock SD_RECEIVE makes queued input a reset and forbids the drain.
+                        // Cancel the old overlapped operation without shutting down reception.
+                        socket.Shutdown(SocketShutdown.Send);
+                        await StopWindowsTransportIoAsync(transport, socket, cancellationToken).ConfigureAwait(false);
+                        while (socket.Available is var available && available > 0)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (await socket.ReceiveAsync(discarded.AsMemory(0, Math.Min(discarded.Length, available)),
+                                    SocketFlags.None, cancellationToken).ConfigureAwait(false) == 0)
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        socket.Shutdown(SocketShutdown.Both);
+                        // Native receives in 4.3.1 have no cancellation token. Shutdown releases that
+                        // owner; its two transport tasks must finish before this close-only reader starts.
+                        await WaitForTransportClosedAsync(transport, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false);
+                        while (true)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (await socket.ReceiveAsync(discarded.AsMemory(), SocketFlags.None, cancellationToken).ConfigureAwait(false) == 0)
+                                break;
+                        }
                     }
                 }
                 catch (ObjectDisposedException) { }
@@ -146,6 +165,33 @@ public abstract class DrainingTcpService : TcpService<TcpSessionClient>, ITcpSer
             }
             finally { completion.TrySetResult(); }
         }
+
+        [SupportedOSPlatform("windows")]
+        private static async Task StopWindowsTransportIoAsync(object transport, Socket socket, CancellationToken cancellationToken)
+        {
+            // Only the original loops establish stopped ownership, never a cancelled wait wrapper.
+            var stopped = WaitForTransportClosedAsync(transport, CancellationToken.None);
+            while (!stopped.IsCompleted)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!CancelIoEx(socket.SafeHandle, IntPtr.Zero))
+                {
+                    var error = Marshal.GetLastPInvokeError();
+                    if (error != 1168) // ERROR_NOT_FOUND: no overlapped operation was pending on this attempt.
+                        throw new System.ComponentModel.Win32Exception(error, "Cancelling the closing socket's legacy transport I/O failed.");
+                }
+                // A native receive may be posted just after CancelIoEx. Retry cancellation until
+                // both old loops actually exit; a retry interval never counts as proof of completion.
+                if (!stopped.IsCompleted)
+                    await Task.WhenAny(stopped, Task.Delay(10, cancellationToken)).ConfigureAwait(false);
+            }
+            await stopped.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CancelIoEx(SafeSocketHandle socket, IntPtr overlapped);
 
         // Fixed TouchSocket 4.3.1 compatibility seam: upgrades must revalidate these exact
         // members, stopped receive ownership, the small-window FIN, and the close deadline.
