@@ -1,6 +1,6 @@
 # 巨龙系列 #167
 
-状态：实现候选，等待独占玩家库部署与A21用户验收；未创建PR。基线 `63fb3993`，分支 `codex/167-giant-dragon`，暂定版本 `0.2.10`，合并前按最新main重新核对版本。
+状态：已在2026-10-27独占时段切换原玩家库，等待A21用户验收；未创建PR。实际运行身份、现役资源与备份见 [部署记录](Deployment-20261027.md)。基线 `63fb3993`，分支 `codex/167-giant-dragon`，暂定版本 `0.2.10`，合并前按最新main重新核对版本。
 范围见 [#167](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/167)、[#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。用户明确授权“恢复世界图98原生入口，并明确作为本服新增开放规则”。本会话独立工作区，不使用subagent，不修改其他并行任务。
 
 ## 证据边界
@@ -38,7 +38,7 @@
 
 ## 内容恢复包
 
-候选文件为工作区 `artifacts/giant-dragon/resources/Script-giant-dragon-quests.pvf`，SHA-256：
+初始研究候选为工作区 `artifacts/giant-dragon/resources/Script-giant-dragon-quests.pvf`，SHA-256：
 `56CE679A73E32132BFF7E1B2003E68804639A90F07C05898A1967C1A0D4FB48C`。
 同名 `.json` 保存原/新身份和修改清单。只修改4项：
 
@@ -55,7 +55,7 @@
 dotnet run --project Document/tasks/giant-dragon/probe/Probe.csproj -- restore-entry 'E:\Project\DNF\DNFClient-A21-protocol2\Script.pvf' 'artifacts/giant-dragon/resources/Script-giant-dragon-quests.pvf'
 ```
 
-**部署前必须核实当前主服务实际使用的PVF。** 若与原始SHA不同，先审计既有内容差异、重新适配补丁和回归，不能用本研究源覆盖现役资源或其他任务补丁。客户端与服务端都需要同一恢复资源；本包未写入共享客户端。
+**部署前必须核实当前主服务实际使用的PVF。** 若与原始SHA不同，先审计既有内容差异、重新适配补丁和回归，不能用本研究源覆盖现役资源或其他任务补丁。本次实际部署以现役3822源重新生成，客户端/服务端使用相同01F1恢复包；身份与31项原生输入审计见 [部署记录](Deployment-20261027.md)。补丁工具只接受已审计的D45或3822源，其他源仍拒绝。
 
 ## 实现与机制边界
 
@@ -71,4 +71,4 @@ dotnet run --project Document/tasks/giant-dragon/probe/Probe.csproj -- restore-e
 自动结果、已知基线失败和自查边界见 [Verification.md](Verification.md)。具体测试按 [Human-Test-List.md](Human-Test-List.md) 编号执行。
 [Smoke.ps1](Smoke.ps1) 使用独立临时库，启动前核实候选23070/23071/23072的TCP与UDP占用，关闭频道脚本目录以避免端口被 `10000+channel.Id` 改写，记录实际PID/EXE及监听。当前UDP发现实现固定17200/17201，隔离烟测关闭它；多人实机需要先协调独占服务时段。
 
-用户确认时段前不结束共享Host、不同时写玩家库、不替换共享PVF。授权后先从实际进程、命令行及配置覆盖核定数据库/PVF，保留原服务产物和配置，并用SQLite backup API取得可验证备份；在备份副本确认兼容性，再切换到原玩家库。用户实机通过前不创建PR、不将issue范围标为完成。
+用户确认时段前不结束共享Host、不同时写玩家库、不替换共享PVF。本次已按授权核定数据库/PVF，保留原服务产物和配置，用SQLite backup API备份、在副本确认兼容性后切换到原玩家库，记录见上述部署页。用户实机通过前不创建PR、不将issue范围标为完成。

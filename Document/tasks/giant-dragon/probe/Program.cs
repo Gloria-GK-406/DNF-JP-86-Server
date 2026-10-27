@@ -5,6 +5,11 @@ using Dfo.Pvf.Tokens;
 
 // Task-local, read-only evidence scanner. Keeps at most one script in memory.
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+if (args[0] == "audit-base")
+{
+    PvfBaseAudit.Run(args[1], args[2], args[3], args[4]);
+    return;
+}
 if (args[0] == "restore-entry")
 {
     NativeEntrancePatch.Write(args[1], args[2]);

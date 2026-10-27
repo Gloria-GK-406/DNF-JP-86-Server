@@ -19,7 +19,10 @@ internal static class NativeEntrancePatch
             throw new IOException("Refuse in-place editing or overwriting output.");
         using var input = File.OpenRead(sourcePath);
         var hash = Convert.ToHexString(SHA256.HashData(input));
-        if (hash != "D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84")
+        // The active 3822 archive was separately audited against D45: all 31 native
+        // restoration inputs match. Preserve its unrelated existing patches.
+        if (hash is not ("D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84"
+            or "3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B"))
             throw new InvalidDataException("Source identity changed; re-audit before applying native entrance changes.");
         using var archive = PvfArchive.Open(sourcePath);
         var edits = new Dictionary<int, byte[]>();
