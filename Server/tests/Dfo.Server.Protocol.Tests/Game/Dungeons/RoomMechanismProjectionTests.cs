@@ -35,7 +35,7 @@ public sealed class RoomMechanismProjectionTests
         {
             var session = new SelectedSessionIdentity(new(1), new(1), new("mechanism-original"), 1, 1, 10011);
             var sessions = new Sessions(session);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(98765, 0, 1, 1, cell, cell, 12345, 9,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(12345) });

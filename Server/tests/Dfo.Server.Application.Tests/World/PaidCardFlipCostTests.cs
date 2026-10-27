@@ -412,7 +412,7 @@ public sealed class PaidCardFlipCostTests
             this._carried.AddAsync(Character, funded, int.MaxValue, CancellationToken.None)
                 .AsTask().GetAwaiter().GetResult();
 
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Character, LayoutFor(dungeonId), difficulty: (DungeonDifficulty)1);
             this._cards = new CardRewardDomainService(Rules(provider), runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
 

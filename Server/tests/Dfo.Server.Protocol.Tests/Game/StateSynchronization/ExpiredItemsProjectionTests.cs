@@ -39,7 +39,7 @@ public sealed class ExpiredItemsProjectionTests
             var towns = new TownAreaDomainService();
             foreach (var session in new[] { owner, peer })
                 towns.Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(), new(1, 1, 2), new(1, 2, 1, 1, 0), true));
-            var visibility = new CharacterVisibleSessionDomainService(sessions, towns, new DungeonRunDomainService());
+            var visibility = new CharacterVisibleSessionDomainService(sessions, towns, TestParties.Runs());
             var reads = new ReadModel(source);
             var handler = new ExpiredItemsRefreshHandler(sessions, reads, visibility, reads, reads, housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(), mailbox: ProtocolAlgorithmFixture.Default<IMailboxQueryDomainService>());
             var notice = new ExpiredItemsRefresh(owner, [InventoryContainerType.Equipment], DateTimeOffset.UtcNow);

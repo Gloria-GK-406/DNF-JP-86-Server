@@ -22,7 +22,7 @@ public sealed class DungeonClearDomainServiceTests
         {
             var definition = new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16);
             var layout = BossLayout() with { Tournament = new(definition, [], [], 1) };
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Leader, layout, difficulty: 0);
             var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });
             Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
@@ -35,7 +35,7 @@ public sealed class DungeonClearDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var layout = BossLayout();
             var seed = new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
             [
@@ -71,7 +71,7 @@ public sealed class DungeonClearDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var layout = BossLayout();
             var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
                 new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
@@ -112,7 +112,7 @@ public sealed class DungeonClearDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(
                 Leader,
                 BossLayout() with
@@ -137,7 +137,7 @@ public sealed class DungeonClearDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Leader, BossLayout(), difficulty: 0);
             var room = new MutableRoomCleared();
             var service = new DungeonClearDomainService(runs, room);
@@ -161,7 +161,7 @@ public sealed class DungeonClearDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.BeginParty(
                 [
                     new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
@@ -185,7 +185,7 @@ public sealed class DungeonClearDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var ordinary = runs.Begin(Leader, OrdinaryLayout(), difficulty: 0);
             var service = new DungeonClearDomainService(
                 runs, new MutableRoomCleared { Cleared = true });

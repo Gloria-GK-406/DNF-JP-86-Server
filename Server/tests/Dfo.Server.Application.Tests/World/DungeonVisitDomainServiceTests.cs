@@ -21,7 +21,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var materials = new UnexpectedMaterials();
@@ -44,7 +44,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(), runs, new ImmediateSelection(), cells,
@@ -65,7 +65,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var materials = new UnexpectedMaterials();
@@ -90,7 +90,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var materials = new UnexpectedMaterials();
@@ -116,7 +116,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(), runs, new ImmediateSelection(),
                 new InvalidDataCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(), fatigue);
@@ -147,7 +147,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(), runs, new ImmediateSelection(), cells,
@@ -199,7 +199,7 @@ public sealed class DungeonVisitDomainServiceTests
                 Assert.Equal(new MazeCell(3, 2), layout.StartCell);
                 Assert.Equal(22419, layout.StartRoomMapId);
             }
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(rules, runs, new ImmediateSelection(), cells,
@@ -239,7 +239,7 @@ public sealed class DungeonVisitDomainServiceTests
             layout = layout with { StartCell = new(0, 1), BossCell = new(4, 0), StartRoomMapId = 15303 };
             Assert.Equal(16, layout.Cells.Count);
             Assert.Equal([15268, 15316], maze.Cells[new(1, 0)].MapCandidates);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(rules, runs, new ImmediateSelection(), cells,
@@ -285,7 +285,7 @@ public sealed class DungeonVisitDomainServiceTests
             var layout = TwoRoomLayout with { Cells = new Dictionary<MazeCell, DungeonCellDefinition>
                 { [new(0, 0)] = DungeonCellDefinition.Fixed(61000),
                     [new(1, 0)] = DungeonCellDefinition.Fixed(999999) with { BossMapCandidates = [999999] } } };
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(rules, runs, new ImmediateSelection(), cells,
@@ -319,7 +319,7 @@ public sealed class DungeonVisitDomainServiceTests
                 await fatigue.SpendAsync(f.Session.CharacterId, (ushort)alreadyUsed, default);
                 await tx.CommitAsync(default);
             }
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             var visits = Bound(f, runs, TwoRoomLayout);
             var entry = await visits.EnterAsync(f.Session.CharacterId, 10001, DungeonDifficulty.Normal, new(DungeonDifficulty.Normal, [], []), default);
             Assert.NotNull(entry);
@@ -350,8 +350,9 @@ public sealed class DungeonVisitDomainServiceTests
                 await fatigue.SpendAsync(new(72), 188, default);
                 await tx.CommitAsync(default);
             }
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             DungeonRunParticipant[] members = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
+            TestParties.EnsureEntryParty(runs, members);
             var result = await Bound(f, runs, TwoRoomLayout).TryEnterPartyAsync(members, 10001, new(DungeonDifficulty.Normal, [], []), default);
             Assert.Equal(DungeonEntryFailure.InsufficientFatigue, result.Failure);
             Assert.Equal((byte)1, result.BlockedSlot);
@@ -373,7 +374,7 @@ public sealed class DungeonVisitDomainServiceTests
         {
             await using var f = new LearningFixture();
             await f.SeedAsync();
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             var visits = Bound(f, runs, TwoRoomLayout);
             var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
             await using (var tx = f.Scope.Begin())
@@ -446,7 +447,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var layouts = new RecordingLayouts();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(layouts, runs, new ImmediateSelection(), cells,
@@ -467,7 +468,7 @@ public sealed class DungeonVisitDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cells = new RecordingCellFactory();
             var layouts = new RecordingLayouts(TwoRoomLayout);
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(layouts, runs, new ImmediateSelection(), cells,
@@ -502,9 +503,11 @@ public sealed class DungeonVisitDomainServiceTests
                 new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
             ];
             var layouts = new RecordingLayouts();
+            var runs = TestParties.Runs();
+            TestParties.EnsureEntryParty(runs, party);
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(
                 layouts,
-                new DungeonRunDomainService(),
+                runs,
                 new ImmediateSelection(),
                 new RecordingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(), new TestFatigue());
 
@@ -535,7 +538,7 @@ public sealed class DungeonVisitDomainServiceTests
                 new(new AccountId(11), new CharacterId(1), 0, IsLeader: true),
                 new(new AccountId(22), new CharacterId(2), 1, IsLeader: false),
             ];
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(
                 new RecordingLayouts(),
                 runs,
@@ -560,7 +563,7 @@ public sealed class DungeonVisitDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var character = new CharacterId(1);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var current = runs.Begin(character, TwoRoomLayout, difficulty: 0);
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(
                 new RecordingLayouts(),
@@ -588,7 +591,7 @@ public sealed class DungeonVisitDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var character = new CharacterId(1);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var current = runs.Begin(character, TwoRoomLayout, difficulty: 0);
             var factory = new RecordingCellFactory();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(
@@ -628,7 +631,7 @@ public sealed class DungeonVisitDomainServiceTests
             Assert.True(parties.RequestInvite(first, second,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(second, first).Succeeded);
-            var runs = new DungeonRunDomainService(parties);
+            var runs = TestParties.Runs(parties: parties);
             var start = runs.PreparePartyEntry(
                 [leader, successor], TwoRoomLayout, 0,
                 DungeonCellSeed.CompleteEmpty(TwoRoomLayout.StartCell, TwoRoomLayout.StartRoomMapId),
@@ -660,7 +663,7 @@ public sealed class DungeonVisitDomainServiceTests
     public async Task Concurrent_first_visits_publish_only_one_complete_cell_and_reuse_it()
     {
         var character = new CharacterId(1);
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var current = TestGameplay.Run(() => runs.Begin(character, TwoRoomLayout, difficulty: 0));
         var factory = new RacingCellFactory();
         var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(

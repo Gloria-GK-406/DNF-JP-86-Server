@@ -23,7 +23,7 @@ public sealed class LuckyStarRentalTests
             s.AddSingleton<IEquipmentDefinitionSource>(content);
             s.AddSingleton<IItemPlacementDefinitionSource>(content);
             s.AddSingleton<IDungeonDefinitionSource>(content);
-            s.AddSingleton<IDungeonRunDomainService>(new DungeonRunDomainService());
+            s.AddSingleton<IDungeonRunDomainService>(TestParties.Runs());
         });
         f.Sql($"UPDATE accounts SET lucky_star={stars}; UPDATE character_stats SET carried_gold={gold};");
         f.SetLevel(85);

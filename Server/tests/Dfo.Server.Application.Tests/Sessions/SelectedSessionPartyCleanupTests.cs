@@ -179,7 +179,7 @@ public sealed class SelectedSessionPartyCleanupTests
                     : new OnlineCharacterRuntimeDomainService(TimeProvider.System),
                 new StubChannelEntryPolicy(),
                 Parties.Service,
-                new DungeonRunDomainService(),
+                TestParties.Runs(),
                 []);
         }
 

@@ -375,7 +375,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             side.BindMain(Character, placements: placements);
             side.BindList(InventoryContainerType.Avatar, Character, placements: placements);
 
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var handler = new GroundPickupAlgorithmDriver(
                 runs,
                 new GroundPickupDomainService(),

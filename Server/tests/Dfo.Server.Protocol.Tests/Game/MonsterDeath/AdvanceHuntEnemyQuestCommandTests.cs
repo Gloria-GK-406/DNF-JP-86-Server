@@ -200,7 +200,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
-            var runs = new Dfo.Server.Application.World.DungeonRunDomainService(scope);
+            var runs = TestParties.Runs(scope);
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var session = Dfo.Server.Testing.TestSessions.InWorld(sessions, state, Account, Character, "object", 10010);
             var layout = new DungeonLayout(84, 0, 1, 1, new(0, 0), new(0, 0), 10, 0,
@@ -337,7 +337,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
 
         public ObjectPartyFixture(int memberQuest, int count)
         {
-            this.runs = new(this.Scope);
+            this.runs = TestParties.Runs(this.Scope);
             this.Sessions = Dfo.Server.Testing.TestSessions.Directory(out this.State);
             var first = Dfo.Server.Testing.TestSessions.InWorld(this.Sessions, this.State, Account, Character, "first", 10010);
             var second = Dfo.Server.Testing.TestSessions.InWorld(this.Sessions, this.State, new(7), new(61), "second", 10011);
@@ -351,8 +351,11 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             {
                 Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0), loot)],
             };
+            DungeonRunParticipant[] roster =
+                [new(first.AccountId, first.CharacterId, 0, true), new(second.AccountId, second.CharacterId, 1, false)];
+            TestParties.EnsureEntryParty(this.runs, roster);
             var run = this.runs.PreparePartyEntry(
-                [new(first.AccountId, first.CharacterId, 0, true), new(second.AccountId, second.CharacterId, 1, false)],
+                roster,
                 layout, DungeonDifficulty.Normal, seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
             this.FirstBag = new(14, this.Scope);
             this.SecondBag = new(count, this.Scope);

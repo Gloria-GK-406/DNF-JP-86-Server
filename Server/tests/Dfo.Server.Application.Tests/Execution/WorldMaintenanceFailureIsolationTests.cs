@@ -48,7 +48,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
         var sessions = TestSessions.Directory(out var state);
         var first = sessions.InWorld(state, new(9101), new(9101), "isolated-altar-1");
         var second = sessions.InWorld(state, new(9102), new(9102), "isolated-altar-2");
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var registry = new DungeonRunDeliveryRegistry();
         var altars = DispatchProxy.Create<IAltarDungeonDomainService, AltarTrace>();
         var trace = (AltarTrace)(object)altars;
@@ -91,7 +91,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
     [Fact]
     public async Task A_room_subscriber_cleanup_failure_is_isolated_and_the_undelivered_snapshot_retries_without_wake()
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var trace = new RoomTrace();
         await using var host = new TimerSourceHost(services =>
         {

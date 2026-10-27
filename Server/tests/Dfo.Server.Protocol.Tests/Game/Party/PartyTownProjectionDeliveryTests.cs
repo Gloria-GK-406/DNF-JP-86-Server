@@ -296,6 +296,7 @@ public sealed class PartyTownProjectionDeliveryTests
         : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         private readonly PartySnapshot[] parties = snapshots
             .Select(value => value.Snapshot)
             .DistinctBy(value => (value.PartyId, value.Generation))
@@ -345,6 +346,7 @@ public sealed class PartyTownProjectionDeliveryTests
         PartySnapshot current) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public int ReadCount { get; private set; }
 
         public PartySnapshot Current { get; set; } = current;

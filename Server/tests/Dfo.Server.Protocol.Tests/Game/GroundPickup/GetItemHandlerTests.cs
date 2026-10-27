@@ -91,7 +91,7 @@ public sealed class GetItemHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.BeginParty(
                 [
                     new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
@@ -153,7 +153,7 @@ public sealed class GetItemHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.BeginParty(
                 [new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true)],
                 Layout(),
@@ -348,7 +348,7 @@ public sealed class GetItemHandlerTests
         IReadOnlyList<SelectedSessionIdentity> frozen,
         IReadOnlyList<SelectedSessionIdentity> current)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var run = runs.BeginParty(
             frozen.Select((session, index) => new DungeonRunParticipant(
                 session.AccountId,
@@ -397,7 +397,7 @@ public sealed class GetItemHandlerTests
         IReadOnlyList<GroundPickupResult> results,
         IReadOnlyList<SelectedSessionIdentity>? current = null)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var participants = frozen.Select((session, index) => new DungeonRunParticipant(
             session.AccountId,
             session.CharacterId,

@@ -50,6 +50,7 @@ public sealed class DungeonPickupTransactionTests
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddCommandDispatching();
+            services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(TestParties.Create());
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
             services.AddSingleton<IQuestDomainStore>(new SqliteQuestDomainStore(path));
             services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path));

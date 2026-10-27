@@ -224,7 +224,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void DungeonRunDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var service = new DungeonRunDomainService();
+        var service = TestParties.Runs();
         var run = TestGameplay.Run(() => service.PreparePartyEntry(
             [new DungeonRunParticipant(Account, Character, 0, true)], Layout, DungeonDifficulty.Normal,
             DungeonCellSeed.CompleteEmpty(new MazeCell(0, 0), 10), DungeonRunId.New(), DateTimeOffset.UtcNow).Run);
@@ -387,7 +387,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void AltarDungeonEngine_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var engine = new AltarDungeonEngine(null!, null!, null!, null!, new DungeonRunDomainService(), null!, null!,
+        var engine = new AltarDungeonEngine(null!, null!, null!, null!, TestParties.Runs(), null!, null!,
             null!, null!, null!, null!, null!, new NoTransactions(), TimeProvider.System, null!);
         var store = new AltarStateStore();
         var runId = DungeonRunId.New();

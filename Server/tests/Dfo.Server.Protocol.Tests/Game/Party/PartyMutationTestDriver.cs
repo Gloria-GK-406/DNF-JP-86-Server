@@ -78,6 +78,7 @@ internal sealed class PartyMutationProbe(IPartyService inner, Action<string, Cha
     public PartyOperationResult CleanupCharacter(CharacterId character) => inner.CleanupCharacter(character);
     public PartySnapshot FindParty(PartyCharacterSnapshot character) => inner.FindParty(character);
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => inner.FindByKey(key);
+    public PartyKey KeyOf(CharacterId characterId) => inner.KeyOf(characterId);
 }
 
 internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = null) : IPartyService
@@ -95,4 +96,5 @@ internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = nu
     public PartyOperationResult CleanupCharacter(CharacterId character) => throw new NotSupportedException();
     public PartySnapshot FindParty(PartyCharacterSnapshot character) => directory.FindParty(character);
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => directory.FindByKey(key);
+    public PartyKey KeyOf(CharacterId characterId) => directory.KeyOf(characterId);
 }

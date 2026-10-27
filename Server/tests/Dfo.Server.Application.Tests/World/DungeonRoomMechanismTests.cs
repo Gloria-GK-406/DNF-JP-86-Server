@@ -55,7 +55,7 @@ public sealed class DungeonRoomMechanismTests
         {
             var clock = new ManualClock();
             var signal = new WakeCounter();
-            var service = new DungeonRunDomainService(null!, null!, clock: clock, mechanismRules: rules, mechanismWake: signal);
+            var service = TestParties.Runs(clock: clock, mechanismRules: rules, mechanismWake: signal);
             DungeonRunParticipant[] members = [new(new(1), new(1), 0, true), new(new(2), new(2), 1, false)];
             var start = new MazeCell(1, 0);
             var right = new MazeCell(2, 0);
@@ -71,6 +71,7 @@ public sealed class DungeonRoomMechanismTests
             }, false, false, []);
             var seed = new DungeonCellSeed(start, 12345, 7, [actor], [])
                 { Mechanisms = [rules.Define(DungeonRoomMechanismKind.Elevator)] };
+            TestParties.EnsureEntryParty(service, members);
             var run = service.PreparePartyEntry(members, layout, 0, seed, DungeonRunId.New(), Start).Run;
             Assert.False(run.IsCleared);
             Assert.Empty(service.AdvanceRoomMechanisms(Start));
@@ -97,6 +98,7 @@ public sealed class DungeonRoomMechanismTests
             service.TryMarkParticipantReady(new(1), run.RunId, revisit.RoomVersion);
             service.TryMarkParticipantReady(new(2), run.RunId, revisit.RoomVersion);
             Assert.Equal(completed, Assert.Single(Assert.Single(service.AdvanceRoomMechanisms(clock.Now)).States));
+            TestParties.Leave(service, new(1));
             service.End(new(1)); service.End(new(2));
             Assert.Empty(service.AdvanceRoomMechanisms(clock.Now));
             Assert.True(signal.Count > 0);

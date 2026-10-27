@@ -408,6 +408,14 @@ public sealed class PartyService(
                 : PartySnapshot.Virtual(character, modeRules.DefaultSettings);
     }
 
+    public PartyKey KeyOf(CharacterId characterId)
+    {
+        lock (sync)
+            return membership.TryGetValue(characterId, out var party)
+                ? party.Key
+                : PartyKey.Virtual(characterId);
+    }
+
     public PartyMembershipSnapshot? FindByKey(PartyKey key)
     {
         lock (sync)

@@ -47,6 +47,9 @@ public interface IPartyService : IPartyDirectoryPresenceSink
 
     /// <summary>Finds current members through a stable real or virtual party identity.</summary>
     PartyMembershipSnapshot? FindByKey(PartyKey key);
+
+    /// <summary>Returns the character's real party key, or its virtual party key outside a real party.</summary>
+    PartyKey KeyOf(CharacterId characterId);
 }
 
 /// <summary>Resolves a party member's endpoint through that character's current session.</summary>

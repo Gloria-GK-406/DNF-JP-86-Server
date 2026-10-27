@@ -21,7 +21,7 @@ public sealed class DungeonObjectQueueTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var service = new DungeonRunDomainService(scope);
+            var service = TestParties.Runs(scope);
             var run = Start(service);
             await using (var tx = scope.Begin())
             {
@@ -58,7 +58,7 @@ public sealed class DungeonObjectQueueTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var service = new DungeonRunDomainService(scope);
+            var service = TestParties.Runs(scope);
             var run = Start(service);
             await using (var tx = scope.Begin())
             {

@@ -265,6 +265,7 @@ public sealed class HellDungeonEntryTests
             await SeedTicket(f, new(72), 3330, 7, 0);
             await SeedTicket(f, new(72), 3330, 20, 1);
             var (hell, runs) = Service(f);
+            TestParties.EnsureEntryParty(runs, Party);
             await using (var tx = f.Scope.Begin())
             {
                 var result = await hell.EnterManualAsync(Context(), default);
@@ -326,6 +327,7 @@ public sealed class HellDungeonEntryTests
             f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,4391,1);");
             if (everyoneCleared) f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(72,4391,1);");
             var (hell, runs) = Service(f, Rules with { RequiredQuestIds = [4391] });
+            TestParties.EnsureEntryParty(runs, Party);
             await using (var tx = f.Scope.Begin())
             {
                 var result = await hell.EnterManualAsync(Context() with { Facts = new(0, [], [4391]) }, default);
@@ -448,7 +450,7 @@ public sealed class HellDungeonEntryTests
     private static (IHellDungeonEntryDomainService, DungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null, IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null)
     {
         var structures = new Structures(required, failureBoundary);
-        var runs = new DungeonRunDomainService(f.Scope);
+        var runs = TestParties.Runs(f.Scope);
         var admission = new DungeonAdmissionDomainService(structures,
             f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
             f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), f.Services.GetRequiredService<ICharacterDomainService>(),

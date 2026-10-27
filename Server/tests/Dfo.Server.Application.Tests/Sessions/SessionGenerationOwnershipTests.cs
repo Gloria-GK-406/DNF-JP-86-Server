@@ -233,7 +233,7 @@ public sealed class SessionGenerationOwnershipTests
             presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
             var stores = new ExpertStoreDomainService();
             stores.Open(replacement);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var replacementRun = runs.Begin(
                 replacement.CharacterId,
                 new DungeonLayout(
@@ -330,7 +330,7 @@ public sealed class SessionGenerationOwnershipTests
             new PvpLobbyDomainService(), persistence is null ? [] : [persistence],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System),
             channels ?? new StubChannelEntryPolicy(),
-            new PassiveParties(), runs ?? new DungeonRunDomainService(), departures ?? []);
+            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? []);
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>
     private sealed class ThrowingRuntime : IOnlineCharacterRuntimeDomainService
@@ -386,6 +386,7 @@ public sealed class SessionGenerationOwnershipTests
     private sealed class PassiveParties : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => PartyKey.Virtual(characterId);
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
 
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];

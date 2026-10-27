@@ -42,7 +42,7 @@ public sealed class PartyCommandHandlerTests
             Assert.True(parties.RequestInvite(first, second,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(second, first).Succeeded);
-            var runs = new DungeonRunDomainService(parties);
+            var runs = TestParties.Runs(parties: parties);
             var layout = new DungeonLayout(
                 10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
@@ -81,7 +81,7 @@ public sealed class PartyCommandHandlerTests
             Assert.True(parties.RequestInvite(leader, target,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(target, leader).Succeeded);
-            var runs = new DungeonRunDomainService(parties);
+            var runs = TestParties.Runs(parties: parties);
             var layout = new DungeonLayout(
                 10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
@@ -970,6 +970,7 @@ public sealed class PartyCommandHandlerTests
     private sealed class RecordingParties(PartyOperationResult? result = null, PartySnapshot? snapshot = null) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public List<string> Writes { get; } = [];
 
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }

@@ -19,7 +19,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 {
     private readonly ILogger<DungeonRunDomainService> logger = NullLogger<DungeonRunDomainService>.Instance;
     private readonly IDomainTransactionAccessor? transactions;
-    private readonly IPartyService? parties;
+    private readonly IPartyService parties;
     private readonly IDungeonParticipationDomainService? participation;
     private readonly IWeaknessDomainService? weakness;
     private readonly ICreatureRuntimeDomainService? creatures;
@@ -46,13 +46,6 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly HashSet<ClearRewardCardClaimKey> preparedClearRewardCardClaims = [];
     private long nextClaim;
 
-    public DungeonRunDomainService()
-    {
-    }
-
-    public DungeonRunDomainService(IDomainTransactionAccessor transactions) =>
-        this.transactions = transactions;
-
     public DungeonRunDomainService(
         IDomainTransactionAccessor transactions,
         IPartyService parties,
@@ -67,7 +60,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.logger = logger ?? NullLogger<DungeonRunDomainService>.Instance;
         this.transactions = transactions;
         this.participation = participation;
-        this.parties = parties;
+        this.parties = parties ?? throw new ArgumentNullException(nameof(parties));
         this.weakness = weakness;
         this.creatures = creatures;
         this.lifecycle = lifecycle;
@@ -76,8 +69,6 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.mechanismWake = mechanismWake;
         this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
     }
-
-    internal DungeonRunDomainService(IPartyService parties) => this.parties = parties;
 
     public DungeonEntryChange PreparePartyEntry(
         IReadOnlyList<DungeonRunParticipant> participants,
@@ -123,18 +114,13 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         var frozen = participants.ToImmutableArray();
         var entryLeader = frozen.Single(participant => participant.IsLeader);
-        var partyKey = this.parties is null
-            ? PartyKey.Virtual(entryLeader.CharacterId)
-            : this.parties.FindParty(new PartyCharacterSnapshot(
-                entryLeader.AccountId, entryLeader.CharacterId, 0, null)).Key;
-        if (this.parties is not null)
-        {
-            var currentParty = this.parties.FindByKey(partyKey)
-                ?? throw new InvalidOperationException("The entry party no longer exists.");
-            if (!currentParty.Members.Select(member => member.CharacterId)
-                    .ToHashSet().SetEquals(frozen.Select(participant => participant.CharacterId)))
-                throw new InvalidOperationException("The entry roster no longer matches the party.");
-        }
+        var partyKey = this.parties.FindParty(new PartyCharacterSnapshot(
+            entryLeader.AccountId, entryLeader.CharacterId, 0, null)).Key;
+        var currentParty = this.parties.FindByKey(partyKey)
+            ?? throw new InvalidOperationException("The entry party no longer exists.");
+        if (!currentParty.Members.Select(member => member.CharacterId)
+                .ToHashSet().SetEquals(frozen.Select(participant => participant.CharacterId)))
+            throw new InvalidOperationException("The entry roster no longer matches the party.");
         if (this.participation is not null && !this.participation.TryClaim(
             frozen.Select(x => x.CharacterId).ToArray(), new(DungeonParticipationMode.Ordinary, runId.Value)))
             throw new InvalidOperationException("A dungeon participant is already occupied.");
@@ -1728,7 +1714,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
     private sealed class DungeonRunAggregate
     {
-        private readonly IPartyService? parties;
+        private readonly IPartyService parties;
         private readonly ImmutableArray<DungeonRunParticipant> entryParticipants;
         private readonly Dictionary<CharacterId, DungeonRunParticipant> participantsByCharacter;
         private readonly Dictionary<CharacterId, ParticipantProgress> progressByCharacter;
@@ -1738,7 +1724,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public DungeonRunAggregate(
             DungeonRunId runId,
             PartyKey partyKey,
-            IPartyService? parties,
+            IPartyService parties,
             ImmutableArray<DungeonRunParticipant> participants,
             DungeonLayout layout,
             DungeonDifficulty difficulty,
@@ -1787,8 +1773,6 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         {
             get
             {
-                if (this.parties is null)
-                    return this.entryParticipants;
                 var membership = this.parties.FindByKey(this.PartyKey);
                 if (membership is null)
                     return [];

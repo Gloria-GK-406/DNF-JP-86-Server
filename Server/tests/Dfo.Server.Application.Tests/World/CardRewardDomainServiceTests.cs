@@ -27,7 +27,7 @@ public sealed class CardRewardDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var leader = new DungeonRunParticipant(new AccountId(11), new CharacterId(1), 0, true);
             var member = new DungeonRunParticipant(new AccountId(22), new CharacterId(2), 1, false);
             var run = runs.BeginParty([leader, member], Tutorial, (DungeonDifficulty)Difficulty);
@@ -207,7 +207,7 @@ public sealed class CardRewardDomainServiceTests
     private static (CardRewardDomainService Service, DungeonRunDomainService Runs, RecordingRules Rules)
         Build(DungeonLayout layout)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         runs.Begin(Character, layout, (DungeonDifficulty)Difficulty);
         var rules = new RecordingRules();
         return (new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums()), runs, rules);
@@ -272,7 +272,7 @@ public sealed class CardRewardDomainServiceTests
             const ushort sequence = 41;
             var actor = new DungeonRoomActor(
                 61670, 5, (byte)MonsterRank.Champion);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var participant = new DungeonRunParticipant(
                 new AccountId(1), Character, Slot: 0, IsLeader: true);
             _ = runs.PreparePartyEntry(
@@ -320,7 +320,7 @@ public sealed class CardRewardDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var old = runs.Begin(Character, Tutorial, (DungeonDifficulty)Difficulty);
             var rules = new RecordingRules(pauseOffers: true);
             var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
@@ -625,7 +625,7 @@ public sealed class CardRewardDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var rules = new RecordingRules();
-            var service = new CardRewardDomainService(rules, new DungeonRunDomainService(), new Dfo.Server.Application.Tests.Support.CardPremiums());
+            var service = new CardRewardDomainService(rules, TestParties.Runs(), new Dfo.Server.Application.Tests.Support.CardPremiums());
 
             Assert.Null(await service.SettleAsync(Settlement, CancellationToken.None));
             Assert.Null(

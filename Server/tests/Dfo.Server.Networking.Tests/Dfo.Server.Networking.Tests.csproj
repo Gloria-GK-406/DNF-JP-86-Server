@@ -28,6 +28,11 @@
   <ItemGroup>
     <Compile Include="..\Dfo.Server.Application.Tests\Support\DungeonRunTestEntryExtensions.cs"
              Link="Support\DungeonRunTestEntryExtensions.cs" />
+    <Compile Include="..\Support\TestParties.cs" Link="Support\TestParties.cs" />
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\StubPartyMemberStatusDomainService.cs"
+             Link="Support\StubPartyMemberStatusDomainService.cs" />
+    <Compile Include="..\Dfo.Server.Application.Tests\Support\EmptyPartyMemberSessionEndpointSource.cs"
+             Link="Support\EmptyPartyMemberSessionEndpointSource.cs" />
     <Compile Include="..\Support\PvfAttributes.cs" Link="Support\PvfAttributes.cs" />
     <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
     <Compile Include="..\Support\TestGameplay.cs" Link="Support\TestGameplay.cs" />

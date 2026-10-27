@@ -1292,7 +1292,7 @@ public sealed class CardRewardTests
             ClearRewardCardFace? blackDiamond = null,
             IDomainTransactionAccessor? transactions = null)
         {
-            this._runs = transactions is null ? new() : new(transactions);
+            this._runs = TestParties.Runs(transactions);
             this._rules = new RefusingRules();
             this.Bag = new Bag(bagAnswer);
             this.Gold = new CarriedGold(startingGold);

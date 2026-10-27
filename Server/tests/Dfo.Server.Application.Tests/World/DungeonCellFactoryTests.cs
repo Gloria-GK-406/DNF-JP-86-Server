@@ -64,7 +64,7 @@ public sealed class DungeonCellFactoryTests
             var factory = new DungeonCellFactory(rooms, new NoPlacement(), loot,
                 new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
             DungeonRunParticipant[] members = [new(new(1), new(10), 0, true)];
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var runId = DungeonRunId.New();
             var seed = await factory.CreateAsync(new(runId, layout, start, 123, 0,
                 DateTimeOffset.UnixEpoch, members), default);
@@ -249,7 +249,9 @@ public sealed class DungeonCellFactoryTests
             Assert.All(questLoot.Requests, r => Assert.Equal(QuestEnemyType.PassiveObject, r.EnemyType));
             Assert.All(seed.Objects, obj => Assert.Equal(members.Select(m => (CharacterId?)m.CharacterId),
                 obj.PendingLoot.Select(drop => drop.OwnerCharacterId)));
-            var run = new DungeonRunDomainService().PreparePartyEntry(members, layout, 0, initialCell: seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var runs = TestParties.Runs();
+            TestParties.EnsureEntryParty(runs, members);
+            var run = runs.PreparePartyEntry(members, layout, 0, initialCell: seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
             Assert.Equal(3, run.CurrentCellState!.Objects.Count);
             // A caller cannot mutate the run through the unpublished seed's pending array.
             ((RolledDrop[])seed.Objects[0].PendingLoot)[0] = default;

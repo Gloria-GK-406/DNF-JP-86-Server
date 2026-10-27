@@ -15,7 +15,7 @@ public sealed class AltarCellGateTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var runs = new DungeonRunDomainService(scope);
+            var runs = TestParties.Runs(scope);
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(11007, 0, 1, 1, cell, cell, 17030, 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(17030) });
@@ -60,7 +60,7 @@ public sealed class AltarCellGateTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(11007, 0, 1, 1, cell, cell, 17030, 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(17030) })

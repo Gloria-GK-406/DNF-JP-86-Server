@@ -68,7 +68,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
 
             var run = runs.Begin(Character, Tutorial, difficulty: 0);
 
@@ -95,7 +95,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Character, Tutorial, difficulty: 0);
 
             var first = runs.FixClearRewardCards(
@@ -141,7 +141,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Tutorial, difficulty: 0);
             runs.FixClearRewardCards(
                 Character,
@@ -177,7 +177,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Tutorial, difficulty: 0);
             runs.FixClearRewardCards(
                 Character,
@@ -208,7 +208,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Tutorial, difficulty: 0);
             runs.FixClearRewardCards(
                 Character,
@@ -234,7 +234,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Tutorial, difficulty: 0);
             runs.FixClearRewardCards(
                 Character,
@@ -258,7 +258,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
 
             Assert.Null(
                 runs.FixClearRewardCards(
@@ -283,7 +283,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Tutorial, difficulty: 0);
             runs.FixClearRewardCards(
                 Character,
@@ -312,7 +312,7 @@ public sealed class DungeonRunClearRewardCardTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Character, Tutorial, difficulty: 0);
             Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
 

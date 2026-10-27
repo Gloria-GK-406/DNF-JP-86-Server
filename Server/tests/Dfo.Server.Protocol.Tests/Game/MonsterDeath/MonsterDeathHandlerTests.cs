@@ -867,7 +867,7 @@ public sealed class MonsterDeathHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var layout = BossLayout();
             var other = checked((ushort)(DeadActor + 1));
             var primary = new DungeonRoomActor(killBoss ? 14003 : 10610, 60,
@@ -892,7 +892,7 @@ public sealed class MonsterDeathHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var layout = BossLayout();
             var character = new CharacterId(60);
             var other = checked((ushort)(DeadActor + 1));
@@ -931,12 +931,15 @@ public sealed class MonsterDeathHandlerTests
                 new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
             var layout = BossLayout();
             var other = checked((ushort)(DeadActor + 1));
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
+            DungeonRunParticipant[] roster =
+            [
+                new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, IsLeader: true),
+                new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, IsLeader: false),
+            ];
+            TestParties.EnsureEntryParty(runs, roster);
             var run = runs.PreparePartyEntry(
-                [
-                    new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, IsLeader: true),
-                    new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, IsLeader: false),
-                ],
+                roster,
                 layout, difficulty: 0,
                 new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
                 [
@@ -996,7 +999,7 @@ public sealed class MonsterDeathHandlerTests
                 new NetworkConnectionId("one"),
                 connectionGeneration: 1,
                 listenerPort: 10010);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var layout = BossLayout();
             var run = runs.PreparePartyEntry(
                 [new DungeonRunParticipant(

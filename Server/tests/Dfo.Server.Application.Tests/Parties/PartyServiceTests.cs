@@ -167,6 +167,60 @@ public sealed class PartyServiceTests
     }
 
     [Fact]
+    public void Key_of_a_real_party_member_is_that_party_key()
+    {
+        TestGameplay.Run(() =>
+        {
+            var (service, leader, member) = TwoMemberParty();
+            var key = service.FindParty(leader).Key;
+
+            Assert.Equal(PartyKeyKind.Real, key.Kind);
+            Assert.Equal(key, service.KeyOf(leader.CharacterId));
+            Assert.Equal(key, service.KeyOf(member.CharacterId));
+        });
+    }
+
+    [Fact]
+    public void Key_of_a_character_outside_any_real_party_is_its_virtual_key()
+    {
+        TestGameplay.Run(() =>
+        {
+            var (service, _, _) = TwoMemberParty();
+            var lone = Character(3, new PartyDirectoryScope(11, 1, 1));
+
+            Assert.Equal(PartyKey.Virtual(lone.CharacterId), service.KeyOf(lone.CharacterId));
+        });
+    }
+
+    [Fact]
+    public void Key_of_a_member_who_left_is_its_virtual_key_while_the_rest_keep_the_party_key()
+    {
+        TestGameplay.Run(() =>
+        {
+            var (service, leader, member) = TwoMemberParty();
+            var key = service.FindParty(leader).Key;
+
+            Assert.True(service.LeaveParty(member.CharacterId).Succeeded);
+
+            Assert.Equal(PartyKey.Virtual(member.CharacterId), service.KeyOf(member.CharacterId));
+            Assert.Equal(key, service.KeyOf(leader.CharacterId));
+        });
+    }
+
+    private static (PartyService Service, PartyCharacterSnapshot Leader, PartyCharacterSnapshot Member) TwoMemberParty()
+    {
+        var service = new PartyService(
+            new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        var scope = new PartyDirectoryScope(11, 1, 1);
+        var leader = Character(1, scope);
+        var member = Character(2, scope);
+        Assert.True(service.RequestInvite(leader, member, Profile(1)).Succeeded);
+        Assert.True(service.AcceptInvite(member, leader).Succeeded);
+        return (service, leader, member);
+    }
+
+    [Fact]
     public void Party_key_identifies_current_membership_across_leader_succession()
     {
         TestGameplay.Run(() =>

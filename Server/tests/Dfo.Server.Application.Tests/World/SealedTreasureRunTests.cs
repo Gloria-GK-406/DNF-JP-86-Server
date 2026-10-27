@@ -24,7 +24,7 @@ public sealed class SealedTreasureRunTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var runs = new DungeonRunDomainService(scope);
+            var runs = TestParties.Runs(scope);
             var road = new MazeCell(x, y);
             var layout = Layout(3557, road);
             var seed = DungeonCellSeed.CompleteEmpty(road, 10) with {
@@ -70,7 +70,7 @@ public sealed class SealedTreasureRunTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var runs = new DungeonRunDomainService(scope);
+            var runs = TestParties.Runs(scope);
             var seed = DungeonCellSeed.CompleteEmpty(Center, 10) with {
                 Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 15150, 10, 10, 0), [])],
                 GroundItems = [new(1, 10003717, 1, 0, false, DungeonGroundItemSource.Declared(0))]

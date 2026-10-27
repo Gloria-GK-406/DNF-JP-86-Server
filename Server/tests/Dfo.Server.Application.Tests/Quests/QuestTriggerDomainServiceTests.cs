@@ -35,7 +35,7 @@ public sealed class QuestTriggerDomainServiceTests
         {
             using var fixture = new ShopFixture();
             fixture.Sql("INSERT INTO character_active_quests VALUES(1,0,15262,1)");
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             if (dungeonId > 0)
                 runs.Begin(fixture.Session.CharacterId,
                     Layout(new(DungeonRunPurposeKind.Cycle, boundQuestId, state)) with { DungeonId = dungeonId },
@@ -70,7 +70,7 @@ public sealed class QuestTriggerDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Layout(DungeonRunPurpose.QuestLinked(
                 1776, DungeonQuestConnectionState.Active)), difficulty: 0);
             var logs = new RecordingLogs();
@@ -89,7 +89,7 @@ public sealed class QuestTriggerDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             runs.Begin(Character, Layout(DungeonRunPurpose.Ordinary), difficulty: 0);
             var logs = new RecordingLogs();
             var service = new QuestTriggerDomainService(logs, runs);

@@ -41,7 +41,7 @@ public sealed class MonsterDeathTransactionTests
             var quests = new OrdinaryQuestEffectTests.Rules();
             quests.Quest = quests.Quest with { ObjectiveTypeCode = "clear map", ObjectiveArguments = [61000], InitialTrigger = 1 };
             s.AddSingleton<IQuestContentRuleService>(quests);
-            s.AddSingleton<IDungeonRunDomainService>(new DungeonRunDomainService());
+            s.AddSingleton<IDungeonRunDomainService>(TestParties.Runs());
         });
         fixture.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'death'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'death',12,1,0); INSERT INTO character_stats(character_id,carried_gold) VALUES(3,100000)");
         fixture.Sql("INSERT INTO character_active_quests VALUES(1,0,2001,1),(3,0,2001,1)");
@@ -62,7 +62,9 @@ public sealed class MonsterDeathTransactionTests
             var layout = new DungeonLayout(10000, 0, 1, 1, new(0, 0), new(0, 0), 61000, 17,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000) },
                 Purpose: cycle ? new(DungeonRunPurposeKind.Cycle, 2001, DungeonQuestConnectionState.Active) : default);
-            var run = runs.PreparePartyEntry([new(leader.AccountId, leader.CharacterId, 0, true), new(member.AccountId, member.CharacterId, 1, false)],
+            DungeonRunParticipant[] roster = [new(leader.AccountId, leader.CharacterId, 0, true), new(member.AccountId, member.CharacterId, 1, false)];
+            TestParties.EnsureEntryParty(runs, roster);
+            var run = runs.PreparePartyEntry(roster,
                 layout, DungeonDifficulty.Normal,
                 new(layout.StartCell, layout.StartRoomMapId, 1, [new(1, new(13099, 1, 0), false, false, [])], []),
                 DungeonRunId.New(), fixture.Clock.GetUtcNow()).Run;

@@ -45,7 +45,7 @@ public sealed partial class SelectCharacterLifecycleTests
             presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
             var stores = new ExpertStoreDomainService();
             stores.Open(selected);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var departure = new RecordingDungeonDeparture();
             var memberSession = SelectedSessionIdentity.Create(
                 new AccountId(43), new CharacterId(502), new NetworkConnectionId("Game:return-member"), 1, 10011);

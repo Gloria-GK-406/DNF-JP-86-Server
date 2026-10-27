@@ -229,6 +229,7 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyService.CleanupCharacter(CharacterId)"] = W,
         ["PartyService.CreateOrUpdateSettings(PartyCharacterSnapshot, PartySettings, PartyTitle)"] = W,
         ["PartyService.FindByKey(PartyKey)"] = R,
+        ["PartyService.KeyOf(CharacterId)"] = R,
         ["PartyService.FindParty(PartyCharacterSnapshot)"] = R,
         ["PartyService.LeaveParty(CharacterId)"] = W,
         ["PartyService.Query(PartyDirectoryQuery)"] = R,

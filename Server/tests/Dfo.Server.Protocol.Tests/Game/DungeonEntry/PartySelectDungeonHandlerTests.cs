@@ -941,6 +941,7 @@ public sealed class PartySelectDungeonHandlerTests
     private sealed class Parties(PartySnapshot snapshot) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];

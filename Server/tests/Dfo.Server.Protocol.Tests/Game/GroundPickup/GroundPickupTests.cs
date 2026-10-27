@@ -60,7 +60,7 @@ public sealed class GroundPickupTests
         FakeContainer Bag, CarriedGold Carried) Build(
         ISeekingQuestProgressDomainService seeking)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var bag = new FakeContainer();
         var carried = new CarriedGold(0);
         var handler = new GroundPickupAlgorithmDriver(
@@ -94,6 +94,7 @@ public sealed class GroundPickupTests
         [
             new DungeonRunParticipant(Account, Character, Slot: 0, IsLeader: true),
         ];
+        TestParties.EnsureEntryParty(runs, participants);
         return runs.PreparePartyEntry(
             participants,
             Layout,
@@ -472,7 +473,7 @@ public sealed class GroundPickupTests
             var fixture = new Dfo.Server.Protocol.Tests.Support.MoveItemFixture();
             var physical = new Dfo.Server.Protocol.Tests.Support.LifecycleTestContainer(InventoryContainerType.Pet, Character, fixture);
             var bag = new BusinessItemContainer(BusinessInventorySpace.CreatureInventory, physical);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var handler = new GroundPickupAlgorithmDriver(runs, new GroundPickupDomainService(),
                 new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
                 new QuestProgressFromSeeking(new NoSeekingProgress()), new CreatureDropGrant(fixture, bag));
@@ -524,7 +525,7 @@ public sealed class GroundPickupTests
                     await book.AddPiecesAsync(Account, piece, initial, default);
                     await seed.CommitAsync(default);
                 }
-                var runs = new DungeonRunDomainService(scope);
+                var runs = TestParties.Runs(scope);
                 var bag = new FakeContainer { IsFull = true };
                 var handler = new GroundPickupAlgorithmDriver(runs, new GroundPickupDomainService(), new StubContainers(bag),
                     new OnePlayingCharacter(new CarriedGold(0)), new QuestProgressFromSeeking(new NoSeekingProgress()),

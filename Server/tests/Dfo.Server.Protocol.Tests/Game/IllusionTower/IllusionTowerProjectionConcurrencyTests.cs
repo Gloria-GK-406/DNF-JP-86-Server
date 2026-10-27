@@ -145,7 +145,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 ],
             };
             var tower = new TowerDomain(initial);
-            var ordinaryRuns = new DungeonRunDomainService();
+            var ordinaryRuns = TestParties.Runs();
             var layout = new DungeonLayout(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000) });
             var ordinary = ordinaryRuns.PreparePartyEntry([new DungeonRunParticipant(external.AccountId, external.CharacterId, 0, true)],
@@ -697,6 +697,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
     private sealed class EntryParties(PartySnapshot snapshot) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];

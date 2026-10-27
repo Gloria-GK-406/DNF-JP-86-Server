@@ -97,7 +97,7 @@ public sealed class HellRewardSettlementTests
 
     private static DungeonRunDomainService Start(DungeonCellSeed seed)
     {
-        var service = new DungeonRunDomainService();
+        var service = TestParties.Runs();
         service.PreparePartyEntry([new(new(1), Character, 0, true)], Layout, DungeonDifficulty.Normal,
             initialCell: seed, DungeonRunId.New(), DateTimeOffset.UtcNow);
         return service;

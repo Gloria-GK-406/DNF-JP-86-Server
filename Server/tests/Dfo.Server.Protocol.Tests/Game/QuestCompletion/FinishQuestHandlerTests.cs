@@ -215,7 +215,7 @@ public sealed class FinishQuestHandlerTests
             var identities = new List<SelectedSessionIdentity> { actor, selectedPeer };
             var sessions = new PeerSessions(identities);
             ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
-            var runs = new Dfo.Server.Application.World.DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var generations = new DungeonRunDeliveryRegistry();
             if (dungeon)
             {
@@ -223,7 +223,9 @@ public sealed class FinishQuestHandlerTests
                 var layout = new DungeonLayout(10000, 0, 1, 1, cell, cell, 61000, 1,
                     new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000)});
                 var id = DungeonRunId.New();
-                runs.PreparePartyEntry([new(actor.AccountId, actor.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)],
+                DungeonRunParticipant[] roster = [new(actor.AccountId, actor.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)];
+                TestParties.EnsureEntryParty(runs, roster);
+                runs.PreparePartyEntry(roster,
                     layout, DungeonDifficulty.Normal, DungeonCellSeed.CompleteEmpty(cell, 61000), id, DateTimeOffset.UnixEpoch);
                 generations.Register(id, [actor, peer]);
             }
@@ -409,7 +411,7 @@ public sealed class FinishQuestHandlerTests
             var offers = new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain());
             var clock = new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
             var town = areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
-            var dungeon = runs ?? new Dfo.Server.Application.World.DungeonRunDomainService();
+            var dungeon = runs ?? TestParties.Runs();
             var weakness = new WeaknessState();
             var registry = generations ?? new DungeonRunDeliveryRegistry();
             var input = new FinishQuestRequest(GameMessageMetadata.Empty,QuestId,rewardSelection,completionCount);
