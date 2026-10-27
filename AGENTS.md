@@ -27,6 +27,7 @@ CMD 在唯一玩法执行器中划分事务并登记投影，作业结束后由�
 
 | 任务 | 阅读入口 |
 |---|---|
+| 开发新功能、准备用户测试与功能 PR | [新功能开发流程](Document/FeatureDevelopment.md) |
 | 新建模块、调整职责／依赖／接口 | [架构与分层](Document/Architecture.md) |
 | 判断补丁还是重构、消除重复事实或判定 | [重构判断](Document/RefactorPreferences.md) |
 | 新增或修改协议、handler、CMD | [协议 CMD 开发指南](Document/ProtocolCommands.md)、[协议知识库规则](protocol/README.md) |
@@ -38,6 +39,16 @@ CMD 在唯一玩法执行器中划分事务并登记投影，作业结束后由�
 | 构建、运行、测试与失败排查 | [构建与测试](Document/BuildAndTest.md) |
 | 提交、创建 PR、分支收尾或发布 | [开发与发布约定](Document/server-ci-release.md) |
 | 编写或整理文档、注释、证据 | [文档维护规范](Document/DocumentationGuidelines.md) |
+
+## 功能开发与版本规则
+
+- 新功能必须按 [新功能开发流程](Document/FeatureDevelopment.md) 执行：新建独立工作区，收集
+  客户端探查、70 服务端及上游参考资料，阅读审核规范并确定方案，再实现与验证。
+  使用当前主干实际使用的数据库准备用户测试，明确功能测试步骤及顺序；用户测试通过后才创建 PR，
+  等待云 agent 审核结束且通过、当前提交 CI 通过后合并主干。
+- 一般 bugfix 和文档添加、修改不提升版本；新功能提升第三位 `PATCH`。
+  第一位 `MAJOR`、第二位 `MINOR` 只有用户明确提出或同意后才可提升。
+  版本唯一声明、单次递增及并行 PR 核对方式见 [开发与发布约定](Document/server-ci-release.md#版本规则)。
 
 ## Code Review Rules
 
