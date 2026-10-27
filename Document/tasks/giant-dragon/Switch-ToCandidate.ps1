@@ -24,6 +24,7 @@ try{
     if($LASTEXITCODE -ne 0){throw 'Final SQLite backup failed'}
     $taskConfigured=Get-Content -LiteralPath (Join-Path $RunRoot 'host/appsettings.json') -Raw | ConvertFrom-Json
     $taskConfigured.Database.Path=$taskInput.PlayerDatabase
+    foreach($taskChannel in $taskConfigured.Channel.Channels){$taskChannel.Name="#ch.$($taskChannel.Id)"}
     $taskConfigured | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $RunRoot 'host/appsettings.json') -Encoding utf8
     $taskChangedClient=$true
     Copy-Item -LiteralPath (Join-Path $RunRoot 'Script-giant-dragon-active.pvf') -Destination $taskPvf -Force

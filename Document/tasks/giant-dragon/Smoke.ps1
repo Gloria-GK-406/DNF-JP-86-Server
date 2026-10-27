@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $pvf)) { throw 'Generate the task PVF first' }
 $database=Join-Path $runRoot 'Data/smoke.db'
 $config=Get-Content -LiteralPath (Join-Path $runRoot 'appsettings.json') -Raw | ConvertFrom-Json
 $config.Channel.UseScriptCatalog=$false
-$config.Channel.Channels=@([pscustomobject]@{Id=71;Name='#giant-dragon';Host='127.0.0.1';Port=$GamePort})
+$config.Channel.Channels=@([pscustomobject]@{Id=71;Name='#ch.71';Host='127.0.0.1';Port=$GamePort})
 $config.Networking.Enabled=$true
 $config.Networking.UdpDiscoveryEnabled=$false
 $config.Networking.ChannelPort=$ChannelPort

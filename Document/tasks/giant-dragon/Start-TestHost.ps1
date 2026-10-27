@@ -9,6 +9,10 @@ $taskUdpPorts=if($DefaultPorts){@(12311,12312)}else{@()}
 if(@(Get-NetTCPConnection -State Listen | Where-Object LocalPort -in $taskPorts).Count -or @(Get-NetUDPEndpoint | Where-Object LocalPort -in $taskUdpPorts).Count){throw 'Candidate port occupied'}
 $taskExe=Join-Path $RunRoot 'host/Dfo.Server.Host.exe'
 $taskPvf=Join-Path $RunRoot 'Script-giant-dragon-active.pvf'
+$taskConfiguration=Get-Content -LiteralPath (Join-Path $RunRoot 'host/appsettings.json') -Raw | ConvertFrom-Json
+foreach($taskChannel in $taskConfiguration.Channel.Channels){
+    if($taskChannel.Name -ne "#ch.$($taskChannel.Id)"){throw 'Channel name must preserve the native #ch.ID identity'}
+}
 $taskArguments=@("`"--Database:Path=$Database`"","`"--Pvf:ArchivePath=$taskPvf`"",'--Channel:UseScriptCatalog=false','--Networking:Enabled=true','--Networking:UdpDiscoveryEnabled=false','--Networking:ChannelPort=23070','--Networking:GamePorts:0=23071','--LauncherAuth:Enabled=true','--LauncherAuth:ListenUrl=http://127.0.0.1:23072','--LauncherAuth:PublicChannel:Port=23070','--GmWeb:Enabled=true','--GmWeb:ListenUrl=http://127.0.0.1:23073','--GiantDragon:Enabled=true','--GiantDragon:RestoredVariantsEnabled=true','--GameLogin:ConnectionPort=23071','--GameLogin:EndpointPortA=23071','--GameLogin:EndpointPortB=23071')
 if($DefaultPorts){
     $taskArguments=$taskArguments | ForEach-Object {

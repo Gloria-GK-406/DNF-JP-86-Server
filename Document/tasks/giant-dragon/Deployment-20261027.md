@@ -5,9 +5,9 @@
 ## 当前验收入口
 
 - 运行内容提交：`32ff430d30df437503d636ffe5c2b9481a09230c`，版本 `0.2.10`，分支 `codex/167-giant-dragon`。
-- 当前启动PID：`45260`。运行目录为本工作区 `artifacts/giant-dragon/live-20261027-204411/host`；实际EXE、完整启动参数、程序集版本及监听见该目录上级 `live-process.json`。
+- 当前启动PID：`39224`。运行目录为本工作区 `artifacts/giant-dragon/live-20261027-204411/host`；实际EXE、完整启动参数、程序集版本及监听见该目录上级 `live-process.json`。
 - 客户端：`E:\Project\DNF\DNFClient-A21-protocol\Dfo.Launcher.exe`。Launcher.ini已指向 `http://127.0.0.1:18080/`。同次备份根有双击入口 `启动巨龙实测.bat`。先退出旧游戏及启动器，再启动此入口并使用已有账号。
-- Channel TCP7001、Game TCP10011、Launcher HTTP18080、GM HTTP18081。GM入口为 [本地管理台](http://127.0.0.1:18081/gm)。`Channel:UseScriptCatalog=false`，单频道11，已核对真实监听；UDP发现开启，实际端口12311/12312，绑定探测响应已验证。先验单人，多人实机仍待验收。
+- Channel TCP7001、Game TCP10011、Launcher HTTP18080、GM HTTP18081。GM入口为 [本地管理台](http://127.0.0.1:18081/gm)。`Channel:UseScriptCatalog=false`，单频道11，原生标识 `#ch.11`，已核对真实监听；UDP发现开启，实际端口12311/12312，绑定探测响应已验证。先验单人，多人实机仍待验收。
 - 原玩家库绝对路径：`E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Host\bin\Release\net10.0\Data\dfo-server.db`。启动参数显式指定该路径，不是工作区空库或历史备份。
 - 玩法开关：`GiantDragon.Enabled=true`、`RestoredVariantsEnabled=true`。
 
@@ -28,7 +28,7 @@
 `01F1BE685D46647961DF65207A36304777DB20EF5A3D03C68EFAA92F8B0C5189`。
 服务端指向本次私有运行根的 `Script-giant-dragon-active.pvf`；客户端装入同一份恢复包。protocol2目录仅在后续连接排查中将Launcher.ini的旧25080地址备份并改为18080，未替换该目录PVF；恢复入口验收仍使用本页protocol测试目录。候选最初构建缺少GM静态文件，已补入当前服务原有wwwroot；GM首页及其JS/CSS均返回200。
 
-马戏团独立探针PID40848使用另一份库和默认端口；本次未停止、改写或复用。
+马戏团独立探针使用另一份库；本次未停止、改写或复用。
 
 ## 本次验证
 
@@ -38,7 +38,8 @@
 - 客户端安装PVF与服务端包SHA相同，Launcher配置指向18080。
 - 既有全量回归及其2项异界基线失败、18项文档基线差异保留在 [Verification.md](Verification.md)，不因部署成功改写成全绿。
 - 默认端口切换前另存当前数据库快照与配置，见 `default-backup.log` 及 `appsettings-before-default.json`；当前身份见 `default-process.json`。TCP与UDP分别检查占用，NVIDIA Overlay使用的UDP10011保持不动。
-- 正常登录、入口可达、真实战斗、计时、机关、奖励、退出/重登与跨日仍需按 [实机清单](Human-Test-List.md) 验证。
+- 频道标识须保留原生 `#ch.ID`，不得用中文展示名替代；频道协议按ASCII编码，错误的中文值曾在服务器回环探测中成为 `#????`。现已改回 `#ch.11`，0B握手及11列表读取解密确认1个频道、127.0.0.1:10011，证据为 `channel-after-fix.json`；启动工具增加原生标识检查。这是服务端合成TCP探测，不是客户端频道显示已通过。
+- 原生频道显示、角色进入、地下城入口可达、真实战斗、计时、机关、奖励、退出/重登与跨日仍需按 [实机清单](Human-Test-List.md) 验证。
 
 ## 第一轮测试
 
