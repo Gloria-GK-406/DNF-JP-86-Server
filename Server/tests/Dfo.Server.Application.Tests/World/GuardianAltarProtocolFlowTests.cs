@@ -50,9 +50,11 @@ public sealed class GuardianAltarProtocolFlowTests
         Assert.Equal(2, f.Count(2749213));
     }
     [SkippableTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Native_selection_loading_failure_and_return_use_registered_commands_and_fence_stale_generation(bool finishLoading)
+    [InlineData(false, (byte)0)]
+    [InlineData(true, (byte)0)]
+    [InlineData(false, (byte)3)]
+    [InlineData(true, (byte)3)]
+    public async Task Native_selection_loading_failure_and_return_use_registered_commands_and_fence_stale_generation(bool finishLoading, byte requestMode)
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var f = new ShopFixture(useArchive: true, configure: services =>
@@ -64,6 +66,7 @@ public sealed class GuardianAltarProtocolFlowTests
         f.SetLevel(65);
         await EffectRequestTransport.SendRaw(f, new(1, 0x392, 0, 7), []);
         var body = new byte[15]; BinaryPrimitives.WriteInt32LittleEndian(body, 3511);
+        body[5] = requestMode;
         await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, 8), body);
         var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
         var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
@@ -112,6 +115,42 @@ public sealed class GuardianAltarProtocolFlowTests
         Assert.Equal(1, frame[15]); Assert.Equal(allowed ? 0 : 1, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(16)));
         Assert.Equal(allowed ? 1 : 0, f.Scalar("SELECT count(*) FROM character_guardian_altar"));
         Assert.Equal(allowed, f.Services.GetRequiredService<IGuardianAltarDomainService>().IsSelecting(f.Session));
+    }
+    [SkippableTheory]
+    [InlineData(false, (byte)3, (byte)0)]
+    [InlineData(true, (byte)1, (byte)0)]
+    [InlineData(true, (byte)2, (byte)0)]
+    [InlineData(true, (byte)4, (byte)0)]
+    [InlineData(true, (byte)255, (byte)0)]
+    [InlineData(true, (byte)3, (byte)1)]
+    public async Task Invalid_entry_preserves_progress_and_refuses_without_upgrade_room_error(bool open, byte mode, byte practice)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var f = new ShopFixture(useArchive: true, configure: services =>
+        {
+            services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path });
+            services.AddSingleton<ISelectedCharacterCurrentViewDomainService>(p => new EntryFailureProbe.CompleteView(p));
+        });
+        f.SetLevel(65);
+        if (open) await EffectRequestTransport.SendRaw(f, new(1, 0x392, 0, 7), []);
+        var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
+        var before = await altar.ReadProgressAsync(f.Session.CharacterId, default);
+        var body = new byte[15]; BinaryPrimitives.WriteInt32LittleEndian(body, 3511);
+        body[5] = mode; body[6] = practice;
+        for (ushort sequence = 8; sequence < 10; sequence++)
+        {
+            await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, sequence), body);
+            var refusal = f.Sender.Outbound.Frames.Last();
+            Assert.Equal((ushort)0x10, BinaryPrimitives.ReadUInt16LittleEndian(refusal.AsSpan(1)));
+            Assert.Equal(new byte[] { 0, 0x13, 0 }, refusal[15..]);
+            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+            var after = await altar.ReadProgressAsync(f.Session.CharacterId, default);
+            Assert.Equal(before.Revision, after.Revision);
+            Assert.Equal((before.FreeTickets, before.ExtraTickets, before.AvailableStars, before.GameStars, before.PurchasedStars),
+                (after.FreeTickets, after.ExtraTickets, after.AvailableStars, after.GameStars, after.PurchasedStars));
+            Assert.Equal(before.Stages.OrderBy(x => x.Key), after.Stages.OrderBy(x => x.Key));
+            Assert.Equal(before.Purchases.ToArray(), after.Purchases.ToArray());
+        }
     }
     [SkippableFact]
     public async Task Packed_slot_action_changes_only_owned_progress_and_insufficient_star_purchase_is_refused()

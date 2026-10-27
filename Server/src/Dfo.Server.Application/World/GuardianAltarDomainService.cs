@@ -81,11 +81,15 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
         Writing(nameof(EnterAsync));
-        if (!Supports(context.DungeonId) || context.Participants.Count != 1 || context.RequestMode != 0 || context.PracticeMode != 0
+        // A21 sends special-map mode 3 for altar entry; mode 0 remains valid for ordinary entry.
+        if (!Supports(context.DungeonId) || context.Participants.Count != 1 || context.RequestMode is not (0 or 3) || context.PracticeMode != 0
             || context.MirrorQuestId is not null || context.Facts.Intent.Kind != DungeonEntryIntentKind.Interactive)
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite,
+                $"guardian request mode={context.RequestMode} practice={context.PracticeMode} participants={context.Participants.Count} mirror={context.MirrorQuestId} intent={context.Facts.Intent.Kind}");
         var member = context.Participants[0]; var session = sessions.FindByCharacter(member.CharacterId);
-        if (session is null || !IsSelecting(session) || !await IsOpenAsync(session, ct).ConfigureAwait(false)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
+        if (session is null || !IsSelecting(session)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite,
+            $"guardian selection missing: session={session is not null} selecting={session is not null && IsSelecting(session)}");
+        if (!await IsOpenAsync(session, ct).ConfigureAwait(false)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "guardian activity disabled");
         if (runs.Find(member.CharacterId) is not null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
         var old = await LoadAsync(member.CharacterId, ct).ConfigureAwait(false);
         var plan = rules.Admission(old, context.DungeonId, (GuardianAltarDifficulty)context.Facts.Difficulty);

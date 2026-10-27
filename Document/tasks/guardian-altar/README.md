@@ -52,9 +52,9 @@
 | Content | `E:/Project/DNF/DNFClient-A21-protocol/Script.pvf` | SHA256 `3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B`；当前玩家服务启动日志确认使用，独立补验 |
 | 70Reference | `E:/Project/DNF/Research/1995chen-dnf/other/等级补丁/70/df_game_r` | SHA256 `CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7` |
 | UpstreamReference | `E:/Project/DNF/ServerS4A21` | HEAD `04e04b43c65c464a9f48833dcaa5d06725342919`；存在未跟踪参考备份目录。当前源码检索仅找到协议枚举，未定位到守护者祭坛玩法实现，不把缺少检索命中扩大为所有历史版本从未实现 |
-| CurrentImplementation | 本工作区 | 领域、持久化、协议及调度已接入；尚未部署 |
+| CurrentImplementation | 本工作区 | 领域、持久化、协议及调度已接入；维护独立25000段验收实例，实际运行身份见deployment |
 | WireCaptured | 本任务无 | 不以静态机器区代替真实双向样本 |
-| ClientVerified | 本任务无 | 未启动用户验收服务，未报告任何实机通过 |
+| ClientVerified | 有限入口范围 | 玩家确认正确服务上的原生按钮可点击；第1关入场故障已通过实机请求诊断定位，修复后的进图和战斗仍待复验 |
 
 常用客户端与研究副本的哈希不同，二者都已独立运行内容测试及入口地图扫描，所列守护者内容检查均通过。
 旧探索文档中的2026-10-11 PVF与上游哈希不再作为本次当前输入身份。

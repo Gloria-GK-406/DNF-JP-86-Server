@@ -6,10 +6,30 @@ decision: manual_required
 # 守护者祭坛候选验证
 
 服务端玩法与生产接线已实现，候选版本0.2.10已发布到本工作区artifacts。
-此记录的manual_required指A21实机及唯一玩家库部署协调，**不表示仍停留在内容解析**。
-尚无本任务WireCaptured、ClientVerified、云端审核或CI结果，不关闭功能需求、不创建PR。
+此记录的manual_required指A21完整玩法实机验收，**不表示仍停留在内容解析**。
+玩家已确认入口可点击并复现入场故障；修复后的进图与战斗尚未ClientVerified，
+没有完整WireCaptured、云端审核或CI结果，不关闭功能需求、不创建PR。
 
-## 自动检查
+## 入场模式与拒绝码修复验证
+
+实机诊断确认3511请求mode=3，旧准入仅允许0；详细协议证据和证据边界见
+[0010](../../../protocol/game/client-to-server/0x0010.md)。本次没有改玩家进度、PVF、版本号或客户端补丁。
+当前修复允许祭坛模式0／3，并将通用前置状态拒绝由A21直播专用0x07改为0x13。
+
+| 检查 | 本轮证据（artifacts/guardian-altar内） | 结果 |
+|---|---|---|
+| mode3故障回归RED | entry-mode-red.log | 原模式0的2项通过；模式3的2项因未创建run失败，准确复现 |
+| 拒绝码回归RED／GREEN | entry-refusal-red.log、entry-refusal-green.log | 旧映射2项错误返回7；修复后13项通过，包含重试和实际编码字节 |
+| 祭坛／准入意图／事务失败／CMD架构 | entry-application-regression.log | 85通过、0失败、0跳过，使用实际服务PVF；模式0／3完整入场、加载、战斗启动和回城，非法模式、练习及无大厅请求拒绝且不改进度 |
+| 协议全量 | entry-protocol-final.log | 1813通过、0失败、0跳过，使用实际服务PVF |
+| Unit分类 | entry-unit-regression.log | 37+20+503+726=1286通过、0失败；未运行Host/socket集成，不使用默认端口 |
+| 完整Release构建／GM资源 | entry-final-build.log、entry-gm-build.log | 服务端0警告0错误；前端成功，保留既有体积提示 |
+
+最终候选的实际PID、版本、程序集哈希、备份、健康和监听以
+`active-deployment.json`所指目录的`running-process.json`及`readiness.json`为准。
+仅使用25001／25011／25080／25081，默认端口由另一agent测试，未获用户新指令不得使用。
+
+## 初版玩法实现检查（21c1dfd7）
 
 | 范围 | 证据 | 结果与边界 |
 |---|---|---|
@@ -62,6 +82,5 @@ Infrastructure为974通过、2失败、2跳过。失败身份与相关栈：
 具体范围见[实现说明](README.md#当前档案的边界)，不能把这些写成已实机通过。
 0392配置头offset28仍为Unknown；035E未虚构推送、035F不作为普通能量同步依赖。
 
-候选和迁移副本已具体准备，下一步仅协调[部署时段与精确切换目标](deployment.md)，
-不擅自停止其他功能的测试服务、不并行写玩家库。用户实机明确通过前不创建PR；
+候选和迁移副本已具体准备，已按用户授权[启动实机验收服务](deployment.md)，新备份、迁移及正式数据完整性核验通过；当前等待玩家实机反馈，不并行写玩家库。用户实机明确通过前不创建PR；
 用户通过、当前提交云端审核明确通过及CI通过前不合并，不创建tag或Release。

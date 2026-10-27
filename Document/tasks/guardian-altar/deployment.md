@@ -1,6 +1,8 @@
 # 守护者祭坛部署准备
 
-状态：候选已生成，未切换玩家服务。候选代码版本0.2.10，分支`codex/168-guardian-altar`。
+状态：按用户授权维护实机验收候选，版本0.2.10，分支`codex/168-guardian-altar`。
+初版基线为`21c1dfd78f0e7866eb40e878305dcd019ea99f5e`；入图修复后实际运行提交和PID以
+`artifacts/guardian-altar/active-deployment.json`所指目录的`running-process.json`及`readiness.json`为准。
 当前主干版本核对为0.2.9；并行功能合并前仍须再次核对PATCH，不自动升MINOR或创建Release。
 
 ## 可审查产物
@@ -22,24 +24,47 @@
 实际切换前必须重新取得一致备份，不能把本次快照当作未来部署时刻的最新玩家数据。
 兼容性助手PID22532已按EXE精确核实后结束，TCP／UDP端点均为0；没有停止玩家服务。
 
-## 玩家库与占用核对
+## 初始实机实例（证据快照）
 
-主干实际玩家库路径：
-`E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db`。
-来源为玩家服务启动记录及环境覆盖，已用只读SQLite备份核对；不使用本工作区空库替代。
+2026-10-27 18:54（UTC+8）核验：PID22792，程序集`0.2.10+21c1dfd78f0e7866eb40e878305dcd019ea99f5e`。
+运行目录为本工作区`artifacts/guardian-altar/live-20261027T105137Z/host/`，
+`active-deployment.json`指向本轮状态目录，`running-process.json`与`readiness.json`记录精确EXE、参数、数据库及健康检查。
+PID只作本轮快照，任何后续停止／重启都须重新核对，不能直接复用旧PID。
 
-2026-10-27本轮曾观察遗忘之地候选PID42760使用该库；随后它已离线，最新7001／18080监听者为
-马戏团ProbeHost（PID17484，`fbd8/.../artifacts/circus-probe/default-host/ProbeHost.dll`，游戏端口22001）。
-这些是时点快照，切换前必须重新查所有Host／dotnet进程、TCP／UDP、EXE、参数与实际数据库覆盖。
-不能以进程名筛选遗漏dotnet托管的ProbeHost，也不能凭旧PID决定停止目标。
+实际玩家库：`E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db`。
+切换前新备份为本轮目录的`player-before-switch.db`，经SQLite只读源backup API取得。
+新副本迁移通过，正式启动后integrity_check=ok，账号／角色／物品／槽位逐行哈希与备份相同。
+4账号、9角色、658物品，其中5个角色达到50级；未改玩家等级、星数、次数或解锁。
 
-当前玩家部署PVF：`E:/Project/DNF/DNFClient-A21-protocol/Script.pvf`，SHA256
-`3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B`，已由当前轮启动日志确认并独立执行祭坛测试。
-不能因常用客户端副本路径相似就替换这份部署内容。
+当前PVF：`E:/Project/DNF/DNFClient-A21-protocol/Script.pvf`，SHA256
+`3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B`。
+客户端`DNFClient-A21-protocol/DNF.exe`与静态分析A21身份一致。
 
-## 拟用隔离端点
+原马戏团ProbeHost（当前观察PID40848）使用
+`E:/Project/DNF/Other/CircusProbe-20261027-fbd8/artifacts/circus-probe/default-probe.db`独立副本库和其他端口，
+本轮保留该进程；主干玩家库由本祭坛Host单独使用。不要把马戏团副本库当作主干玩家库。
 
-候选计划：频道25001、游戏25011、Launcher HTTP 25080、GM HTTP 25081，均在25000–25999内。
+实机登录器：`E:/Project/DNF/DNFClient-A21-protocol/Dfo.Launcher.exe`。
+同目录`Launcher.ini`仅将BaseUrl切为`http://127.0.0.1:25080/`；原INI备份在本轮状态目录`Launcher.ini.before`。
+恢复INI前须检查是否已被其他操作修改，避免覆盖后续配置。没有改动客户端EXE、ClientHack或PVF。
+
+用户实际使用的`E:/Project/DNF/DNFClient-A21-protocol2/Dfo.Launcher.exe`也已指向25080，
+原INI单独备份为本轮状态目录`Launcher.protocol2.ini.before`。已运行的游戏连接不会随INI变化，须退出后重登。
+入口灰色时先核实实际连接：本轮应为频道25001、游戏25011；7001／10011属于其他服务，不能据此判断祭坛活动是否开放。
+本轮错服诊断的脱敏证据保存在`entry-connection-diagnosis.json`；用户已在正确服务上确认按钮可点击。
+
+## 入图修复候选
+
+修复运行目录使用`artifacts/guardian-altar/entry-fixed-20261027/host/`，
+保留原初版和诊断候选产物；玩家库仍为上述主干实际玩家库。
+本轮新备份为同级`player-before-switch.db`，使用SQLite只读源backup API取得，不能裸复制活动主文件。
+实际启动完成以同级`readiness.json`为准；没有该就绪证据不能要求玩家开始完整验收。
+用户已将默认端口交给另一个agent测试，本轮不得占用、重定向或停止默认端口实例；
+只使用既有25001／25011／25080／25081，若需要默认端口等待用户新命令。
+
+## 本轮实机连接端点
+
+已核实：频道25001、游戏25011、Launcher HTTP 25080、GM HTTP 25081，均在25000–25999内。
 `Channel.UseScriptCatalog=false`，只配置一个频道，发布配置完整替换频道及GamePorts数组；
 禁用固定端口UDP发现。否则默认`10000+channel.Id`会覆盖手写GamePorts，或环境数组残项带回旧端口。
 实际切换须核对所有配置源、继承环境、最终有效监听和启动日志；客户端登录器需指向候选频道／HTTP端点。
@@ -51,7 +76,7 @@
 2. 重新核实数据库、PVF、EXE、配置覆盖和端口；记录原服务提交、版本、环境及恢复命令，
    取得新的SQLite一致备份。不要裸复制活动主文件忽略WAL，也不要并行开启两个写同库的Host。
 3. 在新备份副本复核迁移兼容性后，候选使用主干实际玩家库启动；保留原运行产物和配置。
-   候选配置计划中的数据库路径不是当前已启动声明。
+   本轮正式运行数据库以当前实机实例节和readiness.json为准。
 4. 核实实际PID、程序集0.2.10、PVF哈希、TCP／UDP与健康状态，提供用户明确连接方式。
 5. 按[编号实机流程](acceptance.md)测试，记录真实结果。出现问题先定位失败层，再修复并重测。
 6. 恢复服务时保留测试期间合法玩家进度；新表是加法迁移，不因回退程序删除表或直接恢复旧库覆盖新资产。

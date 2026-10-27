@@ -1,0 +1,147 @@
+ClientStatic; ImageBase=0x00400000; instruction addresses are VA.
+Mapped image SHA256=aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d
+
+CMD0010 common refusal code=0x07; jump target VA=0x0110a9a8
+0x0110a9a8: call     0x1102c30
+0x0110a9ad: mov      ecx, eax
+0x0110a9af: call     0x28d6d00
+0x0110a9b4: test     eax, eax
+0x0110a9b6: je       0x110aae5
+0x0110a9bc: call     0x1102c30
+0x0110a9c1: mov      ecx, eax
+0x0110a9c3: call     0x28d6d00
+0x0110a9c8: mov      ecx, eax
+0x0110a9ca: call     0x2713c50
+0x0110a9cf: test     al, al
+0x0110a9d1: je       0x110bee6
+0x0110a9d7: call     0x1102c30
+0x0110a9dc: mov      ecx, eax
+0x0110a9de: call     0x28d6d00
+0x0110a9e3: mov      ecx, eax
+0x0110a9e5: call     0x27130d0
+0x0110a9ea: mov      edi, eax
+0x0110a9ec: push     edi
+0x0110a9ed: call     0x10cdca0
+0x0110a9f2: add      esp, 4
+0x0110a9f5: push     edi
+0x0110a9f6: mov      esi, eax
+0x0110a9f8: call     0xa99680
+0x0110a9fd: mov      ecx, eax
+0x0110a9ff: call     0xa97230
+0x0110aa04: cmp      al, 1
+0x0110aa06: jne      0x110aae5
+0x0110aa0c: test     esi, esi
+0x0110aa0e: je       0x110aae5
+0x0110aa14: mov      ecx, esi
+0x0110aa16: call     0x171c570
+0x0110aa1b: test     eax, eax
+0x0110aa1d: je       0x110aae5
+0x0110aa23: xor      eax, eax
+0x0110aa25: push     0x1fe
+0x0110aa2a: push     eax
+0x0110aa2b: lea      ecx, [ebp - 0x20e]
+0x0110aa31: push     ecx
+0x0110aa32: mov      word ptr [ebp - 0x210], ax
+0x0110aa39: call     0x2c62020
+0x0110aa3e: add      esp, 0xc
+0x0110aa41: mov      ecx, esi
+0x0110aa43: call     0x171c570
+0x0110aa48: mov      edx, dword ptr [eax + 0x38]
+0x0110aa4b: push     edx
+0x0110aa4c: push     0xfe31
+0x0110aa51: call     0x28c14c0
+0x0110aa56: add      esp, 4
+0x0110aa59: push     eax
+0x0110aa5a: lea      eax, [ebp - 0x210]
+0x0110aa60: push     0x200
+0x0110aa65: push     eax
+0x0110aa66: call     0x442570
+0x0110aa6b: push     0x3e8
+0x0110aa70: push     1
+0x0110aa72: push     5
+0x0110aa74: push     0xff93c5dd
+0x0110aa79: push     0x7d0
+0x0110aa7e: lea      ecx, [ebp - 0x210]
+0x0110aa84: push     ecx
+0x0110aa85: lea      edx, [ebp - 0xa54]
+0x0110aa8b: push     edx
+0x0110aa8c: call     0xe486e0
+0x0110aa91: lea      eax, [ebp - 0xacc]
+0x0110aa97: mov      ebx, 2
+0x0110aa9c: push     eax
+0x0110aa9d: mov      dword ptr [ebp - 4], ebx
+0x0110aaa0: call     0xe495c0
+0x0110aaa5: add      esp, 0x30
+0x0110aaa8: mov      eax, dword ptr [eax]
+0x0110aaaa: lea      ecx, [ebp - 0xa54]
+0x0110aab0: push     ecx
+0x0110aab1: mov      ecx, eax
+0x0110aab3: mov      byte ptr [ebp - 4], 3
+0x0110aab7: call     0xe488f0
+0x0110aabc: lea      ecx, [ebp - 0xacc]
+0x0110aac2: mov      byte ptr [ebp - 4], bl
+0x0110aac5: call     0x4ec340
+0x0110aaca: push     0
+0x0110aacc: push     0
+0x0110aace: push     0
+0x0110aad0: push     0
+0x0110aad2: push     0x1e
+0x0110aad4: push     0xff3232ff
+0x0110aad9: lea      edx, [ebp - 0x210]
+0x0110aadf: push     edx
+0x0110aae0: jmp      0x110ac1b
+0x0110aae5: push     0
+0x0110aae7: push     0x575e
+0x0110aaec: call     0x28c14c0
+0x0110aaf1: mov      ecx, dword ptr [0x3a5c9b8]
+0x0110aaf7: add      esp, 4
+0x0110aafa: push     eax
+0x0110aafb: push     0x209
+0x0110ab00: call     0x2304c70
+
+CMD0010 common refusal code=0x13; jump target VA=0x0110ac3d
+0x0110ac3d: call     0x1102c30
+0x0110ac42: mov      ecx, eax
+0x0110ac44: call     0x28d6d00
+0x0110ac49: mov      ecx, eax
+0x0110ac4b: call     0x27130d0
+0x0110ac50: mov      ecx, dword ptr [0x3a5c940]
+0x0110ac56: push     1
+0x0110ac58: push     eax
+0x0110ac59: call     0x2752a80
+0x0110ac5e: test     eax, eax
+0x0110ac60: je       0x110ac94
+0x0110ac62: cmp      byte ptr [eax + 0xb7d], 1
+0x0110ac69: je       0x110ac74
+0x0110ac6b: cmp      byte ptr [eax + 0xb7f], 1
+0x0110ac72: jne      0x110ac94
+0x0110ac74: push     0x11ef8
+0x0110ac79: call     0x28c14c0
+0x0110ac7e: mov      ecx, dword ptr [0x3a5c9b8]
+0x0110ac84: add      esp, 4
+0x0110ac87: push     eax
+0x0110ac88: call     0xa9af50
+0x0110ac8d: mov      ecx, eax
+0x0110ac8f: call     0x1a62df0
+0x0110ac94: push     0x2d7
+0x0110ac99: call     0x28c14c0
+0x0110ac9e: add      esp, 4
+0x0110aca1: push     eax
+0x0110aca2: push     0x41f
+0x0110aca7: push     0x3241210
+0x0110acac: call     0x27bacc0
+0x0110acb1: add      esp, 4
+0x0110acb4: push     eax
+0x0110acb5: push     0x3240ba8
+0x0110acba: call     0x27bacc0
+0x0110acbf: add      esp, 4
+0x0110acc2: push     eax
+0x0110acc3: push     0
+0x0110acc5: call     0x27be370
+0x0110acca: add      esp, 0x14
+0x0110accd: jmp      0x110bee6
+
+dstr.dat SHA256=da151f228267746221f13f598a388479266a8abf21a0ab542e62753eb5df43d7; resource FILE/102/1042
+727>"FAIL : 处于无法选择状态， 不能选择地下城！ "
+22366>"进行强化直播时， 无法进入地下城。"
+73464>"同一公会的冒险家需2人及以上才能入场。"
