@@ -1,13 +1,13 @@
 # 巨龙验收部署（2026-10-27）
 
-2026-10-27 20:53（Asia/Shanghai）完成切换，A21玩家实机结果仍待反馈。用户本轮明确授权核实当前服务/数据库、备份并切换；本记录不表示用户验收通过。
+2026-10-27 21:16（Asia/Shanghai）按用户新指示使用默认端口启动，A21玩家实机结果仍待反馈。用户本轮明确授权核实当前服务/数据库、备份并切换；本记录不表示用户验收通过。
 
 ## 当前验收入口
 
 - 运行内容提交：`32ff430d30df437503d636ffe5c2b9481a09230c`，版本 `0.2.10`，分支 `codex/167-giant-dragon`。
-- 本次启动PID：`22012`。运行目录为本工作区 `artifacts/giant-dragon/live-20261027-204411/host`；实际EXE、完整启动参数、程序集版本及监听见该目录上级 `live-process.json`。
-- 客户端：`E:\Project\DNF\DNFClient-A21-protocol\Dfo.Launcher.exe`。Launcher.ini已指向 `http://127.0.0.1:23072/`。同次备份根有双击入口 `启动巨龙实测.bat`。先退出旧游戏及启动器，再启动此入口并使用已有账号。
-- Channel TCP23070、Game TCP23071、Launcher HTTP23072、GM HTTP23073。GM入口为 [本地管理台](http://127.0.0.1:23073/gm)。`Channel:UseScriptCatalog=false`，单频道71，已核对真实监听；UDP发现仍关闭，先验单人，多人另行安排，不将烟测当多人已通过。
+- 当前启动PID：`45260`。运行目录为本工作区 `artifacts/giant-dragon/live-20261027-204411/host`；实际EXE、完整启动参数、程序集版本及监听见该目录上级 `live-process.json`。
+- 客户端：`E:\Project\DNF\DNFClient-A21-protocol\Dfo.Launcher.exe`。Launcher.ini已指向 `http://127.0.0.1:18080/`。同次备份根有双击入口 `启动巨龙实测.bat`。先退出旧游戏及启动器，再启动此入口并使用已有账号。
+- Channel TCP7001、Game TCP10011、Launcher HTTP18080、GM HTTP18081。GM入口为 [本地管理台](http://127.0.0.1:18081/gm)。`Channel:UseScriptCatalog=false`，单频道11，已核对真实监听；UDP发现开启，实际端口12311/12312，绑定探测响应已验证。先验单人，多人实机仍待验收。
 - 原玩家库绝对路径：`E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Host\bin\Release\net10.0\Data\dfo-server.db`。启动参数显式指定该路径，不是工作区空库或历史备份。
 - 玩法开关：`GiantDragon.Enabled=true`、`RestoredVariantsEnabled=true`。
 
@@ -34,9 +34,10 @@
 
 - 新现役恢复包聚焦回归：81通过，0失败/跳过，见 `active-resource-tests.log` 与 `active-resource.trx`。
 - 切换前在 `compatibility.db` 备份副本启动候选：Launcher/GM及资源就绪，112表结构与数据未变，检查Host已停止。
-- 实际玩家库启动：Launcher bootstrap ready、GM health ready、GM首页和引用资源200；实际4个TCP监听与预期一致，无UDP监听。
-- 客户端安装PVF与服务端包SHA相同，Launcher配置指向23072。
+- 实际玩家库启动：Launcher bootstrap ready、GM health ready、GM首页和引用资源200；实际4个TCP及2个UDP监听与预期一致，两个UDP端点响应已核验。
+- 客户端安装PVF与服务端包SHA相同，Launcher配置指向18080。
 - 既有全量回归及其2项异界基线失败、18项文档基线差异保留在 [Verification.md](Verification.md)，不因部署成功改写成全绿。
+- 默认端口切换前另存当前数据库快照与配置，见 `default-backup.log` 及 `appsettings-before-default.json`；当前身份见 `default-process.json`。TCP与UDP分别检查占用，NVIDIA Overlay使用的UDP10011保持不动。
 - 正常登录、入口可达、真实战斗、计时、机关、奖励、退出/重登与跨日仍需按 [实机清单](Human-Test-List.md) 验证。
 
 ## 第一轮测试

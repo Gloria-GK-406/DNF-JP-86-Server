@@ -57,7 +57,7 @@ try {
         HostAssemblySha256=(Get-FileHash -LiteralPath $hostAssembly -Algorithm SHA256).Hash;
         PvfSha256=(Get-FileHash -LiteralPath $pvf -Algorithm SHA256).Hash;Bootstrap=$ready;
         UseScriptCatalog=$false;ChannelId=71;GamePort=$GamePort;ChannelPort=$ChannelPort;HttpPort=$HttpPort;
-        UdpDiscoveryEnabled=$false;UdpReason='Production UDP discovery is fixed to shared 17200/17201; disabled for isolated smoke';
+        UdpDiscoveryEnabled=$false;UdpReason='Production UDP discovery is fixed to shared 12311/12312; disabled for isolated smoke';
         Tcp=$ownedTcp | Select-Object LocalAddress,LocalPort,OwningProcess;Udp=$ownedUdp;At=(Get-Date).ToString('o')}
     $result | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 (Join-Path $runRoot 'result.json')
     Get-Content -LiteralPath (Join-Path $runRoot 'result.json')
