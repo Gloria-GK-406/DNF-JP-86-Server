@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Sessions;
@@ -11,17 +13,37 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.Characters;
 
-public sealed record ExpireCharacterNameTagCommand(SelectedSessionIdentity Session)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
+internal sealed class CharacterNameTagExpirationJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+    ICharacterNameTagDomainService tags, ICommandWorkUnits units) : IScheduledGameplayTask
 {
-    public AccountId AccountId => Session.AccountId;
-}
-
-internal sealed class ExpireCharacterNameTagCommandHandler(ICharacterNameTagDomainService tags)
-    : ICommandHandler<ExpireCharacterNameTagCommand, bool>
-{
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, ExpireCharacterNameTagCommand command, CancellationToken ct) =>
-        tags.ExpireAsync(command.Session, ct);
+    public async ValueTask<ScheduledTaskBusinessResult> RunAsync(CommandExecutionContext execution, ScheduledTaskContext scheduled, CancellationToken ct)
+    {
+        var failures = new List<Exception>();
+        foreach (var session in online.Snapshot())
+        {
+            if (!sessions.IsInWorld(session)) continue;
+            Exception? actionFailure = null;
+            var result = await units.WriteResultAsync(execution, new("character.name-tag.expiration", [ScheduledSessionRecipient.Capture(session, users)]), async (unit, token) =>
+            {
+                try { return await tags.ExpireAsync(session, token).ConfigureAwait(false); }
+                catch (Exception error) when (error is not OperationCanceledException
+                    && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error)
+                    && !Dfo.Server.Application.DomainEvents.DomainEventScopeCleanupException.Contains(error))
+                {
+                    execution.DemandRequest();
+                    unit.RequireRollback(error);
+                    actionFailure = error;
+                    return false;
+                }
+            }, ct).ConfigureAwait(false);
+            var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
+            if (error is not null && sessions.IsInWorld(session))
+            {
+                failures.Add(error);
+            }
+        }
+        return ScheduledTaskBusinessResult.Handled(execution, "Online name tag expiration failed for some characters.", failures);
+    }
 }
 
 internal static class CharacterNameTagRegistration
@@ -30,24 +52,9 @@ internal static class CharacterNameTagRegistration
     {
         services.TryAddSingleton<ICharacterNameTagRuleService, CharacterNameTagRuleService>();
         services.TryAddSingleton<ICharacterNameTagDomainService, CharacterNameTagDomainService>();
-        services.AddCommandHandler<ExpireCharacterNameTagCommand, bool, ExpireCharacterNameTagCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
         services.AddDomainEvent<CharacterNameTagExpired>("character.name-tag-expired", 1);
-        services.AddScheduledTaskFactory(_ => new("character.name-tag.expiration",
-            new IntervalTaskSchedule(TimeSpan.FromMinutes(1)), async (context, ct) =>
-            {
-                var online = context.Services.GetRequiredService<ISelectedSessionSnapshotQuery>();
-                var commands = context.Services.GetRequiredService<ICommandBus>();
-                var sessions = context.Services.GetRequiredService<ISelectedSessionDomainService>();
-                var failures = new List<Exception>();
-                foreach (var session in online.Snapshot())
-                {
-                    try { await commands.SendAsync(new ExpireCharacterNameTagCommand(session), ct).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                    catch (Exception) when (sessions.Find(session.AccountId) != session) { }
-                    catch (Exception error) { failures.Add(error); }
-                }
-                if (failures.Count > 0) throw new AggregateException("Online name tag expiration failed for some characters.", failures);
-            }));
+        services.AddScoped<CharacterNameTagExpirationJob>();
+        services.AddScheduledTaskFactory(sp => new("character.name-tag.expiration", new IntervalTaskSchedule(TimeSpan.FromMinutes(1)), typeof(CharacterNameTagExpirationJob)));
+
     }
 }

@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -16,15 +17,18 @@ public sealed class BagPlacementVerbTests
     [Fact]
     public async Task Adding_joins_a_pile_that_has_room_and_says_how_much_it_took()
     {
-        var bag = new BagInventory { [65] = (Potion, 3) };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = new BagInventory { [65] = (Potion, 3) };
 
-        var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
+            var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
-        var joined = Assert.IsType<ItemPlacementOutcome.AddedToPile>(outcome.Placement);
-        Assert.Equal(0, joined.SlotIndex);
-        Assert.Equal(BusinessInventorySpace.Consumable, outcome.Container.Space);
-        Assert.Equal(4, joined.Added);
-        Assert.Equal(7, joined.Total);
+            var joined = Assert.IsType<ItemPlacementOutcome.AddedToPile>(outcome.Placement);
+            Assert.Equal(0, joined.SlotIndex);
+            Assert.Equal(BusinessInventorySpace.Consumable, outcome.Container.Space);
+            Assert.Equal(4, joined.Added);
+            Assert.Equal(7, joined.Total);
+        });
     }
 
     /// <summary>
@@ -39,14 +43,17 @@ public sealed class BagPlacementVerbTests
     [Fact]
     public async Task Adding_a_consumable_with_no_pile_opens_the_quick_bar_first()
     {
-        var bag = new BagInventory();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = new BagInventory();
 
-        var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
+            var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
-        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome.Placement);
-        Assert.Equal(0, opened.SlotIndex);
-        Assert.Equal(BusinessInventorySpace.QuickSlot, outcome.Container.Space);
-        Assert.Equal(4, opened.Count);
+            var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome.Placement);
+            Assert.Equal(0, opened.SlotIndex);
+            Assert.Equal(BusinessInventorySpace.QuickSlot, outcome.Container.Space);
+            Assert.Equal(4, opened.Count);
+        });
     }
 
     /// <summary>With the bar full, the same offer lands in the item's own band.</summary>
@@ -57,14 +64,17 @@ public sealed class BagPlacementVerbTests
     [Fact]
     public async Task Adding_a_consumable_falls_back_to_its_own_band_when_the_bar_is_full()
     {
-        var bag = FullBar();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = FullBar();
 
-        var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
+            var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 4, default));
 
-        var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome.Placement);
-        Assert.Equal(0, opened.SlotIndex);
-        Assert.Equal(BusinessInventorySpace.Consumable, outcome.Container.Space);
-        Assert.Equal(4, opened.Count);
+            var opened = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(outcome.Placement);
+            Assert.Equal(0, opened.SlotIndex);
+            Assert.Equal(BusinessInventorySpace.Consumable, outcome.Container.Space);
+            Assert.Equal(4, opened.Count);
+        });
     }
 
     /// <remarks>
@@ -75,17 +85,20 @@ public sealed class BagPlacementVerbTests
     [Fact]
     public async Task Adding_answers_that_there_is_no_room_rather_than_spilling_out_of_the_band()
     {
-        var bag = FullBar();
-        bag[65] = (Potion, 10);
-        bag[66] = (Potion, 10);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = FullBar();
+            bag[65] = (Potion, 10);
+            bag[66] = (Potion, 10);
 
-        var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 1, default));
+            var outcome = await bag.InUseCase(container => container.AddAsync(Potion, 1, default));
 
-        Assert.IsType<ItemPlacementOutcome.NoRoom>(outcome.Placement);
-        Assert.Equal(
-            [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
-             (8, Unknown, 1), (65, Potion, 10), (66, Potion, 10)],
-            bag.Rows());
+            Assert.IsType<ItemPlacementOutcome.NoRoom>(outcome.Placement);
+            Assert.Equal(
+                [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
+                 (8, Unknown, 1), (65, Potion, 10), (66, Potion, 10)],
+                bag.Rows());
+        });
     }
 
     /// <summary>A bag whose six quick slots are all taken by something that is not the potion.</summary>
@@ -100,12 +113,15 @@ public sealed class BagPlacementVerbTests
     [Fact]
     public async Task Adding_something_the_archive_declares_nothing_for_writes_nothing()
     {
-        var bag = new BagInventory();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bag = new BagInventory();
 
-        var outcome = await bag.InUseCase(container => container.AddAsync(Unknown, 1, default));
+            var outcome = await bag.InUseCase(container => container.AddAsync(Unknown, 1, default));
 
-        Assert.IsType<ItemPlacementOutcome.UnknownItem>(outcome.Placement);
-        Assert.Empty(bag.Rows());
+            Assert.IsType<ItemPlacementOutcome.UnknownItem>(outcome.Placement);
+            Assert.Empty(bag.Rows());
+        });
     }
 
     private const byte ItemKind = 2;

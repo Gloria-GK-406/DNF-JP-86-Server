@@ -5,6 +5,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.MagicBoxBatchOpening;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -75,8 +76,7 @@ public sealed class OpeningCapacityRegressionTests
     }
 
     private static Task<MagicBoxOpeningResult> Open(OpeningFixture f, int source) =>
-        f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new MagicBoxBatchOpeningCommand(
-            f.Host.OnlineUser, f.Host.Session, new(0, source, 1000, -1, 0, 1))).AsTask();
+        OpeningDomainTestDriver.Box(f.Host, f.Host.Session, new(0, source, 1000, -1, 0, 1));
 
     // Match production entry binding: physical writes must use the same capacity service as previews.
     private static void EnableCapacityChecks(ShopFixture host)
@@ -85,13 +85,16 @@ public sealed class OpeningCapacityRegressionTests
         var registry = services.GetRequiredService<ICharacterContainerDomainService>();
         var other = new[] { InventoryContainerType.Equipment, InventoryContainerType.Avatar, InventoryContainerType.Pet }
             .Select(type => registry.GetContainer(host.Session.CharacterId, type)).ToArray();
-        registry.Clear(host.Session.CharacterId);
-        foreach (var container in other) registry.Register(host.Session.CharacterId, container);
-        registry.Register(host.Session.CharacterId, new PersistentItemContainer(
-            ContainerId.ForCharacter(host.Session.CharacterId, InventoryContainerType.Main),
-            new(InventoryContainerType.Main, 0), services.GetRequiredService<IItemDomainStore>(),
-            services.GetRequiredService<IDomainTransactionAccessor>(),
-            services.GetRequiredService<IItemPlacementRuleService>(),
-            services.GetRequiredService<IItemSlotRuleService>(), services.GetRequiredService<IInventoryCapacityDomainService>()));
+        TestGameplay.Run(services, () =>
+        {
+            registry.Clear(host.Session.CharacterId);
+            foreach (var container in other) registry.Register(host.Session.CharacterId, container);
+            registry.Register(host.Session.CharacterId, new PersistentItemContainer(
+                ContainerId.ForCharacter(host.Session.CharacterId, InventoryContainerType.Main),
+                new(InventoryContainerType.Main, 0), services.GetRequiredService<IItemDomainStore>(),
+                services.GetRequiredService<IDomainTransactionAccessor>(),
+                services.GetRequiredService<IItemPlacementRuleService>(),
+                services.GetRequiredService<IItemSlotRuleService>(), services.GetRequiredService<IInventoryCapacityDomainService>()));
+        });
     }
 }

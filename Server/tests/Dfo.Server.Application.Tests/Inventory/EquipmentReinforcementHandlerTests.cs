@@ -9,6 +9,7 @@ using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Abstractions.Networking;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -28,7 +29,7 @@ public sealed class EquipmentReinforcementHandlerTests
                 new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider));
             services.AddSingleton<IEquipmentDefinitionSource>(new TicketEquipment());
             services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
-        });
+        }, useArchive: true);
         var original = Piece() with { Attribute = 0xA3, Durability = 0,
             AmplifyType = amplification ? (byte)4 : (byte)0, AmplifyValue = amplification ? (ushort)5 : (ushort)0 };
         await shop.SeedCore(9, original);
@@ -95,7 +96,7 @@ public sealed class EquipmentReinforcementHandlerTests
         Assert.Equal((byte)0xA1, immediate[15 + 3 + 0x0A]);
         Assert.Equal((byte)1, immediate[15 + 3 + 0x12]);
 
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         var reloaded = await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
             .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default);
@@ -149,7 +150,8 @@ public sealed class EquipmentReinforcementHandlerTests
         await Send(shop, 7);
 
         Assert.Equal(countAfterFirst + 6, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
@@ -163,10 +165,11 @@ public sealed class EquipmentReinforcementHandlerTests
         await shop.Seed(121, 1000, 20, 3);
 
         await Send(shop, 7);
+        var batchesBefore = shop.Sender.Batches.Count;
         await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7, expectedItemId: 3001).AsTask());
 
         Assert.True(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
-        Assert.Empty(shop.Sender.Batches);
+        Assert.Equal(batchesBefore, shop.Sender.Batches.Count);
         Assert.Equal(10, shop.Count(1000));
         Assert.Equal(99_900, shop.Gold);
     }
@@ -180,9 +183,10 @@ public sealed class EquipmentReinforcementHandlerTests
 
         await Send(shop, 7);
         shop.Select(2);
+        var batchesBefore = shop.Sender.Batches.Count;
         await Assert.ThrowsAsync<InvalidDataException>(() => Send(shop, 7).AsTask());
         Assert.True(Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).Success);
-        Assert.Empty(shop.Sender.Batches);
+        Assert.Equal(batchesBefore, shop.Sender.Batches.Count);
         Assert.Equal(100_000, shop.Gold);
     }
 
@@ -308,7 +312,8 @@ public sealed class EquipmentReinforcementHandlerTests
         await Send(shop, 7);
 
         Assert.Equal(countAfterFirst + 6, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Equal(newLevel, Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>()).NewLevel);
         Assert.Equal(1, shop.Count(ticketId));
         Assert.Equal(10, shop.Count(1000));
@@ -324,12 +329,15 @@ public sealed class EquipmentReinforcementHandlerTests
         using var shop = Fixture(protectedFailure: true, materialId: 3037);
         await shop.SeedCore(9, Piece() with { Attribute = 11 });
         await shop.Seed(3, ticketId, 2);
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var seed = scope.Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            await shop.PutShared(3037, 20);
-            await seed.CommitAsync(default);
-        }
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using (var seed = scope.Begin())
+            {
+                await shop.PutShared(3037, 20);
+                await seed.CommitAsync(default);
+            }
+        });
 
         await Send(shop, 7, materialSlot: 358);
 
@@ -397,12 +405,15 @@ public sealed class EquipmentReinforcementHandlerTests
     {
         using var shop = Fixture(protectedFailure: true, materialId: 3037);
         await shop.SeedCore(9, Piece() with { Attribute = 11 });
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var seed = scope.Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            await shop.PutShared(3037, 20);
-            await seed.CommitAsync(default);
-        }
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using (var seed = scope.Begin())
+            {
+                await shop.PutShared(3037, 20);
+                await seed.CommitAsync(default);
+            }
+        });
         shop.Sender.BeforeSend = () =>
         {
             Assert.Equal(43, shop.SharedCount(3037, 1));
@@ -480,7 +491,7 @@ public sealed class EquipmentReinforcementHandlerTests
 
     private static async Task<byte[]> ReloadSnapshot(ShopFixture shop)
     {
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         var character = await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
             .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default);

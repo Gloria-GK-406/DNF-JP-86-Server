@@ -3,6 +3,7 @@ using Dfo.Server.Data.Events;
 
 namespace Dfo.Server.Application.Tests.Events;
 
+[Trait("Category", "Unit")]
 public sealed class JoustContestRulesTests
 {
     private static JoustKnight[] Knights => Enumerable.Range(0,8).Select(i=>new JoustKnight(i,"knight",0,[],[])).ToArray();

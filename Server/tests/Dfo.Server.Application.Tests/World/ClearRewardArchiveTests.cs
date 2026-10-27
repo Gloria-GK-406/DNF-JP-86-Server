@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -657,74 +658,77 @@ public sealed class ClearRewardArchiveTests
     [SkippableFact]
     public async Task One_dungeon_bands_and_prices_alike_for_every_character_level()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var provider = ContentArchive.CreateContentProvider();
-        var table = Table(provider);
-        var pool = provider.GetRequiredService<IDropItemPoolSource>()
-            .Load(DropItemFamily.Equipment);
-        var rules = new ClearRewardRuleService(
-            provider.GetRequiredService<IClearRewardRateSource>(),
-            provider.GetRequiredService<IGoldDropTableSource>(),
-            provider.GetRequiredService<IDropItemPoolSource>(),
-            provider.GetRequiredService<IDungeonDefinitionSource>(),
-            new ClearRewardRateOptions { RateBasis = Basis });
-
-        var dungeon = await provider.GetRequiredService<IDungeonDefinitionSource>()
-            .GetAsync(OrdinaryDungeonId, CancellationToken.None);
-        Assert.NotNull(dungeon);
-
-        // What the archive declares about this dungeon and about that level of it.
-        Assert.Equal(5, dungeon.BasisLevel);
-        Assert.Equal(580, table.GoldCardCost(dungeon.BasisLevel));
-        Assert.Equal(new ItemGradeBand(2, 8), table.GradeBandFor(dungeon.BasisLevel));
-
-        // And that the two character levels below are neither priced nor banded like it, so the
-        // equalities that follow have something to fail against.
-        Assert.Equal(10300, table.GoldCardCost(EndgameLevel));
-        Assert.Equal(2380, table.GoldCardCost(LowLevel));
-        Assert.NotEqual(table.GradeBandFor(dungeon.BasisLevel), table.GradeBandFor(EndgameLevel));
-        Assert.NotEqual(table.GradeBandFor(dungeon.BasisLevel), table.GradeBandFor(LowLevel));
-
-        var band = table.GradeBandFor(dungeon.BasisLevel);
-        Assert.NotNull(band);
-
-        var drawn = 0;
-        foreach (var seed in new[] { 1, 2, 3, 4, 5, 6, 7, 8 })
+        await TestGameplay.RunAsync(async () =>
         {
-            var settlements = new List<(int? Price, string Faces)>();
-            foreach (var characterLevel in new[] { LowLevel, EndgameLevel })
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var provider = ContentArchive.CreateContentProvider();
+            var table = Table(provider);
+            var pool = provider.GetRequiredService<IDropItemPoolSource>()
+                .Load(DropItemFamily.Equipment);
+            var rules = new ClearRewardRuleService(
+                provider.GetRequiredService<IClearRewardRateSource>(),
+                provider.GetRequiredService<IGoldDropTableSource>(),
+                provider.GetRequiredService<IDropItemPoolSource>(),
+                provider.GetRequiredService<IDungeonDefinitionSource>(),
+                new ClearRewardRateOptions { RateBasis = Basis });
+
+            var dungeon = await provider.GetRequiredService<IDungeonDefinitionSource>()
+                .GetAsync(OrdinaryDungeonId, CancellationToken.None);
+            Assert.NotNull(dungeon);
+
+            // What the archive declares about this dungeon and about that level of it.
+            Assert.Equal(5, dungeon.BasisLevel);
+            Assert.Equal(580, table.GoldCardCost(dungeon.BasisLevel));
+            Assert.Equal(new ItemGradeBand(2, 8), table.GradeBandFor(dungeon.BasisLevel));
+
+            // And that the two character levels below are neither priced nor banded like it, so the
+            // equalities that follow have something to fail against.
+            Assert.Equal(10300, table.GoldCardCost(EndgameLevel));
+            Assert.Equal(2380, table.GoldCardCost(LowLevel));
+            Assert.NotEqual(table.GradeBandFor(dungeon.BasisLevel), table.GradeBandFor(EndgameLevel));
+            Assert.NotEqual(table.GradeBandFor(dungeon.BasisLevel), table.GradeBandFor(LowLevel));
+
+            var band = table.GradeBandFor(dungeon.BasisLevel);
+            Assert.NotNull(band);
+
+            var drawn = 0;
+            foreach (var seed in new[] { 1, 2, 3, 4, 5, 6, 7, 8 })
             {
-                var runs = new DungeonRunDomainService();
-                runs.Begin(Character, LayoutOf(dungeon, MazeRooms, seed), difficulty: (DungeonDifficulty)3);
-                var settled = await new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums()).SettleAsync(
-                    new ClearRewardSettlement(Character, characterLevel), CancellationToken.None);
-
-                Assert.NotNull(settled);
-                settlements.Add(
-                    (settled.PaidFlipCost,
-                        ClearRewardFixture.Fingerprint(settled.Cards.Free)
-                        + " || "
-                        + ClearRewardFixture.Fingerprint(settled.Cards.Paid)));
-
-                // Whatever came out came out of the level 5 band, in the pool the archive holds.
-                foreach (var item in settled.Cards.Free.Slots.Concat(settled.Cards.Paid.Slots)
-                             .Where(slot => !slot.IsEmpty)
-                             .Select(slot => slot.Item!.Value))
+                var settlements = new List<(int? Price, string Faces)>();
+                foreach (var characterLevel in new[] { LowLevel, EndgameLevel })
                 {
-                    drawn++;
-                    Assert.Contains(
-                        pool.Band(band.Value, item.Rarity),
-                        entry => entry.ItemId == item.ItemId);
+                    var runs = new DungeonRunDomainService();
+                    runs.Begin(Character, LayoutOf(dungeon, MazeRooms, seed), difficulty: (DungeonDifficulty)3);
+                    var settled = await new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums()).SettleAsync(
+                        new ClearRewardSettlement(Character, characterLevel), CancellationToken.None);
+
+                    Assert.NotNull(settled);
+                    settlements.Add(
+                        (settled.PaidFlipCost,
+                            ClearRewardFixture.Fingerprint(settled.Cards.Free)
+                            + " || "
+                            + ClearRewardFixture.Fingerprint(settled.Cards.Paid)));
+
+                    // Whatever came out came out of the level 5 band, in the pool the archive holds.
+                    foreach (var item in settled.Cards.Free.Slots.Concat(settled.Cards.Paid.Slots)
+                                 .Where(slot => !slot.IsEmpty)
+                                 .Select(slot => slot.Item!.Value))
+                    {
+                        drawn++;
+                        Assert.Contains(
+                            pool.Band(band.Value, item.Rarity),
+                            entry => entry.ItemId == item.ItemId);
+                    }
                 }
+
+                Assert.Equal(580, settlements[0].Price);
+                Assert.Single(settlements.Select(settled => settled.Price).Distinct());
+                Assert.Single(settlements.Select(settled => settled.Faces).Distinct());
             }
 
-            Assert.Equal(580, settlements[0].Price);
-            Assert.Single(settlements.Select(settled => settled.Price).Distinct());
-            Assert.Single(settlements.Select(settled => settled.Faces).Distinct());
-        }
-
-        // Not a comparison of two empty faces: the eight runs really handed pieces over.
-        Assert.True(drawn > 0, "no position of any of these faces carried anything");
+            // Not a comparison of two empty faces: the eight runs really handed pieces over.
+            Assert.True(drawn > 0, "no position of any of these faces carried anything");
+        });
     }
 
     /// <summary>

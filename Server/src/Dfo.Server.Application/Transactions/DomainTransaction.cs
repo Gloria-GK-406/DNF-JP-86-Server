@@ -1,8 +1,13 @@
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Execution.Outbox;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Dfo.Server.Application.Transactions;
+
+internal enum DomainActionRollbackPhase { DomainActionAbort }
+internal enum DomainTransactionCompletion { Open, ConfirmedRollback, Committed, Uncertain }
+
 
 /// <summary>
 /// Settles one use case's participants together.
@@ -13,15 +18,22 @@ namespace Dfo.Server.Application.Transactions;
 /// and including the second stage nothing is visible, so any failure unwinds cleanly; past it
 /// the remaining commits have declared that they cannot fail. That is why a second participant
 /// whose commit can fail is refused rather than accepted and hoped for.
+/// <para>
+/// A writable transaction opened on a job also owns that job's outbox work unit (RQ-031(0)(b)): what is
+/// registered while it is open is sent only if it commits, its pending compositions are composed after
+/// every participant has committed and before control returns to the CMD, and a rollback or an
+/// uncertain outcome drops them.
+/// </para>
 /// </remarks>
-internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTransaction>? logger = null) : IDomainTransaction
+internal sealed class DomainTransaction(
+    bool readOnly = false, ILogger<DomainTransaction>? logger = null, GameplayOutboxUnit? unit = null) : IDomainTransaction
 {
     private readonly Dictionary<object, Func<CancellationToken, ValueTask>> afterCommit = [];
     public bool IsReadOnly => readOnly;
     public bool IsRollbackOnly { get; private set; }
     public void RequireRollback()
     {
-        if (settled) throw new InvalidOperationException("The transaction is already settled.");
+        if (settled) throw SettledGuard("The transaction is already settled.");
         IsRollbackOnly = true;
     }
 
@@ -39,6 +51,88 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
 
     /// <summary>Whether this transaction has already been committed or rolled back.</summary>
     internal bool IsSettled => this.settled;
+    internal DomainTransactionCompletion Completion { get; private set; }
+    internal TransactionFailureFact? CommitFailure { get; private set; }
+    internal Exception? GuardFailure => order.OfType<ITransactionFailureSource>()
+        .Select(source => source.LastFailure).FirstOrDefault(fact => fact?.Kind == TransactionFailureKind.Guard)?.Cause;
+    private object? actionObservation;
+    internal DomainActionRollbackFact? ActionRollback { get; private set; }
+    internal DomainActionAbortFact? ActionAbort { get; private set; }
+    internal sealed record DomainActionAbortFact(DomainTransaction Transaction, Exception Cause, Exception Output, DomainTransactionCompletion Completion, object Occurrence)
+    { internal DomainActionRollbackPhase Phase => DomainActionRollbackPhase.DomainActionAbort; }
+    internal GameplayOutboxUnit? OutboxUnit => unit;
+    private Exception SettledGuard(string message)
+    {
+        var error = new InvalidOperationException(message);
+        if (actionObservation is not null) unit?.RecordSelfSettlementGuard(error);
+        return error;
+    }
+    internal object ObserveAction()
+    {
+        if (settled || actionObservation is not null || unit is null)
+            throw new InvalidOperationException("A self-settling action requires its own open outbox unit and one observation.");
+        return actionObservation = new object();
+    }
+    internal ValueTask AbortActionAsync(Exception originalCause)
+    {
+        ArgumentNullException.ThrowIfNull(originalCause);
+        if (settled) return ValueTask.CompletedTask;
+        // Pin synchronously while this transaction and its original unit are still open.
+        if (actionObservation is not null) unit!.PinSelfSettlement();
+        settled = true;
+        afterCommit.Clear();
+        return CompleteActionAbortAsync(originalCause);
+    }
+    private async ValueTask CompleteActionAbortAsync(Exception originalCause)
+    {
+        Exception output = originalCause;
+        try { await RollbackEnlistedAsync(originalCause).ConfigureAwait(false); }
+        catch (Exception error) { output = error; throw; }
+        finally
+        {
+            ActionAbort = new(this, originalCause, output, Completion, new object());
+            if (actionObservation is { } call)
+                ActionRollback = new(this, call, new object(), originalCause, output, Completion);
+        }
+    }
+    internal sealed class DomainActionRollbackFact(DomainTransaction transaction, object call, object occurrence,
+        Exception cause, Exception output, DomainTransactionCompletion completion)
+    {
+        internal DomainActionRollbackPhase Phase { get; } = DomainActionRollbackPhase.DomainActionAbort;
+        internal DomainTransaction Transaction { get; } = transaction;
+        internal object Call { get; } = call;
+        internal object Occurrence { get; } = occurrence;
+        internal Exception Cause { get; } = cause;
+        internal Exception Output { get; } = output;
+        internal DomainTransactionCompletion Completion { get; } = completion;
+        internal bool Consumed { get; private set; }
+        internal bool TryConsume(DomainTransaction expected, object expectedCall, Exception error)
+        {
+            if (Consumed || Phase != DomainActionRollbackPhase.DomainActionAbort || !ReferenceEquals(Transaction, expected) || !ReferenceEquals(Call, expectedCall)
+                || !ReferenceEquals(Output, error)) return false;
+            Consumed = true;
+            return true;
+        }
+    }
+
+    private async ValueTask InvokeParticipant(ITransactionParticipant participant, TransactionFailurePhase phase, CancellationToken ct)
+    {
+        var source = participant as ITransactionFailureSource;
+        var before = source?.LastFailure;
+        try
+        {
+            if (phase == TransactionFailurePhase.Prepare) await participant.PrepareAsync(ct).ConfigureAwait(false);
+            else await participant.CommitAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception cause)
+        {
+            var fact = source?.LastFailure;
+            CommitFailure = fact is not null && !ReferenceEquals(before, fact) && !ReferenceEquals(before?.Occurrence, fact.Occurrence)
+                && ReferenceEquals(fact.Source, participant) && ReferenceEquals(fact.Cause, cause) && fact.Phase == phase
+                ? fact : new(participant, cause, phase, TransactionFailureKind.Unknown);
+            throw;
+        }
+    }
 
     public TParticipant Enlist<TParticipant>(object identity, Func<TParticipant> create)
         where TParticipant : ITransactionParticipant
@@ -47,8 +141,7 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
         ArgumentNullException.ThrowIfNull(create);
         if (this.settled)
         {
-            throw new InvalidOperationException(
-                "The transaction has already been settled and admits no further participant.");
+            throw SettledGuard("The transaction has already been settled and admits no further participant.");
         }
 
         if (this.enlisted.TryGetValue(identity, out var existing))
@@ -100,14 +193,14 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
         {
             foreach (var participant in this.order)
             {
-                await participant.PrepareAsync(cancellationToken).ConfigureAwait(false);
+                await InvokeParticipant(participant, TransactionFailurePhase.Prepare, cancellationToken).ConfigureAwait(false);
             }
 
             // Everything that can fail has now happened but for this one commit, and nothing is
             // visible yet, so failing here still unwinds with nothing half applied.
             if (this.commitFallible is not null)
             {
-                await this.commitFallible.CommitAsync(cancellationToken).ConfigureAwait(false);
+                await InvokeParticipant(this.commitFallible, TransactionFailurePhase.FallibleCommit, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception failure)
@@ -131,6 +224,8 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
             catch (Exception violation)
             {
                 this.afterCommit.Clear();
+                Completion = DomainTransactionCompletion.Uncertain;
+                EndUnit(GameplayOutboxUnitState.Uncertain);
                 throw new TransactionOutcomeUncertainException(
                     TransactionUncertaintyReason.NonFallibleCommitContractViolation,
                     $"'{participant.GetType().Name}' declared that its commit cannot fail, and it " +
@@ -138,6 +233,22 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
                     violation);
             }
         }
+        Completion = DomainTransactionCompletion.Committed;
+        // Composed against the committed state, before anything that runs after the commit (RQ-031(0)).
+        // A composition that throws leaves the unit uncertain and fails the CMD; the commit stands.
+        Exception? composition = null;
+        if (unit is { State: GameplayOutboxUnitState.Open })
+        {
+            try
+            {
+                await unit.CommitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                composition = error;
+            }
+        }
+
         // These effects observe an already committed outcome. Failure cannot turn it into
         // a rollback or a retryable command failure, nor suppress other recipients' effects.
         foreach (var callback in this.afterCommit.Values)
@@ -153,6 +264,8 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
             }
         }
         this.afterCommit.Clear();
+        if (composition is not null)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(composition);
     }
 
     public ValueTask RollbackAsync()
@@ -170,7 +283,32 @@ internal sealed class DomainTransaction(bool readOnly = false, ILogger<DomainTra
         return this.RollbackEnlistedAsync(cause);
     }
 
+    private void EndUnit(GameplayOutboxUnitState state)
+    {
+        if (unit is not { State: GameplayOutboxUnitState.Open } open) return;
+        if (state == GameplayOutboxUnitState.Uncertain) open.MarkUncertain();
+        else open.Rollback();
+    }
+
     private async ValueTask RollbackEnlistedAsync(Exception? cause)
+    {
+        try
+        {
+            await RollbackParticipantsAsync(cause).ConfigureAwait(false);
+        }
+        catch (TransactionOutcomeUncertainException)
+        {
+            Completion = DomainTransactionCompletion.Uncertain;
+            EndUnit(GameplayOutboxUnitState.Uncertain);
+            throw;
+        }
+
+        Completion = cause is not null && TransactionOutcomeUncertainException.Contains(cause)
+            ? DomainTransactionCompletion.Uncertain : DomainTransactionCompletion.ConfirmedRollback;
+        EndUnit(GameplayOutboxUnitState.RolledBack);
+    }
+
+    private async ValueTask RollbackParticipantsAsync(Exception? cause)
     {
         List<Exception>? failures = null;
         for (var index = this.order.Count - 1; index >= 0; index--)

@@ -16,7 +16,7 @@ public sealed class CeraShopPurchaseCompletedHandler(ISelectedSessionDomainServi
     {
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
         // The purchase-success handler derives the next offer from the current cargo capacity.

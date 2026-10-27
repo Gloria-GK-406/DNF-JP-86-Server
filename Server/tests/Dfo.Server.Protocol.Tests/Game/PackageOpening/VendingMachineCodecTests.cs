@@ -1,6 +1,7 @@
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.VendingMachine;
 namespace Dfo.Server.Protocol.Tests.Game.PackageOpening;
+[Trait("Category", "Unit")]
 public sealed class VendingMachineCodecTests
 {
     [Fact]

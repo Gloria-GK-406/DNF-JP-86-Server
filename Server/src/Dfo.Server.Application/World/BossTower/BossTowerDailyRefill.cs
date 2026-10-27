@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -12,45 +13,47 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World.BossTower;
 
-public sealed record RefillOnlineBossTowerTicketCommand(SelectedSessionIdentity Session)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
-{ public AccountId AccountId => Session.AccountId; }
-internal sealed class RefillOnlineBossTowerTicketCommandHandler(IBossTowerTicketDomainService tickets)
-    : ICommandHandler<RefillOnlineBossTowerTicketCommand, bool>
+internal sealed class BossTowerDailyRefillJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+    IBossTowerTicketDomainService tickets, ICommandWorkUnits units, Microsoft.Extensions.Logging.ILogger<BossTowerDailyRefillJob> logger) : IScheduledGameplayTask
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, RefillOnlineBossTowerTicketCommand command, CancellationToken ct)
-        => tickets.RefillOnlineTicketAsync(command.Session, ct);
-}
-internal sealed class BossTowerDailyRefillJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions,
-    ICommandBus commands, ILogger<BossTowerDailyRefillJob> logger)
-{
-    public async ValueTask RunAsync(CancellationToken ct)
+    public async ValueTask<ScheduledTaskBusinessResult> RunAsync(CommandExecutionContext execution, ScheduledTaskContext scheduled, CancellationToken ct)
     {
         var failures = new List<Exception>();
         foreach (var session in online.Snapshot())
         {
             ct.ThrowIfCancellationRequested();
-            try { await commands.SendAsync(new RefillOnlineBossTowerTicketCommand(session), ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception error)
+            if (!sessions.IsInWorld(session)) continue;
+            Exception? actionFailure = null;
+            var result = await units.WriteResultAsync(execution, new("boss-tower.ticket-refill.online", [ScheduledSessionRecipient.Capture(session, users)]), async (unit, token) =>
             {
-                if (sessions.Find(session.AccountId) != session) continue;
-                logger.LogError(error, "Boss tower ticket refill failed character={CharacterId}", session.CharacterId);
+                try { return await tickets.RefillOnlineTicketAsync(session, token).ConfigureAwait(false); }
+                catch (Exception error) when (error is not OperationCanceledException
+                    && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error)
+                    && !Dfo.Server.Application.DomainEvents.DomainEventScopeCleanupException.Contains(error))
+                {
+                    execution.DemandRequest();
+                    unit.RequireRollback(error);
+                    actionFailure = error;
+                    return false;
+                }
+            }, ct).ConfigureAwait(false);
+            var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
+            if (error is not null && sessions.IsInWorld(session))
+            {
+                logger.LogWarning( "Boss tower ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }
         }
-        if (failures.Count > 0) throw new AggregateException("Online Boss tower ticket refill failed.", failures);
+        return ScheduledTaskBusinessResult.Handled(execution, "Online Boss tower ticket refill failed.", failures);
     }
 }
+
 internal static class BossTowerDailyRefillRegistration
 {
     internal static void AddBossTowerDailyRefill(this IServiceCollection services)
     {
         services.AddScoped<BossTowerDailyRefillJob>();
-        services.AddCommandHandler<RefillOnlineBossTowerTicketCommand, bool, RefillOnlineBossTowerTicketCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddScheduledTaskFactory(sp => new("boss-tower.ticket-refill.online",
-            new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
-            (context, ct) => context.Services.GetRequiredService<BossTowerDailyRefillJob>().RunAsync(ct)));
+        services.AddScheduledTaskFactory(sp => new("boss-tower.ticket-refill.online", new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()), typeof(BossTowerDailyRefillJob)));
+
     }
 }

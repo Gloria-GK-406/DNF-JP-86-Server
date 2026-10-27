@@ -24,7 +24,7 @@ public sealed class EquipmentEnchantCompletedHandler(
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId
             || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return [];
 
         // The initial post-commit publish and any retry both read authoritative current slots.

@@ -13,12 +13,13 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Protocol.Game.AvatarCompound;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class AvatarCompoundTests
 {
-    private sealed class Content : IAvatarCompoundDefinitionSource
+    internal sealed class Content : IAvatarCompoundDefinitionSource
     {
         public int Rate { get; set; }
         public int Grade1 { get; set; } = 2;
@@ -37,23 +38,46 @@ public sealed class AvatarCompoundTests
                 _ => null,
             });
     }
-    private static ShopFixture Fixture(Content? content = null)
+    internal static ShopFixture Fixture(Content? content = null, Action<IServiceCollection>? configure = null, bool archive = true)
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
+        if (archive) Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         var f = new ShopFixture(s =>
         {
-            s.AddSingleton<IItemPlacementDefinitionSource>(sp => new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>()));
+            if (archive)
+            {
+                Dfo.Server.Application.Tests.Support.ShopFixtureContent.RegisterArchive(s);
+                s.AddSingleton<IItemPlacementDefinitionSource>(sp => new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>()));
+            }
+            else
+            {
+                s.AddSingleton<IItemPlacementDefinitionSource, CompoundPlacement>();
+                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((21,
+                    new(true, 0, 0, 1, ItemJobRestriction.Any, ItemPlaceRestriction.Anywhere))));
+            }
             if (content is not null) s.AddSingleton<IAvatarCompoundDefinitionSource>(content);
+            configure?.Invoke(s);
         });
         f.Sql("UPDATE characters SET job=0"); f.SetLevel(80);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar),
                 new(InventoryContainerType.Avatar, 0), f.Services.GetRequiredService<IItemDomainStore>(),
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
-                f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
-    private static async Task Seed(ShopFixture f, int box = 21, int count = 2)
+    // Wire/transaction tests declare only the two source avatars, two possible outputs and
+    // material they exercise. Archive characterization keeps the real placement source above.
+    private sealed class CompoundPlacement : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) =>
+            ValueTask.FromResult<ItemPlacement?>(id switch
+            {
+                39086 or 39087 or 39088 or 42601 => new(8, 1, new(BusinessInventorySpace.Avatar, 0, 209)) { WorldClass = ItemWorldClass.Avatar },
+                21 => new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55)),
+                _ => null,
+            });
+    }
+    internal static async Task Seed(ShopFixture f, int box = 21, int count = 2)
     {
         await f.Seed(65, box, count);
         await f.SeedCore(0, StackableItemCore.Create(8, 39086, 12345), InventoryContainerType.Avatar);
@@ -63,7 +87,7 @@ public sealed class AvatarCompoundTests
         new(new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.Avatar, 0), 39086,
             new(BusinessInventorySpace.Avatar, 1), 39087, target, ability, target == 1 ? (byte)1 : (byte)0, category);
     private static Task<AvatarCompoundResult> Roll(ShopFixture f, AvatarCompoundInput? input = null) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new AvatarCompoundCommand(f.OnlineUser, f.Session, input ?? Input())).AsTask();
+        AvatarCompoundDomainTestDriver.Compound(f, f.Session, input ?? Input());
     private static ValueTask Send(ShopFixture f, ushort sequence = 7, int target = 39088, byte category = 0) =>
         EffectRequestTransport.Send(f, new AvatarCompoundRequest(new(1, 0x63, 0, sequence), 65, 0, 39086, 1, 39087,
             target, 0, target == 1 ? (byte)1 : (byte)0, category));

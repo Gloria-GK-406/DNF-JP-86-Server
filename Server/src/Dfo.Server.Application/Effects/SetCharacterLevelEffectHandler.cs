@@ -15,9 +15,11 @@ internal sealed class SetCharacterLevelEffectHandler(ICharacterDomainService cha
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetCharacterLevelEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var character = characters.Get(context.CharacterId);
         if (await character.ProgressAsync(ct).ConfigureAwait(false) != effect.Expected)
             throw new InvalidOperationException("Character progression changed during ticket use.");
+        context.Footprint.DemandEffects(context.Owner);
         return new CharacterLevelChange(await character.SetLevelAsync(effect.TargetLevel, ct).ConfigureAwait(false));
     }
 }

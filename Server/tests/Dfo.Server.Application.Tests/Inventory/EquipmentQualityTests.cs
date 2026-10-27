@@ -19,7 +19,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentQualityTests
 {
-    private sealed class Content : IEquipmentDefinitionSource, IEquipmentQualityDefinitionSource, IEquipmentQualitySeedSource
+    internal sealed class Content : IEquipmentDefinitionSource, IEquipmentQualityDefinitionSource, IEquipmentQualitySeedSource
     {
         public bool Highest { get; set; }
         public string EquipmentType { get; set; } = "weapon";
@@ -33,21 +33,19 @@ public sealed class EquipmentQualityTests
         public ValueTask<EquipmentQualityMaterialDefinition?> FindAsync(int id, CancellationToken ct) =>
             ValueTask.FromResult<EquipmentQualityMaterialDefinition?>(id == 4000 ? new(Highest, Allowed) : null);
     }
-    private static ShopFixture Fixture(Content? content = null)
+    internal static ShopFixture Fixture(Content? content = null, Action<IServiceCollection>? configure = null)
     {
         content ??= new();
         return new(s => { s.AddSingleton<IEquipmentDefinitionSource>(content);
-            s.AddSingleton<IEquipmentQualityDefinitionSource>(content); s.AddSingleton<IEquipmentQualitySeedSource>(content); });
+            s.AddSingleton<IEquipmentQualityDefinitionSource>(content); s.AddSingleton<IEquipmentQualitySeedSource>(content); configure?.Invoke(s); });
     }
-    private static InventoryItemCoreState Equipment => StackableItemCore.Create(1, 3000, 12345) with
+    internal static InventoryItemCoreState Equipment => StackableItemCore.Create(1, 3000, 12345) with
     { Attribute = 11, Durability = 72, SealFlag = 1, EnchantCardId = 3600, AmplifyType = 2, AmplifyValue = 70,
         GenuineUpgrade = 4, RandomOption0 = new(7, 50, 0), TradeRestriction = 1 };
-    private static async Task Seed(ShopFixture f, int boxes = 2)
+    internal static async Task Seed(ShopFixture f, int boxes = 2)
     { await f.SeedCore(9, Equipment); await f.Seed(65, 4000, boxes); }
-    private static ResetItemQualityCommand Command(ShopFixture f, int id = 3000) =>
-        new(f.OnlineUser, f.Session, new(BusinessInventorySpace.CarriedEquipment, 0), id, new(BusinessInventorySpace.Consumable, 0));
-    private static Task<EquipmentQualityResult> Roll(ShopFixture f, int id = 3000) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(Command(f, id)).AsTask();
+    private static Task<EquipmentQualityResult> Roll(ShopFixture f, int id = 3000, Dfo.Server.Data.World.SelectedSessionIdentity? owner = null) =>
+        EquipmentQualityDomainTestDriver.Reset(f, owner ?? f.Session, new(BusinessInventorySpace.CarriedEquipment, 0), id, new(BusinessInventorySpace.Consumable, 0));
     private static ValueTask Send(ShopFixture f, ushort seq = 7) => EffectRequestTransport.Send(f,
         new ResetItemQualityRequest(new(1, 0x0051, 0, seq), 9, 3000, 65));
 
@@ -75,7 +73,7 @@ public sealed class EquipmentQualityTests
         await Send(f);
         Assert.Equal(30 - cost, f.Count(14));
         Assert.Single(f.Sender.Messages.OfType<ResetItemQualityResponse>());
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId));
         f.Select(1);
         Assert.Equal(before, f.StoredCore(9));
     }
@@ -153,19 +151,22 @@ public sealed class EquipmentQualityTests
     [PvfFact]
     public async Task Wax_commit_failure_restores_the_material_and_seal_state()
     {
-        using var f = Fixture(new Content { Rarity = 3 });
-        await f.SeedCore(9, Equipment with { SealFlag = 0, TradeRestriction = 0 });
-        await f.Seed(65, 14, 30); var before = f.StoredCore(9);
-        f.Sql("CREATE TABLE wax_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await f.Services.GetRequiredService<IEquipmentResealDomainService>().TryResealAsync(
-                f.Session, Command(f).Target, 3000, Command(f).Material, default))!.Receipt);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
-            { cmd.CommandText = "INSERT INTO wax_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(30, f.Count(14)); Assert.Equal(before, f.StoredCore(9));
+            using var f = Fixture(new Content { Rarity = 3 });
+            await f.SeedCore(9, Equipment with { SealFlag = 0, TradeRestriction = 0 });
+            await f.Seed(65, 14, 30); var before = f.StoredCore(9);
+            f.Sql("CREATE TABLE wax_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await f.Services.GetRequiredService<IEquipmentResealDomainService>().TryResealAsync(
+                    f.Session, new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), 3000, new BusinessSlot(BusinessInventorySpace.Consumable, 0), default))!.Receipt);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
+                { cmd.CommandText = "INSERT INTO wax_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(30, f.Count(14)); Assert.Equal(before, f.StoredCore(9));
+        });
     }
 
     [Fact]
@@ -214,17 +215,20 @@ public sealed class EquipmentQualityTests
     [Fact]
     public async Task Commit_failure_rolls_back_both_mutations()
     {
-        using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
-        f.Sql("CREATE TABLE quality_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await f.Services.GetRequiredService<IEquipmentQualityDomainService>().RerollAsync(
-                f.Session, Command(f).Target, 3000, Command(f).Material, default)).Receipt);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
-            { cmd.CommandText = "INSERT INTO quality_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(2, f.Count(4000)); Assert.Equal(before, f.StoredCore(9));
+            using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
+            f.Sql("CREATE TABLE quality_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await f.Services.GetRequiredService<IEquipmentQualityDomainService>().RerollAsync(
+                    f.Session, new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), 3000, new BusinessSlot(BusinessInventorySpace.Consumable, 0), default)).Receipt);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) =>
+                { cmd.CommandText = "INSERT INTO quality_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(2, f.Count(4000)); Assert.Equal(before, f.StoredCore(9));
+        });
     }
     [Fact]
     public async Task One_box_cannot_be_spent_by_two_concurrent_requests()
@@ -234,10 +238,10 @@ public sealed class EquipmentQualityTests
         Assert.Single(results, x => x.Receipt is not null); Assert.Equal(0, f.Count(4000));
     }
     [Fact]
-    public async Task Stale_session_cannot_reroll_or_consume()
+    public async Task Domain_fixture_rejects_an_old_owner_before_running_the_reroll()
     {
-        using var f = Fixture(); await Seed(f); var command = Command(f); f.Select(2);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>().SendAsync(command));
+        using var f = Fixture(); await Seed(f); var owner = f.Session; f.Select(2);
+        await Assert.ThrowsAnyAsync<Exception>(async () => await Roll(f, owner: owner));
         Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
     }
     [Theory]
@@ -279,7 +283,7 @@ public sealed class EquipmentQualityTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         await f.SeedCore(9, Equipment with { ItemId = 450004 }); await f.Seed(65, 15, 1);
         var receipt = (await Roll(f, 450004)).Receipt;
         Assert.NotNull(receipt); Assert.Equal(0, f.Count(15));
@@ -290,7 +294,7 @@ public sealed class EquipmentQualityTests
     public async Task Real_pvf_standard_and_liberated_boxes_are_resolved_and_random_seeds_are_not_fixed()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
-        using var f = new ShopFixture(); var definitions = f.Services.GetRequiredService<IEquipmentQualityDefinitionSource>();
+        using var f = new ShopFixture(useArchive: true); var definitions = f.Services.GetRequiredService<IEquipmentQualityDefinitionSource>();
         foreach (var id in new[] { 15, 897 })
         { var box = await definitions.FindAsync(id, default); Assert.NotNull(box); Assert.False(box.Highest); }
         var rule = f.Services.GetRequiredService<IEquipmentQualityRuleService>();

@@ -6,13 +6,32 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfEquipmentQualityDefinitionSource(PvfArchiveProvider provider) : IEquipmentQualityDefinitionSource
+internal sealed class PvfEquipmentQualityDefinitionSource(PvfArchiveProvider provider) : IEquipmentQualityDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<IReadOnlyList<PvfToken>> Type = PvfField.Tokens("[stackable type]", optional: true);
     private static readonly PvfField<IReadOnlyList<string>> AllowedTypes = PvfField.Strings("[usable equip type]", optional: true);
     private readonly Lock gate = new();
     private readonly Dictionary<int, EquipmentQualityMaterialDefinition?> cache = [];
     private Dictionary<int, string>? paths;
+    public string Name => "equipment-quality-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            PathsIndex(archive);
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+    }
+
     public ValueTask<EquipmentQualityMaterialDefinition?> FindAsync(int itemId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -20,7 +39,7 @@ internal sealed class PvfEquipmentQualityDefinitionSource(PvfArchiveProvider pro
         {
             if (cache.TryGetValue(itemId, out var existing)) return ValueTask.FromResult(existing);
             var archive = provider.Archive;
-            paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+            PathsIndex(archive);
             EquipmentQualityMaterialDefinition? found = null;
             if (paths.TryGetValue(itemId, out var path))
             {

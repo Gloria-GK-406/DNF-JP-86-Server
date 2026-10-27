@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -12,45 +13,47 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World;
 
-public sealed record RefillOnlineSouthernTicketCommand(SelectedSessionIdentity Session)
-    : ICommand<bool>, IAccountCommand, ISelectedSessionCommand
-{ public AccountId AccountId => Session.AccountId; }
-internal sealed class RefillOnlineSouthernTicketCommandHandler(ISouthernDaleDomainService southern)
-    : ICommandHandler<RefillOnlineSouthernTicketCommand, bool>
+internal sealed class SouthernDaleDailyRefillJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+    ISouthernDaleDomainService southern, ICommandWorkUnits units, Microsoft.Extensions.Logging.ILogger<SouthernDaleDailyRefillJob> logger) : IScheduledGameplayTask
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, RefillOnlineSouthernTicketCommand command, CancellationToken ct)
-        => southern.RefillOnlineTicketAsync(command.Session, ct);
-}
-internal sealed class SouthernDaleDailyRefillJob(ISelectedSessionSnapshotQuery online, ISelectedSessionDomainService sessions,
-    ICommandBus commands, ILogger<SouthernDaleDailyRefillJob> logger)
-{
-    public async ValueTask RunAsync(CancellationToken ct)
+    public async ValueTask<ScheduledTaskBusinessResult> RunAsync(CommandExecutionContext execution, ScheduledTaskContext scheduled, CancellationToken ct)
     {
         var failures = new List<Exception>();
         foreach (var session in online.Snapshot())
         {
             ct.ThrowIfCancellationRequested();
-            try { await commands.SendAsync(new RefillOnlineSouthernTicketCommand(session), ct).ConfigureAwait(false); }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception error)
+            if (!sessions.IsInWorld(session)) continue;
+            Exception? actionFailure = null;
+            var result = await units.WriteResultAsync(execution, new("southern-dale.ticket-refill.online", [ScheduledSessionRecipient.Capture(session, users)]), async (unit, token) =>
             {
-                if (sessions.Find(session.AccountId) != session) continue;
-                logger.LogError(error, "Southern Dale ticket refill failed character={CharacterId}", session.CharacterId);
+                try { return await southern.RefillOnlineTicketAsync(session, token).ConfigureAwait(false); }
+                catch (Exception error) when (error is not OperationCanceledException
+                    && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error)
+                    && !Dfo.Server.Application.DomainEvents.DomainEventScopeCleanupException.Contains(error))
+                {
+                    execution.DemandRequest();
+                    unit.RequireRollback(error);
+                    actionFailure = error;
+                    return false;
+                }
+            }, ct).ConfigureAwait(false);
+            var error = result is CommandWriteResult<bool>.CommitRolledBack rolledBack ? rolledBack.Cause : actionFailure;
+            if (error is not null && sessions.IsInWorld(session))
+            {
+                logger.LogWarning( "Southern Dale ticket refill failed character={CharacterId}", session.CharacterId);
                 failures.Add(error);
             }
         }
-        if (failures.Count > 0) throw new AggregateException("Online Southern Dale ticket refill failed.", failures);
+        return ScheduledTaskBusinessResult.Handled(execution, "Online Southern Dale ticket refill failed.", failures);
     }
 }
+
 internal static class SouthernDaleDailyRefillRegistration
 {
     internal static void AddSouthernDaleDailyRefill(this IServiceCollection services)
     {
         services.AddScoped<SouthernDaleDailyRefillJob>();
-        services.AddCommandHandler<RefillOnlineSouthernTicketCommand, bool, RefillOnlineSouthernTicketCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddScheduledTaskFactory(sp => new("southern-dale.ticket-refill.online",
-            new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()),
-            (context, ct) => context.Services.GetRequiredService<SouthernDaleDailyRefillJob>().RunAsync(ct)));
+        services.AddScheduledTaskFactory(sp => new("southern-dale.ticket-refill.online", new DailyResetTaskSchedule(sp.GetRequiredService<IDailyResetRuleService>()), typeof(SouthernDaleDailyRefillJob)));
+
     }
 }

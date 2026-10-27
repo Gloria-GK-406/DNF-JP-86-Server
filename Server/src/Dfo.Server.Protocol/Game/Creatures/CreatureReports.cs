@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -44,33 +46,19 @@ internal sealed class CreatureScriptMessageReportDecoder : IGameMessageDecoder
 }
 
 /// <summary>Receive-only until A21 evidence establishes a response or state transition.</summary>
-internal sealed class CreatureResponseReportHandler(
-    ISelectedSessionDomainService sessions, ILogger<CreatureResponseReportHandler> logger)
-    : ClientMessageHandler<CreatureResponseReport>
+internal sealed class CreatureResponseReportHandler(ICommandBus commands)
+    : ClientMessageHandler<CreatureResponseReport>, IProtocolCommandMessageHandler<GameCreatureResponseReportCommand>
 {
-    protected override ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        CreatureResponseReport message, CancellationToken cancellationToken)
-    {
-        var selected = sessions.FindByConnection(context.Connection.ConnectionId);
-        logger.LogDebug("Creature response report actor={ActorKey} selected={Selected}",
-            message.ActorKey, selected is not null);
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        CreatureResponseReport message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameCreatureResponseReportCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>Record the exact A21 report without guessing its broadcast audience.</summary>
-internal sealed class CreatureScriptMessageReportHandler(
-    ISelectedSessionDomainService sessions, ILogger<CreatureScriptMessageReportHandler> logger)
-    : ClientMessageHandler<CreatureScriptMessageReport>
+internal sealed class CreatureScriptMessageReportHandler(ICommandBus commands)
+    : ClientMessageHandler<CreatureScriptMessageReport>, IProtocolCommandMessageHandler<GameCreatureScriptMessageCommand>
 {
-    protected override ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        CreatureScriptMessageReport message, CancellationToken cancellationToken)
-    {
-        var selected = sessions.FindByConnection(context.Connection.ConnectionId);
-        logger.LogDebug("Creature script report mode={Mode} target={TargetKey} character={CharacterId} " +
-            "bytes={Length} selected={Selected}", message.Mode, message.TargetKey,
-            message.CharacterId, message.MessageBytes.Length,
-            selected is not null && selected.CharacterId.Value == message.CharacterId);
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        CreatureScriptMessageReport message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameCreatureScriptMessageCommand(context, message), cancellationToken).ConfigureAwait(false);
 }

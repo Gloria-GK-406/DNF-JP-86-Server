@@ -1,0 +1,19 @@
+# TASK14 实际映射
+
+五logical仍原3CLR。MagicSealRequest(Change)绑定unseal/change两logical→GameMagicSealCommand，ForgingRequest绑定SeparateUpgrade→GameForgingCommand，OutworldRequest(Purify)绑定purify/invest两logical→GameOutworldCommand。只消费现multi-logical精确pair双向闭合，无core/目录/DTO/schema更改。3薄handler仅同bus并实现既有marker，3old fine/handler/注册真正删净，whole直接领域调用。
+
+每whole仅原fine有效分支1 Main([initial selected reporter])，unit.Footprint沿原domain Demand→plan→Preview→ApplyEffects。前置不Main，Pending→Rejected/nullprojection；域内normalRefused正常Commit最低Inventory。初始Rejected晚出现角色2不升级，下一fresh可正常Main。SQLite以真实连接串Enlist，fixture的gold/material/equipment同数据库共享参与者；这是本次实际路径，不是把facet算独立CommitCanFail或证明所有配置固定全集。
+
+MagicSeal：session→target非负/Material(change0 unseal-1)/online→slotmapping catch原序。传领域的Material原null不变，不把reserved0当材料。change走ChangeAsync(...OptionIndex,unit.Footprint)，unseal走UnsealAsync；所有拒绝unseal无ACK，change原错误码ACK。成功原composer当前target→当前gold→仅change成功ACK，三byte option与原reload/currentgold语义保持。
+
+Forging：session0x04→variant非0全0x0D→targetList/slots/itemId/nameLength/online→双slotmapping catch0x04。直接原ForgeAsync，reportedname只原opaque字节。业务拒绝保持原map；roll失败有Receipt、正常提交并消费材料，Success=true/ForgeSucceeded=false、旧新level与remaining不变。通知原ACK→当前target→当前material，不混用MagicSeal次序。
+
+Outworld：session→两slot非负不同/两itemId正/online→非purify WireAction只0或1（action2早拒0x08）→两Mainmappingcatch。Purify/Invest/Twist动作映射和SelectedOption/expectedID原样；purify拒绝4byte，invest保WireAction/细分error。成功原ACK→target→material，composer当前remaining/target缺失receipt回落及recipient过滤不改。新代码不加Error catch；原坏contentcase仅将旧legacy管线logger观察移到sameprovider GameplayExecutor，Error/原cause Ref/[durability]/NoACK/原core与材料/同seq再次抛全保，不启用旧pipeline或双Error。
+
+成功均ICommandProjections→同EventService→原NotiBus，单目标compose/actualencoder普通Failed正常隔离，无newraw。新实际change FailBatch首轮Committed/gold99800/failure null/noFence，然后改真实gold99000，同seq只currentreplay99000/noACK/no再whole。直接拒绝ACK另4case（change/Forging/purify/invest）实际encoderIOException最终typed/defaultfence、原cause Ref。unseal没有为了测试强造ACK。三whole均仅既有committedReplay出口；Use/Buy/Task13元数据和原core全SHA未变。
+
+新24Appcase：五logical早拒绝noClaim、五normalRefusedMainCommitted、五initialRejected晚出现不升级、四directACK真实default失败；失败roll真实material50→7/receipt/Committed；change首通知Failure/currentgold；三原SQL语句触发点的gold/material/core回滚→ConfirmedRollback/nullprojection→sameentry原Ordinal retry→replay无重ACK/二扣。原trigger发生在UPDATE语句，不称fake CommitAsync故障。所有原测试case/序号/raw/Body/5s期限保留；现EffectRequestTransport/fixture核心/Task13flow只读，仅owned三个测试fixture最小可见性共享内容。
+
+这是行为保持结构迁移，先原reserved两casebaseline GREEN2/2，不制造disabled/编译RED或把后写状态tests说成严格TDD。唯一mutation只删除ownedwhole reserved/sentinel条件；原合法change wire带非法second，本应gold100000，实际domain以原null material执行把SQLgold扣到99800，原两case及新Rejected/Committed状态变红（7中4fail）；finally原bytes/SHA恢复同目标7/7。原合法reserved0和unseal成功已在定向/正式原case实跑。编译null-option与launcher路径诊断另记，不当RED/正式native结果。
+
+正式接受仅同freeze01 Release0/0+App/Proto/Net3full+4actualcontrol，DFO74/7与原字节/Golden15/Char10；其余1793业务case仅Task12延续，不称8full或Infra2skip重验。只闭五message/三fine，其余139/184/72和5/8、最终T012八full/≤2s/Spec/legacy清除留后继。

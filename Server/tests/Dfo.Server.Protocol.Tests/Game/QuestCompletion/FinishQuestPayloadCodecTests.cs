@@ -17,6 +17,7 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestCompletion;
 /// <c>101</c>. The number in it was transcribed wrong, and the whole exp derivation was chased
 /// down a false trail because of it.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class FinishQuestPayloadCodecTests
 {
     [Fact]

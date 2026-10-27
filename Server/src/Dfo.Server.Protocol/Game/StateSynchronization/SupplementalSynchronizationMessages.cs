@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -236,19 +237,18 @@ public interface ICleanupNotificationDelivery
 internal sealed class CleanupNotificationDelivery(
     IGameMessageSender sender,
     IEventService notifications,
-    PartyNotificationDelivery partyNotifications) : ICleanupNotificationDelivery
+    PartyNotificationDelivery partyNotifications,
+    IOutboundOrdering ordering) : ICleanupNotificationDelivery
 {
-    internal CleanupNotificationDelivery(
-        IGameMessageSender sender,
-        IEventService notifications)
-        : this(sender, notifications, new PartyNotificationDelivery(notifications))
-    {
-    }
 
     public async ValueTask DeliverAsync(
         SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        // XO-5 / DR-10: the owner's notices first and Required, so a failed owner skips the rest;
+        // the town peers and the party projection follow in that order, BestEffort.
+        using var order = ordering.Begin("XO-5 session cleanup",
+            plan.RequiredOwnerNotices.Count > 0 ? OutboundDelivery.Required : OutboundDelivery.BestEffort);
         if (plan.RequiredOwnerNotices.Count > 0)
         {
             await sender.SendExplicitAsync(
@@ -258,6 +258,9 @@ internal sealed class CleanupNotificationDelivery(
                     []),
                 cancellationToken).ConfigureAwait(false);
         }
+
+        if (order is not null)
+            order.Delivery = OutboundDelivery.BestEffort;
 
         if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
         {

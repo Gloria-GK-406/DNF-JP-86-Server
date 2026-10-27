@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
@@ -10,6 +12,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -36,13 +39,16 @@ public sealed class GrantClearExperienceCommandTests
     [Fact]
     public async Task AClearPaysItsWorthAndItsRank()
     {
-        var result = await Settle(clientRankPoint: 80);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 80);
 
-        Assert.Equal(659u, result.ClearBase);
-        Assert.Equal(79u, result.RankBonus);
-        Assert.NotNull(result.Award);
-        Assert.Equal(659u, result.Award.Base);
-        Assert.Equal(738u, result.Award.Gained);
+            Assert.Equal(659u, result.ClearBase);
+            Assert.Equal(79u, result.RankBonus);
+            Assert.NotNull(result.Award);
+            Assert.Equal(659u, result.Award.Base);
+            Assert.Equal(738u, result.Award.Gained);
+        });
     }
 
     /// <summary>
@@ -62,10 +68,13 @@ public sealed class GrantClearExperienceCommandTests
     [InlineData(0)]
     public async Task NothingIsPaidThatTheResultScreenCannotAccountFor(int clientRankPoint)
     {
-        var result = await Settle(clientRankPoint);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint);
 
-        Assert.NotNull(result.Award);
-        Assert.Equal(result.ClearBase + result.RankBonus, result.Award.Gained);
+            Assert.NotNull(result.Award);
+            Assert.Equal(result.ClearBase + result.RankBonus, result.Award.Gained);
+        });
     }
 
     /// <summary>The rank's share is reported as its own line rather than folded into the worth.</summary>
@@ -77,49 +86,61 @@ public sealed class GrantClearExperienceCommandTests
     [Fact]
     public async Task TheRanksShareIsNamedInTheAward()
     {
-        var result = await Settle(clientRankPoint: 80);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 80);
 
-        Assert.Equal(result.RankBonus, result.Award!.Breakdown.ClearRank);
+            Assert.Equal(result.RankBonus, result.Award!.Breakdown.ClearRank);
+        });
     }
 
     /// <summary>A run below every paying rank is paid its worth and nothing more.</summary>
     [Fact]
     public async Task ARunBelowEveryPayingRankIsPaidItsWorthAlone()
     {
-        var result = await Settle(clientRankPoint: 49);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 49);
 
-        Assert.Equal(659u, result.ClearBase);
-        Assert.Equal(0u, result.RankBonus);
-        Assert.Equal(0u, result.Award!.Breakdown.ClearRank);
+            Assert.Equal(659u, result.ClearBase);
+            Assert.Equal(0u, result.RankBonus);
+            Assert.Equal(0u, result.Award!.Breakdown.ClearRank);
+        });
     }
 
     /// <summary>A dungeon the reward table cannot price pays nothing at all.</summary>
     [Fact]
     public async Task ADungeonTheTableCannotPricePaysNothing()
     {
-        var result = await Settle(clientRankPoint: 100, basisLevel: 0);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var result = await Settle(clientRankPoint: 100, basisLevel: 0);
 
-        Assert.Equal(0u, result.ClearBase);
-        Assert.Equal(0u, result.RankBonus);
-        Assert.Equal(0u, result.Award!.Gained);
+            Assert.Equal(0u, result.ClearBase);
+            Assert.Equal(0u, result.RankBonus);
+            Assert.Equal(0u, result.Award!.Gained);
+        });
     }
 
     /// <summary>An award outside a transaction is refused rather than half-written.</summary>
     [Fact]
     public async Task AnAwardOutsideATransactionIsRefused()
     {
-        var handler = Handler();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var handler = Handler();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await handler.HandleAsync(
-                Context(CommandExecutionKind.Direct), Command(80, 5), CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(handler,
+                    Context(FixtureUnitKind.Direct), Command(80, 5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), CancellationToken.None));
+        });
     }
 
     private static async Task<ClearExperienceResult> Settle(
         int clientRankPoint, int basisLevel = 5) =>
-        await Handler().HandleAsync(
-            Context(CommandExecutionKind.Transactional),
-            Command(clientRankPoint, basisLevel),
+        await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(),
+            Context(FixtureUnitKind.Transactional),
+            Command(clientRankPoint, basisLevel), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null),
             CancellationToken.None);
 
     [Theory]
@@ -127,14 +148,17 @@ public sealed class GrantClearExperienceCommandTests
     [InlineData(100)]
     public async Task Difficulty_progression_is_part_of_settlement_regardless_of_score(int score)
     {
-        var difficulties = new RecordingDifficulty();
-        var result = await Handler(difficulties).HandleAsync(Context(CommandExecutionKind.Transactional), Command(score,5), default);
-        Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
-        Assert.Equal(new CharacterId(60), difficulties.Character);
-        Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var difficulties = new RecordingDifficulty();
+            var result = await TestEffectFootprints.Invoke<ClearExperienceAlgorithmInput, ClearExperienceResult>(Handler(difficulties),Context(FixtureUnitKind.Transactional), Command(score,5), new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(60), null), default);
+            Assert.Equal(new CharacterDungeonDifficulty(CapturedDungeon, DungeonDifficulty.Adventure), result.DifficultyUnlocked);
+            Assert.Equal(new CharacterId(60), difficulties.Character);
+            Assert.Equal(DungeonDifficulty.Normal, difficulties.Cleared);
+        });
     }
 
-    private static GrantClearExperienceCommandHandler Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>
+    private static ClearExperienceAlgorithmDriver Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>
         new(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
@@ -163,13 +187,13 @@ public sealed class GrantClearExperienceCommandTests
             ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([]);
     }
 
-    private static CommandExecutionContext Context(CommandExecutionKind kind) =>
-        new(Guid.Empty,
-            typeof(GrantClearExperienceCommand),
-            typeof(GrantClearExperienceCommandHandler),
+    private static CommandExecutionContext Context(FixtureUnitKind kind) =>
+        DomainCommandFixture.Context(Guid.Empty,
+            typeof(ClearExperienceAlgorithmInput),
+            typeof(ClearExperienceAlgorithmDriver),
             kind);
 
-    private static GrantClearExperienceCommand Command(int clientRankPoint, int basisLevel) =>
+    private static ClearExperienceAlgorithmInput Command(int clientRankPoint, int basisLevel) =>
         new(new AccountId(1),
             new CharacterId(60),
             CapturedDungeon,
@@ -241,7 +265,7 @@ public sealed class GrantClearExperienceCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             var breakdown = await calculation.CalculateAsync(source, 1, cancellationToken);
             return new ExperienceAward(breakdown, 1, breakdown.Total, LeveledUp: false);

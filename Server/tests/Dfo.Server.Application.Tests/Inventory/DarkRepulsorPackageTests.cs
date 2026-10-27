@@ -18,8 +18,8 @@ public sealed class DarkRepulsorPackageTests
     {
         using var shop = Fixture(0);
         await shop.Host.Seed(5, Box, 1);
-        await shop.Host.Services.GetRequiredService<PackageOpeningHandler>().HandleAsync(new(shop.Host.Connection),
-            new PackageOpeningRequest(GameMessageMetadata.Empty, new(5, [])), default);
+        await EffectRequestTransport.Send(shop.Host, new PackageOpeningRequest(
+            new(1, 0xA0, 0, EffectRequestTransport.FreshSequence(shop.Host)), new(5, [])));
         var response = Assert.IsType<PackageOpeningResponse>(shop.Host.Sender.Messages[0]);
         Assert.Equal(OpeningRejection.None, response.Result.Rejection);
         var avatar = Assert.Single(response.Result.Receipt!.Updates).Core;
@@ -33,8 +33,8 @@ public sealed class DarkRepulsorPackageTests
         var mail = shop.Host.Services.GetRequiredService<IMailItemRuleService>();
         Assert.Equal(MailItemSendRefusal.InstanceTradeRestricted, (await mail.CanSendAsync(avatar, true, default)).Refusal);
         // A second attempt cannot manufacture a second weapon after the source has gone.
-        await shop.Host.Services.GetRequiredService<PackageOpeningHandler>().HandleAsync(new(shop.Host.Connection),
-            new PackageOpeningRequest(GameMessageMetadata.Empty, new(5, [])), default);
+        await EffectRequestTransport.Send(shop.Host, new PackageOpeningRequest(
+            new(1, 0xA0, 0, EffectRequestTransport.FreshSequence(shop.Host)), new(5, [])));
         Assert.Equal(1, shop.Host.Count(Weapon));
     }
 
@@ -65,8 +65,7 @@ public sealed class DarkRepulsorPackageTests
     }
 
     private static Task<PackageOpeningResult> Open(CeraShopFixture shop) =>
-        shop.Host.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendAsync(
-            new PackageOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, new(5, []))).AsTask();
+        OpeningDomainTestDriver.Package(shop.Host, shop.Host.Session, new(5, []));
 
     private static CeraShopFixture Fixture(int job)
     {

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
@@ -84,56 +85,10 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
         return OnePayload(0x0063, stream.ToArray());
     }
 }
-public sealed record AvatarCompoundCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, AvatarCompoundInput Input)
-    : ICommand<AvatarCompoundResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
-{ public AccountId AccountId => Session.AccountId; }
-public sealed class AvatarCompoundCommandHandler(IAvatarCompoundDomainService avatars)
-    : ICommandHandler<AvatarCompoundCommand, AvatarCompoundResult>
-{
-    public ValueTask<AvatarCompoundResult> HandleAsync(CommandExecutionContext context, AvatarCompoundCommand command, CancellationToken ct)
-        => avatars.CompoundAsync(command.Session, command.Input, ct);
-}
-public sealed class AvatarCompoundHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mappings, ICommandBus commands, IEventService events,
-    IGameMessageSender sender, ILogger<AvatarCompoundHandler> logger) : ClientMessageHandler<AvatarCompoundRequest>
+public sealed class AvatarCompoundHandler(ICommandBus commands) : ClientMessageHandler<AvatarCompoundRequest>, IProtocolCommandMessageHandler<GameAvatarCompoundCommand>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AvatarCompoundRequest request, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (!request.Valid || session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
-            || online is null) { await Reject(0x17); return; }
-        AvatarCompoundInput input;
-        try
-        {
-            input = new(mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.MaterialSlot)),
-                mappings.ToBusinessSlot(new(InventoryContainerType.Avatar, request.FirstSlot)), request.FirstItemId,
-                mappings.ToBusinessSlot(new(InventoryContainerType.Avatar, request.SecondSlot)), request.SecondItemId,
-                request.TargetItemId, request.Ability, request.RandomTarget, request.Category);
-        }
-        catch (InventorySlotMappingException) { await Reject(0x17); return; }
-        AvatarCompoundResult result;
-        try { result = await commands.SendAsync(new AvatarCompoundCommand(online.OnlineUserId, session, input), ct).ConfigureAwait(false); }
-        catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogError(failure, "Avatar compound failed character={Character}", session.CharacterId);
-            await Reject(0x17); return;
-        }
-        logger.LogInformation("Avatar compound character={Character} material={Material} first={First}/{FirstId} second={Second}/{SecondId} target={Target} category={Category} result={Result} outputs={Outputs} rate={Rate}",
-            session.CharacterId, request.MaterialSlot, request.FirstSlot, request.FirstItemId, request.SecondSlot,
-            request.SecondItemId, request.TargetItemId, request.Category, result.Rejection,
-            result.Receipt?.Outputs.Length ?? 0, result.Receipt?.RareRate ?? 0);
-        if (result.Receipt is { } receipt)
-            await events.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-                new AvatarCompoundCompleted(receipt), ct).ConfigureAwait(false);
-        else await Reject(result.Rejection switch
-        {
-            AvatarCompoundRejection.MissingMaterial => 0x16,
-            AvatarCompoundRejection.UnsupportedLifetime => 0x13,
-            AvatarCompoundRejection.Locked => 0xD2,
-            _ => 0x17,
-        });
-        ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new AvatarCompoundResponse(null, error), ct);
-    }
+        => await commands.SendAsync(new GameAvatarCompoundCommand(context, request), ct).ConfigureAwait(false);
 }
 public sealed record AvatarCompoundCompleted(AvatarCompoundReceipt Receipt) : INotification<AvatarCompoundCompleted>;
 public sealed class AvatarCompoundCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<AvatarCompoundCompleted>
@@ -144,6 +99,6 @@ public sealed class AvatarCompoundCompletedHandler(ISelectedSessionDomainService
         var receipt = notification.Receipt;
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
             recipient.CharacterId == receipt.Session.CharacterId && recipient.ConnectionId == receipt.Session.ConnectionId
-            && sessions.Find(receipt.Session.AccountId) == receipt.Session ? [new AvatarCompoundResponse(receipt)] : []);
+            && sessions.IsInWorld(receipt.Session) ? [new AvatarCompoundResponse(receipt)] : []);
     }
 }

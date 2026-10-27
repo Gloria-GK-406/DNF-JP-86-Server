@@ -24,7 +24,7 @@ namespace Dfo.Server.Application.Characters;
 internal sealed partial class PlayingCharacter(
     CharacterId characterId,
     IItemUseJudgementService judgement,
-    ICharacterItemCooldownDomainService cooldowns,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownAreaDomainService townAreas,
     ICharacterCarriedGoldTable carriedGold,
     ICarriedGoldRuleService goldRules,
@@ -170,7 +170,7 @@ internal sealed partial class PlayingCharacter(
             || await ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
             return null;
         return new(progress.Level, CharacterJobFamilies.Resolve(identity.Job), Place(),
-            cooldowns.IsCoolingDown(characterId, cooldown));
+            onlineCharacters.IsCoolingDown(characterId, cooldown));
     }
     /// <summary>
     /// Where the character is, as far as the archive's vocabulary goes.

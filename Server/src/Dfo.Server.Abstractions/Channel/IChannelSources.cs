@@ -45,21 +45,3 @@ public sealed record ChannelEntryOptions(
         DefaultTownId: 1,
         SaintHornTownId: 17);
 }
-
-/// <summary>
-/// Resolves which channel a connection arrived on, and whether a character may enter it.
-/// </summary>
-public interface IChannelEntryPolicy
-{
-    /// <summary>
-    /// The channel identity for a listener.
-    /// </summary>
-    /// <remarks>
-    /// A listener matching no configured channel resolves to a general channel, which is
-    /// how an unconfigured deployment already behaves.
-    /// </remarks>
-    ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken);
-
-    /// <summary>The reason this character may not enter the channel, or null when they may.</summary>
-    ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel);
-}

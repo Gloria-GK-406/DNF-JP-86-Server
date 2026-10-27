@@ -4,10 +4,11 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -31,9 +32,8 @@ internal sealed class RoomMechanismNotificationHandler(IDungeonRunDomainService 
         DungeonRoomMechanismsNotification notification, CancellationToken cancellationToken)
     {
         var view = notification.View;
-        var session = sessions.FindByCharacter(recipient.CharacterId);
         var current = runs.Find(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && session != expected
             || !view.Recipients.Contains(recipient.CharacterId)
             || current is null || current.RunId != view.RunId || current.RoomVersion != view.RoomVersion
@@ -49,58 +49,51 @@ internal sealed class RoomMechanismNotificationHandler(IDungeonRunDomainService 
     }
 }
 
-/// <summary>Loading snapshot recovery, through the same event projection as timer transitions.</summary>
-public sealed class RoomMechanismProjectionDelivery(IEventService events)
+
+
+internal sealed record MaintainRoomMechanismsCommand : ICommand<RoomMechanismNextDeadline>;
+internal sealed record ProjectRoomMechanismCommand(DungeonRoomMechanismView View) : ICommand<bool>;
+internal sealed record RoomMechanismNextDeadline(DateTimeOffset? At, IReadOnlyList<DungeonRoomMechanismView> Views);
+internal sealed class MaintainRoomMechanismsCommandHandler(IRoomMechanismMaintenanceDomainService maintenance, TimeProvider clock)
+    : ICommandHandler<MaintainRoomMechanismsCommand, RoomMechanismNextDeadline>, ICommandHandler<ProjectRoomMechanismCommand, bool>
 {
-    public async ValueTask SendCurrentAsync(SelectedSessionIdentity session, DungeonRunState current,
-        CancellationToken cancellationToken)
+    public ValueTask<RoomMechanismNextDeadline> HandleAsync(CommandExecutionContext context, MaintainRoomMechanismsCommand command, CancellationToken token)
     {
-        var states = current.CurrentCellState.Mechanisms;
-        if (states.Count == 0 || states.Any(state => state.StartedAt is null)) return;
-        await events.DirectAsync(new DungeonRoomMechanismsChanged(new(current.RunId, current.CurrentCell,
-            current.RoomVersion, states, [session.CharacterId])), cancellationToken).ConfigureAwait(false);
+        var scan = maintenance.Advance(clock.GetUtcNow());
+        return ValueTask.FromResult(new RoomMechanismNextDeadline(scan.Next, scan.Views.Where(maintenance.NeedsProjection).ToArray()));
+    }
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, ProjectRoomMechanismCommand command, CancellationToken token)
+    {
+        await maintenance.ProjectAsync(command.View, token).ConfigureAwait(false);
+        return true;
     }
 }
-
-/// <summary>One worker sleeps until a room deadline or lifecycle wakeup; no per-room threads.</summary>
-internal sealed class RoomMechanismMaintenanceService(IDungeonRunDomainService runs,
-    IDungeonRoomMechanismRuleService rules, IDungeonRoomMechanismWakeSignal wake, IEventService events,
-    DungeonProjectionGate projections, TimeProvider clock, ILogger<RoomMechanismMaintenanceService> logger) : BackgroundService
+internal sealed class RoomMechanismMaintenanceService(ICommandBus commands, IDungeonRoomMechanismWakeSignal wake,
+    ILogger<RoomMechanismMaintenanceService> logger, TimeProvider clock) : TypedGameplayTimerSource(commands, logger)
 {
+    private DateTimeOffset? next;
+    protected override string SourceName => "timer:RoomMechanismMaintenanceService";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
+    {
+        var scan = await SubmitAsync(new MaintainRoomMechanismsCommand(), root, SourceName, token).ConfigureAwait(false);
+        foreach (var view in scan.Views)
+            await ItemAsync(new ProjectRoomMechanismCommand(view), root, SourceName + "/room", token).ConfigureAwait(false);
+        var remaining = await SubmitAsync(new MaintainRoomMechanismsCommand(), root, SourceName, token).ConfigureAwait(false);
+        next = remaining.At;
+        if (remaining.Views.Count > 0)
+        {
+            var retry = clock.GetUtcNow().AddSeconds(1);
+            if (next is null || retry < next) next = retry;
+        }
+    }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var delivered = new Dictionary<(DungeonRunId, long), DungeonRoomMechanismState[]>();
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                DateTimeOffset? next = null;
-                var views = runs.AdvanceRoomMechanisms(clock.GetUtcNow());
-                var active = views.Select(view => (view.RunId, view.RoomVersion)).ToHashSet();
-                foreach (var key in delivered.Keys.Where(key => !active.Contains(key)).ToArray()) delivered.Remove(key);
-                foreach (var view in views)
-                {
-                    foreach (var state in view.States)
-                        if (rules.NextDeadline(state) is { } deadline && (next is null || deadline < next)) next = deadline;
-                    var key = (view.RunId, view.RoomVersion);
-                    if (delivered.TryGetValue(key, out var previous) && previous.SequenceEqual(view.States)) continue;
-                    try
-                    {
-                        await using var lease = await projections.AcquireAsync(view.RunId, UserAccessMode.Exclusive,
-                            stoppingToken).ConfigureAwait(false);
-                        await events.DirectAsync(new DungeonRoomMechanismsChanged(view), stoppingToken).ConfigureAwait(false);
-                        delivered[key] = view.States.ToArray();
-                        logger.LogInformation("Room mechanism state run={RunId} roomVersion={RoomVersion} states={States}",
-                            view.RunId, view.RoomVersion, string.Join(',', view.States.Select(state => $"{state.Definition.Kind}:{state.Stage}:{state.Outcome}")));
-                    }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception error)
-                    {
-                        logger.LogWarning(error, "Room mechanism projection failed run={RunId}", view.RunId);
-                        var retry = clock.GetUtcNow().AddSeconds(1);
-                        if (next is null || retry < next) next = retry;
-                    }
-                }
+                next = clock.GetUtcNow().AddSeconds(1);
+                await HostedAsync(stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }
         }

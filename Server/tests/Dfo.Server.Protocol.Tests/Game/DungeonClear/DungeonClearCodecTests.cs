@@ -21,6 +21,7 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 /// of a clear that fixed no cards, which is byte-identical to the reference's own.
 /// </para>
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class DungeonClearCodecTests
 {
     [Fact]

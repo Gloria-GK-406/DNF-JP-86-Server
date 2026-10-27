@@ -16,9 +16,11 @@ internal sealed class CharacterExperienceEffectHandler(ICharacterDomainService c
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, CharacterExperienceEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var d = effect.Decision;
         if (await characters.Get(context.CharacterId).ProgressAsync(ct).ConfigureAwait(false) != d.Before)
             throw new InvalidOperationException("Decided experience target changed.");
+        context.Footprint.DemandEffects(context.Owner);
         var award = await characters.Get(context.CharacterId).AddExpAsync(d.Award.Breakdown, d.Before, ct).ConfigureAwait(false);
         return new CharacterExperienceChange(award);
     }
@@ -32,8 +34,10 @@ internal sealed class SetQuestRewardGoldEffectHandler(ICharacterCarriedGoldTable
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetQuestRewardGoldEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         if ((await gold.FindAsync(context.CharacterId, ct).ConfigureAwait(false))?.Carried != effect.Expected)
             throw new InvalidOperationException("Decided gold target changed.");
+        context.Footprint.DemandEffects(context.Owner);
         if (effect.Value != effect.Expected
             && await characters.Get(context.CharacterId).AddGoldAsync(effect.Value - effect.Expected, ct).ConfigureAwait(false) != effect.Value)
             throw new InvalidOperationException("Gold target refused the write.");
@@ -49,7 +53,9 @@ internal sealed class SetCharacterGrowTypeEffectHandler(ICharacterTable characte
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetCharacterGrowTypeEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var row = await characters.FindStandingAsync(context.CharacterId, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         if (row is null || row.Job != effect.Job || row.GrowType != effect.Expected
             || await characters.SetGrowTypeAsync(context.CharacterId, effect.Expected, effect.Value, ct).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Decided career target changed.");
@@ -67,7 +73,9 @@ internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable charact
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var row = await characters.FindStandingAsync(context.CharacterId, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         if (row is null || row.Job != effect.Job || row.GrowType != effect.Expected
             || await characters.SetGrowTypeAsync(context.CharacterId, effect.Expected, effect.Value, ct).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Decided awakening target changed.");
@@ -83,8 +91,10 @@ internal sealed class MaterializeSkillBuildsEffectHandler(ICharacterSkillBuildTa
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, MaterializeSkillBuildsEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var current = await builds.ReadAsync(context.CharacterId, ct).ConfigureAwait(false);
         if (current.Active != effect.Active || !current.Builds.SequenceEqual(effect.Expected)) throw new InvalidOperationException("Decided builds changed.");
+        context.Footprint.DemandEffects(context.Owner);
         await builds.EnsureAsync(context.CharacterId, ct).ConfigureAwait(false);
         return new SkillBuildsMaterializedChange();
     }
@@ -100,6 +110,7 @@ internal sealed class GrantBasicCharacterItemEffectHandler(IItemDeliveryDomainSe
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantBasicCharacterItemEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         if (effect.Placement.Destination.Space == Dfo.Server.Data.Inventory.BusinessInventorySpace.VirtualResource)
             return new BasicCharacterItemChange([.. (await resources.GrantAllPersistentAsync(context.CharacterId, effect.ItemId, effect.Count, ct).ConfigureAwait(false)).Items]);
         var result = await delivery.DeliverAsync(context.AccountId, context.CharacterId,

@@ -4,6 +4,7 @@ using Dfo.Server.Application.Quests;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
+[Trait("Category", "Unit")]
 public sealed class QuestRewardRuleServiceTests
 {
     private static readonly QuestParameters Parameters = new(

@@ -22,5 +22,5 @@ public interface IExperienceItemDomainService
     /// the item is not an experience item and the caller may continue with its generic behavior.
     /// </summary>
     ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        ItemReference item, CancellationToken cancellationToken);
+        ItemReference item, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

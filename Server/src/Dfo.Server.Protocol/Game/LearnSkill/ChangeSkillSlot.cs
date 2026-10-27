@@ -31,26 +31,8 @@ internal sealed class ChangeSkillSlotEncoder : GameCmdMessageEncoder<ChangeSkill
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ChangeSkillSlotResponse message) =>
         OnePayload(0x001C, message.Success ? new byte[] { 1, message.Page, message.First, message.Second } : new byte[] { 0, 3 });
 }
-public sealed record ChangeSkillSlotCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, byte Page, byte First, byte Second)
-    : ICommand<bool>, IOnlineUserCommand, IAccountCommand
+public sealed class ChangeSkillSlotHandler(ICommandBus commands) : ClientMessageHandler<ChangeSkillSlotRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameChangeSkillSlotCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class ChangeSkillSlotCommandHandler(ICharacterSkillLearningDomainService skills) : ICommandHandler<ChangeSkillSlotCommand, bool>
-{
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, ChangeSkillSlotCommand command, CancellationToken ct) =>
-        skills.SwapSlotsAsync(command.Session, command.Page, command.First, command.Second, ct);
-}
-public sealed class ChangeSkillSlotHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IGameMessageSender sender) : ClientMessageHandler<ChangeSkillSlotRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ChangeSkillSlotRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        var success = false;
-        if (session is not null && users.TryGetByConnection(context.Connection.ConnectionId, out var user) && user is not null)
-            success = await commands.SendAsync(new ChangeSkillSlotCommand(user.OnlineUserId, session, message.Page, message.First, message.Second), ct);
-        if (session is not null && sessions.FindByConnection(context.Connection.ConnectionId) != session) return;
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new ChangeSkillSlotResponse(success, message.Page, message.First, message.Second), ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, ChangeSkillSlotRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameChangeSkillSlotCommand(context,message),ct).ConfigureAwait(false);
 }

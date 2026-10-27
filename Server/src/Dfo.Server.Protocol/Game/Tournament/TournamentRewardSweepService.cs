@@ -2,57 +2,71 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Tournament;
 
-/// <summary>The client leaves the flip UI on a timer without selecting the remaining cards.</summary>
-public sealed class TournamentRewardSweepService(ITournamentDungeonDomainService tournaments,
-    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ICommandBus commands,
-    DungeonProjectionGate projections, SelectedSessionTransitionGate transitions,
-    TournamentProjectionDelivery delivery, IGameMessageSender sender, TimeProvider clock,
-    ILogger<TournamentRewardSweepService> logger) : BackgroundService
+public sealed record SweepTournamentRewardsCommand : ICommand<bool>;
+public sealed record SweepTournamentCandidateCommand(TournamentDungeonState Candidate) : ICommand<bool>;
+public sealed class SweepTournamentRewardsCommandHandler(ITournamentDungeonDomainService tournaments,
+    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
+    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService slots,
+    ICommandWorkUnits units, IGameCommandOutbox outbox, TimeProvider clock, ILogger<SweepTournamentRewardsCommandHandler> logger)
+    : ICommandHandler<SweepTournamentRewardsCommand, bool>, ICommandHandler<SweepTournamentCandidateCommand, bool>
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, SweepTournamentRewardsCommand command, CancellationToken token)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50), clock);
-        try
-        {
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                foreach (var state in tournaments.PendingRewards(clock.GetUtcNow()))
-                {
-                    try { await SweepAsync(state, stoppingToken).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception error) { logger.LogError(error, "Tournament automatic reward failed run={RunId}", state.RunId); }
-                }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        foreach (var candidate in tournaments.PendingRewards(clock.GetUtcNow())) await SweepAsync(context, candidate, token).ConfigureAwait(false);
+        return true;
     }
-
-    internal async ValueTask SweepAsync(TournamentDungeonState candidate, CancellationToken ct)
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, SweepTournamentCandidateCommand command, CancellationToken token)
+    { await SweepAsync(context, command.Candidate, token).ConfigureAwait(false); return true; }
+    private async ValueTask SweepAsync(CommandExecutionContext context, TournamentDungeonState candidate, CancellationToken token)
     {
-        var session = sessions.FindByCharacter(candidate.CharacterId);
-        if (session is null) return;
-        await using var projection = await projections.AcquireAsync(candidate.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        await using var transition = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
+        if (!sessions.TryGetInWorld(candidate.CharacterId, out var session)) return;
         var current = tournaments.Find(candidate.CharacterId);
-        if (sessions.FindByCharacter(candidate.CharacterId) != session || current?.RunId != candidate.RunId
-            || runs.Find(candidate.CharacterId)?.RunId != candidate.RunId
-            || current.RewardSelectionEndsAt is not { } deadline || deadline > clock.GetUtcNow()) return;
+        if (!sessions.IsInWorld(session) || current?.RunId != candidate.RunId || runs.Find(candidate.CharacterId)?.RunId != candidate.RunId
+            || current.RewardSelectionEndsAt is not {} deadline || deadline > clock.GetUtcNow()) return;
         for (byte row = 0; row < current.Rewards.Count; row++)
         {
             if (current.Rewards[row].Count == 0 || current.Selections[row].HasValue) continue;
-            var result = await commands.SendAsync(new SelectTournamentRewardCommand(session, current.RunId, row, 0), ct).ConfigureAwait(false);
-            if (result.Action is not { } action) continue;
+            Exception? rejected = null;
+            var write = await units.WriteResultAsync(context, new("tournament.auto-reward", TimerRecipientCapture.Capture([session], users)), async (unit, ct) =>
+            {
+                try { return new TournamentCommandResult(await tournaments.SelectRewardAsync(session, current.RunId, row, 0, ct).ConfigureAwait(false)); }
+                catch (Exception error) when (error is not OperationCanceledException && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+                { rejected = error; unit.RequireRollback(error); return new TournamentCommandResult(null); }
+            }, token).ConfigureAwait(false);
+            if (write is CommandWriteResult<TournamentCommandResult>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
+            if (rejected is not null) { logger.LogError(rejected, "Tournament automatic reward failed run={RunId}", candidate.RunId); return; }
+            var result = ((CommandWriteResult<TournamentCommandResult>.Returned)write).Value;
+            if (result.Action is not {} action) continue;
             current = action.State;
             var slot = runs.Find(candidate.CharacterId)?.Participant?.Slot ?? 0;
-            await sender.SendExplicitAsync(session.ConnectionId,
-                new([.. delivery.CompletionFrames(action), new TournamentSelectionResponse(current, slot)], []), ct).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(session.ConnectionId, new([.. TournamentCompletionFrames.CompletionFrames(action, slots, clock),
+                new TournamentSelectionResponse(current, slot)], []), token).ConfigureAwait(false);
             logger.LogInformation("Tournament automatic card selected character={CharacterId} run={RunId} row={Row} deadlineLagMs={Lag}",
                 current.CharacterId, current.RunId, row, (clock.GetUtcNow() - deadline).TotalMilliseconds);
         }
+    }
+}
+public sealed class TournamentRewardSweepService(ICommandBus commands, TimeProvider clock, ILogger<TournamentRewardSweepService> logger)
+    : TypedGameplayTimerSource(commands, logger)
+{
+    protected override string SourceName => "timer:TournamentRewardSweepService";
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+        _ = await SubmitAsync(new SweepTournamentRewardsCommand(), root, SourceName, token).ConfigureAwait(false);
+    internal async ValueTask SweepAsync(TournamentDungeonState candidate, CancellationToken token) =>
+        _ = await SubmitAsync(new SweepTournamentCandidateCommand(candidate), GameplayCallChain.NewRoot(GameplayCallSource.Timer), SourceName, token).ConfigureAwait(false);
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(50), clock);
+        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await HostedAsync(stoppingToken).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
     }
 }

@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.ClientSpecStatistic;
 
 namespace Dfo.Server.Protocol.Tests.Game.ClientSpecStatistic;
 
+[Trait("Category", "Unit")]
 public sealed class ClientSpecStatisticPayloadCodecTests
 {
     // Real captured body (protocol record E-001, 2026-08-13 Windows client):

@@ -27,7 +27,7 @@ public sealed class SelectCharacterPreparationService(
     ICharacterPvpSkillProfileRepository pvpSkills,
     IDungeonPersistentEffectRecoveryRepository dungeonEffects,
     IExpertSkillContractReconciliationRepository expertSkillReconciliation,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     IEntryPlacementRuleService placement,
     ISessionAdjacentEntryDomainService sessionAdjacent,
     ISelectedSessionPositionPersistence positions,

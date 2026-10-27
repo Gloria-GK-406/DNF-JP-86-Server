@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -10,8 +11,9 @@ internal sealed partial class PlayingCharacter
         ?? throw new InvalidOperationException("Character experience rules are unavailable.");
 
     public async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source,
-        DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct)
+        DateTimeOffset at, SelectedSessionIdentity? session, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(source.Occasion.Account, Id, session));
         ArgumentNullException.ThrowIfNull(source);
         RequireProgressionTransaction();
         if (source.Occasion.Character != Id || session is not null && session.CharacterId != Id)
@@ -21,7 +23,7 @@ internal sealed partial class PlayingCharacter
             throw new InvalidOperationException("Experience source names a different owner.");
         var reward = await experienceCalculation!.CalculateAsync(source, before.Level, ct).ConfigureAwait(false);
         var decision = ExperienceRules.DecideAward(before, reward);
-        var result = await experienceEffects!().ApplyAsync(new(source.Occasion.Account, Id, at, session),
+        var result = await experienceEffects!().ApplyAsync(new(source.Occasion.Account, Id, at, footprint, session),
             [new Dfo.Server.Abstractions.Effects.CharacterExperienceEffect(decision)], ct).ConfigureAwait(false);
         return result.Changes<Dfo.Server.Abstractions.Effects.CharacterExperienceChange>().Single().Award;
     }

@@ -2,6 +2,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Schema;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Database;
 
@@ -168,34 +169,37 @@ public sealed class UseCaseTransactionCoversReadsTests : IAsyncDisposable
     [Fact]
     public async Task AReadAndAWriteThroughTheSameDatabaseShareOneUseCase()
     {
-        var scope = new DomainTransactionScope();
-        var database = new SqliteDatabase(this.path, scope);
-
-        await using (var lease = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await database.WriteAsync(
-                async (command, token) =>
-                {
-                    command.CommandText = "UPDATE characters SET level=42 WHERE character_id=1";
-                    await command.ExecuteNonQueryAsync(token);
-                },
-                CancellationToken.None);
+            var scope = new DomainTransactionScope();
+            var database = new SqliteDatabase(this.path, scope);
 
-            // Its own change, before anyone outside could possibly see it.
-            var seen = await database.ReadAsync(
-                async (command, token) =>
-                {
-                    command.CommandText = "SELECT level FROM characters WHERE character_id=1";
-                    return Convert.ToInt64(await command.ExecuteScalarAsync(token));
-                },
-                CancellationToken.None);
-            Assert.Equal(42L, seen);
-            Assert.Equal(10L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
+            await using (var lease = scope.Begin())
+            {
+                await database.WriteAsync(
+                    async (command, token) =>
+                    {
+                        command.CommandText = "UPDATE characters SET level=42 WHERE character_id=1";
+                        await command.ExecuteNonQueryAsync(token);
+                    },
+                    CancellationToken.None);
 
-            await lease.CommitAsync(CancellationToken.None);
-        }
+                // Its own change, before anyone outside could possibly see it.
+                var seen = await database.ReadAsync(
+                    async (command, token) =>
+                    {
+                        command.CommandText = "SELECT level FROM characters WHERE character_id=1";
+                        return Convert.ToInt64(await command.ExecuteScalarAsync(token));
+                    },
+                    CancellationToken.None);
+                Assert.Equal(42L, seen);
+                Assert.Equal(10L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
 
-        Assert.Equal(42L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
+                await lease.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(42L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
+        });
     }
 
     private static async ValueTask<long> ScalarAsync(

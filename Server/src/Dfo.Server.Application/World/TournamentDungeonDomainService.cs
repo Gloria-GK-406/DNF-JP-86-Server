@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -53,6 +54,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(EnterAsync));
         if (!Supports(context.DungeonId) || context.Participants.Count != 1 || context.RequestMode != 0
             || context.PracticeMode != 0 || context.MirrorQuestId is not null
             || context.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
@@ -60,7 +62,8 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
         var player = context.Participants[0];
         if (dungeonRuns.Find(player.CharacterId) is not null)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
-        var selected = context.Participants.Select(member => sessions.FindByCharacter(member.CharacterId)).ToArray();
+        var selected = context.Participants
+            .Select(member => sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null).ToArray();
         if (selected.Any(value => value is null)) return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
         TournamentPlan plan;
         try { plan = await rules.PrepareAsync(context.DungeonId, unchecked((uint)Random.Shared.Next()),
@@ -116,6 +119,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     public async ValueTask<TournamentActionResult?> AdvanceAsync(SelectedSessionIdentity session,
         DungeonRunId runId, ushort actor, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(AdvanceAsync));
         var run = CurrentRun(session, runId);
         if (run is null || !CanKill(run, actor)) return null;
         var state = Find(session.CharacterId)!;
@@ -129,6 +133,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
 
     public async ValueTask<TournamentActionResult?> EliminateAsync(SelectedSessionIdentity session, DungeonRunId runId, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(EliminateAsync));
         var run = CurrentRun(session, runId);
         var state = Find(session.CharacterId);
         if (run is null || state is null || state.IsFinished || !run.DeadParticipants.Contains(session.CharacterId)) return null;
@@ -160,6 +165,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     public async ValueTask<TournamentActionResult?> SelectRewardAsync(SelectedSessionIdentity session,
         DungeonRunId runId, byte row, byte index, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(SelectRewardAsync));
         var state = Find(session.CharacterId);
         if (CurrentRun(session, runId) is null || state is not { IsFinished: true } || row >= state.Rewards.Count
             || index >= state.Rewards[row].Count) return null;
@@ -200,6 +206,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
 
     public bool BeginRewardSelection(SelectedSessionIdentity session, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(BeginRewardSelection));
         var state = Find(session.CharacterId);
         if (CurrentRun(session, runId) is null || state is not { IsFinished: true }) return false;
         if (state.RewardSelectionEndsAt is null)
@@ -209,6 +216,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
 
     public bool StageRevival(CharacterId characterId, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(StageRevival));
         var state = Find(characterId);
         if (state is null || state.RunId != runId || state.IsFinished || state.Revivals >= state.Plan.Definition.CoinLimit) return false;
         Put(state with { Revivals = state.Revivals + 1 });
@@ -216,7 +224,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     }
 
     private DungeonRunState? CurrentRun(SelectedSessionIdentity session, DungeonRunId runId) =>
-        sessions.FindByCharacter(session.CharacterId) == session && dungeonRuns.Find(session.CharacterId) is { } run
+        sessions.IsInWorld(session) && dungeonRuns.Find(session.CharacterId) is { } run
         && run.RunId == runId && run.Layout.Tournament is not null ? run : null;
 
     private void Put(TournamentDungeonState state)
@@ -227,6 +235,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
 
     public ValueTask HandleAsync(DomainEventEnvelope<DungeonParticipantLeft> message, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(TournamentDungeonDomainService) + "." + nameof(HandleAsync));
         lock (gate)
             if (states.GetValueOrDefault(message.Payload.CharacterId)?.RunId == message.Payload.RunId)
                 states.Remove(message.Payload.CharacterId);

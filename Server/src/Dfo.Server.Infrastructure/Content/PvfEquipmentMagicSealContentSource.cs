@@ -7,7 +7,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider provider)
-    : IEquipmentMagicSealContentSource
+    : IEquipmentMagicSealContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -57,6 +57,40 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
     private readonly Dictionary<int, EquipmentMagicSealDefinition?> equipmentCache = [];
     private readonly Dictionary<int, MagicSealScrollDefinition?> scrollCache = [];
 
+    // Explicit: the class already has a private Name(archive, token) helper.
+    string Dfo.Server.Abstractions.Content.IContentWarmup.Name => "equipment-magic-seal-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            EquipmentPathsIndex(archive);
+            StackablePathsIndex(archive);
+            OptionPathsIndex(archive);
+            return ValueTask.FromResult(equipmentPaths.Count + stackablePaths.Count + optionPaths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentPaths))]
+    private void EquipmentPathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipmentPaths ??= Paths(archive, "equipment/equipment.lst");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
+    private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackablePaths ??= Paths(archive, "stackable/stackable.lst");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(optionPaths))]
+    private void OptionPathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        optionPaths ??= Paths(archive, "etc/randomoption/randomoption.lst");
+    }
+
     public ValueTask<EquipmentMagicSealDefinition?> GetEquipmentAsync(
         int itemId, CancellationToken cancellationToken)
     {
@@ -84,7 +118,7 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
     private EquipmentMagicSealDefinition? ReadEquipment(int itemId)
     {
         var archive = provider.Archive;
-        equipmentPaths ??= Paths(archive, "equipment/equipment.lst");
+        EquipmentPathsIndex(archive);
         if (!equipmentPaths.TryGetValue(itemId, out var relative)) return null;
         var sections = RootSections(PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative));
         if (OneInt(archive, sections, Fields.RandomOptionField, "equipment/" + relative) != 1) return null;
@@ -122,7 +156,7 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
     private MagicSealScrollDefinition? ReadScroll(int itemId)
     {
         var archive = provider.Archive;
-        stackablePaths ??= Paths(archive, "stackable/stackable.lst");
+        StackablePathsIndex(archive);
         if (!stackablePaths.TryGetValue(itemId, out var relative)) return null;
         var sections = RootSections(PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + relative));
         // A21 script text explicitly limits the first alchemist scroll to Lv30. Other
@@ -134,7 +168,7 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
     private List<IReadOnlyList<MagicSealCandidate>> BuildGroups(
         PvfArchive archive, IReadOnlyList<int> ids, int itemLevel)
     {
-        optionPaths ??= Paths(archive, "etc/randomoption/randomoption.lst");
+        OptionPathsIndex(archive);
         const string groupingPath = "etc/randomoption/optiongrouping.etc";
         var grouping = PvfDocument.Open(archive, groupingPath).ReadAll(Fields.OptionGroupField);
         var byId = new Dictionary<int, IReadOnlyList<int>>();

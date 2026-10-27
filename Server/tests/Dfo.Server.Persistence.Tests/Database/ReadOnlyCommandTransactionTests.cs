@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Persistence.Database;
@@ -16,7 +17,7 @@ public sealed class ReadOnlyCommandTransactionTests : IAsyncDisposable
     {
         var services = new ServiceCollection().AddLogging().AddCommandDispatching();
         services.AddSingleton(sp => new SqliteDatabase(path, sp.GetRequiredService<IDomainTransactionAccessor>()));
-        services.AddCommandHandler<QueryCommand, long, QueryHandler>(CommandExecutionKind.ReadOnly);
+        services.AddFixtureCommand<QueryCommand, long, QueryHandler>(FixtureUnitKind.ReadOnly);
         provider = services.BuildServiceProvider();
         database = provider.GetRequiredService<SqliteDatabase>();
         Execute("CREATE TABLE read_only_probe(id INTEGER PRIMARY KEY, value INTEGER NOT NULL); "
@@ -113,7 +114,7 @@ public sealed class ReadOnlyCommandTransactionTests : IAsyncDisposable
     }
 
     private ValueTask<long> Query(Func<SqliteDatabase, IDomainTransactionAccessor, CancellationToken, ValueTask<long>> execute) =>
-        provider.GetRequiredService<ICommandBus>().SendAsync(new QueryCommand(execute));
+        DomainCommandFixture.Bus(provider).SendAsync(new QueryCommand(execute));
 
     private static ValueTask<long> ReadValue(SqliteDatabase db, int id, CancellationToken ct) =>
         db.ReadAsync(async (command, token) =>

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -34,15 +35,18 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task The_reversed_request_moves_the_potion_onto_the_bar()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
+            await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
 
-        Assert.Equal([(3, 8474, 1)], inventory.Rows());
-        var response = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent));
-        Assert.Null(response.ErrorCode);
-        Assert.Equal(1, response.MoveValue);
+            Assert.Equal([(3, 8474, 1)], inventory.Rows());
+            var response = Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent));
+            Assert.Null(response.ErrorCode);
+            Assert.Equal(1, response.MoveValue);
+        });
     }
 
     /// <remarks>
@@ -52,48 +56,60 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task The_acknowledgement_echoes_the_ends_the_client_sent()
     {
-        var (handler, sender) = Build(new FakeInventory { [65] = (8474, 1) });
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender) = Build(new FakeInventory { [65] = (8474, 1) });
 
-        await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
+            await handler.HandleAsync(Context, ObservedRequest, CancellationToken.None);
 
-        var response = (MoveItemSpaceResponse)sender.Sent.Single();
-        Assert.Equal(3, response.SourceSlot.Index);
-        Assert.Equal(65, response.DestinationSlot.Index);
+            var response = (MoveItemSpaceResponse)sender.Sent.Single();
+            Assert.Equal(3, response.SourceSlot.Index);
+            Assert.Equal(65, response.DestinationSlot.Index);
+        });
     }
 
     [Fact]
     public async Task An_ordinary_drag_moves_the_named_source()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 4, 8474, 0), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 4, 8474, 0), CancellationToken.None);
 
-        Assert.Equal([(4, 8474, 1)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(4, 8474, 1)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task Two_items_trade_places_when_the_target_is_taken()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1), [66] = (9000, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 9000), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 9000), CancellationToken.None);
 
-        Assert.Equal([(65, 9000, 1), (66, 8474, 1)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 9000, 1), (66, 8474, 1)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     [Fact]
     public async Task Two_piles_of_one_item_merge()
     {
-        var inventory = new FakeInventory { [65] = (8474, 3), [66] = (8474, 4) };
-        var (handler, _) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 3), [66] = (8474, 4) };
+            var (handler, _) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(66, 8474, 7)], inventory.Rows());
+            Assert.Equal([(66, 8474, 7)], inventory.Rows());
+        });
     }
 
     /// <remarks>
@@ -103,15 +119,18 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_slot_outside_the_items_band_is_refused()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 130, 8474, 0), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 130, 8474, 0), CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 1)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 1)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -126,21 +145,24 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task An_unserved_guild_medal_list_is_refused()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context,
-            ObservedRequest with
-            {
-                DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
-            },
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Context,
+                ObservedRequest with
+                {
+                    DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
+                },
+                CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 1)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 1)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -151,13 +173,16 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Naming_one_slot_twice_succeeds_without_moving_anything()
     {
-        var inventory = new FakeInventory { [65] = (8474, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 65, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 65, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 1)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 1)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -169,13 +194,16 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Two_empty_slots_are_refused_without_a_message()
     {
-        var (handler, sender) = Build(new FakeInventory());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender) = Build(new FakeInventory());
 
-        await handler.HandleAsync(Context, Request(65, 66, 0, 0), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 0, 0), CancellationToken.None);
 
-        Assert.Equal(
-            MoveItemSpaceResponse.Silent,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                MoveItemSpaceResponse.Silent,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -186,15 +214,18 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_merge_past_the_stack_limit_says_the_pile_is_full()
     {
-        var inventory = new FakeInventory { [65] = (8474, 60), [66] = (8474, 60) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 60), [66] = (8474, 60) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 60), (66, 8474, 60)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.StackLimitReached,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 60), (66, 8474, 60)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.StackLimitReached,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -206,24 +237,27 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_swap_whose_other_end_cannot_land_says_the_item_will_not_move()
     {
-        var inventory = new FakeInventory
+        await TestGameplay.RunAsync(async () =>
         {
-            [65] = (TwoBandPlacements.Consumable, 1),
-            [100] = (TwoBandPlacements.Equipment, 1),
-        };
-        var (handler, sender) = Build(inventory, new TwoBandPlacements());
+            var inventory = new FakeInventory
+            {
+                [65] = (TwoBandPlacements.Consumable, 1),
+                [100] = (TwoBandPlacements.Equipment, 1),
+            };
+            var (handler, sender) = Build(inventory, new TwoBandPlacements());
 
-        await handler.HandleAsync(
-            Context,
-            Request(65, 100, TwoBandPlacements.Consumable, TwoBandPlacements.Equipment),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Context,
+                Request(65, 100, TwoBandPlacements.Consumable, TwoBandPlacements.Equipment),
+                CancellationToken.None);
 
-        Assert.Equal(
-            [(65, TwoBandPlacements.Consumable, 1), (100, TwoBandPlacements.Equipment, 1)],
-            inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                [(65, TwoBandPlacements.Consumable, 1), (100, TwoBandPlacements.Equipment, 1)],
+                inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <summary>
@@ -237,16 +271,19 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Dragging_part_of_a_pile_onto_an_empty_slot_leaves_the_rest_behind()
     {
-        var inventory = new FakeInventory { [65] = (8474, 5) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 5) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 3), (66, 8474, 2)], inventory.Rows());
-        var response = (MoveItemSpaceResponse)sender.Sent.Single();
-        Assert.Null(response.ErrorCode);
-        Assert.Equal(2, response.MoveValue);
+            Assert.Equal([(65, 8474, 3), (66, 8474, 2)], inventory.Rows());
+            var response = (MoveItemSpaceResponse)sender.Sent.Single();
+            Assert.Null(response.ErrorCode);
+            Assert.Equal(2, response.MoveValue);
+        });
     }
 
     /// <summary>
@@ -264,16 +301,19 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task Dragging_part_of_a_pile_onto_another_item_will_not_swap()
     {
-        var inventory = new FakeInventory { [65] = (8474, 5), [66] = (9000, 1) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 5), [66] = (9000, 1) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(
-            Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(65, 66, 0, 0) with { MoveCount = 2 }, CancellationToken.None);
 
-        Assert.Equal([(65, 8474, 5), (66, 9000, 1)], inventory.Rows());
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(65, 8474, 5), (66, 9000, 1)], inventory.Rows());
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <remarks>
@@ -283,13 +323,16 @@ public sealed class MoveItemSpaceHandlerTests
     [Fact]
     public async Task A_merge_within_the_stack_limit_still_happens()
     {
-        var inventory = new FakeInventory { [65] = (8474, 10), [66] = (8474, 10) };
-        var (handler, sender) = Build(inventory);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new FakeInventory { [65] = (8474, 10), [66] = (8474, 10) };
+            var (handler, sender) = Build(inventory);
 
-        await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(65, 66, 8474, 8474), CancellationToken.None);
 
-        Assert.Equal([(66, 8474, 20)], inventory.Rows());
-        Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal([(66, 8474, 20)], inventory.Rows());
+            Assert.Null(((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <summary>
@@ -313,16 +356,18 @@ public sealed class MoveItemSpaceHandlerTests
         var placements = new ConsumablePlacements();
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers(placements);
-        var handler = new MoveItemSpaceCommandHandler(
+        var handler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(placements, new NoWearables()),
                 new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
-        using var admission = new Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate();
-        var results = await Task.WhenAll(
-            Dispatch(handler, inventory, admission, sourceSlot: 65, destinationSlot: 3),
-            Dispatch(handler, inventory, admission, sourceSlot: 66, destinationSlot: 3));
+        // Two moves arriving together are two CMDs, run one after the other on the executor.
+        var results = new[]
+        {
+            await Dispatch(handler, inventory, sourceSlot: 65, destinationSlot: 3),
+            await Dispatch(handler, inventory, sourceSlot: 66, destinationSlot: 3),
+        };
 
         Assert.All(results, result => Assert.Equal(ItemMoveStatus.Moved, result.Status));
         Assert.Single(inventory.Rows(), row => row.Slot == 3);
@@ -334,21 +379,18 @@ public sealed class MoveItemSpaceHandlerTests
         Assert.Equal(2, results.Select(result => result.ItemId).Distinct().Count());
     }
 
-    /// <summary>One command, in its own use case boundary, on its own flow.</summary>
+    /// <summary>One command, in its own use case boundary, as its own job.</summary>
     private static Task<ItemMoveResult> Dispatch(
-        MoveItemSpaceCommandHandler handler,
+        InventoryMoveDomainService handler,
         FakeInventory inventory,
-        Dfo.Server.Application.Commands.Pipeline.TransactionalExecutionGate admission,
         short sourceSlot,
         short destinationSlot) =>
-        Task.Run(async () =>
+        TestGameplay.RunAsync(async () =>
         {
-            // Match production admission: competing commands enter before their transaction starts.
-            await using var lease = await admission.AcquireAsync(default);
-            var bus = new DirectCommandBus(move: handler, scope: inventory.Scope);
+            var bus = new DirectInventoryMove(move: handler, scope: inventory.Scope);
             var mappings = new InventorySlotMappingRuleService();
-            return await bus.SendAsync(
-                new MoveItemSpaceCommand(
+            return await bus.MoveAsync(
+                new InventoryMoveRequest(
                     new CharacterId(60),
                     mappings.ToBusinessSlot(
                         new GameSlot(InventoryContainerType.Main, sourceSlot)),
@@ -382,20 +424,20 @@ public sealed class MoveItemSpaceHandlerTests
         var resolved = placements ?? new ConsumablePlacements();
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers(resolved);
-        var commandHandler = new MoveItemSpaceCommandHandler(
+        var commandHandler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(resolved, new NoWearables()),
                 new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
 
         return (
-            new MoveItemSpaceHandler(
+            MoveWholeTestDriver.Create(
                 new OneSession(),
                 new NoPublishedRuntime(),
                 mappings,
-                new DirectCommandBus(move: commandHandler, scope: inventory.Scope),
+                new MoveWholeTestDriver.Execution(commandHandler, inventory.Scope),
                 sender,
-                NullLogger<MoveItemSpaceHandler>.Instance, null!, null!, TimeProvider.System),
+                NullLogger<GameMoveItemSpaceCommandHandler>.Instance, null!, null!, TimeProvider.System),
             sender);
     }
 
@@ -437,6 +479,53 @@ public sealed class MoveItemSpaceHandlerTests
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), new NetworkConnectionId("game-move"), 1, 10011);
 
@@ -448,28 +537,41 @@ public sealed class MoveItemSpaceHandlerTests
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingSender()
+        {
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("The move acknowledgement is sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The move acknowledgement is a CMD."));
+        }
+
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The move acknowledgement is sent explicitly.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The move acknowledgement is a CMD.");
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     /// <summary>A session directory that has nothing published, so no appearance frame is built.</summary>
@@ -478,23 +580,11 @@ public sealed class MoveItemSpaceHandlerTests
     /// follows a move that changed the character's look. A session that cannot be read is exactly
     /// the case the handler answers by sending the acknowledgement alone.
     /// </remarks>
-    private sealed class NoPublishedRuntime : ISelectedSessionRuntimeDirectory, ISelectedCharacterCurrentViewDomainService
+    private sealed class NoPublishedRuntime : ISelectedCharacterCurrentViewDomainService
     {
         public ValueTask<SelectCharacterResult?> TryLoadAsync(
             SelectedSessionIdentity session, CancellationToken cancellationToken) =>
             ValueTask.FromResult<SelectCharacterResult?>(null);
-        public void Publish(SelectedSessionIdentity session, bool shouldPersistPosition) =>
-            throw new NotSupportedException("Nothing publishes here.");
-
-        public bool IsPublishedExact(SelectedSessionIdentity session) => false;
-
-        public bool TryGetPositionPersistence(
-            SelectedSessionIdentity session, out bool shouldPersistPosition)
-        {
-            shouldPersistPosition = false;
-            return false;
-        }
-
         public void Publish(
             SelectedSessionIdentity session, SelectCharacterResult result, bool shouldPersistPosition) =>
             throw new NotSupportedException("Nothing publishes here.");

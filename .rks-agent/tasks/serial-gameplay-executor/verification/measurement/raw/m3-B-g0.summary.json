@@ -1,0 +1,1184 @@
+{
+  "steadyRate": 400,
+  "composition": {
+    "SET_USER_POSITION": 20365,
+    "CHECK_USER_CONNECTION": 26783,
+    "EPLP": 36,
+    "STEP_FENCE": 568,
+    "LEAVE_PARTY": 36,
+    "REQUEST_PEER": 36,
+    "RESPONSE_PEER": 36,
+    "ENTER_SELECT_DUNGEON": 35,
+    "SELECT_DUNGEON": 35,
+    "FINISH_LOADING": 70
+  },
+  "steady": {
+    "CHECK_USER_CONNECTION": {
+      "distribution": {
+        "Count": 26783,
+        "P50": 0.4148,
+        "P95": 2.1877,
+        "P99": 16.4601,
+        "P999": 42.2842,
+        "Max": 56.2033,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 26783,
+        "P50": 0.2143,
+        "P95": 0.6145,
+        "P99": 15.9004,
+        "P999": 41.352,
+        "Max": 56.1685,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "SET_USER_POSITION": {
+      "distribution": {
+        "Count": 20365,
+        "P50": 0.4785,
+        "P95": 2.2218,
+        "P99": 12.7746,
+        "P999": 44.5837,
+        "Max": 58.0763,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 20365,
+        "P50": 0.2495,
+        "P95": 0.7099,
+        "P99": 12.6041,
+        "P999": 43.029,
+        "Max": 57.5495,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "FINISH_LOADING": {
+      "distribution": {
+        "Count": 70,
+        "P50": 0.1934,
+        "P95": 0.3125,
+        "P99": 0.3565,
+        "P999": 0.3565,
+        "Max": 0.3565,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 70,
+        "P50": 0.1934,
+        "P95": 0.3125,
+        "P99": 0.3565,
+        "P999": 0.3565,
+        "Max": 0.3565,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "EPLP": {
+      "distribution": {
+        "Count": 36,
+        "P50": 41.3363,
+        "P95": 58.4177,
+        "P99": 59.6296,
+        "P999": 59.6296,
+        "Max": 59.6296,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 36,
+        "P50": 41.3363,
+        "P95": 58.3412,
+        "P99": 59.0713,
+        "P999": 59.0713,
+        "Max": 59.0713,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "LEAVE_PARTY": {
+      "distribution": {
+        "Count": 36,
+        "P50": 0.9194,
+        "P95": 1.5036,
+        "P99": 46.5797,
+        "P999": 46.5797,
+        "Max": 46.5797,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 36,
+        "P50": 0.9194,
+        "P95": 1.5036,
+        "P99": 46.5797,
+        "P999": 46.5797,
+        "Max": 46.5797,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "REQUEST_PEER": {
+      "distribution": {
+        "Count": 0,
+        "P50": "NaN",
+        "P95": "NaN",
+        "P99": "NaN",
+        "P999": "NaN",
+        "Max": "NaN",
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 0,
+        "P50": "NaN",
+        "P95": "NaN",
+        "P99": "NaN",
+        "P999": "NaN",
+        "Max": "NaN",
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 36
+    },
+    "RESPONSE_PEER": {
+      "distribution": {
+        "Count": 36,
+        "P50": 0.4995,
+        "P95": 16.7105,
+        "P99": 56.089,
+        "P999": 56.089,
+        "Max": 56.089,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 36,
+        "P50": 0.4995,
+        "P95": 16.7105,
+        "P99": 56.089,
+        "P999": 56.089,
+        "Max": 56.089,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "ENTER_SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 35,
+        "P50": 27.1213,
+        "P95": 39.3406,
+        "P99": 40.0119,
+        "P999": 40.0119,
+        "Max": 40.0119,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 35,
+        "P50": 26.2452,
+        "P95": 39.3406,
+        "P99": 39.8067,
+        "P999": 39.8067,
+        "Max": 39.8067,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 35,
+        "P50": 16.2646,
+        "P95": 20.0596,
+        "P99": 21.734,
+        "P999": 21.734,
+        "Max": 21.734,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 35,
+        "P50": 16.2646,
+        "P95": 20.0596,
+        "P99": 21.734,
+        "P999": 21.734,
+        "Max": 21.734,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    }
+  },
+  "steadyOverall": {
+    "Count": 47396,
+    "P50": 0.4458,
+    "P95": 2.2238,
+    "P99": 17.403,
+    "P999": 45.9715,
+    "Max": 59.6296,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "steadyOverallActual": {
+    "Count": 47396,
+    "P50": 0.228,
+    "P95": 0.6885,
+    "P99": 16.9242,
+    "P999": 45.2769,
+    "Max": 59.0713,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "steadyCensored": 0,
+  "steadyProtocolNoReply": 36,
+  "steadyLateness": {
+    "Count": 47432,
+    "P50": 0.081,
+    "P95": 1.7228,
+    "P99": 2.1695,
+    "P999": 3.0211,
+    "Max": 46.9926,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "commands": {
+    "RegisterAccountCommand": {
+      "Count": 81,
+      "P50": 0.1552,
+      "P95": 0.4703,
+      "P99": 4.5785,
+      "P999": 4.5785,
+      "Max": 4.5785,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AuthenticateAndIssueTicketCommand": {
+      "Count": 81,
+      "P50": 0.0459,
+      "P95": 0.154,
+      "P99": 2.3754,
+      "P999": 2.3754,
+      "Max": 2.3754,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RedeemGameLoginCommand": {
+      "Count": 81,
+      "P50": 0.0167,
+      "P95": 0.0371,
+      "P99": 1.6274,
+      "P999": 1.6274,
+      "Max": 1.6274,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ActivateClientHotkeyProfileCommand": {
+      "Count": 102,
+      "P50": 0.0058,
+      "P95": 0.022,
+      "P99": 0.0562,
+      "P999": 1.512,
+      "Max": 1.512,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "CreateCharacterCommand": {
+      "Count": 21,
+      "P50": 1.1607,
+      "P95": 1.9178,
+      "P99": 24.36,
+      "P999": 24.36,
+      "Max": 24.36,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "GetAccountCharacterRosterCommand": {
+      "Count": 21,
+      "P50": 0.3215,
+      "P95": 0.767,
+      "P99": 6.7801,
+      "P999": 6.7801,
+      "Max": 6.7801,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PrepareSelectedCharacterSessionCommand": {
+      "Count": 21,
+      "P50": 0.0735,
+      "P95": 0.304,
+      "P99": 3.3103,
+      "P999": 3.3103,
+      "Max": 3.3103,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "CleanupExpiredCharacterItemsCommand": {
+      "Count": 21,
+      "P50": 0.0513,
+      "P95": 0.3274,
+      "P99": 1.6229,
+      "P999": 1.6229,
+      "Max": 1.6229,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "EnsureDailyContractPuppetsCommand": {
+      "Count": 21,
+      "P50": 0.0481,
+      "P95": 0.1472,
+      "P99": 3.4706,
+      "P999": 3.4706,
+      "Max": 3.4706,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "InitializeHousingCommand": {
+      "Count": 21,
+      "P50": 0.0323,
+      "P95": 0.1476,
+      "P99": 0.6957,
+      "P999": 0.6957,
+      "Max": 0.6957,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PrepareSelectedCharacterStateCommand": {
+      "Count": 21,
+      "P50": 2.9071,
+      "P95": 15.4008,
+      "P99": 104.4132,
+      "P999": 104.4132,
+      "Max": 104.4132,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ApplySelectedCharacterDailyRefillCommand": {
+      "Count": 21,
+      "P50": 14.53,
+      "P95": 26.7148,
+      "P99": 28.3863,
+      "P999": 28.3863,
+      "Max": 28.3863,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PublishSelectedCharacterSessionCommand": {
+      "Count": 21,
+      "P50": 0.0265,
+      "P95": 0.2025,
+      "P99": 3.6722,
+      "P999": 3.6722,
+      "Max": 3.6722,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RefillOnlineTauTicketCommand": {
+      "Count": 21,
+      "P50": 15.0453,
+      "P95": 29.9697,
+      "P99": 47.9113,
+      "P999": 47.9113,
+      "Max": 47.9113,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RefillOnlineSouthernTicketCommand": {
+      "Count": 21,
+      "P50": 14.9458,
+      "P95": 33.6722,
+      "P99": 49.797,
+      "P999": 49.797,
+      "Max": 49.797,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RefillOnlineBossTowerTicketCommand": {
+      "Count": 21,
+      "P50": 14.5904,
+      "P95": 39.8008,
+      "P99": 45.3997,
+      "P999": 45.3997,
+      "Max": 45.3997,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "SynchronizeSelectedCharacterQuestsCommand": {
+      "Count": 21,
+      "P50": 0.0669,
+      "P95": 0.1162,
+      "P99": 3.98,
+      "P999": 3.98,
+      "Max": 3.98,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ReviveSelectedCharacterPetCommand": {
+      "Count": 21,
+      "P50": 0.0515,
+      "P95": 0.102,
+      "P99": 1.4807,
+      "P999": 1.4807,
+      "Max": 1.4807,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ReadItemUsageSnapshotCommand": {
+      "Count": 42,
+      "P50": 0.0545,
+      "P95": 0.1047,
+      "P99": 2.786,
+      "P999": 2.786,
+      "Max": 2.786,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AdvanceCreatureClockCommand": {
+      "Count": 337,
+      "P50": 0.0847,
+      "P95": 0.327,
+      "P99": 0.4306,
+      "P999": 3.1415,
+      "Max": 3.1415,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RequestPartyInviteCommand": {
+      "Count": 82,
+      "P50": 1.7468,
+      "P95": 3.104,
+      "P99": 5.3646,
+      "P999": 5.3646,
+      "Max": 5.3646,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AcceptPartyInviteCommand": {
+      "Count": 82,
+      "P50": 0.0282,
+      "P95": 0.1823,
+      "P99": 6.0955,
+      "P999": 6.0955,
+      "Max": 6.0955,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "EnterDungeonCommand": {
+      "Count": 80,
+      "P50": 8.8785,
+      "P95": 11.5925,
+      "P99": 55.3395,
+      "P999": 55.3395,
+      "Max": 55.3395,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "MarkDungeonParticipantReadyCommand": {
+      "Count": 160,
+      "P50": 0.0115,
+      "P95": 0.0289,
+      "P99": 0.5904,
+      "P999": 5.0952,
+      "Max": 5.0952,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "LeaveDungeonCommand": {
+      "Count": 78,
+      "P50": 1.683,
+      "P95": 2.6657,
+      "P99": 17.1982,
+      "P999": 17.1982,
+      "Max": 17.1982,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "LeavePartyCommand": {
+      "Count": 78,
+      "P50": 0.0327,
+      "P95": 0.0709,
+      "P99": 1.349,
+      "P999": 1.349,
+      "Max": 1.349,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ExpireCharacterNameTagCommand": {
+      "Count": 84,
+      "P50": 0.0172,
+      "P95": 0.0941,
+      "P99": 2.9438,
+      "P999": 2.9438,
+      "Max": 2.9438,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ReadPremiumSnapshotCommand": {
+      "Count": 84,
+      "P50": 0.05,
+      "P95": 0.1201,
+      "P99": 0.9241,
+      "P999": 0.9241,
+      "Max": 0.9241,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AdvanceWeaknessRecoveryCommand": {
+      "Count": 4,
+      "P50": 0.0263,
+      "P95": 1.6763,
+      "P99": 1.6763,
+      "P999": 1.6763,
+      "Max": 1.6763,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    }
+  },
+  "commandWarnings": [
+    {
+      "Name": "PrepareSelectedCharacterStateCommand",
+      "Distribution": {
+        "Count": 21,
+        "P50": 2.9071,
+        "P95": 15.4008,
+        "P99": 104.4132,
+        "P999": 104.4132,
+        "Max": 104.4132,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "ColdMax": 104.4132,
+      "WarmMax": "NaN"
+    }
+  ],
+  "coldStall": 233.0995,
+  "coldStallCensored": false,
+  "coldStallActual": 233.0995,
+  "coldOverall": {
+    "Count": 22535,
+    "P50": 0.4463,
+    "P95": 2.3938,
+    "P99": 37.7362,
+    "P999": 96.7344,
+    "Max": 233.0995,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "coldPerSecond": [
+    [
+      "0",
+      "25",
+      "233.1",
+      "233.1",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "1",
+      "116",
+      "86.45",
+      "95.59",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "2",
+      "171",
+      "105.1",
+      "115.3",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "3",
+      "183",
+      "116.1",
+      "120.8",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "4",
+      "328",
+      "109.9",
+      "111.2",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "5",
+      "400",
+      "2.10",
+      "3.09",
+      "SET_USER_POSITION"
+    ],
+    [
+      "6",
+      "400",
+      "2.24",
+      "2.57",
+      "SET_USER_POSITION"
+    ],
+    [
+      "7",
+      "400",
+      "2.37",
+      "2.68",
+      "SET_USER_POSITION"
+    ],
+    [
+      "8",
+      "390",
+      "13.15",
+      "20.18",
+      "SET_USER_POSITION"
+    ],
+    [
+      "9",
+      "393",
+      "2.50",
+      "4.14",
+      "RESPONSE_PEER"
+    ],
+    [
+      "10",
+      "387",
+      "3.18",
+      "5.12",
+      "SET_USER_POSITION"
+    ],
+    [
+      "11",
+      "400",
+      "2.44",
+      "5.16",
+      "SET_USER_POSITION"
+    ],
+    [
+      "12",
+      "400",
+      "2.68",
+      "5.32",
+      "SET_USER_POSITION"
+    ],
+    [
+      "13",
+      "384",
+      "73.06",
+      "74.18",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "14",
+      "392",
+      "11.76",
+      "12.08",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "15",
+      "384",
+      "16.61",
+      "27.88",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "16",
+      "392",
+      "3.11",
+      "11.92",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "17",
+      "400",
+      "2.31",
+      "3.15",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "18",
+      "396",
+      "47.72",
+      "51.86",
+      "EPLP"
+    ],
+    [
+      "19",
+      "398",
+      "2.82",
+      "3.13",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "20",
+      "398",
+      "46.71",
+      "49.51",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "21",
+      "396",
+      "41.25",
+      "52.92",
+      "EPLP"
+    ],
+    [
+      "22",
+      "398",
+      "12.06",
+      "14.87",
+      "LEAVE_PARTY"
+    ],
+    [
+      "23",
+      "400",
+      "2.63",
+      "5.04",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "24",
+      "396",
+      "2.52",
+      "4.89",
+      "LEAVE_PARTY"
+    ],
+    [
+      "25",
+      "396",
+      "2.49",
+      "2.65",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "26",
+      "393",
+      "2.61",
+      "4.14",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "27",
+      "400",
+      "2.20",
+      "3.60",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "28",
+      "395",
+      "2.65",
+      "4.27",
+      "SET_USER_POSITION"
+    ],
+    [
+      "29",
+      "395",
+      "2.36",
+      "2.41",
+      "SET_USER_POSITION"
+    ],
+    [
+      "30",
+      "395",
+      "2.71",
+      "2.84",
+      "SET_USER_POSITION"
+    ],
+    [
+      "31",
+      "382",
+      "36.26",
+      "40.03",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "32",
+      "400",
+      "2.38",
+      "3.66",
+      "SET_USER_POSITION"
+    ],
+    [
+      "33",
+      "392",
+      "23.22",
+      "36.02",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "34",
+      "400",
+      "2.78",
+      "3.35",
+      "SET_USER_POSITION"
+    ],
+    [
+      "35",
+      "386",
+      "17.04",
+      "26.33",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "36",
+      "382",
+      "20.49",
+      "23.01",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "37",
+      "398",
+      "21.04",
+      "24.78",
+      "EPLP"
+    ],
+    [
+      "38",
+      "398",
+      "21.18",
+      "33.51",
+      "EPLP"
+    ],
+    [
+      "39",
+      "398",
+      "33.70",
+      "43.06",
+      "EPLP"
+    ],
+    [
+      "40",
+      "398",
+      "45.25",
+      "47.82",
+      "EPLP"
+    ],
+    [
+      "41",
+      "396",
+      "39.56",
+      "45.42",
+      "EPLP"
+    ],
+    [
+      "42",
+      "396",
+      "2.24",
+      "2.37",
+      "SET_USER_POSITION"
+    ],
+    [
+      "43",
+      "400",
+      "2.40",
+      "2.86",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "44",
+      "398",
+      "2.44",
+      "2.54",
+      "SET_USER_POSITION"
+    ],
+    [
+      "45",
+      "398",
+      "4.31",
+      "5.21",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "46",
+      "396",
+      "3.05",
+      "4.99",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "47",
+      "395",
+      "2.61",
+      "5.57",
+      "SET_USER_POSITION"
+    ],
+    [
+      "48",
+      "395",
+      "3.23",
+      "6.08",
+      "SET_USER_POSITION"
+    ],
+    [
+      "49",
+      "396",
+      "2.55",
+      "2.91",
+      "SET_USER_POSITION"
+    ],
+    [
+      "50",
+      "399",
+      "2.52",
+      "3.44",
+      "SET_USER_POSITION"
+    ],
+    [
+      "51",
+      "386",
+      "3.00",
+      "3.68",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "52",
+      "391",
+      "28.20",
+      "29.26",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "53",
+      "392",
+      "23.06",
+      "35.84",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "54",
+      "400",
+      "2.16",
+      "3.16",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "55",
+      "384",
+      "23.09",
+      "32.76",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "56",
+      "400",
+      "2.27",
+      "2.60",
+      "SET_USER_POSITION"
+    ],
+    [
+      "57",
+      "382",
+      "19.92",
+      "25.08",
+      "EPLP"
+    ],
+    [
+      "58",
+      "398",
+      "2.33",
+      "2.69",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "59",
+      "398",
+      "28.85",
+      "43.15",
+      "EPLP"
+    ]
+  ],
+  "burstByRole": {
+    "\u5355\u4EBA": {
+      "steady": {
+        "Count": 19200,
+        "P50": 0.4027,
+        "P95": 1.9369,
+        "P99": 16.7021,
+        "P999": 41.6412,
+        "Max": 58.0763,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burst": {
+        "Count": 189,
+        "P50": 15.126,
+        "P95": 70.1144,
+        "P99": 85.2568,
+        "P999": 86.3182,
+        "Max": 86.3182,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burstActual": {
+        "Count": 189,
+        "P50": 4.4437,
+        "P95": 68.1899,
+        "P99": 81.739,
+        "P999": 83.8277,
+        "Max": 83.8277,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      }
+    },
+    "\u53CC\u4EBA\u7EC4\u9886\u961F": {
+      "steady": {
+        "Count": 14080,
+        "P50": 0.4842,
+        "P95": 2.3815,
+        "P99": 22.0968,
+        "P999": 48.4285,
+        "Max": 59.6296,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burst": {
+        "Count": 138,
+        "P50": 15.642,
+        "P95": 76.6642,
+        "P99": 91.7301,
+        "P999": 93.5904,
+        "Max": 93.5904,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burstActual": {
+        "Count": 138,
+        "P50": 4.9324,
+        "P95": 72.1688,
+        "P99": 90.8935,
+        "P999": 90.993,
+        "Max": 90.993,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      }
+    },
+    "\u53CC\u4EBA\u7EC4\u961F\u5458": {
+      "steady": {
+        "Count": 14116,
+        "P50": 0.4528,
+        "P95": 2.2676,
+        "P99": 14.8475,
+        "P999": 45.2672,
+        "Max": 56.089,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burst": {
+        "Count": 135,
+        "P50": 17.4827,
+        "P95": 75.0142,
+        "P99": 91.671,
+        "P999": 93.6347,
+        "Max": 93.6347,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burstActual": {
+        "Count": 135,
+        "P50": 5.0979,
+        "P95": 72.1422,
+        "P99": 90.738,
+        "P999": 90.9437,
+        "Max": 90.9437,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      }
+    }
+  },
+  "burstBackground": {
+    "Count": 462,
+    "P50": 15.642,
+    "P95": 73.4832,
+    "P99": 86.3182,
+    "P999": 93.6347,
+    "Max": 93.6347,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "burstBackgroundActual": {
+    "Count": 462,
+    "P50": 4.6106,
+    "P95": 69.6969,
+    "P99": 83.833,
+    "P999": 90.993,
+    "Max": 90.993,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "burstPhase": {
+    "Count": 19823,
+    "P50": 0.4702,
+    "P95": 2.4994,
+    "P99": 38.1931,
+    "P999": 74.7464,
+    "Max": 93.6347,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "floodOthers": {
+    "Count": 11858,
+    "P50": 0.5124,
+    "P95": 5.491,
+    "P99": 8.4665,
+    "P999": 30.0606,
+    "Max": 44.1882,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "floodOthersActual": {
+    "Count": 11858,
+    "P50": 0.1019,
+    "P95": 5.0637,
+    "P99": 8.1149,
+    "P999": 30.0606,
+    "Max": 43.7321,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "floodRate": 77334.62694455312,
+  "outboundMax": {
+    "LOGIN|requester": 339,
+    "CREATE_CHARACTER|requester": 140,
+    "SELECT_CHARACTER|requester": 39297,
+    "SET_USER_AREA|requester": 2890,
+    "SET_USER_AREA|companion": 3141,
+    "REQUEST_PEER|requester": 191,
+    "REQUEST_PEER|companion": 227,
+    "RESPONSE_PEER|requester": 2038,
+    "RESPONSE_PEER|companion": 1880,
+    "ENTER_SELECT_DUNGEON|requester": 1890,
+    "ENTER_SELECT_DUNGEON|companion": 1890,
+    "SELECT_DUNGEON|requester": 1367,
+    "SELECT_DUNGEON|companion": 1367,
+    "FINISH_LOADING|requester": 36,
+    "FINISH_LOADING|companion": 0,
+    "EPLP|requester": 3703,
+    "EPLP|companion": 3775,
+    "LEAVE_PARTY|requester": 1814,
+    "LEAVE_PARTY|companion": 1925
+  },
+  "errors": 0,
+  "stallsOver250": 0,
+  "failedCommands": 0,
+  "entries": 80,
+  "hostLogLines": 3499
+}

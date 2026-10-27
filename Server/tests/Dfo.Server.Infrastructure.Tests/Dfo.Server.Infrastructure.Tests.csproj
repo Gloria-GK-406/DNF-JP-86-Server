@@ -17,6 +17,8 @@
 
   <ItemGroup>
     <Compile Include="../Dfo.Pvf.Tests/Support/PvfArchiveBuilder.cs" Link="Support/PvfArchiveBuilder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
     <ProjectReference Include="..\..\src\Dfo.Server.Infrastructure\Dfo.Server.Infrastructure.csproj" />
     <!-- The rules the repository now asks instead of deciding. -->
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />

@@ -6,6 +6,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
+[Trait("Category", "Unit")]
 public sealed class ManualHellEntryCodecTests
 {
     private static readonly HellEntryPlan Plan = new(1, new(1, 0), 900,

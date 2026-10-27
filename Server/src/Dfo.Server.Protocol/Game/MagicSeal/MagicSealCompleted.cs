@@ -25,7 +25,7 @@ public sealed class MagicSealCompletedHandler(
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId
             || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return [];
 
         var messages = new List<IServerNetworkMessage>();

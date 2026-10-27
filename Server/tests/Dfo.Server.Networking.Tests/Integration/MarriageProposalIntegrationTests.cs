@@ -19,7 +19,7 @@ public sealed class MarriageProposalIntegrationTests
     public async Task Both_registered_requests_without_selection_return_typed_status_and_leave_socket_usable()
     {
         var channel = Port(); var game = Port(); while (game == channel) game = Port();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channel.ToString(),
@@ -79,9 +79,5 @@ public sealed class MarriageProposalIntegrationTests
         var frame = new byte[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(3)))];
         header.CopyTo(frame, 0); await stream.ReadExactlyAsync(frame.AsMemory(header.Length), ct); return frame;
     }
-    private static int Port()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
+    private static int Port() => TestTcpPorts.Allocate();
 }

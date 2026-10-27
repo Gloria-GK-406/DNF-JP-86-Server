@@ -15,8 +15,8 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
     IDungeonVisitDomainService visits, IDungeonRunDomainService runs, IEventManagementDomainService activities,
     ISouthernDaleDomainStore store, IItemDeliveryDomainService delivery,
     IDailyRefillConfigurationDomainService refills, IDailyRefillDomainService refill,
-    ISelectedSessionDomainService sessions, ISelectedSessionRuntimeDirectory published,
-    IAuthenticatedGamePresenceQuery online, IEventService events,
+    ISelectedSessionDomainService sessions,
+    IEventService events,
     IDomainTransactionAccessor transactions, TimeProvider clock) : ISouthernDaleDomainService
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
@@ -52,7 +52,7 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
 
     public async ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session || !published.IsPublishedExact(session) || !online.IsActiveExact(session))
+        if (!sessions.IsInWorld(session))
             return false;
         var at = clock.GetUtcNow();
         var configured = (await refills.EffectiveAsync(at, ct).ConfigureAwait(false)).Where(x => x.ItemId == rules.TicketItemId).ToArray();
@@ -74,7 +74,7 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
             throw new InvalidOperationException("Southern Dale completion requires the authoritative clear claim.");
         if (participants.Count == 0 || participants.Count != run.Participants.Count
             || participants.Select(x => x.CharacterId).Distinct().Count() != participants.Count
-            || participants.Any(x => sessions.Find(x.AccountId) != x
+            || participants.Any(x => !sessions.IsInWorld(x)
                 || !run.Participants.Any(p => p.CharacterId == x.CharacterId && p.AccountId == x.AccountId)))
             throw new InvalidOperationException("Southern Dale completion participants changed.");
         var definition = await rules.DefinitionAsync(ct).ConfigureAwait(false);

@@ -8,6 +8,7 @@ using Dfo.Server.Protocol.Game.DeleteItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -113,11 +114,15 @@ public sealed class ItemDiscardTests
         var old = bag.Session;
         bag.Select(2);
 
-        var result = await bag.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new DiscardItemCommand(
-                bag.OnlineUser, old,
-                new BusinessSlot(BusinessInventorySpace.Consumable, 0),
-                1, 1, 5000, 1));
+        var result = await TestGameplay.RunAsync(bag.Services, async () =>
+        {
+            await using var tx = bag.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            var value = await bag.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDiscardDomainService>().DiscardAsync(
+                old, new BusinessSlot(BusinessInventorySpace.Consumable, 0), 1, 1, 5000, 1,
+                bag.Clock.GetUtcNow(), default);
+            await tx.CommitAsync(default);
+            return value;
+        });
 
         Assert.Equal(ItemDiscardRejection.NoSession, result.Rejection);
         Assert.Equal(10, bag.Scalar(
@@ -125,14 +130,9 @@ public sealed class ItemDiscardTests
         Assert.Empty(bag.Sender.Messages);
     }
 
-    private static ValueTask Discard(ShopFixture bag, ushort slot, int itemId, int count,
+    private static async ValueTask Discard(ShopFixture bag, ushort slot, int itemId, int count,
         ushort operationType = 1, byte safeModeSkipIndex = 0) =>
-        bag.Services.GetRequiredService<DeleteItemHandler>().HandleAsync(new(bag.Connection),
-            new DeleteItemRequest(
-                GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Main, slot),
-                1, operationType, itemId, count, 0, safeModeSkipIndex),
-            default);
+        _ = await DeleteWire.Send(bag, slot, itemId, count, operationType, safe: safeModeSkipIndex);
 
     private sealed class HeldItemQuestRules : IQuestContentRuleService
     {

@@ -49,28 +49,31 @@ public sealed partial class AchievementTitleBookTests
     [PvfFact]
     public async Task Contents_events_merge_within_transaction_and_rollback_with_item_writes()
     {
-        await using var f = new Fixture();
-        var container = ContainerId.ForCharacter(Character, InventoryContainerType.Main);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var s = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            await s.PutAsync(container, 65, await s.CreateAsync(Material(7463, 1000), default), default);
-        }
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events"));
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM item_slots"));
-        await f.WriteAsync(async () =>
-        {
-            var s = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var item = await s.PutAsync(container, 65, await s.CreateAsync(Material(7463, 500), default), default);
-            await s.PutAsync(container, 65, await s.CreateAsync(Material(7463, 500), default), default);
-            var current = (await s.GetAsync(container, 65, default))!;
-            await s.UpdateAsync(current, x => x with { Count = 1001 }, default);
+            await using var f = new Fixture();
+            var container = ContainerId.ForCharacter(Character, InventoryContainerType.Main);
+            await using (var tx = f.Scope.Begin())
+            {
+                var s = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                await s.PutAsync(container, 65, await s.CreateAsync(Material(7463, 1000), default), default);
+            }
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events"));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM item_slots"));
+            await f.WriteAsync(async () =>
+            {
+                var s = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                var item = await s.PutAsync(container, 65, await s.CreateAsync(Material(7463, 500), default), default);
+                await s.PutAsync(container, 65, await s.CreateAsync(Material(7463, 500), default), default);
+                var current = (await s.GetAsync(container, 65, default))!;
+                await s.UpdateAsync(current, x => x with { Count = 1001 }, default);
+            });
+            Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='inventory.contents-changed'"));
+            var before = f.Scalar("SELECT COUNT(*) FROM domain_events");
+            _ = await f.Achievements.GetAsync(Character, default);
+            _ = await f.Titles.GetAsync(Character, default);
+            Assert.Equal(before, f.Scalar("SELECT COUNT(*) FROM domain_events"));
         });
-        Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='inventory.contents-changed'"));
-        var before = f.Scalar("SELECT COUNT(*) FROM domain_events");
-        _ = await f.Achievements.GetAsync(Character, default);
-        _ = await f.Titles.GetAsync(Character, default);
-        Assert.Equal(before, f.Scalar("SELECT COUNT(*) FROM domain_events"));
     }
 
     [PvfFact]

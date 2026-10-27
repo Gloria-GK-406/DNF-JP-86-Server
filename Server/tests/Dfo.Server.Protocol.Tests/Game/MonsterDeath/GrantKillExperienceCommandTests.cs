@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -8,6 +9,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 
@@ -83,31 +85,25 @@ public sealed class GrantKillExperienceCommandTests
     private static async Task<ExperienceAward?> Award(
         int monsterLevel, MonsterRank rank, double channelRate, bool named = false)
     {
-        var handler = new GrantKillExperienceCommandHandler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
-                new CapturedParameters(),
-                new UngradedRanks(),
-                new NoProgression(),
-                new NoChannelExperience(),
-                ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)),
-            new FixedChannelBonus(channelRate)), characterLevel: 3), TimeProvider.System);
+        return await TestGameplay.RunAsync(async () =>
+        {
+            var handler = new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
+                    new CapturedParameters(),
+                    new UngradedRanks(),
+                    new NoProgression(),
+                    new NoChannelExperience(),
+                    ExperienceTuning.Default,
+                    ExperienceEntitlementPolicy.None)),
+                new FixedChannelBonus(channelRate)), characterLevel: 3);
 
-        var result = await handler.HandleAsync(
-            new CommandExecutionContext(
-                Guid.Empty,
-                typeof(GrantKillExperienceCommand),
-                typeof(GrantKillExperienceCommandHandler),
-                CommandExecutionKind.Transactional),
-            new GrantKillExperienceCommand(
-                new AccountId(1),
-                new CharacterId(60),
-                new KilledMonster(Code: 63751, monsterLevel, rank, named),
-                CapturedDungeon,
-                Difficulty: 0,
-                CapturedDungeonWeight),
-            CancellationToken.None);
+            var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1),new(60),null),
+                cap => handler.Get(new(60)).AddExpAsync(new KillExperienceContext(
+                    new ExperienceOccasion(ExperienceEvent.MonsterKill,new(1),new(60),CapturedDungeon),
+                    monsterLevel,rank,0,CapturedDungeonWeight,1,named),DateTimeOffset.UtcNow,null,cap,default));
 
-        return result.Award;
+            return result;
+
+        });
     }
 
     /// <summary>The archive's rates as they stood for the captured run.</summary>
@@ -176,7 +172,7 @@ public sealed class GrantKillExperienceCommandTests
         public uint? ThresholdForLevel(byte level) => throw new NotSupportedException();
 
 
-        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken cancellationToken)
+        public override async ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             var breakdown = await calculation.CalculateAsync(source, characterLevel, cancellationToken);
             return new ExperienceAward(breakdown, characterLevel, breakdown.Total, LeveledUp: false);

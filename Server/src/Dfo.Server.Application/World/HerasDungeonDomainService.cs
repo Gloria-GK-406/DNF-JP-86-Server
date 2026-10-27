@@ -69,7 +69,9 @@ internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeo
     }
     public async ValueTask ApplyAllowanceAsync(EffectExecutionContext context, AddDungeonEntryAllowanceEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         await ValidateAllowanceAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         await events.DirectAsync(new HerasQuotaRecorded(context.CharacterId, effect.Period, "bonus", effect.ExpectedBonus,
             checked((effect.ExpectedBonus?.UsedCount ?? 0) + effect.Increase)), ct).ConfigureAwait(false);
     }

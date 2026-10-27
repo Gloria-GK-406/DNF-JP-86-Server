@@ -7,6 +7,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.DomainEvents;
 
@@ -34,31 +35,34 @@ public sealed class DomainEventEntryTests
     [Fact]
     public async Task Direct_events_inherit_writable_or_readonly_transactions_but_projections_reject_uncommitted_writes()
     {
-        var trace = new RuntimeTrace();
-        var probe = new ProjectionProbe();
-        var services = new ServiceCollection().AddLogging();
-        services.AddEventDispatching().AddSingleton(trace).AddSingleton<INotificationBus>(probe);
-        services.AddRuntimeEventSubscriber<RuntimeAward, RuntimeSubscriber>();
-        await using var provider = services.BuildServiceProvider();
-        var events = provider.GetRequiredService<IEventService>();
-        var scope = provider.GetRequiredService<DomainTransactionScope>();
-        var audience = new NotificationAudience.TheseCharacters([]);
-        await using (var transaction = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await events.DirectAsync(new RuntimeAward(2));
-            await Assert.ThrowsAsync<InvalidOperationException>(() => events.ProjectAsync(audience, new TestNotification(1)).AsTask());
-        }
-        Assert.Single(trace.Events);
-        Assert.Null(probe.Payload);
-        probe.Result.SetResult(new([]));
-        await using (var query = scope.Begin(readOnly: true))
-        {
-            await events.DirectAsync(new RuntimeAward(2));
-            await events.ProjectAsync(audience, new TestNotification(1));
-            await query.CommitAsync(default);
-        }
-        await events.DirectAsync(new RuntimeAward(3));
-        Assert.Equal(3, trace.Events.Count);
+            var trace = new RuntimeTrace();
+            var probe = new ProjectionProbe();
+            var services = new ServiceCollection().AddLogging();
+            services.AddEventDispatching().AddSingleton(trace).AddSingleton<INotificationBus>(probe);
+            services.AddRuntimeEventSubscriber<RuntimeAward, RuntimeSubscriber>();
+            await using var provider = services.BuildServiceProvider();
+            var events = provider.GetRequiredService<IEventService>();
+            var scope = provider.GetRequiredService<DomainTransactionScope>();
+            var audience = new NotificationAudience.TheseCharacters([]);
+            await using (var transaction = scope.Begin())
+            {
+                await events.DirectAsync(new RuntimeAward(2));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => events.ProjectAsync(audience, new TestNotification(1)).AsTask());
+            }
+            Assert.Single(trace.Events);
+            Assert.Null(probe.Payload);
+            probe.Result.SetResult(new([]));
+            await using (var query = scope.Begin(readOnly: true))
+            {
+                await events.DirectAsync(new RuntimeAward(2));
+                await events.ProjectAsync(audience, new TestNotification(1));
+                await query.CommitAsync(default);
+            }
+            await events.DirectAsync(new RuntimeAward(3));
+            Assert.Equal(3, trace.Events.Count);
+        });
     }
 
     [Fact]

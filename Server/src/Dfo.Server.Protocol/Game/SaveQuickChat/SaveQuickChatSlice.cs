@@ -1,10 +1,6 @@
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Abstractions.OnlineUsers;
-using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
-using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.SaveQuickChat;
 
@@ -22,15 +18,9 @@ internal sealed class SaveQuickChatDecoder : IGameMessageDecoder
     }
 }
 
-public sealed class SaveQuickChatHandler(IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
-    ICommandBus commands, ILogger<SaveQuickChatHandler> logger) : ClientMessageHandler<SaveQuickChatRequest>
+public sealed class SaveQuickChatHandler(ICommandBus commands) : ClientMessageHandler<SaveQuickChatRequest>,
+    Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameSaveQuickChatCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SaveQuickChatRequest message, CancellationToken ct)
-    {
-        if (!users.TryGetByConnection(context.Connection.ConnectionId, out var user) || user?.AccountId is not { } account) return;
-        var origin = new ClientSettingsOrigin(user.SessionIdentity, account, user.Generation, sessions.FindByConnection(context.Connection.ConnectionId));
-        var saved = await commands.SendAsync(new SaveClientSettingsCommand(origin, ClientSettingKind.QuickChat, message.Payload, message.Bank), ct);
-        logger.LogInformation("Client settings quickchat account={AccountId} connection={ConnectionId} bank={Bank} bytes={Bytes} saved={Saved}",
-            account.Value, context.Connection.ConnectionId, message.Bank, message.Payload.Length, saved);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, SaveQuickChatRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameSaveQuickChatCommand(context, message), ct).ConfigureAwait(false);
 }

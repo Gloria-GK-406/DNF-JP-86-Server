@@ -10,6 +10,7 @@ using Dfo.Server.Protocol.Channel.Connect;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,8 +36,8 @@ public sealed class OutboundSendFailureTests
         var channelConnection = await fixture.ConnectChannelAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
-                channelConnection, new GameExitResponse(true), fixture.Token));
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
+                channelConnection, new GameExitResponse(true), fixture.Token)));
 
         Assert.Contains(nameof(GameExitResponse), exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(NetworkEndpointKind.Channel), exception.Message, StringComparison.Ordinal);
@@ -49,8 +50,8 @@ public sealed class OutboundSendFailureTests
         var gameConnection = await fixture.ConnectGameAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
-                gameConnection, new ChannelConnectResponse("key"), fixture.Token));
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
+                gameConnection, new ChannelConnectResponse("key"), fixture.Token)));
 
         Assert.Contains(nameof(ChannelConnectResponse), exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(NetworkEndpointKind.Game), exception.Message, StringComparison.Ordinal);
@@ -63,8 +64,8 @@ public sealed class OutboundSendFailureTests
         var gameConnection = await fixture.ConnectGameAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
-                gameConnection, new UnregisteredMessage(), fixture.Token));
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
+                gameConnection, new UnregisteredMessage(), fixture.Token)));
 
         Assert.Contains(nameof(UnregisteredMessage), exception.Message, StringComparison.Ordinal);
         Assert.Contains("encoder", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -78,10 +79,10 @@ public sealed class OutboundSendFailureTests
         var gameConnection = await fixture.ConnectGameAsync();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await fixture.Sender.SendAsync(
+            await TestGameplay.RunAsync(fixture.Services, async () => await fixture.Sender.SendAsync(
                 gameConnection,
                 new GameLoginResponse(false, 1, 10128, "192.0.2.20", 17200, 17200),
-                fixture.Token));
+                fixture.Token)));
 
         Assert.Contains("failure body", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -115,6 +116,8 @@ public sealed class OutboundSendFailureTests
 
         public INetworkMessageSender Sender => host.Services.GetRequiredService<INetworkMessageSender>();
 
+        public IServiceProvider Services => host.Services;
+
         public static async Task<OutboundFixture> StartAsync()
         {
             var channelPort = GetAvailablePort();
@@ -124,7 +127,7 @@ public sealed class OutboundSendFailureTests
                 gamePort = GetAvailablePort();
             }
 
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Networking:Enabled"] = "true",
@@ -142,7 +145,7 @@ public sealed class OutboundSendFailureTests
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
             var capture = new ConnectionCapture(channelPort, gamePort);
-            builder.Services.AddSingleton<INetworkConnectionObserver>(capture);
+            builder.Services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(capture);
 
             var host = TestInfrastructure.Build(builder);
             var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -176,17 +179,10 @@ public sealed class OutboundSendFailureTests
             timeout.Dispose();
         }
 
-        private static int GetAvailablePort()
-        {
-            var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
-        }
+        private static int GetAvailablePort() => TestTcpPorts.Allocate();
     }
 
-    private sealed class ConnectionCapture(int channelPort, int gamePort) : INetworkConnectionObserver
+    private sealed class ConnectionCapture(int channelPort, int gamePort) : Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler
     {
         private readonly Dictionary<NetworkEndpointKind, NetworkConnectionId> connected = [];
         private readonly SemaphoreSlim signal = new(0);
@@ -195,7 +191,7 @@ public sealed class OutboundSendFailureTests
 
         public int GamePort { get; } = gamePort;
 
-        public ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken)
+        public ValueTask ConnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken)
         {
             lock (connected)
             {
@@ -206,7 +202,7 @@ public sealed class OutboundSendFailureTests
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken) =>
+        public ValueTask DisconnectedAsync(Dfo.Server.Application.Commands.CommandExecutionContext execution, NetworkConnectionContext connection, CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
 
         public async Task<NetworkConnectionId> WaitForAsync(

@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../Dfo.Server.Application.Tests/Support/QuestOperationDriver.cs" Link="Support/QuestOperationDriver.cs" />
+    <Compile Include="../Dfo.Server.Application.Tests/Support/CardAlgorithmsDriver.cs" Link="Support/CardAlgorithmsDriver.cs" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
@@ -29,6 +31,7 @@
       quietly stops matching the interface the other is proving something about. There is no
       shared test-support project, and one double does not earn creating one.
     -->
+    <Compile Include="../Dfo.Server.Application.Tests/Support/MonsterRewardDomainDriver.cs" Link="Support/MonsterRewardDomainDriver.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\CurrentCharacterStub.cs" Link="Support\CurrentCharacterStub.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\NoticeStateStub.cs" Link="Support\NoticeStateStub.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\RecordingCharacterTable.cs"
@@ -55,6 +58,18 @@
 
   <ItemGroup>
     <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
+    <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
+    <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
+    <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+    <Compile Include="../Support/TowerAlgorithmDrivers.cs" Link="Support/TowerAlgorithmDrivers.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
     <Compile Include="../Support/ProjectionEventService.cs" Link="Support/ProjectionEventService.cs" />
+    <Compile Include="../Support/XoDelivery.cs" Link="Support/XoDelivery.cs" />
+    <Compile Include="../Support/OutboundRegistrationParts.cs" Link="Support/OutboundRegistrationParts.cs" />
+    <Compile Include="../Support/RecordedOutbound.cs" Link="Support/RecordedOutbound.cs" />
+    <Compile Include="../Support/RecordedOutbound.Game.cs" Link="Support/RecordedOutbound.Game.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../Support/ProtocolAlgorithmFixture.cs" Link="Support/ProtocolAlgorithmFixture.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Support/DungeonClearProjectionDriver.cs" Link="Support/DungeonClearProjectionDriver.cs" /></ItemGroup>
 </Project>

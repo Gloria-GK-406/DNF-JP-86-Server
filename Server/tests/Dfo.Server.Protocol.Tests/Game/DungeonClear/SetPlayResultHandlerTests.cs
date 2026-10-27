@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -21,6 +22,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -552,6 +554,51 @@ public sealed class SetPlayResultHandlerTests
         Assert.Equal(Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure, failure.Reason);
     }
 
+    /// <summary>
+    /// DR-4, VC-4 (TASK-24 T7): the settlement's frames fail in transport after the award committed. The sender
+    /// closes the connection; the handler succeeds, the settlement is neither released nor turned uncertain.
+    /// </summary>
+    [Fact]
+    public async Task A_settlement_whose_frames_fail_in_transport_closes_the_connection_and_stays_settled()
+    {
+        var connection = new NetworkConnectionId("one");
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(connection);
+        outbound.Transport.Fail(connection);
+        var run = new OneRun(default);
+        var bus = new FixedAward(false);
+
+        await outbound.RunFromAsync(connection, async () =>
+        {
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), connection, connectionGeneration: 1, listenerPort: 10010);
+            var handler = new SetPlayResultDriver(
+                new OneSession(session),
+                new OneRuntimeSession(Entry()),
+                new OnePlayingCharacter(new SkillPointLedger(true)),
+                run,
+                new PurposeSettlementRules(true),
+                new RecordingCards(),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                outbound.Game,
+                NullLogger<SetPlayResultHandler>.Instance);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(outbound.Context(connection)),
+                new SetPlayResultRequest(default!, ClientRankPoint: 80),
+                CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Contains(outbound.Messages(connection), frame => frame is ClearDungeonRewardNotification);
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed, Assert.Single(outbound.Outcomes(connection)));
+        Assert.True(await outbound.ClosedAsync(connection));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.Equal(1, bus.TimesAsked);
+        Assert.Equal(0, run.ReleaseCount);
+    }
+
     /// <summary>What the character held before the run.</summary>
     private const uint StartingExperience = 1000;
 
@@ -571,48 +618,51 @@ public sealed class SetPlayResultHandlerTests
         bool includeOnlyLeader = false,
         bool continueAfterFailure = false, OneRun? run = null, List<Exception>? failures = null)
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(1),
-            new CharacterId(60),
-            new NetworkConnectionId("one"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var entry = Entry();
-        var runtime = new OneRuntimeSession(entry);
-        var sender = new RecordingSender();
-
-        var handler = new SetPlayResultHandler(
-            new OneSession(session),
-            runtime,
-            new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
-            run ?? new OneRun(purpose, leader, includeOnlyLeader),
-            rules ?? new PurposeSettlementRules(canComplete),
-            cards ?? new RecordingCards(),
-            bus ?? new FixedAward(leveledUp, awarded),
-            new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            sender,
-            NullLogger<SetPlayResultHandler>.Instance);
-
-        for (var report = 0; report < reports; report++)
+        return await TestGameplay.RunAsync(async () =>
         {
-            try
-            {
-                await handler.HandleAsync(
-                    new NetworkDispatchContext(
-                        new NetworkConnectionContext(
-                            new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-                    new SetPlayResultRequest(default!, ClientRankPoint: 80),
-                    CancellationToken.None);
-            }
-            catch (Exception failure) when (continueAfterFailure && report + 1 < reports)
-            {
-                failures?.Add(failure);
-                // The next report exercises whether the claim is still payable.
-            }
-        }
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1),
+                new CharacterId(60),
+                new NetworkConnectionId("one"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var entry = Entry();
+            var runtime = new OneRuntimeSession(entry);
+            var sender = new RecordingSender();
 
-        return sender.Sent;
+            var handler = new SetPlayResultDriver(
+                new OneSession(session),
+                runtime,
+                new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
+                run ?? new OneRun(purpose, leader, includeOnlyLeader),
+                rules ?? new PurposeSettlementRules(canComplete),
+                cards ?? new RecordingCards(),
+                bus ?? new FixedAward(leveledUp, awarded),
+                new QuestOfferRefreshDomainService(
+                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                sender,
+                NullLogger<SetPlayResultHandler>.Instance);
+
+            for (var report = 0; report < reports; report++)
+            {
+                try
+                {
+                    await handler.HandleAsync(
+                        new NetworkDispatchContext(
+                            new NetworkConnectionContext(
+                                new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
+                        new SetPlayResultRequest(default!, ClientRankPoint: 80),
+                        CancellationToken.None);
+                }
+                catch (Exception failure) when (continueAfterFailure && report + 1 < reports)
+                {
+                    failures?.Add(failure);
+                    // The next report exercises whether the claim is still payable.
+                }
+            }
+
+            return sender.Sent;
+        });
     }
     /// <summary>The published session this settlement starts from, at level three.</summary>
     /// <remarks>
@@ -638,6 +688,9 @@ public sealed class SetPlayResultHandlerTests
         ExperienceBreakdown? bonusAward = null)
         : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public Action? AfterAward { get; init; }
         private int remainingFailures = failuresBeforeSuccess;
         /// <summary>Whether the settlement got as far as pricing the run.</summary>
@@ -651,7 +704,7 @@ public sealed class SetPlayResultHandlerTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var clear = Assert.IsType<GrantClearExperienceCommand>(command);
+            var clear = Assert.IsType<ClearExperienceAlgorithmInput>(command);
             Assert.Equal(SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010), clear.Session);
             this.TimesAsked++;
             if (this.remainingFailures-- > 0)

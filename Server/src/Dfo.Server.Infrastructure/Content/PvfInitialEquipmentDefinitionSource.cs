@@ -20,7 +20,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// same visible symptom as having no equipment at all, arrived at a different way.
 /// </para>
 /// </remarks>
-internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDefinitionSource
+internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -40,6 +40,17 @@ internal sealed class PvfInitialEquipmentDefinitionSource : IInitialEquipmentDef
     private IReadOnlyDictionary<int, string>? _equipmentPaths;
 
     public PvfInitialEquipmentDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "initial-equipment";
+
+    /// <remarks>Every job the archive's character list declares.</remarks>
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        int[] jobs;
+        lock (_gate) jobs = [.. CharacterPaths().Keys];
+        foreach (var job in jobs) await GetAsync(checked((byte)job), cancellationToken).ConfigureAwait(false);
+        return jobs.Length;
+    }
 
     public ValueTask<IReadOnlyList<InitialEquipmentGrant>> GetAsync(
         byte job, CancellationToken cancellationToken)

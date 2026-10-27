@@ -20,6 +20,7 @@ namespace Dfo.Server.Protocol.Tests.Game.CharacterLifecycle;
 /// The bounds cases are the part that holds regardless of whether any layout is right -- a hostile
 /// length must not read past the body no matter what the fields turn out to mean.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CharacterLifecyclePayloadCodecTests
 {
     private static byte[] NameField(string name)

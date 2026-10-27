@@ -33,8 +33,8 @@ public interface ICharacterRepository
     /// <para>
     /// <b>Creating a character does reach this, and not through that slot count.</b> A successful
     /// creation pushes a roster refresh afterwards
-    /// (<c>CreateCharacterSlice</c>, sending <c>GetAccountCharacterRosterCommand</c> over the
-    /// command bus), and that frame draws every character on the account, so it takes this listing
+    /// (<c>GameCreateCharacterCommand</c>, directly asking the character domain after the
+    /// creation work unit commits and its acknowledgement is registered), and that frame draws every character on the account, so it takes this listing
     /// like the character-selection request does. What the split spares a creation is the read
     /// standing between the request and the write; what it cannot spare it is the read behind the
     /// picture it then sends.
@@ -123,20 +123,4 @@ public interface ICharacterDomainService
         ushort slotIndex,
         byte[] rawName,
         CancellationToken cancellationToken);
-}
-
-public interface IActiveCharacterDomainService
-{
-    /// <summary>
-    /// Records which character the selected session is playing.
-    /// </summary>
-    /// <remarks>
-    /// The session already names its character, so nothing else is asked for. Which character an
-    /// account is playing is read back from the online user's own snapshot, where this binds it.
-    /// This used to take a whole <c>ActiveCharacterState</c> and keep it, and no caller ever read
-    /// that copy back -- a character's standing is read from the session's runtime state.
-    /// </remarks>
-    void Publish(SelectedSessionIdentity session);
-
-    bool ClearExact(SelectedSessionIdentity session);
 }

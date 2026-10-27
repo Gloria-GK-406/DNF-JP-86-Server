@@ -3,7 +3,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Application.Accounts;
 
-internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource source) : IPremiumServiceRuleService
+internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource source) : IPremiumServiceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<IReadOnlyList<int>> questHelperRates = new(source.ReadQuestHelperMinimumDropRates);
     public IReadOnlyList<int> QuestHelperMinimumDropRates => questHelperRates.Value;
@@ -46,4 +46,21 @@ internal sealed class PremiumServiceRuleService(IPremiumServiceDefinitionSource 
         PremiumBenefit.EquipItemsEarly => levels.Value.OverEquipment,
         _ => throw new ArgumentOutOfRangeException(nameof(benefit)),
     };
+
+    public string Name => "premium-service-rules";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        _ = questHelperRates.Value;
+        _ = doublePot.Value;
+        _ = freeGoldCardLimit.Value;
+        _ = dungeonBuffLimit.Value;
+        _ = autoRepairLimit.Value;
+        _ = freeWeaknessLimit.Value;
+        _ = blackDiamondExperience.Value;
+        _ = growthExperience.Value;
+        _ = growthDrops.Value;
+        _ = levels.Value;
+        return ValueTask.FromResult(10);
+    }
 }

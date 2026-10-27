@@ -1,3 +1,6 @@
+
+using Microsoft.Extensions.Logging;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Content;
@@ -7,7 +10,6 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
@@ -20,6 +22,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
@@ -28,261 +31,293 @@ public sealed class PartyCommandHandlerTests
     [Fact]
     public async Task Leaving_party_in_a_run_detaches_only_the_departing_character()
     {
-        var parties = new PartyService(
-            new FixedPartyMemberStatus(), new PartyModeRuleService(),
-            TimeProvider.System, new NoPartyEndpoints());
-        var scope = new PartyDirectoryScope(11, 1, 1);
-        var first = Character(Inviter) with { DirectoryScope = scope };
-        var second = Character(Invitee) with { DirectoryScope = scope };
-        Assert.True(parties.RequestInvite(first, second,
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(second, first).Succeeded);
-        var runs = new DungeonRunDomainService(parties);
-        var layout = new DungeonLayout(
-            10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-            61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
-        var run = runs.PreparePartyEntry(
-            [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
-             new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
-            layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
-            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-        var deliveries = new DungeonRunDeliveryRegistry();
-        deliveries.Register(run.RunId, [Inviter, Invitee]);
-        var context = new CommandExecutionContext(
-            Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var parties = new PartyClientProjectionService(new PartyService(
+                new FixedPartyMemberStatus(), new PartyModeRuleService(),
+                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var first = Character(Inviter) with { DirectoryScope = scope };
+            var second = Character(Invitee) with { DirectoryScope = scope };
+            Assert.True(parties.RequestInvite(first, second,
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(second, first).Succeeded);
+            var runs = new DungeonRunDomainService(parties);
+            var layout = new DungeonLayout(
+                10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
+            var run = runs.PreparePartyEntry(
+                [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
+                 new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
+                layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(run.RunId, [Inviter, Invitee]);
+            var context = DomainCommandFixture.Context(
+                Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
-        var result = await new LeavePartyCommandHandler(parties, runs)
-            .HandleAsync(context, new LeavePartyCommand(Inviter.CharacterId), CancellationToken.None);
+            var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                .SendAsync(new GameLeavePartyCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty)));
 
-        Assert.True(result.Succeeded);
-        Assert.Null(runs.Find(Inviter.CharacterId));
-        Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
-        Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
+            Assert.True(result);
+            Assert.Null(runs.Find(Inviter.CharacterId));
+            Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
+            Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
+        });
     }
 
     [Fact]
     public async Task Removing_a_member_in_a_run_detaches_only_the_removed_character()
     {
-        var parties = new PartyService(
-            new FixedPartyMemberStatus(), new PartyModeRuleService(),
-            TimeProvider.System, new NoPartyEndpoints());
-        var scope = new PartyDirectoryScope(11, 1, 1);
-        var leader = Character(Inviter) with { DirectoryScope = scope };
-        var target = Character(Invitee) with { DirectoryScope = scope };
-        Assert.True(parties.RequestInvite(leader, target,
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(parties.AcceptInvite(target, leader).Succeeded);
-        var runs = new DungeonRunDomainService(parties);
-        var layout = new DungeonLayout(
-            10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
-            61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
-        var run = runs.PreparePartyEntry(
-            [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
-             new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
-            layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
-            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-        var context = new CommandExecutionContext(
-            Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var parties = new PartyClientProjectionService(new PartyService(
+                new FixedPartyMemberStatus(), new PartyModeRuleService(),
+                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var leader = Character(Inviter) with { DirectoryScope = scope };
+            var target = Character(Invitee) with { DirectoryScope = scope };
+            Assert.True(parties.RequestInvite(leader, target,
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(target, leader).Succeeded);
+            var runs = new DungeonRunDomainService(parties);
+            var layout = new DungeonLayout(
+                10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
+                61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
+            var run = runs.PreparePartyEntry(
+                [new DungeonRunParticipant(Inviter.AccountId, Inviter.CharacterId, 0, true),
+                 new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
+                layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var context = DomainCommandFixture.Context(
+                Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
-        var result = await new RemovePartyMemberCommandHandler(parties, runs)
-            .HandleAsync(context, new RemovePartyMemberCommand(
-                Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
+            var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                .SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
 
-        Assert.True(result.Succeeded);
-        Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
-        Assert.Null(runs.Find(Invitee.CharacterId));
+            Assert.True(result);
+            Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
+            Assert.Null(runs.Find(Invitee.CharacterId));
+        });
     }
 
     [Fact]
     public async Task Commands_are_the_only_route_from_protocol_to_party_writes()
     {
-        var domain = new RecordingParties();
-        var context = new CommandExecutionContext(
-            Guid.NewGuid(), typeof(object), typeof(object), CommandExecutionKind.Direct);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var domain = new RecordingParties();
+            var context = DomainCommandFixture.Context(
+                Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
-        await new RequestPartyInviteCommandHandler(domain, new FixedPartyMemberStatus()).HandleAsync(
-            context, new(Character(Inviter), Character(Invitee)), CancellationToken.None);
-        await new AcceptPartyInviteCommandHandler(domain).HandleAsync(
-            context, new(Character(Invitee), Character(Inviter)), CancellationToken.None);
-        await new LeavePartyCommandHandler(domain).HandleAsync(
-            context, new(Invitee.CharacterId), CancellationToken.None);
-        await new TransferPartyLeadershipCommandHandler(domain).HandleAsync(
-            context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
-        await new RemovePartyMemberCommandHandler(domain).HandleAsync(
-            context, new(Inviter.CharacterId, Invitee.CharacterId), CancellationToken.None);
-        await new QueryPartyRealtimeCommandHandler(domain).HandleAsync(
-            context, new(Character(Inviter)), CancellationToken.None);
-        var settings = Settings();
-        var title = new PartyTitle([0x41]);
-        await new SetPartyInfoCommandHandler(domain).HandleAsync(
-            context, new(Character(Inviter), settings, title), CancellationToken.None);
+            var fixture = new RecordingCommandBus(domain: domain);
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            await DriveRequestPeer(sessions, Presence, fixture, Notifications, NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []), CancellationToken.None);
+            await DriveResponsePeer(sessions, Presence, fixture, Notifications, NullLogger<ResponsePeerHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []), CancellationToken.None);
+            var mutations = PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, domain, Presence, Notifications.Events));
+            await mutations.SendAsync(new GameLeavePartyCommand(Dispatch(Invitee), new(GameMessageMetadata.Empty)));
+            await mutations.SendAsync(new GameChangePartyLeaderCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
+            await mutations.SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
+            await DriveCallPartyMemberRealtimeInfo(sessions, fixture, Notifications, NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), CancellationToken.None);
+            var settings = Settings();
+            var title = new PartyTitle([0x41]);
+            await DriveSetPartyInfo(sessions, Presence, fixture, Notifications, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, settings, title), CancellationToken.None);
 
-        Assert.Equal(
-            [
-                "invite:1->2:64",
-                "accept:2<-1",
-                "leave:2",
-                "lead:1->2",
-                "remove:1->2",
-                "query:1",
-                "settings:1:2:41",
-            ],
-            domain.Writes);
+            Assert.Equal(
+                [
+                    "invite:1->2:64",
+                    "accept:2<-1",
+                    "query:2", // Boss and illusion domains each capture current party facts.
+                    "query:2",
+                    "leave:2",
+                    "query:1",
+                    "query:1",
+                    "query:1",
+                    "lead:1->2",
+                    "query:1",
+                    "query:1",
+                    "query:1",
+                    "remove:1->2",
+                    "query:1",
+                    "settings:1:2:41",
+                ],
+                domain.Writes);
+        });
     }
 
     [Fact]
     public async Task Party_realtime_query_dispatches_a_command_and_notifies_only_the_requester()
     {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var snapshot = Snapshot();
-        var commands = new RealtimeCommandBus(snapshot);
-        var published = new RecordingNotificationBus();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var snapshot = Snapshot();
+            var commands = new RecordingCommandBus(snapshot: snapshot);
+            var published = new RecordingNotificationBus();
 
-        await new CallPartyMemberRealtimeInfoHandler(
-                sessions,
-                new SelectedSessionTransitionGate(),
-                commands,
-                new PartyNotificationDelivery(published),
-                NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
-            .HandleAsync(
-                Dispatch(Inviter),
-                new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty),
-                CancellationToken.None);
+            await DriveCallPartyMemberRealtimeInfo(
+                    sessions,
+                    commands,
+                    new TestProjection(published),
+                    NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(Inviter),
+                    new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty),
+                    CancellationToken.None);
 
-        Assert.IsType<QueryPartyRealtimeCommand>(Assert.Single(commands.Commands));
-        var publication = Assert.Single(published.Publications);
-        Assert.IsType<PartyRealtimeChanged>(publication.Notification);
-        var audience = Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience);
-        Assert.Equal([Inviter], audience.Sessions);
+            Assert.IsType<GameCallPartyMemberRealtimeInfoCommand>(Assert.Single(commands.Commands));
+            var publication = Assert.Single(published.Publications);
+            Assert.IsType<PartyRealtimeChanged>(publication.Notification);
+            var audience = Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience);
+            Assert.Equal([Inviter], audience.Sessions);
+        });
     }
 
     [Fact]
     public async Task Party_handlers_dispatch_the_six_party_write_commands()
     {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var commands = new RecordingCommandBus();
-        var gate = new SelectedSessionTransitionGate();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var commands = new RecordingCommandBus();
 
-        await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
-                NullLogger<RequestPeerHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
-                GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
-                CancellationToken.None);
-        await new ResponsePeerHandler(sessions, Presence, gate, commands, Notifications,
-                NullLogger<ResponsePeerHandler>.Instance)
-            .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
-                GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []),
-                CancellationToken.None);
-        await new LeavePartyHandler(sessions, gate, commands, Notifications,
-                NullLogger<LeavePartyHandler>.Instance)
-            .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
-                CancellationToken.None);
-        await new ChangePartyLeaderHandler(
-                sessions, new RecordingParties(), gate, commands, Notifications,
-                NullLogger<ChangePartyLeaderHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter),
-                new ChangePartyLeaderRequest(GameMessageMetadata.Empty, 1),
-                CancellationToken.None);
-        var sender = new RecordingSender();
-        await new RemovePartyMemberHandler(
-                sessions, new RecordingParties(), gate, commands, Notifications, sender,
-                NullLogger<RemovePartyMemberHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter),
-                new RemovePartyMemberRequest(GameMessageMetadata.Empty, 1),
-                CancellationToken.None);
-        await new SetPartyInfoHandler(sessions, Presence, gate, commands, Notifications,
-                NullLogger<SetPartyInfoHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
-                GameMessageMetadata.Empty, Settings(), new PartyTitle([0x41])),
-                CancellationToken.None);
+            await DriveRequestPeer(sessions, Presence, commands, Notifications,
+                    NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
+                    GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
+                    CancellationToken.None);
+            await DriveResponsePeer(sessions, Presence, commands, Notifications,
+                    NullLogger<ResponsePeerHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
+                    GameMessageMetadata.Empty, Inviter.WireUserId, 0, 0, []),
+                    CancellationToken.None);
+            await DriveLeaveParty(sessions, commands, Notifications,
+                    NullLogger<LeavePartyHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
+                    CancellationToken.None);
+            await DriveChangePartyLeader(
+                    sessions, new RecordingParties(), commands, Notifications,
+                    NullLogger<ChangePartyLeaderHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter),
+                    new ChangePartyLeaderRequest(GameMessageMetadata.Empty, 1),
+                    CancellationToken.None);
+            var sender = new RecordingSender();
+            await DriveRemovePartyMember(
+                    sessions, new RecordingParties(), commands, Notifications, sender,
+                    NullLogger<RemovePartyMemberHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter),
+                    new RemovePartyMemberRequest(GameMessageMetadata.Empty, 1),
+                    CancellationToken.None);
+            await DriveSetPartyInfo(sessions, Presence, commands, Notifications,
+                    NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(
+                    GameMessageMetadata.Empty, Settings(), new PartyTitle([0x41])),
+                    CancellationToken.None);
 
-        Assert.Collection(
-            commands.Commands,
-            command => Assert.IsType<RequestPartyInviteCommand>(command),
-            command => Assert.IsType<AcceptPartyInviteCommand>(command),
-            command => Assert.IsType<LeavePartyCommand>(command),
-            command => Assert.IsType<TransferPartyLeadershipCommand>(command),
-            command => Assert.IsType<RemovePartyMemberCommand>(command),
-            command =>
-            {
-                var set = Assert.IsType<SetPartyInfoCommand>(command);
-                Assert.Equal(Settings(), set.Settings);
-                Assert.Equal(new PartyTitle([0x41]), set.Title);
-            });
+            Assert.Collection(
+                commands.Commands,
+                command => Assert.IsType<GameRequestPeerCommand>(command),
+                command => Assert.IsType<GameResponsePeerCommand>(command),
+                command => Assert.IsType<GameLeavePartyCommand>(command),
+                command => Assert.IsType<GameChangePartyLeaderCommand>(command),
+                command => Assert.IsType<GameRemovePartyMemberCommand>(command),
+                command =>
+                {
+                    var set = Assert.IsType<GameSetPartyInfoCommand>(command);
+                    Assert.Equal(Settings(), set.Input.Settings);
+                    Assert.Equal(new PartyTitle([0x41]), set.Input.Title);
+                });
+        });
     }
 
     [Fact]
     public async Task Removing_an_empty_slot_returns_the_native_error_without_a_domain_write()
     {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var commands = new RecordingCommandBus();
-        var sender = new RecordingSender();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var commands = new RecordingCommandBus();
+            var sender = new RecordingSender();
+            var parties = new RecordingParties();
 
-        await new RemovePartyMemberHandler(
-                sessions,
-                new RecordingParties(),
-                new SelectedSessionTransitionGate(),
-                commands,
-                Notifications,
-                sender,
-                NullLogger<RemovePartyMemberHandler>.Instance)
-            .HandleAsync(
-                Dispatch(Inviter),
-                new RemovePartyMemberRequest(GameMessageMetadata.Empty, 7),
-                CancellationToken.None);
+            await DriveRemovePartyMember(
+                    sessions,
+                    parties,
+                    commands,
+                    Notifications,
+                    sender,
+                    NullLogger<RemovePartyMemberHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(Inviter),
+                    new RemovePartyMemberRequest(GameMessageMetadata.Empty, 7),
+                    CancellationToken.None);
 
-        Assert.Empty(commands.Commands);
-        Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
+            Assert.IsType<GameRemovePartyMemberCommand>(Assert.Single(commands.Commands));
+            Assert.Equal(["query:1", "query:1", "query:1"], parties.Writes);
+            Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
+        });
     }
 
     [Fact]
     public async Task Set_udp_before_character_selection_is_stored_on_the_game_session()
     {
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("pre-selection"), NetworkEndpointKind.Game, 10011);
-        var online = AuthenticatedSession(connection);
-        var endpoints = new RecordingSessionEndpoints();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("pre-selection"), NetworkEndpointKind.Game, 10011);
+            var online = AuthenticatedSession(connection);
+            var endpoints = new RecordingSessionEndpoints();
 
-        await new SetUdpIpPortHandler(
-                new FixedOnlineUsers(online),
-                endpoints,
-                NullLogger<SetUdpIpPortHandler>.Instance)
-            .HandleAsync(
-                new NetworkDispatchContext(connection),
-                new SetUdpIpPortRequest(GameMessageMetadata.Empty, Endpoint(), []),
-                CancellationToken.None);
+            await DriveSetUdpIpPort(
+                    new FixedOnlineUsers(online),
+                    endpoints,
+                    NullLogger<SetUdpIpPortHandler>.Instance)
+                .HandleAsync(
+                    new NetworkDispatchContext(connection),
+                    new SetUdpIpPortRequest(GameMessageMetadata.Empty, Endpoint(), []),
+                    CancellationToken.None);
 
-        Assert.Equal(Endpoint(), endpoints.Find(online.SessionIdentity));
-        Assert.Null(online.CurrentCharacterId);
+            Assert.Equal(Endpoint(), endpoints.Find(online.SessionIdentity));
+            Assert.Null(online.CurrentCharacterId);
+        });
     }
 
     [Fact]
     public async Task Set_udp_advertises_the_observed_tcp_address_instead_of_a_reported_adapter()
     {
-        var reported = Endpoint();
-        var connection = new NetworkConnectionContext(
-            Inviter.ConnectionId,
-            NetworkEndpointKind.Game,
-            Inviter.ListenerPort,
-            System.Net.IPAddress.Loopback);
-        var online = AuthenticatedSession(connection);
-        var endpoints = new RecordingSessionEndpoints();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var reported = Endpoint();
+            var connection = new NetworkConnectionContext(
+                Inviter.ConnectionId,
+                NetworkEndpointKind.Game,
+                Inviter.ListenerPort,
+                System.Net.IPAddress.Loopback);
+            var online = AuthenticatedSession(connection);
+            var endpoints = new RecordingSessionEndpoints();
 
-        await new SetUdpIpPortHandler(
-                new FixedOnlineUsers(online),
-                endpoints,
-                NullLogger<SetUdpIpPortHandler>.Instance)
-            .HandleAsync(
-                new NetworkDispatchContext(connection),
-                new SetUdpIpPortRequest(GameMessageMetadata.Empty, reported, []),
-                CancellationToken.None);
+            await DriveSetUdpIpPort(
+                    new FixedOnlineUsers(online),
+                    endpoints,
+                    NullLogger<SetUdpIpPortHandler>.Instance)
+                .HandleAsync(
+                    new NetworkDispatchContext(connection),
+                    new SetUdpIpPortRequest(GameMessageMetadata.Empty, reported, []),
+                    CancellationToken.None);
 
-        var observed = Assert.IsType<SessionEndpoint>(endpoints.Find(online.SessionIdentity));
-        Assert.Equal(new SessionIpv4Address(127, 0, 0, 1), observed.InnerAddress);
-        Assert.Equal(new SessionIpv4Address(127, 0, 0, 1), observed.OuterAddress);
-        Assert.Equal(reported.Port, observed.Port);
-        Assert.Equal(0, observed.NatType);
-        Assert.Equal(1500U, observed.Mtu);
+            var observed = Assert.IsType<SessionEndpoint>(endpoints.Find(online.SessionIdentity));
+            Assert.Equal(new SessionIpv4Address(127, 0, 0, 1), observed.InnerAddress);
+            Assert.Equal(new SessionIpv4Address(127, 0, 0, 1), observed.OuterAddress);
+            Assert.Equal(reported.Port, observed.Port);
+            Assert.Equal(0, observed.NatType);
+            Assert.Equal(1500U, observed.Mtu);
+        });
     }
 
     [Theory]
@@ -310,367 +345,330 @@ public sealed class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Set_party_info_rechecks_the_exact_session_after_acquiring_its_gate()
+    public async Task Non_party_peer_types_never_write_domain_state()
     {
-        var sessions = new SessionDirectory(Inviter);
-        var commands = new RecordingCommandBus();
-        var gate = new SelectedSessionTransitionGate();
-        var blocker = await gate.AcquireAsync(
-            Inviter.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var pending = new SetPartyInfoHandler(
-                    sessions,
-                    Presence,
-                    gate,
-                    commands,
-                    Notifications,
-                    NullLogger<SetPartyInfoHandler>.Instance)
-                .HandleAsync(
-                    Dispatch(Inviter),
-                    new SetPartyInfoRequest(
-                        GameMessageMetadata.Empty, Settings(), PartyTitle.Empty),
-                    CancellationToken.None)
-                .AsTask();
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var commands = new RecordingCommandBus();
 
-            await sessions.ConnectionLookupObserved.Task.WaitAsync(TimeSpan.FromSeconds(2));
-            sessions.Select(Inviter with
-            {
-                ConnectionId = new NetworkConnectionId("set-info-replacement"),
-                ConnectionGeneration = 2,
-            });
-            await blocker.DisposeAsync();
-            blocker = NoopAsyncDisposable.Instance;
+            await DriveRequestPeer(sessions, Presence, commands, Notifications,
+                    NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
+                    GameMessageMetadata.Empty, Invitee.WireUserId, 1, 90667, []),
+                    CancellationToken.None);
+            await DriveResponsePeer(sessions, Presence, commands, Notifications,
+                    NullLogger<ResponsePeerHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
+                    GameMessageMetadata.Empty, Inviter.WireUserId, 2, 64, []),
+                    CancellationToken.None);
 
-            await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        }
-        finally
-        {
-            await blocker.DisposeAsync();
-        }
-
-        Assert.Empty(commands.Commands);
-    }
-
-    [Fact]
-    public async Task Non_party_peer_types_never_dispatch_a_command()
-    {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var commands = new RecordingCommandBus();
-        var gate = new SelectedSessionTransitionGate();
-
-        await new RequestPeerHandler(sessions, Presence, gate, commands, Notifications,
-                NullLogger<RequestPeerHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
-                GameMessageMetadata.Empty, Invitee.WireUserId, 1, 90667, []),
-                CancellationToken.None);
-        await new ResponsePeerHandler(sessions, Presence, gate, commands, Notifications,
-                NullLogger<ResponsePeerHandler>.Instance)
-            .HandleAsync(Dispatch(Invitee), new ResponsePeerRequest(
-                GameMessageMetadata.Empty, Inviter.WireUserId, 2, 64, []),
-                CancellationToken.None);
-
-        Assert.Empty(commands.Commands);
+            Assert.Empty(commands.Domain.Writes);
+        });
     }
 
     [Fact]
     public async Task A_connection_without_a_current_selected_session_cannot_write_party_state()
     {
-        var commands = new RecordingCommandBus();
-        await new LeavePartyHandler(
-                new SessionDirectory(),
-                new SelectedSessionTransitionGate(),
-                commands,
-                Notifications,
-                NullLogger<LeavePartyHandler>.Instance)
-            .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
-                CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var commands = new RecordingCommandBus();
+            await DriveLeaveParty(
+                    new SessionDirectory(),
+                    commands,
+                    Notifications,
+                    NullLogger<LeavePartyHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(GameMessageMetadata.Empty),
+                    CancellationToken.None);
 
-        Assert.Empty(commands.Commands);
+            Assert.IsType<GameLeavePartyCommand>(Assert.Single(commands.Commands));
+            Assert.Empty(commands.Domain.Writes);
+        });
     }
 
     [Fact]
     public async Task A_stale_leave_frame_cannot_bind_to_the_current_party()
     {
-        var commands = new RecordingCommandBus();
-        var stale = new GameMessageMetadata(1, 0x000F, 0, 9)
+        await TestGameplay.RunAsync(async () =>
         {
-            InboundOrdinal = 2,
-            SequenceIsFresh = false,
-        };
+            var commands = new RecordingCommandBus();
+            var stale = new GameMessageMetadata(1, 0x000F, 0, 9)
+            {
+                InboundOrdinal = 2,
+                SequenceIsFresh = false,
+            };
 
-        await new LeavePartyHandler(
-                new SessionDirectory(Invitee),
-                new SelectedSessionTransitionGate(),
-                commands,
-                Notifications,
-                NullLogger<LeavePartyHandler>.Instance)
-            .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(stale),
-                CancellationToken.None);
+            await DriveLeaveParty(
+                    new SessionDirectory(Invitee),
+                    commands,
+                    Notifications,
+                    NullLogger<LeavePartyHandler>.Instance)
+                .HandleAsync(Dispatch(Invitee), new LeavePartyRequest(stale),
+                    CancellationToken.None);
 
-        Assert.Empty(commands.Commands);
+            Assert.IsType<GameLeavePartyCommand>(Assert.Single(commands.Commands));
+            Assert.Empty(commands.Domain.Writes);
+        });
     }
 
     [Fact]
     public async Task Stale_targeted_party_frames_stop_before_roster_or_session_capture()
     {
-        var stale = new GameMessageMetadata(1, 0x000F, 0, 9)
+        await TestGameplay.RunAsync(async () =>
         {
-            InboundOrdinal = 2,
-            SequenceIsFresh = false,
-        };
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var parties = new RecordingParties();
-        var commands = new RecordingCommandBus();
-        var sender = new RecordingSender();
-        var gate = new SelectedSessionTransitionGate();
+            var stale = new GameMessageMetadata(1, 0x000F, 0, 9)
+            {
+                InboundOrdinal = 2,
+                SequenceIsFresh = false,
+            };
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var parties = new RecordingParties();
+            var commands = new RecordingCommandBus();
+            var sender = new RecordingSender();
 
-        await new ChangePartyLeaderHandler(
-                sessions, parties, gate, commands, Notifications,
-                NullLogger<ChangePartyLeaderHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new ChangePartyLeaderRequest(stale, 1),
-                CancellationToken.None);
-        await new RemovePartyMemberHandler(
-                sessions, parties, gate, commands, Notifications, sender,
-                NullLogger<RemovePartyMemberHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new RemovePartyMemberRequest(stale, 1),
-                CancellationToken.None);
+            await DriveChangePartyLeader(
+                    sessions, parties, commands, Notifications,
+                    NullLogger<ChangePartyLeaderHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new ChangePartyLeaderRequest(stale, 1),
+                    CancellationToken.None);
+            await DriveRemovePartyMember(
+                    sessions, parties, commands, Notifications, sender,
+                    NullLogger<RemovePartyMemberHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RemovePartyMemberRequest(stale, 1),
+                    CancellationToken.None);
 
-        Assert.Empty(parties.Writes);
-        Assert.Empty(commands.Commands);
-        Assert.Empty(sender.Sent);
+            Assert.Empty(parties.Writes);
+            Assert.Collection(commands.Commands,
+                command => Assert.IsType<GameChangePartyLeaderCommand>(command),
+                command => Assert.IsType<GameRemovePartyMemberCommand>(command));
+            Assert.Empty(sender.Sent);
+        });
     }
 
     [Fact]
     public async Task A_target_that_was_missing_on_the_first_lookup_cannot_appear_behind_the_gate()
     {
-        var sessions = new SessionDirectory(Inviter);
-        var commands = new RecordingCommandBus();
-
-        await new RequestPeerHandler(
-                sessions,
-                Presence,
-                new SelectedSessionTransitionGate(),
-                commands,
-                Notifications,
-                NullLogger<RequestPeerHandler>.Instance)
-            .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
-                GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
-                CancellationToken.None);
-
-        sessions.Select(Invitee);
-        Assert.Empty(commands.Commands);
-    }
-
-    [Fact]
-    public async Task A_target_replaced_before_its_gate_is_acquired_is_not_dispatched()
-    {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var commands = new RecordingCommandBus();
-        var gate = new SelectedSessionTransitionGate();
-        var blocker = await gate.AcquireAsync(
-            Invitee.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var pending = new RequestPeerHandler(
+            var sessions = new SessionDirectory(Inviter);
+            var commands = new RecordingCommandBus();
+
+            await DriveRequestPeer(
                     sessions,
                     Presence,
-                    gate,
                     commands,
                     Notifications,
                     NullLogger<RequestPeerHandler>.Instance)
                 .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
                     GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
-                    CancellationToken.None)
-                .AsTask();
+                    CancellationToken.None);
 
-            await sessions.WireLookupObserved.Task.WaitAsync(TimeSpan.FromSeconds(2));
-            sessions.Select(Invitee with
-            {
-                ConnectionId = new NetworkConnectionId("replacement"),
-                ConnectionGeneration = 2,
-            });
-            await blocker.DisposeAsync();
-            blocker = NoopAsyncDisposable.Instance;
-
-            await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        }
-        finally
-        {
-            await blocker.DisposeAsync();
-        }
-
-        Assert.Empty(commands.Commands);
+            sessions.Select(Invitee);
+            Assert.Empty(commands.Domain.Writes);
+        });
     }
 
     [Fact]
-    public async Task A_higher_account_inviter_replaced_while_waiting_for_the_lower_gate_is_not_dispatched()
+    public async Task Successful_command_notifications_are_delivered_once()
     {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var commands = new RecordingCommandBus();
-        var gate = new SelectedSessionTransitionGate();
-        var lowerBlocker = await gate.AcquireAsync(
-            Inviter.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        var inviterBlocker = await gate.AcquireAsync(
-            Invitee.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var pending = new RequestPeerHandler(
-                    sessions,
-                    Presence,
-                    gate,
-                    commands,
-                    Notifications,
-                    NullLogger<RequestPeerHandler>.Instance)
-                .HandleAsync(Dispatch(Invitee), new RequestPeerRequest(
-                    GameMessageMetadata.Empty, Inviter.WireUserId, 0, 64, []),
-                    CancellationToken.None)
-                .AsTask();
-
-            await sessions.WireLookupObserved.Task.WaitAsync(TimeSpan.FromSeconds(2));
-            sessions.Select(Invitee with
-            {
-                ConnectionId = new NetworkConnectionId("higher-account-replacement"),
-                ConnectionGeneration = 2,
-            });
-            await inviterBlocker.DisposeAsync();
-            inviterBlocker = NoopAsyncDisposable.Instance;
-            await lowerBlocker.DisposeAsync();
-            lowerBlocker = NoopAsyncDisposable.Instance;
-
-            await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        }
-        finally
-        {
-            await inviterBlocker.DisposeAsync();
-            await lowerBlocker.DisposeAsync();
-        }
-
-        Assert.Empty(commands.Commands);
-    }
-
-    [Fact]
-    public async Task Reverse_direction_pair_requests_complete_under_one_stable_gate_order()
-    {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var commands = new RecordingCommandBus();
-        var gate = new SelectedSessionTransitionGate();
-        var lowerBlocker = await gate.AcquireAsync(
-            Inviter.AccountId, UserAccessMode.Exclusive, CancellationToken.None);
-        try
-        {
-            var lowToHigh = new RequestPeerHandler(
-                    sessions,
-                    Presence,
-                    gate,
-                    commands,
-                    Notifications,
-                    NullLogger<RequestPeerHandler>.Instance)
-                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(
-                    GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
-                    CancellationToken.None)
-                .AsTask();
-            var highToLow = new RequestPeerHandler(
-                    sessions,
-                    Presence,
-                    gate,
-                    commands,
-                    Notifications,
-                    NullLogger<RequestPeerHandler>.Instance)
-                .HandleAsync(Dispatch(Invitee), new RequestPeerRequest(
-                    GameMessageMetadata.Empty, Inviter.WireUserId, 0, 64, []),
-                    CancellationToken.None)
-                .AsTask();
-
-            await sessions.TwoWireLookupsObserved.Task.WaitAsync(TimeSpan.FromSeconds(2));
-            await lowerBlocker.DisposeAsync();
-            lowerBlocker = NoopAsyncDisposable.Instance;
-
-            await Task.WhenAll(lowToHigh, highToLow).WaitAsync(TimeSpan.FromSeconds(2));
-        }
-        finally
-        {
-            await lowerBlocker.DisposeAsync();
-        }
-
-        Assert.Equal(2, commands.Commands.OfType<RequestPartyInviteCommand>().Count());
-    }
-
-    [Fact]
-    public async Task Successful_command_notifications_are_delivered_after_both_transition_gates_release()
-    {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var gate = new SelectedSessionTransitionGate();
-        var published = new GateReentryNotificationBus(gate, Inviter.AccountId);
-        var delivery = new PartyNotificationDelivery(
-            published,
-            new PartyProjectionStreamRegistry(),
-            sessions,
-            Presence);
-        var commands = new RecordingCommandBus(PartyOperationResult.Success(
-            new PartyNotificationPlan(
-                [],
-                Invitation: new PartyInviteNotification(
-                    Invitee.CharacterId,
-                    Inviter.WireUserId,
-                    new PartyInviteDisplayState(64, 188, 0, 0)))));
-
-        await new RequestPeerHandler(
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var published = new CountingNotificationBus();
+            var delivery = new TestProjection(
+                published,
+                new PartyProjectionStreamRegistry(),
                 sessions,
-                Presence,
-                gate,
-                commands,
-                delivery,
-                NullLogger<RequestPeerHandler>.Instance)
-            .HandleAsync(
-                Dispatch(Inviter),
-                new RequestPeerRequest(
-                    GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
-                CancellationToken.None)
-            .AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(2));
+                Presence);
+            var commands = new RecordingCommandBus(PartyOperationResult.Success(
+                new PartyNotificationPlan(
+                    [],
+                    Invitation: new PartyInviteNotification(
+                        Invitee.CharacterId,
+                        Inviter.WireUserId,
+                        new PartyInviteDisplayState(64, 188, 0, 0)))));
 
-        Assert.Equal(1, published.Count);
+            await DriveRequestPeer(
+                    sessions,
+                    Presence,
+                    commands,
+                    delivery,
+                    NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(Inviter),
+                    new RequestPeerRequest(
+                        GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []),
+                    CancellationToken.None)
+                .AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.Equal(1, published.Count);
+        });
     }
 
     [Fact]
-    public async Task Set_party_info_delivers_its_immutable_result_after_the_transition_gate_releases()
+    public async Task Set_party_info_sends_one_command_and_delivers_its_result_as_three_full_state_phases()
     {
-        var sessions = new SessionDirectory(Inviter, Invitee);
-        var gate = new SelectedSessionTransitionGate();
-        var published = new GateReentryNotificationBus(gate, Inviter.AccountId);
-        var snapshot = Snapshot() with { Revision = 4 };
-        var commands = new RecordingCommandBus(PartyOperationResult.Success(
-            new PartyNotificationPlan(
-                [],
-                snapshot,
-                SettingsChange: PartySettingsChangeKind.Updated)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var published = new CountingNotificationBus();
+            var snapshot = Snapshot() with { Revision = 4 };
+            var commands = new RecordingCommandBus(PartyOperationResult.Success(
+                new PartyNotificationPlan(
+                    [],
+                    snapshot,
+                    SettingsChange: PartySettingsChangeKind.Updated)));
 
-        await new SetPartyInfoHandler(
-                sessions,
-                Presence,
-                gate,
-                commands,
-                new PartyNotificationDelivery(
-                    published,
-                    new PartyProjectionStreamRegistry(),
+            await DriveSetPartyInfo(
                     sessions,
-                    Presence),
-                NullLogger<SetPartyInfoHandler>.Instance)
-            .HandleAsync(
-                Dispatch(Inviter),
-                new SetPartyInfoRequest(
-                    GameMessageMetadata.Empty, snapshot.Settings, snapshot.Title),
-                CancellationToken.None)
-            .AsTask()
-            .WaitAsync(TimeSpan.FromSeconds(2));
+                    Presence,
+                    commands,
+                    new TestProjection(
+                        published,
+                        new PartyProjectionStreamRegistry(),
+                        sessions,
+                        Presence),
+                    NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(
+                    Dispatch(Inviter),
+                    new SetPartyInfoRequest(
+                        GameMessageMetadata.Empty, snapshot.Settings, snapshot.Title),
+                    CancellationToken.None)
+                .AsTask()
+                .WaitAsync(TimeSpan.FromSeconds(2));
 
-        Assert.IsType<SetPartyInfoCommand>(Assert.Single(commands.Commands));
-        // This isolated delivery has not observed a full baseline for the generation, so the
-        // update is deliberately promoted to the three full-state phases. Every phase re-enters
-        // the account gate and therefore proves transport starts only after the handler releases it.
-        Assert.Equal(3, published.Count);
+            Assert.IsType<GameSetPartyInfoCommand>(Assert.Single(commands.Commands));
+            // This isolated delivery has not observed a full baseline for the generation, so the
+            // update is deliberately promoted to the three full-state phases.
+            Assert.Equal(3, published.Count);
+        });
     }
+
+    [Fact]
+    public async Task Missing_selected_session_never_writes_or_projects_from_any_new_party_cmd()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory();
+            var fixture = new RecordingCommandBus();
+            var events = new CountingNotificationBus();
+            var projection = new TestProjection(events);
+            await DriveRequestPeer(sessions, Presence, fixture, projection, NullLogger<RequestPeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new RequestPeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 64, []), default);
+            await DriveResponsePeer(sessions, Presence, fixture, projection, NullLogger<ResponsePeerHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new ResponsePeerRequest(GameMessageMetadata.Empty, Invitee.WireUserId, 0, 0, []), default);
+            await DriveSetPartyInfo(sessions, Presence, fixture, projection, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, Settings(), PartyTitle.Empty), default);
+            await DriveCallPartyMemberRealtimeInfo(sessions, fixture, projection, NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), default);
+            Assert.Equal(4, fixture.Commands.Count);
+            Assert.Empty(fixture.Domain.Writes);
+            Assert.Equal(0, events.Count);
+        });
+    }
+
+    [Fact]
+    public async Task New_cmd_and_legacy_consumers_share_full_state_watermark_and_disband_tombstone()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new SessionDirectory(Inviter, Invitee);
+            var published = new CountingNotificationBus();
+            var projection = new TestProjection(published, new PartyProjectionStreamRegistry(), sessions, Presence);
+            var first = Snapshot() with { Revision = 4 };
+            var fixture = new RecordingCommandBus(PartyOperationResult.Success(new PartyNotificationPlan(
+                [], first, SettingsChange: PartySettingsChangeKind.Created)));
+            await DriveSetPartyInfo(sessions, Presence, fixture, projection, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, first.Settings, first.Title), default);
+            Assert.Equal(3, published.Count);
+            var stream = ((IPartyProjectionStateDomainService)projection.Streams).StreamOf(first.Generation);
+            Assert.Same(projection.Streams.GetOrAdd(first.Generation), stream);
+            Assert.Equal(2, stream.FullStateMembers.Count);
+
+            PartyNotificationDelivery legacy = projection;
+            await legacy.DeliverAsync(new PartyNotificationPlan([], first with { Revision = 5 },
+                SettingsChange: PartySettingsChangeKind.Updated), default);
+            Assert.Equal(4, published.Count); // full baseline from new CMD avoids promotion in old consumer
+            Assert.Equal(5, stream.LatestRevision);
+            await DriveCallPartyMemberRealtimeInfo(sessions, new RecordingCommandBus(snapshot: first), projection,
+                    NullLogger<CallPartyMemberRealtimeInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new CallPartyMemberRealtimeInfoRequest(GameMessageMetadata.Empty), default);
+            Assert.Equal(4, published.Count); // new query sees the old consumer's later watermark
+
+            await legacy.DeliverAsync(new PartyNotificationPlan([Inviter.CharacterId, Invitee.CharacterId],
+                ClearPartyId: first.PartyId, ClearPartyGeneration: first.Generation, ClearPartyRevision: 6), default);
+            Assert.Equal(6, stream.LatestRevision);
+            Assert.Empty(stream.CurrentMembers);
+            Assert.Empty(stream.FullStateMembers);
+            Assert.Equal(5, published.Count);
+            await DriveSetPartyInfo(sessions, Presence, fixture, projection, NullLogger<SetPartyInfoHandler>.Instance)
+                .HandleAsync(Dispatch(Inviter), new SetPartyInfoRequest(GameMessageMetadata.Empty, first.Settings, first.Title), default);
+            Assert.Equal(5, published.Count); // old disband tombstone suppresses a delayed new CMD projection
+            Assert.Equal(6, stream.LatestRevision);
+        });
+    }
+
+    private sealed class TestProjection(IEventService events, PartyProjectionStreamRegistry? streams = null,
+        ISelectedSessionDomainService? sessions = null, ITownAreaDomainService? town = null)
+    {
+        internal IEventService Events { get; } = events;
+        internal PartyProjectionStreamRegistry Streams { get; } = streams ?? new();
+        private ISelectedSessionDomainService? Sessions { get; } = sessions;
+        private ITownAreaDomainService? Town { get; } = town;
+        public static implicit operator PartyNotificationDelivery(TestProjection value) =>
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<PartyNotificationDelivery>(
+                value.Events, value.Streams, value.Sessions, value.Town);
+    }
+
+    private sealed class DirectBus<T>(ICommandHandler<T, bool> handler, RecordingCommandBus? recording = null) : ICommandBus
+        where T : class, IProtocolCommand<bool>
+    {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        public async ValueTask<R> SendAsync<R>(ICommand<R> value, CancellationToken ct = default) where R : notnull
+        {
+            var command = Assert.IsType<T>(value);
+            recording?.Commands.Add(command);
+            var request = new CommandRequestContext.ProtocolNonEffect(command.Dispatch, command.Message, command.Frame, () => true);
+            return (R)(object)await handler.HandleAsync(new(Guid.NewGuid(), typeof(T), handler.GetType())
+                { Request = request }, command, ct);
+        }
+    }
+
+    private static LeavePartyHandler DriveLeaveParty(ISelectedSessionDomainService sessions,
+        RecordingCommandBus commands, TestProjection projection, ILogger<LeavePartyHandler> _, ITownAreaDomainService? townAreas = null) =>
+        new(PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, commands.Domain, townAreas ?? Presence,
+            projection.Events, projection.Streams), commands.Commands.Add));
+    private static ChangePartyLeaderHandler DriveChangePartyLeader(ISelectedSessionDomainService sessions, IPartyService parties,
+        RecordingCommandBus commands, TestProjection projection, ILogger<ChangePartyLeaderHandler> _, ITownAreaDomainService? townAreas = null) =>
+        new(PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, parties, townAreas ?? Presence,
+            projection.Events, projection.Streams), commands.Commands.Add));
+    private static RemovePartyMemberHandler DriveRemovePartyMember(ISelectedSessionDomainService sessions, IPartyService parties,
+        RecordingCommandBus commands, TestProjection projection, IGameMessageSender sender, ILogger<RemovePartyMemberHandler> _, ITownAreaDomainService? townAreas = null) =>
+        new(PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(sessions, parties, townAreas ?? Presence,
+            projection.Events, projection.Streams, sender), commands.Commands.Add));
+
+    private static SetUdpIpPortHandler DriveSetUdpIpPort(IOnlineUserQueryDomainService online,
+        IGameSessionEndpointDomainService endpoints, ILogger<SetUdpIpPortHandler> _) =>
+        new(new DirectBus<GameSetUdpIpPortCommand>(new GameSetUdpIpPortCommandHandler(online,endpoints,NullLogger<GameSetUdpIpPortCommandHandler>.Instance)));
+
+    private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
+        ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
+
+    private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
+        ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
+        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
+
+    private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
+        ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
+        new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
+
+    private static CallPartyMemberRealtimeInfoHandler DriveCallPartyMemberRealtimeInfo(ISelectedSessionDomainService sessions,
+        RecordingCommandBus commands, TestProjection projection, ILogger<CallPartyMemberRealtimeInfoHandler> _) =>
+        new(new DirectBus<GameCallPartyMemberRealtimeInfoCommand>(new GameCallPartyMemberRealtimeInfoCommandHandler(sessions,            commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            NullLogger<GameCallPartyMemberRealtimeInfoCommandHandler>.Instance), commands));
 
     private static SessionEndpoint Endpoint() => new(
         5,
@@ -721,7 +719,7 @@ public sealed class PartyCommandHandlerTests
     private static SelectedSessionIdentity Invitee { get; } = SelectedSessionIdentity.Create(
         new AccountId(2), new CharacterId(2), new NetworkConnectionId("invitee"), 1, 10011);
 
-    private static PartyNotificationDelivery Notifications { get; } =
+    private static TestProjection Notifications { get; } =
         new(new NoopNotificationBus());
 
     private static ISessionPresenceDomainService Presence { get; } =
@@ -793,41 +791,32 @@ public sealed class PartyCommandHandlerTests
         public SessionEndpoint? Find(GameSessionIdentity session) => values.GetValueOrDefault(session);
     }
 
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox (an explicit delivery with its direct messages
+    /// only, as before); every call goes to the real protocol sender over it (TASK-25).
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
+        public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
 
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class RecordingCommandBus(
-        PartyOperationResult? result = null) : ICommandBus
+        PartyOperationResult? result = null, PartySnapshot? snapshot = null, RecordingParties? domain = null) : ICommandBus
+
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        public RecordingParties Domain { get; } = domain ?? new RecordingParties(result, snapshot);
         public List<ICommand> Commands { get; } = [];
 
         public ValueTask<TResult> SendAsync<TResult>(
@@ -838,21 +827,6 @@ public sealed class PartyCommandHandlerTests
             Commands.Add(command);
             return ValueTask.FromResult(
                 (TResult)(object)(result ?? PartyOperationResult.Success()));
-        }
-    }
-
-    private sealed class RealtimeCommandBus(PartySnapshot snapshot) : ICommandBus
-    {
-        public List<ICommand> Commands { get; } = [];
-
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            Commands.Add(command);
-            return ValueTask.FromResult(
-                (TResult)(object)new PartyRealtimeQueryResult(snapshot));
         }
     }
 
@@ -872,27 +846,70 @@ public sealed class PartyCommandHandlerTests
         }
     }
 
-    private sealed class GateReentryNotificationBus(
-        SelectedSessionTransitionGate gate,
-        AccountId accountId) : Dfo.Server.Testing.ProjectionEventService
+    private sealed class CountingNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
         public int Count { get; private set; }
 
-        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
+        public override ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
             NotificationAudience audience,
             TNotification notification,
             CancellationToken cancellationToken)
         {
-            await using var lease = await gate.AcquireAsync(
-                accountId, UserAccessMode.Exclusive, cancellationToken);
             Count++;
-            return new NotificationDelivery([]);
+            return ValueTask.FromResult(new NotificationDelivery([]));
         }
     }
 
     private sealed class SessionDirectory(params SelectedSessionIdentity[] initial)
         : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private readonly Dictionary<AccountId, SelectedSessionIdentity> sessions =
             initial.ToDictionary(value => value.AccountId);
 
@@ -947,7 +964,7 @@ public sealed class PartyCommandHandlerTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private sealed class RecordingParties : IPartyService
+    private sealed class RecordingParties(PartyOperationResult? result = null, PartySnapshot? snapshot = null) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public List<string> Writes { get; } = [];
@@ -963,7 +980,7 @@ public sealed class PartyCommandHandlerTests
         {
             Writes.Add(
                 $"settings:{character.WireUserId}:{(byte)settings.Category}:{Convert.ToHexString(title.ToBytes())}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult RequestInvite(
@@ -972,7 +989,7 @@ public sealed class PartyCommandHandlerTests
             PartyInviteDisplayState display)
         {
             Writes.Add($"invite:{inviter.WireUserId}->{target.WireUserId}:{display.ReviveCoinCount}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult AcceptInvite(
@@ -980,7 +997,7 @@ public sealed class PartyCommandHandlerTests
             PartyCharacterSnapshot inviter)
         {
             Writes.Add($"accept:{invitee.WireUserId}<-{inviter.WireUserId}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult TransferLeadership(
@@ -988,7 +1005,7 @@ public sealed class PartyCommandHandlerTests
             CharacterId nextLeaderCharacterId)
         {
             Writes.Add($"lead:{currentLeaderCharacterId.Value}->{nextLeaderCharacterId.Value}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult RemoveMember(
@@ -996,13 +1013,13 @@ public sealed class PartyCommandHandlerTests
             CharacterId targetCharacterId)
         {
             Writes.Add($"remove:{currentLeaderCharacterId.Value}->{targetCharacterId.Value}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult LeaveParty(CharacterId characterId)
         {
             Writes.Add($"leave:{characterId.Value}");
-            return PartyOperationResult.Success();
+            return result ?? PartyOperationResult.Success();
         }
 
         public PartyOperationResult CleanupCharacter(CharacterId characterId) =>
@@ -1011,7 +1028,7 @@ public sealed class PartyCommandHandlerTests
         public PartySnapshot FindParty(PartyCharacterSnapshot character)
         {
             Writes.Add($"query:{character.CharacterId.Value}");
-            return Snapshot();
+            return snapshot ?? Snapshot();
         }
 
     }

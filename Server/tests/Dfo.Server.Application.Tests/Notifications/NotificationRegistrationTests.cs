@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Networking;
@@ -66,8 +67,10 @@ public sealed class NotificationRegistrationTests
     public async Task The_registry_is_asked_for_before_the_first_hosted_service_starts()
     {
         var probe = new ProbeListener();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Services.AddSingleton<IHostedService>(probe);
+        // The retry loop is a timer source on the executor; production composes both.
+        builder.Services.AddGameplayExecution();
         builder.Services.AddNotificationDispatching();
         builder.Services.AddNotificationCatalog(typeof(NotificationRegistrationTests).Assembly);
         using var host = builder.Build();
@@ -87,7 +90,7 @@ public sealed class NotificationRegistrationTests
     {
         var registration = new NotificationHandlerRegistration(
             typeof(UnhandledProbe), typeof(ProbeHandler),
-            typeof(NotificationComposer<UnhandledProbe>), RetryLimit: 0);
+            typeof(NotificationComposer<UnhandledProbe>));
 
         var error = Assert.Throws<InvalidOperationException>(() =>
             new NotificationHandlerRegistry([registration, registration], []));
@@ -109,10 +112,10 @@ public sealed class NotificationRegistrationTests
 
     /// <summary>Registration binds the notification, its handler and its composer together.</summary>
     [Fact]
-    public void A_registered_handler_is_found_with_the_retry_limit_it_declared()
+    public void A_registered_handler_is_found_with_its_handler_and_composer_types()
     {
         var services = new ServiceCollection()
-            .AddNotificationHandler<UnhandledProbe, ProbeHandler>(retryLimit: 2);
+            .AddNotificationHandler<UnhandledProbe, ProbeHandler>();
 
         var registration = new NotificationHandlerRegistry(
             services.Select(descriptor => descriptor.ImplementationInstance)
@@ -122,7 +125,6 @@ public sealed class NotificationRegistrationTests
 
         Assert.Equal(typeof(ProbeHandler), registration.HandlerType);
         Assert.Equal(typeof(NotificationComposer<UnhandledProbe>), registration.ComposerType);
-        Assert.Equal(2, registration.RetryLimit);
     }
 
     /// <summary>The modules are wired so the check comes before anything that opens a port.</summary>

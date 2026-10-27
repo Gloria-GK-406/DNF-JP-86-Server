@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.Forging;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
+[Trait("Category", "Unit")]
 public sealed class EquipmentForgingWireTests
 {
     [Fact]

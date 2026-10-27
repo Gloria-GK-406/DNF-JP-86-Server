@@ -64,6 +64,6 @@ public sealed partial class HousingNetworkSettlementTests
         var ack=Assert.Single(f.Sender.Messages,x=>x.GetType().Name=="CapsuleAck");
         Assert.Equal(-6,Assert.IsType<MarriageCapsuleResult>(ack.GetType().GetProperty("Result")!.GetValue(ack)).Status);
         Assert.Equal(1,f.Scalar("SELECT pending FROM marriage_capsules WHERE character_id=1")); Assert.Equal(0,f.Count(10002910));
-        await f.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendAsync(new InitializeHousingCommand(f.Session),default);
+        await Dfo.Server.Application.Tests.Game.SelectionInitializationTestDriver.InitializeAsync(f.Services, f.Session);
     }
 }

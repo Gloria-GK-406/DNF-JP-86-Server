@@ -7,7 +7,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Caches declarations, never a random result shared by different dungeon runs.</summary>
-internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : IDungeonRoomDropSource, IDungeonRoomObjectSource
+internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : IDungeonRoomDropSource, IDungeonRoomObjectSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -98,6 +98,15 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             result.Add(new(new(DungeonObjectSection.Passive, at / 4), row[0], row[1], row[2], row[3]));
         }
         return result.ToImmutableArray();
+    }
+
+    public string Name => "dungeon-room-object-index";
+
+    /// <remarks>The list files the room readers resolve ids through; the per-map reads stay keyed.</remarks>
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate) return ValueTask.FromResult(new[] { "map", "dungeon", "equipment", "passiveobject" }.Sum(folder => Paths(folder).Count));
     }
 
     private IReadOnlyDictionary<int, string> Paths(string folder)

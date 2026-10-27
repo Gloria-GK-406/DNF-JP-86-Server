@@ -11,6 +11,7 @@ using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -64,32 +65,35 @@ public sealed class CreatureGoesBackOnTests
     [SkippableFact]
     public async Task A_creature_taken_off_can_be_put_back_on_and_is_the_same_creature()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        await WithACharacterWearingNothingAsync(async fixture =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.SeedIntoBagAsync(BagSlot);
-            var seeded = await fixture.IdentityAtAsync(PetList, BagSlot);
-            Assert.NotNull(seeded);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await WithACharacterWearingNothingAsync(async fixture =>
+            {
+                await fixture.SeedIntoBagAsync(BagSlot);
+                var seeded = await fixture.IdentityAtAsync(PetList, BagSlot);
+                Assert.NotNull(seeded);
 
-            var puttingOn = await fixture.MoveAsync(PetList, BagSlot, EquipmentList, CreatureSlot);
-            Assert.Equal(ItemMoveStatus.Moved, puttingOn.Status);
-            Assert.Equal(ContractCreatureItemId, puttingOn.ItemId);
-            Assert.Equal(seeded, await fixture.IdentityAtAsync(EquipmentList, CreatureSlot));
-            Assert.Null(await fixture.IdentityAtAsync(PetList, BagSlot));
+                var puttingOn = await fixture.MoveAsync(PetList, BagSlot, EquipmentList, CreatureSlot);
+                Assert.Equal(ItemMoveStatus.Moved, puttingOn.Status);
+                Assert.Equal(ContractCreatureItemId, puttingOn.ItemId);
+                Assert.Equal(seeded, await fixture.IdentityAtAsync(EquipmentList, CreatureSlot));
+                Assert.Null(await fixture.IdentityAtAsync(PetList, BagSlot));
 
-            var takingOff = await fixture.MoveAsync(EquipmentList, CreatureSlot, PetList, BagSlot);
-            Assert.Equal(ItemMoveStatus.Moved, takingOff.Status);
-            Assert.Equal(seeded, await fixture.IdentityAtAsync(PetList, BagSlot));
-            Assert.Null(await fixture.IdentityAtAsync(EquipmentList, CreatureSlot));
+                var takingOff = await fixture.MoveAsync(EquipmentList, CreatureSlot, PetList, BagSlot);
+                Assert.Equal(ItemMoveStatus.Moved, takingOff.Status);
+                Assert.Equal(seeded, await fixture.IdentityAtAsync(PetList, BagSlot));
+                Assert.Null(await fixture.IdentityAtAsync(EquipmentList, CreatureSlot));
 
-            // The one this whole test exists for. Before the creature's name was in the slot table
-            // this answered NotWearable, and the creature stayed in the bag for good.
-            var puttingBackOn = await fixture.MoveAsync(
-                PetList, BagSlot, EquipmentList, CreatureSlot);
-            Assert.Equal(ItemMoveStatus.Moved, puttingBackOn.Status);
-            Assert.Equal(ContractCreatureItemId, puttingBackOn.ItemId);
-            Assert.Equal(seeded, await fixture.IdentityAtAsync(EquipmentList, CreatureSlot));
-            Assert.Null(await fixture.IdentityAtAsync(PetList, BagSlot));
+                // The one this whole test exists for. Before the creature's name was in the slot table
+                // this answered NotWearable, and the creature stayed in the bag for good.
+                var puttingBackOn = await fixture.MoveAsync(
+                    PetList, BagSlot, EquipmentList, CreatureSlot);
+                Assert.Equal(ItemMoveStatus.Moved, puttingBackOn.Status);
+                Assert.Equal(ContractCreatureItemId, puttingBackOn.ItemId);
+                Assert.Equal(seeded, await fixture.IdentityAtAsync(EquipmentList, CreatureSlot));
+                Assert.Null(await fixture.IdentityAtAsync(PetList, BagSlot));
+            });
         });
     }
 
@@ -105,36 +109,42 @@ public sealed class CreatureGoesBackOnTests
     [SkippableFact]
     public async Task A_creature_aimed_at_a_slot_that_is_not_its_own_is_refused()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        await WithACharacterWearingNothingAsync(async fixture =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.SeedIntoBagAsync(BagSlot);
-            var seeded = await fixture.IdentityAtAsync(PetList, BagSlot);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await WithACharacterWearingNothingAsync(async fixture =>
+            {
+                await fixture.SeedIntoBagAsync(BagSlot);
+                var seeded = await fixture.IdentityAtAsync(PetList, BagSlot);
 
-            var aimedAtTheShoulder = await fixture.MoveAsync(PetList, BagSlot, EquipmentList, 15);
+                var aimedAtTheShoulder = await fixture.MoveAsync(PetList, BagSlot, EquipmentList, 15);
 
-            Assert.Equal(ItemMoveStatus.ItemCannotOccupySlot, aimedAtTheShoulder.Status);
-            Assert.Equal(seeded, await fixture.IdentityAtAsync(PetList, BagSlot));
-            Assert.Null(await fixture.IdentityAtAsync(EquipmentList, 15));
+                Assert.Equal(ItemMoveStatus.ItemCannotOccupySlot, aimedAtTheShoulder.Status);
+                Assert.Equal(seeded, await fixture.IdentityAtAsync(PetList, BagSlot));
+                Assert.Null(await fixture.IdentityAtAsync(EquipmentList, 15));
+            });
         });
     }
 
     [SkippableFact]
     public async Task Legacy_worn_creature_is_normalized_once_without_replacing_its_world_row()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        await WithACharacterWearingNothingAsync(async fixture =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await fixture.SeedLegacyWornCreatureAsync();
-            var identity = await fixture.IdentityAtAsync(EquipmentList, 24);
-            Assert.NotNull(identity);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await WithACharacterWearingNothingAsync(async fixture =>
+            {
+                await fixture.SeedLegacyWornCreatureAsync();
+                var identity = await fixture.IdentityAtAsync(EquipmentList, 24);
+                Assert.NotNull(identity);
 
-            await fixture.NormalizeLegacyWornAsync();
-            Assert.Null(await fixture.IdentityAtAsync(EquipmentList, 24));
-            Assert.Equal(identity, await fixture.IdentityAtAsync(EquipmentList, 25));
+                await fixture.NormalizeLegacyWornAsync();
+                Assert.Null(await fixture.IdentityAtAsync(EquipmentList, 24));
+                Assert.Equal(identity, await fixture.IdentityAtAsync(EquipmentList, 25));
 
-            await fixture.NormalizeLegacyWornAsync();
-            Assert.Equal(identity, await fixture.IdentityAtAsync(EquipmentList, 25));
+                await fixture.NormalizeLegacyWornAsync();
+                Assert.Equal(identity, await fixture.IdentityAtAsync(EquipmentList, 25));
+            });
         });
     }
 
@@ -149,7 +159,7 @@ public sealed class CreatureGoesBackOnTests
         finally
         {
             content.Dispose();
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             try
             {
                 File.Delete(path);
@@ -181,7 +191,7 @@ public sealed class CreatureGoesBackOnTests
 
         private readonly LegacyWornItemNormalizer normalizer;
 
-        private readonly DirectCommandBus bus;
+        private readonly DirectInventoryMove bus;
 
         public Fixture(string databasePath, ServiceProvider content)
         {
@@ -212,8 +222,8 @@ public sealed class CreatureGoesBackOnTests
 
             this.Containers = containers;
             var mappings = new InventorySlotMappingRuleService();
-            this.bus = new DirectCommandBus(
-                move: new MoveItemSpaceCommandHandler(
+            this.bus = new DirectInventoryMove(
+                move: new InventoryMoveDomainService(
                     new BusinessInventorySlotDomainService(containers, mappings),
                     new ItemMovementDomainService(
                         rules, new ItemSlotRuleService(), new CreatureGoesBackOnTestsWearEligibility())),
@@ -254,8 +264,8 @@ public sealed class CreatureGoesBackOnTests
 
         public ValueTask<ItemMoveResult> MoveAsync(
             byte sourceList, short sourceSlot, byte destinationList, short destinationSlot) =>
-            this.bus.SendAsync(
-                new MoveItemSpaceCommand(
+            this.bus.MoveAsync(
+                new InventoryMoveRequest(
                     this.character,
                     new InventorySlotMappingRuleService().ToBusinessSlot(
                         new GameSlot((InventoryContainerType)sourceList, sourceSlot)),
@@ -274,7 +284,7 @@ public sealed class CreatureGoesBackOnTests
         /// </remarks>
         public async Task<long?> IdentityAtAsync(byte listType, int slotIndex)
         {
-            await using var connection = new SqliteConnection($"Data Source={this.path}");
+            await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(this.path));
             await connection.OpenAsync();
 
             await using var slots = connection.CreateCommand();

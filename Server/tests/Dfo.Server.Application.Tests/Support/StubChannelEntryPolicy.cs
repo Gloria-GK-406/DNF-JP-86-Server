@@ -11,8 +11,11 @@ namespace Dfo.Server.Application.Tests.Support;
 /// refusal path is exercised without also depending on the level rule's current threshold.
 /// </remarks>
 internal sealed class StubChannelEntryPolicy(ChannelAdmissionRefusal? refusal = null)
-    : IChannelEntryPolicy
+    : IChannelEntryDomainService
 {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
     /// <summary>An ordinary channel, which is what most tests are entering on.</summary>
     public static ChannelEntryIdentity GeneralChannel { get; } =
         new(ChannelId: 11, ListenerPort: 10011, ChannelEntryKind.General);

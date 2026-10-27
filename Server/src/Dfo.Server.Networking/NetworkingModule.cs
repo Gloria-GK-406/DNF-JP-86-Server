@@ -1,7 +1,9 @@
 using Dfo.Server.Abstractions;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Networking.Configuration;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Networking.Outbound;
 using Dfo.Server.Networking.Runtime;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,28 +48,39 @@ public sealed class NetworkingModule : IServerModule
 
         services.AddSingleton(options);
         services.TryAddSingleton<TouchSocketConnectionRegistry>();
-        services.TryAddSingleton<INetworkMessageSender, TouchSocketNetworkMessageSender>();
-        services.TryAddSingleton<INetworkConnectionCloser, TouchSocketNetworkConnectionCloser>();
+        services.TryAddSingleton<INetworkConnectionContexts>(
+            provider => provider.GetRequiredService<TouchSocketConnectionRegistry>());
+        // The sending side of the outbox (RQ-032 to RQ-037), registered with networking disabled too:
+        // with no connection registered every entry is dropped as stale. Sends and closes themselves
+        // are registered by the Application outbox adapters, never by the transport.
+        services.TryAddSingleton(OutboundSendOptions.Default);
+        services.TryAddSingleton<IOutboundTransport, TouchSocketOutboundTransport>();
+        services.TryAddSingleton<IOutboundMessageEncoder, RegistryOutboundEncoder>();
+        services.TryAddSingleton<IOutboundSender, OutboundSender>();
         services.TryAddSingleton<ChannelNetworkPlugin>();
         services.TryAddSingleton<GameNetworkPlugin>();
         services.TryAddSingleton<GameMessageDecoderRegistry>();
         services.TryAddSingleton<ChannelMessageDecoderRegistry>();
         services.TryAddSingleton<ServerMessageEncoderRegistry>();
+        // Registered with networking disabled too: an empty registry drains at once.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayProducerDrain, TouchSocketTransportDrain>());
 
         if (!options.Enabled)
         {
             return;
         }
 
-        services.AddTcpService<IChannelTcpService, ChannelTcpService>(config => config
+        // Both services confirm flushes, so a delivered entry has left the send pipe before a later
+        // close of its connection runs (RQ-012); the outbound transport refuses a session without it.
+        services.AddTcpService<IChannelTcpService, ChannelTcpService>(config => OutboundTransportOptions.ConfigureSendPipe(config
             .SetListenIPHosts(options.ChannelPort)
             .SetSingleStreamDataHandlingAdapter(() => new ChannelFrameDataHandlingAdapter())
-            .ConfigurePlugins(plugins => plugins.Add<ChannelNetworkPlugin>()));
+            .ConfigurePlugins(plugins => plugins.Add<ChannelNetworkPlugin>())));
 
-        services.AddTcpService<IGameTcpService, GameTcpService>(config => config
+        services.AddTcpService<IGameTcpService, GameTcpService>(config => OutboundTransportOptions.ConfigureSendPipe(config
             .SetListenIPHosts(options.GamePorts.Select(port => new IPHost(port)).ToArray())
             .SetSingleStreamDataHandlingAdapter(() => new GameClientFrameDataHandlingAdapter())
-            .ConfigurePlugins(plugins => plugins.Add<GameNetworkPlugin>()));
+            .ConfigurePlugins(plugins => plugins.Add<GameNetworkPlugin>())));
 
         if (options.UdpDiscoveryEnabled)
         {

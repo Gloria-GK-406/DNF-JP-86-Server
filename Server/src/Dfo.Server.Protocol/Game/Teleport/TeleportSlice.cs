@@ -1,3 +1,34 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Protocol.Game.CharacterDeath;
+using Dfo.Server.Protocol.Game.DeleteItem;
+using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.DungeonEntry;
+using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Protocol.Game.GroundPickup;
+using Dfo.Server.Protocol.Game.IllusionTowerContinue;
+using Dfo.Server.Protocol.Game.IllusionTowerInfo;
+using Dfo.Server.Protocol.Game.IllusionTowerMap;
+using Dfo.Server.Protocol.Game.IllusionTowerRanking;
+using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.Weakness;
+using Dfo.Server.Protocol.Game;
+using Microsoft.Extensions.Hosting;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -8,7 +39,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Inventory;
@@ -63,54 +93,73 @@ internal sealed class TeleportCooldownEncoder : GameNotiMessageEncoder<TeleportC
         return OnePayload(0x00AC, body);
     }
 }
-public sealed record TeleportCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Source, int ItemId, byte TownId, ChannelEntryIdentity Channel)
-    : ICommand<TeleportConsumableResult>, IRequestSettlementCommand, IAccountCommand, IOnlineUserCommand
+public sealed record GameTeleportCommand(NetworkDispatchContext Dispatch, TeleportRequest Input) : IProtocolCommand<bool>
 {
-    public AccountId AccountId => Session.AccountId;
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-public sealed class TeleportCommandHandler(ITeleportConsumableDomainService teleports)
-    : ICommandHandler<TeleportCommand, TeleportConsumableResult>
+internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameTeleportCommand, bool>
 {
-    public ValueTask<TeleportConsumableResult> HandleAsync(CommandExecutionContext context, TeleportCommand command,
-        CancellationToken ct) => teleports.UseAsync(command.Session, command.Source, command.ItemId,
-            command.TownId, command.Channel, ct);
-}
-public sealed class TeleportHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
-    IInventorySlotMappingRuleService mappings, IChannelEntryPolicy channels, ICommandBus commands,
-    SelectedSessionTransitionGate transitions, TownAreaProjectionDelivery townProjection,
-    IGameMessageSender sender, ILogger<TeleportHandler> logger) : ClientMessageHandler<TeleportRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TeleportRequest request, CancellationToken ct)
+    private readonly ISelectedSessionDomainService sessions;
+    private readonly ITownAreaDomainService townAreas;
+    private readonly ICommandProjections projections;
+    private readonly IPartyProjectionStateDomainService projectionState;
+    private readonly ILogger logger;
+    private readonly ISelectedCharacterCurrentViewDomainService currentViews;
+    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly IOnlineUserQueryDomainService onlineUsers;
+    private readonly IPartyService parties;
+
+    private readonly IOnlineUserQueryDomainService users;
+    private readonly IInventorySlotMappingRuleService mappings;
+    private readonly IChannelEntryDomainService channels;
+    private readonly ITeleportConsumableDomainService teleports;
+    private readonly ICommandWorkUnits units;
+    private readonly IGameCommandOutbox outbox;
+    private readonly Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions;
+    public GameTeleportCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+        ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
+        IInventorySlotMappingRuleService mappings, IChannelEntryDomainService channels, ITeleportConsumableDomainService teleports,
+        ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
+        Dfo.Server.Abstractions.Parties.IPartyService parties, Dfo.Server.Abstractions.Networking.IPartyProjectionStateDomainService projectionState,
+        ILogger<GameTeleportCommandHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
+        Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions)
+
+    {
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.housing = housing; this.onlineUsers = onlineUsers; this.parties = parties; this.users = onlineUsers; this.mappings = mappings; this.channels = channels; this.teleports = teleports;
+      this.units = units; this.outbox = outbox; this.housingSessions = housingSessions; }
+    public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameTeleportCommand command, CancellationToken ct) =>
+        TeleportAsync(execution, command.Dispatch, command.Input, ct);
+    private async ValueTask<bool> TeleportAsync(CommandExecutionContext execution, NetworkDispatchContext context, TeleportRequest request, CancellationToken ct)
     {
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null || !request.IsSupported
-            || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
+        if (session is null || execution.Request is CommandRequestContext.ProtocolEffectRejected || !request.IsSupported
+            || !users.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
         {
-            await sender.SendCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
-            return;
+            await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
+            return false;
         }
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId, ct).ConfigureAwait(false);
         var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
         var previous = townAreas.Find(session.CharacterId);
-        if (view is null || previous is null || !session.Owns(previous)) return;
+        if (view is null || previous is null || !session.Owns(previous)) return false;
         BusinessSlot source;
         try { source = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.SourceSlot)); }
         catch (InventorySlotMappingException)
         {
-            await sender.SendCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
-            return;
+            await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
+            return false;
         }
         var channel = await channels.ResolveAsync(context.Connection.ListenerPort, ct).ConfigureAwait(false);
-        var result = await commands.SendAsync(new TeleportCommand(online.OnlineUserId, session, source,
-            request.ItemId, request.TownId, channel), ct).ConfigureAwait(false);
+        if (execution.Request is not CommandRequestContext.ProtocolEffectSelected selected || session != selected.Recipient.Session)
+            throw new InvalidOperationException("Teleport requires its original selected actor.");
+        var result = await units.WriteAsync(execution, new("Teleport", [selected.Recipient], CommandWorkUnitKind.MainSettlement),
+            (unit, token) => teleports.UseAsync(session, source, request.ItemId, request.TownId, channel, unit.Footprint, token), ct).ConfigureAwait(false);
         if (result.Receipt is not { } receipt)
         {
             logger.LogWarning("TELEPORT refused character={Character} item={Item} town={Town} reason={Reason}",
                 session.CharacterId, request.ItemId, request.TownId, result.Status);
-            await sender.SendCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
-            return;
+            await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
+            return false;
         }
         var wire = mappings.ToGameSlot(receipt.Source);
         var messages = new List<IGameServerMessage>();
@@ -121,11 +170,17 @@ public sealed class TeleportHandler(ISelectedSessionDomainService sessions, IOnl
         else
             messages.AddRange(GameInventoryDelivery.Notifications([new(wire.Space,
                 [new InventoryItemState(receipt.Identity, wire.Index, receipt.RemainingCore.ToCore())], receipt.At)]));
-        await sender.SendBatchAsync(context.Connection, messages, ct).ConfigureAwait(false);
-        if (!await townProjection.ProjectTransferAsync(context.Connection.ConnectionId, session, view, previous, ct).ConfigureAwait(false))
+        await outbox.RegisterBatchAsync(context.Connection, messages, ct).ConfigureAwait(false);
+        if (!await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, context.Connection.ConnectionId, session, view, previous, ct).ConfigureAwait(false))
             logger.LogWarning("TELEPORT committed but town projection lost its membership character={Character}", session.CharacterId);
         logger.LogInformation("TELEPORT character={Character} item={Item} remaining={Remaining} destination={Town}:{Area} ({X},{Y})",
             session.CharacterId, receipt.ItemId, receipt.Remaining, receipt.Position.TownId, receipt.Position.AreaId,
             receipt.Position.X, receipt.Position.Y);
+        return true;
     }
+}
+public sealed class TeleportHandler(ICommandBus commands) : ClientMessageHandler<TeleportRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameTeleportCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TeleportRequest request, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameTeleportCommand(context, request), ct).ConfigureAwait(false);
 }

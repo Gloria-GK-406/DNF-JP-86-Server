@@ -2,6 +2,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -65,83 +66,12 @@ internal sealed class CreateCharacterMessageDecoder : IGameMessageDecoder
         CreateCharacterPayloadCodec.Decode(metadata, body);
 }
 
-public sealed record CreateCharacterCommand(AccountId AccountId, byte Job, byte[] RawName)
-    : ICommand<CharacterCreationResult>, IAccountCommand;
-
-public sealed class CreateCharacterCommandHandler(ICharacterDomainService characters)
-    : ICommandHandler<CreateCharacterCommand, CharacterCreationResult>
+public sealed class CreateCharacterHandler(ICommandBus commands)
+    : ClientMessageHandler<CreateCharacterRequest>, IProtocolCommandMessageHandler<GameCreateCharacterCommand>
 {
-    public ValueTask<CharacterCreationResult> HandleAsync(
-        CommandExecutionContext context,
-        CreateCharacterCommand command,
-        CancellationToken cancellationToken) =>
-        characters.CreateCharacterAsync(
-            command.AccountId,
-            command.Job,
-            command.RawName,
-            cancellationToken);
-}
-
-/// <summary>
-/// Creates the character, acknowledges it, then re-sends the whole roster.
-/// </summary>
-/// <remarks>
-/// The roster refresh is not optional garnish. The acknowledgement carries no character in it, so
-/// the roster notification is the only way the client learns what was created and which slot it
-/// landed in. Ordering matters: the acknowledgement first, then the roster, matching the legacy
-/// sequence.
-/// </remarks>
-public sealed class CreateCharacterHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    IGameMessageSender sender,
-    ICommandBus commandBus,
-    ILogger<CreateCharacterHandler> logger)
-    : ClientMessageHandler<CreateCharacterRequest>
-{
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        CreateCharacterRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            || onlineUser?.AccountId is not { } accountId)
-        {
-            throw new InvalidOperationException(
-                $"Game connection '{context.Connection.ConnectionId}' is not authenticated.");
-        }
-
-        var result = message.RawName is null
-            ? new CharacterCreationResult(CharacterCreationStatus.MalformedRequest, null)
-            : await commandBus.SendAsync(
-                new CreateCharacterCommand(accountId, message.Job, message.RawName),
-                cancellationToken).ConfigureAwait(false);
-
-        logger.LogInformation(
-            "Create character {ConnectionId} account={AccountId} job={Job}: {Status} character={CharacterId}",
-            context.Connection.ConnectionId,
-            accountId,
-            message.Job,
-            result.Status,
-            result.CharacterId?.Value ?? 0);
-
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new CreateCharacterResponse(result.Status),
-            cancellationToken).ConfigureAwait(false);
-
-        if (result.Status != CharacterCreationStatus.Created)
-        {
-            return;
-        }
-
-        var roster = await commandBus.SendAsync(
-            new GetAccountCharacterRosterCommand(accountId),
-            cancellationToken).ConfigureAwait(false);
-        await sender.SendNotiAsync(
-            context.Connection.ConnectionId,
-            new AccountCharacterRosterResponse(roster, AnswersRosterQuery: false),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        CreateCharacterRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameCreateCharacterCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class CreateCharacterResponseEncoder

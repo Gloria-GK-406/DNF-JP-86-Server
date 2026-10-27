@@ -1,0 +1,19 @@
+# TASK19 test value 与诊断
+
+保护结果是客户端 signed amount 仍拒绝负数、货仓与角色金币不移动、原失败ACK及MainCommitted不变；真实风险是whole搬迁把signed amount绝对值化，从无扣款变为合法扣款。真实decoder/dispatcher/同provider领域与数据库资产、ACK bytes和ledger作为oracle，已有纯domain negative用例绕过whole，编译及注册检查均看不出此错。新wire oracle仍可跨内部重构保持有效，额外价值高于七个定向case代价。mutation仅whole Math.Abs(-100)→+100，编译成功、真实资产与首ACK变化才计RED，finally精确恢复same bytes/SHA，同七case GREEN后冻结。
+
+真正before：四原产品/doc仍HEAD、新whole absent时先fresh registration capture/pure family；仅增最小wire观察器后old-oracle02四实际SQL/SQLite Commit＋原业务33/33。old-oracle01新DTO误用不存在Gold属性CS1061，只编译诊断，非行为RED。
+
+focused01/02新thin marker缺namespace/泛型导致CS0246；focused03六Message route仍旧RegisterMessageHandler，真实registry闭合拒绝，按源码定位补精确RegisterProtocolMessageHandler。没有改变registry。源编辑脚本对第二marker原无空格的字符串样式assert停；只第一marker完成后，第二按精确原bytes单项删除，未扩scope。
+
+focused04有界117/117。为world=false添加自然selected未InWorld的fixture后focused05 121/122：原SelectedSessionSafety.Capture要求online CurrentCharacterId已绑定，所构自然状态在Main之前被权威守卫拒绝。这是fixture不可达，不改生产判定；按Task允许使用本地PresenceProxy只将IsInWorld查询受控为false，其余Capture/Standing/current均转发同一个真实SelectedSessionDomainService singleton，明确不是自然registry transition。真实tower/owner/实际DungeonRun仍用原领域状态。focused06新具体服务namespace CS0246；focused07修正using后122/122。无共享fixture/服务/并行/期限/Skip更改。
+
+具名domain异常旧pipeline日志另以显式reconstructed HEAD old-route取证补充，绝不冒称真正preproduct before；四原始完整wire已在old-oracle02真实前时点完成。恢复原三产品字节+暂时恢复旧fine仅用于该日志观察，finally回原迁后源并删fine，输出/来源hash/时序独立保留。named mapping/InventoryExpansionException旧fine pipeline记Error但原handler只Info；generic旧pipeline+handler两Error，新whole仅generic一个handled Error。Clock通过本地TimeProvider仅Current实际事务内抛，保持原fine时点；非取消/非typed之外不转普通拒绝。
+
+## r2 补证
+
+主控task-rework/readiness授权按Task19 §8补强。原true-before四wire的items SELECT *经Convert.ToString把BLOB记为System.Byte[]，不能声称失败stage完整core已在原时点记录；原raw、最小test与四产品HEADbytes不改。r2-source snapshots明确封存11physical及r1/r2前缀。新增late exactHEAD重建用保存的最小旧四case/同seed/body/实际阶段，只改无损BLOB观测，另外在同受控切换中重跑具名日志；每次manifest含实际UTC、old四产品HEAD SHA、所用testsource和11physical before/after，finally精确恢复及旧fine absent。whole字节始终149f5634...。
+
+late-core01/late-named02都pass且恢复，但首显式查询对optional NULL BLOB直接hex(NULL)产生空字符串，属于观测表示丢失NULL，不用其作为最终无损证据；保该轮原source/raw。观察器随后仅item_core显式hex，optional BLOB原列保NULL，Rows只对实际nonnull byte[]转hex；fresh late-core02/late-named03独立重跑并封证。未改schema、领域、内容、业务clock或生产whole。
+
+items.created_at/updated_at由真实SQLite DEFAULT CURRENT_TIMESTAMP（Schema:407）及持久UPDATE updated_at=CURRENT_TIMESTAMP（SqliteItemDomainStore:348）产生，非fixture TimeProvider；比较器保每个raw时间，只跨run把这两具名列作关系比较，检UTC秒值、updated>=created及各自真实runner时间窗口。每run真实回滚前后全列/82Bcore/两时间仍由实际AssetState equality精确比较；其它列、UID/slots/receipt及所有first/replay帧不归一。原r1缺口与r2late补证是否足够交fresh requiredreview裁定，不用controller处置自批。

@@ -1,0 +1,1 @@
+这是行为保持的结构迁移，原reserved/sentinel、SQL、roll和帧case已有真实消费者oracle，不为新handler依赖/identity制造disabled或编译RED。先运行原reserved语义baseline绿色；在新增同provider actualhandler状态/SQL oracle后，用owned whole的reserved guard mutant证明实际金币/装备错误可被抓住，finally恢复同目标绿。新增状态用例保护早拒绝与normalRefused/failedRoll的不同entry和重试结果，原测试只凭ACK/gold不能区分；不是用构造/协作者选择作为业务代理。不会声称后写状态case是严格TDD；mutation给出有价值可编译RED/GREEN与实际持久状态。

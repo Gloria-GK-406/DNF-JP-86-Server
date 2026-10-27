@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
@@ -71,25 +73,12 @@ internal sealed class ContentsPlayInfoMessageDecoder : IGameMessageDecoder
         ContentsPlayInfoPayloadCodec.Decode(metadata, body);
 }
 
-public sealed class ContentsPlayInfoHandler(
-    IGameMessageSender sender,
-    ILogger<ContentsPlayInfoHandler> logger)
-    : ClientMessageHandler<ContentsPlayInfoRequest>
+public sealed class ContentsPlayInfoHandler(ICommandBus commands)
+    : ClientMessageHandler<ContentsPlayInfoRequest>, IProtocolCommandMessageHandler<GameContentsPlayInfoCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ContentsPlayInfoRequest message,
-        CancellationToken cancellationToken)
-    {
-        logger.LogInformation(
-            "Contents play info {ConnectionId}: selector={Selector}, replying with a zeroed record",
-            context.Connection.ConnectionId,
-            message.Selector);
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new ContentsPlayInfoResponse(),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ContentsPlayInfoRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameContentsPlayInfoCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class ContentsPlayInfoResponseEncoder

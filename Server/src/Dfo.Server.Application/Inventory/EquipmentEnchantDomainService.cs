@@ -11,7 +11,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentEnchantDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
@@ -21,13 +20,10 @@ internal sealed class EquipmentEnchantDomainService(
 {
     public async ValueTask<EquipmentEnchantResult> EnchantAsync(
         SelectedSessionIdentity session, BusinessSlot beadSlot, BusinessSlot targetSlot,
-        CancellationToken ct)
+        IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        if (!sessions.IsInWorld(session))
             return new(EquipmentEnchantRejection.NoSession);
 
         if (!beadSlot.Space.IsCarriedItemSpace()
@@ -70,7 +66,7 @@ internal sealed class EquipmentEnchantDomainService(
         var cardId = plan.Decision;
         if (cardId is null) return new(EquipmentEnchantRejection.UnsupportedContent);
 
-        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), footprint, session);
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentEnchantRejection.MaterialUnavailable);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);

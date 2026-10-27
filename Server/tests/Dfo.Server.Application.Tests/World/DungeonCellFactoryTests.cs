@@ -5,6 +5,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -48,42 +49,45 @@ public sealed class DungeonCellFactoryTests
     public async Task Materialized_level_is_shared_by_cell_drop_and_kill_across_rooms(
         bool mirror, byte declaredLevel, int? offset, byte expected)
     {
-        var start = new MazeCell(0, 0);
-        var next = new MazeCell(1, 0);
-        var layout = new DungeonLayout(4, 0, 2, 1, start, next, 123, 456,
-            new Dictionary<MazeCell, DungeonCellDefinition>
-            { [start] = DungeonCellDefinition.Fixed(123), [next] = DungeonCellDefinition.Fixed(124) },
-            BasisLevel: mirror ? (byte)86 : (byte)55)
-        { FixedMonsterLevel = mirror ? (byte)86 : null };
-        var source = new LevelRoomSource(new(61670, declaredLevel, 0, offset));
-        var rooms = new DungeonRoomRuleService(source, source, source, source);
-        var loot = new RecordingLoot();
-        var factory = new DungeonCellFactory(rooms, new NoPlacement(), loot,
-            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
-        DungeonRunParticipant[] members = [new(new(1), new(10), 0, true)];
-        var runs = new DungeonRunDomainService();
-        var runId = DungeonRunId.New();
-        var seed = await factory.CreateAsync(new(runId, layout, start, 123, 0,
-            DateTimeOffset.UnixEpoch, members), default);
-        var run = runs.PreparePartyEntry(members, layout, 0, seed, runId, DateTimeOffset.UnixEpoch).Run;
-        foreach (var cell in new[] { start, next })
+        await TestGameplay.RunAsync(async () =>
         {
-            if (cell == next)
+            var start = new MazeCell(0, 0);
+            var next = new MazeCell(1, 0);
+            var layout = new DungeonLayout(4, 0, 2, 1, start, next, 123, 456,
+                new Dictionary<MazeCell, DungeonCellDefinition>
+                { [start] = DungeonCellDefinition.Fixed(123), [next] = DungeonCellDefinition.Fixed(124) },
+                BasisLevel: mirror ? (byte)86 : (byte)55)
+            { FixedMonsterLevel = mirror ? (byte)86 : null };
+            var source = new LevelRoomSource(new(61670, declaredLevel, 0, offset));
+            var rooms = new DungeonRoomRuleService(source, source, source, source);
+            var loot = new RecordingLoot();
+            var factory = new DungeonCellFactory(rooms, new NoPlacement(), loot,
+                new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
+            DungeonRunParticipant[] members = [new(new(1), new(10), 0, true)];
+            var runs = new DungeonRunDomainService();
+            var runId = DungeonRunId.New();
+            var seed = await factory.CreateAsync(new(runId, layout, start, 123, 0,
+                DateTimeOffset.UnixEpoch, members), default);
+            var run = runs.PreparePartyEntry(members, layout, 0, seed, runId, DateTimeOffset.UnixEpoch).Run;
+            foreach (var cell in new[] { start, next })
             {
-                seed = await factory.CreateAsync(new(runId, layout, cell, 124, 0,
-                    DateTimeOffset.UnixEpoch, members), default);
-                run = Assert.IsType<DungeonRunState>(runs.TryMove(new(10), run.RunId, run.RoomVersion, cell, seed));
+                if (cell == next)
+                {
+                    seed = await factory.CreateAsync(new(runId, layout, cell, 124, 0,
+                        DateTimeOffset.UnixEpoch, members), default);
+                    run = Assert.IsType<DungeonRunState>(runs.TryMove(new(10), run.RunId, run.RoomVersion, cell, seed));
+                }
+                var actor = Assert.Single(seed.Actors);
+                Assert.Equal(expected, actor.Actor.Level);
+                Assert.Null(actor.Actor.BasisLevelOffset);
+                Assert.Equal(expected, loot.Context!.MonsterLevel);
+                var identification = await new MonsterKillDomainService().IdentifyAsync(run, actor.Sequence, default);
+                Assert.Equal(expected, identification.Kill!.Value.Level);
+                var claim = Assert.IsType<DungeonActorDeathClaim>(runs.TryClaimActorDeath(new(10), actor.Sequence));
+                run = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(claim));
+                Assert.Equal(expected, run.Kills.Last().MonsterLevel);
             }
-            var actor = Assert.Single(seed.Actors);
-            Assert.Equal(expected, actor.Actor.Level);
-            Assert.Null(actor.Actor.BasisLevelOffset);
-            Assert.Equal(expected, loot.Context!.MonsterLevel);
-            var identification = await new MonsterKillDomainService().IdentifyAsync(run, actor.Sequence, default);
-            Assert.Equal(expected, identification.Kill!.Value.Level);
-            var claim = Assert.IsType<DungeonActorDeathClaim>(runs.TryClaimActorDeath(new(10), actor.Sequence));
-            run = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(claim));
-            Assert.Equal(expected, run.Kills.Last().MonsterLevel);
-        }
+        });
     }
 
     [Theory]
@@ -225,29 +229,32 @@ public sealed class DungeonCellFactoryTests
     [Fact]
     public async Task Duplicate_object_templates_bind_separate_personal_loot_without_monster_or_ground_effects()
     {
-        var questLoot = new RecordingQuestLoot();
-        var cell = new MazeCell(0, 0);
-        var layout = new DungeonLayout(84, 0, 1, 1, cell, cell, 123, 456,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
-        DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
-        var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
-            new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards());
-        var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
-            DateTimeOffset.UnixEpoch, members), CancellationToken.None);
-        Assert.Empty(seed.Actors);
-        Assert.Empty(seed.GroundItems);
-        Assert.True(seed.Snapshot().IsCleared);
-        Assert.Equal(3, seed.Objects.Count);
-        Assert.Equal(3, seed.Objects.Select(o => o.Object.Id).Distinct().Count());
-        Assert.Equal(3, questLoot.Requests.Select(r => r.InstanceId).Distinct().Count());
-        Assert.All(questLoot.Requests, r => Assert.Equal(QuestEnemyType.PassiveObject, r.EnemyType));
-        Assert.All(seed.Objects, obj => Assert.Equal(members.Select(m => (CharacterId?)m.CharacterId),
-            obj.PendingLoot.Select(drop => drop.OwnerCharacterId)));
-        var run = new DungeonRunDomainService().PreparePartyEntry(members, layout, 0, initialCell: seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-        Assert.Equal(3, run.CurrentCellState!.Objects.Count);
-        // A caller cannot mutate the run through the unpublished seed's pending array.
-        ((RolledDrop[])seed.Objects[0].PendingLoot)[0] = default;
-        Assert.Equal(10149153, run.CurrentCellState.Objects[0].PendingLoot[0].ItemId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var questLoot = new RecordingQuestLoot();
+            var cell = new MazeCell(0, 0);
+            var layout = new DungeonLayout(84, 0, 1, 1, cell, cell, 123, 456,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
+            DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
+            var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
+                new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards());
+            var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
+                DateTimeOffset.UnixEpoch, members), CancellationToken.None);
+            Assert.Empty(seed.Actors);
+            Assert.Empty(seed.GroundItems);
+            Assert.True(seed.Snapshot().IsCleared);
+            Assert.Equal(3, seed.Objects.Count);
+            Assert.Equal(3, seed.Objects.Select(o => o.Object.Id).Distinct().Count());
+            Assert.Equal(3, questLoot.Requests.Select(r => r.InstanceId).Distinct().Count());
+            Assert.All(questLoot.Requests, r => Assert.Equal(QuestEnemyType.PassiveObject, r.EnemyType));
+            Assert.All(seed.Objects, obj => Assert.Equal(members.Select(m => (CharacterId?)m.CharacterId),
+                obj.PendingLoot.Select(drop => drop.OwnerCharacterId)));
+            var run = new DungeonRunDomainService().PreparePartyEntry(members, layout, 0, initialCell: seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            Assert.Equal(3, run.CurrentCellState!.Objects.Count);
+            // A caller cannot mutate the run through the unpublished seed's pending array.
+            ((RolledDrop[])seed.Objects[0].PendingLoot)[0] = default;
+            Assert.Equal(10149153, run.CurrentCellState.Objects[0].PendingLoot[0].ItemId);
+        });
     }
 
     private sealed class NoQuestBonus : IQuestHelperGroundBonusDomainService

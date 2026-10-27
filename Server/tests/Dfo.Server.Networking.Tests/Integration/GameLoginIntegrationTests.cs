@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -61,13 +62,9 @@ public sealed class GameLoginIntegrationTests
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
             var commands = host.Services.GetRequiredService<ICommandBus>();
-            var registration = await commands.SendAsync(
-                new RegisterAccountCommand("10038", "integration password"),
-                timeout.Token);
+            var registration = await TestCredentials.RegisterAsync(host.Services, "10038", "integration password", timeout.Token);
             Assert.Equal(AuthenticationStatus.Success, registration.Status);
-            var issued = await commands.SendAsync(
-                new AuthenticateAndIssueTicketCommand("10038", "integration password"),
-                timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, "10038", "integration password", timeout.Token);
             Assert.Equal(AuthenticationStatus.Success, issued.Status);
             Assert.NotNull(issued.Ticket);
 
@@ -89,7 +86,11 @@ public sealed class GameLoginIntegrationTests
                 await WaitUntilAsync(
                     () => onlineUsers.TryGetByConnection(connectionId, out _),
                     timeout.Token);
-                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var anonymous));
+                var anonymous = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(connectionId, out var anonymous));
+                    return anonymous;
+                });
                 Assert.Equal(OnlineUserState.Connected, anonymous!.State);
 
                 Assert.Equal(
@@ -103,7 +104,11 @@ public sealed class GameLoginIntegrationTests
                 var response = await ReadFrameAsync(client.GetStream(), timeout.Token);
                 Assert.Equal(BuildExpectedLoginResponse(), response);
 
-                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var authenticated));
+                var authenticated = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(connectionId, out var authenticated));
+                    return authenticated;
+                });
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 Assert.NotNull(authenticated.AccountId);
 
@@ -144,7 +149,11 @@ public sealed class GameLoginIntegrationTests
                 Assert.Equal(2, roster[15]);
                 var honor = await ReadFrameAsync(client.GetStream(), timeout.Token);
                 Assert.Equal(0x0289, BinaryPrimitives.ReadUInt16LittleEndian(honor.AsSpan(1)));
-                Assert.True(onlineUsers.TryGetByConnection(connectionId, out var stillLoggedIn));
+                var stillLoggedIn = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(connectionId, out var stillLoggedIn));
+                    return stillLoggedIn;
+                });
                 Assert.Equal(authenticated.AccountId, stillLoggedIn!.AccountId);
                 Assert.Equal(OnlineUserState.Authenticated, stillLoggedIn.State);
 
@@ -168,8 +177,7 @@ public sealed class GameLoginIntegrationTests
                 () => !onlineUsers.TryGetByConnection(connectionId, out _),
                 timeout.Token);
             // A new TCP login receives the saved set, rather than the previous empty baseline.
-            var reissued = await commands.SendAsync(
-                new AuthenticateAndIssueTicketCommand("10038", "integration password"), timeout.Token);
+            var reissued = await TestCredentials.LoginAsync(host.Services, "10038", "integration password", timeout.Token);
             using (var reconnected = new TcpClient())
             {
                 await reconnected.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
@@ -230,16 +238,12 @@ public sealed class GameLoginIntegrationTests
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
             var commands = host.Services.GetRequiredService<ICommandBus>();
-            _ = await commands.SendAsync(
-                new RegisterAccountCommand("player", "integration password"),
-                timeout.Token);
+            _ = await TestCredentials.RegisterAsync(host.Services, "player", "integration password", timeout.Token);
             // Repeat immediately: a recycled receive core must not retain the previous
             // connection's in-flight SocketAsyncEventArgs on a two-core Linux runner.
             for (var attempt = 0; attempt < 10; attempt++)
             {
-                var issued = await commands.SendAsync(
-                    new AuthenticateAndIssueTicketCommand("player", "integration password"),
-                    timeout.Token);
+                var issued = await TestCredentials.LoginAsync(host.Services, "player", "integration password", timeout.Token);
                 Assert.NotNull(issued.Ticket);
                 var invalidTicket = (issued.Ticket![0] == 'A' ? "B" : "A") + issued.Ticket[1..];
 
@@ -285,7 +289,11 @@ public sealed class GameLoginIntegrationTests
                         _ = await ReadFrameAsync(accepted.GetStream(), timeout.Token);
                     }
 
-                    Assert.True(onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                    var authenticated = TestGameplay.Run(host.Services, () =>
+                    {
+                        Assert.True(onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                        return authenticated;
+                    });
                     Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 }
 
@@ -332,13 +340,8 @@ public sealed class GameLoginIntegrationTests
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
             var commands = host.Services.GetRequiredService<ICommandBus>();
-            _ = await commands.SendAsync(
-                new RegisterAccountCommand("delivery-player", "integration password"),
-                timeout.Token);
-            var issued = await commands.SendAsync(
-                new AuthenticateAndIssueTicketCommand(
-                    "delivery-player", "integration password"),
-                timeout.Token);
+            _ = await TestCredentials.RegisterAsync(host.Services, "delivery-player", "integration password", timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, "delivery-player", "integration password", timeout.Token);
             Assert.NotNull(issued.Ticket);
 
             NetworkConnectionId failedConnectionId;
@@ -437,12 +440,8 @@ public sealed class GameLoginIntegrationTests
             var gameService = host.Services.GetRequiredService<IGameTcpService>();
             var commands = host.Services.GetRequiredService<ICommandBus>();
             var loginId = $"precommit-{kind}";
-            _ = await commands.SendAsync(
-                new RegisterAccountCommand(loginId, "integration password"),
-                timeout.Token);
-            var issued = await commands.SendAsync(
-                new AuthenticateAndIssueTicketCommand(loginId, "integration password"),
-                timeout.Token);
+            _ = await TestCredentials.RegisterAsync(host.Services, loginId, "integration password", timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, loginId, "integration password", timeout.Token);
             Assert.NotNull(issued.Ticket);
 
             NetworkConnectionId failedConnectionId;
@@ -454,7 +453,11 @@ public sealed class GameLoginIntegrationTests
                     onlineUsers,
                     timeout.Token);
                 _ = await ReadFrameAsync(failed.GetStream(), timeout.Token);
-                Assert.True(onlineUsers.TryGetByConnection(failedConnectionId, out var anonymous));
+                var anonymous = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(onlineUsers.TryGetByConnection(failedConnectionId, out var anonymous));
+                    return anonymous;
+                });
                 Assert.Equal(OnlineUserState.Connected, anonymous!.State);
                 Assert.Null(anonymous.AccountId);
 
@@ -505,8 +508,12 @@ public sealed class GameLoginIntegrationTests
                         BinaryPrimitives.ReadUInt16LittleEndian(state.AsSpan(1)));
                 }
 
-                Assert.True(
-                    onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                var authenticated = TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.True(
+                        onlineUsers.TryGetByConnection(acceptedConnectionId, out var authenticated));
+                    return authenticated;
+                });
                 Assert.Equal(OnlineUserState.Authenticated, authenticated!.State);
                 Assert.NotNull(authenticated.AccountId);
             }
@@ -668,7 +675,7 @@ public sealed class GameLoginIntegrationTests
         bool failFirstLoginDelivery = false,
         TransactionPrepareFaultProbe? preCommitFault = null)
     {
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true",
@@ -686,13 +693,16 @@ public sealed class GameLoginIntegrationTests
         new InfrastructureModule().ConfigureServices(builder.Services, builder.Configuration);
         new PersistenceModule().ConfigureServices(builder.Services, builder.Configuration);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new TestCredentials.FixtureReadiness());
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         if (failFirstLoginDelivery)
         {
-            DecorateSingleton<IGameMessageSender>(
+            // TASK-24: the registration point's encoder refuses the first login reply, the failure the
+            // handler's kept branch still sees (the transitional sender double threw at the same call).
+            DecorateSingleton<Dfo.Server.Abstractions.Execution.IOutboundMessageEncoder>(
                 builder.Services,
-                (_, sender) => new FailFirstLoginDelivery(sender));
+                (_, encoder) => new FailFirstLoginEncoding(encoder));
         }
         if (preCommitFault is { } fault)
         {
@@ -733,49 +743,38 @@ public sealed class GameLoginIntegrationTests
         return (long)(await command.ExecuteScalarAsync())!;
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => value;
     }
 
-    private sealed class FailFirstLoginDelivery(IGameMessageSender inner) : IGameMessageSender
+    private sealed class FailFirstLoginEncoding(Dfo.Server.Abstractions.Execution.IOutboundMessageEncoder inner)
+        : Dfo.Server.Abstractions.Execution.IOutboundMessageEncoder
     {
         private int failNext = 1;
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken)
+        public byte[] EncodeMessage(NetworkConnectionContext connection, IServerNetworkMessage message)
+        {
+            Check(message);
+            return inner.EncodeMessage(connection, message);
+        }
+
+        public byte[] EncodeBatch(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages)
+        {
+            foreach (var message in messages) Check(message);
+            return inner.EncodeBatch(connection, messages);
+        }
+
+        private void Check(IServerNetworkMessage message)
         {
             if (message is GameLoginResponse
                 && Interlocked.Exchange(ref this.failNext, 0) == 1)
             {
                 throw new IOException("test-injected login delivery failure");
             }
-
-            return inner.SendCmdAsync(connectionId, message, cancellationToken);
         }
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            inner.SendNotiAsync(connectionId, message, cancellationToken);
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) =>
-            inner.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private enum PrepareFaultKind

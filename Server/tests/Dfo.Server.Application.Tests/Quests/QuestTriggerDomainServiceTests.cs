@@ -10,6 +10,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -30,66 +31,75 @@ public sealed class QuestTriggerDomainServiceTests
         int dungeonId, int boundQuestId, DungeonQuestConnectionState state,
         int requiredDifficulty, byte selector, bool accepted)
     {
-        using var fixture = new ShopFixture();
-        fixture.Sql("INSERT INTO character_active_quests VALUES(1,0,15262,1)");
-        var runs = new DungeonRunDomainService();
-        if (dungeonId > 0)
-            runs.Begin(fixture.Session.CharacterId,
-                Layout(new(DungeonRunPurposeKind.Cycle, boundQuestId, state)) with { DungeonId = dungeonId },
-                difficulty: (Dfo.Server.Data.World.DungeonDifficulty)2);
-        var quest = Quest1776() with
+        await TestGameplay.RunAsync(async () =>
         {
-            QuestId = 15262,
-            Grade = QuestGrade.Circle,
-            KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy",
-                [87, requiredDifficulty, 10199, HuntEnemyTargetTypes.PassiveObject, 1]),
-        };
-        var service = new QuestTriggerDomainService(
-            fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), runs);
-        QuestAdvance result;
-        await using (var transaction = ((DomainTransactionScope)fixture.Services
-            .GetRequiredService<IDomainTransactionAccessor>()).Begin())
-        {
-            result = await service.ApplyClientReportAsync(fixture.Session.AccountId,
-                fixture.Session.CharacterId, quest, selector, increment: false, CancellationToken.None);
-            await transaction.CommitAsync(CancellationToken.None);
-        }
+            using var fixture = new ShopFixture();
+            fixture.Sql("INSERT INTO character_active_quests VALUES(1,0,15262,1)");
+            var runs = new DungeonRunDomainService();
+            if (dungeonId > 0)
+                runs.Begin(fixture.Session.CharacterId,
+                    Layout(new(DungeonRunPurposeKind.Cycle, boundQuestId, state)) with { DungeonId = dungeonId },
+                    difficulty: (Dfo.Server.Data.World.DungeonDifficulty)2);
+            var quest = Quest1776() with
+            {
+                QuestId = 15262,
+                Grade = QuestGrade.Circle,
+                KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy",
+                    [87, requiredDifficulty, 10199, HuntEnemyTargetTypes.PassiveObject, 1]),
+            };
+            var service = new QuestTriggerDomainService(
+                fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), runs);
+            QuestAdvance result;
+            await using (var transaction = ((DomainTransactionScope)fixture.Services
+                .GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                result = await service.ApplyClientReportAsync(fixture.Session.AccountId,
+                    fixture.Session.CharacterId, quest, selector, increment: false, CancellationToken.None);
+                await transaction.CommitAsync(CancellationToken.None);
+            }
 
-        Assert.Equal(accepted ? QuestAdvanceVerdict.Advanced : QuestAdvanceVerdict.Refused, result.Verdict);
-        Assert.Equal(accepted ? 0 : 1,
-            fixture.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=15262"));
-        Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=15262"));
+            Assert.Equal(accepted ? QuestAdvanceVerdict.Advanced : QuestAdvanceVerdict.Refused, result.Verdict);
+            Assert.Equal(accepted ? 0 : 1,
+                fixture.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=15262"));
+            Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE quest_id=15262"));
+        });
     }
 
     [Fact]
     public async Task Quest1776PassiveObjectReportIsAcceptedInItsActiveStoryRun()
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Layout(DungeonRunPurpose.QuestLinked(
-            1776, DungeonQuestConnectionState.Active)), difficulty: 0);
-        var logs = new RecordingLogs();
-        var service = new QuestTriggerDomainService(logs, runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Layout(DungeonRunPurpose.QuestLinked(
+                1776, DungeonQuestConnectionState.Active)), difficulty: 0);
+            var logs = new RecordingLogs();
+            var service = new QuestTriggerDomainService(logs, runs);
 
-        var result = await service.ApplyClientReportAsync(
-            Account, Character, Quest1776(), 0x10, increment: false, CancellationToken.None);
+            var result = await service.ApplyClientReportAsync(
+                Account, Character, Quest1776(), 0x10, increment: false, CancellationToken.None);
 
-        Assert.Equal(QuestAdvanceVerdict.Advanced, result.Verdict);
-        Assert.Equal(1, logs.AdvanceCalls);
+            Assert.Equal(QuestAdvanceVerdict.Advanced, result.Verdict);
+            Assert.Equal(1, logs.AdvanceCalls);
+        });
     }
 
     [Fact]
     public async Task TheSameReportIsRefusedInAnOrdinaryRun()
     {
-        var runs = new DungeonRunDomainService();
-        runs.Begin(Character, Layout(DungeonRunPurpose.Ordinary), difficulty: 0);
-        var logs = new RecordingLogs();
-        var service = new QuestTriggerDomainService(logs, runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            runs.Begin(Character, Layout(DungeonRunPurpose.Ordinary), difficulty: 0);
+            var logs = new RecordingLogs();
+            var service = new QuestTriggerDomainService(logs, runs);
 
-        var result = await service.ApplyClientReportAsync(
-            Account, Character, Quest1776(), 0x10, increment: false, CancellationToken.None);
+            var result = await service.ApplyClientReportAsync(
+                Account, Character, Quest1776(), 0x10, increment: false, CancellationToken.None);
 
-        Assert.Equal(QuestAdvanceVerdict.Refused, result.Verdict);
-        Assert.Equal(0, logs.AdvanceCalls);
+            Assert.Equal(QuestAdvanceVerdict.Refused, result.Verdict);
+            Assert.Equal(0, logs.AdvanceCalls);
+        });
     }
 
     private static QuestDefinition Quest1776() =>

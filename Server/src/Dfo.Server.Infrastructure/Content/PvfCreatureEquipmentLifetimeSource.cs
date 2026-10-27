@@ -7,7 +7,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfCreatureEquipmentLifetimeSource(PvfArchiveProvider provider)
-    : ICreatureEquipmentLifetimeSource
+    : ICreatureEquipmentLifetimeSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -33,6 +33,14 @@ internal sealed class PvfCreatureEquipmentLifetimeSource(PvfArchiveProvider prov
     private const string EquipmentListPath = "equipment/equipment.lst";
     private readonly Lock gate = new();
     private Dictionary<int, Metadata>? metadata;
+
+    public string Name => "creature-equipment-lifetimes";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load().Count);
+    }
 
     public ValueTask<CreatureEquipmentLifetime> GetAsync(
         int itemTemplateId,

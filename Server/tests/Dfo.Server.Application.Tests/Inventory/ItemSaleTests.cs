@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game.SellItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -36,10 +37,13 @@ public sealed class ItemSaleTests
         var layout = new DungeonLayout(11008, 0, 1, 1, cell, cell, 55611, 0,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) })
             { Despair = tower ? new(1, new(2026, 10, 11)) : null };
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
-            shop.Session.CharacterId, 0, true)], layout, 0)).Run;
-        if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
+                shop.Session.CharacterId, 0, true)], layout, 0)).Run;
+            if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        });
         await Sell(shop, 65, 1, npc: npc);
         Assert.Equal(1, shop.Count(5000));
         Assert.Equal(100031, shop.Gold);
@@ -62,10 +66,13 @@ public sealed class ItemSaleTests
         var layout = new DungeonLayout(144, 0, boss ? (byte)1 : (byte)2, 1, cell, boss ? cell : other, 55611, 0,
             boss ? new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}
                 : new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611), [other] = DungeonCellDefinition.Fixed(55611)});
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
-            shop.Session.CharacterId, 0, true)], layout, 0)).Run;
-        if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
+                shop.Session.CharacterId, 0, true)], layout, 0)).Run;
+            if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+        });
         await Sell(shop, 65, 1, npc: npc);
         Assert.Equal(1, shop.Count(5000));
         Assert.Equal(100031, shop.Gold);
@@ -163,15 +170,16 @@ public sealed class ItemSaleTests
     [Fact]
     public async Task A_bad_field_sum_and_an_old_session_cannot_sell()
     {
-        using var shop = Fixture();
+        var trace = new SellItemProtocolCommandFlowTests.Trace();
+        using var shop = SellItemProtocolCommandFlowTests.CreateFixture(trace);
         await shop.Seed(65, 5000, 10);
         await Sell(shop, 65, 1, sum: 0);
         var old = shop.Session;
         shop.Select(2);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new SellItemCommand(
-            shop.OnlineUser, old,
-            new BusinessSlot(BusinessInventorySpace.Consumable, 0), 1, 2));
-        Assert.Equal(ItemSaleRejection.NoSession, result.Rejection);
+        trace.Stale = old;
+        await Sell(shop, 65, 1);
+        Assert.Equal(ItemSaleRejection.NoSession, trace.Attempts.Last().Result!.Rejection);
+        Assert.Equal(new SellItemResponse(null, ErrorCode: 1), shop.Sender.Messages.Last());
         Assert.Equal(10, shop.Scalar("SELECT count FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
     }
@@ -230,11 +238,12 @@ public sealed class ItemSaleTests
     {
         using var shop = Fixture();
         await shop.Seed(65, 5000, 10);
-        shop.Sender.BeforeSend = () => throw new IOException("test connection failure");
+        shop.Sender.FailSends(() => new IOException("test connection failure"));
         await Sell(shop, 65, 1);
         Assert.Equal(9, shop.Count(5000));
         Assert.Equal(100031, shop.Gold);
         Assert.Equal(1, shop.Sender.Attempts);
+        Assert.Empty(shop.Sender.Messages);
     }
 
     [Fact]
@@ -248,8 +257,11 @@ public sealed class ItemSaleTests
             new BusinessSlot(BusinessInventorySpace.Consumable, 0),
             5000, 1, 31, null, DateTimeOffset.UtcNow);
         shop.Select(2);
-        await shop.Services.GetRequiredService<IEventService>().ProjectAsync(
-            new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await shop.Services.GetRequiredService<IEventService>().ProjectAsync(
+                new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new ItemSaleCompleted(receipt), default);
+        });
         Assert.Single(shop.Sender.Messages);
     }
 
@@ -358,12 +370,7 @@ public sealed class ItemSaleTests
 
     private static ValueTask Sell(ShopFixture shop, int slot, int count,
         InventoryContainerType container = InventoryContainerType.Main, int npc = 2, int? sum = null) =>
-        shop.Services.GetRequiredService<SellItemHandler>().HandleAsync(new(shop.Connection),
-            new SellItemRequest(
-                GameMessageMetadata.Empty,
-                new GameSlot(container, slot),
-                checked((short)count), npc, sum ?? (byte)container + slot + count),
-            default);
+        SellWire.Sell(shop, slot, count, container, npc, sum);
 
     private static ShopFixture Fixture(int cap = 1000000, IItemSaleDefinitionSource? prices = null,
         SaleLogger? logger = null) => new(services =>

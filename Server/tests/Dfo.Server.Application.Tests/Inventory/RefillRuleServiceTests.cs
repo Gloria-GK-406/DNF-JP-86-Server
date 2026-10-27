@@ -17,6 +17,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 /// The behaviour asserted is the behaviour before the rules moved. `SqliteEntryInventoryMutationRepositoryTests`
 /// holds the same judgements from the other side and its assertions are not to be touched.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class RefillRuleServiceTests
 {
     private static readonly IDailyRefillRuleService Refill = new DailyRefillRuleService();

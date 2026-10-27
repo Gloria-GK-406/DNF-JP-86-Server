@@ -3,10 +3,18 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfEquipmentResealContentSource(PvfArchiveProvider provider) : IEquipmentResealContentSource
+internal sealed class PvfEquipmentResealContentSource(PvfArchiveProvider provider) : IEquipmentResealContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private EquipmentResealTable? cached;
+    public string Name => "equipment-reseal";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load() is null ? 0 : 1);
+    }
+
     public EquipmentResealTable Load()
     {
         lock (gate)

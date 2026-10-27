@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfTeleportConsumableDefinitionSource(PvfArchiveProvider provider)
-    : ITeleportConsumableDefinitionSource
+    : ITeleportConsumableDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -16,6 +16,25 @@ internal sealed class PvfTeleportConsumableDefinitionSource(PvfArchiveProvider p
     private readonly Lock gate = new();
     private readonly Dictionary<int, TeleportConsumableDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
+    public string Name => "teleport-consumable-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            PathsIndex(archive);
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+    }
+
     public ValueTask<TeleportConsumableDefinition?> GetAsync(int itemId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -23,7 +42,7 @@ internal sealed class PvfTeleportConsumableDefinitionSource(PvfArchiveProvider p
         {
             if (cache.TryGetValue(itemId, out var found)) return ValueTask.FromResult(found);
             var archive = provider.Archive;
-            paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+            PathsIndex(archive);
             found = null;
             if (paths.TryGetValue(itemId, out var path))
             {

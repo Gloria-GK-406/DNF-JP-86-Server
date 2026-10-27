@@ -1,3 +1,5 @@
+using Dfo.Server.Protocol.Tests.Support;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
 using System.Buffers.Binary;
@@ -27,6 +29,7 @@ using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CardReward;
 
@@ -73,29 +76,32 @@ public sealed class CardRewardTests
     [Fact]
     public async Task Second_reward_failure_rolls_back_assets_and_releases_the_claim_for_retry()
     {
-        var scope = new DomainTransactionScope();
-        var world = new World(blackDiamond: BonusFace, transactions: scope);
-        world.Bag.RefuseAtCall = 2;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var lease = scope.Begin();
-            scope.Current!.Enlist(world, () => new AwardParticipant(world));
-            await world.Flip(ClearRewardCardKind.Free, 0);
-            await lease.CommitAsync(default);
+            var scope = new DomainTransactionScope();
+            var world = new World(blackDiamond: BonusFace, transactions: scope);
+            world.Bag.RefuseAtCall = 2;
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await using var lease = scope.Begin();
+                scope.Current!.Enlist(world, () => new AwardParticipant(world));
+                await world.Flip(ClearRewardCardKind.Free, 0);
+                await lease.CommitAsync(default);
+            });
+            Assert.Empty(world.Bag.Slots);
+            Assert.Equal(StartingGold, world.Gold.Total);
+            await using (var lease = scope.Begin())
+            {
+                scope.Current!.Enlist(world, () => new AwardParticipant(world));
+                var retry = await world.Flip(ClearRewardCardKind.Free, 0);
+                Assert.Null(retry.Change);
+                await lease.CommitAsync(default);
+                Assert.NotNull(retry.Change);
+            }
+            Assert.Equal(2, world.Bag.Slots.Count);
+            Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
+            Assert.Equal(SelectCardStatus.AlreadyFlipped, (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
         });
-        Assert.Empty(world.Bag.Slots);
-        Assert.Equal(StartingGold, world.Gold.Total);
-        await using (var lease = scope.Begin())
-        {
-            scope.Current!.Enlist(world, () => new AwardParticipant(world));
-            var retry = await world.Flip(ClearRewardCardKind.Free, 0);
-            Assert.Null(retry.Change);
-            await lease.CommitAsync(default);
-            Assert.NotNull(retry.Change);
-        }
-        Assert.Equal(2, world.Bag.Slots.Count);
-        Assert.Equal(StartingGold + FaceGold, world.Gold.Total);
-        Assert.Equal(SelectCardStatus.AlreadyFlipped, (await world.Flip(ClearRewardCardKind.Free, 0)).Status);
     }
 
     // Transactional asset stand-in; persistence's SQLite atomicity is covered separately.
@@ -248,33 +254,43 @@ public sealed class CardRewardTests
     [Fact]
     public async Task The_scroll_acknowledgement_is_followed_by_the_layout()
     {
-        var sender = new RecordingSender();
-        var handler = new ScoreScrollStateHandler(
-            new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var runs = SettledCardRun.Create(Identity);
+            var signals = new ProtocolAlgorithmFixture.CardSignals();
+            var handler = new ScoreScrollDriver(
+                new OneSession(Identity), sender, NullLogger<ScoreScrollStateHandler>.Instance, signals, runs);
 
-        await handler.HandleAsync(
-            Dispatch(), new ScoreScrollStateRequest(GameMessageMetadata.Empty), CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(), new ScoreScrollStateRequest(GameMessageMetadata.Empty), CancellationToken.None);
 
-        Assert.Collection(
-            sender.Sent,
-            first => Assert.IsType<ScoreScrollStateResponse>(first),
-            second => Assert.IsType<CardSelectRightStateResponse>(second));
+            Assert.Collection(
+                sender.Sent,
+                first => Assert.IsType<ScoreScrollStateResponse>(first),
+                second => Assert.IsType<CardSelectRightStateResponse>(second));
+            Assert.True(runs.Find(Identity.CharacterId)!.CardLayoutOpen);
+            Assert.Equal("auto", Assert.Single(signals.Calls).Phase);
+        });
     }
 
     /// <summary>The layout request is answered with the layout on its own.</summary>
     [Fact]
     public async Task The_layout_request_is_answered_with_the_layout()
     {
-        var sender = new RecordingSender();
-        var handler = new CardSelectRightStateHandler(
-            new OneSession(Identity), sender, NullLogger<CardSelectRightStateHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = new CardRightDriver(
+                new OneSession(Identity), sender, NullLogger<CardSelectRightStateHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new CardSelectRightStateRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new CardSelectRightStateRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.IsType<CardSelectRightStateResponse>(Assert.Single(sender.Sent));
+            Assert.IsType<CardSelectRightStateResponse>(Assert.Single(sender.Sent));
+        });
     }
 
     // ---- the flip's answer -----------------------------------------------------------------
@@ -1044,18 +1060,21 @@ public sealed class CardRewardTests
     [Fact]
     public async Task A_paid_flip_losing_the_reservation_moves_no_money()
     {
-        var world = new World();
-        var reservation = world.Reserve(ClearRewardCardKind.Paid, 0);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = new World();
+            var reservation = world.Reserve(ClearRewardCardKind.Paid, 0);
 
-        var result = await world.Flip(ClearRewardCardKind.Paid, 0);
+            var result = await world.Flip(ClearRewardCardKind.Paid, 0);
 
-        Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
-        Assert.Equal(0, world.Gold.Charges);
-        Assert.Equal(StartingGold, world.Gold.Total);
-        world.Release(reservation);
-        Assert.Equal(
-            SelectCardStatus.Flipped,
-            (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
+            Assert.Equal(SelectCardStatus.AlreadyFlipped, result.Status);
+            Assert.Equal(0, world.Gold.Charges);
+            Assert.Equal(StartingGold, world.Gold.Total);
+            world.Release(reservation);
+            Assert.Equal(
+                SelectCardStatus.Flipped,
+                (await world.Flip(ClearRewardCardKind.Paid, 0)).Status);
+        });
     }
 
     [Fact]
@@ -1172,14 +1191,28 @@ public sealed class CardRewardTests
         Assert.NotNull(provider.GetRequiredService<CardSelectRightStateHandler>());
         Assert.NotNull(provider.GetRequiredService<SelectCardHandler>());
         Assert.NotNull(provider.GetRequiredService<SetPlayResultHandler>());
-        // Transactional, not workflow. The flip puts a row in a bag, and the bag's own container
-        // refuses a write with no boundary open -- so this is not bookkeeping about which enum a
-        // registration carries, it is whether the arrival can happen at all. A claim marked taken
-        // whose piece never landed is the state the boundary exists to make impossible.
-        var registration = Assert.Single(
-            provider.GetServices<CommandHandlerRegistration>(),
-            value => value.CommandType == typeof(SelectCardCommand));
-        Assert.Equal(CommandExecutionKind.Transactional, registration.ExecutionKind);
+        var commands = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        foreach (var (type, message) in new[]
+        {
+            (typeof(GameSelectCardCommand), ClientMessageType.GameSelectCard),
+            (typeof(GameCardSelectRightStateCommand), ClientMessageType.GameCardSelectRightState),
+            (typeof(GameScoreScrollStateCommand), ClientMessageType.GameScoreScrollState),
+            (typeof(GameSetPlayResultCommand), ClientMessageType.GameSetPlayResult),
+            (typeof(GameBossDieCheckCommand), ClientMessageType.GameBossDieCheck),
+        })
+        {
+            var registration = Assert.Single(commands, row => row.CommandType == type);
+            Assert.Equal(CommandRouteKind.Protocol, registration.Route);
+            Assert.Equal(message, Assert.Single(registration.ProtocolMessages!).MessageType);
+        }
+        foreach (var type in new[] { typeof(DungeonCardLayoutCommand), typeof(DungeonCardAutoFlipCommand) })
+        {
+            var registration = Assert.Single(commands, row => row.CommandType == type);
+            Assert.Equal(CommandRouteKind.Internal, registration.Route);
+        }
+        Assert.DoesNotContain(commands, row => row.CommandType.Name is "SelectCardCommand" or "GrantClearExperienceCommand");
+        Assert.Same(provider.GetRequiredService<DungeonCardPresentationCoordinator>(), provider.GetRequiredService<IDungeonCardPresentationControl>());
+
     }
 
     // ---- fixtures --------------------------------------------------------------------------
@@ -1247,7 +1280,7 @@ public sealed class CardRewardTests
 
         private readonly DungeonRunDomainService _runs;
         private readonly RefusingRules _rules;
-        private readonly SelectCardCommandHandler _handler;
+        private readonly CardAwardAlgorithmDriver _handler;
 
         public World(
             bool inARun = true,
@@ -1265,40 +1298,43 @@ public sealed class CardRewardTests
             this.Gold = new CarriedGold(startingGold);
 
             ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs, new Dfo.Server.Protocol.Tests.Support.CardPremiums());
-            this._handler = new SelectCardCommandHandler(
+            this._handler = new CardAwardAlgorithmDriver(
                 cards,
                 this._runs,
                 new OnePlayingCharacter(this.Gold),
                 new FixedClock(Flipped),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new StubContainers(bagBound ? this.Bag : null)), new BaseCost());
 
-            if (!inARun)
-                return;
-
-            var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: Dfo.Server.Data.World.DungeonDifficulty.Adventure);
-            if (cardsFixed)
+            TestGameplay.Run(() =>
             {
-                // The price goes down with the faces, which is where a clear fixes it. Handing it
-                // to the run rather than to the rule service is not a shortcut: after settlement
-                // there is nothing left for the rules to be asked, which is what the fixture's
-                // rule service refusing every member now says.
-                this._runs.FixClearRewardCards(
-                    Identity.CharacterId, run.RunId,
-                    Face(ClearRewardCardKind.Free),
-                    Face(ClearRewardCardKind.Paid),
-                    paidFlipPrice, blackDiamond);
-            }
+                if (!inARun)
+                    return;
 
-            Assert.NotNull(this._runs.TryOpenClear(
-                Identity.CharacterId, run.RunId, run.RoomVersion));
-            var settlement = Assert.IsType<DungeonSettlementClaim>(
-                this._runs.TryClaimSettlement(Identity.CharacterId, run.RunId));
-            Assert.NotNull(this._runs.CommitSettlement(settlement));
-            if (cardsFixed)
-            {
-                Assert.NotNull(this._runs.TryOpenCardLayout(
-                    Identity.CharacterId, run.RunId));
-            }
+                var run = this._runs.Begin(Identity.CharacterId, Layout, difficulty: Dfo.Server.Data.World.DungeonDifficulty.Adventure);
+                if (cardsFixed)
+                {
+                    // The price goes down with the faces, which is where a clear fixes it. Handing it
+                    // to the run rather than to the rule service is not a shortcut: after settlement
+                    // there is nothing left for the rules to be asked, which is what the fixture's
+                    // rule service refusing every member now says.
+                    this._runs.FixClearRewardCards(
+                        Identity.CharacterId, run.RunId,
+                        Face(ClearRewardCardKind.Free),
+                        Face(ClearRewardCardKind.Paid),
+                        paidFlipPrice, blackDiamond);
+                }
+
+                Assert.NotNull(this._runs.TryOpenClear(
+                    Identity.CharacterId, run.RunId, run.RoomVersion));
+                var settlement = Assert.IsType<DungeonSettlementClaim>(
+                    this._runs.TryClaimSettlement(Identity.CharacterId, run.RunId));
+                Assert.NotNull(this._runs.CommitSettlement(settlement));
+                if (cardsFixed)
+                {
+                    Assert.NotNull(this._runs.TryOpenCardLayout(
+                        Identity.CharacterId, run.RunId));
+                }
+            });
         }
 
         /// <summary>The character's own bag, which is where a flipped piece has to end up.</summary>
@@ -1314,7 +1350,7 @@ public sealed class CardRewardTests
         public int Flips { get; private set; }
 
         /// <summary>The last command that reached the handler, whoever built it.</summary>
-        public SelectCardCommand? LastCommand { get; private set; }
+        public CardAwardAlgorithmInput? LastCommand { get; private set; }
 
         public DungeonClearRewardCardClaim Reserve(ClearRewardCardKind kind, int index)
         {
@@ -1328,21 +1364,23 @@ public sealed class CardRewardTests
 
         public ValueTask<SelectCardResult> Flip(ClearRewardCardKind kind, int index) =>
             this.Send(
-                new SelectCardCommand(
+                new CardAwardAlgorithmInput(
                     Identity.AccountId, Identity.CharacterId, kind, index));
 
-        public async ValueTask<SelectCardResult> Send(SelectCardCommand command)
+        public async ValueTask<SelectCardResult> Send(CardAwardAlgorithmInput command)
         {
-            this.Flips++;
-            this.LastCommand = command;
-            return await this._handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.NewGuid(),
-                    typeof(SelectCardCommand),
-                    typeof(SelectCardCommandHandler),
-                    CommandExecutionKind.Workflow),
-                command,
-                CancellationToken.None);
+            return await TestGameplay.RunAsync(async () =>
+            {
+                this.Flips++;
+                this.LastCommand = command;
+                return await this._handler.HandleAsync(
+                    DomainCommandFixture.Context(
+                        Guid.NewGuid(),
+                        typeof(CardAwardAlgorithmInput),
+                        typeof(CardAwardAlgorithmDriver)),
+                    command,
+                    CancellationToken.None);
+            });
         }
 
         public async ValueTask Handle(
@@ -1352,18 +1390,21 @@ public sealed class CardRewardTests
             ISelectedSessionDomainService? sessions = null,
             ISelectedCharacterCurrentViewDomainService? runtimeSessions = null)
         {
-            var handler = new SelectCardHandler(
-                sessions ?? new OneSession(Identity),
-                runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
-                this._runs,
-                new OneCommandBus(this),
-                sender,
-                NullLogger<SelectCardHandler>.Instance);
+            await TestGameplay.RunAsync(async () =>
+            {
+                var handler = new SelectCardDriver(
+                    sessions ?? new OneSession(Identity),
+                    runtimeSessions ?? new OneRuntimeSession(PublishedEntry()),
+                    this._runs,
+                    new OneCommandBus(this),
+                    sender,
+                    NullLogger<SelectCardHandler>.Instance);
 
-            await handler.HandleAsync(
-                Dispatch(),
-                new SelectCardRequest(GameMessageMetadata.Empty, kind, index),
-                CancellationToken.None);
+                await handler.HandleAsync(
+                    Dispatch(),
+                    new SelectCardRequest(GameMessageMetadata.Empty, kind, index),
+                    CancellationToken.None);
+            });
         }
 
         /// <summary>
@@ -1383,11 +1424,14 @@ public sealed class CardRewardTests
     /// <summary>A bus that carries exactly the one command this slice sends.</summary>
     private sealed class OneCommandBus(World world) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public async ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var flip = Assert.IsType<SelectCardCommand>(command);
+            var flip = Assert.IsType<CardAwardAlgorithmInput>(command);
             var result = await world.Send(flip);
             return (TResult)(object)result;
         }
@@ -1502,6 +1546,53 @@ public sealed class CardRewardTests
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
@@ -1519,6 +1610,53 @@ public sealed class CardRewardTests
 
     private sealed class NoSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
@@ -1534,9 +1672,15 @@ public sealed class CardRewardTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
+    /// <summary>
+    /// What was registered, read from the outbox of a real registration adapter; every call goes to the real protocol
+    /// sender over it (TASK-25).
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public List<IGameServerMessage> Sent => [.. this.Exchanges.SelectMany(exchange => exchange)];
 
         /// <summary>
         /// What went out together, one entry per call.
@@ -1544,39 +1688,29 @@ public sealed class CardRewardTests
         /// <remarks>
         /// Kept apart from <see cref="Sent"/> because "the answer and the bag change go out in the
         /// same exchange" is a claim about grouping, and a flat list of what was sent cannot tell
-        /// one exchange carrying two frames from two exchanges carrying one each.
+        /// one exchange carrying two frames from two exchanges carrying one each. One registered batch is one
+        /// exchange: a single send, or the direct messages of an explicit delivery.
         /// </remarks>
-        public List<IReadOnlyList<IGameServerMessage>> Exchanges { get; } = [];
+        public List<IReadOnlyList<IGameServerMessage>> Exchanges =>
+            [.. this.outbound.Calls.Select(entry => (IReadOnlyList<IGameServerMessage>)[.. entry.Messages.Cast<IGameServerMessage>()])];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.Add(message);
-            this.Exchanges.Add([message]);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            this.outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.Add(message);
-            this.Exchanges.Add([message]);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            this.outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            this.Exchanges.Add([.. delivery.RequiredDirectMessages]);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            this.outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     /// <summary>What the bag does with the piece it is offered.</summary>

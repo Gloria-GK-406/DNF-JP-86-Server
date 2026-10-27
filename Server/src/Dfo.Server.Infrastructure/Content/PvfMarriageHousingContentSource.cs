@@ -5,10 +5,14 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfMarriageHousingContentSource(PvfArchiveProvider provider) : IMarriageHousingContentSource
+internal sealed class PvfMarriageHousingContentSource(PvfArchiveProvider provider) : IMarriageHousingContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<MarriageHousingContent> content = new(() => Read(provider));
     public MarriageHousingContent Load() => content.Value;
+    public string Name => "marriage-housing";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load() is null ? 0 : 1);
+
     private static MarriageHousingContent Read(PvfArchiveProvider provider)
     {
         var archive = provider.Archive;

@@ -9,7 +9,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <summary>Reads A21 creature rules without imposing a fixed creature level cap.</summary>
 internal sealed class PvfCreatureRuleSource(
     PvfArchiveProvider provider,
-    ICreatureDefinitionSource definitions) : ICreatureRuleSource
+    ICreatureDefinitionSource definitions) : ICreatureRuleSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -34,6 +34,14 @@ internal sealed class PvfCreatureRuleSource(
     private Catalog? catalog;
     private readonly Dictionary<int, CreatureRule?> ruleCache = [];
     private readonly Dictionary<int, CreatureArtifactExperienceRule?> artifactCache = [];
+
+    public string Name => "creature-rules";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load() is null ? 0 : 1);
+    }
 
     public async ValueTask<CreatureRule?> GetAsync(int itemTemplateId, CancellationToken cancellationToken)
     {

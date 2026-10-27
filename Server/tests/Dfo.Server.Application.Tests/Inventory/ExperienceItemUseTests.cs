@@ -39,7 +39,7 @@ public sealed class ExperienceItemUseTests
             (fixture.Host.ExperienceForLevel(21) - fixture.Host.ExperienceForLevel(20)) / 100));
 
         var result = await fixture.Host.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new UseStackableCommand(fixture.Host.Session, Source, itemId));
+            .SendAsync(WholeUse.Command(fixture.Host.Services, fixture.Host.Session, Source, itemId));
 
         Assert.Equal(ItemUseStatus.Used, result.Status);
         Assert.Equal(before + gain, fixture.Host.Scalar("SELECT exp FROM characters WHERE character_id=1"));
@@ -190,7 +190,7 @@ public sealed class ExperienceItemUseTests
 
     private static Task<ItemUseResult> Use(CeraShopFixture fixture, int itemId) =>
         fixture.Host.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new UseStackableCommand(fixture.Host.Session, Source, itemId)).AsTask();
+            .SendAsync(WholeUse.Command(fixture.Host.Services, fixture.Host.Session, Source, itemId)).AsTask();
 
     private static CeraShopFixture Fixture(int itemId, ExperienceItemDefinition definition)
     {

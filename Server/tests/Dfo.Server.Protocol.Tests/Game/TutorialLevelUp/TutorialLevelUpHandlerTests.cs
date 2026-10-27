@@ -13,6 +13,8 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
+using Dfo.Server.Protocol.Tests.Support;
 
 namespace Dfo.Server.Protocol.Tests.Game.TutorialLevelUp;
 
@@ -99,10 +101,10 @@ public sealed class TutorialLevelUpHandlerTests
             sent.Select(frame => frame.GetType()));
 
         var experience = sent.OfType<ExperienceNotification>().Single();
-        Assert.Equal(GrantTutorialLevelCommandHandler.TargetLevel, experience.Level);
+        Assert.Equal((byte)2, experience.Level);
         Assert.Equal(GrantedExperience, experience.TotalExperience);
         Assert.Equal(
-            GrantTutorialLevelCommandHandler.TargetLevel, content.LastSubject?.Level);
+            (byte)2, content.LastSubject?.Level);
         Assert.Equal(
             TutorialLevelUpResponse.Granted,
             sent.OfType<TutorialLevelUpResponse>().Single().Result);
@@ -141,33 +143,29 @@ public sealed class TutorialLevelUpHandlerTests
         FixedGrant bus,
         StubWorldContentEntryRuleService? content = null)
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(1),
-            new CharacterId(60),
-            new NetworkConnectionId("one"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var sender = new RecordingSender();
+        return await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1),
+                new CharacterId(60),
+                new NetworkConnectionId("one"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var sender = new RecordingSender();
 
-        var handler = new TutorialLevelUpHandler(
-            new OneSession(session),
-            new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience)),
-            new OnePlayingCharacter(ledger),
-            new InARun(),
-            bus,
-            sender,
-            new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            NullLogger<TutorialLevelUpHandler>.Instance);
+            var sessions=new OneSession(session);
+            var views=new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel,StartingExperience));
+            var characters=new OnePlayingCharacter(ledger);
+            var runs=new InARun();
+            var offers=new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
+            var dispatch=new NetworkDispatchContext(new NetworkConnectionContext(new NetworkConnectionId("one"),NetworkEndpointKind.Game,10010));
+            await SkillGrowthDirectDriver.Handle("TutorialLevelUp","TutorialLevelUp",
+                [sessions,views,characters,runs,bus,sender,offers,SkillGrowthDirectDriver.Logger],
+                [sessions,views,characters,runs,bus,new SkillGrowthDirectDriver.Outbox(sender),offers,SkillGrowthDirectDriver.Logger],
+                dispatch,new TutorialLevelUpRequest(GameMessageMetadata.Empty));
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(
-                new NetworkConnectionContext(
-                    new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010)),
-            new TutorialLevelUpRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
-
-        return sender.Sent;
+            return sender.Sent;
+        });
     }
 
     /// <summary>
@@ -178,8 +176,11 @@ public sealed class TutorialLevelUpHandlerTests
     /// before the level was written would be asking about level one, which is the same wrong
     /// answer the session holds and just as invisible on the frame.
     /// </remarks>
-    private sealed class FixedGrant(SkillPointLedger ledger) : ICommandBus
+    private sealed class FixedGrant(SkillPointLedger ledger) : ICommandBus, ICommandWorkUnits
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         /// <summary>What the ledger's count stood at when the level was written.</summary>
         public int LedgerAsksWhenTheGrantRan { get; private set; } = -1;
 
@@ -188,14 +189,23 @@ public sealed class TutorialLevelUpHandlerTests
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var grant = Assert.IsType<GrantTutorialLevelCommand>(command);
+            Assert.Equal("GrantTutorialLevelCommand",command.GetType().Name);
             this.LedgerAsksWhenTheGrantRan = ledger.TimesAsked;
             var result = new TutorialLevelUpResult(
                 TutorialLevelUpStatus.Granted,
-                GrantTutorialLevelCommandHandler.TargetLevel,
+                (byte)2,
                 GrantedExperience);
             return ValueTask.FromResult((TResult)(object)result);
         }
+        public ValueTask<T> WriteAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> action,CancellationToken ct=default) where T:notnull
+        {
+            Assert.Empty(d.Participants);Assert.Equal(CommandFootprintMode.None,d.Footprint);
+            LedgerAsksWhenTheGrantRan=ledger.TimesAsked;
+            return ValueTask.FromResult((T)(object)new TutorialLevelUpResult(TutorialLevelUpStatus.Granted,2,GrantedExperience));
+        }
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken t=default) where T:notnull=>throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CancellationToken,ValueTask<T>> a,CancellationToken t=default) where T:notnull=>throw new NotSupportedException();
+
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider) : IItemSocketDefinitionSource
+internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider) : IItemSocketDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<IReadOnlyList<PvfToken>> EquipmentType = PvfField.Tokens("[equipment type]", optional: true);
     private static readonly PvfField<IReadOnlyList<PvfToken>> StackType = PvfField.Tokens("[stackable type]", optional: true);
@@ -22,6 +22,39 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
     private readonly Dictionary<int, ItemSocketDefinition?> targets = [];
     private readonly Dictionary<int, SocketDrillDefinition?> drills = [];
     private readonly Dictionary<int, ushort> emblems = [];
+    public string Name => "item-socket-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            EquipmentPathsIndex(archive);
+            StackablePathsIndex(archive);
+            EquipmentTypesIndex(archive);
+            return ValueTask.FromResult(equipmentPaths.Count + stackablePaths.Count + equipmentTypes.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentPaths))]
+    private void EquipmentPathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipmentPaths ??= Paths(archive, "equipment");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
+    private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackablePaths ??= Paths(archive, "stackable");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentTypes))]
+    private void EquipmentTypesIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipmentTypes ??= ReadEquipmentTypes(archive);
+    }
+
     public ValueTask<ItemSocketDefinition?> TargetAsync(int id, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -29,7 +62,7 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
         {
             if (targets.TryGetValue(id, out var cached)) return ValueTask.FromResult(cached);
             var archive = provider.Archive;
-            equipmentPaths ??= Paths(archive, "equipment");
+            EquipmentPathsIndex(archive);
             ItemSocketDefinition? found = null;
             if (equipmentPaths.TryGetValue(id, out var path))
             {
@@ -44,7 +77,7 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
                 }
                 else
                 {
-                    equipmentTypes ??= ReadEquipmentTypes(archive);
+                    EquipmentTypesIndex(archive);
                     if (equipmentTypes.TryGetValue(type, out var types)) found = new(false, types, []);
                 }
             }
@@ -59,7 +92,7 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
         {
             if (drills.TryGetValue(id, out var cached)) return ValueTask.FromResult(cached);
             var archive = provider.Archive;
-            stackablePaths ??= Paths(archive, "stackable");
+            StackablePathsIndex(archive);
             SocketDrillDefinition? found = null;
             if (stackablePaths.TryGetValue(id, out var path))
             {
@@ -92,7 +125,7 @@ internal sealed class PvfItemSocketDefinitionSource(PvfArchiveProvider provider)
         {
             if (emblems.TryGetValue(id, out var cached)) return ValueTask.FromResult(cached);
             var archive = provider.Archive;
-            stackablePaths ??= Paths(archive, "stackable");
+            StackablePathsIndex(archive);
             ushort result = 0;
             if (stackablePaths.TryGetValue(id, out var path))
             {

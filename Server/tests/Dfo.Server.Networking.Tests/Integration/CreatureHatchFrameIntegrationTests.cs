@@ -23,7 +23,7 @@ public sealed class CreatureHatchFrameIntegrationTests
         const string failure = "0002";
         var channelPort = AvailablePort(); var gamePort = AvailablePort();
         while (gamePort == channelPort) gamePort = AvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),
@@ -70,9 +70,5 @@ public sealed class CreatureHatchFrameIntegrationTests
         var frame = new byte[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(3)))];
         header.CopyTo(frame, 0); await stream.ReadExactlyAsync(frame.AsMemory(header.Length), ct); return frame;
     }
-    private static int AvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port;
-    }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
 }

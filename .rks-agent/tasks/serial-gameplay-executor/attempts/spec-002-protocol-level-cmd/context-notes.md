@@ -1,0 +1,15 @@
+# B 的上下文更正记录（2026-10-24）
+
+本文只澄清接手时的证据范围，不改A已封存制品，也不撤销A完整native构建/8350例核验事实。实现/核验完成状态由本Spec的后续产物决定。
+
+## F-130 与测试并行
+
+源码事实：TimerSourceJobFailureTests类上有[Collection("Scheduler")]，SchedulerTestCollection声明DisableParallelization=true；新增28次清池经这些测试运行。因此“新增28次可能提高与普通Joust类并行竞争概率”不能当作实证，在现有集合隔离下也不是直接的竞争解释。GameplayExecutorLifetimeTests和SerialDisconnectTests类无此属性，原新增三文件中的这些普通并行来源仍是可能触发源；具体原生句柄交错没有被证明。
+
+依据：Server/tests/Dfo.Server.Application.Tests/Execution/TimerSourceJobFailureTests.cs:20；Scheduling/ScheduledTaskTests.cs的SchedulerTestCollection；Execution/GameplayExecutorLifetimeTests.cs:18；OnlineUsers/SerialDisconnectTests.cs:25（路径相对工作区）。这不改变F-130限定App25个进程级调用文件的清理隔离目标；跨程序集的调用属于不同测试进程，不能混作同一并行竞争。
+
+## 挂起诊断的集合归属
+
+A接手核验的serial轮有84例未报告，但不能严格说84例全部属于Scheduler：其中GameplayExecutorLifetimeTests的3例属于普通并行类。该类使用默认Host builder，可能先停滞从而使禁并行Scheduler尚未开始；这只是候选解释，不是已证managed调用点。
+
+线程采样支持FSEventStreamCreate/Start、fsevent_realpath相关初始化/注册停滞；托管地址未符号化，具体因果未逐项证明。随后本机权限环境的完整native运行通过既定基线规则，且Application的4626例完整闭合、Scheduler完成，这些已观察结果保持不变。B的检查继续保留原断言、原期限、类并行和完整取证，不靠跳过用例避开环境问题。

@@ -10,6 +10,7 @@ using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Support;
 
@@ -145,14 +146,14 @@ internal sealed class InventorySide
         IItemPlacementDefinitionSource? placements = null)
     {
         var character = new CharacterId(characterId);
-        this.Containers.Register(character, new PersistentItemContainer(
+        TestGameplay.Run(() => this.Containers.Register(character, new PersistentItemContainer(
             ContainerId.ForCharacter(character, containerType),
             new ContainerShape(containerType, parameter),
             new SqliteItemDomainStore(this.databasePath),
             this.Scope,
             new ItemPlacementRuleService(
                 placements ?? this.placements, new NoWearables()),
-            new ItemSlotRuleService()));
+            new ItemSlotRuleService())));
     }
 
     /// <summary>Every item an ordinary consumable: kind 2, the main band, piles of a hundred.</summary>
@@ -223,28 +224,37 @@ internal sealed class InventorySide
         Func<ValueTask<TResult>> work,
         CancellationToken cancellationToken)
     {
-        await using var lease = scope.Begin();
-        var result = await work().ConfigureAwait(false);
-        await lease.CommitAsync(cancellationToken).ConfigureAwait(false);
-        return result;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = scope.Begin();
+            var result = await work().ConfigureAwait(false);
+            await lease.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return result;
+        });
     }
 
     /// <summary>Runs one call inside a use case and settles it, the way one command would.</summary>
     public async Task<TResult> InUseCaseAsync<TResult>(
         Func<CancellationToken, ValueTask<TResult>> work)
     {
-        await using var lease = this.Scope.Begin();
-        var result = await work(CancellationToken.None).ConfigureAwait(false);
-        await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
-        return result;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = this.Scope.Begin();
+            var result = await work(CancellationToken.None).ConfigureAwait(false);
+            await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            return result;
+        });
     }
 
     /// <summary>The same, for work that answers with nothing.</summary>
     public async Task InUseCaseAsync(Func<CancellationToken, ValueTask> work)
     {
-        await using var lease = this.Scope.Begin();
-        await work(CancellationToken.None).ConfigureAwait(false);
-        await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = this.Scope.Begin();
+            await work(CancellationToken.None).ConfigureAwait(false);
+            await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+        });
     }
 
     private InventoryEntryAssembly Assembly => new(

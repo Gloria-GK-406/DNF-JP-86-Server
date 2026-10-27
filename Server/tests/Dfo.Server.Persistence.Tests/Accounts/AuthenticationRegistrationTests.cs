@@ -11,10 +11,10 @@ public sealed class AuthenticationRegistrationTests
     {
         using var fixture = new AuthenticationFixture();
         var results = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Task.Run(async () =>
-            await fixture.Bus.SendAsync(new RegisterAccountCommand("player", "same password")))));
+            await fixture.RegisterAsync("player", "same password"))));
         Assert.Single(results, result => result.Status == AuthenticationStatus.Success);
         Assert.Equal(5, results.Count(result => result.Status == AuthenticationStatus.AccountExists));
-        Assert.Equal(AuthenticationStatus.Success, (await fixture.Bus.SendAsync(new RegisterAccountCommand("second", "same password"))).Status);
+        Assert.Equal(AuthenticationStatus.Success, (await fixture.RegisterAsync("second", "same password")).Status);
         var first = await fixture.Store.FindAsync("player", default);
         var second = await fixture.Store.FindAsync("second", default);
         Assert.NotNull(first);

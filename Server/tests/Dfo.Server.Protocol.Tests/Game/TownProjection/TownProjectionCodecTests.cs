@@ -6,6 +6,7 @@ namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 /// <summary>
 /// The two commands that move a published character: where it stands, and which area it walks into.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class TownProjectionCodecTests
 {
     private static byte[] Hex(string value) => Convert.FromHexString(value);

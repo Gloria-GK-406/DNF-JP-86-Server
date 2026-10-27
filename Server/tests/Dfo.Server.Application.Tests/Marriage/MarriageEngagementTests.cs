@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -18,6 +19,7 @@ using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -57,7 +59,7 @@ public sealed class MarriageEngagementTests
                 s.AddSingleton<IQuestParameterSource, Parameters>();
             }
             s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
-            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+            QuestTestCommands.RegisterLegacy(s,"QuestAcceptance","AcceptQuest");
         });
     private static async Task Engage(LearningFixture f, Dfo.Server.Data.World.SelectedSessionIdentity peer)
     {
@@ -66,7 +68,7 @@ public sealed class MarriageEngagementTests
     }
     private static async Task Accept(LearningFixture f, int account, int character)
     {
-        var result = await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(account), new(character), 20737), default);
+        var result = await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(account), new(character), 20737), default);
         Assert.True(result.Accepted);
         Assert.Equal(5u, result.InitialTrigger);
     }
@@ -76,7 +78,7 @@ public sealed class MarriageEngagementTests
         var (f, peer) = await Fixture(); await using var owned = f;
         await MarriageProposalTests.Run(f, x => x.ProposeAsync(f.Session, peer, default));
         Assert.False((await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(new(1), new(71), default)).IsEngaged);
-        Assert.False((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default)).Accepted);
+        Assert.False((await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(1), new(71), 20737), default)).Accepted);
         Assert.Empty((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests);
     }
     [Fact]
@@ -103,46 +105,52 @@ public sealed class MarriageEngagementTests
         await Engage(f, peer); await Accept(f, 1, 71); await Accept(f, 2, 72);
         var wedding = f.Services.GetRequiredService<IMarriageQuestDomainService>();
         Assert.False(await wedding.CanCompleteAsync(new(1), new(71), 20737, default));
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var report = await f.Services.GetRequiredService<IQuestProgressDomainService>().ReportAsync(new(1), new(71),
-                [new ClientQuestTriggerReport(20737, 0, false)], default);
-            Assert.Equal(5, (await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).CarriedAsync(default)).Single().TriggerValue);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                var report = await f.Services.GetRequiredService<IQuestProgressDomainService>().ReportAsync(new(1), new(71),
+                    [new ClientQuestTriggerReport(20737, 0, false)], default);
+                Assert.Equal(5, (await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).CarriedAsync(default)).Single().TriggerValue);
+                await tx.CommitAsync(default);
+            }
+        });
         var subscriber = ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services);
         var invalid = new DungeonMapCleared(DungeonRunId.New(), 999, DungeonDifficulty.Normal, new(0, 0), 100, 1, DateTimeOffset.UtcNow,
             [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            foreach (var rejected in new[]
+            await using (var tx = f.Scope.Begin())
             {
-                invalid,
-                invalid with { DungeonId = 2, IsBossRoom = false },
-                invalid with { DungeonId = 2, ClearedAt = DateTimeOffset.UnixEpoch },
-                invalid with { DungeonId = 2, Participants = [new(new(1), new(71), 0, true)] },
-                invalid with { DungeonId = 2, Participants = [new(new(1), new(71), 0, true), new(new(3), new(73), 1, false)] },
-            })
-                await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow, Guid.NewGuid(), rejected), default);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
-        await using (var rollback = f.Scope.Begin())
-        {
-            var clear = invalid with { DungeonId = 2, ClearedAt = DateTimeOffset.UtcNow.AddSeconds(1) };
-            await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear), default);
-        }
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
-        Assert.Equal(10, f.Scalar("SELECT SUM(trigger_value) FROM character_active_quests WHERE quest_id=20737"));
-        for (var i = 0; i < 5; i++)
-        {
-            var clear = invalid with { RunId = DungeonRunId.New(), DungeonId = 2, ClearedAt = DateTimeOffset.UtcNow.AddSeconds(1) };
-            var envelope = new DomainEventEnvelope<DungeonMapCleared>(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear);
-            await using var tx = f.Scope.Begin();
-            await subscriber.HandleAsync(envelope, default);
-            await subscriber.HandleAsync(envelope, default);
-            await tx.CommitAsync(default);
-        }
+                foreach (var rejected in new[]
+                {
+                    invalid,
+                    invalid with { DungeonId = 2, IsBossRoom = false },
+                    invalid with { DungeonId = 2, ClearedAt = DateTimeOffset.UnixEpoch },
+                    invalid with { DungeonId = 2, Participants = [new(new(1), new(71), 0, true)] },
+                    invalid with { DungeonId = 2, Participants = [new(new(1), new(71), 0, true), new(new(3), new(73), 1, false)] },
+                })
+                    await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow, Guid.NewGuid(), rejected), default);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
+            await using (var rollback = f.Scope.Begin())
+            {
+                var clear = invalid with { DungeonId = 2, ClearedAt = DateTimeOffset.UtcNow.AddSeconds(1) };
+                await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear), default);
+            }
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
+            Assert.Equal(10, f.Scalar("SELECT SUM(trigger_value) FROM character_active_quests WHERE quest_id=20737"));
+            for (var i = 0; i < 5; i++)
+            {
+                var clear = invalid with { RunId = DungeonRunId.New(), DungeonId = 2, ClearedAt = DateTimeOffset.UtcNow.AddSeconds(1) };
+                var envelope = new DomainEventEnvelope<DungeonMapCleared>(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear);
+                await using var tx = f.Scope.Begin();
+                await subscriber.HandleAsync(envelope, default);
+                await subscriber.HandleAsync(envelope, default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(10, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
         Assert.Equal(0, f.Scalar("SELECT SUM(trigger_value) FROM character_active_quests WHERE quest_id=20737"));
         Assert.True(await wedding.CanCompleteAsync(new(1), new(71), 20737, default));
@@ -167,11 +175,14 @@ public sealed class MarriageEngagementTests
         var clear = new DungeonMapCleared(DungeonRunId.New(), 2, DungeonDifficulty.Normal, new(0, 0), 100, 1,
             DateTimeOffset.UtcNow.AddSeconds(1), [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
         var envelope = new DomainEventEnvelope<DungeonMapCleared>(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services).HandleAsync(envelope, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services).HandleAsync(envelope, default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(4, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
         // Reopen the database so this also protects retries after server/session recovery.
         await using var reopened = new LearningFixture(existing: f.Path, configure: s =>
@@ -180,20 +191,23 @@ public sealed class MarriageEngagementTests
             s.AddSingleton<IQuestParameterSource, Parameters>();
             s.AddSingleton<IMarriageProposalContentSource, Content>();
             s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
-            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+            QuestTestCommands.RegisterLegacy(s,"QuestAcceptance","AcceptQuest");
         });
-        var replay = await reopened.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20737), default);
+        var replay = await new QuestTestCommands(reopened.Services).SendAsync(new QuestAcceptTestInput(new(1), new(71), 20737), default);
         Assert.False(replay.Accepted);
         Assert.Equal(QuestAcceptRefusal.AlreadyActive, replay.Refusal);
         Assert.Null(replay.QuestProgress);
         Assert.Empty(replay.Items);
         Assert.Equal(before, await reopened.Services.GetRequiredService<IMarriageQuestDomainStore>().ReadAsync(new(71), 20737, default));
         Assert.Equal(1, reopened.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
-        await using (var tx = reopened.Scope.Begin())
+        await TestGameplay.RunAsync(reopened.Services, async () =>
         {
-            await ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(reopened.Services).HandleAsync(envelope, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = reopened.Scope.Begin())
+            {
+                await ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(reopened.Services).HandleAsync(envelope, default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(4, reopened.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
     }
 
@@ -217,8 +231,8 @@ public sealed class MarriageEngagementTests
         if (invalid == "different-relation") f.Sql($"UPDATE marriage_quest_bindings SET proposal_id='{oldRelation:N}' WHERE character_id=71");
         if (invalid == "inactive-relation") f.Sql("UPDATE marriage_proposal_participants SET active=0");
         var before = await bindings.ReadAsync(new(71), 20737, default);
-        var replay = await f.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new AcceptQuestCommand(new(invalid == "wrong-account" ? 2 : 1), new(71), 20737), default);
+        var replay = await new QuestTestCommands(f.Services).SendAsync(
+            new QuestAcceptTestInput(new(invalid == "wrong-account" ? 2 : 1), new(71), 20737), default);
         Assert.False(replay.Accepted);
         Assert.Equal(before, await bindings.ReadAsync(new(71), 20737, default));
         Assert.Equal(5, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
@@ -231,12 +245,15 @@ public sealed class MarriageEngagementTests
         await Engage(f, peer); await Accept(f, 1, 71);
         var bindings = f.Services.GetRequiredService<IMarriageQuestDomainStore>();
         var before = await bindings.ReadAsync(new(71), 20737, default);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.True(await bindings.RecordClearAsync(new(71), 20737, before!.RelationId, DungeonRunId.New(), default));
-            Assert.True(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).GiveUpAsync(20737, default));
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True(await bindings.RecordClearAsync(new(71), 20737, before!.RelationId, DungeonRunId.New(), default));
+                Assert.True(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71)).GiveUpAsync(20737, default));
+                await tx.CommitAsync(default);
+            }
+        });
         await Accept(f, 1, 71);
         Assert.Equal(5, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
@@ -251,54 +268,63 @@ public sealed class MarriageEngagementTests
         f.Sql("INSERT INTO character_stats(character_id,carried_gold) VALUES(71,0),(72,0);");
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
         foreach (var character in new[] { f.Session.CharacterId, peer.CharacterId })
-            containers.Register(character, new PersistentItemContainer(ContainerId.ForCharacter(character, InventoryContainerType.Main),
+            TestGameplay.Run(f.Services, () => containers.Register(character, new PersistentItemContainer(ContainerId.ForCharacter(character, InventoryContainerType.Main),
                 new(InventoryContainerType.Main, 0), f.Services.GetRequiredService<IItemDomainStore>(),
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
-                f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemSlotRuleService>())));
         await Engage(f, peer); await Accept(f, 1, 71); await Accept(f, 2, 72);
         var subscriber = ActivatorUtilities.CreateInstance<MarriageTrialClearSubscriber>(f.Services);
-        for (var i = 0; i < 5; i++)
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var clear = new DungeonMapCleared(DungeonRunId.New(), 2, DungeonDifficulty.Normal, new(0, 0), 100, 1,
-                DateTimeOffset.UtcNow.AddSeconds(1), [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
-            await using var tx = f.Scope.Begin();
-            await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear), default);
-            await tx.CommitAsync(default);
-        }
+            for (var i = 0; i < 5; i++)
+            {
+                var clear = new DungeonMapCleared(DungeonRunId.New(), 2, DungeonDifficulty.Normal, new(0, 0), 100, 1,
+                    DateTimeOffset.UtcNow.AddSeconds(1), [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
+                await using var tx = f.Scope.Begin();
+                await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), clear.ClearedAt, Guid.NewGuid(), clear), default);
+                await tx.CommitAsync(default);
+            }
+        });
         var settlement = f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.True((await settlement.FinishAsync(new(1), new(71), 20737, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20737, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
+                await tx.CommitAsync(default);
+            }
+        });
         var current = await f.Services.GetRequiredService<ICharacterInventoryEntryDomainService>().ReadCurrentAsync(new(1), new(71), default);
         Assert.Contains(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002616);
         Assert.Contains((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(1), new(71), default)).Quests, x => x.QuestId == 20738);
         Assert.DoesNotContain((await f.Services.GetRequiredService<IQuestQueryDomainService>().ReadAvailableAsync(new(2), new(72), default)).Quests, x => x.QuestId == 20738);
-        Assert.True((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(1), new(71), 20738), default)).Accepted);
-        await using (var tx = f.Scope.Begin())
+        Assert.True((await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(1), new(71), 20738), default)).Accepted);
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.False((await settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(new(1), new(71), [new(10002610, 1)],
-                "wedding-regression", default, ItemDeliveryMode.InventoryOnly);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.True((await settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
-            await tx.CommitAsync(default);
-        }
-        current = await f.Services.GetRequiredService<ICharacterInventoryEntryDomainService>().ReadCurrentAsync(new(1), new(71), default);
-        Assert.DoesNotContain(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002610);
-        Assert.Contains(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002901);
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.False((await settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default, f.Session)).Finished);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.False((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(new(1), new(71), [new(10002610, 1)],
+                    "wedding-regression", default, ItemDeliveryMode.InventoryOnly);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
+                await tx.CommitAsync(default);
+            }
+            current = await f.Services.GetRequiredService<ICharacterInventoryEntryDomainService>().ReadCurrentAsync(new(1), new(71), default);
+            Assert.DoesNotContain(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002610);
+            Assert.Contains(current.Containers.SelectMany(x => x.Items), x => x.Core.ItemId == 10002901);
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.False((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(71), f.Session), cap => settlement.FinishAsync(new(1), new(71), 20738, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default, f.Session))).Finished);
+                await tx.CommitAsync(default);
+            }
+        });
     }
 }

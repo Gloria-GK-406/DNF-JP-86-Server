@@ -12,6 +12,7 @@ namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 /// Both are pinned against a working A21 session's own bytes: its empty-handed kill answers with
 /// seven bytes and eighty-three, and the offsets below are the reference builder's.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class MonsterDeathCodecTests
 {
     private static readonly CharacterSkillProtocolMirrorState SkillPoints = new(11, 22, 33, 44);

@@ -13,7 +13,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// level-band triples, each <c>[slot]</c> opens with its own index followed by the quests
 /// that may fill it, and the reward table lists level-band quadruples.
 /// </remarks>
-internal sealed class PvfDailyActivityDefinitionSource : IDailyActivityDefinitionSource
+internal sealed class PvfDailyActivityDefinitionSource : IDailyActivityDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -33,6 +33,10 @@ internal sealed class PvfDailyActivityDefinitionSource : IDailyActivityDefinitio
     private Catalog? _catalog;
 
     public PvfDailyActivityDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "daily-activities";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Ordered.Count);
 
     public ValueTask<IReadOnlyList<DailyActivityGroupDefinition>> GetAllAsync(CancellationToken cancellationToken)
     {

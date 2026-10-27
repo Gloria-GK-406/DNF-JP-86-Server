@@ -5,10 +5,20 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider) : IIllusionTowerContentSource
+internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider) : IIllusionTowerContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private readonly Dictionary<int, IllusionTowerDefinition> cached = [];
+
+    public string Name => "illusion-towers";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        // GetAsync accepts exactly these two towers.
+        await GetAsync(cancellationToken, 11000).ConfigureAwait(false);
+        await GetAsync(cancellationToken, 11001).ConfigureAwait(false);
+        return 2;
+    }
 
     public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId = 11001)
     {

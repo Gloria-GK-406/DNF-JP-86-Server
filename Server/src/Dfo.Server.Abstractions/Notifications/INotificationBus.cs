@@ -11,12 +11,16 @@ namespace Dfo.Server.Abstractions.Notifications;
 /// </remarks>
 public enum NotificationOutcome
 {
-    /// <summary>The messages were handed to the transport for their connection.</summary>
+    /// <summary>
+    /// The messages were composed, encoded and registered for their connection: submitted for sending,
+    /// or dropped because the connection was no longer registered (F-83).
+    /// </summary>
     /// <remarks>
-    /// Handed over, not received. Nothing here waits for an acknowledgement, and a socket that
-    /// accepts bytes and then dies looks exactly like one that delivered them.
+    /// Registration does not promise transport or client receipt. The job's outbox hands them to
+    /// the sender when the job ends, and nothing here waits for the transport: a connection that then
+    /// fails to take them is closed by the sender, and its teardown is the lifecycle CMD that follows.
     /// </remarks>
-    Delivered,
+    Registered,
 
     /// <summary>The handler had nothing for this recipient. A decision, not a fault.</summary>
     Declined,
@@ -46,11 +50,14 @@ public enum NotificationOutcome
     /// </remarks>
     Gone,
 
-    /// <summary>Composing or sending threw, or ran out of time. Retried.</summary>
+    /// <summary>Composing or encoding threw. Logged as a warning; not retried (VC-5).</summary>
     Failed,
 }
 
-public sealed record NotificationAttempt(CharacterId CharacterId, NotificationOutcome Outcome);
+public sealed record NotificationAttempt(CharacterId CharacterId, NotificationOutcome Outcome)
+{
+    public bool RegistrationAccepted { get; init; }
+}
 
 /// <summary>What one publish reached, and what became of each recipient.</summary>
 /// <remarks>

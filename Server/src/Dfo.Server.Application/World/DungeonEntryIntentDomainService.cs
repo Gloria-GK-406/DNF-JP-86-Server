@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -9,18 +10,25 @@ internal sealed class DungeonEntryIntentDomainService : IDungeonEntryIntentDomai
 {
     private readonly ConcurrentDictionary<CharacterId, OwnedIntent> _intents = new();
 
-    public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) =>
+    public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonEntryIntentDomainService) + "." + nameof(Record));
         _intents[session.CharacterId] = new OwnedIntent(session, intent);
+    }
 
     public DungeonEntryIntent? Find(SelectedSessionIdentity session) =>
         _intents.TryGetValue(session.CharacterId, out var owned) && owned.Session == session ? owned.Intent : null;
 
-    public bool TryReplaceExact(SelectedSessionIdentity session, DungeonEntryIntent expected, DungeonEntryIntent replacement) =>
-        _intents.TryGetValue(session.CharacterId, out var owned) && owned.Session == session && owned.Intent == expected
-        && _intents.TryUpdate(session.CharacterId, new(session, replacement), owned);
+    public bool TryReplaceExact(SelectedSessionIdentity session, DungeonEntryIntent expected, DungeonEntryIntent replacement)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonEntryIntentDomainService) + "." + nameof(TryReplaceExact));
+        return _intents.TryGetValue(session.CharacterId, out var owned) && owned.Session == session && owned.Intent == expected
+            && _intents.TryUpdate(session.CharacterId, new(session, replacement), owned);
+    }
 
     public DungeonEntryIntent? Consume(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonEntryIntentDomainService) + "." + nameof(Consume));
         while (_intents.TryGetValue(session.CharacterId, out var owned))
         {
             if (owned.Session != session)
@@ -34,11 +42,15 @@ internal sealed class DungeonEntryIntentDomainService : IDungeonEntryIntentDomai
         return null;
     }
 
-    public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) =>
+    public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent)
+    {
+        GameplayWriteAssertion.Writing(nameof(DungeonEntryIntentDomainService) + "." + nameof(RestoreIfAbsent));
         _intents.TryAdd(session.CharacterId, new OwnedIntent(session, intent));
+    }
 
     public bool ClearExact(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonEntryIntentDomainService) + "." + nameof(ClearExact));
         if (!_intents.TryGetValue(session.CharacterId, out var owned) || owned.Session != session)
             return false;
 

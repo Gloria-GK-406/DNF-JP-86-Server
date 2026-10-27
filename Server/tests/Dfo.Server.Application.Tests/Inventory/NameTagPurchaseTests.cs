@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Characters;
@@ -123,11 +124,11 @@ public sealed class NameTagPurchaseTests
     {
         using var shop = Synthetic();
         await shop.Buy(CeraShopTestContent.Entry(First));
-        shop.Host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(shop.Host.Session, false);
+        shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(shop.Host.Session);
         shop.Host.Clock.Advance(TimeSpan.FromDays(30));
-        var commands = shop.Host.Services.GetRequiredService<ICommandBus>();
-        Assert.True(await commands.SendAsync(new ExpireCharacterNameTagCommand(shop.Host.Session)));
-        Assert.False(await commands.SendAsync(new ExpireCharacterNameTagCommand(shop.Host.Session)));
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(shop.Host.Services, "character.name-tag.expiration");
+        Assert.Equal(Dfo.Server.Data.Characters.CharacterNameTag.Empty, await shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>().ReadEffectiveAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default));
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(shop.Host.Services, "character.name-tag.expiration");
         Assert.Equal(0, shop.Host.Scalar("SELECT name_tag_item_id FROM characters WHERE character_id=1"));
         var pending = await shop.Host.Services.GetRequiredService<IDomainEventPersistence>().ReadDueAsync(
             "character.name-tag.expiration.notifications", shop.Host.Clock.GetUtcNow(), 100, default);
@@ -141,17 +142,31 @@ public sealed class NameTagPurchaseTests
     public async Task Purchase_refresh_reaches_nearby_players_but_private_purchase_ack_stays_with_buyer()
     {
         using var shop = Synthetic();
-        var registry = shop.Host.Services.GetRequiredService<OnlineStateRegistry>();
-        var connection = new NetworkConnectionContext(new("name-tag-peer"), NetworkEndpointKind.Game, 10011);
-        var user = registry.RegisterConnection(connection);
-        registry.Authenticate(user.OnlineUserId, new(2));
-        var peer = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId,
-            registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
-        registry.Publish(peer);
-        shop.Host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
-        shop.Host.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(peer.CharacterId,
-            peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
+        SelectedSessionIdentity peer = null!;
+        await TestGameplay.RunAsync(shop.Host.Services, () =>
+        {
+            var registry = shop.Host.Services.GetRequiredService<OnlineStateRegistry>();
+            var connection = new NetworkConnectionContext(new("name-tag-peer"), NetworkEndpointKind.Game, 10011);
+            var user = registry.RegisterConnection(connection);
+            registry.Authenticate(user.OnlineUserId, new(2));
+            peer = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId,
+                registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
+            registry.Select(peer);
+            registry.EnterWorld(peer);
+            shop.Host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
+            shop.Host.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(peer.CharacterId,
+                peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
+            return Task.CompletedTask;
+        });
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(First)));
+        var peerMessages = shop.Host.Sender.Outbound.MessagesFor(peer.ConnectionId);
+        Assert.Single(peerMessages, m => m.GetType().Name == "CurrentUserStateMessage");
+        Assert.DoesNotContain(peerMessages, m => m.GetType().Name is "CeraShopPurchaseResponse" or "CeraBalanceUpdateMessage" or "ExtendedUserStateMessage");
+        var buyerMessages = shop.Host.Sender.Outbound.MessagesFor(shop.Host.Session.ConnectionId);
+        Assert.Single(buyerMessages, m => m.GetType().Name == "CeraShopPurchaseResponse");
+        Assert.Single(buyerMessages, m => m.GetType().Name == "CeraBalanceUpdateMessage");
+        Assert.Equal(99400, shop.Cera);
+        Assert.Equal(100330501, (await Tags(shop).ReadEffectiveAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default)).ItemId);
         Assert.Equal(2, shop.Host.Sender.Messages.Count(m => m.GetType().Name == "CurrentUserStateMessage"));
         Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "ExtendedUserStateMessage");
         Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "CeraShopPurchaseResponse");
@@ -164,7 +179,7 @@ public sealed class NameTagPurchaseTests
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var shop = new CeraShopFixture(useArchive: true, configure: services =>
             services.AddSingleton<ISelectedCharacterCurrentViewDomainService, NameTagCurrentView>());
-        shop.Host.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(shop.Host.Session, false);
+        shop.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(shop.Host.Session);
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(102241)));
         Assert.NotNull(await shop.Host.Services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>().TryLoadAsync(shop.Host.Session, default));
         Assert.IsType<Dfo.Server.Protocol.Game.CeraShopPurchase.CeraShopPurchaseResponse>(shop.Host.Sender.Messages[0]);

@@ -279,6 +279,32 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         await Assert.ThrowsAsync<EndOfStreamException>(async () => await ReadGameFrameAsync(client.GetStream(), timeout.Token));
     }
 
+    /// <summary>
+    /// Opens one game connection through the advertised route (it reads the initial notice and stays
+    /// open), then stops the Host with SIGTERM, which the Generic Host turns into StopAsync. Returns the
+    /// exit code, or null when it did not exit in time, and the Host's output. Not available on Windows.
+    /// </summary>
+    public async Task<(int? ExitCode, string Output)> StopGracefullyWithAnOpenGameConnectionAsync(TimeSpan patience)
+    {
+        using var client = await this.ConnectThroughAdvertisedRouteAsync(new(GameHost, AdvertisedGamePort));
+        var notice = await ReadGameFrameAsync(client.GetStream(), this.timeout.Token);
+        Assert.Equal((ushort)0x0001, notice.Type);
+        using (var kill = Process.Start("kill", ["-TERM", this.process.Id.ToString()]))
+            await kill.WaitForExitAsync(this.timeout.Token);
+        using var exit = new CancellationTokenSource(patience);
+        try
+        {
+            await this.process.WaitForExitAsync(exit.Token);
+        }
+        catch (OperationCanceledException) when (exit.IsCancellationRequested)
+        {
+            return (null, Snapshot(this.output));
+        }
+        // The asynchronous output readers finish once the process has exited.
+        this.process.WaitForExit();
+        return (this.process.ExitCode, Snapshot(this.output));
+    }
+
     public async ValueTask DisposeAsync()
     {
         this.timeout.Cancel();
@@ -513,6 +539,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
     private static void Append(StringBuilder output, string? line)
     {
         if (line is null) return;
+        Dfo.Server.Testing.GameplayAssertionRecorder.ObserveHostOutput(line);
         lock (output) output.AppendLine(line);
     }
 

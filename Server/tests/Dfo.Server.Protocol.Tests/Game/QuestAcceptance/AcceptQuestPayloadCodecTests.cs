@@ -11,6 +11,7 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestAcceptance;
 /// are from this server's own log on 2026-08-27, when a player accepted two quests and nothing
 /// answered; the answer is the reference server's, from its capture of the same exchange.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class AcceptQuestPayloadCodecTests
 {
     /// <summary>The first two bytes repeat the packet's type and are not a field.</summary>

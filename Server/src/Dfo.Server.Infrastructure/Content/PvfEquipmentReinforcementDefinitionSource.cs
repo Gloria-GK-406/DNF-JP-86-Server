@@ -8,7 +8,7 @@ namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Reads separate reinforcement and amplification declarations, without applying a roll.</summary>
 internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvider provider)
-    : IEquipmentReinforcementDefinitionSource
+    : IEquipmentReinforcementDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -66,6 +66,25 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
     private readonly Dictionary<(int ItemId, EquipmentUpgradeKind Kind), EquipmentReinforcementProtectionDefinition?> protectionCache = [];
     private readonly Dictionary<int, EquipmentUpgradeTicketDefinition?> ticketCache = [];
 
+    public string Name => "equipment-reinforcement";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        await GetNormalTableAsync(cancellationToken).ConfigureAwait(false);
+        await GetAmplificationTableAsync(cancellationToken).ConfigureAwait(false);
+        lock (gate)
+        {
+            StackablePathsIndex(provider.Archive);
+            return stackablePaths.Count;
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
+    private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackablePaths ??= ReadPaths(archive, "stackable/stackable.lst");
+    }
+
     public ValueTask<EquipmentUpgradeTicketDefinition?> GetTicketAsync(int itemId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -73,7 +92,7 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         {
             if (ticketCache.TryGetValue(itemId, out var cached)) return ValueTask.FromResult(cached);
             var archive = provider.Archive;
-            stackablePaths ??= ReadPaths(archive, "stackable/stackable.lst");
+            StackablePathsIndex(archive);
             if (!stackablePaths.TryGetValue(itemId, out var path))
                 return ValueTask.FromResult(ticketCache[itemId] = null);
             var document = PvfDocument.Open(archive, "stackable/" + path).AtRoot();
@@ -175,7 +194,7 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
     private EquipmentReinforcementProtectionDefinition? ReadProtection(int itemId, EquipmentUpgradeKind kind)
     {
         var archive = provider.Archive;
-        stackablePaths ??= ReadPaths(archive, "stackable/stackable.lst");
+        StackablePathsIndex(archive);
         if (!stackablePaths.TryGetValue(itemId, out var path))
             return null;
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + path);

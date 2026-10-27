@@ -15,6 +15,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -46,11 +47,14 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task An_item_the_archive_does_not_list_is_not_usable()
     {
-        var usability = Build(out _);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out _);
 
-        Assert.Equal(
-            ItemUsability.NotAUsableItem,
-            await usability.CanUseAsync(itemId: 1000, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.NotAUsableItem,
+                await usability.CanUseAsync(itemId: 1000, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -62,32 +66,41 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_declaration_the_server_cannot_read_is_a_refusal()
     {
-        var unreadable = ItemUseRules.RequiringJob(QuestJobRequirement.Unrecognized);
-        var usability = Build(out _, (8474, unreadable));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var unreadable = ItemUseRules.RequiringJob(QuestJobRequirement.Unrecognized);
+            var usability = Build(out _, (8474, unreadable));
 
-        Assert.Equal(
-            ItemUsability.NotAUsableItem,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.NotAUsableItem,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task A_level_below_the_declared_minimum_is_refused()
     {
-        var usability = Build(out _, level: 19, job: 0, (8474, ItemUseRules.RequiringLevel(20)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out _, level: 19, job: 0, (8474, ItemUseRules.RequiringLevel(20)));
 
-        Assert.Equal(
-            ItemUsability.LevelTooLow,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.LevelTooLow,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task A_level_at_the_declared_minimum_is_allowed()
     {
-        var usability = Build(out _, level: 20, job: 0, (8474, ItemUseRules.RequiringLevel(20)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out _, level: 20, job: 0, (8474, ItemUseRules.RequiringLevel(20)));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -97,23 +110,29 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_job_outside_the_declared_families_is_refused()
     {
-        var usability = Build(
-            out _, level: 50, job: 4, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Swordman)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out _, level: 50, job: 4, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Swordman)));
 
-        Assert.Equal(
-            ItemUsability.JobMismatch,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.JobMismatch,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task A_job_inside_the_declared_families_is_allowed()
     {
-        var usability = Build(
-            out _, level: 50, job: 4, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Priest)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out _, level: 50, job: 4, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Priest)));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -123,32 +142,41 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task An_item_only_usable_in_a_dungeon_is_refused_in_town()
     {
-        var usability = Build(out _, (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out _, (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
 
-        Assert.Equal(
-            ItemUsability.PlaceNotAllowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.PlaceNotAllowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task A_tower_member_uses_the_existing_dungeon_item_rules()
     {
-        var usability = BuildInTower(out _, level: 50, job: 0,
-            (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = BuildInTower(out _, level: 50, job: 0,
+                (8474, ItemUseRules.UsableIn(ItemUsePlace.Dungeon)));
 
-        Assert.Equal(ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task An_item_usable_in_a_village_is_allowed_in_town()
     {
-        var usability = Build(
-            out _, (8474, ItemUseRules.UsableIn(ItemUsePlace.Village, ItemUsePlace.Dungeon)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out _, (8474, ItemUseRules.UsableIn(ItemUsePlace.Village, ItemUsePlace.Dungeon)));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -158,37 +186,46 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task An_item_declaring_no_place_is_allowed_anywhere()
     {
-        var usability = Build(out _, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out _, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task An_item_used_moments_ago_is_still_cooling_down()
     {
-        var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
 
-        fixture.Clock.Advance(TimeSpan.FromSeconds(9));
+            fixture.Clock.Advance(TimeSpan.FromSeconds(9));
 
-        Assert.Equal(
-            ItemUsability.OnCooldown,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.OnCooldown,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     [Fact]
     public async Task A_cooldown_that_has_elapsed_no_longer_refuses()
     {
-        var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
 
-        fixture.Clock.Advance(TimeSpan.FromSeconds(10));
+            fixture.Clock.Advance(TimeSpan.FromSeconds(10));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -198,15 +235,18 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task Items_sharing_a_cooltime_group_share_the_cooldown()
     {
-        var usability = Build(
-            out var fixture,
-            (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
-            (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out var fixture,
+                (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
+                (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
 
-        Assert.Equal(
-            ItemUsability.OnCooldown,
-            await usability.CanUseAsync(9000, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.OnCooldown,
+                await usability.CanUseAsync(9000, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -216,15 +256,18 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task Items_without_a_group_cool_down_separately()
     {
-        var usability = Build(
-            out var fixture,
-            (8474, ItemUseRules.Potion(cooltimeGroup: 0)),
-            (9000, ItemUseRules.Potion(cooltimeGroup: 0)));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out var fixture,
+                (8474, ItemUseRules.Potion(cooltimeGroup: 0)),
+                (9000, ItemUseRules.Potion(cooltimeGroup: 0)));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(9000, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(9000, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -234,15 +277,18 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_group_number_and_an_item_number_are_not_the_same_cooldown()
     {
-        var usability = Build(
-            out var fixture,
-            (70, ItemUseRules.Potion(cooltimeGroup: 0)),
-            (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(70), TimeSpan.FromSeconds(10));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out var fixture,
+                (70, ItemUseRules.Potion(cooltimeGroup: 0)),
+                (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(70), TimeSpan.FromSeconds(10));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(9000, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(9000, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -253,15 +299,18 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task Asking_does_not_start_a_cooldown()
     {
-        var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
-        Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
+        });
     }
 
     /// <remarks>
@@ -272,12 +321,15 @@ public sealed class CharacterItemUseTests
     [Fact]
     public void Leaving_clears_the_characters_cooldowns()
     {
-        Build(out var fixture, (8474, ItemUseRules.Potion()));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForItem(8474), TimeSpan.FromMinutes(30));
+        TestGameplay.Run(() =>
+        {
+            Build(out var fixture, (8474, ItemUseRules.Potion()));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromMinutes(30));
 
-        fixture.Cooldowns.Clear(Character);
+            fixture.Cooldowns.EndExact(fixture.Session);
 
-        Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
+            Assert.False(fixture.Cooldowns.IsCoolingDown(Character, ItemCooldownKey.ForItem(8474)));
+        });
     }
 
     /// <summary>
@@ -304,20 +356,23 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_character_whose_state_is_not_published_yet_is_not_the_players_fault()
     {
-        var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-        var usability = new PlayingCharacter(
-            Character,
-            new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-            new CharacterItemCooldownDomainService(clock),
-            new SessionPresenceDomainService(),
-            new NoCarriedGold(),
-            new StoredCarryLimitOnly(),
-            CharacterRow.At(level: 50),
-            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
+            var usability = new PlayingCharacter(
+                Character,
+                new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                new OnlineCharacterRuntimeDomainService(clock),
+                new SessionPresenceDomainService(),
+                new NoCarriedGold(),
+                new StoredCarryLimitOnly(),
+                CharacterRow.At(level: 50),
+                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
 
-        Assert.Equal(
-            ItemUsability.CharacterStateUnavailable,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.CharacterStateUnavailable,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <summary>
@@ -333,20 +388,23 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_character_with_no_row_of_its_own_is_not_the_players_fault()
     {
-        var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-        var usability = new PlayingCharacter(
-            Character,
-            new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-            new CharacterItemCooldownDomainService(clock),
-            PresentCharacters.StandingInTown(Character),
-            new NoCarriedGold(),
-            new StoredCarryLimitOnly(),
-            CharacterRow.None,
-            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
+            var usability = new PlayingCharacter(
+                Character,
+                new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                new OnlineCharacterRuntimeDomainService(clock),
+                PresentCharacters.StandingInTown(Character),
+                new NoCarriedGold(),
+                new StoredCarryLimitOnly(),
+                CharacterRow.None,
+                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
 
-        Assert.Equal(
-            ItemUsability.CharacterStateUnavailable,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.CharacterStateUnavailable,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <summary>
@@ -373,44 +431,48 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_character_marked_deleted_under_the_player_is_still_judged()
     {
-        var directory = Path.Combine(Path.GetTempPath(), $"dfo-deleted-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(directory);
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var database = new SqliteDatabase(
-                Path.Combine(directory, "characters.db"), new DomainTransactionScope());
-            await using (var connection = new SqliteConnection(database.ConnectionString))
+            var directory = Path.Combine(Path.GetTempPath(), $"dfo-deleted-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            var databasePath = Path.Combine(directory, "characters.db");
+            try
             {
-                await connection.OpenAsync(CancellationToken.None);
-                await using var insert = connection.CreateCommand();
-                insert.CommandText =
-                    "INSERT INTO characters(character_id,account_id,name,job,level,delete_flag) "
-                    + "VALUES(@cid,6,'deleted',0,50,1);";
-                insert.Parameters.AddWithValue("@cid", Character.Value);
-                Assert.Equal(1, await insert.ExecuteNonQueryAsync(CancellationToken.None));
+                var database = new SqliteDatabase(
+                    databasePath, new DomainTransactionScope());
+                await using (var connection = new SqliteConnection(database.ConnectionString))
+                {
+                    await connection.OpenAsync(CancellationToken.None);
+                    await using var insert = connection.CreateCommand();
+                    insert.CommandText =
+                        "INSERT INTO characters(character_id,account_id,name,job,level,delete_flag) "
+                        + "VALUES(@cid,6,'deleted',0,50,1);";
+                    insert.Parameters.AddWithValue("@cid", Character.Value);
+                    Assert.Equal(1, await insert.ExecuteNonQueryAsync(CancellationToken.None));
+                }
+
+                var usability = new PlayingCharacter(
+                    Character,
+                    new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                    new OnlineCharacterRuntimeDomainService(
+                        new AdvanceableTimeProvider(
+                            new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero))),
+                    PresentCharacters.StandingInTown(Character),
+                    new NoCarriedGold(),
+                    new StoredCarryLimitOnly(),
+                    new SqliteCharacterTable(database),
+                    new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+
+                Assert.Equal(
+                    ItemUsability.Allowed,
+                    await usability.CanUseAsync(8474, CancellationToken.None));
             }
-
-            var usability = new PlayingCharacter(
-                Character,
-                new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-                new CharacterItemCooldownDomainService(
-                    new AdvanceableTimeProvider(
-                        new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero))),
-                PresentCharacters.StandingInTown(Character),
-                new NoCarriedGold(),
-                new StoredCarryLimitOnly(),
-                new SqliteCharacterTable(database),
-                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
-
-            Assert.Equal(
-                ItemUsability.Allowed,
-                await usability.CanUseAsync(8474, CancellationToken.None));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            Directory.Delete(directory, recursive: true);
-        }
+            finally
+            {
+                SqliteTestPools.ClearOwned(databasePath);
+                Directory.Delete(directory, recursive: true);
+            }
+        });
     }
 
     /// <summary>
@@ -426,12 +488,15 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task The_level_a_use_is_judged_against_is_the_rows()
     {
-        var usability = Build(
-            out _, level: 50, job: 0, (8474, ItemUseRules.RequiringLevel(SessionLevel + 1)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out _, level: 50, job: 0, (8474, ItemUseRules.RequiringLevel(SessionLevel + 1)));
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await usability.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await usability.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     /// <remarks>
@@ -442,22 +507,26 @@ public sealed class CharacterItemUseTests
     [Fact]
     public async Task A_permanent_reason_is_reported_ahead_of_one_that_will_expire()
     {
-        var usability = Build(
-            out var fixture,
-            level: 10,
-            job: 0,
-            (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
-            (9000, ItemUseRules.RequiringLevel(50) with { CooltimeGroup = 70, CooldownMilliseconds = 3_000 }));
-        fixture.Cooldowns.Start(Character, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(
+                out var fixture,
+                level: 10,
+                job: 0,
+                (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
+                (9000, ItemUseRules.RequiringLevel(50) with { CooltimeGroup = 70, CooldownMilliseconds = 3_000 }));
+            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
 
-        Assert.Equal(
-            ItemUsability.LevelTooLow,
-            await usability.CanUseAsync(9000, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.LevelTooLow,
+                await usability.CanUseAsync(9000, CancellationToken.None));
+        });
     }
 
     private sealed record Fixture(
         AdvanceableTimeProvider Clock,
-        ICharacterItemCooldownDomainService Cooldowns);
+        OnlineCharacterRuntimeDomainService Cooldowns,
+        Dfo.Server.Data.World.SelectedSessionIdentity Session);
 
     private static ICharacter Build(
         out Fixture fixture,
@@ -481,8 +550,12 @@ public sealed class CharacterItemUseTests
         params (int ItemId, ItemUseRule Rule)[] rules)
     {
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
-        var cooldowns = new CharacterItemCooldownDomainService(clock);
-        fixture = new Fixture(clock, cooldowns);
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(
+            new Dfo.Server.Data.Accounts.AccountId(1), Character,
+            new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);
+        cooldowns.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+        fixture = new Fixture(clock, cooldowns, session);
         var tower = TowerPresenceProxy.Create(out var presence);
         if (inTower) presence.Members.Add(Character);
         return new PlayingCharacter(

@@ -19,6 +19,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -86,7 +87,7 @@ public sealed class CardRewardReconnectIntegrationTests
                 gamePort = GetAvailablePort();
             }
 
-            var builder = Host.CreateApplicationBuilder();
+            var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
             builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Networking:Enabled"] = "true",
@@ -103,7 +104,7 @@ public sealed class CardRewardReconnectIntegrationTests
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
-            builder.Services.AddCommandHandler<SeedReconnectRunCommand, DungeonRunState, SeedReconnectRunCommandHandler>(CommandExecutionKind.Transactional);
+            builder.Services.AddFixtureCommand<SeedReconnectRunCommand, DungeonRunState, SeedReconnectRunCommandHandler>(FixtureUnitKind.Transactional);
 
             using var host = builder.Build();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -126,43 +127,55 @@ public sealed class CardRewardReconnectIntegrationTests
                 // proves nothing this test is about. What has to be real is the loss of the
                 // socket, and it is -- this is the directory the disconnect observer reads to
                 // find out whose connection just went away.
-                sessions.Select(
-                    SelectedSessionIdentity.Create(
-                        Account, Character, first, connectionGeneration: 1, gamePort));
+                TestGameplay.Run(host.Services, () =>
+                {
+                    sessions.Select(
+                        SelectedSessionIdentity.Create(
+                            Account, Character, first, connectionGeneration: 1, gamePort));
+                });
 
-                var run = await host.Services.GetRequiredService<ICommandBus>()
+                var run = await DomainCommandFixture.Bus(host.Services)
                     .SendAsync(new SeedReconnectRunCommand(), timeout.Token);
-                Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
-                Assert.NotNull(
-                    runs.FixClearRewardCards(
-                        Character, run.RunId, FreeFace(), PaidFace(), PaidFlipCost));
-                Assert.NotNull(runs.TrySettle(Character));
-                Assert.NotNull(runs.TryOpenCardLayout(Character, run.RunId));
+                TestGameplay.Run(host.Services, () =>
+                {
+                    Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
+                    Assert.NotNull(
+                        runs.FixClearRewardCards(
+                            Character, run.RunId, FreeFace(), PaidFace(), PaidFlipCost));
+                    Assert.NotNull(runs.TrySettle(Character));
+                    Assert.NotNull(runs.TryOpenCardLayout(Character, run.RunId));
+                });
             }
 
             // ---- the loss --------------------------------------------------------------------
             await WaitUntilAsync(
                 () => !onlineUsers.TryGetByConnection(first, out _), timeout.Token);
             await WaitUntilAsync(() => !gameService.GetClients().Any(), timeout.Token);
-            Assert.Null(runs.Find(Character));
+            TestGameplay.Run(host.Services, () =>
+            {
+                Assert.Null(runs.Find(Character));
+            });
 
             // ---- the connection that comes back ----------------------------------------------
             using var reconnected = new TcpClient();
             await reconnected.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
             var second = await ConnectedIdAsync(gameService, onlineUsers, timeout.Token);
             Assert.NotEqual(first, second);
-            sessions.Select(
-                SelectedSessionIdentity.Create(
-                    Account, Character, second, connectionGeneration: 2, gamePort));
-
-            Assert.Null(runs.Find(Character));
-            foreach (var kind in new[] { ClearRewardCardKind.Free, ClearRewardCardKind.Paid })
+            TestGameplay.Run(host.Services, () =>
             {
-                foreach (var (index, _) in Expected(kind))
+                sessions.Select(
+                    SelectedSessionIdentity.Create(
+                        Account, Character, second, connectionGeneration: 2, gamePort));
+
+                Assert.Null(runs.Find(Character));
+                foreach (var kind in new[] { ClearRewardCardKind.Free, ClearRewardCardKind.Paid })
                 {
-                    Assert.Null(runs.TryClaimClearRewardCard(Character, kind, index));
+                    foreach (var (index, _) in Expected(kind))
+                    {
+                        Assert.Null(runs.TryClaimClearRewardCard(Character, kind, index));
+                    }
                 }
-            }
+            });
 
             await host.StopAsync(timeout.Token);
         }
@@ -244,14 +257,7 @@ public sealed class CardRewardReconnectIntegrationTests
         }
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {

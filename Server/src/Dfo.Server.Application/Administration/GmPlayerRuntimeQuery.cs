@@ -12,8 +12,8 @@ internal sealed record GmRuntimeSample(HashSet<int> Accounts, IReadOnlyDictionar
     IReadOnlyList<GmChannelView> Channels, DateTimeOffset SampledAt);
 
 internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery online, ISelectedSessionSnapshotQuery snapshots,
-    ISelectedSessionDomainService selected, ISelectedSessionRuntimeDirectory published, ICharacterPositionDomainService positions,
-    IChannelDirectoryDomainService channels, IChannelEntryPolicy entry, TimeProvider clock)
+    ISelectedSessionDomainService selected, IOnlineCharacterRuntimeDomainService onlineCharacters,
+    IChannelDirectoryDomainService channels, IChannelEntryDomainService entry, TimeProvider clock)
 {
     public async ValueTask<GmRuntimeSample> SampleAsync(CancellationToken token)
     {
@@ -24,10 +24,10 @@ internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery onlin
         foreach (var session in snapshots.Snapshot())
         {
             token.ThrowIfCancellationRequested();
-            if (!Current(session)) continue;
-            var position = positions.Find(session.CharacterId);
+            if (!selected.IsInWorld(session)) continue;
+            var position = onlineCharacters.PositionOf(session);
             var resolved = await entry.ResolveAsync(session.ListenerPort, token);
-            if (!Current(session)) continue;
+            if (!selected.IsInWorld(session)) continue;
             accounts.Add(session.AccountId.Value);
             playing[session.CharacterId.Value] = new(session.AccountId.Value,
                 catalog.FirstOrDefault(channel => channel.ChannelId == resolved.ChannelId),
@@ -35,9 +35,6 @@ internal sealed class GmPlayerRuntimeQuery(IAuthenticatedGamePresenceQuery onlin
         }
         return new(accounts, playing, catalog, sampledAt);
     }
-
-    private bool Current(SelectedSessionIdentity session) => selected.Find(session.AccountId) == session
-        && published.IsPublishedExact(session) && online.IsActiveExact(session);
 
     internal static GmPositionView Position(string source, Dfo.Server.Data.Characters.CharacterPositionState? value) =>
         new(source, value?.TownId, value?.AreaId, value?.X, value?.Y, value?.Direction);

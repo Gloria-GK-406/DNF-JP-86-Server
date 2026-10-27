@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.InitialConnection;
 
 namespace Dfo.Server.Protocol.Tests.Game.InitialConnection;
 
+[Trait("Category", "Unit")]
 public sealed class GameInitialConnectionCodecTests
 {
     /// <summary>

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
@@ -36,6 +37,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     }
     public async ValueTask<DungeonEntryAttempt> EnterAsync(AltarStateStore store, int dungeonId, DungeonEntryContext context, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(EnterAsync));
         if (context.DungeonId != dungeonId || context.Participants.Count is < 1 or > 4 || context.RequestMode != 0
             || context.PracticeMode != 0 || context.MirrorQuestId is not null || context.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
@@ -83,10 +85,11 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     public ValueTask<AltarActionResult?> ReadyAsync(AltarStateStore store, SelectedSessionIdentity session,
         DungeonRunId runId, long roomVersion, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(ReadyAsync));
         ct.ThrowIfCancellationRequested();
         var run = runs.Find(runId);
         var state = Find(store, runId);
-        if (state is null || run is null || run.RoomVersion != roomVersion || sessions.FindByCharacter(session.CharacterId) != session
+        if (state is null || run is null || run.RoomVersion != roomVersion || !sessions.IsInWorld(session)
             || !run.ReadyParticipants.Contains(session.CharacterId)
             || !run.Participants.Any(x => x.CharacterId == session.CharacterId && x.IsLeader)
             || state.PreparationRequested
@@ -123,6 +126,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     public async ValueTask<AltarActionResult?> AdvanceAsync(AltarStateStore store, DungeonRunId runId, long roomVersion,
         long generation, DateTimeOffset now, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(AdvanceAsync));
         var run = runs.Find(runId);
         var state = Find(store, runId);
         if (run is null || state is null || state.Generation != generation || state.RoomVersion != roomVersion
@@ -197,17 +201,19 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     public ValueTask<AltarActionResult?> SelectDifficultyAsync(AltarStateStore store, SelectedSessionIdentity session,
         DungeonRunId runId, long roomVersion, long generation, byte difficulty, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(SelectDifficultyAsync));
         ct.ThrowIfCancellationRequested();
         var run = runs.Find(runId);
         var state = Find(store, runId);
         if (run is null || state?.Status != AltarStatus.ChoosingDifficulty || state.RoomVersion != roomVersion
             || run.RoomVersion != roomVersion || state.Generation != generation || difficulty is not (1 or 2)
-            || state.NextDeadline <= clock.GetUtcNow() || sessions.FindByCharacter(session.CharacterId) != session
+            || state.NextDeadline <= clock.GetUtcNow() || !sessions.IsInWorld(session)
             || !run.Participants.Any(x => x.CharacterId == session.CharacterId && x.IsLeader)) return ValueTask.FromResult<AltarActionResult?>(null);
         return ValueTask.FromResult<AltarActionResult?>(StartRound(store, state with { Difficulty = difficulty }, clock.GetUtcNow(), true));
     }
     public async ValueTask<AltarActionResult?> FailAsync(AltarStateStore store, DungeonRunId runId, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(FailAsync));
         var run = runs.Find(runId);
         var state = Find(store, runId);
         if (run is null || state is null || state.Status is AltarStatus.Ranking or AltarStatus.RewardDisplay or AltarStatus.Awarded) return null;
@@ -215,6 +221,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     }
     public async ValueTask<AltarActionResult?> SettleBeforeExitAsync(AltarStateStore store, DungeonRunId runId, CancellationToken ct, CharacterId? participant = null)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(SettleBeforeExitAsync));
         var run = runs.Find(runId);
         var state = Find(store, runId);
         if (run is null || state is null || state.Status == AltarStatus.Awarded) return null;
@@ -303,6 +310,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     }
     public bool StageRevival(AltarStateStore store, CharacterId character, DungeonRunId runId)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarDungeonEngine) + "." + nameof(StageRevival));
         if (!CanRevive(store, character, runId)) return false;
         var state = Find(store, runId)!;
         var revivals = state.Revivals.ToDictionary(x => x.Key, x => x.Value);
@@ -319,9 +327,14 @@ internal sealed class AltarStateStore
     private readonly Dictionary<DungeonRunId, AltarDungeonState> states = [];
     public AltarDungeonState? Find(DungeonRunId runId) { lock (gate) return states.GetValueOrDefault(runId); }
     public IReadOnlyList<AltarDungeonState> All() { lock (gate) return states.Values.ToArray(); }
-    public void Remove(DungeonRunId runId) { lock (gate) states.Remove(runId); }
+    public void Remove(DungeonRunId runId)
+    {
+        GameplayWriteAssertion.Writing(nameof(AltarStateStore) + "." + nameof(Remove));
+        lock (gate) states.Remove(runId);
+    }
     public void Put(AltarDungeonState state, IDomainTransactionAccessor transactions)
     {
+        GameplayWriteAssertion.Writing(nameof(AltarStateStore) + "." + nameof(Put));
         var transaction = transactions.Current ?? throw new InvalidOperationException("Altar changes require a transaction.");
         if (transaction.IsReadOnly) throw new InvalidOperationException("Altar changes require a writable transaction.");
         transaction.Enlist(this, () => new Changes(this)).Put(state);

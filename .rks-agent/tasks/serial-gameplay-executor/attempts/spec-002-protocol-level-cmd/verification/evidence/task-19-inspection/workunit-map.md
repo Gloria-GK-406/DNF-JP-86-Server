@@ -1,0 +1,17 @@
+# Warehouse 6 logical → 1 whole / 1 Main
+
+65841/0131 create、65842/0132 upgrade、65843/0133 deposit、65844/0134 withdraw、65944/0198 personal ticket、65967/01AF Main ticket均精确WarehouseRequest→Direct Protocol GameWarehouseCommand；原唯一WarehouseCommand/fine handler/Tx注册完全删除。旧请求输入/metadata/decoder/composer/codec未改。
+
+旧handler FindByConnection→online→0198/01AF Main wire mapping→细粒度事务内clock→原领域→事务完全退出→原projection/拒绝log/ACK。新whole沿原身份/mapping，显式initialRejected不可升权、Originally selected精确匹配；唯一Main WriteResultAsync，在窄action try包clock及原领域调用。Main最低Inventory来自原request。正常领域Refused不RequireRollback；domain CurrentAsync的InWorld/dungeon/tower/belongs-to仍在原领域内；无新footprint/recorder/ApplyEffects/自开Tx/NonRequest，原动态stores加入实际事务。
+
+TransferGold先account cargo value32条件UPDATE，再character gold真实增减，再SnapshotAsync；UseItem先Take/Delete一票、ChangeCharacter INSERT-if-absent后list_param16 UPDATE，再SnapshotAsync。SnapshotAsync先当前实际item-session ApplyDecidedWritesAsync，再加载character/account原receipt，第一投影使用这份receipt。create/upgrade金币/材料/等级/阶段算法不变。Main参与者是最初精确selected actor，不等同投递audience。金钱/票券/参数同一真实SQLite participant/facets动态加入，未声明固定所有路径皆只有SQLite。
+
+原catch分类：preMain mapping只覆盖mapping；domain span InventorySlotMappingException→InvalidRequest/无handled Error、InventoryExpansionException→原Rejection/无handled Error，generic非cancel/nonuncertain→StateChanged/原Error。actionE先RequireRollback(E)正常动作outcome，unit退出后mapper/log/ACK；真实已知CommitRolledBack使用原Cause同mapper。整个WriteResult/current/guard/Freeze/cleanup/projection/encoder都不在业务catch；Cancel/typed/Unknown/sticky不转普通拒绝。独立rollback X同对象再次发生也保E/X并默认Blocked/fence/sourceclose。
+
+首成功0131–0134 ACK→Main full→AccountCargo full，0198 ACK→Main full→PersonalCargo full；成功0133/0134ACK使用receipt.Account.Cargo.Value32。01AF成功只有Main full，拒绝/普通异常完全静默，无ACK编码路径。首成功NotificationBus Failed逐目标隔离保持；直接拒绝ACK的earlyRejected/normalRefusedCommitted/ConfirmedRollback及ACK抛mapping均走原默认保护。只有既有CommittedReplayCurrentStateBatch，无新raw许可。重放普通Write读current，不重Main、不重扣/授予/原ACK。
+
+四真正旧wire：deposit value32 UPDATE及Main ticket list_param16 UPDATE，各实际SQL19/1811与deferred FK真实SQLiteTransaction.Commit19/787；当前真实participant读取FK1/child/staged资产、native完整receipt，rollback后全资产恢复，同fingerprint/同entry原Ordinal重试恰一次，随后current-only replay。Freeze后确认回滚projection可以非null，未清main claim或改Ordinal。
+
+测试纯业务入口现为具名typed WarehouseDomainTestDriver.Expand(host,owner,type,value/slot)：同provider每次独立TestGameplay，Capture(owner,null)/DemandCurrent前后、真实DomainTransactionScope，原clock和实际domain，正常Commit、catch Abort(E)原抛、finallyDispose，无任意Func平台/第二provider/假footprint。原WarehouseStorage全部case、Throws/SQL/UID/core/20并发与原seq7→8→7 replay断言保留，原直接handler成功case换外部decoder/dispatcher新鲜seq。
+
+非自然控制：唯一world=false case通过本地PresenceProxy仅IsInWorld=false，其它authority/current及服务方法转发同实际singleton。原自然selected但未EnterWorld在Capture时因CurrentCharacterId未绑定被拒，记录诊断；不以此伪造自然状态。tower/owner与实际DungeonRun均仍原真源。

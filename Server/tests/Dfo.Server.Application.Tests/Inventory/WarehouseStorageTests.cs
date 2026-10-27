@@ -13,6 +13,7 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Tests.Support;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -30,8 +31,11 @@ public sealed class WarehouseStorageTests
         Assert.IsType<ItemMoveOutcome.Refused>(await Move(host,
             new(BusinessInventorySpace.Consumable, 0), new(BusinessInventorySpace.AccountCargo, 0)));
         Assert.Equal(InventoryExpansionRejection.NoSession, (await Command(host, 0x0133, 1)).Rejection);
-        Assert.Null((await Sort(host, BusinessInventorySpace.AccountCargo)).Receipt);
-        Assert.NotNull((await Sort(host, BusinessInventorySpace.Consumable)).Receipt);
+        var original = host.StoredCore(65);
+        Assert.False(await Sort(host, BusinessInventorySpace.AccountCargo));
+        Assert.Equal(original, host.StoredCore(65));
+        Assert.Equal(2, host.Count(2000));
+        Assert.True(await Sort(host, BusinessInventorySpace.Consumable));
     }
     [Theory]
     [InlineData("account:1:Main")]
@@ -77,7 +81,7 @@ public sealed class WarehouseStorageTests
     }
 
     [Fact]
-    public async Task Gold_transfer_is_exact_bounded_and_rejects_stale_sessions()
+    public async Task Gold_transfer_is_exact_bounded_and_the_domain_fixture_requires_a_current_owner()
     {
         using var host = Fixture();
         host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}; UPDATE character_stats SET carried_gold=20000000; INSERT INTO account_cargo_state(account_id,selection_key,value32) VALUES(1,1,9999999);");
@@ -92,8 +96,7 @@ public sealed class WarehouseStorageTests
         Assert.Equal(29999999, host.Gold);
         var stale = host.Session;
         host.Select(2); Bind(host);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => host.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new WarehouseCommand(host.OnlineUser, stale, 0x0133, 1)).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => WarehouseDomainTestDriver.Expand(host, stale, 0x0133, 1));
         Assert.Equal(0, CargoGold(host));
     }
 
@@ -208,8 +211,7 @@ public sealed class WarehouseStorageTests
         using var host=Fixture();
         host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}");
         host.Sender.BeforeSend=()=>{Assert.Equal(0,host.Gold);Assert.Equal(1,Capacity(host));};
-        await host.Services.GetRequiredService<WarehouseHandler>().HandleAsync(new(host.Connection),
-            new WarehouseRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty with { Type=0x0131 },0),default);
+        await EffectRequestTransport.Send(host, new WarehouseRequest(new(1,0x0131,0,EffectRequestTransport.FreshSequence(host)),0));
         Assert.IsType<WarehouseResponse>(host.Sender.Messages[0]);
         Assert.Equal(3,host.Sender.Messages.Count);
         Assert.All(host.Sender.Batches.SelectMany(b=>b.Frames),f=>Assert.InRange(f.Length,15,1048576));
@@ -282,20 +284,23 @@ public sealed class WarehouseStorageTests
     {
         var registry = host.Services.GetRequiredService<ICharacterContainerDomainService>();
         var kept = new[] { InventoryContainerType.Main, InventoryContainerType.Equipment, InventoryContainerType.SharedMaterial }.Select(type => registry.GetContainer(host.Session.CharacterId, type)).ToArray();
-        registry.Clear(host.Session.CharacterId);
-        foreach (var container in kept) registry.Register(host.Session.CharacterId, container);
-        foreach (var type in new[] { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo, InventoryContainerType.Avatar })
+        TestGameplay.Run(host.Services, () =>
         {
-            registry.Register(host.Session.CharacterId, new PersistentItemContainer(type == InventoryContainerType.AccountCargo
-                    ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type), new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
-                host.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                host.Services.GetRequiredService<IItemPlacementRuleService>(),
-                host.Services.GetRequiredService<IItemSlotRuleService>()));
-        }
+            registry.Clear(host.Session.CharacterId);
+            foreach (var container in kept) registry.Register(host.Session.CharacterId, container);
+            foreach (var type in new[] { InventoryContainerType.PersonalCargo, InventoryContainerType.AccountCargo, InventoryContainerType.Avatar })
+            {
+                registry.Register(host.Session.CharacterId, new PersistentItemContainer(type == InventoryContainerType.AccountCargo
+                        ? cargoStorageId ?? ContainerId.ForAccountCargo(account ?? host.Session.AccountId) : ContainerId.ForCharacter(host.Session.CharacterId, type), new(type, 0), host.Services.GetRequiredService<IItemDomainStore>(),
+                    host.Services.GetRequiredService<IDomainTransactionAccessor>(),
+                    host.Services.GetRequiredService<IItemPlacementRuleService>(),
+                    host.Services.GetRequiredService<IItemSlotRuleService>()));
+            }
+        });
     }
     internal static Task<InventoryExpansionResult> Command(ShopFixture host, ushort type, int value = 0) =>
-        host.Services.GetRequiredService<ICommandBus>().SendAsync(new WarehouseCommand(host.OnlineUser, host.Session, type, value,
-            type is 0x0198 or 0x01AF ? new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, value)) : null)).AsTask();
+        WarehouseDomainTestDriver.Expand(host, host.Session, type, value,
+            type is 0x0198 or 0x01AF ? new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, value)) : null);
     internal static IBusinessItemContainer Bag(ShopFixture host, BusinessInventorySpace space) => host.Services
         .GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(host.Session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
     private static async Task<ItemMoveOutcome> Move(ShopFixture host, BusinessSlot from, BusinessSlot into, int count = 0)
@@ -304,13 +309,27 @@ public sealed class WarehouseStorageTests
         await InTransaction(host, async () => outcome = await host.Services.GetRequiredService<ICargoTransferDomainService>().MoveAsync(host.Session, from, into, count, default));
         return outcome;
     }
-    private static Task<SortItemResult> Sort(ShopFixture host, BusinessInventorySpace space) =>
-        host.Services.GetRequiredService<ICommandBus>().SendAsync(new SortItemCommand(
-            host.OnlineUser, host.Session, space, InventorySortOrder.Default)).AsTask();
+    private static async Task<bool> Sort(ShopFixture host, BusinessInventorySpace space)
+    {
+        var before = host.Sender.Messages.Count;
+        var batches = host.Sender.Batches.Count;
+        await InventorySortWire.Sort(host, space);
+        var result = Assert.Single(host.Sender.Messages.Skip(before).OfType<SortItemResponse>());
+        if (result.Success)
+        {
+            var batch = Assert.Single(host.Sender.Batches.Skip(batches));
+            Assert.Equal(new ushort[] { 0x0014, 0x000D, 0x00FB }, batch.Frames.Select(frame =>
+                System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))));
+        }
+        return result.Success;
+    }
     internal static async Task InTransaction(ShopFixture host, Func<Task> action)
     {
-        await using var tx = ((DomainTransactionScope)host.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await action(); await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)host.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            await action(); await tx.CommitAsync(default);
+        });
     }
     private static int Capacity(ShopFixture host) => host.Scalar("SELECT selection_key FROM account_cargo_state WHERE account_id=1");
     private static int CargoGold(ShopFixture host) => host.Scalar("SELECT value32 FROM account_cargo_state WHERE account_id=1");

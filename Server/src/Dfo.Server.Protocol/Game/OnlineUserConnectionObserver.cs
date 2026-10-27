@@ -1,9 +1,11 @@
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Sessions;
@@ -15,18 +17,16 @@ namespace Dfo.Server.Protocol.Game;
 
 public sealed class OnlineUserConnectionObserver(
     IOnlineUserDomainService onlineUsers,
-    OnlineUserExecutionGate executionGate,
-    SelectedSessionTransitionGate lifecycleGate,
     ISelectedSessionDomainService selectedSessions,
-    ISelectedSessionCleanupDomainService cleanup,
-    IChannelEntryPolicy channels,
+    ICommandSelectedSessionCleanup cleanup,
+    IChannelEntryDomainService channels,
     IServerConfigService serverConfig,
-    IGameMessageSender gameSender,
+    IGameCommandOutbox gameSender,
     ICleanupNotificationDelivery cleanupDelivery,
-    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService? clientSettings = null) : INetworkConnectionObserver
+    TimeProvider timeProvider, Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService clientSettings) : INetworkConnectionLifecycleHandler
 {
     public async ValueTask ConnectedAsync(
-        NetworkConnectionContext connection,
+        CommandExecutionContext context, NetworkConnectionContext connection,
         CancellationToken cancellationToken)
     {
         if (connection.EndpointKind != NetworkEndpointKind.Game)
@@ -45,7 +45,7 @@ public sealed class OnlineUserConnectionObserver(
                     $"Game listener '{connection.ListenerPort}' does not resolve to a wire channel ID.");
             }
 
-            await gameSender.SendNotiAsync(
+            await gameSender.RegisterNotiAsync(
                 connection.ConnectionId,
                 new GameInitialConnectionNotice(
                     channel.ChannelId,
@@ -64,7 +64,7 @@ public sealed class OnlineUserConnectionObserver(
     }
 
     public async ValueTask DisconnectedAsync(
-        NetworkConnectionContext connection,
+        CommandExecutionContext context, NetworkConnectionContext connection,
         CancellationToken cancellationToken)
     {
         if (connection.EndpointKind != NetworkEndpointKind.Game)
@@ -77,65 +77,34 @@ public sealed class OnlineUserConnectionObserver(
             || observed is null)
         {
             // Protocol rejection removes an unusable OnlineUser identity immediately. Its
-            // asynchronously requested transport close can arrive here later, while the selected
-            // directory still owns the exact session whose other resources need full cleanup.
+            // asynchronously requested transport close can arrive here later, while the session it
+            // had selected still reads as revoked and its other resources need full cleanup.
             if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
             {
-                _ = await CleanupSelectedAsync(
-                    connection.ConnectionId, orphaned, cancellationToken).ConfigureAwait(false);
+                _ = await CleanupSelectedAsync(context, orphaned).ConfigureAwait(false);
             }
             return;
         }
 
-        while (true)
+        var selected = selectedSessions.FindByConnection(connection.ConnectionId);
+        var cleanedSelected = selected is not null
+            && await CleanupSelectedAsync(context, selected).ConfigureAwait(false);
+        if (onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
+            && current is not null && current.OnlineUserId == observed.OnlineUserId
+            && (cleanedSelected || current.Generation == observed.Generation))
         {
-            if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var before)
-                || before is null || before.OnlineUserId != observed.OnlineUserId) return;
-            var selectedBefore = selectedSessions.FindByConnection(connection.ConnectionId);
-            var accountId = selectedBefore?.AccountId;
-            // Transition first, then online. Scope commands will hold the same order. If binding
-            // changed while waiting, release both and retry rather than acquire in reverse.
-            await using var lifecycleLease = accountId is { } account
-                ? await lifecycleGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken)
-                    .ConfigureAwait(false)
-                : null;
-            await using var lease = await executionGate.AcquireAsync(
-                observed.OnlineUserId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-            if (!onlineUsers.TryGetByConnection(connection.ConnectionId, out var current)
-                || current is null || current.OnlineUserId != observed.OnlineUserId) return;
-            var selected = selectedSessions.FindByConnection(connection.ConnectionId);
-            if (selectedBefore is null && selected is not null) continue;
-            var cleanedSelected = selectedBefore is not null
-                && await CleanupSelectedHeldAsync(connection.ConnectionId, selectedBefore).ConfigureAwait(false);
-            if (onlineUsers.TryGetByConnection(connection.ConnectionId, out current)
-                && current is not null && current.OnlineUserId == observed.OnlineUserId
-                && (cleanedSelected || current.Generation == observed.Generation))
-            {
-                onlineUsers.TryDisconnectConnection(connection.ConnectionId);
-                // Activation can have waited behind the early Forget above. Remove again while
-                // holding the online lease, and never remove a replacement connection identity.
-                clientSettings?.ForgetConnection(observed.SessionIdentity);
-            }
-            return;
+            onlineUsers.TryDisconnectConnection(connection.ConnectionId);
+            // Remove again by the observed session identity as well, and never remove a
+            // replacement connection identity.
+            clientSettings?.ForgetConnection(observed.SessionIdentity);
         }
     }
 
-    private async ValueTask<bool> CleanupSelectedAsync(
-        NetworkConnectionId connectionId,
-        SelectedSessionIdentity selected,
-        CancellationToken cancellationToken)
+    private async ValueTask<bool> CleanupSelectedAsync(CommandExecutionContext context, SelectedSessionIdentity selected)
     {
-        await using var lifecycleLease = await lifecycleGate.AcquireAsync(
-            selected.AccountId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        return await CleanupSelectedHeldAsync(connectionId, selected).ConfigureAwait(false);
-    }
-
-    private async ValueTask<bool> CleanupSelectedHeldAsync(
-        NetworkConnectionId connectionId, SelectedSessionIdentity selected)
-    {
-        // A command may have completed exact cleanup while this observer waited. Never clean a
+        // A command may have completed exact cleanup before this observer ran. Never clean a
         // replacement selected by the same account or a reused connection identifier.
-        if (selectedSessions.FindByConnection(connectionId) != selected)
+        if (selectedSessions.StandingOf(selected) is null)
         {
             return false;
         }
@@ -143,7 +112,7 @@ public sealed class OnlineUserConnectionObserver(
         try
         {
             var notifications = await cleanup.CleanupAsync(
-                selected, includeOwner: false, CancellationToken.None).ConfigureAwait(false);
+                context, selected, includeOwner: false, cancellationToken: CancellationToken.None).ConfigureAwait(false);
             await cleanupDelivery.DeliverAsync(
                 notifications, CancellationToken.None).ConfigureAwait(false);
         }
@@ -155,13 +124,14 @@ public sealed class OnlineUserConnectionObserver(
                     cleanupFailure.NotificationPlan,
                     CancellationToken.None).ConfigureAwait(false);
             }
-            catch
+            catch (Exception deliveryFailure)
             {
-                // The cleanup failure remains primary; peer delivery stays best effort.
+                cleanup.RecordDisconnectedDeliveryFailure(context, deliveryFailure);
             }
         }
-        catch
+        catch (Exception error)
         {
+            cleanup.RecordDisconnectedDeliveryFailure(context, error);
             // Cleanup is internally compensating and may aggregate individual failures.
             // A closed transport still must release the matching online connection.
         }

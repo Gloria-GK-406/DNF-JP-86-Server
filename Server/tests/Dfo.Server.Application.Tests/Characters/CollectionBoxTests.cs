@@ -24,11 +24,14 @@ public sealed class CollectionBoxTests
     [Fact]
     public async Task Current_state_can_read_a_consistent_snapshot_outside_a_command_without_persisting_defaults()
     {
-        await using var f = new Fixture(synthetic: true);
-        var before = f.Dump();
-        Assert.Equal(1, (await f.Boxes.ReadAsync(Character, default)).SelectedBoxId);
-        Assert.Equal(before, f.Dump());
-        Assert.Null(f.Scope.Current);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture(synthetic: true);
+            var before = f.Dump();
+            Assert.Equal(1, (await f.Boxes.ReadAsync(Character, default)).SelectedBoxId);
+            Assert.Equal(before, f.Dump());
+            Assert.Null(f.Scope.Current);
+        });
     }
     [Fact]
     public async Task New_series_and_selection_use_the_same_persistence_without_cross_character_leakage()
@@ -171,12 +174,12 @@ public sealed class CollectionBoxTests
             Services = services.BuildServiceProvider();
             _ = Services.GetRequiredService<SqliteDatabase>();
             Sql("INSERT INTO accounts(account_id,m_id,password_hash) VALUES(1,'test','test'); INSERT INTO characters(character_id,account_id,slot_index,name) VALUES(1,1,0,'one'),(2,1,1,'two')");
-            Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
+            TestGameplay.Run(Services, () => Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
                 new PersistentItemContainer(ContainerId.ForCharacter(Character,InventoryContainerType.Main),new(InventoryContainerType.Main,0),
                     Services.GetRequiredService<IItemDomainStore>(),Services.GetRequiredService<IDomainTransactionAccessor>(),
-                    Services.GetRequiredService<IItemPlacementRuleService>(),Services.GetRequiredService<IItemSlotRuleService>()));
+                    Services.GetRequiredService<IItemPlacementRuleService>(),Services.GetRequiredService<IItemSlotRuleService>())));
         }
-        public async ValueTask Write(Func<ValueTask> action) { await using var tx = Scope.Begin(); await action(); await tx.CommitAsync(default); }
+        public async ValueTask Write(Func<ValueTask> action) { await TestGameplay.RunAsync(Services, async () => { await using var tx = Scope.Begin(); await action(); await tx.CommitAsync(default); }); }
         public async ValueTask<(BusinessSlot,ItemSnapshot)> Seed(int itemId, int count, int invalid = 0)
         {
             var p = (await Services.GetRequiredService<IItemPlacementRuleService>().PlacementForAsync(itemId, default))!;
@@ -188,15 +191,15 @@ public sealed class CollectionBoxTests
                 new InventorySlotMappingRuleService().ToGameSlot(source).Index, await Items.CreateAsync(snapshot, default), default); });
             return (source,snapshot);
         }
-        public void Sql(string sql) { using var c = new SqliteConnection("Data Source="+path); c.Open(); using var q = c.CreateCommand(); q.CommandText=sql; q.ExecuteNonQuery(); }
+        public void Sql(string sql) { using var c = new SqliteConnection(SqliteTestPools.ConnectionString(path)); c.Open(); using var q = c.CreateCommand(); q.CommandText=sql; q.ExecuteNonQuery(); }
         public string Dump()
         {
-            using var c = new SqliteConnection("Data Source="+path); c.Open(); using var q = c.CreateCommand();
+            using var c = new SqliteConnection(SqliteTestPools.ConnectionString(path)); c.Open(); using var q = c.CreateCommand();
             q.CommandText="SELECT i.item_uid,hex(i.item_core),s.owner_id,s.list_type,s.slot_index,s.count FROM items i LEFT JOIN item_slots s ON s.core_uid=i.item_uid ORDER BY i.item_uid";
             using var r=q.ExecuteReader(); var rows=new List<string>(); while(r.Read()) rows.Add(string.Join('|', Enumerable.Range(0,r.FieldCount).Select(r.GetValue)));
             r.Close(); q.CommandText="SELECT character_id,selected_box_index FROM character_collectbox_state ORDER BY character_id";
             using var selected=q.ExecuteReader(); while(selected.Read()) rows.Add($"selected:{selected.GetInt32(0)}:{selected.GetInt32(1)}"); return string.Join('\n',rows);
         }
-        public async ValueTask DisposeAsync() { await Services.DisposeAsync(); SqliteConnection.ClearAllPools(); foreach(var suffix in new[]{"","-wal","-shm"}) File.Delete(path+suffix); }
+        public async ValueTask DisposeAsync() { await Services.DisposeAsync(); SqliteTestPools.ClearOwned(path); foreach(var suffix in new[]{"","-wal","-shm"}) File.Delete(path+suffix); }
     }
 }

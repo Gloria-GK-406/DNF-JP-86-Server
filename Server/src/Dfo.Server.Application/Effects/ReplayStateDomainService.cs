@@ -15,36 +15,23 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Effects;
-
-public sealed record ReadReplayStateCommand(SelectedSessionIdentity Session, ReplayProjectionRequest Request)
-    : ICommand<ReplayStateSnapshot>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
-
-public sealed class ReadReplayStateCommandHandler(IReplayStateDomainService reader)
-    : ICommandHandler<ReadReplayStateCommand, ReplayStateSnapshot>
-{
-    public ValueTask<ReplayStateSnapshot> HandleAsync(CommandExecutionContext context,
-        ReadReplayStateCommand command, CancellationToken cancellationToken) =>
-        reader.ReadAsync(command.Session, command.Request, cancellationToken);
-}
 
 /// <summary>Reads only requested current facts, in the caller's protected transaction; never performs entry work.</summary>
 internal sealed class ReplayStateDomainService(IServiceProvider services, IDomainTransactionAccessor transactions,
     SelectedSessionSafety safety, TimeProvider clock) : IReplayStateDomainService
 {
     public async ValueTask<ReplayStateSnapshot> ReadAsync(SelectedSessionIdentity session,
-        ReplayProjectionRequest request, CancellationToken ct)
+        ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(request);
         request.Validate();
         _ = transactions.Current ?? throw new InvalidOperationException("Replay state requires a transaction snapshot.");
-        var recipient = safety.Capture(session);
+        var recipient = safety.Capture(session, metadata);
         var at = clock.GetUtcNow();
         if (!await Get<ICharacterTable>().BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false))
             throw new InvalidOperationException("Replay state does not belong to the selected account.");

@@ -24,10 +24,10 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IWorldContentEntryRuleService worldContent,
     ICharacterEntryPreparationRuleService rules,
     ICharacterPvpSkillProfileRepository pvpSkills,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     ITownMovementDomainService towns,
     ISessionAdjacentEntryDomainService adjacent,
-    ICharacterPositionDomainService positions,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     TimeProvider timeProvider,
     IEventManagementDomainService? events = null,
     IWeeklyAttendanceDomainService? attendance = null,
@@ -40,7 +40,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
-        var position = positions.Find(session.CharacterId)
+        var position = onlineCharacters.PositionOf(session)
             ?? throw new InvalidDataException("The selected character has no live position.");
         var roster = await characters.GetAccountRosterAsync(session.AccountId, cancellationToken)
             .ConfigureAwait(false);

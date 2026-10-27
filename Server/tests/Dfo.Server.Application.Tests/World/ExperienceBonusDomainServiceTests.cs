@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -18,6 +19,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -39,12 +41,16 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(ExperienceEvent.QuestCompletion, false, false)]
     public void Growth_and_potion_have_separate_occasion_rules(ExperienceEvent occasion, bool growth, bool potion)
     {
-        var potions = new SpiritPotionDomainService(TimeProvider.System);
-        potions.Apply(new(60), 1, TimeSpan.FromHours(2));
-        var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
-        Assert.Equal(growth, found.Any(x => x.Kind == ExperienceBonusKind.GrowthContract && x.Rate == .2));
-        Assert.Equal(potion, found.Any(x => x.Kind == ExperienceBonusKind.SpiritPotion && x.Rate == 1));
-        Assert.Equal((growth ? 1 : 0) + (potion ? 1 : 0), found.Count);
+        TestGameplay.Run(() =>
+        {
+            var potions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            potions.Begin(OneSession.Identity, new Dfo.Server.Data.Characters.CharacterPositionState(1, 0, 0, 0, 0), 100);
+            potions.ApplySpiritPotion(OneSession.Identity, 1, TimeSpan.FromHours(2));
+            var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
+            Assert.Equal(growth, found.Any(x => x.Kind == ExperienceBonusKind.GrowthContract && x.Rate == .2));
+            Assert.Equal(potion, found.Any(x => x.Kind == ExperienceBonusKind.SpiritPotion && x.Rate == 1));
+            Assert.Equal((growth ? 1 : 0) + (potion ? 1 : 0), found.Count);
+        });
     }
 
     [Theory]
@@ -60,13 +66,16 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(ExperienceEvent.QuestCompletion, true, false)]
     public void BlackDiamondIsOnlyGrantedForEligibleClear(ExperienceEvent occasion, bool enabled, bool expected)
     {
-        var found = Collect(Service(blackDiamond: enabled, premiums: [new(56, 4_000_000_000)]), OtherDungeon, occasion);
-        Assert.Equal(expected ? 1 : 0, found.Count);
-        if (expected)
+        TestGameplay.Run(() =>
         {
-            Assert.Equal(ExperienceBonusKind.BlackDiamond, found[0].Kind);
-            Assert.Equal(.05, found[0].Rate);
-        }
+            var found = Collect(Service(blackDiamond: enabled, premiums: [new(56, 4_000_000_000)]), OtherDungeon, occasion);
+            Assert.Equal(expected ? 1 : 0, found.Count);
+            if (expected)
+            {
+                Assert.Equal(ExperienceBonusKind.BlackDiamond, found[0].Kind);
+                Assert.Equal(.05, found[0].Rate);
+            }
+        });
     }
 
     private sealed class Rates : IPremiumServiceRuleService
@@ -106,11 +115,14 @@ public sealed class ExperienceBonusDomainServiceTests
     [Fact]
     public void AKillInTheChannelsOwnDungeonEarnsTheDeclaredRate()
     {
-        var found = Collect(Service(), CarriedDungeon);
+        TestGameplay.Run(() =>
+        {
+            var found = Collect(Service(), CarriedDungeon);
 
-        var channel = Assert.Single(found);
-        Assert.Equal(0.05, channel.Rate);
-        Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
+            var channel = Assert.Single(found);
+            Assert.Equal(0.05, channel.Rate);
+            Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
+        });
     }
 
     /// <summary>The rate is the one declared for the channel the session is actually on.</summary>
@@ -127,9 +139,12 @@ public sealed class ExperienceBonusDomainServiceTests
     public void TheRateIsTheOneDeclaredForTheChannelTheSessionIsOn(
         int channelId, int dungeonId, double expected)
     {
-        var found = Collect(Service(channelId: channelId), dungeonId);
+        TestGameplay.Run(() =>
+        {
+            var found = Collect(Service(channelId: channelId), dungeonId);
 
-        Assert.Equal(expected, Assert.Single(found).Rate);
+            Assert.Equal(expected, Assert.Single(found).Rate);
+        });
     }
 
     /// <summary>A channel earns nothing for the other channel's dungeon.</summary>
@@ -175,9 +190,10 @@ public sealed class ExperienceBonusDomainServiceTests
         IExperienceBonusDomainService service,
         int dungeonId,
         ExperienceEvent occasion = ExperienceEvent.MonsterKill) =>
+        TestGameplay.Run(() =>
         service.CollectAsync(new ExperienceOccasion(
             occasion, new AccountId(1), new CharacterId(60), dungeonId),
-            CancellationToken.None).AsTask().GetAwaiter().GetResult();
+            CancellationToken.None).AsTask().GetAwaiter().GetResult());
 
     /// <summary>
     /// The service over one published session on <see cref="Channel"/>, with no premium terms.
@@ -192,11 +208,10 @@ public sealed class ExperienceBonusDomainServiceTests
         ChannelExperienceCatalog? channels = null,
         int channelId = Channel,
         IReadOnlyList<AccountPremiumRow>? premiums = null,
-        ISpiritPotionDomainService? potions = null,
+        IOnlineCharacterRuntimeDomainService? potions = null,
         bool blackDiamond = false) =>
         new ExperienceBonusDomainService(
-            new OneSession(),
-            new OneRuntimeSession(published, channelId),
+            new OneSession(published),
             new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
             new OneChannel(channelId),
             new ExperienceRuleService(
@@ -206,7 +221,7 @@ public sealed class ExperienceBonusDomainServiceTests
                 new FixedChannelExperience(channels ?? TwoChannels),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None),
-            TimeProvider.System, potions ?? new SpiritPotionDomainService(TimeProvider.System));
+            TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System));
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;
@@ -259,8 +274,33 @@ public sealed class ExperienceBonusDomainServiceTests
         public ChannelExperienceCatalog Load() => catalog;
     }
 
-    private sealed class OneSession : ISelectedSessionDomainService
+    /// <summary>One selected session, in the world or not as the case says.</summary>
+    private sealed class OneSession(bool published = true) : ISelectedSessionDomainService
     {
+        public void EnterWorld(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public bool Fence(SelectedSessionIdentity session) =>
+            throw new NotSupportedException("This fixture only answers.");
+
+        public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) =>
+            session == Identity
+                ? new(published ? SelectedSessionPhase.InWorld : SelectedSessionPhase.Selected, false, false)
+                : null;
+
+        public bool IsInWorld(SelectedSessionIdentity session) => published && session == Identity;
+
+        public bool IsSelected(SelectedSessionIdentity session) => session == Identity;
+
+        public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            (session = published && characterId == Identity.CharacterId ? Identity : null) is not null;
+
+        public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            (session = published && wireUserId == Identity.WireUserId ? Identity : null) is not null;
+
+        public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+            (session = published && connectionId == Identity.ConnectionId ? Identity : null) is not null;
+
         public static readonly SelectedSessionIdentity Identity = SelectedSessionIdentity.Create(
             new AccountId(1),
             new CharacterId(60),
@@ -284,68 +324,6 @@ public sealed class ExperienceBonusDomainServiceTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    /// <summary>
-    /// One published entry carrying the two facts this service reads.
-    /// </summary>
-    /// <remarks>
-    /// The rest of the result is left null on purpose. The service reads the account's premium
-    /// terms and the channel it entered on; filling in the other seven members would hide the day
-    /// it starts reading an eighth.
-    /// </remarks>
-    private sealed class OneRuntimeSession(bool published, int channelId)
-        : ISelectedSessionRuntimeDirectory
-    {
-        public void Publish(SelectedSessionIdentity session, bool shouldPersistPosition) =>
-            throw new NotSupportedException("This fixture only answers.");
-        public bool IsPublishedExact(SelectedSessionIdentity session) => published;
-        public bool TryGetPositionPersistence(
-            SelectedSessionIdentity session, out bool shouldPersistPosition)
-        {
-            shouldPersistPosition = false;
-            return published;
-        }
-        private readonly SelectCharacterResult _result = new(
-            null!,
-            null!,
-            null!,
-            null!,
-            new AccountEntryState(
-                new AccountId(1),
-                null!,
-                null!,
-                new AccountEntitlementEntryState([]),
-                null!,
-                null!),
-            new GameWorldEntryState(
-                DateTimeOffset.UnixEpoch,
-                null!,
-                new ChannelEntryPolicyState(channelId, null!, true, false)),
-            null!);
-
-        public bool TryGet(
-            SelectedSessionIdentity session,
-            out SelectCharacterResult? result,
-            out bool shouldPersistPosition)
-        {
-            result = published ? this._result : null;
-            shouldPersistPosition = false;
-            return published;
-        }
-
-        public SelectCharacterResult GetRequired(SelectedSessionIdentity session) =>
-            published ? this._result : throw new KeyNotFoundException("Nothing was published.");
-
-        public void Publish(
-            SelectedSessionIdentity session, SelectCharacterResult result, bool persist) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public void ReplaceExact(SelectedSessionIdentity session, SelectCharacterResult result) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public bool RemoveExact(SelectedSessionIdentity session) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
-
     private sealed class NoPremium(IReadOnlyList<AccountPremiumRow> rows) : IAccountPremiumTable
     {
         public ValueTask<IReadOnlyList<AccountPremiumRow>> ReadAsync(
@@ -353,8 +331,11 @@ public sealed class ExperienceBonusDomainServiceTests
             ValueTask.FromResult(rows);
     }
 
-    private sealed class OneChannel(int channelId) : IChannelEntryPolicy
+    private sealed class OneChannel(int channelId) : IChannelEntryDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ChannelEntryIdentity(

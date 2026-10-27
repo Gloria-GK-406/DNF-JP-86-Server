@@ -13,7 +13,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// greetings live in a companion script beside it, under <c>creature/script</c>, which only
 /// some creatures have.
 /// </remarks>
-internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
+internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -48,6 +48,14 @@ internal sealed class PvfCreatureDefinitionSource : ICreatureDefinitionSource
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
     private Catalog? _catalog;
+
+    public string Name => "creatures";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load().Ordered.Count);
+    }
 
     public PvfCreatureDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
 

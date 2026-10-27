@@ -21,7 +21,7 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
     {
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
+            || !sessions.IsInWorld(receipt.Session)) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         // Magic-box ACKs decrement local piles; ordinary 00A0 with zero flags does not.
         // A21 0117E957 / 0117EAF4 will not replace an occupied class-1 stackable with another ID.
         // Keep ACKs first, then clear reused slots before installing their final contents.

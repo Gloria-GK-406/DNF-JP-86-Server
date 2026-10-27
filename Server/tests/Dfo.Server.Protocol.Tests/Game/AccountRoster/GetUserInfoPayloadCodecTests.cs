@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.AccountRoster;
 
 namespace Dfo.Server.Protocol.Tests.Game.AccountRoster;
 
+[Trait("Category", "Unit")]
 public sealed class GetUserInfoPayloadCodecTests
 {
     // Real captured body (protocol record E-001, 2026-08-14 Windows client): target 0xFFFF

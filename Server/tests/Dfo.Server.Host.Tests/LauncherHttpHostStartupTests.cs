@@ -31,7 +31,9 @@ public sealed class LauncherHttpHostStartupTests
             });
         try
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            // The packaged host warms content before listening; under full-suite load that alone can
+            // take tens of seconds. Startup is not a latency assertion (TASK-16, F-54).
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             using var gm = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{gmPort}") };
             HttpResponseMessage? health = null;
             while (health is null)
@@ -450,6 +452,7 @@ public sealed class LauncherHttpHostStartupTests
     private static void Append(StringBuilder output, string? line)
     {
         if (line is null) return;
+        Dfo.Server.Testing.GameplayAssertionRecorder.ObserveHostOutput(line);
         lock (output) output.AppendLine(line);
     }
 

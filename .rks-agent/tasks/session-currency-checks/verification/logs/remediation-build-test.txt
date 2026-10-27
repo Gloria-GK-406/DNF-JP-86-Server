@@ -1,0 +1,26 @@
+label remediation
+HEAD 97c5af5d
+    0 个警告
+    0 个错误
+
+已用时间 00:00:02.88
+已通过! - 失败:     0，通过:    50，已跳过:     0，总计:    50，持续时间: 4 s - Dfo.Server.HttpApi.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:  1694，已跳过:     0，总计:  1694，持续时间: 6 s - Dfo.Server.Protocol.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:    97，已跳过:     0，总计:    97，持续时间: 11 s - Dfo.Server.Networking.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:    80，已跳过:     0，总计:    80，持续时间: 17 s - Dfo.Pvf.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:   475，已跳过:     0，总计:   475，持续时间: 24 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:   967，已跳过:     2，总计:   969，持续时间: 1 m 8 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+失败!  - 失败:     2，通过:  4324，已跳过:    16，总计:  4342，持续时间: 2 m 46 s - Dfo.Server.Application.Tests.dll (net10.0)
+失败!  - 失败:     1，通过:   164，已跳过:     0，总计:   165，持续时间: 3 m 26 s - Dfo.Server.Host.Tests.dll (net10.0)
+--- failed tests
+* ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap
+    System.Net.Sockets.SocketException : Connection refused
+    T at Dfo.Server.Host.Tests.ChannelHostStartupTests.PackagedHost_FromUnrelatedWorkingDirectory_CompletesChannelBootstrap() in /Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees/refactor-session-
+* DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource
+    System.IO.InvalidDataException : Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'.
+    @ at Dfo.Server.Application.World.DungeonStructureRuleService.ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token) in /Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees/ref
+    T at Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource() in /Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees
+* DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot
+    System.IO.InvalidDataException : Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'.
+    @ at Dfo.Server.Application.World.DungeonStructureRuleService.ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token) in /Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees/ref
+    T at Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot() in /Users/puxianguo/project/DNF-JP-86-Server/.claude/worktrees/re

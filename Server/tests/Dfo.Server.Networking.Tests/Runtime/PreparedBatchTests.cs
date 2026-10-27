@@ -7,13 +7,21 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Networking.Outbound;
 using Dfo.Server.Networking.Runtime;
+using Dfo.Server.Networking.Tests.Outbound;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using TouchSocket.Sockets;
 
 namespace Dfo.Server.Networking.Tests.Runtime;
 
+/// <summary>
+/// A prepared batch as the outbox registers it (TASK-23 ruling 1): encoded whole on the job with the real
+/// encoder registry, all of it or none, for exactly the context the caller captured; whether that context
+/// is still the connection is decided when the sender delivers (RQ-035).
+/// </summary>
 public sealed class PreparedBatchTests
 {
     [Theory]
@@ -30,11 +38,10 @@ public sealed class PreparedBatchTests
             services.AddServerMessageEncoder<Other, OtherEncoder>(failure == "endpoint" ? NetworkEndpointKind.Channel : NetworkEndpointKind.Game);
         services.AddSingleton<ServerMessageEncoderRegistry>();
         using var provider = services.BuildServiceProvider();
-        var sender = new TouchSocketNetworkMessageSender(registry, provider.GetRequiredService<ServerMessageEncoderRegistry>(),
-            NullLogger<TouchSocketNetworkMessageSender>.Instance);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await sender.SendBatchAsync(context,
-            [new Probe(0), new Other(failure == "oversize" ? 1_048_577 : 1)], default));
-        Assert.Empty(((SessionProxy)(object)transport).Frames);
+        await using var host = Host(registry, provider);
+        await host.RunAsync(async () => await Assert.ThrowsAnyAsync<Exception>(async () => await host.Sender.SendBatchAsync(context,
+            [new Probe(0), new Other(failure == "oversize" ? 1_048_577 : 1)], default)));
+        Assert.Empty(host.Entries);
     }
 
     [Theory]
@@ -74,10 +81,10 @@ public sealed class PreparedBatchTests
         using var provider = services.BuildServiceProvider();
         var registry = new TouchSocketConnectionRegistry(); var transport = Session("actual");
         var context = registry.Add(transport, NetworkEndpointKind.Game);
-        var sender = new TouchSocketNetworkMessageSender(registry, provider.GetRequiredService<ServerMessageEncoderRegistry>(),
-            NullLogger<TouchSocketNetworkMessageSender>.Instance);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await sender.SendBatchAsync(context, [new Probe(0), message], default));
-        Assert.Empty(((SessionProxy)(object)transport).Frames);
+        await using var host = Host(registry, provider);
+        await host.RunAsync(async () =>
+            await Assert.ThrowsAnyAsync<Exception>(async () => await host.Sender.SendBatchAsync(context, [new Probe(0), message], default)));
+        Assert.Empty(host.Entries);
     }
 
     [Fact]
@@ -90,15 +97,28 @@ public sealed class PreparedBatchTests
         services.AddServerMessageEncoder<Probe, ReplacingEncoder>(NetworkEndpointKind.Game); services.AddSingleton(encoder);
         services.AddSingleton<ServerMessageEncoderRegistry>();
         using var provider = services.BuildServiceProvider();
-        var sender = new TouchSocketNetworkMessageSender(registry, provider.GetRequiredService<ServerMessageEncoderRegistry>(),
-            NullLogger<TouchSocketNetworkMessageSender>.Instance);
-        await sender.SendBatchAsync(original, [new Probe(1), new Probe(2)], default);
-        Assert.Equal(2, ((SessionProxy)(object)old).Frames.Count);
+        var observer = new RecordingObserver();
+        await using var sender = new OutboundSender(new TouchSocketOutboundTransport(registry), [observer],
+            NullLogger<OutboundSender>.Instance, OutboundSendOptions.Default);
+        await using var host = Host(registry, provider, sender);
+        // Registered against the captured context, whatever the registry holds by then.
+        await host.RunAsync(async () =>
+        {
+            await host.Sender.SendBatchAsync(original, [new Probe(1), new Probe(2)], default);
+            await host.Sender.SendBatchAsync(original, [new Probe(3)], default);
+        });
+        await observer.WaitForAsync(2);
+        Assert.All(host.Entries, entry => Assert.Same(original, entry.Connection));
+        Assert.All(host.Entries, entry => Assert.Equal(OutboundOutcome.Stale, observer.OutcomeOf(entry)));
         Assert.Empty(((SessionProxy)(object)replacement).Frames);
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await sender.SendBatchAsync(original, [new Probe(3)], default));
-        Assert.Empty(((SessionProxy)(object)replacement).Frames);
+        Assert.Empty(((SessionProxy)(object)old).Frames);
     }
 
+    /// <remarks>
+    /// The transport-failure half moved to the sender: a connection that fails part way through is
+    /// closed and its later entries are discarded (OutboundSenderTests.A_delivery_that_exceeds_its_deadline_closes_the_connection,
+    /// OutboundRealSocketTests).
+    /// </remarks>
     [Fact]
     public async Task Buffers_are_owned_and_transport_failure_can_stop_a_partially_sent_batch()
     {
@@ -106,13 +126,9 @@ public sealed class PreparedBatchTests
         var context = registry.Add(transport, NetworkEndpointKind.Game);
         var services = new ServiceCollection(); services.AddServerMessageEncoder<Probe, ReusedBufferEncoder>(NetworkEndpointKind.Game);
         services.AddSingleton<ServerMessageEncoderRegistry>(); using var provider = services.BuildServiceProvider();
-        var sender = new TouchSocketNetworkMessageSender(registry, provider.GetRequiredService<ServerMessageEncoderRegistry>(),
-            NullLogger<TouchSocketNetworkMessageSender>.Instance);
-        await sender.SendBatchAsync(context, [new Probe(1), new Probe(2)], default);
-        Assert.Equal(new byte[] { 1, 2 }, ((SessionProxy)(object)transport).Frames.Select(x => x[0]).ToArray());
-        ((SessionProxy)(object)transport).FailAfter = 3;
-        await Assert.ThrowsAsync<IOException>(async () => await sender.SendBatchAsync(context, [new Probe(3), new Probe(4)], default));
-        Assert.Equal(3, ((SessionProxy)(object)transport).Frames.Count);
+        await using var host = Host(registry, provider);
+        await host.RunAsync(async () => await host.Sender.SendBatchAsync(context, [new Probe(1), new Probe(2)], default));
+        Assert.Equal(new byte[] { 1, 2 }, Assert.Single(host.Entries).Frames.ToArray());
     }
     [Fact]
     public async Task A_late_encoding_failure_sends_no_earlier_reset_frame()
@@ -121,13 +137,15 @@ public sealed class PreparedBatchTests
         var transport = Session("original");
         var context = registry.Add(transport, NetworkEndpointKind.Game);
         using var provider = Provider();
-        var sender = new TouchSocketNetworkMessageSender(registry,
-            provider.GetRequiredService<ServerMessageEncoderRegistry>(),
-            NullLogger<TouchSocketNetworkMessageSender>.Instance);
-        await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await sender.SendBatchAsync(context, [new Probe(0), new Probe(-1)], default));
-        Assert.Empty(((SessionProxy)(object)transport).Frames);
+        await using var host = Host(registry, provider);
+        await host.RunAsync(async () => await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await host.Sender.SendBatchAsync(context, [new Probe(0), new Probe(-1)], default)));
+        Assert.Empty(host.Entries);
     }
+
+    private static OutboxRegistrationHost Host(TouchSocketConnectionRegistry registry, ServiceProvider encoders, IOutboundSender? sender = null) =>
+        new(registry, new RegistryOutboundEncoder(encoders.GetRequiredService<ServerMessageEncoderRegistry>(),
+            NullLogger<RegistryOutboundEncoder>.Instance), sender);
 
     private static ServiceProvider Provider()
     {

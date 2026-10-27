@@ -1,0 +1,1226 @@
+{
+  "steadyRate": 53.38333333333333,
+  "composition": {
+    "SET_USER_POSITION": 2311,
+    "CHECK_USER_CONNECTION": 3729,
+    "STEP_FENCE": 209,
+    "FINISH_LOADING": 14,
+    "REQUEST_PEER": 7,
+    "RESPONSE_PEER": 7,
+    "ENTER_SELECT_DUNGEON": 7,
+    "LOGIN": 10,
+    "SELECT_DUNGEON": 7,
+    "EPLP": 7,
+    "SELECT_CHARACTER": 20,
+    "SET_USER_AREA": 56,
+    "RETURN_SELECT_CHARACTER": 15,
+    "LEAVE_PARTY": 5,
+    "CREATE_CHARACTER": 2
+  },
+  "steady": {
+    "CHECK_USER_CONNECTION": {
+      "distribution": {
+        "Count": 3729,
+        "P50": 0.1892,
+        "P95": 0.4148,
+        "P99": 3.5097,
+        "P999": 7.1957,
+        "Max": 7.7434
+      },
+      "noReply": 0
+    },
+    "SET_USER_POSITION": {
+      "distribution": {
+        "Count": 2311,
+        "P50": 0.2287,
+        "P95": 0.6379,
+        "P99": 11.8985,
+        "P999": 20.3917,
+        "Max": 20.5386
+      },
+      "noReply": 0
+    },
+    "SET_USER_AREA": {
+      "distribution": {
+        "Count": 56,
+        "P50": 12.215,
+        "P95": 34.6786,
+        "P99": 160.9053,
+        "P999": 160.9053,
+        "Max": 160.9053
+      },
+      "noReply": 0
+    },
+    "SELECT_CHARACTER": {
+      "distribution": {
+        "Count": 19,
+        "P50": 30262.0545,
+        "P95": 31064.3035,
+        "P99": 31064.3035,
+        "P999": 31064.3035,
+        "Max": 31064.3035
+      },
+      "noReply": 1
+    },
+    "RETURN_SELECT_CHARACTER": {
+      "distribution": {
+        "Count": 15,
+        "P50": 28464.2725,
+        "P95": 29951.2599,
+        "P99": 29951.2599,
+        "P999": 29951.2599,
+        "Max": 29951.2599
+      },
+      "noReply": 0
+    },
+    "FINISH_LOADING": {
+      "distribution": {
+        "Count": 14,
+        "P50": 0.2246,
+        "P95": 10.9471,
+        "P99": 10.9471,
+        "P999": 10.9471,
+        "Max": 10.9471
+      },
+      "noReply": 0
+    },
+    "LOGIN": {
+      "distribution": {
+        "Count": 10,
+        "P50": 129.259,
+        "P95": 364.9396,
+        "P99": 364.9396,
+        "P999": 364.9396,
+        "Max": 364.9396
+      },
+      "noReply": 0
+    },
+    "REQUEST_PEER": {
+      "distribution": {
+        "Count": 0,
+        "P50": "NaN",
+        "P95": "NaN",
+        "P99": "NaN",
+        "P999": "NaN",
+        "Max": "NaN"
+      },
+      "noReply": 7
+    },
+    "RESPONSE_PEER": {
+      "distribution": {
+        "Count": 7,
+        "P50": 0.5337,
+        "P95": 1.3512,
+        "P99": 1.3512,
+        "P999": 1.3512,
+        "Max": 1.3512
+      },
+      "noReply": 0
+    },
+    "ENTER_SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 7,
+        "P50": 24.0314,
+        "P95": 34.139,
+        "P99": 34.139,
+        "P999": 34.139,
+        "Max": 34.139
+      },
+      "noReply": 0
+    },
+    "SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 7,
+        "P50": 17592.5756,
+        "P95": 20946.1851,
+        "P99": 20946.1851,
+        "P999": 20946.1851,
+        "Max": 20946.1851
+      },
+      "noReply": 0
+    },
+    "EPLP": {
+      "distribution": {
+        "Count": 7,
+        "P50": 26045.2632,
+        "P95": 27653.7765,
+        "P99": 27653.7765,
+        "P999": 27653.7765,
+        "Max": 27653.7765
+      },
+      "noReply": 0
+    },
+    "LEAVE_PARTY": {
+      "distribution": {
+        "Count": 5,
+        "P50": 1.0807,
+        "P95": 15.1123,
+        "P99": 15.1123,
+        "P999": 15.1123,
+        "Max": 15.1123
+      },
+      "noReply": 0
+    },
+    "CREATE_CHARACTER": {
+      "distribution": {
+        "Count": 2,
+        "P50": 41.2855,
+        "P95": 43.5779,
+        "P99": 43.5779,
+        "P999": 43.5779,
+        "Max": 43.5779
+      },
+      "noReply": 0
+    }
+  },
+  "steadyOverall": {
+    "Count": 6189,
+    "P50": 0.2063,
+    "P95": 1.1471,
+    "P99": 32.7753,
+    "P999": 30270.2004,
+    "Max": 31064.3035
+  },
+  "commands": {
+    "RegisterAccountCommand": {
+      "Count": 81,
+      "P50": 638.8785,
+      "P95": 29930.6537,
+      "P99": 30184.309,
+      "P999": 30184.309,
+      "Max": 30184.309
+    },
+    "AuthenticateAndIssueTicketCommand": {
+      "Count": 117,
+      "P50": 887.3714,
+      "P95": 60001.7312,
+      "P99": 60002.2895,
+      "P999": 60002.3567,
+      "Max": 60002.3567
+    },
+    "RedeemGameLoginCommand": {
+      "Count": 105,
+      "P50": 321.538,
+      "P95": 959.6106,
+      "P99": 1024.745,
+      "P999": 30727.7806,
+      "Max": 30727.7806
+    },
+    "ActivateClientHotkeyProfileCommand": {
+      "Count": 169,
+      "P50": 0.012,
+      "P95": 5.959,
+      "P99": 5.972,
+      "P999": 6.0025,
+      "Max": 6.0025
+    },
+    "CreateCharacterCommand": {
+      "Count": 26,
+      "P50": 76.5654,
+      "P95": 844.5474,
+      "P99": 60124.3458,
+      "P999": 60124.3458,
+      "Max": 60124.3458
+    },
+    "GetAccountCharacterRosterCommand": {
+      "Count": 26,
+      "P50": 0.2348,
+      "P95": 3.2789,
+      "P99": 6.8661,
+      "P999": 6.8661,
+      "Max": 6.8661
+    },
+    "PrepareSelectedCharacterSessionCommand": {
+      "Count": 93,
+      "P50": 66.4197,
+      "P95": 60270.3725,
+      "P99": 60931.8697,
+      "P999": 60931.8697,
+      "Max": 60931.8697
+    },
+    "CleanupExpiredCharacterItemsCommand": {
+      "Count": 93,
+      "P50": 34.1833,
+      "P95": 1055.2262,
+      "P99": 30077.4872,
+      "P999": 30077.4872,
+      "Max": 30077.4872
+    },
+    "EnsureDailyContractPuppetsCommand": {
+      "Count": 84,
+      "P50": 36.2621,
+      "P95": 30077.3245,
+      "P99": 30077.9417,
+      "P999": 30077.9417,
+      "Max": 30077.9417
+    },
+    "InitializeHousingCommand": {
+      "Count": 80,
+      "P50": 14.8306,
+      "P95": 637.8725,
+      "P99": 30055.1549,
+      "P999": 30055.1549,
+      "Max": 30055.1549
+    },
+    "PrepareSelectedCharacterStateCommand": {
+      "Count": 80,
+      "P50": 61.8096,
+      "P95": 30070.7759,
+      "P99": 60931.9502,
+      "P999": 60931.9502,
+      "Max": 60931.9502
+    },
+    "ApplySelectedCharacterDailyRefillCommand": {
+      "Count": 75,
+      "P50": 147.8516,
+      "P95": 30179.9009,
+      "P99": 30838.7333,
+      "P999": 30838.7333,
+      "Max": 30838.7333
+    },
+    "PublishSelectedCharacterSessionCommand": {
+      "Count": 74,
+      "P50": 0.0222,
+      "P95": 0.0816,
+      "P99": 12.0594,
+      "P999": 12.0594,
+      "Max": 12.0594
+    },
+    "RefillOnlineTauTicketCommand": {
+      "Count": 74,
+      "P50": 213.6766,
+      "P95": 30138.3944,
+      "P99": 30820.1943,
+      "P999": 30820.1943,
+      "Max": 30820.1943
+    },
+    "RefillOnlineSouthernTicketCommand": {
+      "Count": 69,
+      "P50": 202.0516,
+      "P95": 885.8,
+      "P99": 30792.4086,
+      "P999": 30792.4086,
+      "Max": 30792.4086
+    },
+    "RefillOnlineBossTowerTicketCommand": {
+      "Count": 64,
+      "P50": 152.4883,
+      "P95": 880.8327,
+      "P99": 30059.5737,
+      "P999": 30059.5737,
+      "Max": 30059.5737
+    },
+    "SynchronizeSelectedCharacterQuestsCommand": {
+      "Count": 63,
+      "P50": 70.767,
+      "P95": 783.6269,
+      "P99": 845.3495,
+      "P999": 845.3495,
+      "Max": 845.3495
+    },
+    "ReviveSelectedCharacterPetCommand": {
+      "Count": 63,
+      "P50": 17.6488,
+      "P95": 92.4221,
+      "P99": 30113.2539,
+      "P999": 30113.2539,
+      "Max": 30113.2539
+    },
+    "ReadItemUsageSnapshotCommand": {
+      "Count": 82,
+      "P50": 0.0458,
+      "P95": 32.5616,
+      "P99": 33.1713,
+      "P999": 33.1713,
+      "Max": 33.1713
+    },
+    "AdvanceCreatureClockCommand": {
+      "Count": 28,
+      "P50": 33.3843,
+      "P95": 30045.366,
+      "P99": 30058.9562,
+      "P999": 30058.9562,
+      "Max": 30058.9562
+    },
+    "PrepareReturnToSelectionCommand": {
+      "Count": 40,
+      "P50": 26549.5104,
+      "P95": 29799.4096,
+      "P99": 30140.1165,
+      "P999": 30140.1165,
+      "Max": 30140.1165
+    },
+    "ExpireCharacterNameTagCommand": {
+      "Count": 74,
+      "P50": 0.0691,
+      "P95": 30077.4696,
+      "P99": 39133.6044,
+      "P999": 39133.6044,
+      "Max": 39133.6044
+    },
+    "CompleteReturnToSelectionCommand": {
+      "Count": 40,
+      "P50": 0.3105,
+      "P95": 152.4611,
+      "P99": 458.2943,
+      "P999": 458.2943,
+      "Max": 458.2943
+    },
+    "CompensateSelectedCharacterSessionCommand": {
+      "Count": 21,
+      "P50": 0.0509,
+      "P95": 0.7812,
+      "P99": 151.7411,
+      "P999": 151.7411,
+      "Max": 151.7411
+    },
+    "RequestPartyInviteCommand": {
+      "Count": 15,
+      "P50": 2.0237,
+      "P95": 3.9502,
+      "P99": 3.9502,
+      "P999": 3.9502,
+      "Max": 3.9502
+    },
+    "AcceptPartyInviteCommand": {
+      "Count": 15,
+      "P50": 0.0536,
+      "P95": 7.1705,
+      "P99": 7.1705,
+      "P999": 7.1705,
+      "Max": 7.1705
+    },
+    "EnterDungeonCommand": {
+      "Count": 14,
+      "P50": 19867.8965,
+      "P95": 50220.0451,
+      "P99": 50220.0451,
+      "P999": 50220.0451,
+      "Max": 50220.0451
+    },
+    "ReadPremiumSnapshotCommand": {
+      "Count": 38,
+      "P50": 0.0394,
+      "P95": 0.1402,
+      "P99": 0.3629,
+      "P999": 0.3629,
+      "Max": 0.3629
+    },
+    "MarkDungeonParticipantReadyCommand": {
+      "Count": 24,
+      "P50": 0.0207,
+      "P95": 0.6484,
+      "P99": 0.7249,
+      "P999": 0.7249,
+      "Max": 0.7249
+    },
+    "AdvanceWeaknessRecoveryCommand": {
+      "Count": 5,
+      "P50": 19763.312,
+      "P95": 42512.89,
+      "P99": 42512.89,
+      "P999": 42512.89,
+      "Max": 42512.89
+    },
+    "LeaveDungeonCommand": {
+      "Count": 11,
+      "P50": 26640.9399,
+      "P95": 87890.0221,
+      "P99": 87890.0221,
+      "P999": 87890.0221,
+      "Max": 87890.0221
+    },
+    "LeavePartyCommand": {
+      "Count": 9,
+      "P50": 0.0327,
+      "P95": 0.5025,
+      "P99": 0.5025,
+      "P999": 0.5025,
+      "Max": 0.5025
+    }
+  },
+  "commandWarnings": [
+    {
+      "Name": "RegisterAccountCommand",
+      "Distribution": {
+        "Count": 81,
+        "P50": 638.8785,
+        "P95": 29930.6537,
+        "P99": 30184.309,
+        "P999": 30184.309,
+        "Max": 30184.309
+      },
+      "ColdMax": 948.7267,
+      "WarmMax": 30184.309
+    },
+    {
+      "Name": "AuthenticateAndIssueTicketCommand",
+      "Distribution": {
+        "Count": 117,
+        "P50": 887.3714,
+        "P95": 60001.7312,
+        "P99": 60002.2895,
+        "P999": 60002.3567,
+        "Max": 60002.3567
+      },
+      "ColdMax": 949.4415,
+      "WarmMax": 60002.3567
+    },
+    {
+      "Name": "RedeemGameLoginCommand",
+      "Distribution": {
+        "Count": 105,
+        "P50": 321.538,
+        "P95": 959.6106,
+        "P99": 1024.745,
+        "P999": 30727.7806,
+        "Max": 30727.7806
+      },
+      "ColdMax": 865.3551,
+      "WarmMax": 30727.7806
+    },
+    {
+      "Name": "CreateCharacterCommand",
+      "Distribution": {
+        "Count": 26,
+        "P50": 76.5654,
+        "P95": 844.5474,
+        "P99": 60124.3458,
+        "P999": 60124.3458,
+        "Max": 60124.3458
+      },
+      "ColdMax": 102.4586,
+      "WarmMax": 60124.3458
+    },
+    {
+      "Name": "PrepareSelectedCharacterSessionCommand",
+      "Distribution": {
+        "Count": 93,
+        "P50": 66.4197,
+        "P95": 60270.3725,
+        "P99": 60931.8697,
+        "P999": 60931.8697,
+        "Max": 60931.8697
+      },
+      "ColdMax": 30185.497,
+      "WarmMax": 60931.8697
+    },
+    {
+      "Name": "CleanupExpiredCharacterItemsCommand",
+      "Distribution": {
+        "Count": 93,
+        "P50": 34.1833,
+        "P95": 1055.2262,
+        "P99": 30077.4872,
+        "P999": 30077.4872,
+        "Max": 30077.4872
+      },
+      "ColdMax": 128.882,
+      "WarmMax": 30077.4872
+    },
+    {
+      "Name": "EnsureDailyContractPuppetsCommand",
+      "Distribution": {
+        "Count": 84,
+        "P50": 36.2621,
+        "P95": 30077.3245,
+        "P99": 30077.9417,
+        "P999": 30077.9417,
+        "Max": 30077.9417
+      },
+      "ColdMax": 112.5802,
+      "WarmMax": 30077.9417
+    },
+    {
+      "Name": "InitializeHousingCommand",
+      "Distribution": {
+        "Count": 80,
+        "P50": 14.8306,
+        "P95": 637.8725,
+        "P99": 30055.1549,
+        "P999": 30055.1549,
+        "Max": 30055.1549
+      },
+      "ColdMax": 128.5983,
+      "WarmMax": 30055.1549
+    },
+    {
+      "Name": "PrepareSelectedCharacterStateCommand",
+      "Distribution": {
+        "Count": 80,
+        "P50": 61.8096,
+        "P95": 30070.7759,
+        "P99": 60931.9502,
+        "P999": 60931.9502,
+        "Max": 60931.9502
+      },
+      "ColdMax": 30185.549,
+      "WarmMax": 60931.9502
+    },
+    {
+      "Name": "ApplySelectedCharacterDailyRefillCommand",
+      "Distribution": {
+        "Count": 75,
+        "P50": 147.8516,
+        "P95": 30179.9009,
+        "P99": 30838.7333,
+        "P999": 30838.7333,
+        "Max": 30838.7333
+      },
+      "ColdMax": 30198.0364,
+      "WarmMax": 30838.7333
+    },
+    {
+      "Name": "RefillOnlineTauTicketCommand",
+      "Distribution": {
+        "Count": 74,
+        "P50": 213.6766,
+        "P95": 30138.3944,
+        "P99": 30820.1943,
+        "P999": 30820.1943,
+        "Max": 30820.1943
+      },
+      "ColdMax": 30218.8416,
+      "WarmMax": 30820.1943
+    },
+    {
+      "Name": "RefillOnlineSouthernTicketCommand",
+      "Distribution": {
+        "Count": 69,
+        "P50": 202.0516,
+        "P95": 885.8,
+        "P99": 30792.4086,
+        "P999": 30792.4086,
+        "Max": 30792.4086
+      },
+      "ColdMax": 322.6007,
+      "WarmMax": 30792.4086
+    },
+    {
+      "Name": "RefillOnlineBossTowerTicketCommand",
+      "Distribution": {
+        "Count": 64,
+        "P50": 152.4883,
+        "P95": 880.8327,
+        "P99": 30059.5737,
+        "P999": 30059.5737,
+        "Max": 30059.5737
+      },
+      "ColdMax": 309.3979,
+      "WarmMax": 30059.5737
+    },
+    {
+      "Name": "SynchronizeSelectedCharacterQuestsCommand",
+      "Distribution": {
+        "Count": 63,
+        "P50": 70.767,
+        "P95": 783.6269,
+        "P99": 845.3495,
+        "P999": 845.3495,
+        "Max": 845.3495
+      },
+      "ColdMax": 261.6405,
+      "WarmMax": 845.3495
+    },
+    {
+      "Name": "ReviveSelectedCharacterPetCommand",
+      "Distribution": {
+        "Count": 63,
+        "P50": 17.6488,
+        "P95": 92.4221,
+        "P99": 30113.2539,
+        "P999": 30113.2539,
+        "Max": 30113.2539
+      },
+      "ColdMax": 22.7195,
+      "WarmMax": 30113.2539
+    },
+    {
+      "Name": "AdvanceCreatureClockCommand",
+      "Distribution": {
+        "Count": 28,
+        "P50": 33.3843,
+        "P95": 30045.366,
+        "P99": 30058.9562,
+        "P999": 30058.9562,
+        "Max": 30058.9562
+      },
+      "ColdMax": 378.5272,
+      "WarmMax": 30058.9562
+    },
+    {
+      "Name": "PrepareReturnToSelectionCommand",
+      "Distribution": {
+        "Count": 40,
+        "P50": 26549.5104,
+        "P95": 29799.4096,
+        "P99": 30140.1165,
+        "P999": 30140.1165,
+        "Max": 30140.1165
+      },
+      "ColdMax": 30140.1165,
+      "WarmMax": 29799.5591
+    },
+    {
+      "Name": "ExpireCharacterNameTagCommand",
+      "Distribution": {
+        "Count": 74,
+        "P50": 0.0691,
+        "P95": 30077.4696,
+        "P99": 39133.6044,
+        "P999": 39133.6044,
+        "Max": 39133.6044
+      },
+      "ColdMax": 30298.2298,
+      "WarmMax": 39133.6044
+    },
+    {
+      "Name": "CompleteReturnToSelectionCommand",
+      "Distribution": {
+        "Count": 40,
+        "P50": 0.3105,
+        "P95": 152.4611,
+        "P99": 458.2943,
+        "P999": 458.2943,
+        "Max": 458.2943
+      },
+      "ColdMax": 458.2943,
+      "WarmMax": 152.4611
+    },
+    {
+      "Name": "CompensateSelectedCharacterSessionCommand",
+      "Distribution": {
+        "Count": 21,
+        "P50": 0.0509,
+        "P95": 0.7812,
+        "P99": 151.7411,
+        "P999": 151.7411,
+        "Max": 151.7411
+      },
+      "ColdMax": 0.7812,
+      "WarmMax": 151.7411
+    },
+    {
+      "Name": "EnterDungeonCommand",
+      "Distribution": {
+        "Count": 14,
+        "P50": 19867.8965,
+        "P95": 50220.0451,
+        "P99": 50220.0451,
+        "P999": 50220.0451,
+        "Max": 50220.0451
+      },
+      "ColdMax": "NaN",
+      "WarmMax": 50220.0451
+    },
+    {
+      "Name": "AdvanceWeaknessRecoveryCommand",
+      "Distribution": {
+        "Count": 5,
+        "P50": 19763.312,
+        "P95": 42512.89,
+        "P99": 42512.89,
+        "P999": 42512.89,
+        "Max": 42512.89
+      },
+      "ColdMax": "NaN",
+      "WarmMax": 42512.89
+    },
+    {
+      "Name": "LeaveDungeonCommand",
+      "Distribution": {
+        "Count": 11,
+        "P50": 26640.9399,
+        "P95": 87890.0221,
+        "P99": 87890.0221,
+        "P999": 87890.0221,
+        "Max": 87890.0221
+      },
+      "ColdMax": "NaN",
+      "WarmMax": 87890.0221
+    }
+  ],
+  "coldStall": 30574.5329,
+  "coldOverall": {
+    "Count": 1859,
+    "P50": 0.1767,
+    "P95": 20.2612,
+    "P99": 765.824,
+    "P999": 30494.7664,
+    "Max": 30574.5329
+  },
+  "coldPerSecond": [
+    [
+      "0",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "1",
+      "30",
+      "884.4",
+      "884.4",
+      "LOGIN"
+    ],
+    [
+      "2",
+      "15",
+      "628.6",
+      "628.6",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "3",
+      "22",
+      "788.4",
+      "788.4",
+      "RETURN_SELECT_CHARACTER"
+    ],
+    [
+      "4",
+      "109",
+      "30494.8",
+      "30574.5",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "5",
+      "75",
+      "29098.9",
+      "29098.9",
+      "SET_USER_AREA"
+    ],
+    [
+      "6",
+      "57",
+      "7.30",
+      "7.30",
+      "SET_USER_AREA"
+    ],
+    [
+      "7",
+      "54",
+      "20.48",
+      "20.48",
+      "SET_USER_AREA"
+    ],
+    [
+      "8",
+      "46",
+      "26410.4",
+      "26410.4",
+      "RETURN_SELECT_CHARACTER"
+    ],
+    [
+      "9",
+      "37",
+      "25008.9",
+      "25008.9",
+      "RETURN_SELECT_CHARACTER"
+    ],
+    [
+      "10",
+      "6",
+      "24698.3",
+      "24698.3",
+      "RETURN_SELECT_CHARACTER"
+    ],
+    [
+      "11",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "12",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "13",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "14",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "15",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "16",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "17",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "18",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "19",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "20",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "21",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "22",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "23",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "24",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "25",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "26",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "27",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "28",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "29",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "30",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "31",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "32",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "33",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "34",
+      "4",
+      "30461.2",
+      "30461.2",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "35",
+      "121",
+      "20.32",
+      "30119.8",
+      "SET_USER_AREA"
+    ],
+    [
+      "36",
+      "155",
+      "26.27",
+      "27.10",
+      "SET_USER_AREA"
+    ],
+    [
+      "37",
+      "157",
+      "26.29",
+      "27585.0",
+      "RETURN_SELECT_CHARACTER"
+    ],
+    [
+      "38",
+      "139",
+      "17.76",
+      "29.24",
+      "SET_USER_AREA"
+    ],
+    [
+      "39",
+      "137",
+      "18.29",
+      "23.12",
+      "SET_USER_AREA"
+    ],
+    [
+      "40",
+      "128",
+      "14.02",
+      "24.52",
+      "SET_USER_AREA"
+    ],
+    [
+      "41",
+      "135",
+      "0.34",
+      "1.71",
+      "RESPONSE_PEER"
+    ],
+    [
+      "42",
+      "140",
+      "0.24",
+      "0.25",
+      "SET_USER_POSITION"
+    ],
+    [
+      "43",
+      "132",
+      "0.30",
+      "22135.7",
+      "RETURN_SELECT_CHARACTER"
+    ],
+    [
+      "44",
+      "101",
+      "40.02",
+      "21086.1",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "45",
+      "59",
+      "19935.8",
+      "19935.8",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "46",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "47",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "48",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "49",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "50",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "51",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "52",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "53",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "54",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "55",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "56",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "57",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "58",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ],
+    [
+      "59",
+      "0",
+      "\u2013",
+      "\u2013",
+      "\u2013"
+    ]
+  ],
+  "burstBackground": {
+    "Count": 3131,
+    "P50": 0.1978,
+    "P95": 1.6083,
+    "P99": 895.3634,
+    "P999": 28826.3727,
+    "Max": 56854.113
+  },
+  "burstPhase": {
+    "Count": 3505,
+    "P50": 0.1892,
+    "P95": 4.0292,
+    "P99": 846.6527,
+    "P999": 29565.6851,
+    "Max": 56854.113
+  },
+  "floodOthers": {
+    "Count": 1757,
+    "P50": 0.0796,
+    "P95": 5.6627,
+    "P99": 30.787,
+    "P999": 29047.7421,
+    "Max": 29368.8197
+  },
+  "floodRate": 199443.46663562141,
+  "outboundMax": {
+    "LOGIN|requester": 339,
+    "CREATE_CHARACTER|requester": 313,
+    "SELECT_CHARACTER|requester": 39427,
+    "SET_USER_AREA|requester": 4407,
+    "RETURN_SELECT_CHARACTER|requester": 33244,
+    "SET_USER_AREA|companion": 2309,
+    "REQUEST_PEER|requester": 17202,
+    "REQUEST_PEER|companion": 19310,
+    "RESPONSE_PEER|requester": 212,
+    "RESPONSE_PEER|companion": 214,
+    "ENTER_SELECT_DUNGEON|requester": 656,
+    "ENTER_SELECT_DUNGEON|companion": 656,
+    "SELECT_DUNGEON|requester": 1681,
+    "SELECT_DUNGEON|companion": 1367,
+    "FINISH_LOADING|requester": 36,
+    "FINISH_LOADING|companion": 0,
+    "EPLP|requester": 1134,
+    "EPLP|companion": 1134,
+    "LEAVE_PARTY|requester": 124,
+    "LEAVE_PARTY|companion": 163
+  },
+  "errors": 37,
+  "stallsOver250": 175,
+  "failedCommands": 83,
+  "entries": 12,
+  "hostLogLines": 3393
+}

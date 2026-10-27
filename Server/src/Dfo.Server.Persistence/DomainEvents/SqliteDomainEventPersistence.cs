@@ -92,6 +92,29 @@ internal sealed class SqliteDomainEventPersistence(SqliteDatabase database) : ID
         if (touched != 1) throw new InvalidOperationException("Domain event delivery is no longer pending.");
     }
 
+    public async ValueTask<bool> QuarantineAsync(Guid eventId, string subscriberId, int expectedAttemptCount,
+        string error, CancellationToken cancellationToken) => await database.ExecuteAsync("""
+            UPDATE domain_event_deliveries SET state=2,attempt_count=MAX(attempt_count,@expected+1),last_error=@error
+            WHERE event_id=@event AND subscriber_id=@subscriber AND state=0 AND attempt_count>=@expected
+            """, p =>
+        {
+            Identify(p, eventId, subscriberId); p.AddWithValue("@expected", expectedAttemptCount);
+            p.AddWithValue("@error", error);
+        }, cancellationToken).ConfigureAwait(false) == 1;
+
+    public async ValueTask<bool> TryFailAsync(Guid eventId, string subscriberId, int expectedAttemptCount,
+        DateTimeOffset nextAttemptAt, string error, bool terminal, CancellationToken cancellationToken) =>
+        await database.ExecuteAsync("""
+            UPDATE domain_event_deliveries SET state=@state,attempt_count=attempt_count+1,
+                next_attempt_at=@due,last_error=@error
+            WHERE event_id=@event AND subscriber_id=@subscriber AND state=0 AND attempt_count=@expected
+            """, p =>
+        {
+            Identify(p, eventId, subscriberId); p.AddWithValue("@expected", expectedAttemptCount);
+            p.AddWithValue("@state", terminal ? 2 : 0); p.AddWithValue("@due", nextAttemptAt.ToUnixTimeMilliseconds());
+            p.AddWithValue("@error", error);
+        }, cancellationToken).ConfigureAwait(false) == 1;
+
     public async ValueTask FailAsync(Guid eventId, string subscriberId, DateTimeOffset nextAttemptAt,
         string error, bool terminal, CancellationToken cancellationToken)
     {

@@ -1,4 +1,6 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -28,17 +30,13 @@ public sealed class SelectedSessionCleanupFailure(
 
 internal sealed class SelectedSessionCleanupService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtimes,
     ICharacterContainerDomainService containers,
-    ICharacterItemCooldownDomainService cooldowns,
-    SpiritPotionDomainService spiritPotion,
-    IActiveCharacterDomainService activeCharacters,
     ITownAreaDomainService townAreas,
     IExpertStoreDomainService expertStores,
     IPvpLobbyDomainService pvp,
     IEnumerable<ISelectedSessionPositionPersistence> positionPersistence,
-    ICharacterPositionDomainService positions,
-    ICharacterVitalRuntimeDomainService vitals,
+    IOnlineCharacterRuntimeDomainService runtime,
+    IChannelEntryDomainService channels,
     IPartyService parties,
     IDungeonRunDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
@@ -50,7 +48,7 @@ internal sealed class SelectedSessionCleanupService(
     IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink>? bossTowerDepartures = null) : ISelectedSessionCleanupDomainService
 {
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
-        SelectedSessionIdentity session, bool includeOwner, CancellationToken cancellationToken)
+        SelectedSessionIdentity session, bool includeOwner, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
         var failures = new List<Exception>();
         var currentMember = townAreas.Find(session.CharacterId);
@@ -59,7 +57,7 @@ internal sealed class SelectedSessionCleanupService(
         var required = new List<SelectedSessionCleanupNotice>();
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
-        var ownsSelectedCharacter = sessions.FindByCharacter(session.CharacterId) == session;
+        var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && session.Owns(currentMember))
         {
             // Preserve the exact peer generations this area snapshot was built from. Reducing
@@ -74,7 +72,7 @@ internal sealed class SelectedSessionCleanupService(
                              && member.CharacterId != session.CharacterId)
                      ?? [])
             {
-                if (sessions.FindByCharacter(peer.CharacterId) is { } exact
+                if (sessions.TryGetInWorld(peer.CharacterId, out var exact)
                     && exact.Owns(peer))
                 {
                     audience.Add(exact);
@@ -99,20 +97,25 @@ internal sealed class SelectedSessionCleanupService(
 
         // Every mutation is exact and isolated; a stale session can attempt all safely.
         //
-        // The session directory retains only the exact publication/persistence policy. The
-        // position itself comes from its owner; neither may be borrowed from a replaced session.
-        if (runtimes.TryGetPositionPersistence(session, out var shouldPersistPosition)
-            && shouldPersistPosition
-            && positions.Find(session.CharacterId) is { } standing)
+        // Only a session that entered the world has a position of its own to store, and whether
+        // its channel keeps positions is the channel's answer, not something kept beside the
+        // session. Neither may be borrowed from a replaced session.
+        if (runtime.PositionOf(session) is { } standing)
         {
-            var persistence = positionPersistence.SingleOrDefault();
-            if (persistence is null)
-                failures.Add(new InvalidOperationException(
-                    "Selected-session position persistence is unavailable."));
-            else
-                await RunAsync(() => persistence.PersistAsync(
-                    session.AccountId, session.CharacterId, standing,
-                    CancellationToken.None));
+            var persists = false;
+            await RunAsync(async () => persists = !(await channels.ResolveAsync(
+                session.ListenerPort, CancellationToken.None).ConfigureAwait(false)).IsTransient);
+            if (persists)
+            {
+                var persistence = positionPersistence.SingleOrDefault();
+                if (persistence is null)
+                    failures.Add(new InvalidOperationException(
+                        "Selected-session position persistence is unavailable."));
+                else
+                    await RunAsync(() => persistence.PersistAsync(
+                        session.AccountId, session.CharacterId, standing,
+                        CancellationToken.None));
+            }
         }
         if (ownsSelectedCharacter)
         {
@@ -146,7 +149,7 @@ internal sealed class SelectedSessionCleanupService(
             {
                 towerDeparture = await illusionTower.LeaveAsync(
                     new TowerActionContext(session, towerRun.RunId, towerRun.Room.Version),
-                    disconnected: true, CancellationToken.None).ConfigureAwait(false);
+                    disconnected: true, footprint, CancellationToken.None).ConfigureAwait(false);
             });
             if (towerDeparture is { Changed: true } departed)
             {
@@ -159,7 +162,7 @@ internal sealed class SelectedSessionCleanupService(
         {
             Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult? bossDeparture = null;
             await RunAsync(async () => bossDeparture = await bossTower.LeaveAsync(
-                new(session, bossRun.RunId, bossRun.Room.Version), true, CancellationToken.None).ConfigureAwait(false));
+                new(session, bossRun.RunId, bossRun.Room.Version), true, footprint, CancellationToken.None).ConfigureAwait(false));
             if (bossDeparture is { Changed: true } departed)
                 foreach (var sink in bossTowerDepartures ?? [])
                     await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));
@@ -185,26 +188,17 @@ internal sealed class SelectedSessionCleanupService(
             session.TownAreaLease(),
             TownAreaDepartureReason.SessionEnded) is not null);
         Run(() => pvp.ClearReadyExact(session));
-        Run(() => positions.ForgetExact(session));
-        Run(() => vitals.RemoveExact(session));
-        Run(() => runtimes.RemoveExact(session));
-        Run(() => activeCharacters.ClearExact(session));
+        // Position, vitals, cooldowns and the spirit potion go together, and only if this session
+        // still owns them: a successor that has already begun keeps its own.
+        Run(() => runtime.EndExact(session));
         Run(() => sessions.ReleaseExact(session));
 
-        // After the directory entry is gone: a character that already re-entered on another
+        // After the selection is gone: a character that already re-entered on another
         // connection owns the registration now, and dropping it would unbind a live session.
         Run(() =>
         {
             if (sessions.FindByCharacter(session.CharacterId) is null)
-            {
                 containers.Clear(session.CharacterId);
-                cooldowns.Clear(session.CharacterId);
-            }
-            return true;
-        });
-        Run(() =>
-        {
-            spiritPotion.ClearIfUnselected(session.CharacterId, sessions);
             return true;
         });
         var notificationPlan = new SelectedSessionCleanupNotificationPlan(
@@ -246,9 +240,8 @@ internal sealed class SelectedSessionCleanupService(
         }
 
         var characterRecipients = characterIds
-            .Select(sessions.FindByCharacter)
-            .Where(candidate => candidate is not null)
-            .Cast<SelectedSessionIdentity>()
+            .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null)
+            .OfType<SelectedSessionIdentity>()
             .Distinct()
             .ToArray();
         var scopes = new[]
@@ -265,10 +258,10 @@ internal sealed class SelectedSessionCleanupService(
                          scope.ChannelId,
                          scope.TownId,
                          scope.AreaId, scope.Instance))?.Members ?? [])
-                    .Where(item => item.SharesTownPresence
-                        && sessions.FindByCharacter(item.CharacterId) is { } exact
-                        && exact.Owns(item))
-                    .Select(item => sessions.FindByCharacter(item.CharacterId)!)
+                    .Select(item => item.SharesTownPresence
+                        && sessions.TryGetInWorld(item.CharacterId, out var exact)
+                        && exact.Owns(item) ? exact : null)
+                    .OfType<SelectedSessionIdentity>()
                     .Distinct()
                     .ToArray()))
             .ToArray();
@@ -278,20 +271,17 @@ internal sealed class SelectedSessionCleanupService(
 
 internal sealed class SelectCharacterSessionEntryService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtimes,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
-    ICharacterPositionDomainService positions,
-    ICharacterVitalRuntimeDomainService vitals,
-    SpiritPotionDomainService spiritPotion,
+    IOnlineCharacterRuntimeDomainService runtime,
     ICreatureRuntimeDomainService? creatures = null) : ISelectCharacterSessionEntryDomainService
 {
     public async ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
         SelectedSessionIdentity session, SelectCharacterResult result,
         CancellationToken cancellationToken)
     {
-        var position = positions.Find(session.CharacterId)
+        var position = runtime.PositionOf(session)
             ?? throw new InvalidDataException("The published town position is unavailable.");
         var current = townAreas.Find(session.CharacterId);
         if (current is null || !session.Owns(current) || !current.SharesTownPresence)
@@ -307,10 +297,10 @@ internal sealed class SelectCharacterSessionEntryService(
         var audience = new List<SelectedSessionIdentity>(occupants.Length);
         foreach (var occupant in occupants)
         {
-            var owner = sessions.FindByCharacter(occupant.CharacterId);
-            var otherResult = owner is null ? null
-                : await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false);
-            if (owner is null || !owner.Owns(occupant) || otherResult is null)
+            if (!sessions.TryGetInWorld(occupant.CharacterId, out var owner))
+                continue;
+            var otherResult = await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false);
+            if (!owner.Owns(occupant) || otherResult is null)
             {
                 continue;
             }
@@ -340,11 +330,14 @@ internal sealed class SelectCharacterSessionEntryService(
         var identities = new List<PvpParticipantEntryState>();
         foreach (var value in pvp.ReadyOn(session.ListenerPort, session.CharacterId))
         {
-            var owner = value.Session ?? sessions.FindByCharacter(value.CharacterId)
-                ?? throw new InvalidDataException("PvP participant session is unavailable.");
-            var current = await currentViews.TryLoadAsync(owner, cancellationToken)
-                .ConfigureAwait(false)
-                ?? throw new InvalidDataException("PvP participant state is unavailable.");
+            // Someone else's connection going away is not a reason for this entry to fail: a
+            // participant who is no longer in the world is left out of the lobby this one sees.
+            SelectedSessionIdentity? owner = value.Session is { } exact
+                ? sessions.IsInWorld(exact) ? exact : null
+                : sessions.TryGetInWorld(value.CharacterId, out var found) ? found : null;
+            if (owner is null
+                || await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false) is not { } current)
+                continue;
             identities.Add(CreatePvpParticipant(current));
         }
         var offeredRooms = pvp.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
@@ -383,18 +376,15 @@ internal sealed class SelectCharacterSessionEntryService(
             CreatePvpParticipant(result));
 
     /// <remarks>
-    /// Publication retains only exact-session policy; position and HP go to their own runtime
-    /// services. The entry result remains a one-shot message-building value.
+    /// The selection has already entered the world; this begins what the character is like while
+    /// it is there. The entry result remains a one-shot message-building value.
     /// </remarks>
     public void Publish(SelectedSessionIdentity session, SelectCharacterResult result)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session)
+        if (!sessions.IsSelected(session))
             throw new InvalidOperationException("Cannot publish a replaced selection.");
-        spiritPotion.Clear(session.CharacterId);
         creatures?.Enter(session);
-        runtimes.Publish(session, result.World.Channel.PersistsPosition);
-        positions.Place(session, result.Character.Position);
-        vitals.Publish(session, checked((byte)Math.Clamp(
+        runtime.Begin(session, result.Character.Position, checked((byte)Math.Clamp(
             result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent, 0, 100)));
         var position = result.Character.Position;
         townAreas.Enter(new TownAreaMember(

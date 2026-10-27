@@ -1,0 +1,5 @@
+# Task21 sort-order mutation test-value gate
+
+保护结果：真实0014/000102按等级排序后，高等级实例在开放band最前，低等级同模板实例仍各保UID/82Bcore，锁槽不动。合理搬迁缺陷是whole丢mapped order而固定Default；直接domain Level测试不能发现该调用边界错误，编译仍可绿。新wire用例读取真实SQLite item_slots/core和原prepared ACK/full/locks，保护资产结果而非某个协作者调用，今后保持行为的重构仍适用。该一处可编译变异可直接证明新增wire保护的边际价值；锁定/默认材料页为旁边正控。
+
+仅临时将GameSortItemCommandHandler真实SortAsync调用的order改InventorySortOrder.Default，原bytes/SHA保存，finally原样恢复，再以完全同目标GREEN。变异前Level用例已在whole-focused01真通过；新增输出只在断言前保完整实际资产，不改原保护断言。不会以编译/fixture/timeout失败称RED。

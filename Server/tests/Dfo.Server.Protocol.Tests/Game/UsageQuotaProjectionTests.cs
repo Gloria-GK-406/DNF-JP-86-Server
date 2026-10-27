@@ -1,9 +1,10 @@
+using Dfo.Server.Protocol.Tests.Support;
+using Dfo.Server.Application.Execution;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.UsageQuotas;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -54,16 +55,15 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock();
         var events = new Events { Family = UsageQuotaFamily.GoldSilverHorn };
-        using var worker = new GoldSilverHornQuotaDailyRefreshService(sessions, sessions,
-            new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
-            NullLogger<GoldSilverHornQuotaDailyRefreshService>.Instance);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.GoldSilverHorn, sessions, sessions, events, new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
         await worker.RefreshAsync(default); Assert.Single(events.Projections);
         clock.Now = clock.Now.AddMinutes(1); events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
-        events.Outcome = NotificationOutcome.Delivered;
+        events.Outcome = NotificationOutcome.Registered;
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Equal(3, events.Projections.Count);
     }
@@ -88,16 +88,15 @@ public sealed class UsageQuotaProjectionTests
     {
         var sessions = new Sessions(); var clock = new Clock();
         var events = new Events { Family = UsageQuotaFamily.TournamentDungeon };
-        using var worker = new Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService(sessions, sessions,
-            new SelectedSessionTransitionGate(), new UsageQuotaProjectionDelivery(events), new Daily(), clock,
-            NullLogger<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>.Instance);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.Tournament, sessions, sessions, events, new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
         await worker.RefreshAsync(default); Assert.Single(events.Projections);
         clock.Now = clock.Now.AddMinutes(1); events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
-        events.Outcome = NotificationOutcome.Delivered;
+        events.Outcome = NotificationOutcome.Registered;
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Equal(3, events.Projections.Count);
     }
@@ -218,8 +217,8 @@ public sealed class UsageQuotaProjectionTests
     public async Task Mirror_online_worker_refreshes_at_local_midnight_and_retries_failed_delivery()
     {
         var sessions = new Sessions(); var clock = new Clock(); var events = new Events();
-        using var worker = new MirrorQuotaDailyRefreshService(sessions, sessions, new SelectedSessionTransitionGate(),
-            new UsageQuotaProjectionDelivery(events), clock, NullLogger<MirrorQuotaDailyRefreshService>.Instance);
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.Mirror, sessions, sessions, events, new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)));
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Single(events.Projections);
         var exact = Assert.IsType<NotificationAudience.TheseSessions>(events.Projections[0]);
@@ -227,13 +226,120 @@ public sealed class UsageQuotaProjectionTests
         clock.Now = clock.Now.AddMinutes(2);
         events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
-        events.Outcome = NotificationOutcome.Delivered;
+        events.Outcome = NotificationOutcome.Registered;
         await worker.RefreshAsync(default); await worker.RefreshAsync(default);
         Assert.Equal(3, events.Projections.Count);
         sessions.Current = sessions.Current! with { ConnectionGeneration = 2 };
         await worker.RefreshAsync(default); Assert.Equal(4, events.Projections.Count);
         sessions.Current = null;
         await worker.RefreshAsync(default); Assert.Equal(4, events.Projections.Count);
+    }
+
+    public static TheoryData<string> QuotaRefreshes() =>
+        ["Altar", "Dimension", "GoldSilverHorn", "ReviveCoin", "Mirror", "Heras", "Tournament"];
+
+    /// <summary>
+    /// DR-6 (TASK-24 T9): each of the seven refreshes records the period as sent once its projection is
+    /// registered; a delivery that then fails in transport closes the connection and is not sent again.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(QuotaRefreshes))]
+    public async Task A_quota_refresh_that_fails_in_transport_counts_as_sent_and_closes_the_connection(string refresh)
+    {
+        await using var world = new QuotaRefreshWorld(refresh);
+        world.Outbound.Transport.Fail(world.Sessions.Current!.ConnectionId);
+
+        await world.Worker(default);
+        await world.Worker(default);
+        await world.Outbound.SettledAsync();
+
+        Assert.Equal(1, world.Probe.Composed);
+        Assert.Single(world.Outbound.Messages(world.Sessions.Current!.ConnectionId));
+        Assert.True(await world.Outbound.ClosedAsync(world.Sessions.Current.ConnectionId));
+    }
+
+    /// <summary>
+    /// DR-6, the kept branch (TASK-24 R6): a refresh whose projection cannot be composed is not recorded as sent,
+    /// so the next tick of the same period composes it again.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(QuotaRefreshes))]
+    public async Task A_quota_refresh_that_cannot_be_composed_is_not_recorded_and_is_composed_again(string refresh)
+    {
+        await using var world = new QuotaRefreshWorld(refresh);
+        world.Probe.Failing = true;
+
+        await world.Worker(default);
+        world.Probe.Failing = false;
+        await world.Worker(default);
+        await world.Worker(default);
+        await world.Outbound.SettledAsync();
+
+        Assert.Equal(2, world.Probe.Composed);
+        Assert.Single(world.Outbound.Messages(world.Sessions.Current!.ConnectionId));
+        Assert.False(world.Outbound.Transport.IsClosed(world.Sessions.Current.ConnectionId));
+    }
+
+    private sealed class QuotaProbe
+    {
+        public bool Failing;
+        public int Composed;
+    }
+
+    private sealed class QuotaProbeHandler(QuotaProbe probe) : INotificationHandler<UsageQuotaViewChanged>
+    {
+        public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+            NotificationRecipient recipient, UsageQuotaViewChanged notification, CancellationToken cancellationToken)
+        {
+            probe.Composed++;
+            return probe.Failing
+                ? throw new InvalidOperationException("Injected quota composition failure.")
+                : ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+                    [new Dfo.Server.Protocol.Tests.Outbox.XoProjected(notification.Family.ToString())]);
+        }
+    }
+
+    /// <summary>One of the seven refreshes over the real event service and notification bus, on the outbox executor.</summary>
+    private sealed class QuotaRefreshWorld : IAsyncDisposable
+    {
+        public QuotaRefreshWorld(string refresh)
+        {
+            Outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(configure: services =>
+            {
+                Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services, Sessions);
+                Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, Probe);
+                Dfo.Server.Application.DomainEvents.DomainEventDispatchingExtensions.AddEventDispatching(services);
+                Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationDispatching(services);
+                Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationHandler<UsageQuotaViewChanged, QuotaProbeHandler>(services);
+            });
+            Outbound.Connect(Sessions.Current!.ConnectionId);
+            var queue = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                .GetRequiredService<Dfo.Server.Abstractions.Execution.IGameplayQueue>(Outbound.Services);
+            var clock = new Clock();
+            var daily = new Daily();
+            Worker = refresh switch
+            {
+                "Altar" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Altar, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "Dimension" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Dimension, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "GoldSilverHorn" => new TimerRefreshFixture(SelectedSessionRefreshTopic.GoldSilverHorn, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "ReviveCoin" => new TimerRefreshFixture(SelectedSessionRefreshTopic.ReviveCoin, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "Mirror" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Mirror, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), new Daily(), clock, queue).RefreshAsync,
+                "Heras" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Heras, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                "Tournament" => new TimerRefreshFixture(SelectedSessionRefreshTopic.Tournament, Sessions, Sessions, Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services), daily, clock, queue).RefreshAsync,
+                _ => throw new ArgumentOutOfRangeException(nameof(refresh)),
+            };
+        }
+
+        public Dfo.Server.Protocol.Tests.Outbox.XoDelivery Outbound { get; }
+
+        public Sessions Sessions { get; } = new();
+
+        public QuotaProbe Probe { get; } = new();
+
+        /// <summary>The refresh as one timer CMD on the outbox executor.</summary>
+        public Func<CancellationToken, Task> Worker { get; }
+
+        public ValueTask DisposeAsync() => Outbound.DisposeAsync();
     }
 
     private sealed class Snapshots : IUsageQuotaSnapshotDomainService
@@ -247,6 +353,53 @@ public sealed class UsageQuotaProjectionTests
     }
     private sealed class Sessions : ISelectedSessionDomainService, ISelectedSessionSnapshotQuery
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Current = SelectedSessionIdentity.Create(new(1), new(2), new("quota"), 1, 10011);
         public IReadOnlyList<SelectedSessionIdentity> Snapshot() => Current is { } s ? [s] : [];
         public SelectedSessionIdentity? FindByCharacter(CharacterId id) => Current?.CharacterId == id ? Current : null;
@@ -265,7 +418,7 @@ public sealed class UsageQuotaProjectionTests
     {
         public UsageQuotaFamily Family = UsageQuotaFamily.MirrorDungeon;
         public List<NotificationAudience> Projections = [];
-        public NotificationOutcome Outcome = NotificationOutcome.Delivered;
+        public NotificationOutcome Outcome = NotificationOutcome.Registered;
         public ValueTask<Guid> EnqueueAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
         public ValueTask DirectAsync<T>(T payload, CancellationToken cancellationToken = default) where T : class, IDomainEvent => throw new NotSupportedException();
         public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
@@ -273,7 +426,7 @@ public sealed class UsageQuotaProjectionTests
         {
             Projections.Add(audience); var view = Assert.IsType<UsageQuotaViewChanged>(notification);
             Assert.Equal(Family, view.Family);
-            return ValueTask.FromResult(new NotificationDelivery([new(view.CharacterId, Outcome)]));
+            return ValueTask.FromResult(new NotificationDelivery([new(view.CharacterId, Outcome) { RegistrationAccepted = Outcome == NotificationOutcome.Registered }]));
         }
     }
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -32,9 +33,12 @@ public sealed class QuestInventoryEventTests
         await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync("quest.inventory");
     private static async Task Write(LearningFixture f, Func<IItemDomainStoreSession, ValueTask> write, bool commit = true)
     {
-        await using var tx = f.Scope.Begin();
-        await write(f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!));
-        if (commit) await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            await write(f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!));
+            if (commit) await tx.CommitAsync(default);
+        });
     }
     private static async ValueTask Put(IItemDomainStoreSession items, ContainerId container, int slot, int id, int count) =>
         _ = await items.PutAsync(container, slot, await items.CreateAsync(new() { ItemId = id, Count = count,
@@ -169,11 +173,14 @@ public sealed class QuestInventoryEventTests
         await Write(f, items => Put(items, ContainerId.ForCharacter(new(71), InventoryContainerType.PersonalCargo), 0, 1000, 10));
         await Drain(f);
         Assert.Equal(99, Trigger(f));
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Services.GetRequiredService<IEventService>().EnqueueAsync(new InventoryContentsChanged(Bag));
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Services.GetRequiredService<IEventService>().EnqueueAsync(new InventoryContentsChanged(Bag));
+                await tx.CommitAsync(default);
+            }
+        });
         // Reproduce the old persisted JSON contract, not just a new payload with an empty array.
         f.Sql("UPDATE domain_events SET payload_json=json_remove(payload_json,'$.ChangedItemIds') WHERE event_type='inventory.contents-changed'");
         await Drain(f);
@@ -190,13 +197,16 @@ public sealed class QuestInventoryEventTests
             s.AddSingleton<IMailItemDefinitionSource>(new FreeMailItems());
         });
         f.Sql("INSERT INTO character_active_quests VALUES(1,0,2001,10)");
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
-        var mail = f.Services.GetRequiredService<IMailboxDomainService>();
-        var sent = await mail.SendAsync(MailBuilder.FromSystem(new(1)).AddStackable(1000, 10).Build());
-        var attachment = Assert.Single((await mail.ReadAsync(new(1), sent.MailId)).Attachments);
-        Assert.Equal(0, f.Count(1000));
-        await mail.ClaimAsync(new(1), attachment.Id);
-        Assert.Equal(10, f.Count(1000));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
+            var mail = f.Services.GetRequiredService<IMailboxDomainService>();
+            var sent = await mail.SendAsync(MailBuilder.FromSystem(new(1)).AddStackable(1000, 10).Build());
+            var attachment = Assert.Single((await mail.ReadAsync(new(1), sent.MailId)).Attachments);
+            Assert.Equal(0, f.Count(1000));
+            await mail.ClaimAsync(new(1), attachment.Id);
+            Assert.Equal(10, f.Count(1000));
+        });
         var dispatcher = f.Services.GetRequiredService<DomainEventDispatcher>();
         await dispatcher.DrainOnceAsync("quest.inventory");
         await dispatcher.DrainOnceAsync("quest.progress-notification");
@@ -225,14 +235,17 @@ public sealed class QuestInventoryEventTests
         await using var f = new LearningFixture(configure: s => s.AddSingleton<IQuestContentRuleService>(Content()));
         await f.SeedAsync();
         f.Sql("INSERT INTO character_active_quests VALUES(71,0,2001,10)");
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var items = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var item = await items.CreateAsync(new() { ItemId = 1000, Count = 10, IsPile = true,
-                LegacyKind = 2, Type = ItemTraits.Consumable }, default);
-            await items.PutAsync(ContainerId.ForCharacter(new(71), InventoryContainerType.Main), 121, item, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                var items = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                var item = await items.CreateAsync(new() { ItemId = 1000, Count = 10, IsPile = true,
+                    LegacyKind = 2, Type = ItemTraits.Consumable }, default);
+                await items.PutAsync(ContainerId.ForCharacter(new(71), InventoryContainerType.Main), 121, item, default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(10, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));
         await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
         Assert.Equal(0, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=71"));

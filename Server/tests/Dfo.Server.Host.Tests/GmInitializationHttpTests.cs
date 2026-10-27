@@ -1,3 +1,12 @@
+using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Protocol.Game.AccountRoster;
 using Dfo.Server.Data.Inventory;
 using System.Net;
 using System.Net.Http.Json;
@@ -97,19 +106,20 @@ public sealed class GmInitializationHttpTests
             new SaveInitializationRequest<CharacterInitialization>(0, new(20, 24, [new(item.ItemId, 20)])));
         Assert.True(savedRole.IsSuccessStatusCode, await savedRole.Content.ReadAsStringAsync());
         var bus = host.Services.GetRequiredService<ICommandBus>();
-        Assert.Equal(AuthenticationStatus.Success, (await bus.SendAsync(new RegisterAccountCommand("initial-user-01", "test-password-123"))).Status);
-        Assert.Equal(AuthenticationStatus.AccountExists, (await bus.SendAsync(new RegisterAccountCommand("initial-user-01", "test-password-123"))).Status);
+        Assert.Equal(AuthenticationStatus.Success, (await TestCredentials.RegisterAsync(host.Services, "initial-user-01", "test-password-123")).Status);
+        Assert.Equal(AuthenticationStatus.AccountExists, (await TestCredentials.RegisterAsync(host.Services, "initial-user-01", "test-password-123")).Status);
         Assert.Equal(new[] { "100:20:5" }, await host.ReadAsync("SELECT cera||':'||token_cera||':'||happy_token_cera FROM accounts"));
         Assert.Equal(new[] { "8" }, await host.ReadAsync("SELECT selection_key FROM account_cargo_state"));
         Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM account_premiums WHERE premium_type=97 AND end_time>strftime('%s','now')"));
-        var result = await bus.SendAsync(new CreateCharacterCommand(new(1), 0, Encoding.UTF8.GetBytes("配置角色")));
+        var dispatch = await AuthenticatedDispatchAsync(host, "initial-user-01");
+        var result = await bus.SendAsync(new GameCreateCharacterCommand(dispatch, new(GameMessageMetadata.Empty, 0, Encoding.UTF8.GetBytes("配置角色"))));
         Assert.Equal(CharacterCreationStatus.Created, result.Status);
         Assert.Equal(new[] { "20" }, await host.ReadAsync("SELECT level FROM characters"));
         Assert.Equal(new[] { "24" }, await host.ReadAsync("SELECT list_param16 FROM character_container_state WHERE list_type=2"));
         Assert.Equal(new[] { "20" }, await host.ReadAsync($"SELECT SUM(count) FROM item_slots WHERE id={item.ItemId} AND list_type=0"));
         // Reading current configuration or the roster must not re-grant assets.
         await host.Client.GetAsync(Prefix);
-        await bus.SendAsync(new Dfo.Server.Protocol.Game.AccountRoster.GetAccountCharacterRosterCommand(new(1)));
+        await bus.SendAsync(new GameAccountRosterCommand(dispatch, new(GameMessageMetadata.Empty)));
         Assert.Equal(new[] { "100" }, await host.ReadAsync("SELECT cera FROM accounts"));
         Assert.Equal(new[] { "20" }, await host.ReadAsync($"SELECT SUM(count) FROM item_slots WHERE id={item.ItemId} AND list_type=0"));
     }
@@ -132,17 +142,99 @@ public sealed class GmInitializationHttpTests
             new SaveInitializationRequest<CharacterInitialization>(0, new(20, 24, [])))).StatusCode);
         var bus = host.Services.GetRequiredService<ICommandBus>();
         fault.Account = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(new RegisterAccountCommand("rollback-user", "test-password-123")));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await TestCredentials.RegisterAsync(host.Services, "rollback-user", "test-password-123"));
         Assert.Empty(await host.ReadAsync("SELECT account_id FROM accounts"));
         Assert.Empty(await host.ReadAsync("SELECT account_id FROM account_premiums"));
         fault.Account = false;
-        await bus.SendAsync(new RegisterAccountCommand("rollback-user", "test-password-123"));
+        await TestCredentials.RegisterAsync(host.Services, "rollback-user", "test-password-123");
+        var dispatch = await AuthenticatedDispatchAsync(host, "rollback-user");
+        var itemFacts = await host.ReadAsync("SELECT item_uid FROM items ORDER BY item_uid");
+        var eventFacts = await CreationEventFactsAsync(host);
         fault.Character = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(new CreateCharacterCommand(new(1), 0, Encoding.UTF8.GetBytes("回滚角色"))));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(new GameCreateCharacterCommand(dispatch, new(GameMessageMetadata.Empty, 0, Encoding.UTF8.GetBytes("回滚角色")))));
         Assert.Empty(await host.ReadAsync("SELECT character_id FROM characters"));
         Assert.Empty(await host.ReadAsync("SELECT character_id FROM character_skills"));
         Assert.Empty(await host.ReadAsync("SELECT owner_id FROM item_slots"));
+        Assert.Equal(itemFacts, await host.ReadAsync("SELECT item_uid FROM items ORDER BY item_uid"));
+        Assert.Equal(eventFacts, await CreationEventFactsAsync(host));
         Assert.Equal(new[] { "100" }, await host.ReadAsync("SELECT cera FROM accounts"));
+    }
+
+    [PvfFact]
+    public async Task Creation_stays_committed_when_the_following_appearance_read_fails()
+    {
+        CreationAppearanceFault? fault = null;
+        await using var host = await GmTestHost.StartAsync(realContent: true, configureServices: services =>
+        {
+            var registration = services.Last(d => d.ServiceType == typeof(ICharacterDomainService));
+            services.Remove(registration);
+            services.AddSingleton<ICharacterDomainService>(p => fault = new CreationAppearanceFault(
+                (ICharacterDomainService)registration.ImplementationFactory!(p), p.GetRequiredService<IDomainTransactionAccessor>()));
+        });
+        var csrf = await GmCeraHttpTests.Login(host);
+        var catalog = (await host.Client.GetFromJsonAsync<ItemCatalogPage>(Prefix + "/items?category=consumable&pageSize=15"))!;
+        var item = catalog.Items.First();
+        Assert.Equal(HttpStatusCode.OK, (await host.PostAsync(Prefix + "/character", csrf,
+            new SaveInitializationRequest<CharacterInitialization>(0, new(20, 24, [new(item.ItemId, 20)])))).StatusCode);
+        await TestCredentials.RegisterAsync(host.Services, "committed-user", "test-password-123");
+        var dispatch = await AuthenticatedDispatchAsync(host, "committed-user");
+        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(() => host.Services.GetRequiredService<ICommandBus>().SendAsync(
+            new GameCreateCharacterCommand(dispatch, new(GameMessageMetadata.Empty, 0, Encoding.UTF8.GetBytes("持久角色")))).AsTask());
+        Assert.NotNull(fault);
+        Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, error.Reason);
+        Assert.Same(fault.Failure, error.InnerException);
+        Assert.Equal(1, fault.CreationCalls);
+        Assert.Equal(1, fault.AppearanceCalls);
+        Assert.True(fault.CreationHadTransaction);
+        Assert.False(fault.AppearanceHadTransaction);
+        // Each ReadAsync opens an independent non-pooled SQLite connection after the CMD ended.
+        Assert.Equal(new[] { "20" }, await host.ReadAsync("SELECT level FROM characters"));
+        Assert.Equal(new[] { "24" }, await host.ReadAsync("SELECT list_param16 FROM character_container_state WHERE list_type=2"));
+        Assert.Equal(new[] { "20" }, await host.ReadAsync($"SELECT SUM(count) FROM item_slots WHERE id={item.ItemId} AND list_type=0"));
+        Assert.NotEmpty(await host.ReadAsync("SELECT item_uid FROM items"));
+    }
+
+    private static Task<List<string>> CreationEventFactsAsync(GmTestHost host) => host.ReadAsync("""
+        SELECT 'E:'||event_id FROM domain_events WHERE event_type IN ('inventory.contents-changed','character.level-changed')
+        UNION ALL SELECT 'D:'||d.event_id||':'||d.subscriber_id FROM domain_event_deliveries d
+        JOIN domain_events e ON e.event_id=d.event_id WHERE e.event_type IN ('inventory.contents-changed','character.level-changed') ORDER BY 1
+        """);
+
+    private static async Task<NetworkDispatchContext> AuthenticatedDispatchAsync(GmTestHost host, string loginName)
+    {
+        var users = host.Services.GetRequiredService<IOnlineUserDomainService>();
+        var user = TestGameplay.Run(host.Services, () => users.RegisterConnection(
+            new(new("creation-" + Guid.NewGuid().ToString("N")), NetworkEndpointKind.Game, 10011)));
+        using var scope = host.Services.CreateScope();
+        var ticket = await TestCredentials.LoginAsync(scope.ServiceProvider, loginName, "test-password-123", default);
+        Assert.NotNull(ticket.Ticket);
+        var account = await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            await using var transaction = host.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var accepted = await host.Services.GetRequiredService<IGameLoginAuthenticationDomainService>()
+                .AuthenticateSessionAsync(user.OnlineUserId, ticket.MId!, ticket.Ticket!, default);
+            await transaction.CommitAsync(default);
+            return accepted;
+        });
+        Assert.NotNull(account);
+        return new(user.Connection);
+    }
+
+    private sealed class CreationAppearanceFault(ICharacterDomainService inner, IDomainTransactionAccessor transactions) : ICharacterDomainService
+    {
+        public IOException Failure { get; } = new("Injected post-commit appearance failure.");
+        public int CreationCalls, AppearanceCalls;
+        public bool CreationHadTransaction, AppearanceHadTransaction;
+        public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(AccountId account, CancellationToken ct)
+        { AppearanceCalls++; AppearanceHadTransaction = transactions.Current is not null; throw Failure; }
+        public ValueTask<CharacterCreationResult> CreateCharacterAsync(AccountId account, byte job, byte[] name, CancellationToken ct)
+        { CreationCalls++; CreationHadTransaction = transactions.Current is not null; return inner.CreateCharacterAsync(account, job, name, ct); }
+        public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(AccountId account, CancellationToken ct) => inner.GetAccountRosterAsync(account, ct);
+        public ValueTask<ActiveCharacterState> LoadForSelectionAsync(AccountId account, ushort slot, CancellationToken ct) => inner.LoadForSelectionAsync(account, slot, ct);
+        public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(AccountId account, ushort index, CancellationToken ct) => inner.LoadByRosterPositionAsync(account, index, ct);
+        public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) => inner.CheckNameAsync(name, ct);
+        public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(AccountId account, ushort index, byte[] name, CancellationToken ct) => inner.DeleteCharacterAsync(account, index, name, ct);
+        public ICharacter Get(CharacterId id) => inner.Get(id);
     }
 
     private sealed class InitializationFault { public bool Account { get; set; } public bool Character { get; set; } }

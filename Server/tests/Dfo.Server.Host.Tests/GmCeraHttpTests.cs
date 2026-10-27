@@ -17,6 +17,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.CeraShopPurchase;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
@@ -177,26 +178,42 @@ public sealed class GmCeraHttpTests
         await using var host=await GmTestHost.StartAsync(configureServices:s=>s.AddSingleton<IGmCeraReminderDomainService>(reminder));
         await SeedAsync(host);var csrf=await Login(host);var id=Guid.NewGuid();
         reminder.Check=async()=>Assert.Equal(new[]{"60"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
-        using var granted=await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id));Assert.Equal(HttpStatusCode.OK,granted.StatusCode);
-        Assert.Equal("unconfirmed",(await granted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reminder").GetString());
+        // VC-6 (TASK-24 ruling 2, review finding 1): a reminder that throws is an error, not "unconfirmed": the endpoint's
+        // own 500 shape, outcome "unknown", saying the cera arrived; the grant stays committed and credited once.
+        using var granted=await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id));Assert.Equal(HttpStatusCode.InternalServerError,granted.StatusCode);
+        var failure=await granted.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(ReminderFailed,failure.GetProperty("message").GetString());Assert.Equal("unknown",failure.GetProperty("outcome").GetString());
+        Assert.Equal(new[]{"Succeeded"},await host.ReadAsync("SELECT outcome FROM gm_audit WHERE action='GrantCera' ORDER BY rowid;"));
+        Assert.Equal(new[]{"1"},await host.ReadAsync("SELECT COUNT(*) FROM gm_cera_operations;"));
+        Assert.Equal(new[]{"60"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
         await host.ExecuteAsync("UPDATE accounts SET cera=59,token_cera=22,happy_token_cera=33 WHERE account_id=1;");
         await host.ExecuteAsync("INSERT INTO characters(character_id,account_id,name) VALUES(1,1,'actual-role');");
         var sessions=host.Services.GetRequiredService<ISelectedSessionDomainService>();
-        var session=SelectedSessionIdentity.Create(new(1),new(1),new("cera-test-session"),1,21011);sessions.Select(session);
+        var state=host.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
+        var session=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,new(1),new(1),"cera-test-session",21011);
         var handler=host.Services.GetRequiredService<INotificationHandler<AccountWalletChanged>>();
         var recipient=new NotificationRecipient(session.CharacterId,session.ConnectionId,session);
-        var message=Assert.Single(await handler.ComposeAsync(recipient,new(new(1)),default));
-        var registration=host.Services.GetServices<ServerMessageEncoderRegistration>().Single(x=>x.MessageType==message.GetType());
-        var frame=Assert.Single(((IServerMessageEncoder)host.Services.GetRequiredService(registration.EncoderType)).Encode(message));
-        Assert.Equal((ushort)0x0035,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1,2)));var body=frame[15..];
-        Assert.Equal(13,body.Length);Assert.Equal(1,body[0]);Assert.Equal(59,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1,4)));
-        Assert.Equal(22,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5,4)));Assert.Equal(33,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9,4)));
-        Assert.Empty(await handler.ComposeAsync(recipient,new(new(2)),default));
-        sessions.Select(session with{ConnectionId=new("replacement"),ConnectionGeneration=2});
-        Assert.Empty(await handler.ComposeAsync(recipient,new(new(1)),default));
-        reminder.Check=null;Assert.Equal(HttpStatusCode.OK,(await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id))).StatusCode);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            var message=Assert.Single(await handler.ComposeAsync(recipient,new(new(1)),default));
+            var registration=host.Services.GetServices<ServerMessageEncoderRegistration>().Single(x=>x.MessageType==message.GetType());
+            var frame=Assert.Single(((IServerMessageEncoder)host.Services.GetRequiredService(registration.EncoderType)).Encode(message));
+            Assert.Equal((ushort)0x0035,BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1,2)));var body=frame[15..];
+            Assert.Equal(13,body.Length);Assert.Equal(1,body[0]);Assert.Equal(59,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1,4)));
+            Assert.Equal(22,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5,4)));Assert.Equal(33,BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(9,4)));
+            Assert.Empty(await handler.ComposeAsync(recipient,new(new(2)),default));
+            _=Dfo.Server.Testing.TestSessions.InWorld(sessions,state,session.AccountId,session.CharacterId,"replacement",session.ListenerPort);
+            Assert.Empty(await handler.ComposeAsync(recipient,new(new(1)),default));
+        });
+        reminder.Check=null;using var replayed=await host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(id));
+        Assert.Equal(HttpStatusCode.InternalServerError,replayed.StatusCode);
+        var replayFailure=await replayed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(ReminderFailed,replayFailure.GetProperty("message").GetString());Assert.Equal("unknown",replayFailure.GetProperty("outcome").GetString());
         Assert.Equal(new[]{"59"},await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
+        Assert.Equal(new[]{"1"},await host.ReadAsync("SELECT COUNT(*) FROM gm_cera_operations;"));
     }
+
+    private const string ReminderFailed="点券已到账，提醒未能发出；勿新建编号重发。";
 
     [Fact]
     public async Task UncertainPostCommitRecoversOriginalKeyWithoutSecondCredit()
@@ -267,7 +284,7 @@ public sealed class GmCeraHttpTests
         var user=await GmPlayerDirectoryHttpTests.ConnectAsync(host,1,21011);var session=GmPlayerDirectoryHttpTests.Publish(host,user,1,1,21011);
         var csrf=await Login(host);var commands=host.Services.GetRequiredService<ICommandBus>();
         var grants=Enumerable.Range(0,3).Select(_=>host.PostAsync("/api/gm/v1/cera/grant",csrf,Payload(Guid.NewGuid(),[1,1]))).ToArray();
-        var purchases=Enumerable.Range(0,3).Select(_=>commands.SendAsync(new CeraShopPurchaseCommand(user.OnlineUserId,session,new(0,0,0,[new(0,255,255,100039,[],[])]))).AsTask()).ToArray();
+        var purchases=Enumerable.Range(0,3).Select(_=>commands.SendAsync(new GameCeraShopPurchaseCommand(new(user.Connection),new(new Dfo.Server.Data.Networking.GameMessageMetadata(1,0x0040,0,1),new(0,0,0,[new(0,255,255,100039,[],[])])))).AsTask()).ToArray();
         await Task.WhenAll(grants.Cast<Task>().Concat(purchases));var responses=await Task.WhenAll(grants);var bought=await Task.WhenAll(purchases);
         Assert.All(responses,x=>Assert.Equal(HttpStatusCode.OK,x.StatusCode));Assert.All(bought,x=>Assert.NotNull(x.Receipt));foreach(var r in responses)r.Dispose();
         Assert.Equal(new[]{"97810:0:0"},await host.ReadAsync("SELECT cera||':'||token_cera||':'||happy_token_cera FROM accounts WHERE account_id=1;"));

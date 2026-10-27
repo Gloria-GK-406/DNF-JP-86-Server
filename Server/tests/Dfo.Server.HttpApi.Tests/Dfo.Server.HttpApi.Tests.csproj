@@ -17,4 +17,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dfo.Server.HttpApi\Dfo.Server.HttpApi.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
+  </ItemGroup>
 </Project>

@@ -6,6 +6,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.CompoundItem;
 
 namespace Dfo.Server.Protocol.Tests.Game.CompoundItem;
+[Trait("Category", "Unit")]
 public sealed class CompoundItemCodecTests
 {
     [Theory]

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -21,5 +22,5 @@ public interface IRecipeCraftDomainService
 {
     ValueTask<RecipeCraftReceipt> RefreshAsync(RecipeCraftReceipt receipt, CancellationToken cancellationToken);
     ValueTask<RecipeCraftReceipt> CraftAsync(SelectedSessionIdentity session, BusinessSlot drawing,
-        int quantity, DateTimeOffset now, CancellationToken cancellationToken);
+        int quantity, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

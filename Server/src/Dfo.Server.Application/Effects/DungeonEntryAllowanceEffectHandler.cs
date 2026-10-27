@@ -8,6 +8,7 @@ internal sealed class DungeonEntryAllowanceEffectHandler(IHerasDungeonDomainServ
     public override ValueTask ValidateAsync(EffectExecutionContext context, AddDungeonEntryAllowanceEffect effect, CancellationToken ct) => heras.ValidateAllowanceAsync(context, effect, ct);
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, AddDungeonEntryAllowanceEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         await heras.ApplyAllowanceAsync(context, effect, ct).ConfigureAwait(false);
         return new DungeonEntryAllowanceChange(effect.DungeonId);
     }

@@ -141,7 +141,7 @@ public sealed class CarriedGoldCapTests
             new PlayingCharacter(
                 Who,
                 new ItemUseJudgementService(new FakeItemUseRules()),
-                new CharacterItemCooldownDomainService(TimeProvider.System),
+                new OnlineCharacterRuntimeDomainService(TimeProvider.System),
                 new SessionPresenceDomainService(),
                 gold,
                 new CarriedGoldRuleService(archive),

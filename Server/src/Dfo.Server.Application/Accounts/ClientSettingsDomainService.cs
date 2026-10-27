@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
@@ -23,6 +24,7 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
 
     public async ValueTask<bool> SaveMainAsync(ClientSettingsOrigin origin, byte[] payload, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(ClientSettingsDomainService) + "." + nameof(SaveMainAsync));
         DemandTransaction();
         if (payload.Length != 150 || !IsCurrent(origin)) return false;
         ClientAppearanceOptions? previous = null;
@@ -43,6 +45,7 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
 
     public async ValueTask<bool> SaveQuickChatAsync(ClientSettingsOrigin origin, byte bank, byte[] payload, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(ClientSettingsDomainService) + "." + nameof(SaveQuickChatAsync));
         DemandTransaction();
         if (bank > 1 || payload.Length != 300 || !IsCurrent(origin)) return false;
         await table.SaveQuickChatAsync(origin.AccountId, bank, [.. payload], ct);
@@ -51,6 +54,7 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
 
     public async ValueTask<bool> SaveHotkeysAsync(ClientHotkeyUploadContext context, byte[] payload, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(ClientSettingsDomainService) + "." + nameof(SaveHotkeysAsync));
         DemandTransaction();
         if (payload.Length > 65536 || !IsCurrent(context.Origin)
             || !profiles.TryGetValue(context.Origin.Connection.ConnectionId, out var profile)
@@ -64,6 +68,7 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
 
     public bool ActivateHotkeyProfile(ClientSettingsOrigin origin, byte keyType)
     {
+        GameplayWriteAssertion.Writing(nameof(ClientSettingsDomainService) + "." + nameof(ActivateHotkeyProfile));
         if (!IsCurrent(origin)) return false;
         profiles[origin.Connection.ConnectionId] = new(origin, keyType, Guid.NewGuid());
         return true;
@@ -77,10 +82,15 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
         && (profile.Origin.SelectedSession == origin.SelectedSession || origin.SelectedSession is null)
             ? new(origin, profile.KeyType, profile.Token) : null;
 
-    public void ForgetConnection(NetworkConnectionId connectionId) => profiles.TryRemove(connectionId, out _);
+    public void ForgetConnection(NetworkConnectionId connectionId)
+    {
+        GameplayWriteAssertion.Writing(nameof(ClientSettingsDomainService) + "." + nameof(ForgetConnection));
+        profiles.TryRemove(connectionId, out _);
+    }
 
     public void ForgetConnection(GameSessionIdentity connection)
     {
+        GameplayWriteAssertion.Writing(nameof(ClientSettingsDomainService) + "." + nameof(ForgetConnection));
         if (profiles.TryGetValue(connection.ConnectionId, out var profile) && profile.Origin.Connection == connection)
             ((ICollection<KeyValuePair<NetworkConnectionId, Profile>>)profiles).Remove(new(connection.ConnectionId, profile));
     }
@@ -89,7 +99,9 @@ internal sealed class ClientSettingsDomainService(IClientSettingsTable table,
         users.TryGetByConnection(origin.Connection.ConnectionId, out var user)
         && user is not null && user.SessionIdentity == origin.Connection
         && user.AccountId == origin.AccountId && user.Generation == origin.Generation
-        && sessions.FindByConnection(origin.Connection.ConnectionId) == origin.SelectedSession
+        && (origin.SelectedSession is { } session
+            ? session.ConnectionId == origin.Connection.ConnectionId && sessions.IsSelected(session)
+            : sessions.FindByConnection(origin.Connection.ConnectionId) is null)
         && (origin.SelectedSession is not { } selected || selected.AccountId == origin.AccountId);
 
     private void DemandTransaction()

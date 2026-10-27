@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Security.Cryptography;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
@@ -13,7 +14,7 @@ namespace Dfo.Server.Application.Marriage;
 
 internal sealed partial class HousingOperations(HousingState state, IMarriageHousingContentSource content,
     IBusinessInventorySlotDomainService inventory, IInventorySlotMappingRuleService mappings,
-    IItemDeliveryRuleService templates, IItemLifecycleDomainService lifecycle, Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService replay, IMailboxDomainService mail, IDailyResetRuleService days, TimeProvider clock,
+    IItemDeliveryRuleService templates, IItemLifecycleDomainService lifecycle, IMailboxDomainService mail, IDailyResetRuleService days, TimeProvider clock,
     Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
     Dfo.Server.Abstractions.Accounts.IAccountWalletDomainService wallets,
     INpcShopDefinitionSource shops, IItemDeliveryDomainService delivery)
@@ -23,8 +24,9 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
     public long Period => days.PeriodStart(clock.GetUtcNow()).ToUnixTimeMilliseconds();
 
     public async ValueTask<HousingResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation,
-        HousingSnapshot room, HousingRequest request, CancellationToken ct)
+        HousingSnapshot room, HousingRequest request, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandActive(actor);
         if (!state.IsInside(actor, room)) return new(-4);
         var now = clock.GetUtcNow();
         switch (request.Action)
@@ -35,6 +37,7 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
                 if (!state.CanEdit(relation.Id, actor)) return new(-20);
                 var moved = Move(room, request);
                 if (moved is null) return new(-1);
+                footprint.DemandActive(actor);
                 await state.SaveAsync(moved, ct).ConfigureAwait(false);
                 return new(0) { Snapshot = moved };
             case HousingAction.Delete:
@@ -44,14 +47,16 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
                 var storage = room.Storage.Where(x => x.Slot != item.Slot).ToList();
                 if (item.Count > request.Count) storage.Add(item with { Count = item.Count - request.Count });
                 var deleted = room with { Storage = storage };
+                footprint.DemandActive(actor);
                 await state.SaveAsync(deleted, ct).ConfigureAwait(false);
                 return new(0) { Snapshot = deleted };
             case HousingAction.Plant:
                 if (room.Tree is not null) return new(-4);
                 if (!Rules.Seeds.TryGetValue(request.ItemId, out var kind)) return new(-1);
-                var planting = await ConsumeAsync(actor, request.Slot, request.ItemId, ct).ConfigureAwait(false);
+                var planting = await ConsumeAsync(actor, request.Slot, request.ItemId, footprint, ct).ConfigureAwait(false);
                 if (planting is null) return new(-1);
                 var planted = room with { Tree = new(Guid.NewGuid(), kind, now, now.AddDays(30), 0, 0, Period, 0, 1) };
+                footprint.DemandActive(actor);
                 await state.SaveAsync(planted, ct).ConfigureAwait(false);
                 return new(0) { Snapshot = planted, ConsumedSlot = planting.Value.Slot, Remaining = planting.Value.Remaining };
             case HousingAction.Water:
@@ -61,9 +66,10 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
                 var waters = tree.WaterPeriod == Period ? tree.Waters : 0;
                 if (waters >= 2) return new(-6);
                 if (!Rules.Water.TryGetValue(request.ItemId, out var growth)) return new(-1);
-                var watering = await ConsumeAsync(actor, request.Slot, request.ItemId, ct).ConfigureAwait(false);
+                var watering = await ConsumeAsync(actor, request.Slot, request.ItemId, footprint, ct).ConfigureAwait(false);
                 if (watering is null) return new(-1);
                 var watered = room with { Tree = tree with { Growth = Math.Min(30, tree.Growth + growth), Waters = waters + 1, WaterPeriod = Period, Revision = tree.Revision + 1 } };
+                footprint.DemandActive(actor);
                 await state.SaveAsync(watered, ct).ConfigureAwait(false);
                 return new(0) { Snapshot = watered, ConsumedSlot = watering.Value.Slot, Remaining = watering.Value.Remaining };
             case HousingAction.Harvest:
@@ -76,23 +82,30 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
                     foreach (var reward in Rules.Rewards) { if (draw < reward.Weight) return new HousingReward(character, reward.ItemId, reward.Count); draw -= reward.Weight; }
                     throw new InvalidOperationException("Invalid tree reward weights.");
                 }).ToArray();
+                footprint.DemandActive(actor);
                 if (!await state.RecordHarvestAsync(mature.PlantingId, mature.HarvestRound, rewards, ct).ConfigureAwait(false)) return new(-6);
                 foreach (var reward in rewards)
+                {
+                    footprint.DemandActive(actor);
                     await mail.SendAsync(MailBuilder.FromSystem(reward.Character).WithText("爱情树的礼物", "感谢你们悉心培育爱情树，这是本轮收获的礼物。").AddStackable(reward.ItemId, reward.Count).Build(), ct).ConfigureAwait(false);
+                }
                 var harvested = room with { Tree = mature with { Growth = 0, HarvestRound = mature.HarvestRound + 1, Revision = mature.Revision + 1 } };
+                footprint.DemandActive(actor);
                 await state.SaveAsync(harvested, ct).ConfigureAwait(false);
                 return new(0) { Snapshot = harvested, Rewards = rewards };
             case HousingAction.Clear:
                 if (room.Tree is null) return new(-1);
                 var cleared = room with { Tree = null };
+                footprint.DemandActive(actor);
                 await state.SaveAsync(cleared, ct).ConfigureAwait(false);
                 return new(0) { Snapshot = cleared };
             default: return new(-1);
         }
     }
 
-    public async ValueTask<(BusinessSlot Slot, ItemSnapshot? Remaining)?> ConsumeAsync(SelectedSessionIdentity actor, int wireSlot, int itemId, CancellationToken ct)
+    public async ValueTask<(BusinessSlot Slot, ItemSnapshot? Remaining)?> ConsumeAsync(SelectedSessionIdentity actor, int wireSlot, int itemId, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandActive(actor);
         BusinessSlot slot;
         try { slot = mappings.ToBusinessSlot(new(InventoryContainerType.Main, wireSlot)); }
         catch (InventorySlotMappingException) { return null; }
@@ -100,7 +113,7 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
         var bound = inventory.Find(actor.CharacterId, slot);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);
         if (item is null || item.ItemId != itemId || !item.Snapshot.IsPile || item.Snapshot.ExpireTime != 0) return null;
-        replay.RecordInventorySlots(actor, [slot]);
+        footprint.RecordInventorySlots(actor, [slot]);
         await ItemContainerOperations.ConsumeAsync(bound!.Container, item, 1, lifecycle, ct).ConfigureAwait(false);
         return (slot, (await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false))?.Snapshot);
     }

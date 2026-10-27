@@ -20,6 +20,7 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 /// than assert meanings: they exist so that when the live answer arrives, a change made in
 /// response to it is a visible change and not a silent one.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class DungeonEntryCodecTests
 {
     [Theory]

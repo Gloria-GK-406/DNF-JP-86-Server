@@ -5,8 +5,7 @@ namespace Dfo.Server.Application.Notifications;
 
 /// <summary>Asks a handler for one recipient's messages without naming its notification type.</summary>
 /// <remarks>
-/// Delivery walks recipients and the retry queue holds entries long after the publish that made
-/// them, and neither is generic. The registration binds the notification, its handler and this
+/// Delivery walks recipients and is not generic. The registration binds the notification, its handler and this
 /// composer together, so the cast below is the concrete type the registration was made with.
 /// </remarks>
 internal interface INotificationComposer

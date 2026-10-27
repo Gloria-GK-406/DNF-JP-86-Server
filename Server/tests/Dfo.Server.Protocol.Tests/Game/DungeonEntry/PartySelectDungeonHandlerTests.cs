@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using System.Buffers.Binary;
@@ -11,7 +12,6 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Accounts;
@@ -33,6 +33,7 @@ using Dfo.Server.Protocol.Tests.Game.TownProjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using EnteredDungeon = Dfo.Server.Abstractions.World.DungeonEntry;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
@@ -44,185 +45,218 @@ public sealed class PartySelectDungeonHandlerTests
     [InlineData(10001)]
     public async Task Only_the_matching_retry_selection_keeps_the_ordinary_maze_partition(ushort selection)
     {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
-        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
-        foreach (var member in new[] { Leader, Member })
-            intents.Record(member, DungeonEntryIntent.OrdinaryRechallenge(DungeonId));
-        var sender = new Sender();
-        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
-            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
-        await handler.HandleAsync(Dispatch(Leader),
-            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, selection), default);
-        var expected = selection == DungeonId ? DungeonEntryIntent.OrdinaryRechallenge(DungeonId)
-            : selection == 0 ? DungeonEntryIntent.Interactive : DungeonEntryIntent.Directed(selection);
-        Assert.Equal(expected, intents.Find(Leader));
-        Assert.Equal(expected, intents.Find(Member));
-    }
-
-    [Fact]
-    public async Task Selection_waits_for_exit_before_recording_intent_or_sending_frames()
-    {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
-        var intents = new Intents();
-        var sender = new Sender();
-        var gate = new SelectedSessionTransitionGate();
-        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
-            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()), transitionGate: gate);
-        var exitLease = await gate.AcquireAsync(Leader.AccountId, UserAccessMode.Exclusive, default);
-        var selection = handler.HandleAsync(Dispatch(Leader),
-            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId), default).AsTask();
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.False(selection.IsCompleted);
-            Assert.Null(intents.Consume(Leader));
-            Assert.Empty(sender.Messages(Leader.ConnectionId));
-        }
-        finally { await exitLease.DisposeAsync(); }
-        await selection.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.NotNull(intents.Consume(Leader));
-        Assert.NotNull(intents.Consume(Member));
-        Assert.NotEmpty(sender.Messages(Leader.ConnectionId));
-        Assert.Equal(0, gate.TrackedEntryCount);
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            foreach (var member in new[] { Leader, Member })
+                intents.Record(member, DungeonEntryIntent.OrdinaryRechallenge(DungeonId));
+            var sender = new Sender();
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(new UnchangedState(), sessions,
+                new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
+            await handler.HandleAsync(Dispatch(Leader),
+                new EnterSelectDungeonRequest(GameMessageMetadata.Empty, selection), default);
+            var expected = selection == DungeonId ? DungeonEntryIntent.OrdinaryRechallenge(DungeonId)
+                : selection == 0 ? DungeonEntryIntent.Interactive : DungeonEntryIntent.Directed(selection);
+            Assert.Equal(expected, intents.Find(Leader));
+            Assert.Equal(expected, intents.Find(Member));
+        });
     }
 
     [Fact]
     public async Task Missing_party_member_cannot_silently_open_a_partial_selection()
     {
-        var sessions = new Sessions(Leader);
-        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader]);
-        var intents = new Intents();
-        var sender = new Sender();
-        var handler = new EnterSelectDungeonHandler(new UnchangedState(), sessions,
-            new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
-        await handler.HandleAsync(Dispatch(Leader),
-            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId), default);
-        Assert.Null(intents.Consume(Leader));
-        Assert.Empty(sender.Messages(Leader.ConnectionId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new Sessions(Leader);
+            var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader]);
+            var intents = new Intents();
+            var sender = new Sender();
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(new UnchangedState(), sessions,
+                new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
+            await handler.HandleAsync(Dispatch(Leader),
+                new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId), default);
+            Assert.Null(intents.Consume(Leader));
+            Assert.Empty(sender.Messages(Leader.ConnectionId));
+        });
     }
 
     [Fact]
     public async Task Only_the_leader_can_return_the_frozen_dungeon_cohort_to_town()
     {
-        var participants = new[]
+        await TestGameplay.RunAsync(async () =>
         {
-            new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
-            new DungeonRunParticipant(Member.AccountId, Member.CharacterId, 1, false),
-        };
-        var layout = PartyVisits.LayoutForTest();
-        var runId = DungeonRunId.New();
-        var baseRun = new DungeonRunState(
-            layout, layout.StartCell, layout.StartRoomMapId,
-            new HashSet<MazeCell> { layout.StartCell }, DateTimeOffset.UnixEpoch,
-            RunId: runId, Participant: participants[0], Participants: participants,
-            CurrentCellState: DungeonCellSeed.CompleteEmpty(
-                layout.StartCell, layout.StartRoomMapId).Snapshot());
-        var runs = new RollbackRuns();
-        runs.SetCurrent(Leader.CharacterId, baseRun);
-        runs.SetCurrent(Member.CharacterId, baseRun with { Participant = participants[1] });
-        var sessions = new Sessions(Leader, Member);
-        var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
-        var sender = new Sender();
-        var deliveries = new DungeonRunDeliveryRegistry();
-        deliveries.Register(runId, [Leader, Member]);
-        var handler = new EplpCommandHandler(
-            sessions, runtime, new PartyPositions(), runs, deliveries, sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EplpCommandHandler>.Instance,
-            new SelectedSessionTransitionGate());
-        var request = new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2);
+            var participants = new[]
+            {
+                new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
+                new DungeonRunParticipant(Member.AccountId, Member.CharacterId, 1, false),
+            };
+            var layout = PartyVisits.LayoutForTest();
+            var runId = DungeonRunId.New();
+            var baseRun = new DungeonRunState(
+                layout, layout.StartCell, layout.StartRoomMapId,
+                new HashSet<MazeCell> { layout.StartCell }, DateTimeOffset.UnixEpoch,
+                RunId: runId, Participant: participants[0], Participants: participants,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    layout.StartCell, layout.StartRoomMapId).Snapshot());
+            var runs = new RollbackRuns();
+            runs.SetCurrent(Leader.CharacterId, baseRun);
+            runs.SetCurrent(Member.CharacterId, baseRun with { Participant = participants[1] });
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
+            var sender = new Sender();
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(runId, [Leader, Member]);
+            var handler = new EplpDriver(
+                sessions, runtime, new PartyPositions(), runs, deliveries, sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                NullLogger<EplpCommandHandler>.Instance, parties: new Parties(Snapshot()));
+            var request = new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2);
 
-        await handler.HandleAsync(Dispatch(Member), request, CancellationToken.None);
-        Assert.Empty(runs.Ended);
+            await handler.HandleAsync(Dispatch(Member), request, CancellationToken.None);
+            Assert.Empty(runs.Ended);
 
-        await handler.HandleAsync(Dispatch(Leader),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 2, 2),
-            CancellationToken.None);
-        Assert.Empty(runs.Ended);
-        Assert.Contains(sender.Messages(Member.ConnectionId),
-            message => message is EplpCommandResponse { State: 2, Option: 2 });
+            await handler.HandleAsync(Dispatch(Leader),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 2, 2),
+                CancellationToken.None);
+            Assert.Empty(runs.Ended);
+            Assert.Contains(sender.Messages(Member.ConnectionId),
+                message => message is EplpCommandResponse { State: 2, Option: 2 });
 
-        await handler.HandleAsync(Dispatch(Leader), request, CancellationToken.None);
-        Assert.Equal([Leader.CharacterId, Member.CharacterId], runs.Ended);
-        foreach (var session in new[] { Leader, Member })
+            await handler.HandleAsync(Dispatch(Leader), request, CancellationToken.None);
+            Assert.Equal([Leader.CharacterId, Member.CharacterId], runs.Ended);
+            foreach (var session in new[] { Leader, Member })
+            {
+                Assert.Contains(sender.Messages(session.ConnectionId),
+                    message => message is EplpCommandResponse { State: 1, Option: 2 });
+                Assert.Contains(sender.Messages(session.ConnectionId),
+                    message => message is UserAreaNotification);
+            }
+            Assert.Empty(deliveries.Find(runId));
+        });
+    }
+
+    /// <summary>XO-2: a peer slow to take the leader's decision, within the limit, still has it before the leader's ACK.</summary>
+    [Fact]
+    public async Task A_slow_peer_is_delivered_the_decision_before_the_leaders_acknowledgement()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Slow(Member.ConnectionId, TimeSpan.FromMilliseconds(300));
+
+        await outbound.RunAsync(async () =>
         {
-            Assert.Contains(sender.Messages(session.ConnectionId),
-                message => message is EplpCommandResponse { State: 1, Option: 2 });
-            Assert.Contains(sender.Messages(session.ConnectionId),
-                message => message is UserAreaNotification);
-        }
-        Assert.Empty(deliveries.Find(runId));
+            var participants = new[]
+            {
+                new DungeonRunParticipant(Leader.AccountId, Leader.CharacterId, 0, true),
+                new DungeonRunParticipant(Member.AccountId, Member.CharacterId, 1, false),
+            };
+            var layout = PartyVisits.LayoutForTest();
+            var runId = DungeonRunId.New();
+            var baseRun = new DungeonRunState(
+                layout, layout.StartCell, layout.StartRoomMapId,
+                new HashSet<MazeCell> { layout.StartCell }, DateTimeOffset.UnixEpoch,
+                RunId: runId, Participant: participants[0], Participants: participants,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    layout.StartCell, layout.StartRoomMapId).Snapshot());
+            var runs = new RollbackRuns();
+            runs.SetCurrent(Leader.CharacterId, baseRun);
+            runs.SetCurrent(Member.CharacterId, baseRun with { Participant = participants[1] });
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(runId, [Leader, Member]);
+            var handler = new EplpDriver(
+                sessions, runtime, new PartyPositions(), runs, deliveries, outbound.Game,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, outbound.Game),
+                NullLogger<EplpCommandHandler>.Instance, parties: new Parties(Snapshot()), ordering: outbound.Ordering);
+
+            await handler.HandleAsync(Dispatch(Leader),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 2, 2), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        var decision = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == Member.ConnectionId);
+        var acknowledgement = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == Leader.ConnectionId);
+        Assert.IsType<EplpCommandResponse>(Assert.Single(decision.Messages));
+        Assert.True(decision.Order!.Value.Sequence < acknowledgement.Order!.Value.Sequence);
+        Assert.True(outbound.Delivered(Leader.ConnectionId) > outbound.Delivered(Member.ConnectionId),
+            "the leader's ACK was delivered before the peer's decision");
     }
 
     [Theory]
     [InlineData((byte)0)] [InlineData((byte)1)] [InlineData((byte)5)]
     public async Task The_leader_opens_one_selection_context_for_every_party_member(byte leaderSlot)
     {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
-        var intents = new Intents();
-        var sender = new Sender();
-        var snapshot = Snapshot();
-        snapshot = snapshot with { Members = [.. snapshot.Members.Select(x => x with
-            { Slot = x.CharacterId == Leader.CharacterId ? leaderSlot : leaderSlot == 0 ? (byte)1 : (byte)0 })] };
-        var handler = new EnterSelectDungeonHandler(
-            new UnchangedState(),
-            sessions,
-            new RuntimeCurrentView(runtime),
-            new PartyVisits(),
-            intents,
-            sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EnterSelectDungeonHandler>.Instance,
-            new Parties(snapshot));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+            var intents = new Intents();
+            var sender = new Sender();
+            var snapshot = Snapshot();
+            snapshot = snapshot with { Members = [.. snapshot.Members.Select(x => x with
+                { Slot = x.CharacterId == Leader.CharacterId ? leaderSlot : leaderSlot == 0 ? (byte)1 : (byte)0 })] };
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(
+                new UnchangedState(),
+                sessions,
+                new RuntimeCurrentView(runtime),
+                new PartyVisits(),
+                intents,
+                sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                NullLogger<EnterSelectDungeonHandler>.Instance,
+                new Parties(snapshot));
 
-        await handler.HandleAsync(
-            Dispatch(Leader),
-            new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(Leader),
+                new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
+                CancellationToken.None);
 
-        var expectedUsers = leaderSlot == 0 ? new[] { Leader.WireUserId, Member.WireUserId }
-            : new[] { Member.WireUserId, Leader.WireUserId };
-        foreach (var recipient in new[] { Leader, Member })
-            Assert.Equal(leaderSlot, Assert.Single(sender.Messages(recipient.ConnectionId).OfType<UdpHostNotification>()).HostSlot);
-        Assert.Equal(
-            expectedUsers,
-            Assert.Single(sender.Messages(Leader.ConnectionId)
-                .OfType<EnterSelectDungeonNotification>()).WireUserIds);
-        Assert.Equal(
-            expectedUsers,
-            Assert.Single(sender.Messages(Member.ConnectionId)
-                .OfType<EnterSelectDungeonNotification>()).WireUserIds);
-        Assert.NotNull(intents.Consume(Leader));
-        Assert.NotNull(intents.Consume(Member));
+            var expectedUsers = leaderSlot == 0 ? new[] { Leader.WireUserId, Member.WireUserId }
+                : new[] { Member.WireUserId, Leader.WireUserId };
+            foreach (var recipient in new[] { Leader, Member })
+                Assert.Equal(leaderSlot, Assert.Single(sender.Messages(recipient.ConnectionId).OfType<UdpHostNotification>()).HostSlot);
+            Assert.Equal(
+                expectedUsers,
+                Assert.Single(sender.Messages(Leader.ConnectionId)
+                    .OfType<EnterSelectDungeonNotification>()).WireUserIds);
+            Assert.Equal(
+                expectedUsers,
+                Assert.Single(sender.Messages(Member.ConnectionId)
+                    .OfType<EnterSelectDungeonNotification>()).WireUserIds);
+            Assert.NotNull(intents.Consume(Leader));
+            Assert.NotNull(intents.Consume(Member));
+        });
     }
 
     [Fact]
     public async Task A_follower_cannot_open_a_solo_selection_while_in_a_party()
     {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
-        var intents = new Intents();
-        var sender = new Sender();
-        var handler = new EnterSelectDungeonHandler(
-            new UnchangedState(), sessions, new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
-            TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
-            NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+            var intents = new Intents();
+            var sender = new Sender();
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Enter(
+                new UnchangedState(), sessions, new RuntimeCurrentView(runtime), new PartyVisits(), intents, sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()));
 
-        await handler.HandleAsync(
-            Dispatch(Member), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(Member), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, DungeonId),
+                CancellationToken.None);
 
-        Assert.Empty(sender.Messages(Member.ConnectionId));
-        Assert.Null(intents.Consume(Member));
-        Assert.Null(intents.Consume(Leader));
+            Assert.Empty(sender.Messages(Member.ConnectionId));
+            Assert.Null(intents.Consume(Member));
+            Assert.Null(intents.Consume(Leader));
+        });
     }
 
     [Theory]
@@ -240,421 +274,548 @@ public sealed class PartySelectDungeonHandlerTests
         var sender = new Sender();
         using var services = new ServiceCollection()
             .AddSingleton<ISelectedSessionDomainService>(sessions)
-            .AddSingleton<ISelectedSessionRuntimeDirectory>(runtime)
             .AddSingleton<ISelectedCharacterCurrentViewDomainService>(new RuntimeCurrentView(runtime))
-            .AddSingleton<ICharacterPositionDomainService>(new PartyPositions())
+            .AddSingleton<IOnlineCharacterRuntimeDomainService>(new PartyPositions())
             .AddSingleton<IDungeonRunDomainService>(new RollbackRuns())
             .AddSingleton(new DungeonRunDeliveryRegistry())
             .AddSingleton<IDungeonEntryIntentDomainService>(intents)
             .AddSingleton<IPartyService>(new Parties(Snapshot()))
             .AddSingleton<IGameMessageSender>(sender)
             .AddSingleton(TownAreaProjectionTestFactory.Create(sessions, runtime, sender))
-            .AddSingleton<SelectedSessionTransitionGate>()
             .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
                 NullLogger<BackToVillageHandler>.Instance)
             .BuildServiceProvider();
-        if (refusedForFatigue)
+        await TestGameplay.RunAsync(services, async () =>
         {
-            var visits = new RefusedVisits();
-            var selection = new SelectDungeonHandler(CurrentCharacterStub.Domain(), new UnchangedState(),
-                sessions, new RuntimeCurrentView(runtime), new Parties(Snapshot()),
-                services.GetRequiredService<IDungeonRunDomainService>(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
-                intents, visits, new RecordingQuestLogs(), new Fatigue(), sender, new RecordingCloser(),
-                services.GetRequiredService<TownAreaProjectionDelivery>(), NullLogger<SelectDungeonHandler>.Instance,
-                services.GetRequiredService<SelectedSessionTransitionGate>());
-            for (var i = 0; i < 2; i++)
-                await selection.HandleAsync(Dispatch(Leader), new SelectDungeonRequest(GameMessageMetadata.Empty, DungeonId, DungeonDifficulty.Normal, 0, 0), default);
-            Assert.Equal(2, visits.Attempts); // A repeated click still reaches fatigue validation.
-            Assert.Equal(2, sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>().Count());
-            Assert.All(sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>(), x => Assert.Equal(SelectDungeonRefusal.InsufficientFatigue, x.ErrorCode));
-        }
-        var handler = ActivatorUtilities.CreateInstance<BackToVillageHandler>(services);
+            if (refusedForFatigue)
+            {
+                var visits = new RefusedVisits();
+                var selection = SelectDungeonDriver.Create(CurrentCharacterStub.Domain(), new UnchangedState(),
+                    sessions, new RuntimeCurrentView(runtime), new Parties(Snapshot()),
+                    services.GetRequiredService<IDungeonRunDomainService>(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
+                    intents, visits, new RecordingQuestLogs(), new Fatigue(), sender, new RecordingCloser(),
+                    services.GetRequiredService<TownAreaProjectionDelivery>(), NullLogger<SelectDungeonHandler>.Instance);
+                for (var i = 0; i < 2; i++)
+                    await selection.HandleAsync(Dispatch(Leader), new SelectDungeonRequest(GameMessageMetadata.Empty, DungeonId, DungeonDifficulty.Normal, 0, 0), default);
+                Assert.Equal(2, visits.Attempts); // A repeated click still reaches fatigue validation.
+                Assert.Equal(2, sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>().Count());
+                Assert.All(sender.Messages(Leader.ConnectionId).OfType<SelectDungeonRefusal>(), x => Assert.Equal(SelectDungeonRefusal.InsufficientFatigue, x.ErrorCode));
+            }
+            var handler = DungeonSelectionTestDriver.Back(
+                services.GetRequiredService<ISelectedSessionDomainService>(), services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>(),
+                services.GetRequiredService<IOnlineCharacterRuntimeDomainService>(), services.GetRequiredService<IDungeonRunDomainService>(),
+                services.GetRequiredService<DungeonRunDeliveryRegistry>(), sender, services.GetRequiredService<TownAreaProjectionDelivery>(),
+                NullLogger<BackToVillageHandler>.Instance, services.GetRequiredService<IPartyService>(), entryIntents: intents);
 
-        await handler.HandleAsync(
-            Dispatch(Leader),
-            new BackToVillageRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(Leader),
+                new BackToVillageRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.IsType<BackToVillageResponse>(sender.Messages(Leader.ConnectionId).First(x => x is not SelectDungeonRefusal));
-        Assert.DoesNotContain(
-            sender.Messages(Member.ConnectionId),
-            frame => frame is BackToVillageResponse);
-        foreach (var participant in new[] { Leader, Member })
-        {
-            var messages = sender.Messages(participant.ConnectionId);
-            Assert.Contains(messages, frame => frame is UserStateNotification state
-                && state.WireUserId == participant.WireUserId
-                && state.UserState == 0);
-            var roster = Assert.Single(messages.OfType<AreaUsersNotification>());
-            Assert.Equal(
-                new[] { Leader.WireUserId, Member.WireUserId }.Order(),
-                roster.Users.Select(value => value.WireUserId).Order());
-            Assert.Contains(
-                messages.OfType<CurrentUserStateMessage>(),
-                frame => frame.Character.Identity.CharacterId != participant.CharacterId);
-        }
-        Assert.Null(intents.Consume(Leader));
-        Assert.Null(intents.Consume(Member));
+            Assert.IsType<BackToVillageResponse>(sender.Messages(Leader.ConnectionId).First(x => x is not SelectDungeonRefusal));
+            Assert.DoesNotContain(
+                sender.Messages(Member.ConnectionId),
+                frame => frame is BackToVillageResponse);
+            foreach (var participant in new[] { Leader, Member })
+            {
+                var messages = sender.Messages(participant.ConnectionId);
+                Assert.Contains(messages, frame => frame is UserStateNotification state
+                    && state.WireUserId == participant.WireUserId
+                    && state.UserState == 0);
+                var roster = Assert.Single(messages.OfType<AreaUsersNotification>());
+                Assert.Equal(
+                    new[] { Leader.WireUserId, Member.WireUserId }.Order(),
+                    roster.Users.Select(value => value.WireUserId).Order());
+                Assert.Contains(
+                    messages.OfType<CurrentUserStateMessage>(),
+                    frame => frame.Character.Identity.CharacterId != participant.CharacterId);
+            }
+            Assert.Null(intents.Consume(Leader));
+            Assert.Null(intents.Consume(Member));
 
-        var memberFramesBeforeLateRequest = sender.Messages(Member.ConnectionId).Count;
-        await handler.HandleAsync(
-            Dispatch(Member),
-            new BackToVillageRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            var memberFramesBeforeLateRequest = sender.Messages(Member.ConnectionId).Count;
+            await handler.HandleAsync(
+                Dispatch(Member),
+                new BackToVillageRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        var lateFrames = sender.Messages(Member.ConnectionId)
-            .Skip(memberFramesBeforeLateRequest)
-            .ToArray();
-        Assert.IsType<BackToVillageResponse>(Assert.Single(lateFrames));
+            var lateFrames = sender.Messages(Member.ConnectionId)
+                .Skip(memberFramesBeforeLateRequest)
+                .ToArray();
+            Assert.IsType<BackToVillageResponse>(Assert.Single(lateFrames));
+        });
     }
 
     [Fact]
     public async Task A_party_member_cannot_select_the_story_dungeon_for_the_party()
     {
-        var world = World();
-        world.Intents.Record(Member, DungeonEntryIntent.Directed(DungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World();
+            world.Intents.Record(Member, DungeonEntryIntent.Directed(DungeonId));
 
-        await world.Handler.HandleAsync(Dispatch(Member), Request(), CancellationToken.None);
+            await world.Handler.HandleAsync(Dispatch(Member), Request(), CancellationToken.None);
 
-        var refusal = Assert.IsType<SelectDungeonRefusal>(
-            Assert.Single(world.Sender.Messages(Member.ConnectionId)));
-        Assert.Equal(SelectDungeonRefusal.NotPartyLeader, refusal.ErrorCode);
-        Assert.Equal(0, world.Visits.PartyEntries);
-        Assert.Empty(world.Registry.Find(world.Visits.RunId));
+            var refusal = Assert.IsType<SelectDungeonRefusal>(
+                Assert.Single(world.Sender.Messages(Member.ConnectionId)));
+            Assert.Equal(SelectDungeonRefusal.NotPartyLeader, refusal.ErrorCode);
+            Assert.Equal(0, world.Visits.PartyEntries);
+            Assert.Empty(world.Registry.Find(world.Visits.RunId));
+        });
     }
 
     [Fact]
     public async Task An_unattachable_member_refuses_the_whole_party_before_a_run_is_created()
     {
-        var world = World(memberRuntimeAvailable: false);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(memberRuntimeAvailable: false);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
-        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        var refusal = Assert.IsType<SelectDungeonRefusal>(
-            Assert.Single(world.Sender.Messages(Leader.ConnectionId)));
-        Assert.Equal(SelectDungeonRefusal.SelectionCohortUnavailable, refusal.ErrorCode);
-        Assert.Equal(1, refusal.Context);
-        Assert.Equal(0, world.Visits.PartyEntries);
-        Assert.Empty(world.Fatigue.Spent);
+            var refusal = Assert.IsType<SelectDungeonRefusal>(
+                Assert.Single(world.Sender.Messages(Leader.ConnectionId)));
+            Assert.Equal(SelectDungeonRefusal.SelectionCohortUnavailable, refusal.ErrorCode);
+            Assert.Equal(1, refusal.Context);
+            Assert.Equal(0, world.Visits.PartyEntries);
+            Assert.Empty(world.Fatigue.Spent);
+        });
     }
 
     [Fact]
     public async Task The_leader_enters_every_frozen_member_and_supplies_a_missing_selection_prelude()
     {
-        var world = World();
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
-
-        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
-
-        Assert.Equal(1, world.Visits.PartyEntries);
-        Assert.Collection(
-            world.Visits.Participants,
-            participant =>
-            {
-                Assert.Equal(Leader.CharacterId, participant.CharacterId);
-                Assert.True(participant.IsLeader);
-                Assert.Equal(0, participant.Slot);
-            },
-            participant =>
-            {
-                Assert.Equal(Member.CharacterId, participant.CharacterId);
-                Assert.False(participant.IsLeader);
-                Assert.Equal(1, participant.Slot);
-            });
-        Assert.Equal(world.Visits.RunId, world.Visits.Visits[Leader.CharacterId].Run.RunId);
-        Assert.Equal(world.Visits.RunId, world.Visits.Visits[Member.CharacterId].Run.RunId);
-        Assert.Equal(
-            world.Visits.Visits[Leader.CharacterId].Run.CurrentCell,
-            world.Visits.Visits[Member.CharacterId].Run.CurrentCell);
-        Assert.Equal(
-            [Leader, Member],
-            world.Registry.Find(world.Visits.RunId));
-
-        Assert.Collection(
-            world.Sender.Messages(Leader.ConnectionId),
-            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
-            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
-            frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
-            frame => Assert.IsType<UserStateNotification>(frame),
-            frame => Assert.IsType<UdpHostNotification>(frame),
-            frame => Assert.IsType<SupportTagNotification>(frame),
-            frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame),
-            frame => Assert.IsType<FatigueNotification>(frame));
-        Assert.Collection(
-            world.Sender.Messages(Member.ConnectionId),
-            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
-            frame => Assert.IsType<ExtendedUserStateMessage>(frame),
-            frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
-            frame => Assert.IsType<UserStateNotification>(frame),
-            frame => Assert.IsType<UdpHostNotification>(frame),
-            frame => Assert.IsType<EnterSelectDungeonNotification>(frame),
-            frame => Assert.IsType<SupportTagNotification>(frame),
-            frame => Assert.IsType<DungeonInfoNotification>(frame),
-            frame => Assert.IsType<StartMapNotification>(frame),
-            frame => Assert.IsType<FatigueNotification>(frame));
-        Assert.Equal(
-            new[] { Leader.WireUserId, Member.WireUserId },
-            Assert.Single(world.Sender.Messages(Member.ConnectionId)
-                .OfType<EnterSelectDungeonNotification>()).WireUserIds);
-        Assert.Equal(
-            new ushort?[] { null, Member.WireUserId },
-            world.Sender.Messages(Leader.ConnectionId)
-                .OfType<ExtendedUserStateMessage>()
-                .Select(value => value.RoutingWireUserId));
-        Assert.Equal(
-            new ushort?[] { null, Leader.WireUserId },
-            world.Sender.Messages(Member.ConnectionId)
-                .OfType<ExtendedUserStateMessage>()
-                .Select(value => value.RoutingWireUserId));
-        var leaderUserInfos = world.Sender.Messages(Leader.ConnectionId)
-            .OfType<ExtendedUserStateMessage>().Select(value => value.EncodeBody()).ToArray();
-        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[0].AsSpan(3)));
-        Assert.Equal(
-            checked((ushort)Leader.CharacterId.Value),
-            BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[0].AsSpan(18)));
-        Assert.Equal(
-            Member.WireUserId,
-            BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[1].AsSpan(3)));
-        Assert.Equal(
-            checked((ushort)Member.CharacterId.Value),
-            BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[1].AsSpan(18)));
-        foreach (var recipient in new[] { Leader, Member })
+        await TestGameplay.RunAsync(async () =>
         {
+            var world = World();
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+
+            Assert.Equal(1, world.Visits.PartyEntries);
+            Assert.Collection(
+                world.Visits.Participants,
+                participant =>
+                {
+                    Assert.Equal(Leader.CharacterId, participant.CharacterId);
+                    Assert.True(participant.IsLeader);
+                    Assert.Equal(0, participant.Slot);
+                },
+                participant =>
+                {
+                    Assert.Equal(Member.CharacterId, participant.CharacterId);
+                    Assert.False(participant.IsLeader);
+                    Assert.Equal(1, participant.Slot);
+                });
+            Assert.Equal(world.Visits.RunId, world.Visits.Visits[Leader.CharacterId].Run.RunId);
+            Assert.Equal(world.Visits.RunId, world.Visits.Visits[Member.CharacterId].Run.RunId);
+            Assert.Equal(
+                world.Visits.Visits[Leader.CharacterId].Run.CurrentCell,
+                world.Visits.Visits[Member.CharacterId].Run.CurrentCell);
+            Assert.Equal(
+                [Leader, Member],
+                world.Registry.Find(world.Visits.RunId));
+
+            Assert.Collection(
+                world.Sender.Messages(Leader.ConnectionId),
+                frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+                frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+                frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
+                frame => Assert.IsType<UserStateNotification>(frame),
+                frame => Assert.IsType<UdpHostNotification>(frame),
+                frame => Assert.IsType<SupportTagNotification>(frame),
+                frame => Assert.IsType<DungeonInfoNotification>(frame),
+                frame => Assert.IsType<StartMapNotification>(frame),
+                frame => Assert.IsType<FatigueNotification>(frame));
+            Assert.Collection(
+                world.Sender.Messages(Member.ConnectionId),
+                frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+                frame => Assert.IsType<ExtendedUserStateMessage>(frame),
+                frame => Assert.IsType<EnterSelectDungeonAcknowledgement>(frame),
+                frame => Assert.IsType<UserStateNotification>(frame),
+                frame => Assert.IsType<UdpHostNotification>(frame),
+                frame => Assert.IsType<EnterSelectDungeonNotification>(frame),
+                frame => Assert.IsType<SupportTagNotification>(frame),
+                frame => Assert.IsType<DungeonInfoNotification>(frame),
+                frame => Assert.IsType<StartMapNotification>(frame),
+                frame => Assert.IsType<FatigueNotification>(frame));
             Assert.Equal(
                 new[] { Leader.WireUserId, Member.WireUserId },
-                Assert.Single(world.Sender.Messages(recipient.ConnectionId)
-                    .OfType<UserStateNotification>()).WireUserIds);
+                Assert.Single(world.Sender.Messages(Member.ConnectionId)
+                    .OfType<EnterSelectDungeonNotification>()).WireUserIds);
             Assert.Equal(
-                0,
-                Assert.Single(world.Sender.Messages(recipient.ConnectionId)
-                    .OfType<UdpHostNotification>()).HostSlot);
-        }
-        var leaderStart = Assert.Single(world.Sender.Messages(Leader.ConnectionId)
-            .OfType<StartMapNotification>());
-        var memberStart = Assert.Single(world.Sender.Messages(Member.ConnectionId)
-            .OfType<StartMapNotification>());
-        Assert.Equal<byte?>(0, leaderStart.Run.Participant?.Slot);
-        Assert.Equal<byte?>(1, memberStart.Run.Participant?.Slot);
-        Assert.Equal(leaderStart.Run.CurrentRoomMapId, memberStart.Run.CurrentRoomMapId);
-        Assert.Equal(leaderStart.Actors, memberStart.Actors);
-        Assert.Equal(leaderStart.Drops, memberStart.Drops);
-        Assert.Empty(world.Fatigue.Spent); // Charging belongs to the visit domain, not delivery.
+                new ushort?[] { null, Member.WireUserId },
+                world.Sender.Messages(Leader.ConnectionId)
+                    .OfType<ExtendedUserStateMessage>()
+                    .Select(value => value.RoutingWireUserId));
+            Assert.Equal(
+                new ushort?[] { null, Leader.WireUserId },
+                world.Sender.Messages(Member.ConnectionId)
+                    .OfType<ExtendedUserStateMessage>()
+                    .Select(value => value.RoutingWireUserId));
+            var leaderUserInfos = world.Sender.Messages(Leader.ConnectionId)
+                .OfType<ExtendedUserStateMessage>().Select(value => value.EncodeBody()).ToArray();
+            Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[0].AsSpan(3)));
+            Assert.Equal(
+                checked((ushort)Leader.CharacterId.Value),
+                BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[0].AsSpan(18)));
+            Assert.Equal(
+                Member.WireUserId,
+                BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[1].AsSpan(3)));
+            Assert.Equal(
+                checked((ushort)Member.CharacterId.Value),
+                BinaryPrimitives.ReadUInt16LittleEndian(leaderUserInfos[1].AsSpan(18)));
+            foreach (var recipient in new[] { Leader, Member })
+            {
+                Assert.Equal(
+                    new[] { Leader.WireUserId, Member.WireUserId },
+                    Assert.Single(world.Sender.Messages(recipient.ConnectionId)
+                        .OfType<UserStateNotification>()).WireUserIds);
+                Assert.Equal(
+                    0,
+                    Assert.Single(world.Sender.Messages(recipient.ConnectionId)
+                        .OfType<UdpHostNotification>()).HostSlot);
+            }
+            var leaderStart = Assert.Single(world.Sender.Messages(Leader.ConnectionId)
+                .OfType<StartMapNotification>());
+            var memberStart = Assert.Single(world.Sender.Messages(Member.ConnectionId)
+                .OfType<StartMapNotification>());
+            Assert.Equal<byte?>(0, leaderStart.Run.Participant?.Slot);
+            Assert.Equal<byte?>(1, memberStart.Run.Participant?.Slot);
+            Assert.Equal(leaderStart.Run.CurrentRoomMapId, memberStart.Run.CurrentRoomMapId);
+            Assert.Equal(leaderStart.Actors, memberStart.Actors);
+            Assert.Equal(leaderStart.Drops, memberStart.Drops);
+            Assert.Empty(world.Fatigue.Spent); // Charging belongs to the visit domain, not delivery.
+        });
     }
 
     [Fact]
     public async Task An_interactive_party_selection_enters_one_shared_party_run()
     {
-        var world = World();
-        world.Intents.Record(Leader, DungeonEntryIntent.Interactive);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World();
+            world.Intents.Record(Leader, DungeonEntryIntent.Interactive);
 
-        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Equal(1, world.Visits.PartyEntries);
-        Assert.Collection(
-            world.Visits.Participants,
-            participant =>
-            {
-                Assert.Equal(Leader.CharacterId, participant.CharacterId);
-                Assert.Equal(0, participant.Slot);
-                Assert.True(participant.IsLeader);
-            },
-            participant =>
-            {
-                Assert.Equal(Member.CharacterId, participant.CharacterId);
-                Assert.Equal(1, participant.Slot);
-                Assert.False(participant.IsLeader);
-            });
-        Assert.Equal(world.Visits.RunId, world.Visits.Visits[Leader.CharacterId].Run.RunId);
-        Assert.Equal(world.Visits.RunId, world.Visits.Visits[Member.CharacterId].Run.RunId);
-        Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
-        Assert.Contains(
-            world.Sender.Messages(Member.ConnectionId),
-            frame => frame is StartMapNotification start
-                && start.Run.Participant?.Slot == 1
-                && start.Run.Participants.Count == 2);
+            Assert.Equal(1, world.Visits.PartyEntries);
+            Assert.Collection(
+                world.Visits.Participants,
+                participant =>
+                {
+                    Assert.Equal(Leader.CharacterId, participant.CharacterId);
+                    Assert.Equal(0, participant.Slot);
+                    Assert.True(participant.IsLeader);
+                },
+                participant =>
+                {
+                    Assert.Equal(Member.CharacterId, participant.CharacterId);
+                    Assert.Equal(1, participant.Slot);
+                    Assert.False(participant.IsLeader);
+                });
+            Assert.Equal(world.Visits.RunId, world.Visits.Visits[Leader.CharacterId].Run.RunId);
+            Assert.Equal(world.Visits.RunId, world.Visits.Visits[Member.CharacterId].Run.RunId);
+            Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
+            Assert.Contains(
+                world.Sender.Messages(Member.ConnectionId),
+                frame => frame is StartMapNotification start
+                    && start.Run.Participant?.Slot == 1
+                    && start.Run.Participants.Count == 2);
+        });
     }
 
     [Fact]
     public async Task Entering_an_interactive_party_run_replaces_the_whole_old_party_delivery()
     {
-        var world = World();
-        var oldRunId = DungeonRunId.New();
-        var oldRun = world.Visits.Visits.Count == 0
-            ? new DungeonRunState(
-                PartyVisits.LayoutForTest(),
-                new MazeCell(0, 0),
-                61000,
-                new HashSet<MazeCell> { new(0, 0) },
-                DateTimeOffset.UnixEpoch,
-                RunId: oldRunId,
-                CurrentCellState: DungeonCellSeed.CompleteEmpty(
-                    new MazeCell(0, 0), 61000).Snapshot())
-            : throw new InvalidOperationException();
-        world.Runs.SetCurrent(Leader.CharacterId, oldRun);
-        world.Runs.SetCurrent(Member.CharacterId, oldRun);
-        world.Registry.Register(oldRunId, [Leader, Member]);
-        world.Intents.Record(Leader, DungeonEntryIntent.Interactive);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World();
+            var oldRunId = DungeonRunId.New();
+            var oldRun = world.Visits.Visits.Count == 0
+                ? new DungeonRunState(
+                    PartyVisits.LayoutForTest(),
+                    new MazeCell(0, 0),
+                    61000,
+                    new HashSet<MazeCell> { new(0, 0) },
+                    DateTimeOffset.UnixEpoch,
+                    RunId: oldRunId,
+                    CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                        new MazeCell(0, 0), 61000).Snapshot())
+                : throw new InvalidOperationException();
+            world.Runs.SetCurrent(Leader.CharacterId, oldRun);
+            world.Runs.SetCurrent(Member.CharacterId, oldRun);
+            world.Registry.Register(oldRunId, [Leader, Member]);
+            world.Intents.Record(Leader, DungeonEntryIntent.Interactive);
 
-        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Empty(world.Registry.Find(oldRunId));
-        Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
+            Assert.Empty(world.Registry.Find(oldRunId));
+            Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
+        });
     }
 
     [Fact]
     public async Task A_generation_change_during_delivery_preparation_rolls_back_without_run_frames()
     {
-        var world = World(replaceMemberDuringPrelude: true, withTownProjection: true);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(replaceMemberDuringPrelude: true, withTownProjection: true);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
-        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Empty(world.Registry.Find(world.Visits.RunId));
-        Assert.Equal(
-            [Leader.CharacterId, Member.CharacterId],
-            world.Runs.Ended.OrderBy(value => value.Value));
-        Assert.DoesNotContain(world.Sender.Messages(Leader.ConnectionId), frame => frame is StartMapNotification);
-        Assert.DoesNotContain(world.Sender.Messages(Member.ConnectionId), frame => frame is StartMapNotification);
-        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+            Assert.Empty(world.Registry.Find(world.Visits.RunId));
+            Assert.Equal(
+                [Leader.CharacterId, Member.CharacterId],
+                world.Runs.Ended.OrderBy(value => value.Value));
+            Assert.DoesNotContain(world.Sender.Messages(Leader.ConnectionId), frame => frame is StartMapNotification);
+            Assert.DoesNotContain(world.Sender.Messages(Member.ConnectionId), frame => frame is StartMapNotification);
+            Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+        });
     }
 
     [Fact]
     public async Task A_newer_entry_revision_is_reread_and_projected_without_destroying_the_run()
     {
-        var world = World(advanceEntryRevisionDuringPrelude: true, withTownProjection: true);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(advanceEntryRevisionDuringPrelude: true, withTownProjection: true);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
-        await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
 
-        Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
-        Assert.Empty(world.Runs.Ended);
-        Assert.Contains(
-            world.Sender.Messages(Leader.ConnectionId),
-            frame => frame is StartMapNotification);
-        Assert.Contains(
-            world.Sender.Messages(Member.ConnectionId),
-            frame => frame is StartMapNotification);
-        Assert.Equal(
-            3,
-            Assert.Single(world.Sender.Messages(Leader.ConnectionId)
-                .OfType<StartMapNotification>()).Run.EntryRevision);
-        Assert.Null(world.Areas.Find(Leader.CharacterId));
-        Assert.Null(world.Areas.Find(Member.CharacterId));
-    }
-
-    [Fact]
-    public async Task Cancelling_while_acquiring_commit_gates_rolls_back_before_leaving_town()
-    {
-        var world = World(withTownProjection: true);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
-        var blocker = await world.TransitionGate.AcquireAsync(
-            Leader.AccountId,
-            UserAccessMode.Exclusive,
-            CancellationToken.None);
-        using var cancellation = new CancellationTokenSource();
-        var pending = world.Handler.HandleAsync(
-            Dispatch(Leader), Request(), cancellation.Token).AsTask();
-        await Task.Yield();
-        Assert.False(pending.IsCompleted);
-
-        cancellation.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-        await blocker.DisposeAsync();
-
-        Assert.Equal(
-            [Leader.CharacterId, Member.CharacterId],
-            world.Runs.Ended.OrderBy(value => value.Value));
-        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
-        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+            Assert.Equal([Leader, Member], world.Registry.Find(world.Visits.RunId));
+            Assert.Empty(world.Runs.Ended);
+            Assert.Contains(
+                world.Sender.Messages(Leader.ConnectionId),
+                frame => frame is StartMapNotification);
+            Assert.Contains(
+                world.Sender.Messages(Member.ConnectionId),
+                frame => frame is StartMapNotification);
+            Assert.Equal(
+                3,
+                Assert.Single(world.Sender.Messages(Leader.ConnectionId)
+                    .OfType<StartMapNotification>()).Run.EntryRevision);
+            Assert.Null(world.Areas.Find(Leader.CharacterId));
+            Assert.Null(world.Areas.Find(Member.CharacterId));
+        });
     }
 
     [Fact]
     public async Task A_projection_failure_cannot_split_party_members_between_town_and_run()
     {
-        var world = World(
-            withTownProjection: true,
-            partyTownProjection: new ThrowingPartyTownProjection());
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(
+                withTownProjection: true,
+                departureObserver: Bystander, departureFailure: true);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
-            Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
+                Dispatch(Leader), Request(), CancellationToken.None).AsTask());
 
-        Assert.Null(world.Areas.Find(Leader.CharacterId));
-        Assert.Null(world.Areas.Find(Member.CharacterId));
-        Assert.Empty(world.Runs.Ended);
+            Assert.Null(world.Areas.Find(Leader.CharacterId));
+            Assert.Null(world.Areas.Find(Member.CharacterId));
+            Assert.Empty(world.Runs.Ended);
+        });
     }
 
     [Fact]
     public async Task A_secondary_recipient_delivery_failure_aborts_entry_before_anyone_leaves_town()
     {
-        var world = World(
-            withTownProjection: true,
-            failRequiredConnection: Member.ConnectionId);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = World(
+                withTownProjection: true,
+                failRequiredConnection: Member.ConnectionId);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
-            Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
+                Dispatch(Leader), Request(), CancellationToken.None).AsTask());
 
-        Assert.Empty(world.Registry.Find(world.Visits.RunId));
-        Assert.Equal(
-            [Leader.CharacterId, Member.CharacterId],
-            world.Runs.Ended.OrderBy(value => value.Value));
-        Assert.DoesNotContain(
-            world.Sender.Messages(Leader.ConnectionId),
-            frame => frame is StartMapNotification);
-        Assert.Equal([Member.ConnectionId], world.Closer.Closed);
-        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
-        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+            Assert.Empty(world.Registry.Find(world.Visits.RunId));
+            Assert.Equal(
+                [Leader.CharacterId, Member.CharacterId],
+                world.Runs.Ended.OrderBy(value => value.Value));
+            Assert.DoesNotContain(
+                world.Sender.Messages(Leader.ConnectionId),
+                frame => frame is StartMapNotification);
+            Assert.Equal([Member.ConnectionId], world.Closer.Closed);
+            Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+            Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+        });
     }
 
+    /// <summary>
+    /// DR-2, the kept branch (TASK-24 R2): the leader's batch cannot be registered (its encoding fails at the
+    /// registration point), after the follower's was. The follower's START_MAP is still delivered when the job
+    /// ends, so he is isolated after it, the leader too, and the entry is rolled back.
+    /// </summary>
     [Fact]
     public async Task A_leader_delivery_failure_isolates_the_member_that_already_received_start_map()
     {
-        var world = World(
-            withTownProjection: true,
-            failRequiredConnection: Leader.ConnectionId);
-        world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Encoder.Fail<StartMapNotification>(
+            Leader.ConnectionId, () => new InvalidOperationException("required delivery failed"));
+        TestWorld? world = null;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => world.Handler.HandleAsync(
-            Dispatch(Leader), Request(), CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => outbound.RunFromAsync(Leader.ConnectionId, async () =>
+        {
+            world = World(withTownProjection: true, outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        }));
+        await outbound.SettledAsync();
 
-        Assert.Contains(
-            world.Sender.Messages(Member.ConnectionId),
-            frame => frame is StartMapNotification);
-        Assert.Equal(
-            [Member.ConnectionId, Leader.ConnectionId],
-            world.Closer.Closed);
-        Assert.Empty(world.Registry.Find(world.Visits.RunId));
+        var entries = outbound.Recorder.Entries.ToList();
+        var memberEntry = entries.IndexOf(EntryOf(outbound, Member));
+        var closes = entries.Where(entry => entry.IsClose).Select(entry => entry.Connection.ConnectionId).ToList();
+        Assert.Equal([Member.ConnectionId, Leader.ConnectionId, Leader.ConnectionId], closes);
+        Assert.True(memberEntry < entries.FindIndex(entry => entry.IsClose),
+            "the follower is isolated after the START_MAP he was already registered");
+        Assert.DoesNotContain(outbound.Messages(Leader.ConnectionId), frame => frame is StartMapNotification);
+        Assert.True(await outbound.ClosedAsync(Member.ConnectionId));
+        Assert.True(await outbound.ClosedAsync(Leader.ConnectionId));
+        Assert.Empty(world!.Registry.Find(world.Visits.RunId));
         Assert.Equal(
             [Leader.CharacterId, Member.CharacterId],
             world.Runs.Ended.OrderBy(value => value.Value));
         Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
         Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
     }
+
+    /// <summary>
+    /// DR-2, VC-3 (TASK-24 T2): a follower whose entry fails in transport is closed by the sender alone; the
+    /// handler does not see it, the run is not rolled back and the leader is entered.
+    /// </summary>
+    [Fact]
+    public async Task A_follower_whose_transport_fails_is_closed_alone_and_the_party_still_enters()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Fail(Member.ConnectionId);
+        TestWorld? world = null;
+
+        await outbound.RunFromAsync(Leader.ConnectionId, async () =>
+        {
+            world = World(withTownProjection: true, outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Failed, outbound.Observer.OutcomeOf(EntryOf(outbound, Member)));
+        Assert.True(await outbound.ClosedAsync(Member.ConnectionId));
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(EntryOf(outbound, Leader)));
+        Assert.False(outbound.Transport.IsClosed(Leader.ConnectionId));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.Empty(world!.Runs.Ended);
+        Assert.Equal(2, world.Registry.Find(world.Visits.RunId).Count);
+    }
+
+    /// <summary>XO-1: a follower slow within the limit is entered before the requesting leader.</summary>
+    [Fact]
+    public async Task A_slow_follower_is_delivered_its_entry_before_the_requesting_leader()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Slow(Member.ConnectionId, TimeSpan.FromMilliseconds(300));
+        await outbound.RunAsync(async () =>
+        {
+            var world = World(outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        var follower = EntryOf(outbound, Member);
+        var leader = EntryOf(outbound, Leader);
+        Assert.True(follower.Order!.Value.Sequence < leader.Order!.Value.Sequence);
+        Assert.True(outbound.Delivered(Leader.ConnectionId) > outbound.Delivered(Member.ConnectionId),
+            "the leader was entered before the follower");
+    }
+
+    /// <summary>XO-1, VC-3: a follower who cannot take his entry in time is closed alone; the leader is still entered.</summary>
+    [Fact]
+    public async Task A_follower_over_the_limit_is_closed_and_the_requesting_leader_is_still_entered()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(
+            Dfo.Server.Networking.Outbound.OutboundSendOptions.Default with { DeliveryTimeout = TimeSpan.FromMilliseconds(300) });
+        outbound.Connect(Leader, Member);
+        outbound.Transport.Stall(Member.ConnectionId);
+        await outbound.RunAsync(async () =>
+        {
+            var world = World(outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.TimedOut, outbound.Observer.OutcomeOf(EntryOf(outbound, Member)));
+        Assert.True(outbound.Transport.IsClosed(Member.ConnectionId));
+        Assert.Equal(Dfo.Server.Abstractions.Execution.OutboundOutcome.Delivered, outbound.Observer.OutcomeOf(EntryOf(outbound, Leader)));
+    }
+
+    /// <summary>
+    /// XO-1 ends with the requester's batch: what the town departure sends next, to people still in town,
+    /// is not held behind a slow follower (it is in no ordered group).
+    /// </summary>
+    [Fact]
+    public async Task The_town_departure_after_a_party_entry_is_not_in_the_entry_group()
+    {
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery();
+        var bystander = Bystander.ConnectionId;
+        outbound.Connect(Leader, Member);
+        outbound.Connect(bystander);
+        await outbound.RunAsync(async () =>
+        {
+            var world = World(departureObserver: Bystander, outbound: outbound);
+            world.Intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
+            await world.Handler.HandleAsync(Dispatch(Leader), Request(), CancellationToken.None);
+        });
+        await outbound.SettledAsync();
+
+        Assert.NotNull(EntryOf(outbound, Member).Order);
+        Assert.NotNull(EntryOf(outbound, Leader).Order);
+        var departures = outbound.Recorder.Entries.Where(entry => entry.Connection.ConnectionId == bystander).ToList();
+        Assert.NotEmpty(departures);
+        Assert.All(departures, entry => Assert.Null(entry.Order));
+    }
+
+    /// <summary>The batch that carries the session's START_MAP.</summary>
+    private static Dfo.Server.Abstractions.Execution.OutboundEntry EntryOf(
+        Dfo.Server.Protocol.Tests.Outbox.XoDelivery outbound, SelectedSessionIdentity session) =>
+        outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == session.ConnectionId
+            && entry.Messages.Any(message => message is StartMapNotification));
 
     private static TestWorld World(
         bool memberRuntimeAvailable = true,
         bool replaceMemberDuringPrelude = false,
         bool advanceEntryRevisionDuringPrelude = false,
         bool withTownProjection = false,
-        IPartyTownProjectionDelivery? partyTownProjection = null,
-        NetworkConnectionId? failRequiredConnection = null)
+        SelectedSessionIdentity? departureObserver = null,
+        bool departureFailure = false,
+        NetworkConnectionId? failRequiredConnection = null,
+        Dfo.Server.Protocol.Tests.Outbox.XoDelivery? outbound = null)
     {
-        var sessions = new Sessions(Leader, Member);
-        var runtime = memberRuntimeAvailable
-            ? new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)))
-            : new PartyRuntime((Leader, EntryFor(Leader)));
+        var members = departureObserver is null ? new[] { Leader, Member } : [Leader, Member, departureObserver];
+        var sessions = new Sessions(members);
+        var runtimeMembers = memberRuntimeAvailable ? members : members.Where(member => member != Member).ToArray();
+        var runtime = new PartyRuntime(runtimeMembers.Select(member => (member, EntryFor(member))).ToArray());
         var runs = new RollbackRuns();
         var visits = new PartyVisits(runs);
         var intents = new Intents();
         var registry = new DungeonRunDeliveryRegistry();
         var fatigue = new Fatigue();
         var sender = new Sender(failRequiredConnection);
+        IGameMessageSender game = outbound?.Game ?? sender;
         var closer = new RecordingCloser();
+        INetworkConnectionCloser closing = outbound?.Closer ?? closer;
         var areas = new SessionPresenceDomainService();
-        foreach (var member in new[] { Leader, Member })
+        foreach (var member in members)
         {
             areas.Admit(new SessionPresence(
                 member.CharacterId,
@@ -666,15 +827,7 @@ public sealed class PartySelectDungeonHandlerTests
                 true,
                 1));
         }
-        var townProjection = new TownAreaProjectionDelivery(
-            areas,
-            sessions,
-            runtime,
-            new NoopNotificationBus(),
-            partyTownProjection ?? new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
-        var transitionGate = new SelectedSessionTransitionGate();
+        var townProjection = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, runtime, departureObserver is null ? new NoopNotificationBus() : new TownDepartureEvents(game, departureObserver, departureFailure), new NoopPartyTownProjection(), game, SharedTownMovementDomainService.Instance);
         var state = new UnchangedState(() =>
         {
             if (!replaceMemberDuringPrelude)
@@ -698,7 +851,7 @@ public sealed class PartySelectDungeonHandlerTests
                 ConnectionGeneration = Member.ConnectionGeneration + 1,
             });
         });
-        var handler = new SelectDungeonHandler(
+        var handler = SelectDungeonDriver.Create(
             CurrentCharacterStub.Domain(),
             state,
             sessions,
@@ -710,13 +863,17 @@ public sealed class PartySelectDungeonHandlerTests
             visits,
             new RecordingQuestLogs(),
             fatigue,
-            sender,
-            closer,
+            game,
+            closing,
             townProjection,
             NullLogger<SelectDungeonHandler>.Instance,
-            transitionGate);
+            entryProjection: outbound is null ? null : new EntryProjectionOptions(
+                CurrentCharacterStub.Domain(), state, sessions, new RuntimeCurrentView(runtime), runs, registry,
+                intents, visits, fatigue, game, closing, townProjection,
+                NullLogger<EntryProjectionOptions>.Instance, ordering: outbound.Ordering,
+                onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context)));
         return new TestWorld(
-            handler, visits, intents, registry, runs, fatigue, sender, closer, areas, transitionGate);
+            handler, visits, intents, registry, runs, fatigue, sender, closer, areas);
     }
 
     private static SelectCharacterResult Entry() => SelectCharacterPayloadTestData.Create();
@@ -764,11 +921,14 @@ public sealed class PartySelectDungeonHandlerTests
     private static readonly SelectedSessionIdentity Member = SelectedSessionIdentity.Create(
         new AccountId(2), new CharacterId(1002), new NetworkConnectionId("member"), 21, 10011);
 
+    private static readonly SelectedSessionIdentity Bystander = SelectedSessionIdentity.Create(
+        new AccountId(3), new CharacterId(1003), new NetworkConnectionId("bystander"), 31, 10010);
+
     private const ushort DungeonId = 10000;
     private const DungeonDifficulty Difficulty = (DungeonDifficulty)3;
 
     private sealed record TestWorld(
-        SelectDungeonHandler Handler,
+        EntryHandlerDriver Handler,
         PartyVisits Visits,
         Intents Intents,
         DungeonRunDeliveryRegistry Registry,
@@ -776,8 +936,7 @@ public sealed class PartySelectDungeonHandlerTests
         Fatigue Fatigue,
         Sender Sender,
         RecordingCloser Closer,
-        ITownAreaDomainService Areas,
-        SelectedSessionTransitionGate TransitionGate);
+        ITownAreaDomainService Areas);
 
     private sealed class Parties(PartySnapshot snapshot) : IPartyService
     {
@@ -796,6 +955,53 @@ public sealed class PartySelectDungeonHandlerTests
 
     private sealed class Sessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private readonly List<SelectedSessionIdentity> connections;
         private readonly Dictionary<CharacterId, SelectedSessionIdentity> currentByCharacter;
 
@@ -863,16 +1069,16 @@ public sealed class PartySelectDungeonHandlerTests
         public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
 
-    private sealed class PartyPositions : ICharacterPositionDomainService
+    private sealed class PartyPositions : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? Find(CharacterId characterId) =>
+        public CharacterPositionState? PositionOf(CharacterId characterId) =>
             characterId == Leader.CharacterId
                 ? new CharacterPositionState(1, 1, 400, 300, 1)
                 : characterId == Member.CharacterId
                     ? new CharacterPositionState(1, 1, 430, 300, 3)
                     : null;
 
-        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
             throw new NotSupportedException();
         public CharacterPositionState CrossInto(
             SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
@@ -880,7 +1086,15 @@ public sealed class PartySelectDungeonHandlerTests
         public CharacterPositionState StepTo(
             SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException();
-        public bool ForgetExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+        public bool EndExact(SelectedSessionIdentity session) => throw new NotSupportedException();
+
+        // Test double: only the position is modelled; the rest of the runtime is empty.
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public byte HpPercentOf(CharacterId characterId) => 0;
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) { }
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
     private sealed class RefusedVisits : IDungeonVisitDomainService
@@ -1043,46 +1257,49 @@ public sealed class PartySelectDungeonHandlerTests
         }
     }
 
-    private sealed class Sender(NetworkConnectionId? failRequiredConnection = null)
-        : IGameMessageSender
+    /// <summary>
+    /// What the handler registered, per connection, read from the outbox of a real registration adapter; every call
+    /// goes to the real protocol sender over it (TASK-25). <paramref name="failRequiredConnection"/>'s direct messages
+    /// fail to encode where they are registered, with the exception the old double threw; a CMD or NOTI sent outside
+    /// an explicit delivery fails the same way, as the old double refused one.
+    /// </summary>
+    private sealed class Sender : IGameMessageSender
     {
-        private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public Sender(NetworkConnectionId? failRequiredConnection = null)
+        {
+            // The real selection CMD also projects current weakness as a single NOTI.
+            // Every unrelated non-explicit send still fails at registration.
+            outbound.Encoder.FailAny(message => outbound.ExplicitInFlight is null
+                && message is not Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification,
+                () => new NotSupportedException());
+            if (failRequiredConnection is { } connection)
+                outbound.FailDirect(connection, () => new InvalidOperationException("required delivery failed"));
+        }
+
         public IReadOnlyList<IGameServerMessage> Messages(NetworkConnectionId connectionId) =>
-            sent.TryGetValue(connectionId, out var messages) ? messages : [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
-        {
-            if (requiredDirectConnectionId == failRequiredConnection)
-                throw new InvalidOperationException("required delivery failed");
-            Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
-            foreach (var target in delivery.BestEffortTargets)
-                Add(target.ConnectionId, target.OrderedMessages);
-            return ValueTask.CompletedTask;
-        }
-        private void Add(NetworkConnectionId connectionId, IReadOnlyList<IGameServerMessage> messages)
-        {
-            if (!sent.TryGetValue(connectionId, out var destination))
-            {
-                destination = [];
-                sent.Add(connectionId, destination);
-            }
-            destination.AddRange(messages);
-        }
+            [.. outbound.MessagesFor(connectionId).Cast<IGameServerMessage>()];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
+    /// <summary>The closes a real closer registered, read from its outbox (TASK-25).</summary>
     private sealed class RecordingCloser : INetworkConnectionCloser
     {
-        public List<NetworkConnectionId> Closed { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) => RequestCloseAsync(expected.ConnectionId, ct);
+        public List<NetworkConnectionId> Closed => [.. outbound.Closes];
+
+        public ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken ct) =>
+            outbound.Closer.RequestCloseExactAsync(expected, ct);
         public ValueTask RequestCloseAsync(
             NetworkConnectionId connectionId,
-            CancellationToken cancellationToken)
-        {
-            Closed.Add(connectionId);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) => outbound.Closer.RequestCloseAsync(connectionId, cancellationToken);
     }
 
     private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
@@ -1098,7 +1315,6 @@ public sealed class PartySelectDungeonHandlerTests
     {
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RefreshMovedPartyAsync(
@@ -1107,17 +1323,22 @@ public sealed class PartySelectDungeonHandlerTests
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
-    private sealed class ThrowingPartyTownProjection : IPartyTownProjectionDelivery
+    private sealed class TownDepartureEvents(IGameMessageSender game, SelectedSessionIdentity observer, bool fail)
+        : Dfo.Server.Testing.ProjectionEventService
     {
-        public ValueTask RefreshObservedPartiesAsync(
-            IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
-
-        public ValueTask RefreshMovedPartyAsync(
-            SelectedSessionIdentity mover,
-            PartyDirectoryScope? previousScope,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("projection failed");
+        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,
+            TNotification notification, CancellationToken token)
+        {
+            if (notification is not TownAreaRosterReconciled roster)
+                throw new InvalidOperationException($"Unexpected departure projection {typeof(TNotification).Name}.");
+            var exact = Assert.IsType<NotificationAudience.TheseSessions>(audience);
+            Assert.Equal(observer, Assert.Single(exact.Sessions));
+            if (fail) throw new InvalidOperationException("projection failed");
+            var messages = await new TownAreaRosterReconciledHandler().ComposeAsync(
+                new(observer.CharacterId, observer.ConnectionId, observer), roster, token);
+            foreach (var message in messages)
+                await game.SendNotiAsync(observer.ConnectionId, Assert.IsAssignableFrom<IGameNotiMessage>(message), token);
+            return new NotificationDelivery([new(observer.CharacterId, NotificationOutcome.Registered)]);
+        }
     }
 }

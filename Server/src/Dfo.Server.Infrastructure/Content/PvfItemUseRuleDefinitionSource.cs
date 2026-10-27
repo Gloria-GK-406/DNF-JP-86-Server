@@ -18,7 +18,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// assumption reads every enum value as the start of a new section and finds every section empty.
 /// </remarks>
 internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider)
-    : IItemUseRuleDefinitionSource
+    : IItemUseRuleDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -64,6 +64,25 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
     private readonly Dictionary<int, ItemUseRule?> cache = [];
     private IReadOnlyDictionary<int, (int Id, string RelativePath)>? stackables;
 
+    public string Name => "item-use-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            StackablesIndex(archive);
+            return ValueTask.FromResult(stackables.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
+    private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
+    }
+
     public ValueTask<ItemUseRule?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -73,7 +92,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
                 return ValueTask.FromResult(cached);
 
             var archive = provider.Archive;
-            stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
+            StackablesIndex(archive);
 
             var rule = stackables.TryGetValue(itemId, out var entry)
                 ? Read(archive, "stackable/" + entry.RelativePath)

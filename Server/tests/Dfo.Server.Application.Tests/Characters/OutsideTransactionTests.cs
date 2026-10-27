@@ -13,6 +13,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -32,20 +33,23 @@ public sealed class OutsideTransactionTests
     [Fact]
     public async Task ChangingACharacterOutsideAUseCaseIsRefused()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
 
-        var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await access.ChangeAsync(
-                fixture.Characters,
-                rows =>
-                {
-                    rows.WritePosition(Owned, new CharacterPositionState(1, 2, 3, 4, 5));
-                    return ValueTask.CompletedTask;
-                },
-                CancellationToken.None));
+            var refusal = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await access.ChangeAsync(
+                    fixture.Characters,
+                    rows =>
+                    {
+                        rows.WritePosition(Owned, new CharacterPositionState(1, 2, 3, 4, 5));
+                        return ValueTask.CompletedTask;
+                    },
+                    CancellationToken.None));
 
-        Assert.Contains("outside a use case boundary", refusal.Message, StringComparison.Ordinal);
+            Assert.Contains("outside a use case boundary", refusal.Message, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
@@ -68,23 +72,26 @@ public sealed class OutsideTransactionTests
     [Fact]
     public async Task ChangingSomethingThatOutlivesNothingIsAllowedOutsideAUseCase()
     {
-        var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
-        var run = new VolatileItemDomainStore();
-        var dungeon = new ContainerId("dungeon");
+        await TestGameplay.RunAsync(async () =>
+        {
+            var access = new AmbientStoreAccess(new ClosedTransactionAccessor());
+            var run = new VolatileItemDomainStore();
+            var dungeon = new ContainerId("dungeon");
 
-        await access.ChangeAsync(
-            run,
-            async held =>
-            {
-                await held.PutAsync(dungeon, 0, await held.CreateAsync(ItemSnapshot.FromCore(Potion(), true), default), default);
-            },
-            CancellationToken.None);
+            await access.ChangeAsync(
+                run,
+                async held =>
+                {
+                    await held.PutAsync(dungeon, 0, await held.CreateAsync(ItemSnapshot.FromCore(Potion(), true), default), default);
+                },
+                CancellationToken.None);
 
-        // Allowed is not the same as effective. A boundary opened here has to be settled here
-        // too, or the write is staged and then dropped with nothing to show for it.
-        var kept = await access.ReadAsync(
-            run, held => held.GetAsync(dungeon, 0, CancellationToken.None));
-        Assert.Equal(PotionId, kept!.ItemId);
+            // Allowed is not the same as effective. A boundary opened here has to be settled here
+            // too, or the write is staged and then dropped with nothing to show for it.
+            var kept = await access.ReadAsync(
+                run, held => held.GetAsync(dungeon, 0, CancellationToken.None));
+            Assert.Equal(PotionId, kept!.ItemId);
+        });
     }
 
     private const int PotionId = 1000;
@@ -109,37 +116,43 @@ public sealed class OutsideTransactionTests
     [Fact]
     public async Task WhereACharacterWasStandingIsSavedThroughAnOpenUseCase()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var scope = new DomainTransactionScope();
-        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
-        var moved = new CharacterPositionState(11, 22, 33, 44, 1);
-
-        await using (var lease = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await persistence.PersistAsync(
-                Owned.Account, Owned.Character, moved, CancellationToken.None);
+            await using var fixture = await Fixture.CreateAsync();
+            var scope = new DomainTransactionScope();
+            var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
+            var moved = new CharacterPositionState(11, 22, 33, 44, 1);
 
-            // Still inside the use case, so nothing outside it can see the change yet. The row
-            // exists either way, so what is asserted is that it still says where it said before.
-            Assert.NotEqual(moved, await ReadPositionAsync(fixture));
-            await lease.CommitAsync(CancellationToken.None);
-        }
+            await using (var lease = scope.Begin())
+            {
+                await persistence.PersistAsync(
+                    Owned.Account, Owned.Character, moved, CancellationToken.None);
 
-        Assert.Equal(moved, await ReadPositionAsync(fixture));
+                // Still inside the use case, so nothing outside it can see the change yet. The row
+                // exists either way, so what is asserted is that it still says where it said before.
+                Assert.NotEqual(moved, await ReadPositionAsync(fixture));
+                await lease.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(moved, await ReadPositionAsync(fixture));
+        });
     }
 
     [Fact]
     public async Task WhereACharacterWasStandingIsSavedWhenNoUseCaseIsOpen()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var persistence = new SelectedSessionPositionPersistence(
-            fixture.Characters, new ClosedTransactionAccessor(), new StubEntryPlacementRuleService());
-        var moved = new CharacterPositionState(11, 22, 33, 44, 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var persistence = new SelectedSessionPositionPersistence(
+                fixture.Characters, new ClosedTransactionAccessor(), new StubEntryPlacementRuleService());
+            var moved = new CharacterPositionState(11, 22, 33, 44, 1);
 
-        await persistence.PersistAsync(
-            Owned.Account, Owned.Character, moved, CancellationToken.None);
+            await persistence.PersistAsync(
+                Owned.Account, Owned.Character, moved, CancellationToken.None);
 
-        Assert.Equal(moved, await ReadPositionAsync(fixture));
+            Assert.Equal(moved, await ReadPositionAsync(fixture));
+        });
     }
 
     /// <summary>A session ending inside another use case settles with that use case.</summary>
@@ -157,28 +170,31 @@ public sealed class OutsideTransactionTests
     [Fact]
     public async Task ASessionEndingInsideAnotherUseCaseSettlesWithIt()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var scope = new DomainTransactionScope();
-        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
-        var departed = new CharacterPositionState(11, 22, 33, 44, 1);
-
-        await using (var failing = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await persistence.PersistAsync(
-                Owned.Account, Owned.Character, departed, CancellationToken.None);
-            _ = failing;
-        }
+            await using var fixture = await Fixture.CreateAsync();
+            var scope = new DomainTransactionScope();
+            var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
+            var departed = new CharacterPositionState(11, 22, 33, 44, 1);
 
-        Assert.NotEqual(departed, await ReadPositionAsync(fixture));
+            await using (var failing = scope.Begin())
+            {
+                await persistence.PersistAsync(
+                    Owned.Account, Owned.Character, departed, CancellationToken.None);
+                _ = failing;
+            }
 
-        await using (var succeeding = scope.Begin())
-        {
-            await persistence.PersistAsync(
-                Owned.Account, Owned.Character, departed, CancellationToken.None);
-            await succeeding.CommitAsync(CancellationToken.None);
-        }
+            Assert.NotEqual(departed, await ReadPositionAsync(fixture));
 
-        Assert.Equal(departed, await ReadPositionAsync(fixture));
+            await using (var succeeding = scope.Begin())
+            {
+                await persistence.PersistAsync(
+                    Owned.Account, Owned.Character, departed, CancellationToken.None);
+                await succeeding.CommitAsync(CancellationToken.None);
+            }
+
+            Assert.Equal(departed, await ReadPositionAsync(fixture));
+        });
     }
 
     [Theory]
@@ -186,41 +202,47 @@ public sealed class OutsideTransactionTests
     [InlineData(false)]
     public async Task Inn_and_current_position_settle_together_even_after_multiple_crossings(bool commit)
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var scope = new DomainTransactionScope();
-        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope,
-            new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
-        var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
-        await using (var lease = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
-            await persistence.PersistAsync(Owned.Account, Owned.Character, timeGate, default);
-            if (commit) await lease.CommitAsync(default);
-        }
-        Assert.Equal(commit ? 11 : 0, await ReadInnAsync(fixture));
-        if (commit) Assert.Equal(timeGate, await ReadPositionAsync(fixture));
-        else Assert.NotEqual(timeGate, await ReadPositionAsync(fixture));
+            await using var fixture = await Fixture.CreateAsync();
+            var scope = new DomainTransactionScope();
+            var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope,
+                new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
+            var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
+            await using (var lease = scope.Begin())
+            {
+                await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
+                await persistence.PersistAsync(Owned.Account, Owned.Character, timeGate, default);
+                if (commit) await lease.CommitAsync(default);
+            }
+            Assert.Equal(commit ? 11 : 0, await ReadInnAsync(fixture));
+            if (commit) Assert.Equal(timeGate, await ReadPositionAsync(fixture));
+            else Assert.NotEqual(timeGate, await ReadPositionAsync(fixture));
+        });
     }
 
     [Fact]
     public async Task Teardown_in_a_town_without_an_inn_preserves_the_previous_inn()
     {
-        await using var fixture = await Fixture.CreateAsync();
-        var persistence = new SelectedSessionPositionPersistence(fixture.Characters, new ClosedTransactionAccessor(),
-            new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
-        await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
-        var destination = new CharacterPositionState(12, 0, 562, 183, 5);
-        await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
-        await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
-        Assert.Equal(11, await ReadInnAsync(fixture));
-        Assert.Equal(destination, await ReadPositionAsync(fixture));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = await Fixture.CreateAsync();
+            var persistence = new SelectedSessionPositionPersistence(fixture.Characters, new ClosedTransactionAccessor(),
+                new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
+            await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
+            var destination = new CharacterPositionState(12, 0, 562, 183, 5);
+            await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
+            await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
+            Assert.Equal(11, await ReadInnAsync(fixture));
+            Assert.Equal(destination, await ReadPositionAsync(fixture));
+        });
     }
 
     [Fact]
     public async Task Legacy_schema_gains_an_unset_inn_without_changing_the_saved_position()
     {
         await using var fixture = await Fixture.CreateAsync();
-        await using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.Path }.ToString()))
+        await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(fixture.Path)))
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
@@ -235,7 +257,7 @@ public sealed class OutsideTransactionTests
 
     private static async Task<int> ReadInnAsync(Fixture fixture)
     {
-        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = fixture.Path }.ToString());
+        await using var connection = new SqliteConnection(SqliteTestPools.ConnectionString(fixture.Path));
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT last_inn_town_id FROM characters WHERE character_id=60";
@@ -275,7 +297,7 @@ public sealed class OutsideTransactionTests
             _ = new SqliteDatabase(path, new DomainTransactionScope());
             var fixture = new Fixture(path);
             await using var connection = new SqliteConnection(
-                new SqliteConnectionStringBuilder { DataSource = path }.ToString());
+                SqliteTestPools.ConnectionString(path));
             await connection.OpenAsync();
             await using var character = connection.CreateCommand();
             character.CommandText =
@@ -286,7 +308,7 @@ public sealed class OutsideTransactionTests
 
         public ValueTask DisposeAsync()
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(this.Path);
             try
             {
                 File.Delete(this.Path);

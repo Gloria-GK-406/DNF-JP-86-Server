@@ -30,6 +30,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -41,8 +42,7 @@ public sealed class NpcShopPurchaseTests
         using var shop = new ShopFixture();
         shop.Content.Shops[1000] = new(1000, 1000, [new(null, [5000])]) { VisibleOnDungeonClear = true };
         await shop.Seed(121, 1000, 100, 3);
-        await shop.Services.GetRequiredService<BuyItemHandler>().HandleAsync(new(shop.Connection),
-            new BuyItemRequest(GameMessageMetadata.Empty, 5000, 1, 1000, 1000), default);
+        await WholeBuy.Send(shop, 5000, 1, 1000, 1000);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal(100, shop.Count(1000));
         Assert.Equal(0, shop.Count(5000));
@@ -231,9 +231,10 @@ public sealed class NpcShopPurchaseTests
     {
         using var shop = new ShopFixture();
         await shop.Seed(121, 1000, 100, 3);
-        shop.Sender.BeforeSend = () => throw new IOException("closed socket");
+        shop.Sender.FailSends(() => new IOException("closed socket"));
         await shop.Buy(2000, 1);
         Assert.Equal(1, shop.Sender.Attempts);
+        Assert.Empty(shop.Sender.Messages);
         Assert.Equal(99, shop.Count(1000));
         Assert.Equal(1, shop.Count(2000));
     }
@@ -255,11 +256,38 @@ public sealed class NpcShopPurchaseTests
         await shop.Seed(121, 1000, 100, 3);
         var old = shop.Session;
         var committed = await shop.Command(2000, 1);
+        Assert.NotNull(committed.Receipt);
+        shop.Sender.Messages.Clear(); // Observe only delivery after the selection changed.
+        shop.Sender.Batches.Clear();
         shop.Select(2);
-        var rejected = await shop.Command(2000, 1, old);
+        var rejected = await shop.DomainPurchase(2000, 1, old);
         Assert.Equal(NpcShopRejection.NoSession, rejected.Rejection);
-        await shop.Publish(committed.Receipt!);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await shop.Publish(committed.Receipt!);
+        });
         Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(0, shop.Count(2000));
+    }
+
+    [Fact]
+    public async Task A_purchase_after_the_connection_is_revoked_is_refused_before_teardown()
+    {
+        using var shop = new ShopFixture();
+        await shop.Seed(121, 1000, 100, 3);
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.True(shop.Services.GetRequiredService<OnlineStateRegistry>()
+                .TryDisconnectConnection(shop.Connection.ConnectionId));
+
+            // The selection is still there, waiting for its teardown, but it is no longer valid.
+            Assert.NotNull(shop.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(shop.Session));
+        });
+        var rejected = await shop.DomainPurchase(2000, 1, shop.Session);
+        await WholeBuy.Send(shop, 2000, 1); // Protocol authority/refusal independently remains harmless.
+
+        Assert.Equal(NpcShopRejection.NoSession, rejected.Rejection);
+        Assert.Equal(100000, shop.Gold);
         Assert.Equal(0, shop.Count(2000));
     }
 
@@ -310,7 +338,7 @@ internal sealed class ShopFixture : IDisposable
     private SelectedSessionIdentity session = null!;
     private string ConnectionString => new SqliteConnectionStringBuilder { DataSource = Path.Combine(directory, "shop.db") }.ToString();
     public NpcShopTestContent Content { get; } = new();
-    public ShopSender Sender { get; } = new();
+    public ShopSender Sender { get; }
     public AdvanceableTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero));
     public SelectedSessionIdentity Session => session;
     public IServiceProvider Services => provider;
@@ -320,20 +348,29 @@ internal sealed class ShopFixture : IDisposable
     // Test setup uses the same transaction participant boundary as a registered entry command.
     public T InTransaction<T>(Func<T> setup)
     {
-        var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
-        if (scope.Current is not null) return setup();
-        var transaction = scope.Begin();
-        try
+        return TestGameplay.Run(provider, () =>
         {
-            var result = setup();
-            transaction.CommitAsync(default).GetAwaiter().GetResult();
-            return result;
-        }
-        finally { transaction.DisposeAsync().GetAwaiter().GetResult(); }
+            var scope = (DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>();
+            if (scope.Current is not null) return setup();
+            var transaction = scope.Begin();
+            try
+            {
+                var result = setup();
+                transaction.CommitAsync(default).GetAwaiter().GetResult();
+                return result;
+            }
+            finally { transaction.DisposeAsync().GetAwaiter().GetResult(); }
+        });
     }
 
 
-    public ShopFixture(Action<IServiceCollection>? configure = null)
+    public ShopFixture(bool questProtocol, Action<IServiceCollection>? configure = null, bool useArchive = false) : this(services =>
+    {
+        if (questProtocol) services.AddSingleton<ISelectedCharacterCurrentViewDomainService, Dfo.Server.Application.Tests.Support.QuestTestCommands.PublishedView>();
+        configure?.Invoke(services);
+    }, useArchive) { }
+
+    public ShopFixture(Action<IServiceCollection>? configure = null, bool useArchive = false)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             { ["Database:Path"] = Path.Combine(directory, "shop.db") }).Build();
@@ -342,52 +379,63 @@ internal sealed class ShopFixture : IDisposable
         new PersistenceModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
+        Dfo.Server.Application.Tests.Support.ShopFixtureContent.Register(services);
+        if (useArchive) Dfo.Server.Application.Tests.Support.ShopFixtureContent.RegisterArchive(services);
         services.AddSingleton<INpcShopDefinitionSource>(Content);
         services.AddSingleton<IItemPlacementDefinitionSource>(Content);
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());
-        services.AddSingleton<INetworkMessageSender>(Sender);
+        Sender = new ShopSender(services);
         services.AddSingleton<TimeProvider>(Clock);
         services.AddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestAchievementDefinitions());
         services.AddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestAchievementDefinitions());
         services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
         configure?.Invoke(services);
         provider = services.BuildServiceProvider();
-        Sender.Services = provider;
+        Sender.Outbound.Connections.Add(connection);
         _ = provider.GetRequiredService<SqliteDatabase>();
         Sql("INSERT INTO accounts(account_id,m_id,cera) VALUES(1,'shop',77); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(1,1,'shop1',12,1,0),(2,1,'shop2',12,1,1); INSERT INTO character_stats(character_id,carried_gold) VALUES(1,100000),(2,100000);");
         var registry = provider.GetRequiredService<OnlineStateRegistry>();
-        onlineUser = registry.RegisterConnection(connection).OnlineUserId;
-        registry.Authenticate(onlineUser, new AccountId(1));
-        Select(1);
+        onlineUser = TestGameplay.Run(provider, () => registry.RegisterConnection(connection).OnlineUserId);
+        TestGameplay.Run(provider, () =>
+        {
+            registry.Authenticate(onlineUser, new AccountId(1));
+            Select(1);
+        });
     }
 
     public void Select(int character)
     {
-        var registry = provider.GetRequiredService<OnlineStateRegistry>();
-        session = SelectedSessionIdentity.Create(new(1), new(character), connection.ConnectionId,
-            registry.GetRequiredUser(onlineUser).Generation, 10011);
-        registry.Publish(session);
-        provider.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
-            session.CharacterId,
-            session.TownAreaLease(),
-            new TownAreaKey(1, 0, 0),
-            new CharacterPositionState(0, 0, 0, 0, 0),
-            true));
-        bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
-            provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
-        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, bag);
-        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
-            new MemoryItemContainer(new ContainerId($"tower:empty:{character}:fixture"), new(InventoryContainerType.QuickSlot, 6),
-                provider.GetRequiredService<ITransientItemDomainStoreFactory>().Create(),
-                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(),
-                provider.GetRequiredService<IItemSlotRuleService>()));
-        equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
-            provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
-        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
-        provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
-            new PersistentItemContainer(ContainerId.ForAccount(session.AccountId, InventoryContainerType.SharedMaterial), new(InventoryContainerType.SharedMaterial, 11), provider.GetRequiredService<IItemDomainStore>(),
-                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>()));
+        TestGameplay.Run(provider, () =>
+        {
+            var registry = provider.GetRequiredService<OnlineStateRegistry>();
+            session = SelectedSessionIdentity.Create(new(1), new(character), connection.ConnectionId,
+                registry.GetRequiredUser(onlineUser).Generation, 10011);
+            registry.Select(session);
+            registry.EnterWorld(session);
+            // What publication begins for a character entering the world.
+            provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(
+                session, new CharacterPositionState(0, 0, 0, 0, 0), 100);
+            provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
+                session.CharacterId,
+                session.TownAreaLease(),
+                new TownAreaKey(1, 0, 0),
+                new CharacterPositionState(0, 0, 0, 0, 0),
+                true));
+            bag = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0), provider.GetRequiredService<IItemDomainStore>(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+            provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, bag);
+            provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
+                new MemoryItemContainer(new ContainerId($"tower:empty:{character}:fixture"), new(InventoryContainerType.QuickSlot, 6),
+                    provider.GetRequiredService<ITransientItemDomainStoreFactory>().Create(),
+                    provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(),
+                    provider.GetRequiredService<IItemSlotRuleService>()));
+            equipment = new PersistentItemContainer(ContainerId.ForCharacter(session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), provider.GetRequiredService<IItemDomainStore>(),
+                provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>());
+            provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId, equipment);
+            provider.GetRequiredService<ICharacterContainerDomainService>().Register(session.CharacterId,
+                new PersistentItemContainer(ContainerId.ForAccount(session.AccountId, InventoryContainerType.SharedMaterial), new(InventoryContainerType.SharedMaterial, 11), provider.GetRequiredService<IItemDomainStore>(),
+                    provider.GetRequiredService<IDomainTransactionAccessor>(), provider.GetRequiredService<IItemPlacementRuleService>(), provider.GetRequiredService<IItemSlotRuleService>()));
+        });
     }
 
     public async Task Seed(int slot, int item, int count, byte kind = 2)
@@ -396,25 +444,28 @@ internal sealed class ShopFixture : IDisposable
     public async Task SeedCore(int slot, InventoryItemCoreState core,
         InventoryContainerType container = InventoryContainerType.Main)
     {
-        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        // Fixture setup represents existing stored rows, including malformed/legacy admission cases.
-        // Use actual storage custody while leaving business admission to the operation under test.
-        var session = provider.GetRequiredService<IItemDomainStore>().SessionIn(
-            provider.GetRequiredService<IDomainTransactionAccessor>().Current!);
-        var id = ContainerId.ForCharacter(this.session.CharacterId, container);
-        if (await session.GetAsync(id, slot, default) is { } previous)
-            await session.DeleteItemAsync(await session.TakeAsync(previous, null, default), default);
-        var worldClass = await provider.GetRequiredService<IItemPlacementRuleService>().ClassifyAsync(core.ItemId, default);
-        if (worldClass == ItemWorldClass.Interchangeable && core.Value == 0 && core.ItemKind != 0)
+        await TestGameplay.RunAsync(provider, async () =>
         {
+            await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            // Fixture setup represents existing stored rows, including malformed/legacy admission cases.
+            // Use actual storage custody while leaving business admission to the operation under test.
+            var session = provider.GetRequiredService<IItemDomainStore>().SessionIn(
+                provider.GetRequiredService<IDomainTransactionAccessor>().Current!);
+            var id = ContainerId.ForCharacter(this.session.CharacterId, container);
+            if (await session.GetAsync(id, slot, default) is { } previous)
+                await session.DeleteItemAsync(await session.TakeAsync(previous, null, default), default);
+            var worldClass = await provider.GetRequiredService<IItemPlacementRuleService>().ClassifyAsync(core.ItemId, default);
+            if (worldClass == ItemWorldClass.Interchangeable && core.Value == 0 && core.ItemKind != 0)
+            {
+                await tx.CommitAsync(default);
+                return;
+            }
+            var snapshot = ItemSnapshot.FromCore(core, worldClass == ItemWorldClass.Interchangeable,
+                avatar: worldClass == ItemWorldClass.Avatar ? new(0, 0, new byte[30], 0, 0, 0) : null,
+                creature: worldClass == ItemWorldClass.Creature ? new(100, 0, 0, 0, 0, 1, [], 0) : null);
+            await session.PutAsync(id, slot, await session.CreateAsync(snapshot, default), default);
             await tx.CommitAsync(default);
-            return;
-        }
-        var snapshot = ItemSnapshot.FromCore(core, worldClass == ItemWorldClass.Interchangeable,
-            avatar: worldClass == ItemWorldClass.Avatar ? new(0, 0, new byte[30], 0, 0, 0) : null,
-            creature: worldClass == ItemWorldClass.Creature ? new(100, 0, 0, 0, 0, 1, [], 0) : null);
-        await session.PutAsync(id, slot, await session.CreateAsync(snapshot, default), default);
-        await tx.CommitAsync(default);
+        });
     }
 
     public IBusinessItemContainer Shared(int account = 1) => provider.GetRequiredService<ICharacterBusinessInventoryDomainService>()
@@ -423,9 +474,12 @@ internal sealed class ShopFixture : IDisposable
 
     public async Task SeedShared(int item, int count, int account = 1)
     {
-        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        await PutShared(item, count, account);
-        await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(provider, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            await PutShared(item, count, account);
+            await tx.CommitAsync(default);
+        });
     }
     public async Task PutShared(int item, int count, int account = 1)
     {
@@ -440,22 +494,32 @@ internal sealed class ShopFixture : IDisposable
     }
     public int SharedCount(int item, int account = 1) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='account' AND s.owner_id={account} AND s.list_type=240 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
 
-    public ValueTask Buy(int item, int count) => provider.GetRequiredService<BuyItemHandler>().HandleAsync(new(connection),
-        new BuyItemRequest(GameMessageMetadata.Empty, item, count, 15, 2), default);
-    public ValueTask Query() => provider.GetRequiredService<ShopPurchaseCountHandler>().HandleAsync(new(connection),
-        new ShopPurchaseCountRequest(GameMessageMetadata.Empty, 2), default);
-    public Task<BuyItemOutcome> Command(int item, int count, SelectedSessionIdentity? owner = null) => provider.GetRequiredService<ICommandBus>()
-        .SendAsync(new BuyItemCommand(onlineUser, owner ?? session, item, count, 15, 2)).AsTask();
+    public ValueTask Buy(int item, int count) => WholeBuy.Send(this, item, count);
+    public ValueTask Query() => EffectRequestTransport.SendRaw(this, new(1, 0x02CC, 0, 7), [2, 0, 0, 0]);
+    public Task<BuyItemOutcome> Command(int item, int count) => WholeBuy.Command(this, item, count).AsTask();
+    public async Task<BuyItemOutcome> DomainPurchase(int item, int count, SelectedSessionIdentity owner) =>
+        await TestGameplay.RunAsync(provider, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(owner);
+            var result = await provider.GetRequiredService<INpcShopDomainService>().PurchaseAsync(owner, item, count, 15, 2,
+                Clock.GetUtcNow(), footprint, default);
+            await tx.CommitAsync(default);
+            return new BuyItemOutcome(result, null);
+        });
     public async ValueTask Publish(NpcShopPurchaseReceipt receipt) =>
         _ = await provider.GetRequiredService<IEventService>().ProjectAsync(
             new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]), new NpcShopPurchaseCompleted(receipt), default);
     public int Gold => Scalar($"SELECT carried_gold FROM character_stats WHERE character_id={session.CharacterId.Value}");
     public async ValueTask<ushort?> Durability(InventoryContainerType container, int slot)
     {
-        await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        return (await provider.GetRequiredService<IItemDomainStore>().SessionIn(
-            provider.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(
-                ContainerId.ForCharacter(session.CharacterId, container), slot, default))?.Snapshot.Durability;
+        return await TestGameplay.RunAsync(provider, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)provider.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            return (await provider.GetRequiredService<IItemDomainStore>().SessionIn(
+                provider.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(
+                    ContainerId.ForCharacter(session.CharacterId, container), slot, default))?.Snapshot.Durability;
+        });
     }
     public int Count(int item) => Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='character' AND s.owner_id={session.CharacterId.Value} AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
     public int Scalar(string sql)
@@ -510,46 +574,41 @@ internal sealed class ShopFixture : IDisposable
     }
 }
 
-internal sealed class ShopSender : INetworkMessageSender
+/// <summary>
+/// The shop fixture's view of its sends (TASK-25 §3): the container's real registration adapter registers them in
+/// each job's outbox and the outbox hands them over at the end of the job; this reads what was registered, with the
+/// members the "recorded as sent" double had. The fault switches inject at the registration point's encoder.
+/// </summary>
+internal sealed class ShopSender
 {
-    public IServiceProvider Services { get; set; } = null!;
-    public List<IServerNetworkMessage> Messages { get; } = [];
-    public List<(NetworkConnectionContext Connection, IServerNetworkMessage[] Messages, byte[][] Frames)> Batches { get; } = [];
-    public Action? BeforeExplicit { get; set; }
+    public ShopSender(IServiceCollection services)
+    {
+        Outbound = RecordedOutbound.AddTo(services);
+        Outbound.FailAny(message => FailExplicit && Outbound.ExplicitInFlight is { } delivery
+                && delivery.RequiredDirectMessages.Any(direct => ReferenceEquals(direct, message)),
+            () => new IOException("Fixture Explicit publication failed after settlement."));
+        Outbound.FailAny(_ => FailBatch && Outbound.BatchInFlight,
+            () => new IOException("Fixture batch transport failed after preencoding."));
+        Outbound.FailAny(_ => FailingSends is not null && Outbound.ExplicitInFlight is null, () => FailingSends!());
+    }
+
+    public RecordedOutbound Outbound { get; }
+    public RecordedMessages<IServerNetworkMessage> Messages => Outbound.Messages;
+    public RecordedBatches Batches => Outbound.Batches;
+    public Action? BeforeExplicit { get => Outbound.BeforeExplicit; set => Outbound.BeforeExplicit = value; }
+    /// <summary>While set, the direct messages of every explicit delivery fail to encode where they are registered.</summary>
     public bool FailExplicit { get; set; }
+    /// <summary>While set, every prepared batch fails to encode where it is registered.</summary>
     public bool FailBatch { get; set; }
-    public Action? BeforeSend { get; set; }
-    public int Attempts { get; private set; }
-    public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct)
-    {
-        Attempts++;
-        BeforeSend?.Invoke();
-        Messages.Add(message);
-        return ValueTask.CompletedTask;
-    }
-    public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct)
-    {
-        BeforeExplicit?.Invoke();
-        if (FailExplicit) throw new IOException("Fixture Explicit publication failed after settlement.");
-        foreach (var message in delivery.RequiredDirectMessages) Messages.Add(message);
-        foreach (var target in delivery.BestEffortTargets) Messages.AddRange(target.OrderedMessages);
-        return ValueTask.CompletedTask;
-    }
-    public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
-    {
-        var registrations = Services.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
-        var ownedMessages = messages.ToArray();
-        var frames = ownedMessages.SelectMany(message =>
-        {
-            var registration = registrations[message.GetType()];
-            Assert.Equal(connection.EndpointKind, registration.Endpoint);
-            return ((IServerMessageEncoder)Services.GetRequiredService(registration.EncoderType)).Encode(message);
-        }).Select(frame => frame.ToArray()).ToArray();
-        Assert.All(frames, frame => Assert.InRange(frame.Length, 15, 1_048_576));
-        BeforeSend?.Invoke();
-        Batches.Add((connection, ownedMessages, frames));
-        if (FailBatch) throw new IOException("Fixture batch transport failed after preencoding.");
-        Messages.AddRange(ownedMessages);
-        return ValueTask.CompletedTask;
-    }
+    public Action? BeforeSend { get => Outbound.BeforeSend; set => Outbound.BeforeSend = value; }
+    public int Attempts => Outbound.Attempts;
+
+    /// <summary>
+    /// While set, every single send and prepared batch (a notification projection included) fails to encode where it
+    /// is registered, with this exception.
+    /// </summary>
+    public Func<Exception>? FailingSends { get; set; }
+
+    /// <summary>From now on every single send and prepared batch fails to encode where it is registered.</summary>
+    public void FailSends(Func<Exception> error) => FailingSends = error;
 }

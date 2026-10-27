@@ -18,15 +18,16 @@ public sealed class LotteryOpeningTests
         public OpeningReward Roll(int id)
         { Calls++; BeforeRoll?.Invoke(); return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
     }
-    private static CeraShopFixture Fixture(Fixed? selector = null)
+    private static CeraShopFixture Fixture(Fixed? selector = null, Action<IServiceCollection>? configure = null)
     {
         var shop = new CeraShopFixture(useArchive: true,
-            configure: s => s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()));
+            configure: s => { s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()); configure?.Invoke(s); });
         shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync().GetAwaiter().GetResult();
         return shop;
     }
+    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => ProtocolOpeningFixture.Create(configure);
     private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort mode = 0, int slot = 65) =>
-        shop.Host.Services.GetRequiredService<ICommandBus>().SendAsync(new LotteryOpeningCommand(shop.Host.OnlineUser, shop.Host.Session, slot, mode)).AsTask();
+        OpeningDomainTestDriver.Lottery(shop.Host, shop.Host.Session, slot, mode);
 
     private static ValueTask Network(CeraShopFixture shop, ushort sequence, ushort mode = 0) =>
         EffectRequestTransport.Send(shop.Host, new LotteryOpeningRequest(new(1, 0x001B, 0, sequence), mode, 65));
@@ -43,7 +44,8 @@ public sealed class LotteryOpeningTests
         Assert.Equal(reward, Assert.Single(result.Receipt.Rewards).ItemId);
         Assert.Equal(2, shop.Host.Count(pot)); Assert.Equal(1, shop.Host.Count(reward));
         await Network(shop, 10); Assert.Equal(1, selector.Calls);
-        Assert.Single(shop.Host.Sender.Batches);
+        Assert.Single(shop.Host.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Host.Sender.Batches, batch => batch.Messages.Any(message => message is LotteryOpeningResponse)).Messages.Length);
         await Network(shop, 11); Assert.Equal(2, selector.Calls);
         Assert.Equal(1, shop.Host.Count(pot)); Assert.Equal(2, shop.Host.Count(reward));
         Assert.Equal(100000, shop.Host.Gold);
@@ -93,7 +95,8 @@ public sealed class LotteryOpeningTests
         Assert.All(frame.Skip(15 + 57), value => Assert.Equal((byte)0, value));
         await Network(shop, 10);
         Assert.Single(shop.Host.Sender.Messages.OfType<LotteryOpeningResponse>());
-        Assert.Single(shop.Host.Sender.Batches);
+        Assert.Single(shop.Host.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(4, Assert.Single(shop.Host.Sender.Batches, batch => batch.Messages.Any(message => message is LotteryOpeningResponse)).Messages.Length);
         Assert.Equal(1, shop.Host.Count(20002));
     }
 
@@ -109,7 +112,8 @@ public sealed class LotteryOpeningTests
         finally { release.Set(); }
         await Task.WhenAll(first, duplicate);
         Assert.Equal(2, shop.Host.Count(7110)); Assert.Equal(1, shop.Host.Count(20002));
-        Assert.Equal(1, selector.Calls); Assert.Single(shop.Host.Sender.Batches);
+        Assert.Equal(1, selector.Calls); Assert.Single(shop.Host.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Host.Sender.Batches, batch => batch.Messages.Any(message => message is LotteryOpeningResponse)).Messages.Length);
     }
 
     [Dfo.Server.Testing.PvfFact]
@@ -185,7 +189,8 @@ public sealed class LotteryOpeningTests
         Assert.Equal(1, snapshot[15 + 3 + 10 + 9]);
         await Network(shop, 0, 1);
         Assert.Single(shop.Host.Sender.Messages.OfType<LotteryOpeningResponse>());
-        Assert.Single(shop.Host.Sender.Batches);
+        Assert.Single(shop.Host.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(4, Assert.Single(shop.Host.Sender.Batches, batch => batch.Messages.Any(message => message is LotteryOpeningResponse)).Messages.Length);
         Assert.Equal(1, Used(shop));
     }
 

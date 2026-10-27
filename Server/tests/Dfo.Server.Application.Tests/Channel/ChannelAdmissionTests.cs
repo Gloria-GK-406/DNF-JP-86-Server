@@ -4,6 +4,7 @@ using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Tests.Channel;
 
+[Trait("Category", "Unit")]
 public sealed class ChannelAdmissionTests
 {
     [Theory]
@@ -14,10 +15,10 @@ public sealed class ChannelAdmissionTests
     [InlineData(200, (byte)23, ChannelEntryKind.Raid)]
     public async Task Script_channel_environment_controls_login_and_pvp_profile(int id, byte environment, ChannelEntryKind kind)
     {
-        var policy = new ChannelEntryPolicy(new ChannelContentRuleService(new StubChannelCatalog(
+        var policy = new ChannelEntryDomainService(new ChannelContentRuleService(new StubChannelCatalog(
             [new ChannelServerInfo(id, $"#ch.{id}", 100, 0, "127.0.0.1", 10000 + id, environment)]),
             new NoChannelScript()), ChannelEntryOptions.Legacy,
-            new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false));
+            new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false), new UnusedDeployment());
         var channel = await policy.ResolveAsync(10000 + id, default);
         Assert.Equal(environment, channel.LoginEnvironment);
         Assert.Equal(kind, channel.Kind);
@@ -41,7 +42,7 @@ public sealed class ChannelAdmissionTests
     [Fact]
     public async Task Public_advertisement_does_not_replace_the_independent_listener_mapping()
     {
-        var policy = new ChannelEntryPolicy(
+        var policy = new ChannelEntryDomainService(
             new ChannelContentRuleService(
                 new StubChannelCatalog(
                 [
@@ -50,7 +51,7 @@ public sealed class ChannelAdmissionTests
                 ]),
                 new NoChannelScript()),
             ChannelEntryOptions.Legacy,
-            new ChannelListenerOptions([10011], AllowAdvertisedPortFallback: false));
+            new ChannelListenerOptions([10011], AllowAdvertisedPortFallback: false), new UnusedDeployment());
 
         var mapped = await policy.ResolveAsync(10011, CancellationToken.None);
         var advertisementIsNotABind = await policy.ResolveAsync(37102, CancellationToken.None);
@@ -62,7 +63,7 @@ public sealed class ChannelAdmissionTests
     [Fact]
     public async Task Disabled_launcher_matches_advertised_ports_even_when_listener_order_differs()
     {
-        var policy = new ChannelEntryPolicy(
+        var policy = new ChannelEntryDomainService(
             new ChannelContentRuleService(
                 new StubChannelCatalog(
                 [
@@ -75,7 +76,7 @@ public sealed class ChannelAdmissionTests
             ChannelEntryOptions.Legacy,
             new ChannelListenerOptions(
                 [10011, 10161],
-                AllowAdvertisedPortFallback: true));
+                AllowAdvertisedPortFallback: true), new UnusedDeployment());
 
         var general = await policy.ResolveAsync(10011, CancellationToken.None);
         var restricted = await policy.ResolveAsync(10161, CancellationToken.None);
@@ -163,12 +164,12 @@ public sealed class ChannelAdmissionTests
     [Fact]
     public async Task The_third_listener_maps_to_saint_horn_and_uses_the_configured_minimum()
     {
-        var policy = new ChannelEntryPolicy(new ChannelContentRuleService(new StubChannelCatalog(
+        var policy = new ChannelEntryDomainService(new ChannelContentRuleService(new StubChannelCatalog(
             [new(10, "#ch.10", 500, 0, "127.0.0.1", 40010),
              new(11, "#ch.11", 500, 0, "127.0.0.1", 40011),
              new(100, "#ch.100", 500, 0, "127.0.0.1", 40100)]), new NoChannelScript()),
             ChannelEntryOptions.Legacy with { SaintHornMinimumLevel = 75 },
-            new ChannelListenerOptions([10010, 10011, 10100], AllowAdvertisedPortFallback: false));
+            new ChannelListenerOptions([10010, 10011, 10100], AllowAdvertisedPortFallback: false), new UnusedDeployment());
         var channel = await policy.ResolveAsync(10100, default);
         Assert.Equal(100, channel.ChannelId);
         Assert.Equal(ChannelEntryKind.SaintHorn, channel.Kind);
@@ -178,7 +179,7 @@ public sealed class ChannelAdmissionTests
         Assert.Equal(11, (await policy.ResolveAsync(10011, default)).ChannelId);
     }
 
-    private static ChannelEntryPolicy Policy(bool freeDuelEnabled = false) =>
+    private static ChannelEntryDomainService Policy(bool freeDuelEnabled = false) =>
         new(
             new ChannelContentRuleService(
                 new StubChannelCatalog(
@@ -189,7 +190,13 @@ public sealed class ChannelAdmissionTests
                 ]),
                 new NoChannelScript()),
             ChannelEntryOptions.Legacy with { FreeDuelEnabled = freeDuelEnabled },
-            new ChannelListenerOptions([], AllowAdvertisedPortFallback: true));
+            new ChannelListenerOptions([], AllowAdvertisedPortFallback: true), new UnusedDeployment());
+
+    private sealed class UnusedDeployment : Dfo.Server.Abstractions.Configuration.IChannelLoginDeploymentSource
+    {
+        public byte ReadDefaultEnvironment() => throw new InvalidOperationException("Ordinary admission must not read login configuration.");
+        public Dfo.Server.Data.Configuration.PublicGameLoginEndpoints ReadEndpoints() => throw new InvalidOperationException("Ordinary admission must not read login configuration.");
+    }
 
     private sealed class StubChannelCatalog(IReadOnlyList<ChannelServerInfo> channels) : IChannelCatalog
     {

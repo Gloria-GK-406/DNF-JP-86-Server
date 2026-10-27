@@ -8,6 +8,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -23,6 +24,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// that the second answer moved with it. An answer kept from the first question would pass every
 /// other case in this file.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CharacterIdentityTests
 {
     private static readonly CharacterId Who = new(60);
@@ -36,28 +38,34 @@ public sealed class CharacterIdentityTests
     public async Task Avatar_candidates_adapt_to_current_career_and_automatically_fall_back(
         byte packed, byte career, byte awakening)
     {
-        var row = new MovableIdentityRow { Job = 0, GrowType = packed };
-        var character = Character(row);
-        Assert.Equal(new CharacterCareer(0), await character.GetDefaultAvatarAsync(default));
-        Assert.Equal(CharacterCareer.FromPacked(0, career), await character.GetCareerAvatarAsync(default));
-        Assert.Equal(CharacterCareer.FromPacked(0, awakening), await character.GetAwakeningAvatarAsync(default));
-        row.Job = 4; row.GrowType = 34;
-        Assert.Equal(new CharacterCareer(4, 2, 2), await character.GetAwakeningAvatarAsync(default));
-        Assert.Null(await Character(new MovableIdentityRow { Exists = false }).GetAvatarCandidatesAsync(default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var row = new MovableIdentityRow { Job = 0, GrowType = packed };
+            var character = Character(row);
+            Assert.Equal(new CharacterCareer(0), await character.GetDefaultAvatarAsync(default));
+            Assert.Equal(CharacterCareer.FromPacked(0, career), await character.GetCareerAvatarAsync(default));
+            Assert.Equal(CharacterCareer.FromPacked(0, awakening), await character.GetAwakeningAvatarAsync(default));
+            row.Job = 4; row.GrowType = 34;
+            Assert.Equal(new CharacterCareer(4, 2, 2), await character.GetAwakeningAvatarAsync(default));
+            Assert.Null(await Character(new MovableIdentityRow { Exists = false }).GetAvatarCandidatesAsync(default));
+        });
     }
 
     [Fact]
     public async Task A_characters_identity_is_the_one_its_row_holds()
     {
-        var identity = await Character(new MovableIdentityRow())
-            .IdentityAsync(CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var identity = await Character(new MovableIdentityRow())
+                .IdentityAsync(CancellationToken.None);
 
-        Assert.NotNull(identity);
-        Assert.Equal(Who, identity.CharacterId);
-        Assert.Equal(3, identity.SlotIndex);
-        Assert.Equal<byte[]>([0x41, 0x42], identity.Name);
-        Assert.Equal(4, identity.Job);
-        Assert.Equal(0x11, identity.GrowType);
+            Assert.NotNull(identity);
+            Assert.Equal(Who, identity.CharacterId);
+            Assert.Equal(3, identity.SlotIndex);
+            Assert.Equal<byte[]>([0x41, 0x42], identity.Name);
+            Assert.Equal(4, identity.Job);
+            Assert.Equal(0x11, identity.GrowType);
+        });
     }
 
     /// <summary>
@@ -71,24 +79,27 @@ public sealed class CharacterIdentityTests
     [Fact]
     public async Task An_identity_the_store_moved_is_what_the_next_question_gets()
     {
-        var row = new MovableIdentityRow();
-        var character = Character(row);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var row = new MovableIdentityRow();
+            var character = Character(row);
 
-        var before = await character.IdentityAsync(CancellationToken.None);
+            var before = await character.IdentityAsync(CancellationToken.None);
 
-        row.SlotIndex = 5;
-        row.Name = [0x43];
-        row.Job = 2;
-        row.GrowType = 0x22;
-        var after = await character.IdentityAsync(CancellationToken.None);
+            row.SlotIndex = 5;
+            row.Name = [0x43];
+            row.Job = 2;
+            row.GrowType = 0x22;
+            var after = await character.IdentityAsync(CancellationToken.None);
 
-        Assert.NotNull(before);
-        Assert.NotNull(after);
-        Assert.Equal(3, before.SlotIndex);
-        Assert.Equal(5, after.SlotIndex);
-        Assert.Equal<byte[]>([0x43], after.Name);
-        Assert.Equal(2, after.Job);
-        Assert.Equal(0x22, after.GrowType);
+            Assert.NotNull(before);
+            Assert.NotNull(after);
+            Assert.Equal(3, before.SlotIndex);
+            Assert.Equal(5, after.SlotIndex);
+            Assert.Equal<byte[]>([0x43], after.Name);
+            Assert.Equal(2, after.Job);
+            Assert.Equal(0x22, after.GrowType);
+        });
     }
 
     /// <remarks>
@@ -100,10 +111,13 @@ public sealed class CharacterIdentityTests
     [Fact]
     public async Task A_character_with_no_row_of_its_own_has_no_identity()
     {
-        var identity = await Character(new MovableIdentityRow { Exists = false })
-            .IdentityAsync(CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var identity = await Character(new MovableIdentityRow { Exists = false })
+                .IdentityAsync(CancellationToken.None);
 
-        Assert.Null(identity);
+            Assert.Null(identity);
+        });
     }
 
     /// <summary>
@@ -118,19 +132,22 @@ public sealed class CharacterIdentityTests
     [Fact]
     public async Task The_job_a_use_is_judged_against_is_the_one_the_row_holds_now()
     {
-        var row = new MovableIdentityRow();
-        var character = Character(
-            row, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Swordman)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var row = new MovableIdentityRow();
+            var character = Character(
+                row, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Swordman)));
 
-        Assert.Equal(
-            ItemUsability.JobMismatch,
-            await character.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.JobMismatch,
+                await character.CanUseAsync(8474, CancellationToken.None));
 
-        row.Job = 0;
+            row.Job = 0;
 
-        Assert.Equal(
-            ItemUsability.Allowed,
-            await character.CanUseAsync(8474, CancellationToken.None));
+            Assert.Equal(
+                ItemUsability.Allowed,
+                await character.CanUseAsync(8474, CancellationToken.None));
+        });
     }
 
     private static ICharacter Character(
@@ -139,7 +156,7 @@ public sealed class CharacterIdentityTests
         new PlayingCharacter(
             Who,
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
-            new CharacterItemCooldownDomainService(TimeProvider.System),
+            new OnlineCharacterRuntimeDomainService(TimeProvider.System),
             PresentCharacters.StandingInTown(Who),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),

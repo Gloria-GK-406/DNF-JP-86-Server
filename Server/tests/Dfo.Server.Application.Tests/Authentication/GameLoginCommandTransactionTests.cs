@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game.Login;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Authentication;
 
@@ -41,35 +42,40 @@ public sealed class GameLoginCommandTransactionTests
                 includePersistence: true);
             var commands = services.GetRequiredService<ICommandBus>();
             var onlineUsers = services.GetRequiredService<IOnlineUserDomainService>();
-            _ = await commands.SendAsync(new RegisterAccountCommand("player", "test password"));
-            var issued = await commands.SendAsync(
-                new AuthenticateAndIssueTicketCommand("player", "test password"));
+            _ = await TestCredentials.RegisterDomainAsync(services, "player", "test password");
+            var issued = await TestCredentials.LoginDomainAsync(services, "player", "test password");
             Assert.NotNull(issued.Ticket);
             var first = Register(onlineUsers, "Game:cancelled-redemption");
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-                await commands.SendAsync(
-                    new RedeemGameLoginCommand(
+                await commands.SendInternalAsync(
+                    new RedemptionProbe(
                         first.OnlineUserId,
                         issued.MId!,
                         issued.Ticket),
-                    cancellation.Token));
+                    Origin(), cancellation.Token));
 
-            var anonymous = onlineUsers.GetRequired(first.OnlineUserId);
-            Assert.Equal(OnlineUserState.Connected, anonymous.State);
-            Assert.Null(anonymous.AccountId);
-            Assert.True(onlineUsers.TryDisconnectConnection(first.Connection.ConnectionId));
+            TestGameplay.Run(services, () =>
+            {
+                var anonymous = onlineUsers.GetRequired(first.OnlineUserId);
+                Assert.Equal(OnlineUserState.Connected, anonymous.State);
+                Assert.Null(anonymous.AccountId);
+                Assert.True(onlineUsers.TryDisconnectConnection(first.Connection.ConnectionId));
+            });
             var second = Register(onlineUsers, "Game:retry-after-cancel");
-            var accepted = await commands.SendAsync(
-                new RedeemGameLoginCommand(second.OnlineUserId, issued.MId!, issued.Ticket),
-                CancellationToken.None);
+            var accepted = await commands.SendInternalAsync(
+                new RedemptionProbe(second.OnlineUserId, issued.MId!, issued.Ticket),
+                Origin(), CancellationToken.None);
 
             Assert.True(accepted.Succeeded);
-            Assert.Equal(accepted.AccountId, onlineUsers.GetRequired(second.OnlineUserId).AccountId);
+            TestGameplay.Run(services, () =>
+            {
+                Assert.Equal(accepted.AccountId, onlineUsers.GetRequired(second.OnlineUserId).AccountId);
+            });
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(databasePath);
             Directory.Delete(directory, recursive: true);
         }
     }
@@ -92,25 +98,45 @@ public sealed class GameLoginCommandTransactionTests
         var first = Register(onlineUsers, "Game:commit-failed");
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await commands.SendAsync(new RedeemGameLoginCommand(
+            await commands.SendInternalAsync(new RedemptionProbe(
                 first.OnlineUserId,
                 "player",
-                CommitFailOnceAuthenticationDomainService.Ticket)));
+                CommitFailOnceAuthenticationDomainService.Ticket), Origin()));
 
         Assert.Equal("database commit failed", failure.Message);
         Assert.True(authentication.Available);
-        Assert.Equal(OnlineUserState.Connected, onlineUsers.GetRequired(first.OnlineUserId).State);
-        Assert.True(onlineUsers.TryDisconnectConnection(first.Connection.ConnectionId));
+        TestGameplay.Run(services, () =>
+        {
+            Assert.Equal(OnlineUserState.Connected, onlineUsers.GetRequired(first.OnlineUserId).State);
+            Assert.True(onlineUsers.TryDisconnectConnection(first.Connection.ConnectionId));
+        });
 
         var second = Register(onlineUsers, "Game:retry-after-commit-failure");
-        var accepted = await commands.SendAsync(new RedeemGameLoginCommand(
+        var accepted = await commands.SendInternalAsync(new RedemptionProbe(
             second.OnlineUserId,
             "player",
-            CommitFailOnceAuthenticationDomainService.Ticket));
+            CommitFailOnceAuthenticationDomainService.Ticket), Origin());
 
         Assert.True(accepted.Succeeded);
         Assert.False(authentication.Available);
-        Assert.Equal(new AccountId(73), onlineUsers.GetRequired(second.OnlineUserId).AccountId);
+        TestGameplay.Run(services, () =>
+        {
+            Assert.Equal(new AccountId(73), onlineUsers.GetRequired(second.OnlineUserId).AccountId);
+        });
+    }
+
+    private static InternalCommandOrigin Origin() => new(Dfo.Server.Abstractions.Execution.GameplayCallSource.StartupRecovery,
+        Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.StartupRecovery), "test-game-login-redemption");
+
+    public sealed record RedemptionProbe(OnlineUserId OnlineUserId, string MId, string Ticket) : ICommand<RedemptionResult>;
+    public readonly record struct RedemptionResult(AccountId? AccountId) { public bool Succeeded => AccountId is not null; }
+    public sealed class RedemptionProbeHandler(IGameLoginAuthenticationDomainService authentication, ICommandWorkUnits units)
+        : ICommandHandler<RedemptionProbe, RedemptionResult>
+    {
+        public ValueTask<RedemptionResult> HandleAsync(CommandExecutionContext context, RedemptionProbe command, CancellationToken ct) =>
+            units.WriteAsync(context, new("test-game-login-redemption", []),
+                async (_, token) => new RedemptionResult(await authentication.AuthenticateSessionAsync(
+                    command.OnlineUserId, command.MId, command.Ticket, token)), ct);
     }
 
     private static ServiceProvider BuildServices(
@@ -131,14 +157,16 @@ public sealed class GameLoginCommandTransactionTests
             new PersistenceModule().ConfigureServices(services, configuration);
         }
         new ProtocolModule().ConfigureServices(services, configuration);
+        services.AddInternalCommandHandler<RedemptionProbe, RedemptionResult, RedemptionProbeHandler>();
         return services.BuildServiceProvider();
     }
 
     private static OnlineUserSnapshot Register(IOnlineUserDomainService onlineUsers, string id) =>
+        TestGameplay.Run(() =>
         onlineUsers.RegisterConnection(new NetworkConnectionContext(
             new NetworkConnectionId(id),
             NetworkEndpointKind.Game,
-            10011));
+            10011)));
 
     private sealed class CancelOnceGameLoginAuthenticationDomainService(
         IAuthenticationDomainService authentication,
@@ -182,14 +210,12 @@ public sealed class GameLoginCommandTransactionTests
         public bool Available { get; private set; } = true;
 
         public ValueTask<RegistrationResult> RegisterAsync(
-            string loginId,
-            string password,
+            PreparedRegistration registration,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(
-            string loginId,
-            string password,
+            VerifiedLogin login,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

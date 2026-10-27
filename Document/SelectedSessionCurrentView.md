@@ -1,8 +1,9 @@
 # 选角结果与运行期当前视图
 
 `SelectCharacterResult` 是选角回复的一次性组包值，不是会话运行态。发布后，
-`ISelectedSessionRuntimeDirectory` 只记录精确连接/代际的发布标记与位置持久化策略；
-它不保存角色、背包、任务、金币或装备耐久。
+会话进入世界只是在线身份（`OnlineStateRegistry`）上选中会话记录的阶段变化
+（`ISelectedSessionDomainService.EnterWorld` / `IsInWorld`）；是否落库位置不存储，拆除时由频道推导。
+在线身份不保存角色、背包、任务、金币或装备耐久。
 
 运行期需要较完整的角色投影时，调用 `ISelectedCharacterCurrentViewDomainService.TryLoadAsync`：
 
@@ -20,8 +21,8 @@
 当前库存投影由入场读取链路组装，物品修改通过引用、取出记录与生命周期服务完成；
 见 [物品生命周期规格](tasks/item-container-lifecycle/spec.md)。
 
-位置仍由 `ICharacterPositionDomainService` 持有，队伍血量百分比由
-`ICharacterVitalRuntimeDomainService` 按精确会话持有；旧连接清理不能移除新连接的记录。
+位置、队伍血量百分比、物品冷却与灵药加成由 `IOnlineCharacterRuntimeDomainService` 的同一条
+运行时记录持有，记录属于开始它的会话代数；旧连接的迟到写入与清理不能改到或移除新连接的记录。
 这些短期运行态不复制整份 `SelectCharacterResult`。
 
 登录落点只在选角准备阶段通过 `IEntryPlacementRuleService.ResolveAsync` 计算。

@@ -1,4 +1,6 @@
+using Dfo.Server.Application.Dispatching;
 using System.Text;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Inventory;
@@ -63,8 +65,8 @@ internal sealed class MailboxSendEncoder : GameCmdMessageEncoder<MailboxSendResp
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxSendResponse m) =>
         OnePayload(m.Multi ? (ushort)0x013B : (ushort)0x005E, MailboxWire.Ack(m.Error, _ => { }));
 }
-public sealed class MailboxSendHandler(MailboxDelivery delivery) : ClientMessageHandler<MailboxSendRequest>
+public sealed class MailboxSendHandler(ICommandBus commands) : ClientMessageHandler<MailboxSendRequest>, IProtocolCommandMessageHandler<GameMailboxCommand>
 {
-    protected override ValueTask HandleMessageAsync(NetworkDispatchContext c, MailboxSendRequest m, CancellationToken t) =>
-        delivery.HandleAsync(c, MailboxOperation.Send, 0, 0, null, t, m);
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext c, MailboxSendRequest m, CancellationToken t) =>
+        _ = await commands.SendAsync(new GameMailboxCommand(c, m), t);
 }

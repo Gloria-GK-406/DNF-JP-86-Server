@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -13,24 +14,37 @@ internal sealed class PvpLobbyDomainService : IPvpLobbyDomainService
 
     public void MarkReady(PvpLobbyParticipant participant)
     {
+        GameplayWriteAssertion.Writing(nameof(PvpLobbyDomainService) + "." + nameof(MarkReady));
         ArgumentNullException.ThrowIfNull(participant);
         _ready[participant.CharacterId] = participant;
     }
 
-    public bool ClearReady(CharacterId characterId) => _ready.TryRemove(characterId, out _);
+    public bool ClearReady(CharacterId characterId)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpLobbyDomainService) + "." + nameof(ClearReady));
+        return _ready.TryRemove(characterId, out _);
+    }
 
-    public bool ClearReadyExact(SelectedSessionIdentity session) =>
-        _ready.TryGetValue(session.CharacterId, out var current)
-        && current.Session == session
-        && _ready.TryRemove(new KeyValuePair<CharacterId, PvpLobbyParticipant>(session.CharacterId, current));
+    public bool ClearReadyExact(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpLobbyDomainService) + "." + nameof(ClearReadyExact));
+        return _ready.TryGetValue(session.CharacterId, out var current)
+            && current.Session == session
+            && _ready.TryRemove(new KeyValuePair<CharacterId, PvpLobbyParticipant>(session.CharacterId, current));
+    }
 
     public void Offer(PvpRoom room)
     {
+        GameplayWriteAssertion.Writing(nameof(PvpLobbyDomainService) + "." + nameof(Offer));
         ArgumentNullException.ThrowIfNull(room);
         _rooms[room.RoomId] = room;
     }
 
-    public bool Withdraw(ushort roomId) => _rooms.TryRemove(roomId, out _);
+    public bool Withdraw(ushort roomId)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpLobbyDomainService) + "." + nameof(Withdraw));
+        return _rooms.TryRemove(roomId, out _);
+    }
 
     public IReadOnlyList<PvpLobbyParticipant> ReadyOn(int listenerPort, CharacterId excluding)
     {

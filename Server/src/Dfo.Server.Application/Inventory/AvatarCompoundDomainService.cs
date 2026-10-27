@@ -14,18 +14,16 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, ICharacterDomainService characters,
+    ICharacterDomainService characters,
     IBusinessInventorySlotDomainService slots, IAvatarCompoundRuleService rules,
     IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions,
-    IRequestReplayProjectionDomainService replay, IEventService events, TimeProvider clock) : IAvatarCompoundDomainService
+    IEventService events, TimeProvider clock) : IAvatarCompoundDomainService
 {
-    public async ValueTask<AvatarCompoundResult> CompoundAsync(SelectedSessionIdentity session, AvatarCompoundInput input, CancellationToken ct)
+    public async ValueTask<AvatarCompoundResult> CompoundAsync(SelectedSessionIdentity session, AvatarCompoundInput input, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandActive(session);
         _ = transactions.Current ?? throw new InvalidOperationException("Avatar compound requires a transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId)
+        if (!sessions.IsInWorld(session))
             return new(AvatarCompoundRejection.NoSession);
         if (input.First == input.Second || input.First.Space != BusinessInventorySpace.Avatar
             || input.Second.Space != BusinessInventorySpace.Avatar
@@ -72,19 +70,27 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
         if (destinations.Length != plan.Outputs.Length) return new(AvatarCompoundRejection.NoRoom);
         var records = new List<ItemRecord>();
         foreach (var output in plan.Outputs)
+        {
+            footprint.DemandActive(session);
             records.Add(await lifecycle.CreateAsync(output with { InstanceValue = ArrivingAvatar.NewIdentity() }, ct).ConfigureAwait(false));
+        }
+        footprint.DemandActive(session);
         await ItemContainerOperations.ConsumeAsync(first.Container, a, 1, lifecycle, ct).ConfigureAwait(false);
+        footprint.DemandActive(session);
         await ItemContainerOperations.ConsumeAsync(second.Container, b, 1, lifecycle, ct).ConfigureAwait(false);
+        footprint.DemandActive(session);
         await ItemContainerOperations.ConsumeAsync(material.Container, box, plan.MaterialCount, lifecycle, ct).ConfigureAwait(false);
         var outputs = ImmutableArray.CreateBuilder<AvatarCompoundOutput>();
         for (var i = 0; i < records.Count; i++)
         {
+            footprint.DemandActive(session);
             var placed = await first.Container.PutAsync(destinations[i], records[i], ct).ConfigureAwait(false);
             outputs.Add(new(new(BusinessInventorySpace.Avatar, destinations[i]), placed.Snapshot.DeepCopy()));
         }
         var deductions = ImmutableArray.Create(new AvatarCompoundDeduction(input.First, 1),
             new AvatarCompoundDeduction(input.Second, 1), new AvatarCompoundDeduction(input.Material, plan.MaterialCount));
-        replay.RecordInventorySlots(session, [input.First, input.Second, input.Material, .. outputs.Select(x => x.Slot)]);
+        footprint.RecordInventorySlots(session, [input.First, input.Second, input.Material, .. outputs.Select(x => x.Slot)]);
+        footprint.DemandActive(session);
         await events.EnqueueAsync(new ItemUsed(session.CharacterId, box.ItemId, plan.MaterialCount), ct).ConfigureAwait(false);
         return new(AvatarCompoundRejection.None, new(session, deductions, outputs.ToImmutable(), plan.RareRate, now));
     }

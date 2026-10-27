@@ -21,7 +21,7 @@ public sealed class CeraShopPurchaseIntegrationTests
         var channelPort = AvailablePort();
         var gamePort = AvailablePort();
         while (gamePort == channelPort) gamePort = AvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true",
@@ -88,12 +88,5 @@ public sealed class CeraShopPurchaseIntegrationTests
         await stream.ReadExactlyAsync(frame.AsMemory(header.Length), ct);
         return frame;
     }
-    private static int AvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
 }

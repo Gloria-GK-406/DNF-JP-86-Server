@@ -18,4 +18,14 @@
     <!-- The rules the repository now asks instead of deciding. -->
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
+    <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
+    <Compile Include="../Support/TestCredentials.cs" Link="Support/TestCredentials.cs" />
+    <Compile Include="../Support/OutboundRegistrationParts.cs" Link="Support/OutboundRegistrationParts.cs" />
+    <Compile Include="../Support/RecordedOutbound.cs" Link="Support/RecordedOutbound.cs" />
+  </ItemGroup>
 </Project>

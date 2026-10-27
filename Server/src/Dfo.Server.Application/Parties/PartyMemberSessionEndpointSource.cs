@@ -14,12 +14,9 @@ internal sealed class PartyMemberSessionEndpointSource(
 {
     public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId)
     {
-        var selected = selectedSessions.FindByCharacter(characterId);
-        if (selected is null
+        if (!selectedSessions.TryGetInWorld(characterId, out var selected)
             || !onlineUsers.TryGetByConnection(selected.ConnectionId, out var onlineUser)
-            || onlineUser is null
-            || onlineUser.AccountId != selected.AccountId
-            || onlineUser.CurrentCharacterId != characterId)
+            || onlineUser is null)
         {
             return null;
         }

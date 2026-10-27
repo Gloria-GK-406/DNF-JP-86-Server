@@ -76,7 +76,13 @@ public sealed class GmJoustHttpTests
         using var configured=await host.PostAsync("/api/gm/v1/events",csrf,new EventChange(2365,0,"configure","马战","马战","","","",clock.Now.AddDays(-1),clock.Now.AddDays(1)));
         Assert.Equal(HttpStatusCode.OK,configured.StatusCode);
         using var enabled=await host.PostAsync("/api/gm/v1/events",csrf,new EventChange(2365,1,"enable"));Assert.Equal(HttpStatusCode.OK,enabled.StatusCode);
-        await host.Services.GetRequiredService<ICommandBus>().SendAsync(new AdvanceJoustLifecycleCommand(clock.Now),default);
+        await Dfo.Server.Testing.TestGameplay.RunAsync(host.Services, async () =>
+        {
+            var transactions = (Dfo.Server.Application.Transactions.DomainTransactionScope)host.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>();
+            await using var tx = transactions.Begin();
+            await host.Services.GetRequiredService<IJoustDomainService>().AdvanceLifecycleAsync(clock.Now, default);
+            await tx.CommitAsync(default);
+        });
         return csrf;
     }
     [Theory]

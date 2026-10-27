@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.LotteryOpening;
 
 namespace Dfo.Server.Protocol.Tests.Game.PackageOpening;
 
+[Trait("Category", "Unit")]
 public sealed class LotteryOpeningCodecTests
 {
     [Fact]

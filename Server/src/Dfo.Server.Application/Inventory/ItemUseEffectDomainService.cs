@@ -14,22 +14,27 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
     Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
     IExperienceItemDomainService? experienceItems = null, IEntryAllowanceItemDomainService? entryItems = null,
     IDungeonParticipationDomainService? participation = null, IReviveCoinDomainService? reviveCoins = null,
-    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars = null,
-    IRequestReplayProjectionDomainService? replay = null) : IItemUseEffectDomainService
+    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars = null) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        ItemReference item, CancellationToken ct)
+        ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        if (reviveCoins is not null && await reviveCoins.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } coin)
+        footprint.DemandActive(session);
+        if (reviveCoins is not null && await reviveCoins.TryUseAsync(session, source, item, footprint, ct).ConfigureAwait(false) is { } coin)
             return coin;
-        if (entryItems is not null && await entryItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } allowance)
+        footprint.DemandActive(session);
+        if (entryItems is not null && await entryItems.TryUseAsync(session, source, item, footprint, ct).ConfigureAwait(false) is { } allowance)
             return allowance;
+        footprint.DemandActive(session);
         if (experienceItems is not null
-            && await experienceItems.TryUseAsync(session, source, item, ct).ConfigureAwait(false) is { } experience)
+            && await experienceItems.TryUseAsync(session, source, item, footprint, ct).ConfigureAwait(false) is { } experience)
         {
             if (experience.Status == ItemUsability.Allowed && events is not null)
+            {
+                footprint.DemandActive(session);
                 await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(
                     session.CharacterId, item.ItemId, 1), ct).ConfigureAwait(false);
+            }
             return experience;
         }
 
@@ -46,15 +51,20 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         {
             if (luckyStars is null || plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
                 return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
+            footprint.DemandActive(session);
             var granted = await luckyStars.GrantFromItemAsync(session.AccountId, item.ItemId, ct).ConfigureAwait(false);
             if (!granted.Succeeded) return new(ItemUsability.CharacterStateUnavailable, item.ItemId, item.Count);
-            replay?.RecordRentalState(session);
+            footprint.RecordRentalState(session);
         }
-        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Effects, ct)
+        footprint.DemandActive(session);
+        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Effects, ct)
             .ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().LastOrDefault(x => x.Slot == source)?.RemainingCount ?? item.Count;
         if (events is not null)
+        {
+            footprint.DemandActive(session);
             await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(session.CharacterId, item.ItemId, 1), ct);
+        }
         return new(ItemUsability.Allowed, item.ItemId, remaining, applied);
     }
 }

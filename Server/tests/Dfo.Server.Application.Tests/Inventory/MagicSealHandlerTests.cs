@@ -11,6 +11,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -74,10 +75,13 @@ public sealed class MagicSealHandlerTests
 
         // Drop session containers and rebuild from SQLite, then use the production snapshot
         // projection. The reloaded representation must match the delta.
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
-        shop.Select(1);
-        await shop.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(
-            shop.Connection, shop.Session, new(ReplayProjectionNeeds.Inventory, []), default);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+            shop.Select(1);
+            await Dfo.Server.Application.Tests.Support.ReplayStateFixture.RefreshAsync(shop.Services,
+                shop.Connection, shop.Session, new(ReplayProjectionNeeds.Inventory, []), null, default);
+        });
         var snapshot = EffectRequestTransport.MainSnapshot(shop);
         var count = BinaryPrimitives.ReadUInt16LittleEndian(snapshot.AsSpan(18));
         var reloaded = Enumerable.Range(0, count)
@@ -110,7 +114,7 @@ public sealed class MagicSealHandlerTests
 
         Assert.Equal(99500, shop.Gold);
         Assert.Equal(8, shop.Sender.Messages.Count);
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
     }
 
     [Fact]
@@ -159,8 +163,11 @@ public sealed class MagicSealHandlerTests
         Assert.Equal(2, shop.Sender.Messages.Count);
     }
 
-    private static ShopFixture Fixture() => new(services =>
-        services.AddSingleton<IEquipmentMagicSealContentSource>(new Content()));
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(services =>
+    {
+        services.AddSingleton<IEquipmentMagicSealContentSource>(new Content());
+        configure?.Invoke(services);
+    });
 
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234);

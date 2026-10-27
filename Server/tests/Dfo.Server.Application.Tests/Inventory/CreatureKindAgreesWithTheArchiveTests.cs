@@ -9,6 +9,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -54,83 +55,86 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
     [SkippableFact]
     public async Task The_archive_and_storage_answer_the_same_kind_for_one_contract_creature()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var content = ContentArchive.CreateContentProvider();
-        var rules = new ItemPlacementRuleService(
-            content.GetRequiredService<IItemPlacementDefinitionSource>(),
-            content.GetRequiredService<IEquipmentSlotDefinitionSource>());
-
-        // What the archive says the template is.
-        var fromTheArchive = await rules.PlacementForAsync(
-            ContractCreatureItemId, CancellationToken.None);
-        Assert.NotNull(fromTheArchive);
-        Assert.Equal(
-            ItemWorldClass.Creature,
-            await rules.ClassifyAsync(ContractCreatureItemId, CancellationToken.None));
-
-        var path = Path.Combine(Path.GetTempPath(), $"dfo-creature-kind-{Guid.NewGuid():N}.db");
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
-            _ = new SqliteDatabase(path, scope);
-            var store = new SqliteItemDomainStore(path);
-            var pet = ContainerId.ForCharacter(
-                new CharacterId(Character), InventoryContainerType.Pet);
-            var container = new PersistentItemContainer(
-                pet,
-                new ContainerShape(InventoryContainerType.Pet, 0),
-                store,
-                scope,
-                rules,
-                new ItemSlotRuleService());
-            var registered = new CharacterContainerDomainService();
-            registered.Register(new CharacterId(Character), container);
-            var business = new CharacterBusinessInventoryDomainService(registered, rules,
-                new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>(), lifecycle: new ItemLifecycleDomainService(store, scope, rules))
-                .GetStore(new CharacterId(Character), BusinessInventoryStoreKind.Creature)
-                .GetContainer(BusinessInventorySpace.CreatureInventory);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var content = ContentArchive.CreateContentProvider();
+            var rules = new ItemPlacementRuleService(
+                content.GetRequiredService<IItemPlacementDefinitionSource>(),
+                content.GetRequiredService<IEquipmentSlotDefinitionSource>());
 
-            await using var lease = scope.Begin();
-            var granted = await business.AddAsync(
-                ContractCreatureItemId, 1, CancellationToken.None);
-            var landed = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
-
-            // What storage holds for the same template.
-            var stored = await store.SessionIn(scope.Current!)
-                .GetAsync(pet, landed.SlotIndex, CancellationToken.None);
-            Assert.NotNull(stored);
-            Assert.Equal(ContractCreatureItemId, stored!.Snapshot.ToCore().ItemId);
-
-            Assert.Equal(fromTheArchive!.ItemKind, stored.Snapshot.ToCore().ItemKind);
-            Assert.True(stored.Snapshot.ToCore().Value > 0);
-            await lease.CommitAsync(CancellationToken.None);
-            using (var database = new Microsoft.Data.Sqlite.SqliteConnection(
-                new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path }.ToString()))
-            {
-                database.Open();
-                using var command = database.CreateCommand();
-                command.CommandText = "SELECT creature_field04 FROM items WHERE item_uid=@identity";
-                command.Parameters.AddWithValue("@identity", stored.ItemUid!.Value.Value);
-                Assert.Equal(100L, (long)command.ExecuteScalar()!);
-            }
-
-            // And the number the two agree on is the one the entry path reads a creature by.
+            // What the archive says the template is.
+            var fromTheArchive = await rules.PlacementForAsync(
+                ContractCreatureItemId, CancellationToken.None);
+            Assert.NotNull(fromTheArchive);
             Assert.Equal(
-                ContractCreatureItemId,
-                new EquippedCreatureQuery().GetItemId(WornInTheCreatureSlot(stored.Snapshot.ToCore())));
-        }
-        finally
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                ItemWorldClass.Creature,
+                await rules.ClassifyAsync(ContractCreatureItemId, CancellationToken.None));
+
+            var path = Path.Combine(Path.GetTempPath(), $"dfo-creature-kind-{Guid.NewGuid():N}.db");
             try
             {
-                File.Delete(path);
+                var scope = new DomainTransactionScope();
+                _ = new SqliteDatabase(path, scope);
+                var store = new SqliteItemDomainStore(path);
+                var pet = ContainerId.ForCharacter(
+                    new CharacterId(Character), InventoryContainerType.Pet);
+                var container = new PersistentItemContainer(
+                    pet,
+                    new ContainerShape(InventoryContainerType.Pet, 0),
+                    store,
+                    scope,
+                    rules,
+                    new ItemSlotRuleService());
+                var registered = new CharacterContainerDomainService();
+                registered.Register(new CharacterId(Character), container);
+                var business = new CharacterBusinessInventoryDomainService(registered, rules,
+                    new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>(), lifecycle: new ItemLifecycleDomainService(store, scope, rules))
+                    .GetStore(new CharacterId(Character), BusinessInventoryStoreKind.Creature)
+                    .GetContainer(BusinessInventorySpace.CreatureInventory);
+
+                await using var lease = scope.Begin();
+                var granted = await business.AddAsync(
+                    ContractCreatureItemId, 1, CancellationToken.None);
+                var landed = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
+
+                // What storage holds for the same template.
+                var stored = await store.SessionIn(scope.Current!)
+                    .GetAsync(pet, landed.SlotIndex, CancellationToken.None);
+                Assert.NotNull(stored);
+                Assert.Equal(ContractCreatureItemId, stored!.Snapshot.ToCore().ItemId);
+
+                Assert.Equal(fromTheArchive!.ItemKind, stored.Snapshot.ToCore().ItemKind);
+                Assert.True(stored.Snapshot.ToCore().Value > 0);
+                await lease.CommitAsync(CancellationToken.None);
+                using (var database = new Microsoft.Data.Sqlite.SqliteConnection(
+                    SqliteTestPools.ConnectionString(path)))
+                {
+                    database.Open();
+                    using var command = database.CreateCommand();
+                    command.CommandText = "SELECT creature_field04 FROM items WHERE item_uid=@identity";
+                    command.Parameters.AddWithValue("@identity", stored.ItemUid!.Value.Value);
+                    Assert.Equal(100L, (long)command.ExecuteScalar()!);
+                }
+
+                // And the number the two agree on is the one the entry path reads a creature by.
+                Assert.Equal(
+                    ContractCreatureItemId,
+                    new EquippedCreatureQuery().GetItemId(WornInTheCreatureSlot(stored.Snapshot.ToCore())));
             }
-            catch (IOException)
+            finally
             {
-                // A file the runtime still holds is left for the temp directory to reap.
+                SqliteTestPools.ClearOwned(path);
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (IOException)
+                {
+                    // A file the runtime still holds is left for the temp directory to reap.
+                }
             }
-        }
+        });
     }
 
     private static CharacterInventoryEntryState WornInTheCreatureSlot(

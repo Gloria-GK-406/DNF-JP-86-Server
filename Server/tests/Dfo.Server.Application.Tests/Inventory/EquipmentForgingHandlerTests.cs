@@ -32,7 +32,8 @@ public sealed class EquipmentForgingHandlerTests
         Assert.Equal((byte)1, first.NewLevel);
         Assert.Equal(11, first.MaterialRemaining);
         Assert.Single(shop.Sender.Messages.OfType<ForgingResponse>());
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ForgingResponse)).Messages.Length);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[1].GetType().Name);
         Assert.Equal("InventoryDeltaMessage", shop.Sender.Messages[2].GetType().Name);
     }
@@ -95,12 +96,13 @@ public sealed class EquipmentForgingHandlerTests
         Assert.Equal(11, shop.Count(3326));
     }
 
-    private static ShopFixture Fixture(int roll) => new(services =>
+    internal static ShopFixture Fixture(int roll, Action<IServiceCollection>? configure = null) => new(services =>
     {
         services.AddSingleton<IEquipmentForgingContentSource>(new Content());
         services.AddSingleton<IEquipmentReinforcementDefinitionSource>(new Equipment());
         services.AddSingleton<IEquipmentDefinitionSource>(new Equipment());
         services.AddSingleton<IEquipmentForgingRollSource>(new Roll(roll));
+        configure?.Invoke(services);
     });
 
     private static InventoryItemCoreState Piece() => StackableItemCore.Create(1, 3000, 1234)

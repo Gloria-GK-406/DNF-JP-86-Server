@@ -7,5 +7,4 @@ namespace Dfo.Server.Abstractions.OnlineUsers;
 public interface IAuthenticatedGamePresenceQuery
 {
     IReadOnlyList<AccountId> SnapshotAccounts();
-    bool IsActiveExact(SelectedSessionIdentity session);
 }

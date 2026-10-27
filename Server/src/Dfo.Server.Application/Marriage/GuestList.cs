@@ -1,18 +1,16 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Marriage;
-using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Marriage;
 
-/// <summary>Wedding guests: invitations and their quota, gifts, and the accounts a wedding involves.</summary>
+/// <summary>Wedding guests: invitations and their quota, and gifts.</summary>
 internal sealed class GuestList(IMarriageWeddingGuestDomainStore store, IMarriageChurchRuleService rules,
-    ISelectedSessionSnapshotQuery online, ITownAreaDomainService areas, ICharacterDomainService characters, ICharacterTable owners)
+    ISelectedSessionSnapshotQuery online, ITownAreaDomainService areas, ICharacterDomainService characters)
 {
     public ValueTask<IReadOnlyList<MarriageWeddingInvitation>> InvitationsAsync(Guid ceremony, CancellationToken ct) =>
         store.InvitationsAsync(ceremony, ct);
@@ -54,14 +52,5 @@ internal sealed class GuestList(IMarriageWeddingGuestDomainStore store, IMarriag
         if (await characters.Get(actor.CharacterId).TrySpendGoldAsync(gold, ct).ConfigureAwait(false) is null) return -1;
         if (!await store.PayAsync(wedding.Ceremony.Id, actor.CharacterId, gold, ct).ConfigureAwait(false)) throw new MarriageWeddingUnavailableException();
         return 0;
-    }
-
-    /// <summary>The couple's and every invited guest's accounts, in id order: the leases a wedding advance takes.</summary>
-    public async ValueTask<IReadOnlyList<AccountId>> AccountsAsync(MarriageWedding wedding, CancellationToken ct)
-    {
-        var accounts = new HashSet<AccountId> { wedding.Ceremony.Applicant.AccountId, wedding.Ceremony.Partner.AccountId };
-        foreach (var invitation in await store.InvitationsAsync(wedding.Ceremony.Id, ct).ConfigureAwait(false))
-            if (await owners.FindOwnerAsync(invitation.Guest, ct).ConfigureAwait(false) is { } account) accounts.Add(account);
-        return accounts.OrderBy(x => x.Value).ToArray();
     }
 }

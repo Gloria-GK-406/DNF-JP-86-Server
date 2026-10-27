@@ -1,9 +1,29 @@
+using System.Diagnostics.CodeAnalysis;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Dispatching;
 
-public sealed record MessageHandlerRegistration(ClientMessageType MessageType, Type HandlerType);
+public enum MessageHandlerRouteKind { Telemetry, ProtocolCommand }
+public interface IProtocolCommandMessageHandler<TCommand> : IClientMessageHandler where TCommand : class, IProtocolCommand;
+
+/// <param name="IsTelemetry">
+/// Pure telemetry (RQ-020): the handler only logs, so it runs off the gameplay executor. The registry
+/// refuses a telemetry handler whose constructors inject anything but logging.
+/// </param>
+public sealed record MessageHandlerRegistration(ClientMessageType MessageType, Type HandlerType, bool IsTelemetry = false,
+    MessageHandlerRouteKind Route = MessageHandlerRouteKind.Telemetry, Type? MessageClrType = null, Type? ProtocolCommandType = null,
+    IReadOnlyList<Type>? AllowedMessageClrTypes = null)
+{
+    internal MessageHandlerRegistration Freeze() => Route != MessageHandlerRouteKind.ProtocolCommand ? this : this with
+    { AllowedMessageClrTypes = Array.AsReadOnly((AllowedMessageClrTypes ?? (MessageClrType is { } type ? [type] : [])).ToArray()) };
+}
+
+/// <summary>Where a registered message goes: its handler, whether it is telemetry, and its inbound CMD type.</summary>
+public sealed record MessageHandlerRoute(Type HandlerType, bool IsTelemetry, string CommandType,
+    MessageHandlerRouteKind Kind = MessageHandlerRouteKind.Telemetry, Type? MessageClrType = null, Type? ProtocolCommandType = null, IReadOnlyList<Type>? AllowedMessageClrTypes = null);
 
 /// <summary>
 /// Maps a client message type to the handler that consumes it.
@@ -21,15 +41,16 @@ public sealed record MessageHandlerRegistration(ClientMessageType MessageType, T
 /// </remarks>
 public sealed class MessageHandlerRegistry
 {
-    private readonly IReadOnlyDictionary<ClientMessageType, Type> registrations;
+    private readonly IReadOnlyDictionary<ClientMessageType, MessageHandlerRoute> registrations;
 
     public MessageHandlerRegistry(
         IEnumerable<MessageHandlerRegistration> registrations,
-        IEnumerable<ClientMessageProductionRegistration> productions)
+        IEnumerable<ClientMessageProductionRegistration> productions,
+        IEnumerable<CommandHandlerRegistration>? commands = null)
     {
         ArgumentNullException.ThrowIfNull(registrations);
         ArgumentNullException.ThrowIfNull(productions);
-        var registrationList = registrations.ToArray();
+        var registrationList = registrations.Select(item => item.Freeze()).ToArray();
         var duplicate = registrationList
             .GroupBy(item => item.MessageType)
             .FirstOrDefault(group => group.Count() > 1);
@@ -54,8 +75,80 @@ public sealed class MessageHandlerRegistry
                 $"{string.Join(", ", gaps)}.");
         }
 
-        this.registrations = registrationList.ToDictionary(item => item.MessageType, item => item.HandlerType);
+        var injectsMoreThanLogging = registrationList
+            .Where(item => item.IsTelemetry)
+            .SelectMany(item => NonLoggingParameters(item.HandlerType)
+                .Select(parameter => $"'{item.HandlerType.Name}' for '{item.MessageType}' injects '{parameter}'"))
+            .ToArray();
+        if (injectsMoreThanLogging.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Telemetry handlers run off the gameplay executor and may only inject logging: " +
+                $"{string.Join(", ", injectsMoreThanLogging)}.");
+        }
+
+        var commandList = (commands ?? []).Select(item => item.Freeze()).ToArray();
+        _ = new CommandHandlerRegistry(commandList);
+        foreach (var item in registrationList)
+        {
+            if (!Enum.IsDefined(item.Route)) throw new InvalidOperationException("Unknown message route.");
+            if (item.Route == MessageHandlerRouteKind.Telemetry)
+            {
+                if (!item.IsTelemetry) throw new InvalidOperationException("A non-telemetry message requires a protocol command route.");
+                continue;
+            }
+            if (item.IsTelemetry || item.MessageClrType is null || item.ProtocolCommandType is null)
+                throw new InvalidOperationException("A protocol route requires a typed message and command.");
+            var match = commandList.Where(x => x.CommandType == item.ProtocolCommandType).ToArray();
+            if (match.Length != 1 || match[0].Route != CommandRouteKind.Protocol
+                || item.AllowedMessageClrTypes is not { Count: > 0 } family
+                || family.Distinct().Count() != family.Count
+                || family.Any(type => !CommandHandlerRegistry.IsConcreteMessageType(type) || !item.MessageClrType.IsAssignableFrom(type))
+                || !family.ToHashSet().SetEquals(match[0].ProtocolMessages!.Where(x => x.MessageType == item.MessageType).Select(x => x.MessageClrType)))
+                throw new InvalidOperationException("The message and protocol command registrations do not agree.");
+            if (!typeof(IProtocolCommandMessageHandler<>).MakeGenericType(item.ProtocolCommandType).IsAssignableFrom(item.HandlerType)
+                || MessageClrTypeOf(item.HandlerType) != item.MessageClrType)
+                throw new InvalidOperationException("The thin handler has an incompatible message or command binding.");
+            if (item.HandlerType.GetConstructors().SelectMany(x => x.GetParameters()).Any(x =>
+                    x.ParameterType != typeof(ICommandBus) && !IsLogger(x.ParameterType)))
+                throw new InvalidOperationException("A protocol command handler may inject only the command bus and logging.");
+        }
+
+        foreach (var command in commandList.Where(x => x.Route == CommandRouteKind.Protocol))
+            foreach (var binding in command.ProtocolMessages ?? [])
+                if (registrationList.Count(x => x.Route == MessageHandlerRouteKind.ProtocolCommand
+                    && x.ProtocolCommandType == command.CommandType && x.MessageType == binding.MessageType
+                    && x.AllowedMessageClrTypes!.Contains(binding.MessageClrType)) != 1)
+                    throw new InvalidOperationException("A protocol command has no unique thin message route.");
+
+        this.registrations = registrationList.ToDictionary(
+            item => item.MessageType,
+            item => new MessageHandlerRoute(item.HandlerType, item.IsTelemetry, CommandTypeOf(item.MessageType),
+                item.Route, item.MessageClrType, item.ProtocolCommandType, item.AllowedMessageClrTypes));
     }
 
-    public Type GetHandlerType(ClientMessageType messageType) => registrations[messageType];
+    public Type GetHandlerType(ClientMessageType messageType) => registrations[messageType].HandlerType;
+
+    public bool TryGet(ClientMessageType messageType, [MaybeNullWhen(false)] out MessageHandlerRoute route) =>
+        registrations.TryGetValue(messageType, out route);
+
+    /// <summary>The CMD type an inbound message runs as on the executor.</summary>
+    public static string CommandTypeOf(ClientMessageType messageType) => $"inbound:{messageType}";
+
+    private static IEnumerable<string> NonLoggingParameters(Type handlerType) => handlerType.GetConstructors()
+        .SelectMany(constructor => constructor.GetParameters())
+        .Where(parameter => !IsLogger(parameter.ParameterType))
+        .Select(parameter => parameter.ParameterType.Name)
+        .Distinct();
+
+    private static Type? MessageClrTypeOf(Type handler)
+    {
+        for (var type = handler; type is not null; type = type.BaseType)
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ClientMessageHandler<>))
+                return type.GetGenericArguments()[0];
+        return null;
+    }
+
+    private static bool IsLogger(Type type) => type == typeof(ILogger)
+        || type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ILogger<>);
 }

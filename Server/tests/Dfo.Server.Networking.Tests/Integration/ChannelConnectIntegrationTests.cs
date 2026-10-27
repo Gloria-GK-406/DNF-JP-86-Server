@@ -25,7 +25,7 @@ public sealed class ChannelConnectIntegrationTests
         {
             gamePort = GetAvailablePort();
         }
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true",
@@ -97,14 +97,7 @@ public sealed class ChannelConnectIntegrationTests
         await host.StopAsync(timeout.Token);
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
     private static async Task WaitUntilAsync(Func<bool> condition, CancellationToken cancellationToken)
     {

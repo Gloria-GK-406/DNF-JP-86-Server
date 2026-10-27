@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -7,30 +9,14 @@ namespace Dfo.Server.Protocol.Game.SessionMetrics;
 
 /// <summary>
 /// Consumes the SESSION_METRICS (0x00FA) report and logs it. Fire-and-forget like the other
-/// telemetry: no response, no domain change, no command bus.
+/// telemetry: no response, no domain change.
 /// </summary>
-public sealed class SessionMetricsHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    ILogger<SessionMetricsHandler> logger) : ClientMessageHandler<SessionMetricsReportRequest>
+public sealed class SessionMetricsHandler(ICommandBus commands)
+    : ClientMessageHandler<SessionMetricsReportRequest>, IProtocolCommandMessageHandler<GameSessionMetricsCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        SessionMetricsReportRequest message,
-        CancellationToken cancellationToken)
-    {
-        var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            && onlineUser is not null;
-
-        logger.LogInformation(
-            "Session metrics {ConnectionId} {Attribution}: means={Means} section7={Section7} section8={Section8}",
-            context.Connection.ConnectionId,
-            attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
-            SessionMetricsDescriptor.DescribeMeans(message.Means),
-            SessionMetricsDescriptor.DescribeSection(message.Section7),
-            SessionMetricsDescriptor.DescribeSection(message.Section8));
-
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        SessionMetricsReportRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameSessionMetricsCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>

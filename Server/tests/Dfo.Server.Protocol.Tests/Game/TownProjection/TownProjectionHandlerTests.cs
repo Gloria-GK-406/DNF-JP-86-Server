@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -6,7 +7,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
@@ -37,7 +37,7 @@ namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 /// field. Reading the wrong one produces a recognisably wrong answer rather than coinciding with
 /// the right one.
 ///
-/// The real <see cref="CharacterPositionDomainService"/> is used rather than a double, because what
+/// The real <see cref="OnlineCharacterRuntimeDomainService"/> is used rather than a double, because what
 /// is under test is these handlers being wired to the thing that actually owns the position.
 /// </remarks>
 public sealed class TownProjectionHandlerTests
@@ -56,68 +56,70 @@ public sealed class TownProjectionHandlerTests
     [InlineData(false, true)]
     public async Task A_crossing_moves_the_character_the_service_owns(bool transient, bool refuseWrite)
     {
-        var positions = Standing();
-        var before = positions.Find(Identity.CharacterId);
-        var persistence = new RecordingPersistence { Refuse = refuseWrite };
-        var presenceRegistry = Presence();
-        var previousMember = ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId);
-        var sender = new RecordingSender();
-        var notifications = new RecordingNotifications();
-        var sessions = new OneSession(Identity);
-        var runtimes = new OneRuntimeSession(Entry());
-        var handler = new SetUserAreaHandler(
-            sessions,
-            runtimes,
-            positions,
-            presenceRegistry,
-            new OneChannel(transient),
-            new EveryTownDeclared(),
-            new SelectedSessionTransitionGate(),
-            new TownAreaProjectionDelivery(
-                presenceRegistry,
+        await TestGameplay.RunAsync(async () =>
+        {
+            var positions = Standing();
+            var before = positions.PositionOf(Identity.CharacterId);
+            var persistence = new RecordingPersistence { Refuse = refuseWrite };
+            var presenceRegistry = Presence();
+            var previousMember = ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId);
+            var sender = new RecordingSender();
+            var notifications = new RecordingNotifications();
+            var sessions = new OneSession(Identity);
+            var runtimes = new OneRuntimeSession(Entry());
+            var handler = TownMovementTestDriver.Area(
                 sessions,
                 runtimes,
-                notifications,
-                new NoopPartyTownProjectionDelivery(),
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance, persistence);
+                positions,
+                presenceRegistry,
+                new OneChannel(transient),
+                new EveryTownDeclared(),
+                new TownMovementTestDriver.ProjectionInput(
+                    presenceRegistry,
+                    sessions,
+                    runtimes,
+                    notifications,
+                    new NoopPartyTownProjectionDelivery(),
+                    sender,
+                    new EveryTownDeclared()),
+                NullLogger<SetUserAreaHandler>.Instance, persistence);
 
-        if (refuseWrite)
-        {
-            await Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(Dispatch(),
-                new SetUserAreaRequest(GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
-                CancellationToken.None).AsTask());
-            Assert.Equal(before, positions.Find(Identity.CharacterId));
-            Assert.Equal(previousMember, ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId));
-            Assert.Empty(sender.Sent);
-            return;
-        }
-        await handler.HandleAsync(
-            Dispatch(),
-            new SetUserAreaRequest(
-                GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
-            CancellationToken.None);
+            if (refuseWrite)
+            {
+                await Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(Dispatch(),
+                    new SetUserAreaRequest(GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
+                    CancellationToken.None).AsTask());
+                Assert.Equal(before, positions.PositionOf(Identity.CharacterId));
+                Assert.Equal(previousMember, ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId));
+                Assert.Empty(sender.Sent);
+                return;
+            }
+            await handler.HandleAsync(
+                Dispatch(),
+                new SetUserAreaRequest(
+                    GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
+                CancellationToken.None);
 
-        Assert.Equal(transient ? null : positions.Find(Identity.CharacterId), persistence.Saved);
-        var area = sender.Sent.OfType<UserAreaNotification>().Single();
-        Assert.Equal(CrossedAreaId, area.AreaId);
-        Assert.Equal(CrossedTownId, area.Spawn.TownId);
-        Assert.Equal(CrossedX, area.Spawn.X);
-        Assert.Equal(CrossedY, area.Spawn.Y);
+            Assert.Equal(transient ? null : positions.PositionOf(Identity.CharacterId), persistence.Saved);
+            var area = sender.Sent.OfType<UserAreaNotification>().Single();
+            Assert.Equal(CrossedAreaId, area.AreaId);
+            Assert.Equal(CrossedTownId, area.Spawn.TownId);
+            Assert.Equal(CrossedX, area.Spawn.X);
+            Assert.Equal(CrossedY, area.Spawn.Y);
 
-        var users = sender.Sent.OfType<AreaUsersNotification>().Single();
-        Assert.Equal(CrossedTownId, users.TownId);
-        Assert.Equal(CrossedAreaId, users.AreaId);
-        var presence = Assert.Single(users.Users);
-        Assert.Equal(CrossedX, presence.X);
-        Assert.Equal(CrossedY, presence.Y);
-        Assert.Equal(WalkedDirection, presence.Direction);
+            var users = sender.Sent.OfType<AreaUsersNotification>().Single();
+            Assert.Equal(CrossedTownId, users.TownId);
+            Assert.Equal(CrossedAreaId, users.AreaId);
+            var presence = Assert.Single(users.Users);
+            Assert.Equal(CrossedX, presence.X);
+            Assert.Equal(CrossedY, presence.Y);
+            Assert.Equal(WalkedDirection, presence.Direction);
 
-        Assert.Equal(
-            new CharacterPositionState(
-                CrossedTownId, CrossedAreaId, CrossedX, CrossedY, WalkedDirection),
-            positions.Find(Identity.CharacterId));
+            Assert.Equal(
+                new CharacterPositionState(
+                    CrossedTownId, CrossedAreaId, CrossedX, CrossedY, WalkedDirection),
+                positions.PositionOf(Identity.CharacterId));
+        });
     }
 
     [Theory]
@@ -125,278 +127,205 @@ public sealed class TownProjectionHandlerTests
     [InlineData(true)]
     public async Task A_refused_channel_crossing_restores_the_actual_location_without_writing_or_transferring(bool saintHorn)
     {
-        var positions = Standing();
-        var before = positions.Find(Identity.CharacterId);
-        var presence = Presence();
-        var membership = ((ITownAreaDomainService)presence).Find(Identity.CharacterId);
-        var sender = new RecordingSender();
-        var notifications = new RecordingNotifications();
-        var persistence = new RecordingPersistence();
-        var sessions = new OneSession(Identity);
-        var currentViews = new OneRuntimeSession(Entry());
-        var towns = new EveryTownDeclared(allowEntry: false);
-        var handler = new SetUserAreaHandler(sessions, currentViews, positions, presence,
-            new OneChannel(saintHorn), towns, new SelectedSessionTransitionGate(),
-            new TownAreaProjectionDelivery(presence, sessions, currentViews, notifications,
-                new NoopPartyTownProjectionDelivery(), sender, towns),
-            NullLogger<SetUserAreaHandler>.Instance, persistence);
-        await handler.HandleAsync(Dispatch(), new SetUserAreaRequest(GameMessageMetadata.Empty,
-            saintHorn ? (byte)2 : (byte)17, 1, CrossedX, CrossedY), default);
-        Assert.Equal(before, positions.Find(Identity.CharacterId));
-        Assert.Equal(membership, ((ITownAreaDomainService)presence).Find(Identity.CharacterId));
-        Assert.Null(persistence.Saved);
-        Assert.Empty(notifications.Published);
-        Assert.Collection(sender.Sent,
-            message =>
-            {
-                var area = Assert.IsType<UserAreaNotification>(message);
-                Assert.Equal(before!.TownId, area.Spawn.TownId);
-                Assert.Equal(before.AreaId, area.AreaId);
-                Assert.Equal(before.X, area.Spawn.X);
-                Assert.Equal(before.Y, area.Spawn.Y);
-            },
-            message => Assert.Equal(saintHorn ? "请切换频道离开圣者之鸣号。" : "请切换到圣者之鸣号频道后进入。",
-                Assert.IsType<GameServerNoticeMessage>(message).Text));
-    }
-
-    [Fact]
-    public async Task AreaCrossingWaitsForTheSameAccountPartyTransitionGate()
-    {
-        var positions = Standing();
-        var gate = new SelectedSessionTransitionGate();
-        var presence = Presence();
-        var sender = new RecordingSender();
-        var notifications = new RecordingNotifications();
-        var sessions = new OneSession(Identity);
-        var runtimes = new OneRuntimeSession(Entry());
-        var held = await gate.AcquireAsync(
-            Identity.AccountId,
-            Dfo.Server.Application.Commands.UserAccessMode.Exclusive,
-            CancellationToken.None);
-        var handler = new SetUserAreaHandler(
-            sessions,
-            runtimes,
-            positions,
-            presence,
-            new OneChannel(),
-            new EveryTownDeclared(),
-            gate,
-            new TownAreaProjectionDelivery(
-                presence,
-                sessions,
-                runtimes,
-                notifications,
-                new NoopPartyTownProjectionDelivery(),
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance, new RecordingPersistence());
-
-        var pending = handler.HandleAsync(
-                Dispatch(),
-                new SetUserAreaRequest(
-                    GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
-                CancellationToken.None)
-            .AsTask();
-
-        Assert.False(pending.IsCompleted);
-        Assert.Equal(WalkedAreaId, positions.Find(Identity.CharacterId)!.AreaId);
-
-        await held.DisposeAsync();
-        await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(CrossedAreaId, positions.Find(Identity.CharacterId)!.AreaId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var positions = Standing();
+            var before = positions.PositionOf(Identity.CharacterId);
+            var presence = Presence();
+            var membership = ((ITownAreaDomainService)presence).Find(Identity.CharacterId);
+            var sender = new RecordingSender();
+            var notifications = new RecordingNotifications();
+            var persistence = new RecordingPersistence();
+            var sessions = new OneSession(Identity);
+            var currentViews = new OneRuntimeSession(Entry());
+            var towns = new EveryTownDeclared(allowEntry: false);
+            var handler = TownMovementTestDriver.Area(sessions, currentViews, positions, presence,
+                new OneChannel(saintHorn), towns,
+                new TownMovementTestDriver.ProjectionInput(presence, sessions, currentViews, notifications,
+                    new NoopPartyTownProjectionDelivery(), sender, towns),
+                NullLogger<SetUserAreaHandler>.Instance, persistence);
+            await handler.HandleAsync(Dispatch(), new SetUserAreaRequest(GameMessageMetadata.Empty,
+                saintHorn ? (byte)2 : (byte)17, 1, CrossedX, CrossedY), default);
+            Assert.Equal(before, positions.PositionOf(Identity.CharacterId));
+            Assert.Equal(membership, ((ITownAreaDomainService)presence).Find(Identity.CharacterId));
+            Assert.Null(persistence.Saved);
+            Assert.Empty(notifications.Published);
+            Assert.Collection(sender.Sent,
+                message =>
+                {
+                    var area = Assert.IsType<UserAreaNotification>(message);
+                    Assert.Equal(before!.TownId, area.Spawn.TownId);
+                    Assert.Equal(before.AreaId, area.AreaId);
+                    Assert.Equal(before.X, area.Spawn.X);
+                    Assert.Equal(before.Y, area.Spawn.Y);
+                },
+                message => Assert.Equal(saintHorn ? "请切换频道离开圣者之鸣号。" : "请切换到圣者之鸣号频道后进入。",
+                    Assert.IsType<GameServerNoticeMessage>(message).Text));
+        });
     }
 
     [Fact]
     public async Task Crossing_areas_removes_the_mover_from_the_old_peers_and_publishes_to_the_new_peers()
     {
-        var oldPeer = PeerIdentity(61, "old");
-        var secondOldPeer = PeerIdentity(65, "old-second");
-        var newPeer = PeerIdentity(62, "new");
-        var otherListenerOldPeer = PeerIdentity(63, "old-other-listener", listenerPort: 10011);
-        var otherListenerNewPeer = PeerIdentity(64, "new-other-listener", listenerPort: 10011);
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(Identity);
-        sessions.Select(oldPeer);
-        sessions.Select(secondOldPeer);
-        sessions.Select(newPeer);
-        sessions.Select(otherListenerOldPeer);
-        sessions.Select(otherListenerNewPeer);
-        var runtimes = new SelectedSessionRuntimeDirectory();
-        var currentViews = new FixedCurrentViews();
-        runtimes.Publish(
-            Identity,
-            shouldPersistPosition: false);
-        currentViews.Publish(Identity, EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX));
-        runtimes.Publish(
-            oldPeer,
-            shouldPersistPosition: false);
-        currentViews.Publish(oldPeer, EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700));
-        runtimes.Publish(
-            secondOldPeer,
-            shouldPersistPosition: false);
-        currentViews.Publish(secondOldPeer, EntryFor(secondOldPeer, WalkedTownId, WalkedAreaId, x: 750));
-        runtimes.Publish(
-            newPeer,
-            shouldPersistPosition: false);
-        currentViews.Publish(newPeer, EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800));
-        runtimes.Publish(
-            otherListenerOldPeer,
-            shouldPersistPosition: false);
-        currentViews.Publish(otherListenerOldPeer,
-            EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900));
-        runtimes.Publish(
-            otherListenerNewPeer,
-            shouldPersistPosition: false);
-        currentViews.Publish(otherListenerNewPeer,
-            EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950));
-        var positions = Standing();
-        positions.Place(
-            oldPeer,
-            new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, 700, 300, WalkedDirection));
-        positions.Place(
-            secondOldPeer,
-            new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, 750, 300, WalkedDirection));
-        positions.Place(
-            newPeer,
-            new CharacterPositionState(
-                CrossedTownId, CrossedAreaId, 800, 300, WalkedDirection));
-        positions.Place(
-            otherListenerOldPeer,
-            new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, 900, 300, WalkedDirection));
-        positions.Place(
-            otherListenerNewPeer,
-            new CharacterPositionState(
-                CrossedTownId, CrossedAreaId, 950, 300, WalkedDirection));
-        var presence = Presence();
-        presence.Admit(new SessionPresence(
-            oldPeer.CharacterId,
-            oldPeer.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            oldPeer,
-            ChannelId: 10));
-        presence.Admit(new SessionPresence(
-            secondOldPeer.CharacterId,
-            secondOldPeer.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            secondOldPeer,
-            ChannelId: 10));
-        presence.Admit(new SessionPresence(
-            newPeer.CharacterId,
-            newPeer.ListenerPort,
-            CrossedTownId,
-            CrossedAreaId,
-            StandingInTown: true,
-            newPeer,
-            ChannelId: 10));
-        presence.Admit(new SessionPresence(
-            otherListenerOldPeer.CharacterId,
-            otherListenerOldPeer.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            otherListenerOldPeer,
-            ChannelId: 99));
-        presence.Admit(new SessionPresence(
-            otherListenerNewPeer.CharacterId,
-            otherListenerNewPeer.ListenerPort,
-            CrossedTownId,
-            CrossedAreaId,
-            StandingInTown: true,
-            otherListenerNewPeer,
-            ChannelId: 99));
-        var order = new List<string>();
-        var sender = new RecordingSender(order);
-        var notifications = new RecordingNotifications(order);
-        var partyProjection = new RecordingPartyTownProjectionDelivery(order);
-        var handler = new SetUserAreaHandler(
-            sessions,
-            currentViews,
-            positions,
-            presence,
-            new OneChannel(),
-            new EveryTownDeclared(),
-            new SelectedSessionTransitionGate(),
-            new TownAreaProjectionDelivery(
-                presence,
-                sessions,
-                currentViews,
-                notifications,
-                partyProjection,
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserAreaHandler>.Instance, new RecordingPersistence());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var oldPeer = PeerIdentity(61, "old");
+            var secondOldPeer = PeerIdentity(65, "old-second");
+            var newPeer = PeerIdentity(62, "new");
+            var otherListenerOldPeer = PeerIdentity(63, "old-other-listener", listenerPort: 10011);
+            var otherListenerNewPeer = PeerIdentity(64, "new-other-listener", listenerPort: 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
+            sessions.EnterWorldWithConnection(onlineState, Identity);
+            sessions.EnterWorldWithConnection(onlineState, oldPeer);
+            sessions.EnterWorldWithConnection(onlineState, secondOldPeer);
+            sessions.EnterWorldWithConnection(onlineState, newPeer);
+            sessions.EnterWorldWithConnection(onlineState, otherListenerOldPeer);
+            sessions.EnterWorldWithConnection(onlineState, otherListenerNewPeer);
+            var currentViews = new FixedCurrentViews();
+            currentViews.Publish(Identity, EntryFor(Identity, WalkedTownId, WalkedAreaId, WalkedX));
+            currentViews.Publish(oldPeer, EntryFor(oldPeer, WalkedTownId, WalkedAreaId, x: 700));
+            currentViews.Publish(secondOldPeer, EntryFor(secondOldPeer, WalkedTownId, WalkedAreaId, x: 750));
+            currentViews.Publish(newPeer, EntryFor(newPeer, CrossedTownId, CrossedAreaId, x: 800));
+            currentViews.Publish(otherListenerOldPeer,
+                EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900));
+            currentViews.Publish(otherListenerNewPeer,
+                EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950));
+            var positions = Standing();
+            positions.Begin(
+                oldPeer,
+                new CharacterPositionState(
+                    WalkedTownId, WalkedAreaId, 700, 300, WalkedDirection), 100);
+            positions.Begin(
+                secondOldPeer,
+                new CharacterPositionState(
+                    WalkedTownId, WalkedAreaId, 750, 300, WalkedDirection), 100);
+            positions.Begin(
+                newPeer,
+                new CharacterPositionState(
+                    CrossedTownId, CrossedAreaId, 800, 300, WalkedDirection), 100);
+            positions.Begin(
+                otherListenerOldPeer,
+                new CharacterPositionState(
+                    WalkedTownId, WalkedAreaId, 900, 300, WalkedDirection), 100);
+            positions.Begin(
+                otherListenerNewPeer,
+                new CharacterPositionState(
+                    CrossedTownId, CrossedAreaId, 950, 300, WalkedDirection), 100);
+            var presence = Presence();
+            presence.Admit(new SessionPresence(
+                oldPeer.CharacterId,
+                oldPeer.ListenerPort,
+                WalkedTownId,
+                WalkedAreaId,
+                StandingInTown: true,
+                oldPeer,
+                ChannelId: 10));
+            presence.Admit(new SessionPresence(
+                secondOldPeer.CharacterId,
+                secondOldPeer.ListenerPort,
+                WalkedTownId,
+                WalkedAreaId,
+                StandingInTown: true,
+                secondOldPeer,
+                ChannelId: 10));
+            presence.Admit(new SessionPresence(
+                newPeer.CharacterId,
+                newPeer.ListenerPort,
+                CrossedTownId,
+                CrossedAreaId,
+                StandingInTown: true,
+                newPeer,
+                ChannelId: 10));
+            presence.Admit(new SessionPresence(
+                otherListenerOldPeer.CharacterId,
+                otherListenerOldPeer.ListenerPort,
+                WalkedTownId,
+                WalkedAreaId,
+                StandingInTown: true,
+                otherListenerOldPeer,
+                ChannelId: 99));
+            presence.Admit(new SessionPresence(
+                otherListenerNewPeer.CharacterId,
+                otherListenerNewPeer.ListenerPort,
+                CrossedTownId,
+                CrossedAreaId,
+                StandingInTown: true,
+                otherListenerNewPeer,
+                ChannelId: 99));
+            var order = new List<string>();
+            var sender = new RecordingSender(order);
+            var notifications = new RecordingNotifications(order);
+            var partyProjection = new RecordingPartyTownProjectionDelivery(order);
+            // This observation starts at the town-transfer protocol stage. Business crossing
+            // remains covered through the real CMD in the other area-change cases above.
+            var previous = ((ITownAreaDomainService)presence).Find(Identity.CharacterId)!;
+            var moved = positions.CrossInto(Identity, CrossedTownId, CrossedAreaId, CrossedX, CrossedY);
+            await TownMovementProjection.TownTransferAsync(
+                sessions, presence, new global::Dfo.Server.Testing.TestCommandProjections(notifications), partyProjection,
+                currentViews, Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
+                new Dfo.Server.Testing.ProtocolAlgorithmFixture.Outbox(sender),
+                Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(),
+                Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, 10, moved, previous, true, CancellationToken.None);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new SetUserAreaRequest(
-                GameMessageMetadata.Empty, CrossedTownId, CrossedAreaId, CrossedX, CrossedY),
-            CancellationToken.None);
-
-        Assert.Collection(
-            notifications.Published,
-            item =>
-            {
-                Assert.Equal(
-                    [oldPeer.CharacterId],
-                    Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
-                        .Select(value => value.CharacterId));
-                var roster = Assert.IsType<TownAreaRosterReconciled>(item.Notification);
-                Assert.Equal(WalkedTownId, roster.TownId);
-                Assert.Equal(WalkedAreaId, roster.AreaId);
-                Assert.Equal(
-                    [oldPeer.WireUserId, secondOldPeer.WireUserId],
-                    roster.RemainingUsers.Select(user => user.WireUserId));
-            },
-            item =>
-            {
-                Assert.Equal(
-                    [secondOldPeer.CharacterId],
-                    Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
-                        .Select(value => value.CharacterId));
-                var roster = Assert.IsType<TownAreaRosterReconciled>(item.Notification);
-                Assert.Equal(WalkedTownId, roster.TownId);
-                Assert.Equal(WalkedAreaId, roster.AreaId);
-                Assert.Equal(
-                    [secondOldPeer.WireUserId, oldPeer.WireUserId],
-                    roster.RemainingUsers.Select(user => user.WireUserId));
-            },
-            item =>
-            {
-                Assert.Equal(
-                    [newPeer.CharacterId],
-                    Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
-                        .Select(value => value.CharacterId));
-                var published = Assert.IsType<TownParticipantPublished>(item.Notification);
-                Assert.Equal(Identity.CharacterId, published.State.Newcomer.Character.Identity.CharacterId);
-                Assert.Equal(
-                    newPeer.CharacterId,
-                    Assert.Single(published.State.ExistingCharacters).Character.Identity.CharacterId);
-            });
-        Assert.Collection(
-            sender.Sent,
-            message => Assert.IsType<UserAreaNotification>(message),
-            message => Assert.IsType<CurrentUserStateMessage>(message),
-            message => Assert.IsType<UserVisibilityMessage>(message),
-            message => Assert.IsType<UserAreaNotification>(message),
-            message => Assert.IsType<AreaUsersNotification>(message));
-        Assert.Equal(
-            [
-                "town-direct",
-                "notify:TownAreaRosterReconciled",
-                "notify:TownAreaRosterReconciled",
-                "notify:TownParticipantPublished",
-                "party:62<-60",
-                "party:60<-62",
-                "party-move:60@10:3:6",
-            ],
-            order);
+            Assert.Collection(
+                notifications.Published,
+                item =>
+                {
+                    Assert.Equal(
+                        [oldPeer.CharacterId],
+                        Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
+                            .Select(value => value.CharacterId));
+                    var roster = Assert.IsType<TownAreaRosterReconciled>(item.Notification);
+                    Assert.Equal(WalkedTownId, roster.TownId);
+                    Assert.Equal(WalkedAreaId, roster.AreaId);
+                    Assert.Equal(
+                        [oldPeer.WireUserId, secondOldPeer.WireUserId],
+                        roster.RemainingUsers.Select(user => user.WireUserId));
+                },
+                item =>
+                {
+                    Assert.Equal(
+                        [secondOldPeer.CharacterId],
+                        Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
+                            .Select(value => value.CharacterId));
+                    var roster = Assert.IsType<TownAreaRosterReconciled>(item.Notification);
+                    Assert.Equal(WalkedTownId, roster.TownId);
+                    Assert.Equal(WalkedAreaId, roster.AreaId);
+                    Assert.Equal(
+                        [secondOldPeer.WireUserId, oldPeer.WireUserId],
+                        roster.RemainingUsers.Select(user => user.WireUserId));
+                },
+                item =>
+                {
+                    Assert.Equal(
+                        [newPeer.CharacterId],
+                        Assert.IsType<NotificationAudience.TheseSessions>(item.Audience).Sessions
+                            .Select(value => value.CharacterId));
+                    var published = Assert.IsType<TownParticipantPublished>(item.Notification);
+                    Assert.Equal(Identity.CharacterId, published.State.Newcomer.Character.Identity.CharacterId);
+                    Assert.Equal(
+                        newPeer.CharacterId,
+                        Assert.Single(published.State.ExistingCharacters).Character.Identity.CharacterId);
+                });
+            Assert.Collection(
+                sender.Sent,
+                message => Assert.IsType<UserAreaNotification>(message),
+                message => Assert.IsType<CurrentUserStateMessage>(message),
+                message => Assert.IsType<UserVisibilityMessage>(message),
+                message => Assert.IsType<UserAreaNotification>(message),
+                message => Assert.IsType<AreaUsersNotification>(message));
+            Assert.Equal(
+                [
+                    "town-direct",
+                    "notify:TownAreaRosterReconciled",
+                    "notify:TownAreaRosterReconciled",
+                    "notify:TownParticipantPublished",
+                    "party:62",
+                    "party:60",
+                    "party-move:60@10:3:6",
+                ],
+                order);
+        });
     }
 
     /// <summary>
@@ -411,156 +340,164 @@ public sealed class TownProjectionHandlerTests
     [Fact]
     public async Task A_step_moves_the_character_the_service_owns()
     {
-        var positions = Standing();
-        var presence = Presence();
-        var sender = new RecordingSender();
-        var notifications = new RecordingNotifications();
-        var sessions = new OneSession(Identity);
-        var runtimes = new OneRuntimeSession(Entry());
-        var handler = new SetUserPositionHandler(
-            sessions,
-            runtimes,
-            positions,
-            presence,
-            new TownAreaProjectionDelivery(
-                presence,
+        await TestGameplay.RunAsync(async () =>
+        {
+            var positions = Standing();
+            var presence = Presence();
+            var sender = new RecordingSender();
+            var notifications = new RecordingNotifications();
+            var sessions = new OneSession(Identity);
+            var runtimes = new OneRuntimeSession(Entry());
+            var handler = TownMovementTestDriver.Position(
                 sessions,
-                runtimes,
-                notifications,
-                new NoopPartyTownProjectionDelivery(),
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserPositionHandler>.Instance);
+                positions,
+                presence,
+                new TownMovementTestDriver.ProjectionInput(
+                    presence,
+                    sessions,
+                    runtimes,
+                    notifications,
+                    new NoopPartyTownProjectionDelivery(),
+                    sender,
+                    new EveryTownDeclared()),
+                NullLogger<SetUserPositionHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new SetUserPositionRequest(
-                GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new SetUserPositionRequest(
+                    GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
+                CancellationToken.None);
 
-        Assert.Equal(
-            new CharacterPositionState(
-                WalkedTownId, WalkedAreaId, SteppedX, SteppedY, SteppedDirection),
-            positions.Find(Identity.CharacterId));
+            Assert.Equal(
+                new CharacterPositionState(
+                    WalkedTownId, WalkedAreaId, SteppedX, SteppedY, SteppedDirection),
+                positions.PositionOf(Identity.CharacterId));
 
-        var answer = Assert.IsType<UserPositionNotification>(Assert.Single(sender.Sent));
-        Assert.Equal(SteppedX, answer.X);
-        Assert.Equal(SteppedY, answer.Y);
-        Assert.Equal(SteppedDirection, answer.Direction);
-        Assert.Equal(Trailer, answer.Trailer);
+            var answer = Assert.IsType<UserPositionNotification>(Assert.Single(sender.Sent));
+            Assert.Equal(SteppedX, answer.X);
+            Assert.Equal(SteppedY, answer.Y);
+            Assert.Equal(SteppedDirection, answer.Direction);
+            Assert.Equal(Trailer, answer.Trailer);
+        });
     }
 
     [Fact]
     public async Task A_step_is_published_to_the_other_characters_in_the_area()
     {
-        var positions = Standing();
-        var presence = Presence();
-        var peer = PeerIdentity(61, "peer");
-        var otherListenerPeer = PeerIdentity(62, "other-listener", listenerPort: 10011);
-        presence.Admit(new SessionPresence(
-            peer.CharacterId,
-            peer.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            peer,
-            ChannelId: 10));
-        presence.Admit(new SessionPresence(
-            otherListenerPeer.CharacterId,
-            otherListenerPeer.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            otherListenerPeer,
-            ChannelId: 99));
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(Identity);
-        sessions.Select(peer);
-        sessions.Select(otherListenerPeer);
-        var notifications = new RecordingNotifications();
-        var sender = new RecordingSender();
-        var runtimes = new OneRuntimeSession(Entry());
-        var handler = new SetUserPositionHandler(
-            sessions,
-            runtimes,
-            positions,
-            presence,
-            new TownAreaProjectionDelivery(
-                presence,
+        await TestGameplay.RunAsync(async () =>
+        {
+            var positions = Standing();
+            var presence = Presence();
+            var peer = PeerIdentity(61, "peer");
+            var otherListenerPeer = PeerIdentity(62, "other-listener", listenerPort: 10011);
+            presence.Admit(new SessionPresence(
+                peer.CharacterId,
+                peer.ListenerPort,
+                WalkedTownId,
+                WalkedAreaId,
+                StandingInTown: true,
+                peer,
+                ChannelId: 10));
+            presence.Admit(new SessionPresence(
+                otherListenerPeer.CharacterId,
+                otherListenerPeer.ListenerPort,
+                WalkedTownId,
+                WalkedAreaId,
+                StandingInTown: true,
+                otherListenerPeer,
+                ChannelId: 99));
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
+            sessions.EnterWorldWithConnection(onlineState, Identity);
+            sessions.EnterWorldWithConnection(onlineState, peer);
+            sessions.EnterWorldWithConnection(onlineState, otherListenerPeer);
+            var notifications = new RecordingNotifications();
+            var sender = new RecordingSender();
+            var runtimes = new OneRuntimeSession(Entry());
+            var handler = TownMovementTestDriver.Position(
                 sessions,
-                runtimes,
-                notifications,
-                new NoopPartyTownProjectionDelivery(),
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserPositionHandler>.Instance);
+                positions,
+                presence,
+                new TownMovementTestDriver.ProjectionInput(
+                    presence,
+                    sessions,
+                    runtimes,
+                    notifications,
+                    new NoopPartyTownProjectionDelivery(),
+                    sender,
+                    new EveryTownDeclared()),
+                NullLogger<SetUserPositionHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new SetUserPositionRequest(
-                GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new SetUserPositionRequest(
+                    GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
+                CancellationToken.None);
 
-        var (audience, notification) = Assert.Single(notifications.Published);
-        Assert.Equal(
-            [new CharacterId(61)],
-            Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
-                .Select(value => value.CharacterId));
-        var changed = Assert.IsType<TownPositionChanged>(notification);
-        Assert.Equal(Identity.WireUserId, changed.WireUserId);
-        Assert.Equal(SteppedX, changed.X);
-        Assert.Equal(SteppedY, changed.Y);
-        Assert.Equal(SteppedDirection, changed.Direction);
+            var (audience, notification) = Assert.Single(notifications.Published);
+            Assert.Equal(
+                [new CharacterId(61)],
+                Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions
+                    .Select(value => value.CharacterId));
+            var changed = Assert.IsType<TownPositionChanged>(notification);
+            Assert.Equal(Identity.WireUserId, changed.WireUserId);
+            Assert.Equal(SteppedX, changed.X);
+            Assert.Equal(SteppedY, changed.Y);
+            Assert.Equal(SteppedDirection, changed.Direction);
+        });
     }
 
     [Fact]
     public async Task A_step_does_not_follow_a_stale_presence_to_a_replacement_listener()
     {
-        var positions = Standing();
-        var presence = Presence();
-        var oldPeer = PeerIdentity(61, "peer-old");
-        presence.Admit(new SessionPresence(
-            oldPeer.CharacterId,
-            oldPeer.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            oldPeer,
-            ChannelId: 10));
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(Identity);
-        sessions.Select(oldPeer);
-        _ = sessions.Select(oldPeer with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("peer-replacement"),
-            ConnectionGeneration = 2,
-            ListenerPort = 10011,
-        });
-        var notifications = new RecordingNotifications();
-        var sender = new RecordingSender();
-        var runtimes = new OneRuntimeSession(Entry());
-        var handler = new SetUserPositionHandler(
-            sessions,
-            runtimes,
-            positions,
-            presence,
-            new TownAreaProjectionDelivery(
-                presence,
+            var positions = Standing();
+            var presence = Presence();
+            // An area lease is the connection generation alone, and two connections can stand at the
+            // same generation; the stale record keeps an earlier one so that only the session decides.
+            var oldPeer = PeerIdentity(61, "peer-old") with { ConnectionGeneration = 1 };
+            presence.Admit(new SessionPresence(
+                oldPeer.CharacterId,
+                oldPeer.ListenerPort,
+                WalkedTownId,
+                WalkedAreaId,
+                StandingInTown: true,
+                oldPeer,
+                ChannelId: 10));
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var onlineState);
+            sessions.EnterWorldWithConnection(onlineState, Identity);
+            sessions.Select(oldPeer);
+            sessions.EnterWorldWithConnection(onlineState, oldPeer with
+            {
+                ConnectionId = new NetworkConnectionId("peer-replacement"),
+                ConnectionGeneration = 2,
+                ListenerPort = 10011,
+            });
+            var notifications = new RecordingNotifications();
+            var sender = new RecordingSender();
+            var runtimes = new OneRuntimeSession(Entry());
+            var handler = TownMovementTestDriver.Position(
                 sessions,
-                runtimes,
-                notifications,
-                new NoopPartyTownProjectionDelivery(),
-                sender,
-                new EveryTownDeclared()),
-            NullLogger<SetUserPositionHandler>.Instance);
+                positions,
+                presence,
+                new TownMovementTestDriver.ProjectionInput(
+                    presence,
+                    sessions,
+                    runtimes,
+                    notifications,
+                    new NoopPartyTownProjectionDelivery(),
+                    sender,
+                    new EveryTownDeclared()),
+                NullLogger<SetUserPositionHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new SetUserPositionRequest(
-                GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new SetUserPositionRequest(
+                    GameMessageMetadata.Empty, SteppedX, SteppedY, SteppedDirection, Trailer),
+                CancellationToken.None);
 
-        Assert.Empty(notifications.Published);
+            Assert.Empty(notifications.Published);
+        });
     }
 
     /// <summary>Where entry placed them, which is the copy the session snapshot keeps.</summary>
@@ -600,13 +537,13 @@ public sealed class TownProjectionHandlerTests
     /// the position gets there in production: entry places it once and every later frame reports a
     /// move. It is also what leaves the snapshot behind -- the copy entry took is never revisited.
     /// </remarks>
-    private static CharacterPositionDomainService Standing()
+    private static OnlineCharacterRuntimeDomainService Standing()
     {
-        var positions = new CharacterPositionDomainService();
-        positions.Place(
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        positions.Begin(
             Identity,
             new CharacterPositionState(
-                PlacedTownId, PlacedAreaId, PlacedX, PlacedY, PlacedDirection));
+                PlacedTownId, PlacedAreaId, PlacedX, PlacedY, PlacedDirection), 100);
         positions.CrossInto(Identity, WalkedTownId, WalkedAreaId, 500, 400);
         positions.StepTo(Identity, WalkedX, WalkedY, WalkedDirection);
         return positions;
@@ -688,11 +625,13 @@ public sealed class TownProjectionHandlerTests
         new(new NetworkConnectionContext(
             new NetworkConnectionId("one"), NetworkEndpointKind.Game, 10010));
 
+    // The generation a connection is at once registered and authenticated, so that the session
+    // can enter the world on it.
     private static SelectedSessionIdentity Identity { get; } = SelectedSessionIdentity.Create(
         new AccountId(1),
         new CharacterId(60),
         new NetworkConnectionId("one"),
-        connectionGeneration: 1,
+        connectionGeneration: 2,
         listenerPort: 10010);
 
     private static SelectedSessionIdentity PeerIdentity(
@@ -703,11 +642,58 @@ public sealed class TownProjectionHandlerTests
             new AccountId(characterId),
             new CharacterId(characterId),
             new NetworkConnectionId(connection),
-            connectionGeneration: 1,
+            connectionGeneration: 2,
             listenerPort);
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
@@ -759,7 +745,7 @@ public sealed class TownProjectionHandlerTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
-    private sealed class RecordingPersistence : ISelectedSessionPositionPersistence
+    private sealed class RecordingPersistence : ISelectedSessionPositionPersistence, ICharacterLocationDomainService
     {
         public CharacterPositionState? Saved { get; private set; }
         public bool Refuse { get; init; }
@@ -771,12 +757,14 @@ public sealed class TownProjectionHandlerTests
         }
     }
 
-    private sealed class OneChannel(bool transient = false) : IChannelEntryPolicy
+    private sealed class OneChannel(bool transient = false) : IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(
                 new ChannelEntryIdentity(10, listenerPort, transient ? ChannelEntryKind.SaintHorn : ChannelEntryKind.General));
+
+        public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
 
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) =>
             throw new NotSupportedException("Crossing an area does not re-admit anyone.");
@@ -798,31 +786,42 @@ public sealed class TownProjectionHandlerTests
             ValueTask.FromResult(areaId != 0);
     }
 
-    private sealed class RecordingSender(List<string>? order = null) : IGameMessageSender
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox (an explicit delivery with its direct messages
+    /// only, as before); every call goes to the real protocol sender over it, and an explicit delivery notes its place
+    /// in <c>order</c> at its registration point (TASK-25). A CMD fails there, with the exception the old double threw.
+    /// </summary>
+    private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        private readonly List<string>? order;
+
+        public RecordingSender(List<string>? order = null)
+        {
+            this.order = order;
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("Neither command answers on the CMD side."));
+        }
+
+        public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId, IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Neither command answers on the CMD side.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
-        public ValueTask SendExplicitAsync(
+        public async ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
+            await outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
             order?.Add("town-direct");
-            return ValueTask.CompletedTask;
         }
     }
 
@@ -839,7 +838,7 @@ public sealed class TownProjectionHandlerTests
             order?.Add($"notify:{notification.GetType().Name}");
             var attempts = audience is NotificationAudience.TheseSessions exact
                 ? exact.Sessions.Select(session =>
-                    new NotificationAttempt(session.CharacterId, NotificationOutcome.Delivered))
+                    new NotificationAttempt(session.CharacterId, NotificationOutcome.Registered))
                     .ToArray()
                 : [];
             return ValueTask.FromResult(new NotificationDelivery(attempts));
@@ -862,12 +861,10 @@ public sealed class TownProjectionHandlerTests
 
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken)
         {
             order.Add(
-                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}"
-                + $"<-{string.Join(',', representedSessions.Select(value => value.CharacterId.Value))}");
+                $"party:{string.Join(',', recipients.Select(value => value.CharacterId.Value))}");
             return ValueTask.CompletedTask;
         }
     }
@@ -881,7 +878,6 @@ public sealed class TownProjectionHandlerTests
 
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }

@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.MonsterDeath;
 
 namespace Dfo.Server.Protocol.Game.Dungeons;
 
@@ -15,16 +15,16 @@ namespace Dfo.Server.Protocol.Game.Dungeons;
 /// Every consumer must compare an entry with the selected-session directory immediately before
 /// delivery, so a replacement connection never inherits an older run's traffic.
 /// </remarks>
-public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDepartureSink
+public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDepartureSink, Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService
 {
     private readonly object gate = new();
     private readonly Dictionary<DungeonRunId, ImmutableArray<SelectedSessionIdentity>> entries = [];
-    private readonly Dictionary<KillProjectionKey, ApplyMonsterKillResult> killResults = [];
 
     public void Register(
         DungeonRunId runId,
         IReadOnlyList<SelectedSessionIdentity> participants)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(Register));
         if (runId == default)
             throw new ArgumentException("A delivery registration requires a run identifier.", nameof(runId));
         ArgumentNullException.ThrowIfNull(participants);
@@ -51,6 +51,7 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
 
     public bool RemoveParticipant(DungeonRunId runId, CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(RemoveParticipant));
         lock (gate)
         {
             if (!entries.TryGetValue(runId, out var participants))
@@ -59,75 +60,16 @@ public sealed class DungeonRunDeliveryRegistry : IDungeonRunParticipantDeparture
             var remaining = participants.RemoveAll(value => value.CharacterId == characterId);
             if (remaining.Length == participants.Length)
                 return false;
-            if (remaining.IsEmpty)
-            {
-                entries.Remove(runId);
-                foreach (var key in killResults.Keys.Where(key => key.RunId == runId).ToArray())
-                    killResults.Remove(key);
-            }
-            else
-            {
-                entries[runId] = remaining;
-                foreach (var key in killResults.Keys
-                             .Where(key => key.RunId == runId && key.CharacterId == characterId)
-                             .ToArray())
-                {
-                    killResults.Remove(key);
-                }
-            }
+            if (remaining.IsEmpty) entries.Remove(runId);
+            else entries[runId] = remaining;
             return true;
         }
     }
 
-    public void RecordKillResult(
-        DungeonRunId runId,
-        RoomActorId actor,
-        CharacterId characterId,
-        ApplyMonsterKillResult result)
+    public void ParticipantDeparted(DungeonRunId runId, CharacterId characterId)
     {
-        ArgumentNullException.ThrowIfNull(result);
-        lock (gate)
-        {
-            if (entries.TryGetValue(runId, out var participants)
-                && participants.Any(value => value.CharacterId == characterId))
-            {
-                killResults[new KillProjectionKey(runId, actor, characterId)] = result;
-            }
-        }
-    }
-
-    public ApplyMonsterKillResult? FindKillResult(
-        DungeonRunId runId,
-        RoomActorId actor,
-        CharacterId characterId)
-    {
-        lock (gate)
-        {
-            return killResults.TryGetValue(
-                new KillProjectionKey(runId, actor, characterId), out var result)
-                    ? result
-                    : null;
-        }
-    }
-
-    public void CompleteKillDelivery(DungeonRunId runId, RoomActorId actor)
-    {
-        lock (gate)
-        {
-            foreach (var key in killResults.Keys
-                         .Where(key => key.RunId == runId && key.Actor == actor)
-                         .ToArray())
-            {
-                killResults.Remove(key);
-            }
-        }
-    }
-
-    public void ParticipantDeparted(DungeonRunId runId, CharacterId characterId) =>
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDeliveryRegistry) + "." + nameof(ParticipantDeparted));
         RemoveParticipant(runId, characterId);
+    }
 
-    private readonly record struct KillProjectionKey(
-        DungeonRunId RunId,
-        RoomActorId Actor,
-        CharacterId CharacterId);
 }

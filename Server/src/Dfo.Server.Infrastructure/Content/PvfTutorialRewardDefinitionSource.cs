@@ -14,7 +14,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// identifier, count. A flag may appear more than once to give several items; in the archive
 /// shipped here the whole table is one triple, <c>38 8474 1</c>.
 /// </remarks>
-internal sealed class PvfTutorialRewardDefinitionSource : ITutorialRewardDefinitionSource
+internal sealed class PvfTutorialRewardDefinitionSource : ITutorialRewardDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -28,6 +28,24 @@ internal sealed class PvfTutorialRewardDefinitionSource : ITutorialRewardDefinit
     private readonly Lock _gate = new();
     private IReadOnlyDictionary<uint, IReadOnlyList<TutorialRewardItem>>? _table;
 
+    public string Name => "tutorial-rewards";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            TableIndex();
+            return ValueTask.FromResult(_table.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_table))]
+    private void TableIndex()
+    {
+        _table ??= Read(_provider.Archive);
+    }
+
     public PvfTutorialRewardDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
 
     public ValueTask<IReadOnlyList<TutorialRewardItem>> GetAsync(
@@ -37,7 +55,7 @@ internal sealed class PvfTutorialRewardDefinitionSource : ITutorialRewardDefinit
         cancellationToken.ThrowIfCancellationRequested();
         lock (_gate)
         {
-            _table ??= Read(_provider.Archive);
+            TableIndex();
             return ValueTask.FromResult(
                 _table.TryGetValue(tutorialFlag, out var items) ? items : []);
         }

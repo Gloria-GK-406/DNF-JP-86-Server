@@ -19,12 +19,11 @@ internal sealed class OtherCharacterDetailQueryDomainService(
         if (targetWireUserId == ushort.MaxValue)
             return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.InvalidTarget);
 
-        if (sessions.FindByConnection(requester.ConnectionId) != requester)
+        if (!sessions.IsInWorld(requester))
             return CharacterDetailQueryResult.Reject(
                 CharacterDetailQueryFailure.RequesterNotCurrent);
 
-        var target = sessions.FindByWireUserId(targetWireUserId);
-        if (target is null || sessions.FindByCharacter(target.CharacterId) != target)
+        if (!sessions.TryGetInWorld(targetWireUserId, out var target))
             return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.TargetNotCurrent);
         if (target.ListenerPort != requester.ListenerPort)
             return CharacterDetailQueryResult.Reject(CharacterDetailQueryFailure.DifferentListener);
@@ -37,11 +36,10 @@ internal sealed class OtherCharacterDetailQueryDomainService(
 
         // Revalidate after reading the independently synchronized runtime directory. Either
         // generation can have been displaced between the first lookup and that snapshot read.
-        if (sessions.FindByConnection(requester.ConnectionId) != requester)
+        if (!sessions.IsInWorld(requester))
             return CharacterDetailQueryResult.Reject(
                 CharacterDetailQueryFailure.RequesterNotCurrent);
-        if (sessions.FindByWireUserId(targetWireUserId) != target
-            || sessions.FindByCharacter(target.CharacterId) != target)
+        if (!sessions.IsInWorld(target))
         {
             return CharacterDetailQueryResult.Reject(
                 CharacterDetailQueryFailure.TargetNotCurrent);

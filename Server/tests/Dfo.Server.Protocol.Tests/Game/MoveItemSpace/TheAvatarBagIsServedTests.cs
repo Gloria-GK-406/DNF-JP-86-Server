@@ -7,6 +7,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -363,15 +364,18 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             worn.Seed(slot, wornIsOrdinary ? OrdinaryTemplate
                 : wornIsOtherCostume ? OtherCostumeTemplate : CostumeTemplate);
 
-        containers.Register(character, bag);
-        containers.Register(character, avatars);
-        containers.Register(character, worn);
-        containers.Register(character, pet);
+        TestGameplay.Run(() =>
+        {
+            containers.Register(character, bag);
+            containers.Register(character, avatars);
+            containers.Register(character, worn);
+            containers.Register(character, pet);
+        });
 
         var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
-            new MoveItemSpaceCommandHandler(
+            new InventoryMoveDomainService(
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
@@ -381,7 +385,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
 
     private sealed record Side(
         CharacterContainerDomainService Containers,
-        MoveItemSpaceCommandHandler Handler,
+        InventoryMoveDomainService Handler,
         CharacterId Character, MoveItemFixture Fixture)
     {
         public RecordingContainer Container(InventoryContainerType type) =>
@@ -392,13 +396,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             short sourceSlot,
             InventoryContainerType destination,
             short destinationSlot) =>
-            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.Empty,
-                    typeof(MoveItemSpaceCommand),
-                    typeof(Side),
-                    CommandExecutionKind.Transactional),
-                new MoveItemSpaceCommand(
+            this.Fixture.RunAsync(() => this.Handler.MoveAsync(
+                new InventoryMoveRequest(
                     this.Character,
                     ToBusinessSlot(source, sourceSlot), 1,
                     ToBusinessSlot(destination, destinationSlot)),
@@ -407,13 +406,8 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         public ValueTask<ItemMoveResult> MoveBusinessAsync(
             BusinessSlot source,
             BusinessSlot destination) =>
-            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.Empty,
-                    typeof(MoveItemSpaceCommand),
-                    typeof(Side),
-                    CommandExecutionKind.Transactional),
-                new MoveItemSpaceCommand(this.Character, source, 1, destination),
+            this.Fixture.RunAsync(() => this.Handler.MoveAsync(
+                new InventoryMoveRequest(this.Character, source, 1, destination),
                 CancellationToken.None));
 
         private static BusinessSlot ToBusinessSlot(

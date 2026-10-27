@@ -13,6 +13,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// arithmetic and not on the reading. What holds the transcription honest is
 /// <c>PvfDropRateTableSourceTests</c>.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class DropRulesTests
 {
     private const int Basis = 10000;
@@ -246,6 +247,7 @@ public sealed class DropRulesTests
 /// It is not the game's generator and cannot be checked against one. What is required of it is
 /// only what these assert.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class DropRandomTests
 {
     private static IReadOnlyList<int> Sequence(ulong seed, int count = 24)
@@ -308,6 +310,7 @@ public sealed class DropRandomTests
 }
 
 /// <summary>The compensation seam, in the phase where it compensates nothing.</summary>
+[Trait("Category", "Unit")]
 public sealed class DropRateAdjusterTests
 {
     /// <summary>

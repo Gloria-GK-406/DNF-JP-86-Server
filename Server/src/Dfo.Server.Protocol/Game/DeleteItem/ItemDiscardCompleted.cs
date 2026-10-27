@@ -26,7 +26,7 @@ public sealed class ItemDiscardCompletedHandler(
         var receipt = notification.Receipt;
         if (recipient.CharacterId != receipt.Session.CharacterId
             || recipient.ConnectionId != receipt.Session.ConnectionId
-            || sessions.Find(receipt.Session.AccountId) != receipt.Session)
+            || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
 
         // The A21 client applies this deletion from the success acknowledgement; never replay it.

@@ -1,0 +1,920 @@
+{
+  "steadyRate": 399.85,
+  "composition": {
+    "SET_USER_POSITION": 20292,
+    "CHECK_USER_CONNECTION": 26838,
+    "EPLP": 35,
+    "STEP_FENCE": 568,
+    "LEAVE_PARTY": 37,
+    "REQUEST_PEER": 36,
+    "RESPONSE_PEER": 36,
+    "ENTER_SELECT_DUNGEON": 35,
+    "SELECT_DUNGEON": 35,
+    "FINISH_LOADING": 70
+  },
+  "steady": {
+    "CHECK_USER_CONNECTION": {
+      "distribution": {
+        "Count": 26838,
+        "P50": 0.1807,
+        "P95": 0.378,
+        "P99": 0.7216,
+        "P999": 3.3675,
+        "Max": 10.1435
+      },
+      "noReply": 0
+    },
+    "SET_USER_POSITION": {
+      "distribution": {
+        "Count": 20292,
+        "P50": 0.2049,
+        "P95": 0.5265,
+        "P99": 1.2754,
+        "P999": 26.9868,
+        "Max": 38.0209
+      },
+      "noReply": 0
+    },
+    "FINISH_LOADING": {
+      "distribution": {
+        "Count": 70,
+        "P50": 0.1328,
+        "P95": 0.2145,
+        "P99": 0.7685,
+        "P999": 0.7685,
+        "Max": 0.7685
+      },
+      "noReply": 0
+    },
+    "LEAVE_PARTY": {
+      "distribution": {
+        "Count": 37,
+        "P50": 0.8365,
+        "P95": 1.4076,
+        "P99": 1.4701,
+        "P999": 1.4701,
+        "Max": 1.4701
+      },
+      "noReply": 0
+    },
+    "REQUEST_PEER": {
+      "distribution": {
+        "Count": 0,
+        "P50": "NaN",
+        "P95": "NaN",
+        "P99": "NaN",
+        "P999": "NaN",
+        "Max": "NaN"
+      },
+      "noReply": 36
+    },
+    "RESPONSE_PEER": {
+      "distribution": {
+        "Count": 36,
+        "P50": 0.3838,
+        "P95": 0.6922,
+        "P99": 0.6966,
+        "P999": 0.6966,
+        "Max": 0.6966
+      },
+      "noReply": 0
+    },
+    "EPLP": {
+      "distribution": {
+        "Count": 35,
+        "P50": 18.6792,
+        "P95": 23.0723,
+        "P99": 24.091,
+        "P999": 24.091,
+        "Max": 24.091
+      },
+      "noReply": 0
+    },
+    "ENTER_SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 35,
+        "P50": 32.5917,
+        "P95": 39.4348,
+        "P99": 47.246,
+        "P999": 47.246,
+        "Max": 47.246
+      },
+      "noReply": 0
+    },
+    "SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 35,
+        "P50": 15.515,
+        "P95": 287.2691,
+        "P99": 518.073,
+        "P999": 518.073,
+        "Max": 518.073
+      },
+      "noReply": 0
+    }
+  },
+  "steadyOverall": {
+    "Count": 47378,
+    "P50": 0.1905,
+    "P95": 0.4601,
+    "P99": 1.0292,
+    "P999": 27.8856,
+    "Max": 518.073
+  },
+  "commands": {
+    "RegisterAccountCommand": {
+      "Count": 81,
+      "P50": 279.8171,
+      "P95": 659.5517,
+      "P99": 671.4655,
+      "P999": 671.4655,
+      "Max": 671.4655
+    },
+    "AuthenticateAndIssueTicketCommand": {
+      "Count": 81,
+      "P50": 635.599,
+      "P95": 639.5059,
+      "P99": 640.1957,
+      "P999": 640.1957,
+      "Max": 640.1957
+    },
+    "RedeemGameLoginCommand": {
+      "Count": 81,
+      "P50": 189.5078,
+      "P95": 571.404,
+      "P99": 575.7391,
+      "P999": 575.7391,
+      "Max": 575.7391
+    },
+    "ActivateClientHotkeyProfileCommand": {
+      "Count": 102,
+      "P50": 0.0135,
+      "P95": 0.0586,
+      "P99": 0.1503,
+      "P999": 5.1606,
+      "Max": 5.1606
+    },
+    "CreateCharacterCommand": {
+      "Count": 21,
+      "P50": 1.3326,
+      "P95": 2.1786,
+      "P99": 73.943,
+      "P999": 73.943,
+      "Max": 73.943
+    },
+    "GetAccountCharacterRosterCommand": {
+      "Count": 21,
+      "P50": 0.3037,
+      "P95": 0.5705,
+      "P99": 5.7948,
+      "P999": 5.7948,
+      "Max": 5.7948
+    },
+    "PrepareSelectedCharacterSessionCommand": {
+      "Count": 21,
+      "P50": 0.4943,
+      "P95": 2.1496,
+      "P99": 40.6343,
+      "P999": 40.6343,
+      "Max": 40.6343
+    },
+    "CleanupExpiredCharacterItemsCommand": {
+      "Count": 21,
+      "P50": 0.4852,
+      "P95": 3.4782,
+      "P99": 7.1548,
+      "P999": 7.1548,
+      "Max": 7.1548
+    },
+    "EnsureDailyContractPuppetsCommand": {
+      "Count": 21,
+      "P50": 0.4247,
+      "P95": 1.9894,
+      "P99": 3.7402,
+      "P999": 3.7402,
+      "Max": 3.7402
+    },
+    "InitializeHousingCommand": {
+      "Count": 21,
+      "P50": 0.3247,
+      "P95": 0.4666,
+      "P99": 0.739,
+      "P999": 0.739,
+      "Max": 0.739
+    },
+    "PrepareSelectedCharacterStateCommand": {
+      "Count": 21,
+      "P50": 3.3703,
+      "P95": 19.3207,
+      "P99": 497.2139,
+      "P999": 497.2139,
+      "Max": 497.2139
+    },
+    "ApplySelectedCharacterDailyRefillCommand": {
+      "Count": 21,
+      "P50": 21.8116,
+      "P95": 36.1706,
+      "P99": 44.3126,
+      "P999": 44.3126,
+      "Max": 44.3126
+    },
+    "PublishSelectedCharacterSessionCommand": {
+      "Count": 21,
+      "P50": 0.0361,
+      "P95": 0.2527,
+      "P99": 4.0775,
+      "P999": 4.0775,
+      "Max": 4.0775
+    },
+    "RefillOnlineTauTicketCommand": {
+      "Count": 21,
+      "P50": 14.9027,
+      "P95": 34.8893,
+      "P99": 36.9193,
+      "P999": 36.9193,
+      "Max": 36.9193
+    },
+    "RefillOnlineSouthernTicketCommand": {
+      "Count": 21,
+      "P50": 15.2436,
+      "P95": 30.9908,
+      "P99": 39.1159,
+      "P999": 39.1159,
+      "Max": 39.1159
+    },
+    "RefillOnlineBossTowerTicketCommand": {
+      "Count": 21,
+      "P50": 18.5363,
+      "P95": 39.1107,
+      "P99": 40.6324,
+      "P999": 40.6324,
+      "Max": 40.6324
+    },
+    "SynchronizeSelectedCharacterQuestsCommand": {
+      "Count": 21,
+      "P50": 0.7258,
+      "P95": 2.8816,
+      "P99": 3.5247,
+      "P999": 3.5247,
+      "Max": 3.5247
+    },
+    "ReviveSelectedCharacterPetCommand": {
+      "Count": 21,
+      "P50": 0.5877,
+      "P95": 1.5093,
+      "P99": 2.0466,
+      "P999": 2.0466,
+      "Max": 2.0466
+    },
+    "ReadItemUsageSnapshotCommand": {
+      "Count": 42,
+      "P50": 0.054,
+      "P95": 0.1133,
+      "P99": 3.416,
+      "P999": 3.416,
+      "Max": 3.416
+    },
+    "AdvanceCreatureClockCommand": {
+      "Count": 337,
+      "P50": 0.1576,
+      "P95": 0.755,
+      "P99": 41.1605,
+      "P999": 348.596,
+      "Max": 348.596
+    },
+    "RequestPartyInviteCommand": {
+      "Count": 82,
+      "P50": 1.9876,
+      "P95": 3.0313,
+      "P99": 5.1712,
+      "P999": 5.1712,
+      "Max": 5.1712
+    },
+    "AcceptPartyInviteCommand": {
+      "Count": 82,
+      "P50": 0.038,
+      "P95": 0.4108,
+      "P99": 5.8075,
+      "P999": 5.8075,
+      "Max": 5.8075
+    },
+    "ExpireCharacterNameTagCommand": {
+      "Count": 105,
+      "P50": 0.0263,
+      "P95": 0.2657,
+      "P99": 1.4451,
+      "P999": 9.4552,
+      "Max": 9.4552
+    },
+    "EnterDungeonCommand": {
+      "Count": 80,
+      "P50": 9.0017,
+      "P95": 73.9818,
+      "P99": 639.3682,
+      "P999": 639.3682,
+      "Max": 639.3682
+    },
+    "MarkDungeonParticipantReadyCommand": {
+      "Count": 160,
+      "P50": 0.0116,
+      "P95": 0.0204,
+      "P99": 0.2773,
+      "P999": 0.6495,
+      "Max": 0.6495
+    },
+    "LeaveDungeonCommand": {
+      "Count": 78,
+      "P50": 1.7761,
+      "P95": 2.8581,
+      "P99": 21.6515,
+      "P999": 21.6515,
+      "Max": 21.6515
+    },
+    "LeavePartyCommand": {
+      "Count": 78,
+      "P50": 0.0479,
+      "P95": 0.1162,
+      "P99": 5.2184,
+      "P999": 5.2184,
+      "Max": 5.2184
+    },
+    "AdvanceWeaknessRecoveryCommand": {
+      "Count": 4,
+      "P50": 0.1731,
+      "P95": 2.9059,
+      "P99": 2.9059,
+      "P999": 2.9059,
+      "Max": 2.9059
+    },
+    "ReadPremiumSnapshotCommand": {
+      "Count": 84,
+      "P50": 0.0566,
+      "P95": 0.1612,
+      "P99": 0.8174,
+      "P999": 0.8174,
+      "Max": 0.8174
+    }
+  },
+  "commandWarnings": [
+    {
+      "Name": "RegisterAccountCommand",
+      "Distribution": {
+        "Count": 81,
+        "P50": 279.8171,
+        "P95": 659.5517,
+        "P99": 671.4655,
+        "P999": 671.4655,
+        "Max": 671.4655
+      },
+      "ColdMax": 75.9399,
+      "WarmMax": 671.4655
+    },
+    {
+      "Name": "AuthenticateAndIssueTicketCommand",
+      "Distribution": {
+        "Count": 81,
+        "P50": 635.599,
+        "P95": 639.5059,
+        "P99": 640.1957,
+        "P999": 640.1957,
+        "Max": 640.1957
+      },
+      "ColdMax": 70.9521,
+      "WarmMax": 640.1957
+    },
+    {
+      "Name": "RedeemGameLoginCommand",
+      "Distribution": {
+        "Count": 81,
+        "P50": 189.5078,
+        "P95": 571.404,
+        "P99": 575.7391,
+        "P999": 575.7391,
+        "Max": 575.7391
+      },
+      "ColdMax": 1.8138,
+      "WarmMax": 575.7391
+    },
+    {
+      "Name": "PrepareSelectedCharacterStateCommand",
+      "Distribution": {
+        "Count": 21,
+        "P50": 3.3703,
+        "P95": 19.3207,
+        "P99": 497.2139,
+        "P999": 497.2139,
+        "Max": 497.2139
+      },
+      "ColdMax": 497.2139,
+      "WarmMax": "NaN"
+    },
+    {
+      "Name": "AdvanceCreatureClockCommand",
+      "Distribution": {
+        "Count": 337,
+        "P50": 0.1576,
+        "P95": 0.755,
+        "P99": 41.1605,
+        "P999": 348.596,
+        "Max": 348.596
+      },
+      "ColdMax": 65.7927,
+      "WarmMax": 348.596
+    },
+    {
+      "Name": "EnterDungeonCommand",
+      "Distribution": {
+        "Count": 80,
+        "P50": 9.0017,
+        "P95": 73.9818,
+        "P99": 639.3682,
+        "P999": 639.3682,
+        "Max": 639.3682
+      },
+      "ColdMax": 73.9818,
+      "WarmMax": 639.3682
+    }
+  ],
+  "coldStall": 573.3251,
+  "coldOverall": {
+    "Count": 22239,
+    "P50": 0.1849,
+    "P95": 0.4575,
+    "P99": 3.3936,
+    "P999": 24.7424,
+    "Max": 573.3251
+  },
+  "coldPerSecond": [
+    [
+      "0",
+      "4",
+      "573.3",
+      "573.3",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "1",
+      "58",
+      "9.16",
+      "9.16",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "2",
+      "132",
+      "7.53",
+      "7.69",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "3",
+      "172",
+      "10.35",
+      "27.93",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "4",
+      "204",
+      "15.11",
+      "19.86",
+      "SET_USER_AREA"
+    ],
+    [
+      "5",
+      "359",
+      "25.24",
+      "34.65",
+      "SET_USER_AREA"
+    ],
+    [
+      "6",
+      "400",
+      "0.24",
+      "0.26",
+      "SET_USER_POSITION"
+    ],
+    [
+      "7",
+      "400",
+      "0.92",
+      "3.01",
+      "SET_USER_POSITION"
+    ],
+    [
+      "8",
+      "400",
+      "0.87",
+      "1.66",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "9",
+      "387",
+      "2.28",
+      "12.13",
+      "RESPONSE_PEER"
+    ],
+    [
+      "10",
+      "388",
+      "0.77",
+      "1.10",
+      "RESPONSE_PEER"
+    ],
+    [
+      "11",
+      "395",
+      "0.94",
+      "1.02",
+      "SET_USER_POSITION"
+    ],
+    [
+      "12",
+      "400",
+      "1.10",
+      "1.31",
+      "SET_USER_POSITION"
+    ],
+    [
+      "13",
+      "396",
+      "16.66",
+      "94.30",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "14",
+      "386",
+      "12.21",
+      "22.49",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "15",
+      "376",
+      "12.66",
+      "21.38",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "16",
+      "394",
+      "0.65",
+      "0.83",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "17",
+      "400",
+      "0.76",
+      "1.06",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "18",
+      "398",
+      "0.96",
+      "47.89",
+      "EPLP"
+    ],
+    [
+      "19",
+      "398",
+      "0.89",
+      "22.10",
+      "EPLP"
+    ],
+    [
+      "20",
+      "392",
+      "22.54",
+      "32.18",
+      "SET_USER_POSITION"
+    ],
+    [
+      "21",
+      "400",
+      "0.82",
+      "2.94",
+      "SET_USER_POSITION"
+    ],
+    [
+      "22",
+      "400",
+      "0.82",
+      "1.40",
+      "SET_USER_POSITION"
+    ],
+    [
+      "23",
+      "400",
+      "0.57",
+      "0.83",
+      "SET_USER_POSITION"
+    ],
+    [
+      "24",
+      "394",
+      "4.10",
+      "17.87",
+      "LEAVE_PARTY"
+    ],
+    [
+      "25",
+      "398",
+      "0.68",
+      "1.10",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "26",
+      "396",
+      "0.89",
+      "0.96",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "27",
+      "400",
+      "0.78",
+      "3.33",
+      "SET_USER_POSITION"
+    ],
+    [
+      "28",
+      "394",
+      "9.25",
+      "9.95",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "29",
+      "386",
+      "0.73",
+      "0.95",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "30",
+      "397",
+      "0.64",
+      "0.77",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "31",
+      "393",
+      "0.80",
+      "1.04",
+      "SET_USER_POSITION"
+    ],
+    [
+      "32",
+      "400",
+      "0.64",
+      "1.46",
+      "SET_USER_POSITION"
+    ],
+    [
+      "33",
+      "376",
+      "24.74",
+      "39.03",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "34",
+      "392",
+      "1.39",
+      "28.95",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "35",
+      "392",
+      "0.69",
+      "19.69",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "36",
+      "392",
+      "0.53",
+      "22.44",
+      "SELECT_DUNGEON"
+    ],
+    [
+      "37",
+      "400",
+      "0.50",
+      "0.59",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "38",
+      "394",
+      "11.23",
+      "17.76",
+      "EPLP"
+    ],
+    [
+      "39",
+      "398",
+      "0.54",
+      "17.90",
+      "EPLP"
+    ],
+    [
+      "40",
+      "396",
+      "9.34",
+      "32.59",
+      "SET_USER_POSITION"
+    ],
+    [
+      "41",
+      "400",
+      "0.65",
+      "1.28",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "42",
+      "398",
+      "1.07",
+      "1.57",
+      "LEAVE_PARTY"
+    ],
+    [
+      "43",
+      "396",
+      "1.26",
+      "1.92",
+      "SET_USER_POSITION"
+    ],
+    [
+      "44",
+      "398",
+      "0.63",
+      "0.89",
+      "SET_USER_POSITION"
+    ],
+    [
+      "45",
+      "398",
+      "0.70",
+      "2.96",
+      "SET_USER_POSITION"
+    ],
+    [
+      "46",
+      "398",
+      "0.52",
+      "0.78",
+      "SET_USER_POSITION"
+    ],
+    [
+      "47",
+      "390",
+      "1.13",
+      "1.21",
+      "SET_USER_POSITION"
+    ],
+    [
+      "48",
+      "400",
+      "0.58",
+      "0.74",
+      "SET_USER_POSITION"
+    ],
+    [
+      "49",
+      "390",
+      "0.54",
+      "0.80",
+      "SET_USER_POSITION"
+    ],
+    [
+      "50",
+      "400",
+      "0.59",
+      "2.10",
+      "SET_USER_POSITION"
+    ],
+    [
+      "51",
+      "392",
+      "13.61",
+      "30.80",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "52",
+      "390",
+      "0.52",
+      "0.72",
+      "SET_USER_POSITION"
+    ],
+    [
+      "53",
+      "392",
+      "12.78",
+      "32.35",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "54",
+      "384",
+      "13.56",
+      "29.87",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "55",
+      "400",
+      "0.54",
+      "1.37",
+      "SET_USER_POSITION"
+    ],
+    [
+      "56",
+      "398",
+      "2.09",
+      "18.98",
+      "EPLP"
+    ],
+    [
+      "57",
+      "384",
+      "17.23",
+      "27.03",
+      "ENTER_SELECT_DUNGEON"
+    ],
+    [
+      "58",
+      "397",
+      "1.15",
+      "20.50",
+      "EPLP"
+    ],
+    [
+      "59",
+      "397",
+      "0.80",
+      "21.90",
+      "EPLP"
+    ]
+  ],
+  "burstBackground": {
+    "Count": 3063,
+    "P50": 0.0925,
+    "P95": 0.1509,
+    "P99": 0.2046,
+    "P999": 12.4632,
+    "Max": 643.5563
+  },
+  "burstPhase": {
+    "Count": 20242,
+    "P50": 0.1709,
+    "P95": 0.3917,
+    "P99": 0.7531,
+    "P999": 29.2052,
+    "Max": 643.5563
+  },
+  "floodOthers": {
+    "Count": 11850,
+    "P50": 0.0739,
+    "P95": 0.1361,
+    "P99": 0.5673,
+    "P999": 18.0385,
+    "Max": 33.5845
+  },
+  "floodRate": 196995.72639766408,
+  "outboundMax": {
+    "LOGIN|requester": 339,
+    "CREATE_CHARACTER|requester": 137,
+    "SELECT_CHARACTER|requester": 39291,
+    "SET_USER_AREA|requester": 2905,
+    "SET_USER_AREA|companion": 3084,
+    "REQUEST_PEER|requester": 96,
+    "REQUEST_PEER|companion": 124,
+    "RESPONSE_PEER|requester": 236,
+    "RESPONSE_PEER|companion": 238,
+    "ENTER_SELECT_DUNGEON|requester": 707,
+    "ENTER_SELECT_DUNGEON|companion": 707,
+    "SELECT_DUNGEON|requester": 1367,
+    "SELECT_DUNGEON|companion": 1367,
+    "FINISH_LOADING|requester": 36,
+    "FINISH_LOADING|companion": 0,
+    "EPLP|requester": 3550,
+    "EPLP|companion": 3646,
+    "LEAVE_PARTY|requester": 172,
+    "LEAVE_PARTY|companion": 211
+  },
+  "errors": 0,
+  "stallsOver250": 5,
+  "failedCommands": 0,
+  "entries": 80,
+  "hostLogLines": 3487
+}

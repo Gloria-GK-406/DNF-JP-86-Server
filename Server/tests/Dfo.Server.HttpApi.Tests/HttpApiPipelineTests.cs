@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Authentication;
 using Dfo.Server.Data.Configuration;
@@ -55,7 +56,7 @@ public sealed class HttpApiPipelineTests
             : null;
         await using var harness = ApiHarness.Create(command => command switch
         {
-            RegisterAccountCommand => new RegistrationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Register } => new RegistrationResult(
                 commandStatus,
                 commandStatus == AuthenticationStatus.Success ? "player" : null,
                 fieldErrors),
@@ -98,7 +99,7 @@ public sealed class HttpApiPipelineTests
     {
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand => new AuthenticationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } => new AuthenticationResult(
                 commandStatus,
                 FieldErrors: commandStatus == AuthenticationStatus.InvalidRequest
                     ? new Dictionary<string, string> { ["password"] = "bad password" }
@@ -123,7 +124,7 @@ public sealed class HttpApiPipelineTests
         var expiry = new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero);
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand login when login.LoginId == "player" =>
+            HttpRouteCommand { Operation: HttpRouteOperation.Login, Input: HttpRouteInput.Authentication { Value.LoginId: "player" } } =>
                 new AuthenticationResult(
                     AuthenticationStatus.Success,
                     "123456",
@@ -238,10 +239,10 @@ public sealed class HttpApiPipelineTests
     {
         await using var harness = ApiHarness.Create(command => command switch
         {
-            RegisterAccountCommand => new RegistrationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Register } => new RegistrationResult(
                 AuthenticationStatus.Success,
                 "player"),
-            AuthenticateAndIssueTicketCommand => new AuthenticationResult(
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } => new AuthenticationResult(
                 AuthenticationStatus.Success,
                 "player",
                 "ticket_safe-123",
@@ -304,7 +305,7 @@ public sealed class HttpApiPipelineTests
     {
         await using var harness = ApiHarness.Create(command => command switch
         {
-            AuthenticateAndIssueTicketCommand =>
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } =>
                 new AuthenticationResult(AuthenticationStatus.InvalidCredentials),
             _ => throw new InvalidOperationException("Unexpected command."),
         });
@@ -360,6 +361,40 @@ public sealed class HttpApiPipelineTests
         Assert.DoesNotContain("secret-sentinel", string.Join("\n", logs.Messages), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// L1 at the endpoint: a record changed between the credential check and the login CMD is checked
+    /// again once; changed again, the caller is refused as with a wrong password.
+    /// </summary>
+    [Theory]
+    [InlineData(1, StatusCodes.Status200OK)]
+    [InlineData(2, StatusCodes.Status401Unauthorized)]
+    public async Task LoginChecksTheCredentialAgainOnceWhenItChangedBeforeTheCommand(int changes, int expectedStatus)
+    {
+        var sent = 0;
+        await using var harness = ApiHarness.Create(command => command switch
+        {
+            HttpRouteCommand { Operation: HttpRouteOperation.Login } => ++sent <= changes
+                ? new AuthenticationResult(AuthenticationStatus.CredentialChanged)
+                : new AuthenticationResult(
+                    AuthenticationStatus.Success,
+                    "123456",
+                    "0123456789ABCDEF0123456789ABCDEF",
+                    new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero)),
+            _ => throw new InvalidOperationException("Unexpected command."),
+        });
+
+        var response = await harness.SendAsync(
+            "POST",
+            "/api/launcher/v1/login",
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+
+        Assert.Equal(expectedStatus, response.StatusCode);
+        Assert.Equal(2, harness.Credentials.LoginChecks);
+        Assert.Equal(2, harness.Commands.CallCount);
+        if (expectedStatus == StatusCodes.Status401Unauthorized)
+            Assert.Equal("invalid_credentials", response.Json.RootElement.GetProperty("code").GetString());
+    }
+
     private sealed class ApiHarness : IAsyncDisposable
     {
         private readonly WebApplication application;
@@ -369,15 +404,18 @@ public sealed class HttpApiPipelineTests
             WebApplication application,
             RequestDelegate pipeline,
             StubCommandBus commands,
+            StubCredentialReader credentials,
             HttpApiReadiness readiness)
         {
             this.application = application;
             this.pipeline = pipeline;
             Commands = commands;
+            Credentials = credentials;
             Readiness = readiness;
         }
 
         public StubCommandBus Commands { get; }
+        public StubCredentialReader Credentials { get; }
         public HttpApiReadiness Readiness { get; }
 
         public static ApiHarness Create(
@@ -386,6 +424,7 @@ public sealed class HttpApiPipelineTests
         {
             var builder = WebApplication.CreateBuilder(new WebApplicationOptions
             {
+                Args = ["--hostBuilder:reloadConfigOnChange=false"],
                 EnvironmentName = "Development",
             });
             builder.Logging.ClearProviders();
@@ -400,7 +439,10 @@ public sealed class HttpApiPipelineTests
                 ["Networking:Enabled"] = "true",
             });
             var commands = new StubCommandBus(execute);
+            var credentials = new StubCredentialReader();
             builder.Services.AddSingleton<ICommandBus>(commands);
+            builder.Services.AddSingleton<ILauncherCredentialReader>(credentials);
+            builder.Services.AddGameplayExecution();
             builder.Services.AddSingleton<IAuthenticationDomainService, StubAuthenticationService>();
             builder.Services.AddSingleton<IPublicEndpointSource>(new StubEndpointSource());
             builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new ReadyGame());
@@ -413,7 +455,7 @@ public sealed class HttpApiPipelineTests
             HttpApiApplicationExtensions.UseHttpApiMiddleware(pipelineBuilder);
             pipelineBuilder.UseEndpoints(HttpApiApplicationExtensions.MapHttpApiEndpoints);
             var pipeline = pipelineBuilder.Build();
-            return new ApiHarness(app, pipeline, commands, readiness);
+            return new ApiHarness(app, pipeline, commands, credentials, readiness);
         }
 
         public async Task<ApiResponse> SendAsync(
@@ -454,6 +496,14 @@ public sealed class HttpApiPipelineTests
     {
         public int CallCount { get; private set; }
 
+        public ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin, CancellationToken cancellationToken = default) where TResult : notnull
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            var result = execute?.Invoke(command) ?? throw new InvalidOperationException("No result arranged.");
+            return ValueTask.FromResult((TResult)(object)new HttpRouteReply(result));
+        }
+
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command,
             CancellationToken cancellationToken = default)
@@ -463,6 +513,31 @@ public sealed class HttpApiPipelineTests
             CallCount++;
             var result = execute?.Invoke(command) ?? throw new InvalidOperationException("No result arranged.");
             return ValueTask.FromResult((TResult)result);
+        }
+    }
+
+    /// <summary>Stands in for the hashing half of the two-phase credential routes; accepts every well-formed request.</summary>
+    private sealed class StubCredentialReader : ILauncherCredentialReader
+    {
+        private int loginChecks;
+
+        public int LoginChecks => Volatile.Read(ref loginChecks);
+
+        public ValueTask<RegistrationPreparation> PrepareRegistrationAsync(
+            string loginId,
+            string password,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new RegistrationPreparation(new PreparedRegistration(loginId, "stub-record")));
+
+        public ValueTask<LoginVerification> VerifyLoginAsync(
+            string loginId,
+            string password,
+            CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref loginChecks);
+            return ValueTask.FromResult(new LoginVerification(
+                AuthenticationStatus.Success,
+                new VerifiedLogin(loginId, new AccountId(1), "stub-record", null)));
         }
     }
 
@@ -483,13 +558,11 @@ public sealed class HttpApiPipelineTests
     private sealed class StubAuthenticationService : IAuthenticationDomainService
     {
         public ValueTask<RegistrationResult> RegisterAsync(
-            string loginId,
-            string password,
+            PreparedRegistration registration,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(
-            string loginId,
-            string password,
+            VerifiedLogin login,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public ValueTask<AccountId?> BindSessionAsync(

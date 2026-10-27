@@ -14,7 +14,7 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
     public async ValueTask<DungeonRevivalResult> ReviveAsync(SelectedSessionIdentity payer,
         CharacterId target, DungeonRunId runId, CancellationToken cancellationToken)
     {
-        if (sessions.FindByCharacter(payer.CharacterId) != payer) return new(false);
+        if (!sessions.IsInWorld(payer)) return new(false);
         var isTournament = runs.Find(target)?.Layout.Tournament is not null;
         if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
             .CanRevive(target, runId)) return new(false);

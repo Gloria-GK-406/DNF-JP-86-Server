@@ -41,20 +41,27 @@ def verify_tag():
     print(f"Validated {tag}: {commit} belongs to main history")
 
 
-def summary(directory):
+def summary(directory, *, unit_only=False):
     reports = sorted(Path(directory).rglob("*.trx"))
     if not reports:
         raise RuntimeError("No TRX reports were produced; validation did not complete")
     ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
-    lines = ["## Test results", "", "| Report | Passed | Failed | Skipped |", "|---|---:|---:|---:|"]
+    executed = 0
+    title = "Linux unit test results" if unit_only else "Test results"
+    lines = [f"## {title}", "", "| Report | Passed | Failed | Skipped |", "|---|---:|---:|---:|"]
     for report in reports:
         tree = ET.parse(report)
         counters = tree.find(".//t:Counters", ns)
         if counters is None:
             raise ValueError(f"No counters in {report}")
+        executed += int(counters.get("executed", "0"))
         skipped = sum(result.get("outcome") == "NotExecuted" for result in tree.findall(".//t:UnitTestResult", ns))
         lines.append(f"| {report.name} | {counters.get('passed', '0')} | {counters.get('failed', '0')} | {skipped} |")
-    lines += ["", "PVF is not distributed through GitHub Actions. Content-dependent tests explicitly skip without Script.pvf; this is not client/gameplay acceptance."]
+    if unit_only and executed == 0:
+        raise RuntimeError("The Unit filter executed no tests; the PR gate cannot pass empty")
+    scope = ("Only Category=Unit tests ran on Linux. Integration, real sockets, SQLite, Host, archive and package validation run in Release."
+             if unit_only else "PVF is not distributed through GitHub Actions. Content-dependent tests explicitly skip without Script.pvf; this is not client/gameplay acceptance.")
+    lines += ["", scope]
     text = "\n".join(lines) + "\n"
     print(text)
     if os.environ.get("GITHUB_STEP_SUMMARY"):
@@ -284,7 +291,7 @@ if __name__ == "__main__":
     if command == "verify-tag":
         verify_tag()
     elif command == "summary":
-        summary(sys.argv[2])
+        summary(sys.argv[2], unit_only="--unit-only" in sys.argv[3:])
     elif command == "package":
         package()
     else:

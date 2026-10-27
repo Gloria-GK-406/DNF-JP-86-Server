@@ -7,6 +7,7 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -29,7 +30,7 @@ public sealed class SeekingQuestProgressDomainServiceTests
             Carried = { [Character.Value] = [new CarriedQuest(0, 1779, 15)] },
         };
         var containers = new CharacterContainerDomainService();
-        containers.Register(Character, new Bag(10149163, held));
+        TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, held)));
         var service = new SeekingQuestProgressDomainService(
             new Rules(Definition()),
             logs,
@@ -63,7 +64,7 @@ public sealed class SeekingQuestProgressDomainServiceTests
             },
         };
         var containers = new CharacterContainerDomainService();
-        containers.Register(Character, new Bag(10149163, 15));
+        TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, 15)));
         var service = new SeekingQuestProgressDomainService(
             new Rules(Definition()),
             logs,
@@ -86,7 +87,7 @@ public sealed class SeekingQuestProgressDomainServiceTests
     {
         var logs = new RecordingQuestLogs { Carried = { [Character.Value] = [new(0, 1779, 0)] } };
         var containers = new CharacterContainerDomainService();
-        containers.Register(Character, new Bag(10149163, held));
+        TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, held)));
         var definition = Definition() with { SeekingItems = [new(10149163, 15), new(10149163, 10), new(0, 100)] };
         var service = new QuestMaterialRequirementDomainService(new Rules(definition), logs, containers);
         var result = await service.GetOutstandingMaterialIdsAsync(Account, Character, default);
@@ -102,7 +103,7 @@ public sealed class SeekingQuestProgressDomainServiceTests
     {
         var logs = new RecordingQuestLogs { Carried = { [Character.Value] = [new(0, 1779, 15), new(1, 1780, 0)] } };
         var containers = new CharacterContainerDomainService();
-        containers.Register(Character, new Bag(10149163, 15));
+        TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, 15)));
         var first = Definition();
         var second = first with { QuestId = 1780, SeekingItems = [new(10149163, 20), new(3205, 5)] };
         var unaccepted = first with { QuestId = 1781, SeekingItems = [new(999, 10)] };

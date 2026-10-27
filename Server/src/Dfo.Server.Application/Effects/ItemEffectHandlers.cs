@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -26,15 +27,17 @@ internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDo
         _ = await ReadAsync(context, effect, ct).ConfigureAwait(false);
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, ConsumeFromContainerEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var item = await ReadAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         var remaining = await ItemContainerOperations.ConsumeAsync(inventory.Get(context.CharacterId, effect.Slot).Container,
             item, effect.Count, lifecycle, ct).ConfigureAwait(false);
         return new ContainerConsumptionChange(effect.Slot, item.ItemId, effect.Count, remaining);
     }
 }
 
-internal sealed class StartItemCooldownEffectHandler(ICharacterItemCooldownDomainService cooldowns,
-    ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions) : EffectHandler<StartItemCooldownEffect>
+internal sealed class StartItemCooldownEffectHandler(IOnlineCharacterRuntimeDomainService runtime,
+    IDomainTransactionAccessor transactions) : EffectHandler<StartItemCooldownEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, StartItemCooldownEffect effect, CancellationToken ct)
     {
@@ -45,10 +48,11 @@ internal sealed class StartItemCooldownEffectHandler(ICharacterItemCooldownDomai
     }
     public override ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, StartItemCooldownEffect effect, CancellationToken ct)
     {
-        transactions.Current!.Enlist(new object(), () => new Commit(cooldowns, sessions, context, effect));
+        context.Footprint.DemandEffects(context.Owner);
+        transactions.Current!.Enlist(new object(), () => new Commit(runtime, context, effect));
         return ValueTask.FromResult<EffectChange>(new ItemCooldownChange(effect.Key, effect.Duration));
     }
-    private sealed class Commit(ICharacterItemCooldownDomainService cooldowns, ISelectedSessionDomainService sessions,
+    private sealed class Commit(IOnlineCharacterRuntimeDomainService runtime,
         EffectExecutionContext context, StartItemCooldownEffect effect) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
@@ -56,15 +60,15 @@ internal sealed class StartItemCooldownEffectHandler(ICharacterItemCooldownDomai
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask CommitAsync(CancellationToken ct)
         {
-            if (sessions.FindByCharacter(context.CharacterId) == context.Session)
-                cooldowns.Start(context.CharacterId, effect.Key, effect.Duration);
+            // Only the session the cooldown was earned in gets it; a replaced one is ignored.
+            runtime.StartCooldown(context.Session!, effect.Key, effect.Duration);
             return ValueTask.CompletedTask;
         }
     }
 }
 
-internal sealed class StartSpiritPotionEffectHandler(SpiritPotionDomainService potion,
-    ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions) : EffectHandler<StartSpiritPotionEffect>
+internal sealed class StartSpiritPotionEffectHandler(IOnlineCharacterRuntimeDomainService runtime,
+    IDomainTransactionAccessor transactions) : EffectHandler<StartSpiritPotionEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, StartSpiritPotionEffect effect, CancellationToken ct)
     {
@@ -75,10 +79,11 @@ internal sealed class StartSpiritPotionEffectHandler(SpiritPotionDomainService p
     }
     public override ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, StartSpiritPotionEffect effect, CancellationToken ct)
     {
-        transactions.Current!.Enlist(new object(), () => new Commit(potion, sessions, context, effect));
+        context.Footprint.DemandEffects(context.Owner);
+        transactions.Current!.Enlist(new object(), () => new Commit(runtime, context, effect));
         return ValueTask.FromResult<EffectChange>(new SpiritPotionChange(effect.BonusRate, effect.Duration));
     }
-    private sealed class Commit(SpiritPotionDomainService potion, ISelectedSessionDomainService sessions,
+    private sealed class Commit(IOnlineCharacterRuntimeDomainService runtime,
         EffectExecutionContext context, StartSpiritPotionEffect effect) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
@@ -86,7 +91,7 @@ internal sealed class StartSpiritPotionEffectHandler(SpiritPotionDomainService p
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask CommitAsync(CancellationToken ct)
         {
-            potion.ApplyForSession(context.Session!, sessions, effect.BonusRate, effect.Duration);
+            runtime.ApplySpiritPotion(context.Session!, effect.BonusRate, effect.Duration);
             return ValueTask.CompletedTask;
         }
     }
@@ -103,7 +108,11 @@ internal sealed class AddPetStomachEffectHandler(ICreatureInstanceDomainService 
     }
     public override async ValueTask ValidateAsync(EffectExecutionContext context, AddPetStomachEffect effect, CancellationToken ct) =>
         _ = await ResolveAsync(context, effect, ct).ConfigureAwait(false);
-    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, AddPetStomachEffect effect, CancellationToken ct) =>
-        new PetStomachChange(await (await ResolveAsync(context, effect, ct).ConfigureAwait(false)).AddStomachAsync(effect.Amount, ct)
-            .ConfigureAwait(false));
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, AddPetStomachEffect effect, CancellationToken ct)
+    {
+        context.Footprint.DemandEffects(context.Owner);
+        var pet = await ResolveAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
+        return new PetStomachChange(await pet.AddStomachAsync(effect.Amount, ct).ConfigureAwait(false));
+    }
 }

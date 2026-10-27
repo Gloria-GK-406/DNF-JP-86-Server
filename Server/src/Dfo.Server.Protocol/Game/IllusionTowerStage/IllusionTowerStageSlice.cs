@@ -27,16 +27,9 @@ internal sealed class IllusionTowerStageDecoder : IGameMessageDecoder
     }
 }
 
-public sealed class IllusionTowerStageHandler(IllusionTowerProjectionDelivery delivery)
-    : ClientMessageHandler<IllusionTowerStageRequest>
+public sealed class IllusionTowerStageHandler(Dfo.Server.Application.Commands.ICommandBus commands) : ClientMessageHandler<IllusionTowerStageRequest>,
+    Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<Dfo.Server.Protocol.Game.IllusionTowerStage.GameIllusionTowerStageCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        IllusionTowerStageRequest message, CancellationToken token)
-    {
-        if (message.Mode == 1)
-            _ = await delivery.StartAsync(context.Connection.ConnectionId, message.Metadata, token).ConfigureAwait(false);
-        // Mode 2 is the clear report, sent before the client starts its ending talk.
-        // Actor deaths already establish authoritative clear state. Only MOVE_MAP
-        // requests the next floor; replying here would truncate dialogue and pickups.
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, IllusionTowerStageRequest message, CancellationToken token) =>
+        _ = await commands.SendAsync(new Dfo.Server.Protocol.Game.IllusionTowerStage.GameIllusionTowerStageCommand(context, message), token).ConfigureAwait(false);
 }

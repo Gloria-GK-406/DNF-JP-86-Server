@@ -5,13 +5,21 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class TournamentDungeonRuleService(
-    ITournamentDungeonContentSource content, IClearRewardRuleService clearRewards) : ITournamentDungeonRuleService
+    ITournamentDungeonContentSource content, IClearRewardRuleService clearRewards) : ITournamentDungeonRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     // A21's single-player flip initialization runs only during the 1.5-second selection state.
     public TimeSpan RewardSelectionWindow => TimeSpan.FromSeconds(1);
     public IReadOnlyList<int> DungeonIds { get; } = Array.AsReadOnly(new[] { 120, 121, 122 });
 
     public bool IsSupported(int dungeonId) => DungeonIds.Contains(dungeonId);
+
+    public string Name => "tournament-dungeons";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        foreach (var dungeonId in DungeonIds) await GetDefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
+        return DungeonIds.Count;
+    }
 
     public ValueTask<TournamentDefinition> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken)
     {

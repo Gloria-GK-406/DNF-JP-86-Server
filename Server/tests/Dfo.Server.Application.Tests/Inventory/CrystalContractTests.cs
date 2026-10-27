@@ -4,6 +4,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -16,9 +17,8 @@ public sealed class CrystalContractTests
         if (active) f.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,97,{f.Clock.GetUtcNow().AddDays(1).ToUnixTimeSeconds()});");
         return f;
     }
-    private static ValueTask Request(ShopFixture f, byte mode, byte selection) =>
-        f.Services.GetRequiredService<CrystalContractHandler>().HandleAsync(new(f.Connection),
-            new CrystalContractRequest(GameMessageMetadata.Empty, mode, selection), default);
+    private static async ValueTask Request(ShopFixture f, byte mode, byte selection) =>
+        _ = await CrystalWire.Send(f, mode, selection);
 
     [Theory]
     [InlineData(0,0)] [InlineData(0,5)] [InlineData(1,3)] [InlineData(0,255)]
@@ -56,7 +56,13 @@ public sealed class CrystalContractTests
     public async Task Stale_session_does_not_change_previous_character()
     {
         using var f=Create();var old=f.Session;f.Select(2);
-        Assert.False(await f.Services.GetRequiredService<ICommandBus>().SendAsync(new SelectCrystalContractCommand(f.OnlineUser,old,0,1)));
+        Assert.False(await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            var saved = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Accounts.ICrystalContractDomainService>().SelectAsync(old, 0, 1, default);
+            await tx.CommitAsync(default);
+            return saved;
+        }));
         Assert.Equal(255,f.Scalar("SELECT crystal_cube_grade FROM character_condition WHERE character_id=1"));
     }
     [Fact]

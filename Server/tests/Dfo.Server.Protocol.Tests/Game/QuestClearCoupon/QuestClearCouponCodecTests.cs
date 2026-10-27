@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Accounts;
@@ -15,6 +16,7 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.QuestClearCoupon;
 
@@ -87,15 +89,24 @@ public sealed class QuestClearCouponCodecTests
     }
 
     [Fact]
-    public async Task Unsupported_action_is_answered_without_reaching_any_session_or_command_dependency()
+    public async Task Handler_passes_the_exact_decoded_request_and_connection_to_the_whole()
     {
-        var sender = new RecordingSender();
-        var handler = new QuestClearCouponHandler(null!, null!, null!, null!, null!, null!, null!,
-            null!, sender, NullLogger<QuestClearCouponHandler>.Instance);
+        var commands = new RecordingCommands();
+        var handler = new QuestClearCouponHandler(commands);
         var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,
             Convert.FromHexString("450000000000004C0000000000000000000000"));
         await handler.HandleAsync(NetworkDispatchContext.Unknown, request, CancellationToken.None);
-        Assert.Equal(new QuestClearCouponResponse(false, 69, 0), Assert.Single(sender.Sent));
+        var command = Assert.IsType<GameQuestClearCouponCommand>(commands.Input);
+        Assert.Same(request, command.Input); Assert.Same(NetworkDispatchContext.Unknown.Connection, command.Dispatch.Connection);
+    }
+    private sealed class RecordingCommands : ICommandBus
+    {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        internal object? Input;
+        public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
+        { Input = command; return ValueTask.FromResult((T)(object)false); }
     }
 
     [Fact]
@@ -155,21 +166,4 @@ public sealed class QuestClearCouponCodecTests
             Assert.IsType<AcceptedQuestProgressMessage>(messages[1]).Quests);
     }
 
-    private sealed class RecordingSender : IGameMessageSender
-    {
-        public List<IGameCmdMessage> Sent { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
-    }
 }

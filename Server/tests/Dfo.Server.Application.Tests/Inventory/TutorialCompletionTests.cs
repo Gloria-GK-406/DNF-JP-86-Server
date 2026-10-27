@@ -9,6 +9,7 @@ using Microsoft.Data.Sqlite;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Schema;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -69,8 +70,11 @@ public sealed class TutorialCompletionTests
     public async Task Completion_cannot_modify_a_character_owned_by_another_account()
     {
         using var host = new ShopFixture();
-        var result = await host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new GrantTutorialRewardCommand(new(1), [new(8474, 1)], new(2), CompleteTutorial: true));
+        var result = await TestGameplay.RunAsync(host.Services, async () => {
+            await using var tx=((Dfo.Server.Application.Transactions.DomainTransactionScope)host.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>()).Begin();
+            var value=await GameTaggedIdReportCommandHandler.GrantAsync(host.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>(),host.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>(),host.Services.GetRequiredService<ITutorialCompletionDomainService>(),new(1),[new(8474,1)],new(2),true,default);
+            await tx.CommitAsync(default);return value;
+        });
         Assert.Empty(result.Placed);
         Assert.Equal(0, (await Entry(host, 0))[^25]);
         Assert.Equal(0, host.Count(8474));
@@ -89,9 +93,8 @@ public sealed class TutorialCompletionTests
         Assert.Equal(0, (await Entry(host, 0))[^25]);
     }
 
-    private static ValueTask Report(ShopFixture host, uint flag, byte reward) =>
-        host.Services.GetRequiredService<TaggedIdReportHandler>().HandleAsync(new(host.Connection),
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, 0, flag, reward), default);
+    private static ValueTask Report(ShopFixture host,uint flag,byte reward) =>
+        EffectRequestTransport.SendRaw(host,new(1,0x8F,0,7),[0,..BitConverter.GetBytes(flag),reward]);
 
     private static async Task<byte[]> Entry(ShopFixture host, ushort slot)
     {

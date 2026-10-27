@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -102,114 +103,8 @@ internal sealed class TournamentSelectionDecoder : IGameMessageDecoder
 { public IClientNetworkMessage? Decode(GameMessageMetadata meta, ReadOnlySpan<byte> body) => body.Length == 2 ? new TournamentRewardRequest(meta, body[0], body[1]) : null; }
 
 public sealed record TournamentCommandResult(TournamentActionResult? Action);
-public sealed record BeginTournamentRewardsCommand(SelectedSessionIdentity Session, DungeonRunId RunId)
-    : ICommand<bool>, ISelectedSessionCommand, IAccountCommand
+public sealed class TournamentRewardHandler(ICommandBus commands) : ClientMessageHandler<TournamentRewardRequest>, IProtocolCommandMessageHandler<GameTournamentRewardCommand>
 {
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
-}
-public sealed class BeginTournamentRewardsCommandHandler(ITournamentDungeonDomainService tournaments)
-    : ICommandHandler<BeginTournamentRewardsCommand, bool>
-{
-    public ValueTask<bool> HandleAsync(CommandExecutionContext context, BeginTournamentRewardsCommand command, CancellationToken ct) =>
-        ValueTask.FromResult(tournaments.BeginRewardSelection(command.Session, command.RunId));
-}
-
-public sealed record SelectTournamentRewardCommand(SelectedSessionIdentity Session, DungeonRunId RunId, byte Row, byte Index)
-    : ICommand<TournamentCommandResult>, ISelectedSessionCommand, IAccountCommand
-{
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
-}
-public sealed class SelectTournamentRewardCommandHandler(ITournamentDungeonDomainService tournaments)
-    : ICommandHandler<SelectTournamentRewardCommand, TournamentCommandResult>
-{
-    public async ValueTask<TournamentCommandResult> HandleAsync(CommandExecutionContext context, SelectTournamentRewardCommand command, CancellationToken ct) =>
-        new(await tournaments.SelectRewardAsync(command.Session, command.RunId, command.Row, command.Index, ct).ConfigureAwait(false));
-}
-public sealed record EliminateTournamentCommand(SelectedSessionIdentity Session, DungeonRunId RunId)
-    : ICommand<TournamentCommandResult>, ISelectedSessionCommand, IAccountCommand
-{
-    SelectedSessionIdentity? ISelectedSessionCommand.Session => Session;
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
-}
-public sealed class EliminateTournamentCommandHandler(ITournamentDungeonDomainService tournaments)
-    : ICommandHandler<EliminateTournamentCommand, TournamentCommandResult>
-{
-    public async ValueTask<TournamentCommandResult> HandleAsync(CommandExecutionContext context, EliminateTournamentCommand command, CancellationToken ct) =>
-        new(await tournaments.EliminateAsync(command.Session, command.RunId, ct).ConfigureAwait(false));
-}
-
-public sealed class TournamentProjectionDelivery(ITournamentDungeonDomainService tournaments,
-    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ICommandBus commands,
-    IGameMessageSender sender, IInventorySlotProjectionDomainService slots, TimeProvider clock)
-{
-    internal IReadOnlyList<IGameServerMessage> CompletionFrames(TournamentActionResult action)
-    {
-        var frames = new List<IGameServerMessage>();
-        if (action.Fatigue is { } fatigue) frames.Add(new Fatigue.FatigueNotification(fatigue));
-        if (action.Experience is { } exp && action.SkillPoints is { } points)
-            frames.Add(new ExperienceNotification(exp.Level, exp.NotificationTotal, points, AccountHonorLevel.Initial, ExperienceBonusLines.Of(exp)));
-        AddInventory(frames, action);
-        if (action.Quests is { } quests)
-            frames.Add(new AcceptedQuestProgressMessage([.. quests.Quests.OrderBy(x => x.Slot)
-                .Select(x => new AcceptedQuestProgressState(checked((ushort)x.QuestId), unchecked((uint)x.TriggerValue)))]));
-        if (action.State.IsFinished && action.Experience is not null) frames.Add(new TournamentRewardMessage(action.State));
-        return frames;
-    }
-    private void AddInventory(List<IGameServerMessage> frames, TournamentActionResult action)
-    {
-        if (action.GoldBalance is { } gold) frames.Add(GameInventoryDelivery.CarriedGoldNotification(gold, clock.GetUtcNow()));
-        foreach (var group in (action.Delivery?.Inventory ?? []).GroupBy(x => slots.Project(x.Slot).Space))
-            frames.Add(new InventoryDeltaMessage(group.Key, group.GroupBy(x => x.Slot).Select(x =>
-            {
-                var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(null, slots.Project(last.Slot).Index, last.Snapshot.ToCore());
-            }).ToArray(), clock.GetUtcNow()));
-    }
-    public async ValueTask<bool> EliminateAsync(DungeonRunId runId, CancellationToken ct)
-    {
-        var run = runs.Find(runId);
-        if (run?.Layout.Tournament is null) return false;
-        var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
-        if (session is null || tournaments.Find(session.CharacterId) is not { IsFinished: false }) return true;
-        var action = (await commands.SendAsync(new EliminateTournamentCommand(session, runId), ct).ConfigureAwait(false)).Action;
-        if (action is not null && sessions.FindByCharacter(session.CharacterId) == session)
-            await sender.SendExplicitAsync(session.ConnectionId, new(CompletionFrames(action), []), ct).ConfigureAwait(false);
-        return true;
-    }
-}
-
-public sealed class TournamentRewardHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
-    ITournamentDungeonDomainService tournaments, ICommandBus commands, IGameMessageSender sender,
-    DungeonProjectionGate projectionGate, Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate transitions,
-    TournamentProjectionDelivery projection) : ClientMessageHandler<TournamentRewardRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TournamentRewardRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null) return;
-        var run = runs.Find(session.CharacterId);
-        if (run is null)
-        {
-            if (message.Row is null) await sender.SendCmdAsync(session.ConnectionId, new TournamentStatusResponse(false, 0), ct).ConfigureAwait(false);
-            else await sender.SendCmdAsync(session.ConnectionId, new TournamentSelectionResponse(null, 0), ct).ConfigureAwait(false);
-            return;
-        }
-        await using var lease = await projectionGate.AcquireAsync(run.RunId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        await using var transition = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, ct).ConfigureAwait(false);
-        if (sessions.FindByConnection(session.ConnectionId) != session || runs.Find(session.CharacterId)?.RunId != run.RunId) return;
-        var state = tournaments.Find(session.CharacterId);
-        var slot = run.Participant?.Slot ?? 0;
-        if (message.Row is null)
-        {
-            var started = await commands.SendAsync(new BeginTournamentRewardsCommand(session, run.RunId), ct).ConfigureAwait(false);
-            await sender.SendCmdAsync(session.ConnectionId, new TournamentStatusResponse(started, slot,
-                state is { Rewards.Count: > 1 } && state.Rewards[1].Count > 0), ct).ConfigureAwait(false);
-            return;
-        }
-        var action = (await commands.SendAsync(new SelectTournamentRewardCommand(session, run.RunId, message.Row.Value, message.Index!.Value), ct).ConfigureAwait(false)).Action;
-        var frames = action is null ? new List<IGameServerMessage>() : projection.CompletionFrames(action).ToList();
-        frames.Add(new TournamentSelectionResponse(action?.State, slot));
-        await sender.SendExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, TournamentRewardRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameTournamentRewardCommand(context, message), ct).ConfigureAwait(false);
 }

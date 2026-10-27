@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.ClientHardwareDetail;
 
 namespace Dfo.Server.Protocol.Tests.Game.ClientHardwareDetail;
 
+[Trait("Category", "Unit")]
 public sealed class ClientHardwareDetailPayloadCodecTests
 {
     // Real captured body (protocol record E-001, 2026-08-14 Windows client):

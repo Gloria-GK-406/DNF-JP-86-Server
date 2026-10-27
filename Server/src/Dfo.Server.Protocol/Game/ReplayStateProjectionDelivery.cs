@@ -7,7 +7,6 @@ using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Effects;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -20,23 +19,22 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 namespace Dfo.Server.Protocol.Game;
 
 /// <summary>Replaces current client state after a committed operation; never repeats the original ACK or reward.</summary>
-internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, SelectedSessionSafety safety,
-    SelectedSessionTransitionGate transitions, IGameMessageSender sender, IServiceProvider services) : IReplayStateProjectionDelivery
+internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety, IGameCommandOutbox outbox,
+    Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService mirrorQuests,
+    IOnlineCharacterRuntimeDomainService online, ITownAreaDomainService towns,
+    ISelectedCharacterCurrentViewDomainService currentViews, TownAreaProjectionDelivery townDelivery) : IReplayStateProjectionSink
 {
-    public async ValueTask RefreshAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
-        ReplayProjectionRequest request, CancellationToken ct)
+    public async ValueTask ProjectAsync(NetworkConnectionContext originalConnection, SelectedSessionIdentity session,
+        GameMessageMetadata? metadata, ReplayStateSnapshot snapshot, Dfo.Server.Abstractions.Networking.ICommandRegistrationAttempt? attempt, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(originalConnection);
+        var request = snapshot.Request;
         request.Validate();
-        var recipient = safety.Capture(session);
-        if (session.ConnectionId != originalConnection.ConnectionId
-            || recipient.Connection is null || !ReferenceEquals(recipient.Connection, originalConnection)
-            || safety.IsBlocked(originalConnection))
-            throw new InvalidOperationException("Replay projection requires its exact original connection.");
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(session.AccountId, ct).ConfigureAwait(false);
+        var recipient = safety.Capture(session, metadata);
+        if (snapshot.Session != session || !ReferenceEquals(recipient.Connection, originalConnection))
+            throw new InvalidOperationException("Replay projection requires its exact original connection and snapshot.");
         safety.DemandCurrent(recipient);
-        var snapshot = await commands.SendAsync(new ReadReplayStateCommand(session, request), ct).ConfigureAwait(false);
-        if (snapshot.Quests is { } quests && services.GetService<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>() is { } mirror)
+        if (snapshot.Quests is { } quests && mirrorQuests is { } mirror)
         {
             var merged = await mirror.MergeAsync(session.CharacterId, new(quests.Carried.Select(x =>
                 new Dfo.Server.Abstractions.Quests.CarriedQuest(checked((short)x.Slot), x.QuestId, x.TriggerValue)).ToArray()), ct).ConfigureAwait(false);
@@ -44,23 +42,24 @@ internal sealed class ReplayStateProjectionDelivery(ICommandBus commands, Select
         }
         var messages = Create(snapshot);
         safety.DemandCurrent(recipient);
-        await sender.SendBatchAsync(originalConnection, messages, ct).ConfigureAwait(false);
+        if (attempt is null) await outbox.RegisterBatchAsync(originalConnection, messages, ct).ConfigureAwait(false);
+        else await outbox.RegisterBatchAsync(originalConnection, messages, attempt, ct).ConfigureAwait(false);
         if (request.Needs.HasFlag(ReplayProjectionNeeds.TownLocation))
         {
             // Redraw current location, never the old teleport destination from a receipt.
-            var positions = services.GetRequiredService<ICharacterPositionDomainService>();
-            var areas = services.GetRequiredService<ITownAreaDomainService>();
-            var views = services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>();
+            var onlineCharacters = online ?? throw new InvalidOperationException("Town replay requires online character runtime.");
+            var areas = towns ?? throw new InvalidOperationException("Town replay requires town areas.");
+            var views = currentViews ?? throw new InvalidOperationException("Town replay requires current views.");
             var member = areas.Find(session.CharacterId);
-            var position = positions.Find(session.CharacterId);
+            var position = onlineCharacters.PositionOf(session);
             var view = await views.TryLoadAsync(session, ct).ConfigureAwait(false);
             safety.DemandCurrent(recipient);
             if (member is not null && session.Owns(member) && position is not null && view is not null)
-                await services.GetRequiredService<TownAreaProjectionDelivery>().ProjectTransferAsync(session.ConnectionId,
+                await townDelivery.ProjectTransferAsync(session.ConnectionId,
                     session, view, member, ct).ConfigureAwait(false);
             foreach (var area in request.TouchedTownAreas)
                 if (area != member?.Area && areas.Find(area) is { } townSnapshot)
-                    await services.GetRequiredService<TownAreaProjectionDelivery>().PublishRosterAsync(townSnapshot, ct).ConfigureAwait(false);
+                    await townDelivery.PublishRosterAsync(townSnapshot, ct).ConfigureAwait(false);
         }
     }
 

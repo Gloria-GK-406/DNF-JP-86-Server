@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
@@ -75,63 +74,11 @@ internal sealed class WeddingChurchEnterEncoder : GameCmdMessageEncoder<WeddingC
 }
 
 public sealed record MarriageChurchPreparationResult(MarriageChurchSnapshot? Snapshot);
-public sealed record PrepareMarriageChurchCommand(SelectedSessionIdentity Actor)
-    : ICommand<MarriageChurchPreparationResult>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Actor.AccountId;
-    public SelectedSessionIdentity? Session => Actor;
-}
-public sealed class PrepareMarriageChurchCommandHandler(IMarriageVenueDomainService venue)
-    : ICommandHandler<PrepareMarriageChurchCommand, MarriageChurchPreparationResult>
-{
-    public async ValueTask<MarriageChurchPreparationResult> HandleAsync(CommandExecutionContext context,
-        PrepareMarriageChurchCommand command, CancellationToken ct) =>
-        new(await venue.PrepareChurchAsync(command.Actor, ct).ConfigureAwait(false));
-}
-public sealed record EnterMarriageChurchCommand(SelectedSessionIdentity Actor, uint Peer, uint ChurchArea, byte Flag)
-    : ICommand<MarriageChurchEntryResult>, IAccountCommand, ISelectedSessionCommand
-{
-    public AccountId AccountId => Actor.AccountId;
-    public SelectedSessionIdentity? Session => Actor;
-}
-public sealed class EnterMarriageChurchCommandHandler(IMarriageVenueDomainService venue)
-    : ICommandHandler<EnterMarriageChurchCommand, MarriageChurchEntryResult>
-{
-    public ValueTask<MarriageChurchEntryResult> HandleAsync(CommandExecutionContext context,
-        EnterMarriageChurchCommand command, CancellationToken ct) =>
-        venue.EnterChurchAsync(command.Actor, command.Peer, command.ChurchArea, command.Flag, ct);
-}
 
-public sealed class WeddingChurchEnterHandler(ISelectedSessionDomainService sessions, ICommandBus commands,
-    IGameMessageSender sender, SelectedSessionTransitionGate gate, ICharacterPositionDomainService positions,
-    ITownAreaDomainService areas, ISelectedCharacterCurrentViewDomainService views,
-    TownAreaProjectionDelivery projection, ILogger<WeddingChurchEnterHandler> logger, MarriageWeddingProjection? weddingProjection = null)
-    : ClientMessageHandler<WeddingChurchEnterRequest>
+
+
+public sealed class WeddingChurchEnterHandler(ICommandBus commands) : ClientMessageHandler<WeddingChurchEnterRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingChurchEnterCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        WeddingChurchEnterRequest message, CancellationToken ct)
-    {
-        var actor = sessions.FindByConnection(context.Connection.ConnectionId);
-        await WeddingProposalExecution.RunAsync(gate, actor, actor, async () =>
-        {
-            var previous = actor is null ? null : areas.Find(actor.CharacterId);
-            var view = actor is null ? null : await views.TryLoadAsync(actor, ct).ConfigureAwait(false);
-            var result = actor is null || sessions.Find(actor.AccountId) != actor || previous is null
-                || !actor.Owns(previous) || view is null
-                ? new MarriageChurchEntryResult(-10)
-                : await commands.SendAsync(new EnterMarriageChurchCommand(actor, message.Peer, message.ChurchArea, message.Flag), ct).ConfigureAwait(false);
-            if (result.Succeeded && actor is not null && previous is not null && view is not null)
-            {
-                var entry = result.Snapshot!;
-                var moved = positions.CrossInto(actor, entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y);
-                if (!await projection.TransferAsync(actor.ConnectionId, actor, view, entry.Room.ChannelId,
-                    moved, previous, true, ct).ConfigureAwait(false)) result = new(-10);
-                if (result.Succeeded && weddingProjection is not null)
-                    await weddingProjection.AppearanceAsync(actor, entry, false, ct).ConfigureAwait(false);
-            }
-            logger.LogInformation("Marriage church entry actor={Actor} peer={Peer} churchArea={ChurchArea} flag={Flag} status={Status} room={Room} area={Town}:{Area}",
-                actor?.CharacterId, message.Peer, message.ChurchArea, message.Flag, result.Status, result.Snapshot?.Room.Token, result.Snapshot?.Room.TownId, result.Snapshot?.Room.AreaId);
-            await sender.SendCmdAsync(context.Connection.ConnectionId, new WeddingChurchEnterAck(result.Status), ct).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingChurchEnterRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeddingChurchEnterCommand(context, message), ct).ConfigureAwait(false);
 }

@@ -14,9 +14,11 @@ namespace Dfo.Server.Application.Marriage;
 internal sealed class MarriageEligibility(ISelectedSessionDomainService sessions, ITownAreaDomainService areas,
     ICharacterDomainService characters, IMarriageProposalRuleService proposalRules, ICharacterInventoryEntryDomainService inventory)
 {
-    public bool IsCurrent(SelectedSessionIdentity session) => sessions.Find(session.AccountId) == session;
+    /// <remarks>The use cases reach the session only through here (<c>MarriageArchitectureTests</c>).</remarks>
+    public bool IsCurrent(SelectedSessionIdentity session) => sessions.IsInWorld(session);
 
-    public SelectedSessionIdentity? SessionOf(CharacterId character) => sessions.FindByCharacter(character);
+    public SelectedSessionIdentity? InWorldSessionOf(CharacterId character) =>
+        sessions.TryGetInWorld(character, out var session) ? session : null;
 
     public bool SameTown(SelectedSessionIdentity first, SelectedSessionIdentity second) =>
         first.ListenerPort == second.ListenerPort && areas.Find(first.CharacterId) is { SharesTownPresence: true } a

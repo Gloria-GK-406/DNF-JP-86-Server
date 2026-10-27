@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfHellRewardDefinitionSource(PvfArchiveProvider provider) : IHellRewardDefinitionSource
+internal sealed class PvfHellRewardDefinitionSource(PvfArchiveProvider provider) : IHellRewardDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<HellRewardDefinition> definition = new(() => Read(provider));
     private readonly Lock gate = new();
@@ -12,6 +12,10 @@ internal sealed class PvfHellRewardDefinitionSource(PvfArchiveProvider provider)
     private readonly Dictionary<bool, Dictionary<int, string>> paths = [];
 
     public HellRewardDefinition Load() => definition.Value;
+    public string Name => "hell-reward";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Bands.Count);
+
 
     public bool IsHellMonster(int code, bool isAiCharacter)
     {

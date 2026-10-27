@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -47,45 +48,16 @@ internal sealed class AchievementTriggerEncoder : GameCmdMessageEncoder<Achievem
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AchievementTriggerResponse message) => OnePayload(0x01A1, message.Body());
 }
-public sealed record ReconcileAchievementCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int AchievementId)
-    : ICommand<AchievementReconciliationResult>, IOnlineUserCommand, IAccountCommand, ISelectedSessionCommand
+internal sealed class AchievementTriggerHandler(ICommandBus commands) : ClientMessageHandler<AchievementTriggerRequest>, IProtocolCommandMessageHandler<GameAchievementTriggerCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed record AchievementReconciliationResult(CharacterAchievementProgressState? Progress);
-public sealed class ReconcileAchievementCommandHandler(IAchievementDomainService achievements)
-    : ICommandHandler<ReconcileAchievementCommand, AchievementReconciliationResult>
-{
-    public async ValueTask<AchievementReconciliationResult> HandleAsync(CommandExecutionContext context, ReconcileAchievementCommand command, CancellationToken ct) =>
-        new(await achievements.ReconcileAsync(command.Session.CharacterId, command.AchievementId, ct).ConfigureAwait(false));
-}
-internal sealed class AchievementTriggerHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    ICommandBus commands, IGameMessageSender sender, AchievementTitleProjectionGate gate, ILogger<AchievementTriggerHandler> logger) : ClientMessageHandler<AchievementTriggerRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AchievementTriggerRequest message, CancellationToken ct)
-    {
-        CharacterAchievementProgressState? progress = null;
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        using var held = session is null ? null : await gate.EnterAsync(session.CharacterId, ct).ConfigureAwait(false);
-        if (message.Complete && session is not null && users.TryGetByConnection(context.Connection.ConnectionId, out var user) && user is not null)
-        {
-            try
-            {
-                // Deltas are observations only. The reconciliation cannot advance counters from them.
-                progress = (await commands.SendAsync(new ReconcileAchievementCommand(user.OnlineUserId, session, message.AchievementId), ct).ConfigureAwait(false)).Progress;
-            }
-            catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-            { logger.LogWarning(failure, "Achievement trigger refused character={CharacterId} achievement={AchievementId}", session.CharacterId, message.AchievementId); }
-        }
-        await sender.SendCmdAsync(context.Connection.ConnectionId, new AchievementTriggerResponse(message.AchievementId, progress), ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, AchievementTriggerRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameAchievementTriggerCommand(context, message), ct).ConfigureAwait(false);
 }
 internal sealed record AchievementChanged(CharacterId Character) : INotification<AchievementChanged>;
-internal sealed class AchievementEventSubscriber(IEventService events, AchievementTitleProjectionGate gate) : IDomainEventSubscriber<AchievementProgressChanged>
+internal sealed class AchievementEventSubscriber(IEventService events) : IDomainEventSubscriber<AchievementProgressChanged>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<AchievementProgressChanged> message, CancellationToken ct)
     {
-        using var held = await gate.EnterAsync(message.Payload.CharacterId, ct).ConfigureAwait(false);
         await events.ProjectAsync(new NotificationAudience.TheseCharacters([message.Payload.CharacterId]), new AchievementChanged(message.Payload.CharacterId), ct).ConfigureAwait(false);
     }
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.HttpApi;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dfo.Server.Application.Administration;
@@ -17,14 +18,11 @@ internal static class GmDailyRefillEndpoints
     internal static void Map(RouteGroupBuilder group)
     {
         var permission = new GmRequiredPermission(GmPermission.All);
-        group.MapGet(Prefix, (HttpContext c, ICommandBus bus) => GmInitializationEndpoints.Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new QueryGmDailyRefillCommand(Secret(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapPost(Prefix, (HttpContext c, ICommandBus bus) => GmInitializationEndpoints.Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new ChangeGmDailyRefillCommand(Secret(c), await Read(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix + "/items", (HttpContext c, ICommandBus bus) => GmInitializationEndpoints.Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new SearchGmDailyRefillItemsCommand(Secret(c), GmInitializationEndpoints.Filter(c)), c.RequestAborted)))).WithMetadata(permission);
-        group.MapGet(Prefix + "/items/{id:int}", (HttpContext c, ICommandBus bus, int id) => GmInitializationEndpoints.Safe(c, async () =>
-            Results.Ok(await bus.SendAsync(new ReadGmDailyRefillItemCommand(Secret(c), id), c.RequestAborted)))).WithMetadata(permission);
+        Map("GET", "", HttpRouteOperation.DailyRefill, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
+        Map("POST", "", HttpRouteOperation.DailyRefillChange, async (HttpContext c) => new HttpRouteInput.DailyChange(Secret(c), await Read(c)));
+        Map("GET", "/items", HttpRouteOperation.DailyRefillItems, (HttpContext c) => new HttpRouteInput.Catalog(Secret(c), GmInitializationEndpoints.Filter(c)));
+        Map("GET", "/items/{id:int}", HttpRouteOperation.DailyRefillItem, (HttpContext c, int id) => new HttpRouteInput.CatalogItem(Secret(c), id));
+        void Map(string method, string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, method, Prefix + path, operation, parser, permission);
     }
     private static string Secret(HttpContext c) => c.Request.Cookies[GmAccessBoundary.SessionCookie]!;
     private static async Task<DailyRefillChange> Read(HttpContext c)

@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -14,21 +14,6 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.AccountRoster;
-
-public sealed record QueryOtherCharacterDetailCommand(
-    SelectedSessionIdentity Requester,
-    ushort TargetWireUserId) : ICommand<CharacterDetailQueryResult>;
-
-public sealed class QueryOtherCharacterDetailCommandHandler(
-    IOtherCharacterDetailQueryDomainService details)
-    : ICommandHandler<QueryOtherCharacterDetailCommand, CharacterDetailQueryResult>
-{
-    public ValueTask<CharacterDetailQueryResult> HandleAsync(
-        CommandExecutionContext context,
-        QueryOtherCharacterDetailCommand command,
-        CancellationToken cancellationToken) =>
-        details.QueryAsync(command.Requester, command.TargetWireUserId, cancellationToken);
-}
 
 public sealed record OtherCharacterDetailRequested(
     OtherCharacterDetailProjection Projection)
@@ -55,10 +40,9 @@ public sealed class OtherCharacterDetailRequestedHandler(
         var target = projection.Target;
         var isExactRequester = recipient.CharacterId == requester.CharacterId
             && recipient.ConnectionId == requester.ConnectionId
-            && sessions.FindByConnection(recipient.ConnectionId) == requester;
+            && sessions.IsInWorld(requester);
         var isExactTarget = target.ListenerPort == requester.ListenerPort
-            && sessions.FindByWireUserId(target.WireUserId) == target
-            && sessions.FindByCharacter(target.CharacterId) == target
+            && sessions.IsInWorld(target)
             && projection.TargetState.Character.Identity.CharacterId == target.CharacterId;
 
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
@@ -97,104 +81,11 @@ internal sealed class OtherCharacterDetailResponseEncoder
     }
 }
 
-public sealed class GetOtherCharacterDetailHandler(
-    ISelectedSessionDomainService sessions,
-    SelectedSessionTransitionGate transitionGate,
-    ICommandBus commands,
-    IEventService notifications,
-    ILogger<GetOtherCharacterDetailHandler> logger)
-    : ClientMessageHandler<GetOtherCharacterDetailRequest>
+public sealed class GetOtherCharacterDetailHandler(ICommandBus commands)
+    : ClientMessageHandler<GetOtherCharacterDetailRequest>, IProtocolCommandMessageHandler<GameOtherCharacterDetailCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        GetOtherCharacterDetailRequest message,
-        CancellationToken cancellationToken)
-    {
-        var requester = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (requester is null)
-        {
-            logger.LogInformation(
-                "GET_USERINFO mode=3 ignored for non-current connection {ConnectionId}",
-                context.Connection.ConnectionId);
-            return;
-        }
-
-        var target = sessions.FindByWireUserId(message.TargetWireUserId);
-        if (target is null)
-        {
-            logger.LogInformation(
-                "GET_USERINFO mode=3 requester={Requester} target={Target} refused={Failure}",
-                requester.WireUserId,
-                message.TargetWireUserId,
-                CharacterDetailQueryFailure.TargetNotCurrent);
-            return;
-        }
-
-        var result = await ExecuteExactAsync(
-            requester,
-            target,
-            () =>
-            {
-                if (sessions.FindByConnection(context.Connection.ConnectionId) != requester)
-                {
-                    return ValueTask.FromResult(CharacterDetailQueryResult.Reject(
-                        CharacterDetailQueryFailure.RequesterNotCurrent));
-                }
-
-                if (sessions.FindByWireUserId(message.TargetWireUserId) != target)
-                {
-                    return ValueTask.FromResult(CharacterDetailQueryResult.Reject(
-                        CharacterDetailQueryFailure.TargetNotCurrent));
-                }
-
-                return commands.SendAsync(
-                    new QueryOtherCharacterDetailCommand(requester, message.TargetWireUserId),
-                    cancellationToken);
-            },
-            cancellationToken).ConfigureAwait(false);
-
-        if (result.Projection is { } projection)
-        {
-            await notifications.ProjectAsync(
-                new NotificationAudience.TheseCharacters([requester.CharacterId]),
-                new OtherCharacterDetailRequested(projection),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        logger.LogInformation(
-            "GET_USERINFO mode=3 requester={Requester} target={Target} accepted={Accepted} failure={Failure}",
-            requester.WireUserId,
-            message.TargetWireUserId,
-            result.Succeeded,
-            result.Failure);
-    }
-
-    private async ValueTask<TResult> ExecuteExactAsync<TResult>(
-        SelectedSessionIdentity requester,
-        SelectedSessionIdentity target,
-        Func<ValueTask<TResult>> action,
-        CancellationToken cancellationToken)
-    {
-        var accounts = requester.AccountId == target.AccountId
-            ? [requester.AccountId]
-            : new[] { requester.AccountId, target.AccountId }
-                .OrderBy(value => value.Value)
-                .ToArray();
-        var leases = new List<IAsyncDisposable>(accounts.Length);
-        try
-        {
-            foreach (var account in accounts)
-            {
-                leases.Add(await transitionGate.AcquireAsync(
-                    account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            }
-
-            return await action().ConfigureAwait(false);
-        }
-        finally
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        GetOtherCharacterDetailRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameOtherCharacterDetailCommand(context, message), cancellationToken)
+            .ConfigureAwait(false);
 }

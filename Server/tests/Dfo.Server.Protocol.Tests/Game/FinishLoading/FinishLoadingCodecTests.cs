@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Protocol.Game.FinishLoading;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.FinishLoading;
 
@@ -88,64 +89,70 @@ public sealed class FinishLoadingCodecTests
     [Fact]
     public async Task The_handler_answers_with_the_notification_alone()
     {
-        var sender = new RecordingSender();
-        var handler = new FinishLoadingHandler(
-            sender,
-            NullLogger<FinishLoadingHandler>.Instance,
-            new RecordingProjection(accept: true));
-        var context = new NetworkDispatchContext(
-            new NetworkConnectionContext(new NetworkConnectionId("game-1"), NetworkEndpointKind.Game, 20011));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = new Dfo.Server.Protocol.Tests.Game.DungeonEntry.FinishLoadingAlgorithmDriver(
+                sender,
+                new RecordingProjection(accept: true));
+            var context = new NetworkDispatchContext(
+                new NetworkConnectionContext(new NetworkConnectionId("game-1"), NetworkEndpointKind.Game, 20011));
 
-        await handler.HandleAsync(
-            context,
-            new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                context,
+                new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
+                CancellationToken.None);
 
-        var sent = Assert.Single(sender.Sent);
-        Assert.IsType<LoadingCompleteNotification>(sent, exactMatch: false);
+            var sent = Assert.Single(sender.Sent);
+            Assert.IsType<LoadingCompleteNotification>(sent, exactMatch: false);
+        });
     }
 
     [Fact]
     public async Task The_handler_submits_loading_to_the_projection_before_releasing_the_client()
     {
-        var sender = new RecordingSender();
-        var projection = new RecordingProjection(accept: true);
-        var handler = new FinishLoadingHandler(
-            sender,
-            NullLogger<FinishLoadingHandler>.Instance,
-            projection);
-        var connection = new NetworkConnectionId("game-current");
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var projection = new RecordingProjection(accept: true);
+            var handler = new Dfo.Server.Protocol.Tests.Game.DungeonEntry.FinishLoadingAlgorithmDriver(
+                sender,
+                projection);
+            var connection = new NetworkConnectionId("game-current");
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(new NetworkConnectionContext(
-                connection, NetworkEndpointKind.Game, 20011)),
-            new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(new NetworkConnectionContext(
+                    connection, NetworkEndpointKind.Game, 20011)),
+                new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
+                CancellationToken.None);
 
-        Assert.Equal(connection, Assert.Single(projection.Connections));
-        Assert.IsType<LoadingCompleteNotification>(Assert.Single(sender.Sent));
+            Assert.Equal(connection, Assert.Single(projection.Connections));
+            Assert.IsType<LoadingCompleteNotification>(Assert.Single(sender.Sent));
+        });
     }
 
     [Fact]
     public async Task A_stale_loading_connection_is_not_released()
     {
-        var sender = new RecordingSender();
-        var projection = new RecordingProjection(accept: false);
-        var handler = new FinishLoadingHandler(
-            sender,
-            NullLogger<FinishLoadingHandler>.Instance,
-            projection);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var projection = new RecordingProjection(accept: false);
+            var handler = new Dfo.Server.Protocol.Tests.Game.DungeonEntry.FinishLoadingAlgorithmDriver(
+                sender,
+                projection);
 
-        await handler.HandleAsync(
-            new NetworkDispatchContext(new NetworkConnectionContext(
-                new NetworkConnectionId("game-stale"), NetworkEndpointKind.Game, 20011)),
-            new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                new NetworkDispatchContext(new NetworkConnectionContext(
+                    new NetworkConnectionId("game-stale"), NetworkEndpointKind.Game, 20011)),
+                new FinishLoadingRequest(GameMessageMetadata.Empty, 0, 0),
+                CancellationToken.None);
 
-        Assert.Empty(sender.Sent);
+            Assert.Empty(sender.Sent);
+        });
     }
 
-    private sealed class RecordingProjection(bool accept) : IDungeonLoadingProjectionDelivery
+    private sealed class RecordingProjection(bool accept) : Dfo.Server.Protocol.Tests.Game.DungeonEntry.ILoadingAlgorithm
     {
         public List<NetworkConnectionId> Connections { get; } = [];
 
@@ -169,35 +176,21 @@ public sealed class FinishLoadingCodecTests
         }
     }
 
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox (an explicit delivery with its direct messages
+    /// only, as before); every call goes to the real protocol sender over it (TASK-25).
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
+        public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
 
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken)
-        {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

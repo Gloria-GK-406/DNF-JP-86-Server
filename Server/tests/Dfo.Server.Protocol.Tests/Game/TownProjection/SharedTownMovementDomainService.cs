@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Parties;
@@ -37,14 +36,7 @@ internal static class TownAreaProjectionTestFactory
         ISelectedCharacterCurrentViewDomainService currentViews,
         IGameMessageSender sender,
         ITownAreaDomainService? areas = null) =>
-        new(
-            areas ?? new SessionPresenceDomainService(),
-            sessions,
-            currentViews,
-            new NoopNotificationBus(),
-            new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
+        global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas ?? new SessionPresenceDomainService(), sessions, currentViews, new NoopNotificationBus(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance);
 
     private sealed class NoopNotificationBus : Dfo.Server.Testing.ProjectionEventService
     {
@@ -59,7 +51,6 @@ internal static class TownAreaProjectionTestFactory
     {
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RefreshMovedPartyAsync(

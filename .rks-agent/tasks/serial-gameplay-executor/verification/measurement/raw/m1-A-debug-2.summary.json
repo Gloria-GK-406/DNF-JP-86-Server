@@ -1,0 +1,2944 @@
+{
+  "steadyRate": 400,
+  "composition": {
+    "SET_USER_POSITION": 18494,
+    "CHECK_USER_CONNECTION": 25507,
+    "SET_USER_AREA": 1143,
+    "STEP_FENCE": 2142,
+    "RETURN_SELECT_CHARACTER": 197,
+    "SELECT_CHARACTER": 197,
+    "EPLP": 36,
+    "LEAVE_PARTY": 37,
+    "REQUEST_PEER": 36,
+    "RESPONSE_PEER": 36,
+    "CREATE_CHARACTER": 35,
+    "ENTER_SELECT_DUNGEON": 35,
+    "SELECT_DUNGEON": 35,
+    "FINISH_LOADING": 70
+  },
+  "steady": {
+    "CHECK_USER_CONNECTION": {
+      "distribution": {
+        "Count": 25507,
+        "P50": 1.6652,
+        "P95": 50.5618,
+        "P99": 89.9557,
+        "P999": 119.0955,
+        "Max": 147.5886,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 25507,
+        "P50": 0.2627,
+        "P95": 45.2056,
+        "P99": 86.7943,
+        "P999": 118.5244,
+        "Max": 139.3295,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "SET_USER_POSITION": {
+      "distribution": {
+        "Count": 18494,
+        "P50": 1.6809,
+        "P95": 52.5452,
+        "P99": 93.8073,
+        "P999": 116.5423,
+        "Max": 137.1233,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 18494,
+        "P50": 0.2591,
+        "P95": 46.8186,
+        "P99": 90.848,
+        "P999": 113.6486,
+        "Max": 136.3694,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "SET_USER_AREA": {
+      "distribution": {
+        "Count": 1143,
+        "P50": 22.8228,
+        "P95": 65.6152,
+        "P99": 104.2988,
+        "P999": 136.9033,
+        "Max": 154.8707,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 1143,
+        "P50": 21.558,
+        "P95": 62.7314,
+        "P99": 95.0473,
+        "P999": 136.1357,
+        "Max": 154.7367,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "RETURN_SELECT_CHARACTER": {
+      "distribution": {
+        "Count": 197,
+        "P50": 2.2844,
+        "P95": 57.8816,
+        "P99": 73.7061,
+        "P999": 100.5409,
+        "Max": 100.5409,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 197,
+        "P50": 0.9227,
+        "P95": 56.1065,
+        "P99": 73.7061,
+        "P999": 99.0307,
+        "Max": 99.0307,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "SELECT_CHARACTER": {
+      "distribution": {
+        "Count": 197,
+        "P50": 4.3405,
+        "P95": 20.5176,
+        "P99": 64.9779,
+        "P999": 74.0346,
+        "Max": 74.0346,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 197,
+        "P50": 4.3405,
+        "P95": 20.5176,
+        "P99": 64.9779,
+        "P999": 74.0346,
+        "Max": 74.0346,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "FINISH_LOADING": {
+      "distribution": {
+        "Count": 70,
+        "P50": 0.1442,
+        "P95": 0.2674,
+        "P99": 58.7295,
+        "P999": 58.7295,
+        "Max": 58.7295,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 70,
+        "P50": 0.1442,
+        "P95": 0.2674,
+        "P99": 58.7295,
+        "P999": 58.7295,
+        "Max": 58.7295,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "LEAVE_PARTY": {
+      "distribution": {
+        "Count": 37,
+        "P50": 0.3671,
+        "P95": 55.9933,
+        "P99": 56.0591,
+        "P999": 56.0591,
+        "Max": 56.0591,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 37,
+        "P50": 0.3671,
+        "P95": 55.9933,
+        "P99": 56.0591,
+        "P999": 56.0591,
+        "Max": 56.0591,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "EPLP": {
+      "distribution": {
+        "Count": 36,
+        "P50": 12.4948,
+        "P95": 87.0134,
+        "P99": 87.4892,
+        "P999": 87.4892,
+        "Max": 87.4892,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 36,
+        "P50": 8.5062,
+        "P95": 39.7391,
+        "P99": 85.9245,
+        "P999": 85.9245,
+        "Max": 85.9245,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "REQUEST_PEER": {
+      "distribution": {
+        "Count": 0,
+        "P50": "NaN",
+        "P95": "NaN",
+        "P99": "NaN",
+        "P999": "NaN",
+        "Max": "NaN",
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 0,
+        "P50": "NaN",
+        "P95": "NaN",
+        "P99": "NaN",
+        "P999": "NaN",
+        "Max": "NaN",
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 36
+    },
+    "RESPONSE_PEER": {
+      "distribution": {
+        "Count": 36,
+        "P50": 0.2015,
+        "P95": 0.3907,
+        "P99": 66.675,
+        "P999": 66.675,
+        "Max": 66.675,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 36,
+        "P50": 0.2015,
+        "P95": 0.3907,
+        "P99": 66.675,
+        "P999": 66.675,
+        "Max": 66.675,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "CREATE_CHARACTER": {
+      "distribution": {
+        "Count": 35,
+        "P50": 3.1813,
+        "P95": 18.2318,
+        "P99": 19.3499,
+        "P999": 19.3499,
+        "Max": 19.3499,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 35,
+        "P50": 3.1813,
+        "P95": 18.2318,
+        "P99": 19.3499,
+        "P999": 19.3499,
+        "Max": 19.3499,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "ENTER_SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 35,
+        "P50": 28.879,
+        "P95": 111.6788,
+        "P99": 147.8906,
+        "P999": 147.8906,
+        "Max": 147.8906,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 35,
+        "P50": 25.8505,
+        "P95": 111.6788,
+        "P99": 131.2829,
+        "P999": 131.2829,
+        "Max": 131.2829,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    },
+    "SELECT_DUNGEON": {
+      "distribution": {
+        "Count": 35,
+        "P50": 10.2908,
+        "P95": 115.3788,
+        "P99": 116.8512,
+        "P999": 116.8512,
+        "Max": 116.8512,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "actual": {
+        "Count": 35,
+        "P50": 10.2908,
+        "P95": 115.3788,
+        "P99": 116.8512,
+        "P999": 116.8512,
+        "Max": 116.8512,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "censored": 0,
+      "protocolNoReply": 0
+    }
+  },
+  "steadyOverall": {
+    "Count": 45822,
+    "P50": 1.7156,
+    "P95": 52.1097,
+    "P99": 92.3103,
+    "P999": 119.0886,
+    "Max": 154.8707,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "steadyOverallActual": {
+    "Count": 45822,
+    "P50": 0.2721,
+    "P95": 46.611,
+    "P99": 87.8506,
+    "P999": 118.5112,
+    "Max": 154.7367,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "steadyCensored": 0,
+  "steadyProtocolNoReply": 36,
+  "steadyLateness": {
+    "Count": 45858,
+    "P50": 1.038,
+    "P95": 2.6446,
+    "P99": 42.2361,
+    "P999": 68.575,
+    "Max": 90.731,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "commands": {
+    "RegisterAccountCommand": {
+      "Count": 81,
+      "P50": 0.0925,
+      "P95": 0.359,
+      "P99": 11.1293,
+      "P999": 11.1293,
+      "Max": 11.1293,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AuthenticateAndIssueTicketCommand": {
+      "Count": 81,
+      "P50": 0.0318,
+      "P95": 0.1041,
+      "P99": 4.8428,
+      "P999": 4.8428,
+      "Max": 4.8428,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RedeemGameLoginCommand": {
+      "Count": 81,
+      "P50": 0.016,
+      "P95": 0.0407,
+      "P99": 3.3136,
+      "P999": 3.3136,
+      "Max": 3.3136,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ActivateClientHotkeyProfileCommand": {
+      "Count": 565,
+      "P50": 0.0139,
+      "P95": 0.0252,
+      "P99": 0.0351,
+      "P999": 5.0547,
+      "Max": 5.0547,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "CreateCharacterCommand": {
+      "Count": 94,
+      "P50": 1.1814,
+      "P95": 3.1355,
+      "P99": 23.6109,
+      "P999": 23.6109,
+      "Max": 23.6109,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "GetAccountCharacterRosterCommand": {
+      "Count": 94,
+      "P50": 0.3255,
+      "P95": 0.988,
+      "P99": 5.0562,
+      "P999": 5.0562,
+      "Max": 5.0562,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PrepareSelectedCharacterSessionCommand": {
+      "Count": 484,
+      "P50": 0.0594,
+      "P95": 0.1456,
+      "P99": 0.2324,
+      "P999": 3.3849,
+      "Max": 3.3849,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "CleanupExpiredCharacterItemsCommand": {
+      "Count": 484,
+      "P50": 0.0479,
+      "P95": 0.1185,
+      "P99": 0.2297,
+      "P999": 1.6063,
+      "Max": 1.6063,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "EnsureDailyContractPuppetsCommand": {
+      "Count": 484,
+      "P50": 0.0342,
+      "P95": 0.084,
+      "P99": 0.137,
+      "P999": 3.2993,
+      "Max": 3.2993,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "InitializeHousingCommand": {
+      "Count": 484,
+      "P50": 0.0212,
+      "P95": 0.053,
+      "P99": 0.0915,
+      "P999": 0.7091,
+      "Max": 0.7091,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PrepareSelectedCharacterStateCommand": {
+      "Count": 484,
+      "P50": 3.7433,
+      "P95": 8.1964,
+      "P99": 12.1012,
+      "P999": 98.2661,
+      "Max": 98.2661,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ApplySelectedCharacterDailyRefillCommand": {
+      "Count": 484,
+      "P50": 12.676,
+      "P95": 25.5643,
+      "P99": 48.1618,
+      "P999": 57.1281,
+      "Max": 57.1281,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PublishSelectedCharacterSessionCommand": {
+      "Count": 484,
+      "P50": 0.0131,
+      "P95": 0.0331,
+      "P99": 0.0695,
+      "P999": 3.7569,
+      "Max": 3.7569,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RefillOnlineTauTicketCommand": {
+      "Count": 484,
+      "P50": 16.6554,
+      "P95": 49.8454,
+      "P99": 56.124,
+      "P999": 62.9567,
+      "Max": 62.9567,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RefillOnlineSouthernTicketCommand": {
+      "Count": 484,
+      "P50": 14.183,
+      "P95": 54.1745,
+      "P99": 58.2391,
+      "P999": 60.2335,
+      "Max": 60.2335,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RefillOnlineBossTowerTicketCommand": {
+      "Count": 484,
+      "P50": 14.6482,
+      "P95": 33.0224,
+      "P99": 51.7284,
+      "P999": 69.0902,
+      "Max": 69.0902,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "SynchronizeSelectedCharacterQuestsCommand": {
+      "Count": 484,
+      "P50": 0.0461,
+      "P95": 0.0737,
+      "P99": 0.1051,
+      "P999": 3.8641,
+      "Max": 3.8641,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ReviveSelectedCharacterPetCommand": {
+      "Count": 484,
+      "P50": 0.0346,
+      "P95": 0.0497,
+      "P99": 0.0658,
+      "P999": 1.5258,
+      "Max": 1.5258,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ReadItemUsageSnapshotCommand": {
+      "Count": 529,
+      "P50": 0.0351,
+      "P95": 0.0562,
+      "P99": 0.0684,
+      "P999": 2.9903,
+      "Max": 2.9903,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AdvanceCreatureClockCommand": {
+      "Count": 776,
+      "P50": 0.0271,
+      "P95": 0.1209,
+      "P99": 0.3189,
+      "P999": 3.0717,
+      "Max": 3.0717,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "PrepareReturnToSelectionCommand": {
+      "Count": 463,
+      "P50": 0.1764,
+      "P95": 0.596,
+      "P99": 1.3491,
+      "P999": 2.4338,
+      "Max": 2.4338,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "CompleteReturnToSelectionCommand": {
+      "Count": 463,
+      "P50": 0.1569,
+      "P95": 0.7333,
+      "P99": 1.1188,
+      "P999": 6.491,
+      "Max": 6.491,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "RequestPartyInviteCommand": {
+      "Count": 83,
+      "P50": 0.4175,
+      "P95": 2.248,
+      "P99": 2.4905,
+      "P999": 2.4905,
+      "Max": 2.4905,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AcceptPartyInviteCommand": {
+      "Count": 83,
+      "P50": 0.0138,
+      "P95": 0.0767,
+      "P99": 3.867,
+      "P999": 3.867,
+      "Max": 3.867,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "EnterDungeonCommand": {
+      "Count": 79,
+      "P50": 6.0121,
+      "P95": 11.5001,
+      "P99": 59.54,
+      "P999": 59.54,
+      "Max": 59.54,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "MarkDungeonParticipantReadyCommand": {
+      "Count": 158,
+      "P50": 0.0081,
+      "P95": 0.0219,
+      "P99": 0.2797,
+      "P999": 0.6649,
+      "Max": 0.6649,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "LeaveDungeonCommand": {
+      "Count": 79,
+      "P50": 0.9709,
+      "P95": 3.062,
+      "P99": 13.5463,
+      "P999": 13.5463,
+      "Max": 13.5463,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ExpireCharacterNameTagCommand": {
+      "Count": 105,
+      "P50": 0.0077,
+      "P95": 0.0297,
+      "P99": 0.0712,
+      "P999": 0.4778,
+      "Max": 0.4778,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "LeavePartyCommand": {
+      "Count": 77,
+      "P50": 0.0122,
+      "P95": 0.0479,
+      "P99": 1.3002,
+      "P999": 1.3002,
+      "Max": 1.3002,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "AdvanceWeaknessRecoveryCommand": {
+      "Count": 4,
+      "P50": 0.0074,
+      "P95": 1.1715,
+      "P99": 1.1715,
+      "P999": 1.1715,
+      "Max": 1.1715,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    },
+    "ReadPremiumSnapshotCommand": {
+      "Count": 84,
+      "P50": 0.0165,
+      "P95": 0.0269,
+      "P99": 0.3993,
+      "P999": 0.3993,
+      "Max": 0.3993,
+      "Censored": 0,
+      "MaxIsLowerBound": false
+    }
+  },
+  "commandWarnings": [],
+  "coldStall": 1181.4802,
+  "coldStallCensored": false,
+  "coldStallActual": 1181.4802,
+  "coldOverall": {
+    "Count": 21942,
+    "P50": 1.7335,
+    "P95": 63.6952,
+    "P99": 114.0162,
+    "P999": 630.3084,
+    "Max": 1181.4802,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "coldPerSecond": [
+    [
+      "0",
+      "44",
+      "1181.5",
+      "1181.5",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "1",
+      "52",
+      "366.8",
+      "366.8",
+      "SELECT_CHARACTER"
+    ],
+    [
+      "2",
+      "171",
+      "648.4",
+      "667.0",
+      "SET_USER_AREA"
+    ],
+    [
+      "3",
+      "389",
+      "194.2",
+      "224.1",
+      "SET_USER_POSITION"
+    ],
+    [
+      "4",
+      "391",
+      "44.04",
+      "62.18",
+      "SET_USER_POSITION"
+    ],
+    [
+      "5",
+      "378",
+      "97.14",
+      "130.2",
+      "SET_USER_AREA"
+    ],
+    [
+      "6",
+      "389",
+      "94.77",
+      "113.2",
+      "SET_USER_POSITION"
+    ],
+    [
+      "7",
+      "369",
+      "41.13",
+      "57.03",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "8",
+      "367",
+      "96.77",
+      "105.1",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "9",
+      "382",
+      "84.61",
+      "102.9",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "10",
+      "387",
+      "79.21",
+      "97.34",
+      "SET_USER_POSITION"
+    ],
+    [
+      "11",
+      "387",
+      "97.24",
+      "111.8",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "12",
+      "364",
+      "88.17",
+      "90.05",
+      "SET_USER_AREA"
+    ],
+    [
+      "13",
+      "372",
+      "99.38",
+      "103.4",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "14",
+      "380",
+      "76.17",
+      "76.28",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "15",
+      "386",
+      "60.04",
+      "60.14",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "16",
+      "384",
+      "92.93",
+      "95.27",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "17",
+      "381",
+      "59.17",
+      "73.67",
+      "SET_USER_AREA"
+    ],
+    [
+      "18",
+      "380",
+      "86.45",
+      "104.9",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "19",
+      "388",
+      "58.59",
+      "60.82",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "20",
+      "382",
+      "97.78",
+      "112.7",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "21",
+      "390",
+      "52.62",
+      "53.61",
+      "SET_USER_POSITION"
+    ],
+    [
+      "22",
+      "384",
+      "40.46",
+      "43.13",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "23",
+      "388",
+      "62.80",
+      "64.42",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "24",
+      "379",
+      "102.3",
+      "111.4",
+      "SET_USER_AREA"
+    ],
+    [
+      "25",
+      "381",
+      "66.61",
+      "83.33",
+      "SET_USER_POSITION"
+    ],
+    [
+      "26",
+      "377",
+      "78.68",
+      "93.92",
+      "SET_USER_POSITION"
+    ],
+    [
+      "27",
+      "388",
+      "38.45",
+      "42.87",
+      "SET_USER_AREA"
+    ],
+    [
+      "28",
+      "373",
+      "93.58",
+      "103.5",
+      "SET_USER_POSITION"
+    ],
+    [
+      "29",
+      "387",
+      "58.74",
+      "62.48",
+      "SET_USER_AREA"
+    ],
+    [
+      "30",
+      "382",
+      "47.12",
+      "62.47",
+      "SET_USER_POSITION"
+    ],
+    [
+      "31",
+      "367",
+      "57.64",
+      "72.01",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "32",
+      "381",
+      "82.03",
+      "100.4",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "33",
+      "369",
+      "36.77",
+      "55.20",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "34",
+      "377",
+      "84.41",
+      "100.7",
+      "SET_USER_POSITION"
+    ],
+    [
+      "35",
+      "374",
+      "40.54",
+      "66.73",
+      "SET_USER_POSITION"
+    ],
+    [
+      "36",
+      "389",
+      "105.4",
+      "124.8",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "37",
+      "385",
+      "73.40",
+      "81.46",
+      "SET_USER_AREA"
+    ],
+    [
+      "38",
+      "382",
+      "103.7",
+      "103.9",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "39",
+      "375",
+      "87.43",
+      "101.6",
+      "SET_USER_POSITION"
+    ],
+    [
+      "40",
+      "383",
+      "54.28",
+      "66.00",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "41",
+      "381",
+      "40.13",
+      "54.54",
+      "SET_USER_POSITION"
+    ],
+    [
+      "42",
+      "382",
+      "95.79",
+      "110.9",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "43",
+      "383",
+      "68.34",
+      "83.16",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "44",
+      "378",
+      "63.27",
+      "81.63",
+      "SET_USER_POSITION"
+    ],
+    [
+      "45",
+      "377",
+      "71.71",
+      "100.1",
+      "SET_USER_POSITION"
+    ],
+    [
+      "46",
+      "378",
+      "87.37",
+      "102.5",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "47",
+      "370",
+      "58.98",
+      "88.53",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "48",
+      "388",
+      "160.5",
+      "166.9",
+      "SET_USER_POSITION"
+    ],
+    [
+      "49",
+      "385",
+      "88.42",
+      "117.7",
+      "SET_USER_AREA"
+    ],
+    [
+      "50",
+      "379",
+      "118.3",
+      "124.6",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "51",
+      "376",
+      "58.72",
+      "73.26",
+      "SET_USER_AREA"
+    ],
+    [
+      "52",
+      "359",
+      "67.53",
+      "80.58",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "53",
+      "390",
+      "21.66",
+      "33.57",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "54",
+      "386",
+      "81.67",
+      "99.98",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "55",
+      "365",
+      "46.04",
+      "64.14",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "56",
+      "383",
+      "125.0",
+      "133.8",
+      "SET_USER_POSITION"
+    ],
+    [
+      "57",
+      "382",
+      "98.68",
+      "113.0",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "58",
+      "385",
+      "90.74",
+      "90.91",
+      "CHECK_USER_CONNECTION"
+    ],
+    [
+      "59",
+      "381",
+      "78.38",
+      "96.82",
+      "SET_USER_POSITION"
+    ]
+  ],
+  "burstByRole": {
+    "\u5355\u4EBA": {
+      "steady": {
+        "Count": 17628,
+        "P50": 1.7444,
+        "P95": 54.4464,
+        "P99": 92.1024,
+        "P999": 119.1168,
+        "Max": 154.8707,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burst": {
+        "Count": 213,
+        "P50": 32.9151,
+        "P95": 87.0849,
+        "P99": 109.3032,
+        "P999": 133.0277,
+        "Max": 133.0277,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burstActual": {
+        "Count": 213,
+        "P50": 26.7837,
+        "P95": 80.7187,
+        "P99": 96.32,
+        "P999": 113.265,
+        "Max": 113.265,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      }
+    },
+    "\u53CC\u4EBA\u7EC4\u9886\u961F": {
+      "steady": {
+        "Count": 14079,
+        "P50": 1.9072,
+        "P95": 50.5065,
+        "P99": 92.8999,
+        "P999": 115.3788,
+        "Max": 147.8906,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burst": {
+        "Count": 167,
+        "P50": 35.2498,
+        "P95": 96.6076,
+        "P99": 114.5551,
+        "P999": 114.5637,
+        "Max": 114.5637,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burstActual": {
+        "Count": 167,
+        "P50": 4.85,
+        "P95": 93.8433,
+        "P99": 94.0275,
+        "P999": 94.0421,
+        "Max": 94.0421,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      }
+    },
+    "\u53CC\u4EBA\u7EC4\u961F\u5458": {
+      "steady": {
+        "Count": 14115,
+        "P50": 1.4897,
+        "P95": 50.2154,
+        "P99": 92.2544,
+        "P999": 111.89,
+        "Max": 147.5886,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burst": {
+        "Count": 166,
+        "P50": 40.5739,
+        "P95": 96.2385,
+        "P99": 114.2047,
+        "P999": 114.227,
+        "Max": 114.227,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "burstActual": {
+        "Count": 166,
+        "P50": 6.3737,
+        "P95": 93.8865,
+        "P99": 94.0292,
+        "P999": 94.0365,
+        "Max": 94.0365,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      }
+    }
+  },
+  "burstBackground": {
+    "Count": 546,
+    "P50": 34.9682,
+    "P95": 96.4962,
+    "P99": 114.4766,
+    "P999": 133.0277,
+    "Max": 133.0277,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "burstBackgroundActual": {
+    "Count": 546,
+    "P50": 21.7683,
+    "P95": 88.7838,
+    "P99": 94.0292,
+    "P999": 113.265,
+    "Max": 113.265,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "burstPhase": {
+    "Count": 19225,
+    "P50": 1.8053,
+    "P95": 61.889,
+    "P99": 101.716,
+    "P999": 148.3587,
+    "Max": 192.9678,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "floodOthers": {
+    "Count": 11463,
+    "P50": 1.5842,
+    "P95": 53.8845,
+    "P99": 89.4244,
+    "P999": 103.3017,
+    "Max": 118.2549,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "floodOthersActual": {
+    "Count": 11463,
+    "P50": 0.2068,
+    "P95": 48.1108,
+    "P99": 88.0522,
+    "P999": 102.793,
+    "Max": 118.2549,
+    "Censored": 0,
+    "MaxIsLowerBound": false
+  },
+  "floodRate": 51672.931565679166,
+  "outboundMax": {
+    "LOGIN|requester": 339,
+    "CREATE_CHARACTER|requester": 1323,
+    "SELECT_CHARACTER|requester": 40480,
+    "RETURN_SELECT_CHARACTER|requester": 2679,
+    "SET_USER_AREA|requester": 6361,
+    "SET_USER_AREA|companion": 6083,
+    "REQUEST_PEER|requester": 2613,
+    "REQUEST_PEER|companion": 3049,
+    "RESPONSE_PEER|requester": 615,
+    "RESPONSE_PEER|companion": 1635,
+    "ENTER_SELECT_DUNGEON|requester": 1626,
+    "ENTER_SELECT_DUNGEON|companion": 1626,
+    "SELECT_DUNGEON|requester": 1367,
+    "SELECT_DUNGEON|companion": 1367,
+    "FINISH_LOADING|requester": 36,
+    "FINISH_LOADING|companion": 0,
+    "EPLP|requester": 6168,
+    "EPLP|companion": 6384,
+    "LEAVE_PARTY|requester": 1786,
+    "LEAVE_PARTY|companion": 2721
+  },
+  "errors": 0,
+  "stallsOver250": 152,
+  "failedCommands": 0,
+  "entries": 79,
+  "hostLogLines": 1686578,
+  "originUtc": "2026-10-22T19:50:41.1755418Z",
+  "executorLog": "debug",
+  "executorLines": {
+    "total": 1672170,
+    "afterReady": 1672165,
+    "failed": 0,
+    "unparsed": 0,
+    "numberFailures": 0,
+    "logLinesAtSnapshot": 1686578
+  },
+  "executorJobs": {
+    "inbound:GameSelectCharacter": {
+      "distribution": {
+        "Count": 484,
+        "P50": 64.9924,
+        "P95": 115.307,
+        "P99": 130.6885,
+        "P999": 229.5318,
+        "Max": 229.5318,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 229.5318,
+      "firstAt": 0.699059,
+      "coldMax": 229.5318,
+      "warmMax": 139.3467,
+      "maxAt": 0.699059,
+      "failed": 0
+    },
+    "inbound:GameSetUserArea": {
+      "distribution": {
+        "Count": 2655,
+        "P50": 23.1119,
+        "P95": 41.3147,
+        "P99": 55.0097,
+        "P999": 68.1457,
+        "Max": 101.6728,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 10.5929,
+      "firstAt": 1.9593125,
+      "coldMax": 78.2386,
+      "warmMax": 101.6728,
+      "maxAt": 202.090029,
+      "failed": 0
+    },
+    "inbound:GameEplpCommand": {
+      "distribution": {
+        "Count": 79,
+        "P50": 45.8549,
+        "P95": 79.2012,
+        "P99": 88.5462,
+        "P999": 88.5462,
+        "Max": 88.5462,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 48.0146,
+      "firstAt": 17.5218007,
+      "coldMax": 48.0146,
+      "warmMax": 88.5462,
+      "maxAt": 240.3146245,
+      "failed": 0
+    },
+    "inbound:GameSelectDungeon": {
+      "distribution": {
+        "Count": 79,
+        "P50": 10.0203,
+        "P95": 15.5592,
+        "P99": 77.5655,
+        "P999": 77.5655,
+        "Max": 77.5655,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 77.5655,
+      "firstAt": 12.600057,
+      "coldMax": 77.5655,
+      "warmMax": 16.5245,
+      "maxAt": 12.600057,
+      "failed": 0
+    },
+    "inbound:GameEnterSelectDungeon": {
+      "distribution": {
+        "Count": 79,
+        "P50": 23.7507,
+        "P95": 41.4217,
+        "P99": 46.5656,
+        "P999": 46.5656,
+        "Max": 46.5656,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 34.5824,
+      "firstAt": 12.5090305,
+      "coldMax": 46.5656,
+      "warmMax": 44.974,
+      "maxAt": 52.4894674,
+      "failed": 0
+    },
+    "inbound:GameCreateCharacter": {
+      "distribution": {
+        "Count": 94,
+        "P50": 1.7792,
+        "P95": 4.8888,
+        "P99": 30.8117,
+        "P999": 30.8117,
+        "Max": 30.8117,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 30.8117,
+      "firstAt": 0.4162694,
+      "coldMax": 30.8117,
+      "warmMax": 5.8715,
+      "maxAt": 0.4162694,
+      "failed": 0
+    },
+    "inbound:GameLogin": {
+      "distribution": {
+        "Count": 81,
+        "P50": 0.111,
+        "P95": 0.2982,
+        "P99": 18.3778,
+        "P999": 18.3778,
+        "Max": 18.3778,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 18.3778,
+      "firstAt": 0.3768417,
+      "coldMax": 18.3778,
+      "warmMax": 0.2727,
+      "maxAt": 0.3768417,
+      "failed": 0
+    },
+    "inbound:GameLeaveParty": {
+      "distribution": {
+        "Count": 77,
+        "P50": 0.2115,
+        "P95": 0.8995,
+        "P99": 14.8229,
+        "P999": 14.8229,
+        "Max": 14.8229,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 14.8229,
+      "firstAt": 21.9887308,
+      "coldMax": 14.8229,
+      "warmMax": 0.8995,
+      "maxAt": 21.9887308,
+      "failed": 0
+    },
+    "http:POST /api/launcher/v1/register": {
+      "distribution": {
+        "Count": 81,
+        "P50": 0.1052,
+        "P95": 0.3911,
+        "P99": 13.8446,
+        "P999": 13.8446,
+        "Max": 13.8446,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 13.8446,
+      "firstAt": 0.1919592,
+      "coldMax": 13.8446,
+      "warmMax": 1.0065,
+      "maxAt": 0.1919592,
+      "failed": 0
+    },
+    "inbound:GameResponsePeer": {
+      "distribution": {
+        "Count": 83,
+        "P50": 0.2282,
+        "P95": 0.4812,
+        "P99": 11.6821,
+        "P999": 11.6821,
+        "Max": 11.6821,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 11.6821,
+      "firstAt": 6.9456456,
+      "coldMax": 11.6821,
+      "warmMax": 0.4812,
+      "maxAt": 6.9456456,
+      "failed": 0
+    },
+    "inbound:GameReturnToSelection": {
+      "distribution": {
+        "Count": 463,
+        "P50": 0.4491,
+        "P95": 1.6754,
+        "P99": 2.6668,
+        "P999": 10.3032,
+        "Max": 10.3032,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 10.3032,
+      "firstAt": 1.8511993,
+      "coldMax": 10.3032,
+      "warmMax": 3.1884,
+      "maxAt": 1.8511993,
+      "failed": 0
+    },
+    "lifecycle:disconnected": {
+      "distribution": {
+        "Count": 81,
+        "P50": 0.0078,
+        "P95": 1.1662,
+        "P99": 10.0603,
+        "P999": 10.0603,
+        "Max": 10.0603,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 10.0603,
+      "firstAt": 0.1508856,
+      "coldMax": 10.0603,
+      "warmMax": 6.4072,
+      "maxAt": 0.1508856,
+      "failed": 0
+    },
+    "event:southern-dale.daily-refill-notifications": {
+      "distribution": {
+        "Count": 484,
+        "P50": 0.3832,
+        "P95": 1.806,
+        "P99": 2.9491,
+        "P999": 7.6684,
+        "Max": 7.6684,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 5.2213,
+      "firstAt": 1.7197713,
+      "coldMax": 5.2213,
+      "warmMax": 7.6684,
+      "maxAt": 199.4531377,
+      "failed": 0
+    },
+    "timer:CreatureClockService": {
+      "distribution": {
+        "Count": 276,
+        "P50": 0.1456,
+        "P95": 0.4268,
+        "P99": 0.9566,
+        "P999": 7.3403,
+        "Max": 7.3403,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 7.3403,
+      "firstAt": 1.7275511,
+      "coldMax": 7.3403,
+      "warmMax": 1.1113,
+      "maxAt": 1.7275511,
+      "failed": 0
+    },
+    "inbound:GameRequestPeer": {
+      "distribution": {
+        "Count": 83,
+        "P50": 0.5158,
+        "P95": 2.8402,
+        "P99": 7.2831,
+        "P999": 7.2831,
+        "Max": 7.2831,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 7.2831,
+      "firstAt": 6.9317072,
+      "coldMax": 7.2831,
+      "warmMax": 3.1831,
+      "maxAt": 6.9317072,
+      "failed": 0
+    },
+    "event:achievement.inventory": {
+      "distribution": {
+        "Count": 940,
+        "P50": 0.243,
+        "P95": 0.5826,
+        "P99": 1.992,
+        "P999": 7.1156,
+        "Max": 7.1156,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 7.1156,
+      "firstAt": 0.4664658,
+      "coldMax": 7.1156,
+      "warmMax": 2.9885,
+      "maxAt": 0.4664658,
+      "failed": 0
+    },
+    "timer:DungeonPartyWipeService": {
+      "distribution": {
+        "Count": 1104,
+        "P50": 0.0073,
+        "P95": 0.0268,
+        "P99": 0.0454,
+        "P999": 1.8269,
+        "Max": 7.014,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 7.014,
+      "firstAt": 0.2286892,
+      "coldMax": 7.014,
+      "warmMax": 1.8269,
+      "maxAt": 0.2286892,
+      "failed": 0
+    },
+    "inbound:GameConnectionCheck": {
+      "distribution": {
+        "Count": 1613864,
+        "P50": 0.002,
+        "P95": 0.0031,
+        "P99": 0.0058,
+        "P999": 0.023,
+        "Max": 6.8905,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.1224,
+      "firstAt": 0.3830787,
+      "coldMax": 0.5913,
+      "warmMax": 6.8905,
+      "maxAt": 258.8122117,
+      "failed": 0
+    },
+    "timer:PremiumDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.5231,
+        "P95": 6.7386,
+        "P99": 6.7386,
+        "P999": 6.7386,
+        "Max": 6.7386,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 6.7386,
+      "firstAt": 59.970244,
+      "coldMax": 6.7386,
+      "warmMax": 0.7407,
+      "maxAt": 59.970244,
+      "failed": 0
+    },
+    "inbound:GameSetUserPosition": {
+      "distribution": {
+        "Count": 41740,
+        "P50": 0.0177,
+        "P95": 0.0655,
+        "P99": 0.1155,
+        "P999": 1.4495,
+        "Max": 5.5665,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 4.7261,
+      "firstAt": 1.83837,
+      "coldMax": 4.7261,
+      "warmMax": 5.5665,
+      "maxAt": 88.9274521,
+      "failed": 0
+    },
+    "http:POST /api/launcher/v1/login": {
+      "distribution": {
+        "Count": 81,
+        "P50": 0.046,
+        "P95": 0.2552,
+        "P99": 5.5584,
+        "P999": 5.5584,
+        "Max": 5.5584,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 5.5584,
+      "firstAt": 0.3010646,
+      "coldMax": 5.5584,
+      "warmMax": 0.1284,
+      "maxAt": 0.3010646,
+      "failed": 0
+    },
+    "event:quest.inventory": {
+      "distribution": {
+        "Count": 940,
+        "P50": 0.0919,
+        "P95": 0.2743,
+        "P99": 0.6857,
+        "P999": 5.1275,
+        "Max": 5.1275,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 5.1275,
+      "firstAt": 0.4593487,
+      "coldMax": 5.1275,
+      "warmMax": 1.5111,
+      "maxAt": 0.4593487,
+      "failed": 0
+    },
+    "inbound:GameFinishLoading": {
+      "distribution": {
+        "Count": 158,
+        "P50": 0.0842,
+        "P95": 0.2091,
+        "P99": 2.161,
+        "P999": 4.4565,
+        "Max": 4.4565,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 4.4565,
+      "firstAt": 12.6346122,
+      "coldMax": 4.4565,
+      "warmMax": 0.2279,
+      "maxAt": 12.6346122,
+      "failed": 0
+    },
+    "lifecycle:connected": {
+      "distribution": {
+        "Count": 82,
+        "P50": 0.01,
+        "P95": 0.0345,
+        "P99": 4.2205,
+        "P999": 4.2205,
+        "Max": 4.2205,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 4.2205,
+      "firstAt": 0.1272311,
+      "coldMax": 4.2205,
+      "warmMax": 0.0319,
+      "maxAt": 0.1272311,
+      "failed": 0
+    },
+    "timer:ScheduledTaskHostedService/character.name-tag.expiration": {
+      "distribution": {
+        "Count": 5,
+        "P50": 0.4036,
+        "P95": 2.2298,
+        "P99": 2.2298,
+        "P999": 2.2298,
+        "Max": 2.2298,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 2.2298,
+      "firstAt": 18.8290686,
+      "coldMax": 2.2298,
+      "warmMax": 0.4466,
+      "maxAt": 18.8290686,
+      "failed": 0
+    },
+    "timer:WeaknessRecoveryService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.3736,
+        "P95": 2.2297,
+        "P99": 2.2297,
+        "P999": 2.2297,
+        "Max": 2.2297,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 2.2297,
+      "firstAt": 59.9599046,
+      "coldMax": 2.2297,
+      "warmMax": 2.0232,
+      "maxAt": 59.9599046,
+      "failed": 0
+    },
+    "timer:MarriageWeddingScheduler": {
+      "distribution": {
+        "Count": 276,
+        "P50": 0.0194,
+        "P95": 0.1182,
+        "P99": 0.175,
+        "P999": 1.9425,
+        "Max": 1.9425,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 1.9425,
+      "firstAt": 1.7294889,
+      "coldMax": 1.9425,
+      "warmMax": 0.5958,
+      "maxAt": 1.7294889,
+      "failed": 0
+    },
+    "event:altar.departure": {
+      "distribution": {
+        "Count": 158,
+        "P50": 0.1115,
+        "P95": 0.2526,
+        "P99": 0.9701,
+        "P999": 1.8446,
+        "Max": 1.8446,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 1.8446,
+      "firstAt": 17.5305364,
+      "coldMax": 1.8446,
+      "warmMax": 0.9701,
+      "maxAt": 17.5305364,
+      "failed": 0
+    },
+    "timer:ItemUsageDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.1805,
+        "P95": 1.5849,
+        "P99": 1.5849,
+        "P999": 1.5849,
+        "Max": 1.5849,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 1.5849,
+      "firstAt": 59.9614773,
+      "coldMax": 1.5849,
+      "warmMax": 0.376,
+      "maxAt": 59.9614773,
+      "failed": 0
+    },
+    "timer:FatigueDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.259,
+        "P95": 1.3022,
+        "P99": 1.3022,
+        "P999": 1.3022,
+        "Max": 1.3022,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 1.3022,
+      "firstAt": 59.9628113,
+      "coldMax": 1.3022,
+      "warmMax": 0.5895,
+      "maxAt": 59.9628113,
+      "failed": 0
+    },
+    "timer:MirrorQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0682,
+        "P95": 1.1946,
+        "P99": 1.1946,
+        "P999": 1.1946,
+        "Max": 1.1946,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 1.1946,
+      "firstAt": 59.9741977,
+      "coldMax": 1.1946,
+      "warmMax": 0.2591,
+      "maxAt": 59.9741977,
+      "failed": 0
+    },
+    "event:quest.mirror-leave": {
+      "distribution": {
+        "Count": 158,
+        "P50": 0.1101,
+        "P95": 0.1685,
+        "P99": 0.822,
+        "P999": 1.1802,
+        "Max": 1.1802,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.7487,
+      "firstAt": 17.5315091,
+      "coldMax": 0.7487,
+      "warmMax": 1.1802,
+      "maxAt": 197.0843887,
+      "failed": 0
+    },
+    "timer:IllusionTowerReturnSweepService": {
+      "distribution": {
+        "Count": 553,
+        "P50": 0.004,
+        "P95": 0.015,
+        "P99": 0.0201,
+        "P999": 0.9351,
+        "Max": 0.9351,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.9351,
+      "firstAt": 0.467529,
+      "coldMax": 0.9351,
+      "warmMax": 0.0191,
+      "maxAt": 0.467529,
+      "failed": 0
+    },
+    "timer:TournamentRewardSweepService": {
+      "distribution": {
+        "Count": 5454,
+        "P50": 0.0019,
+        "P95": 0.0054,
+        "P99": 0.0081,
+        "P999": 0.02,
+        "Max": 0.8732,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.5302,
+      "firstAt": 0.0134433,
+      "coldMax": 0.5302,
+      "warmMax": 0.8732,
+      "maxAt": 73.7183478,
+      "failed": 0
+    },
+    "timer:AltarQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0905,
+        "P95": 0.7643,
+        "P99": 0.7643,
+        "P999": 0.7643,
+        "Max": 0.7643,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.7643,
+      "firstAt": 59.971031,
+      "coldMax": 0.7643,
+      "warmMax": 0.0969,
+      "maxAt": 59.971031,
+      "failed": 0
+    },
+    "timer:BossTowerReturnSweepService": {
+      "distribution": {
+        "Count": 553,
+        "P50": 0.0037,
+        "P95": 0.0153,
+        "P99": 0.0194,
+        "P999": 0.7474,
+        "Max": 0.7474,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.7474,
+      "firstAt": 0.4682897,
+      "coldMax": 0.7474,
+      "warmMax": 0.0219,
+      "maxAt": 0.4682897,
+      "failed": 0
+    },
+    "timer:GoldSilverHornQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0527,
+        "P95": 0.7068,
+        "P99": 0.7068,
+        "P999": 0.7068,
+        "Max": 0.7068,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.7068,
+      "firstAt": 59.9635364,
+      "coldMax": 0.7068,
+      "warmMax": 0.0695,
+      "maxAt": 59.9635364,
+      "failed": 0
+    },
+    "timer:ReviveCoinQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0951,
+        "P95": 0.6883,
+        "P99": 0.6883,
+        "P999": 0.6883,
+        "Max": 0.6883,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.6883,
+      "firstAt": 59.9729661,
+      "coldMax": 0.6883,
+      "warmMax": 0.0984,
+      "maxAt": 59.9729661,
+      "failed": 0
+    },
+    "timer:HerasQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0723,
+        "P95": 0.661,
+        "P99": 0.661,
+        "P999": 0.661,
+        "Max": 0.661,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.661,
+      "firstAt": 59.9717124,
+      "coldMax": 0.661,
+      "warmMax": 0.0753,
+      "maxAt": 59.9717124,
+      "failed": 0
+    },
+    "timer:DimensionQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0515,
+        "P95": 0.583,
+        "P99": 0.583,
+        "P999": 0.583,
+        "Max": 0.583,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.583,
+      "firstAt": 59.9722937,
+      "coldMax": 0.583,
+      "warmMax": 0.0552,
+      "maxAt": 59.9722937,
+      "failed": 0
+    },
+    "timer:TournamentQuotaDailyRefreshService": {
+      "distribution": {
+        "Count": 4,
+        "P50": 0.0535,
+        "P95": 0.5782,
+        "P99": 0.5782,
+        "P999": 0.5782,
+        "Max": 0.5782,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.5782,
+      "firstAt": 59.9747742,
+      "coldMax": 0.5782,
+      "warmMax": 0.0799,
+      "maxAt": 59.9747742,
+      "failed": 0
+    },
+    "timer:JoustMaintenanceService": {
+      "distribution": {
+        "Count": 276,
+        "P50": 0.0483,
+        "P95": 0.2406,
+        "P99": 0.4077,
+        "P999": 0.5256,
+        "Max": 0.5256,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.1157,
+      "firstAt": 1.7199939,
+      "coldMax": 0.4077,
+      "warmMax": 0.5256,
+      "maxAt": 258.9554879,
+      "failed": 0
+    },
+    "event:tournament.departure": {
+      "distribution": {
+        "Count": 158,
+        "P50": 0.0903,
+        "P95": 0.1404,
+        "P99": 0.1683,
+        "P999": 0.1939,
+        "Max": 0.1939,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.1939,
+      "firstAt": 17.5307451,
+      "coldMax": 0.1939,
+      "warmMax": 0.1683,
+      "maxAt": 17.5307451,
+      "failed": 0
+    },
+    "timer:NotificationRetryDrainService": {
+      "distribution": {
+        "Count": 276,
+        "P50": 0.0011,
+        "P95": 0.0037,
+        "P99": 0.0057,
+        "P999": 0.1607,
+        "Max": 0.1607,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.1607,
+      "firstAt": 1.7201612,
+      "coldMax": 0.1607,
+      "warmMax": 0.0045,
+      "maxAt": 1.7201612,
+      "failed": 0
+    },
+    "timer:LoginSessionMaintenanceService": {
+      "distribution": {
+        "Count": 9,
+        "P50": 0.0053,
+        "P95": 0.1009,
+        "P99": 0.1009,
+        "P999": 0.1009,
+        "Max": 0.1009,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.1009,
+      "firstAt": 29.9454321,
+      "coldMax": 0.1009,
+      "warmMax": 0.0136,
+      "maxAt": 29.9454321,
+      "failed": 0
+    },
+    "timer:RoomMechanismMaintenanceService": {
+      "distribution": {
+        "Count": 157,
+        "P50": 0.0026,
+        "P95": 0.0113,
+        "P99": 0.0347,
+        "P999": 0.0472,
+        "Max": 0.0472,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "first": 0.0472,
+      "firstAt": 12.6375557,
+      "coldMax": 0.0472,
+      "warmMax": 0.0327,
+      "maxAt": 12.6375557,
+      "failed": 0
+    }
+  },
+  "queueWait": {
+    "cold": {
+      "all": {
+        "Count": 26185,
+        "P50": 0.0708,
+        "P95": 50.9217,
+        "P99": 93.1785,
+        "P999": 576.4082,
+        "Max": 1245.7917,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "inbound": {
+        "Count": 23190,
+        "P50": 0.0664,
+        "P95": 49.78,
+        "P99": 90.9933,
+        "P999": 513.3117,
+        "Max": 1178.2573,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "maxType": "timer:TournamentRewardSweepService",
+      "maxAt": 1.7132148,
+      "seconds": 60
+    },
+    "steady": {
+      "all": {
+        "Count": 53095,
+        "P50": 0.0695,
+        "P95": 46.4656,
+        "P99": 86.4908,
+        "P999": 116.4228,
+        "Max": 139.1677,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "inbound": {
+        "Count": 48058,
+        "P50": 0.0675,
+        "P95": 43.9815,
+        "P99": 84.8587,
+        "P999": 114.6584,
+        "Max": 139.1677,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "maxType": "inbound:GameConnectionCheck",
+      "maxAt": 84.9940676,
+      "seconds": 120
+    },
+    "burst": {
+      "all": {
+        "Count": 1022,
+        "P50": 0.1637,
+        "P95": 59.3296,
+        "P99": 100.8377,
+        "P999": 105.8174,
+        "Max": 112.0791,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "inbound": {
+        "Count": 727,
+        "P50": 0.1915,
+        "P95": 59.3269,
+        "P99": 78.7229,
+        "P999": 101.7071,
+        "Max": 101.7071,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "maxType": "timer:TournamentRewardSweepService",
+      "maxAt": 212.018166,
+      "seconds": 1.45345271
+    },
+    "flood": {
+      "all": {
+        "Count": 1564196,
+        "P50": 0.0012,
+        "P95": 0.0022,
+        "P99": 0.0115,
+        "P999": 29.7128,
+        "Max": 127.8502,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "inbound": {
+        "Count": 1563021,
+        "P50": 0.0012,
+        "P95": 0.0022,
+        "P99": 0.0107,
+        "P999": 27.1576,
+        "Max": 118.1517,
+        "Censored": 0,
+        "MaxIsLowerBound": false
+      },
+      "maxType": "timer:TournamentRewardSweepService",
+      "maxAt": 268.8714494,
+      "seconds": 30.01612525
+    }
+  },
+  "queueWaitColdPerSecond": [
+    [
+      "0",
+      "126",
+      "354.2",
+      "434.5",
+      "inbound:GameSelectCharacter",
+      "229.5"
+    ],
+    [
+      "1",
+      "168",
+      "1244.8",
+      "1245.8",
+      "timer:TournamentRewardSweepService",
+      "101.3"
+    ],
+    [
+      "2",
+      "151",
+      "550.2",
+      "550.2",
+      "event:quest.inventory",
+      "116.9"
+    ],
+    [
+      "3",
+      "939",
+      "77.07",
+      "128.3",
+      "inbound:GameConnectionCheck",
+      "106.5"
+    ],
+    [
+      "4",
+      "425",
+      "34.54",
+      "60.76",
+      "event:quest.inventory",
+      "60.43"
+    ],
+    [
+      "5",
+      "468",
+      "95.41",
+      "114.2",
+      "inbound:GameSetUserPosition",
+      "107.3"
+    ],
+    [
+      "6",
+      "429",
+      "93.17",
+      "112.1",
+      "inbound:GameSetUserPosition",
+      "126.2"
+    ],
+    [
+      "7",
+      "440",
+      "40.69",
+      "56.65",
+      "inbound:GameConnectionCheck",
+      "59.86"
+    ],
+    [
+      "8",
+      "435",
+      "75.86",
+      "104.1",
+      "inbound:GameConnectionCheck",
+      "108.1"
+    ],
+    [
+      "9",
+      "432",
+      "82.74",
+      "97.67",
+      "inbound:GameConnectionCheck",
+      "107.8"
+    ],
+    [
+      "10",
+      "430",
+      "76.20",
+      "88.15",
+      "timer:DungeonPartyWipeService",
+      "111.6"
+    ],
+    [
+      "11",
+      "440",
+      "75.66",
+      "111.7",
+      "inbound:GameConnectionCheck",
+      "114.3"
+    ],
+    [
+      "12",
+      "473",
+      "86.21",
+      "86.33",
+      "inbound:GameConnectionCheck",
+      "77.57"
+    ],
+    [
+      "13",
+      "426",
+      "98.16",
+      "105.0",
+      "timer:TournamentRewardSweepService",
+      "115.3"
+    ],
+    [
+      "14",
+      "453",
+      "74.55",
+      "85.55",
+      "event:quest.inventory",
+      "85.10"
+    ],
+    [
+      "15",
+      "428",
+      "52.87",
+      "64.24",
+      "timer:TournamentRewardSweepService",
+      "76.65"
+    ],
+    [
+      "16",
+      "437",
+      "90.86",
+      "97.58",
+      "timer:TournamentRewardSweepService",
+      "111.0"
+    ],
+    [
+      "17",
+      "448",
+      "53.23",
+      "63.96",
+      "inbound:GameSetUserArea",
+      "68.15"
+    ],
+    [
+      "18",
+      "449",
+      "86.22",
+      "103.1",
+      "inbound:GameConnectionCheck",
+      "119.4"
+    ],
+    [
+      "19",
+      "437",
+      "44.39",
+      "60.20",
+      "inbound:GameConnectionCheck",
+      "72.34"
+    ],
+    [
+      "20",
+      "443",
+      "76.71",
+      "103.3",
+      "inbound:GameConnectionCheck",
+      "117.1"
+    ],
+    [
+      "21",
+      "440",
+      "52.49",
+      "55.82",
+      "timer:TournamentRewardSweepService",
+      "62.30"
+    ],
+    [
+      "22",
+      "429",
+      "35.70",
+      "42.50",
+      "inbound:GameSetUserPosition",
+      "42.49"
+    ],
+    [
+      "23",
+      "435",
+      "47.18",
+      "64.19",
+      "inbound:GameConnectionCheck",
+      "67.54"
+    ],
+    [
+      "24",
+      "474",
+      "106.3",
+      "113.0",
+      "event:quest.inventory",
+      "112.7"
+    ],
+    [
+      "25",
+      "455",
+      "63.99",
+      "76.58",
+      "inbound:GameSetUserPosition",
+      "68.05"
+    ],
+    [
+      "26",
+      "435",
+      "66.70",
+      "93.03",
+      "inbound:GameSetUserPosition",
+      "73.14"
+    ],
+    [
+      "27",
+      "435",
+      "25.87",
+      "38.98",
+      "inbound:GameSetUserPosition",
+      "42.99"
+    ],
+    [
+      "28",
+      "423",
+      "91.87",
+      "98.59",
+      "timer:DungeonPartyWipeService",
+      "117.1"
+    ],
+    [
+      "29",
+      "442",
+      "50.58",
+      "55.82",
+      "timer:TournamentRewardSweepService",
+      "60.41"
+    ],
+    [
+      "30",
+      "426",
+      "40.85",
+      "45.82",
+      "inbound:GameSetUserPosition",
+      "38.49"
+    ],
+    [
+      "31",
+      "464",
+      "63.02",
+      "64.21",
+      "inbound:GameConnectionCheck",
+      "62.86"
+    ],
+    [
+      "32",
+      "453",
+      "81.54",
+      "97.33",
+      "inbound:GameConnectionCheck",
+      "102.8"
+    ],
+    [
+      "33",
+      "436",
+      "29.31",
+      "54.13",
+      "inbound:GameConnectionCheck",
+      "68.58"
+    ],
+    [
+      "34",
+      "410",
+      "84.29",
+      "99.05",
+      "inbound:GameSetUserPosition",
+      "114.2"
+    ],
+    [
+      "35",
+      "463",
+      "61.30",
+      "72.34",
+      "timer:NotificationRetryDrainService",
+      "76.90"
+    ],
+    [
+      "36",
+      "437",
+      "103.7",
+      "124.7",
+      "inbound:GameConnectionCheck",
+      "135.5"
+    ],
+    [
+      "37",
+      "417",
+      "72.73",
+      "83.92",
+      "event:quest.inventory",
+      "83.28"
+    ],
+    [
+      "38",
+      "507",
+      "98.56",
+      "114.9",
+      "event:quest.inventory",
+      "114.5"
+    ],
+    [
+      "39",
+      "500",
+      "87.31",
+      "101.5",
+      "inbound:GameSetUserPosition",
+      "104.8"
+    ],
+    [
+      "40",
+      "415",
+      "55.08",
+      "65.31",
+      "inbound:GameConnectionCheck",
+      "68.07"
+    ],
+    [
+      "41",
+      "452",
+      "37.30",
+      "54.28",
+      "inbound:GameSetUserPosition",
+      "34.64"
+    ],
+    [
+      "42",
+      "433",
+      "89.83",
+      "110.8",
+      "inbound:GameConnectionCheck",
+      "113.5"
+    ],
+    [
+      "43",
+      "409",
+      "42.66",
+      "58.56",
+      "event:achievement.inventory",
+      "62.46"
+    ],
+    [
+      "44",
+      "477",
+      "75.43",
+      "80.06",
+      "event:southern-dale.daily-refill-notifications",
+      "62.63"
+    ],
+    [
+      "45",
+      "434",
+      "64.74",
+      "97.42",
+      "inbound:GameSetUserPosition",
+      "103.1"
+    ],
+    [
+      "46",
+      "459",
+      "84.87",
+      "102.2",
+      "inbound:GameConnectionCheck",
+      "106.7"
+    ],
+    [
+      "47",
+      "439",
+      "57.57",
+      "88.09",
+      "inbound:GameSetUserPosition",
+      "72.49"
+    ],
+    [
+      "48",
+      "383",
+      "74.44",
+      "78.25",
+      "inbound:GameConnectionCheck",
+      "102.4"
+    ],
+    [
+      "49",
+      "448",
+      "153.1",
+      "160.4",
+      "inbound:GameSetUserArea",
+      "61.12"
+    ],
+    [
+      "50",
+      "490",
+      "105.6",
+      "124.1",
+      "inbound:GameConnectionCheck",
+      "126.1"
+    ],
+    [
+      "51",
+      "454",
+      "56.13",
+      "62.87",
+      "event:quest.inventory",
+      "62.58"
+    ],
+    [
+      "52",
+      "406",
+      "37.07",
+      "63.71",
+      "inbound:GameConnectionCheck",
+      "77.32"
+    ],
+    [
+      "53",
+      "464",
+      "67.79",
+      "79.97",
+      "inbound:GameConnectionCheck",
+      "71.89"
+    ],
+    [
+      "54",
+      "430",
+      "83.62",
+      "91.17",
+      "timer:DungeonPartyWipeService",
+      "113.4"
+    ],
+    [
+      "55",
+      "461",
+      "59.85",
+      "63.07",
+      "event:quest.inventory",
+      "62.78"
+    ],
+    [
+      "56",
+      "459",
+      "111.4",
+      "123.4",
+      "inbound:GameConnectionCheck",
+      "122.9"
+    ],
+    [
+      "57",
+      "429",
+      "83.62",
+      "112.3",
+      "inbound:GameConnectionCheck",
+      "107.3"
+    ],
+    [
+      "58",
+      "433",
+      "88.52",
+      "94.93",
+      "timer:TournamentRewardSweepService",
+      "103.1"
+    ],
+    [
+      "59",
+      "452",
+      "77.69",
+      "96.53",
+      "inbound:GameSetUserPosition",
+      "100.3"
+    ]
+  ],
+  "executorBusy": {
+    "cold": {
+      "seconds": 60,
+      "jobs": 26185,
+      "busyMs": 24989.705999999464,
+      "share": 0.41649509999999107,
+      "top": [
+        {
+          "type": "inbound:GameSetUserArea",
+          "sumMs": 12411.335599999999,
+          "count": 626,
+          "maxMs": 78.2386
+        },
+        {
+          "type": "inbound:GameSelectCharacter",
+          "sumMs": 10478.9372,
+          "count": 132,
+          "maxMs": 229.5318
+        },
+        {
+          "type": "inbound:GameEplpCommand",
+          "sumMs": 511.52149999999995,
+          "count": 16,
+          "maxMs": 48.0146
+        },
+        {
+          "type": "inbound:GameEnterSelectDungeon",
+          "sumMs": 370.146,
+          "count": 18,
+          "maxMs": 46.5656
+        },
+        {
+          "type": "inbound:GameSelectDungeon",
+          "sumMs": 267.255,
+          "count": 18,
+          "maxMs": 77.5655
+        },
+        {
+          "type": "inbound:GameSetUserPosition",
+          "sumMs": 230.96359999999956,
+          "count": 8637,
+          "maxMs": 4.7261
+        },
+        {
+          "type": "event:achievement.inventory",
+          "sumMs": 126.36539999999997,
+          "count": 390,
+          "maxMs": 7.1156
+        },
+        {
+          "type": "inbound:GameCreateCharacter",
+          "sumMs": 121.77089999999998,
+          "count": 39,
+          "maxMs": 30.8117
+        }
+      ]
+    },
+    "steady": {
+      "seconds": 120,
+      "jobs": 53095,
+      "busyMs": 46396.70499999758,
+      "share": 0.38663920833331317,
+      "top": [
+        {
+          "type": "inbound:GameSetUserArea",
+          "sumMs": 27704.010500000026,
+          "count": 1143,
+          "maxMs": 66.4601
+        },
+        {
+          "type": "inbound:GameSelectCharacter",
+          "sumMs": 14609.8213,
+          "count": 197,
+          "maxMs": 132.4302
+        },
+        {
+          "type": "inbound:GameEplpCommand",
+          "sumMs": 1710.9746000000002,
+          "count": 36,
+          "maxMs": 81.3331
+        },
+        {
+          "type": "inbound:GameEnterSelectDungeon",
+          "sumMs": 802.1342999999999,
+          "count": 35,
+          "maxMs": 37.5453
+        },
+        {
+          "type": "inbound:GameSetUserPosition",
+          "sumMs": 510.4282999999975,
+          "count": 18495,
+          "maxMs": 5.5665
+        },
+        {
+          "type": "inbound:GameSelectDungeon",
+          "sumMs": 373.86539999999997,
+          "count": 35,
+          "maxMs": 16.5245
+        },
+        {
+          "type": "inbound:GameReturnToSelection",
+          "sumMs": 117.66530000000004,
+          "count": 197,
+          "maxMs": 2.6668
+        },
+        {
+          "type": "event:southern-dale.daily-refill-notifications",
+          "sumMs": 107.92300000000002,
+          "count": 197,
+          "maxMs": 5.6364
+        }
+      ]
+    },
+    "burst": {
+      "seconds": 1.45345271,
+      "jobs": 1022,
+      "busyMs": 721.5624000000007,
+      "share": 0.4964471117880407,
+      "top": [
+        {
+          "type": "inbound:GameSetUserArea",
+          "sumMs": 544.9953999999999,
+          "count": 15,
+          "maxMs": 101.6728
+        },
+        {
+          "type": "inbound:GameSelectCharacter",
+          "sumMs": 95.6284,
+          "count": 1,
+          "maxMs": 95.6284
+        },
+        {
+          "type": "inbound:GameEplpCommand",
+          "sumMs": 46.5313,
+          "count": 1,
+          "maxMs": 46.5313
+        },
+        {
+          "type": "http:POST /api/launcher/v1/register",
+          "sumMs": 8.5929,
+          "count": 60,
+          "maxMs": 1.0065
+        },
+        {
+          "type": "inbound:GameLogin",
+          "sumMs": 7.313499999999999,
+          "count": 60,
+          "maxMs": 0.2727
+        },
+        {
+          "type": "inbound:GameSetUserPosition",
+          "sumMs": 6.470700000000001,
+          "count": 284,
+          "maxMs": 2.1289
+        },
+        {
+          "type": "http:POST /api/launcher/v1/login",
+          "sumMs": 2.9593000000000007,
+          "count": 60,
+          "maxMs": 0.1284
+        },
+        {
+          "type": "event:southern-dale.daily-refill-notifications",
+          "sumMs": 2.5193,
+          "count": 2,
+          "maxMs": 2.0887
+        }
+      ]
+    },
+    "flood": {
+      "seconds": 30.01612525,
+      "jobs": 1564196,
+      "busyMs": 15532.897100029884,
+      "share": 0.5174850841225712,
+      "top": [
+        {
+          "type": "inbound:GameSetUserArea",
+          "sumMs": 7373.708799999999,
+          "count": 278,
+          "maxMs": 50.1956
+        },
+        {
+          "type": "inbound:GameSelectCharacter",
+          "sumMs": 3716.0180000000005,
+          "count": 51,
+          "maxMs": 112.1367
+        },
+        {
+          "type": "inbound:GameConnectionCheck",
+          "sumMs": 3487.4323000009913,
+          "count": 1557854,
+          "maxMs": 6.8905
+        },
+        {
+          "type": "inbound:GameEplpCommand",
+          "sumMs": 421.0684,
+          "count": 8,
+          "maxMs": 70.6677
+        },
+        {
+          "type": "inbound:GameEnterSelectDungeon",
+          "sumMs": 215.49249999999998,
+          "count": 8,
+          "maxMs": 34.9902
+        },
+        {
+          "type": "inbound:GameSetUserPosition",
+          "sumMs": 123.95560000000016,
+          "count": 4710,
+          "maxMs": 2.5359
+        },
+        {
+          "type": "inbound:GameSelectDungeon",
+          "sumMs": 74.42410000000001,
+          "count": 8,
+          "maxMs": 10.0287
+        },
+        {
+          "type": "inbound:GameReturnToSelection",
+          "sumMs": 35.10630000000001,
+          "count": 51,
+          "maxMs": 2.6611
+        }
+      ]
+    }
+  },
+  "jobRatePerSecond": {
+    "inbound:": 400.48333333333335,
+    "timer:": 32.7,
+    "event:": 9.275
+  }
+}

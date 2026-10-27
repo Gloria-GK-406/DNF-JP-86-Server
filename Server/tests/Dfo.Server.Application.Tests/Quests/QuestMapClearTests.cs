@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Quests;
@@ -42,9 +43,12 @@ public sealed class QuestMapClearTests
         new(DungeonRunId.New(), 11000, 0, new(0, 29), map, 30, at, [new(new(1), new(71), 0, true)]);
     private static async Task Send(LearningFixture f, DungeonMapCleared clear, bool commit = true)
     {
-        await using var tx = f.Scope.Begin();
-        await f.Services.GetRequiredService<IEventService>().EnqueueAsync(clear);
-        if (commit) await tx.CommitAsync(default);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            await f.Services.GetRequiredService<IEventService>().EnqueueAsync(clear);
+            if (commit) await tx.CommitAsync(default);
+        });
     }
     private static async Task Drain(LearningFixture f) =>
         await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync("quest.map-clear");
@@ -125,22 +129,28 @@ public sealed class QuestMapClearTests
         var log = f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), new(71));
         await Send(f, Clear(clock.GetUtcNow()));
         clock.Advance(TimeSpan.FromSeconds(1));
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.True((await log.AcceptAsync(Content().Quest, default)).Accepted);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True((await log.AcceptAsync(Content().Quest, default)).Accepted);
+                await tx.CommitAsync(default);
+            }
+        });
         await Drain(f);
         Assert.Equal(1, Trigger(f));
         clock.Advance(TimeSpan.FromSeconds(1));
         await Send(f, Clear(clock.GetUtcNow()));
         clock.Advance(TimeSpan.FromSeconds(1));
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.True(await log.GiveUpAsync(975, default));
-            Assert.True((await log.AcceptAsync(Content().Quest, default)).Accepted);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True(await log.GiveUpAsync(975, default));
+                Assert.True((await log.AcceptAsync(Content().Quest, default)).Accepted);
+                await tx.CommitAsync(default);
+            }
+        });
         await Drain(f);
         Assert.Equal(1, Trigger(f));
     }
@@ -152,13 +162,16 @@ public sealed class QuestMapClearTests
     {
         using var f = new ShopFixture(s => s.AddSingleton<IQuestContentRuleService>(Content()));
         f.Sql("INSERT INTO character_active_quests VALUES(1,0,975,1)");
-        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
-        await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Services.GetRequiredService<IEventService>().EnqueueAsync(Clear(f.Clock.GetUtcNow(), map) with
-            { Participants = [new(f.Session.AccountId, f.Session.CharacterId, 0, true)] });
-            await tx.CommitAsync(default);
-        }
+            f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
+            await using (var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin())
+            {
+                await f.Services.GetRequiredService<IEventService>().EnqueueAsync(Clear(f.Clock.GetUtcNow(), map) with
+                { Participants = [new(f.Session.AccountId, f.Session.CharacterId, 0, true)] });
+                await tx.CommitAsync(default);
+            }
+        });
         var dispatcher = f.Services.GetRequiredService<DomainEventDispatcher>();
         await dispatcher.DrainOnceAsync("quest.map-clear");
         await dispatcher.DrainOnceAsync("quest.progress-notification");

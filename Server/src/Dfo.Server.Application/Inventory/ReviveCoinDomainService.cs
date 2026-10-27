@@ -30,8 +30,9 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
     ICharacterContainerDomainService containers, IUsageQuotaDomainService quotas,
     ISelectedSessionDomainService sessions, IEventService events, TimeProvider clock, IReviveCoinQueryDomainService query) : IReviveCoinDomainService
 {
-    public async ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, CancellationToken ct)
+    public async ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!rules.SupportsConsumable(item.ItemId)) return null;
         var rule = await uses.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         var at = clock.GetUtcNow();
@@ -41,7 +42,8 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
         if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
             return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
-        var settled = await inventory.ApplyAsync(session, plan.Effects.Append(rules.Grant()).ToArray(), at, ct).ConfigureAwait(false);
+        var settled = await inventory.ApplyAsync(session, plan.Effects.Append(rules.Grant()).ToArray(), at, footprint, ct).ConfigureAwait(false);
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(session.CharacterId, item.ItemId, 1), ct).ConfigureAwait(false);
         return new(ItemUsability.Allowed, item.ItemId,
             settled.Applied.Changes<ContainerConsumptionChange>().Single(x => x.Slot == source).RemainingCount, settled.Applied)
@@ -50,9 +52,10 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
 
     public ValueTask<bool> ClaimedAsync(CharacterId character, CancellationToken ct) => query.ClaimedAsync(character, ct);
 
-    public async ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, CancellationToken ct)
+    public async ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return new(false, false);
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        if (!sessions.IsInWorld(session)) return new(false, false);
         var at = clock.GetUtcNow();
         var period = rules.Period(at);
         var previous = await quotas.ReadAsync(session.CharacterId, UsageQuotaKey.ReviveCoin(period), ct).ConfigureAwait(false);
@@ -62,7 +65,8 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
         if (bag is null || coin is not null && (coin.ItemId != grant.CoreItemId || !coin.IsPile)) return new(false, previous?.UsedCount > 0);
         if (!rules.CanClaim(coin?.Count ?? 0, previous?.UsedCount ?? 0)) return new(false, previous?.UsedCount > 0,
             Wallet: coin?.Snapshot.ToCore() ?? StackableItemCore.Create(grant.ItemKind, grant.CoreItemId, 0), PreparedAt: at);
-        var settled = await inventory.ApplyAsync(session, [grant], at, ct).ConfigureAwait(false);
+        var settled = await inventory.ApplyAsync(session, [grant], at, footprint, ct).ConfigureAwait(false);
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         await events.DirectAsync(new ReviveCoinClaimRecorded(session.CharacterId, period, previous), ct).ConfigureAwait(false);
         return new(true, true, settled.Inventory);
     }

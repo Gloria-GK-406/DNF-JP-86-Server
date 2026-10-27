@@ -13,8 +13,9 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
     IQuestClearCouponRuleService rules, ISpecialConsumableEffectPlanRuleService plans) : IQuestClearCouponSettlementDomainService
 {
     public async ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session,
-        BusinessSlot sourceSlot, DateTimeOffset now, CancellationToken ct)
+        BusinessSlot sourceSlot, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         ArgumentNullException.ThrowIfNull(session);
         var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
         if (source.ItemId != 10_006_007)
@@ -30,7 +31,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         if (selected is null || selected.Count == 0)
             throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "No eligible quests remain for this coupon.");
         var plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
-        var result = await inventory.ApplyAsync(session, plan.Effects, now, ct).ConfigureAwait(false);
+        var result = await inventory.ApplyAsync(session, plan.Effects, now, footprint, ct).ConfigureAwait(false);
         return new(result.Inventory, plan.Completed);
     }
 }

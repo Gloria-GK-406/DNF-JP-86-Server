@@ -8,6 +8,7 @@ using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol.Game.ResetRandomOption;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -26,26 +27,25 @@ public sealed class MagicSealGradeTests
             ValueTask.FromResult<EquipmentMagicSealGradeDefinition?>(id == 3000
                 ? new([new(30, 31, 1)], new HashSet<byte> { 15, 16, 17, 180 }, new HashSet<byte> { 180 }) : null);
     }
-    private static ShopFixture Fixture() => new(s =>
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null) => new(s =>
     {
         var content = new Content();
         s.AddSingleton<IEquipmentDefinitionSource>(content);
         s.AddSingleton<IEquipmentQualityDefinitionSource>(content);
         s.AddSingleton<IEquipmentMagicSealGradeDefinitionSource>(content);
-        s.AddSingleton<IEquipmentQualitySeedSource>(content);
+        s.AddSingleton<IEquipmentQualitySeedSource>(content); configure?.Invoke(s);
     });
-    private static InventoryItemCoreState Original => StackableItemCore.Create(1, 3000, 12345) with
+    internal static InventoryItemCoreState Original => StackableItemCore.Create(1, 3000, 12345) with
     {
         Attribute = 11, Durability = 72, SealFlag = 1, EnchantCardId = 3600, AmplifyType = 2, AmplifyValue = 70,
         GenuineUpgrade = 4, RandomOption0 = new(15, 2, 9), RandomOption1 = new(16, 12, 50),
         RandomOption2 = new(17, 21, 30), RandomOptionChangedIndex = 1, RandomOptionChangeState = 1,
         RandomOptionChange = new(18, 5, 7), TradeRestriction = 1,
     };
-    private static async Task Seed(ShopFixture f, int count = 2)
+    internal static async Task Seed(ShopFixture f, int count = 2)
     { await f.SeedCore(9, Original); await f.Seed(65, 4000, count); }
-    private static Task<EquipmentQualityResult> Roll(ShopFixture f, ushort index = 1) => f.Services.GetRequiredService<ICommandBus>()
-        .SendAsync(new ResetRandomOptionCommand(f.OnlineUser, f.Session, new(BusinessInventorySpace.CarriedEquipment, 0),
-            new(BusinessInventorySpace.Consumable, 0), index)).AsTask();
+    private static Task<EquipmentQualityResult> Roll(ShopFixture f, ushort index = 1) => EquipmentQualityDomainTestDriver.Grade(f, f.Session,
+        new(BusinessInventorySpace.CarriedEquipment, 0), new(BusinessInventorySpace.Consumable, 0), index);
     private static ValueTask Send(ShopFixture f, ushort index = 1) => EffectRequestTransport.Send(f,
         new ResetRandomOptionRequest(new(1, 0x01C8, 0, 7), 9, 65, index));
 
@@ -69,7 +69,7 @@ public sealed class MagicSealGradeTests
         Assert.Equal(1, f.Count(4000)); Assert.Equal(100000, f.Gold);
         Assert.Equal(uid, f.Scalar("SELECT core_uid FROM item_slots WHERE list_type=0 AND slot_index=9"));
         var persisted = f.StoredCore(9);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId); f.Select(1);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId)); f.Select(1);
         Assert.Equal(expected, (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Find(f.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0))!.Container.GetAsync(0, default))!.Snapshot.ToCore());
         Assert.Equal(persisted, f.StoredCore(9));
@@ -122,16 +122,17 @@ public sealed class MagicSealGradeTests
     }
 
     [Fact]
-    public async Task Quickslot_material_is_consumed_and_stale_session_cannot_reroll()
+    public async Task Quickslot_material_is_consumed_and_the_domain_fixture_rejects_an_old_owner()
     {
         using var f = Fixture(); await Seed(f); await f.Seed(3, 4000, 1);
-        var command = new ResetRandomOptionCommand(f.OnlineUser, f.Session, new(BusinessInventorySpace.CarriedEquipment, 0),
-            new(BusinessInventorySpace.QuickSlot, 0), 0);
-        var receipt = (await f.Services.GetRequiredService<ICommandBus>().SendAsync(command)).Receipt;
+        var owner = f.Session;
+        var target = new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0);
+        var material = new BusinessSlot(BusinessInventorySpace.QuickSlot, 0);
+        var receipt = (await EquipmentQualityDomainTestDriver.Grade(f, owner, target, material, 0)).Receipt;
         Assert.NotNull(receipt); Assert.Equal(0, receipt.MaterialRemaining);
         var before = f.StoredCore(9); f.Select(2);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>().SendAsync(command));
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(command.Session.CharacterId);
+        await Assert.ThrowsAnyAsync<Exception>(async () => await EquipmentQualityDomainTestDriver.Grade(f, owner, target, material, 0));
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(owner.CharacterId));
         f.Select(1);
         Assert.Equal(before, f.StoredCore(9));
     }
@@ -182,7 +183,7 @@ public sealed class MagicSealGradeTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         var original = Original with { ItemId = 101010339 };
         await f.SeedCore(9, original); await f.Seed(65, 15, 1);
         var result = await Roll(f, 0); var receipt = result.Receipt;
@@ -190,7 +191,7 @@ public sealed class MagicSealGradeTests
         var grade = receipt.Equipment.RandomOption0;
         Assert.Equal(grade.Value1, grade.Value2); Assert.InRange(grade.Value1, (byte)0, (byte)55);
         Assert.Equal(original with { RandomOption0 = grade }, receipt.Equipment.ToCore());
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId); f.Select(1);
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId)); f.Select(1);
         Assert.Equal(original with { RandomOption0 = grade }, (await f.Services.GetRequiredService<IBusinessInventorySlotDomainService>()
             .Find(f.Session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0))!.Container.GetAsync(0, default))!.Snapshot.ToCore());
     }
@@ -199,7 +200,7 @@ public sealed class MagicSealGradeTests
     public async Task Real_pvf_uses_reset_weights_exclusions_and_quality_bytes_instead_of_stat_endpoints()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
-        using var f = new ShopFixture(); var source = f.Services.GetRequiredService<IEquipmentMagicSealGradeDefinitionSource>();
+        using var f = new ShopFixture(useArchive: true); var source = f.Services.GetRequiredService<IEquipmentMagicSealGradeDefinitionSource>();
         var definition = await source.FindAsync(101010339, default); Assert.NotNull(definition);
         Assert.Equal(new MagicSealGradeBand[] { new(0, 14, 330), new(14, 37, 520), new(37, 47, 100), new(47, 56, 50) }, definition.Bands);
         Assert.Contains((byte)180, definition.UnmodifiableOptions); Assert.Contains((byte)15, definition.KnownOptions);

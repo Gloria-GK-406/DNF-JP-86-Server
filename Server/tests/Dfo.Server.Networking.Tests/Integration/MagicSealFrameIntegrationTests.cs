@@ -23,7 +23,7 @@ public sealed class MagicSealFrameIntegrationTests
         var channelPort = GetAvailablePort();
         var gamePort = GetAvailablePort();
         while (gamePort == channelPort) gamePort = GetAvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Logging.AddProvider(logs);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -97,14 +97,7 @@ public sealed class MagicSealFrameIntegrationTests
         return frame;
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
     private sealed class CaptureLoggerProvider : ILoggerProvider
     {

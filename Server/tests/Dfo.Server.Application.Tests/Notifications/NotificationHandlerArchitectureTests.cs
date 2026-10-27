@@ -80,7 +80,7 @@ public sealed class NotificationHandlerArchitectureTests
     [Theory]
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
     [InlineData(typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable))]
-    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
     [InlineData(typeof(Dfo.Server.Application.Commands.ICommandBus))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
@@ -157,25 +157,34 @@ public sealed class NotificationHandlerArchitectureTests
             message.GetType().GetProperty("Participant")!.GetValue(message));
     }
 
-    /// <summary>Each notification declares its own allowance, and this is what it declared.</summary>
-    /// <remarks>
-    /// The number is a decision about what is being said -- whether arriving twice is worse than
-    /// not arriving -- so it belongs to the notification and not to the machinery. Which also
-    /// means nothing else would notice it changing: without this case, editing the literal is a
-    /// one-character change that turns nothing red.
-    /// </remarks>
     [Fact]
-    public void The_pvp_publication_declares_the_allowance_it_meant_to()
+    public void Pvp_publication_is_bound_to_its_exact_handler_and_composer() => AssertPvpWiring(ProductionRegistrations());
+
+    [Fact]
+    public void Pvp_publication_wiring_rejects_a_missing_binding() => Assert.ThrowsAny<Exception>(() =>
+        AssertPvpWiring(ProductionRegistrations().Where(item => item.NotificationType != typeof(PvpParticipantPublished))));
+
+    [Fact]
+    public void Pvp_publication_wiring_rejects_even_a_different_handler_for_the_same_notification() => Assert.ThrowsAny<Exception>(() =>
+        AssertPvpWiring(ProductionRegistrations().Select(item => item.NotificationType == typeof(PvpParticipantPublished)
+            ? item with { HandlerType = typeof(WrongPvpHandler) } : item)));
+
+    private static NotificationHandlerRegistration[] ProductionRegistrations()
     {
         var services = new ServiceCollection();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
-
-        var registration = Assert.Single(
-            services.Select(descriptor => descriptor.ImplementationInstance)
-                .OfType<NotificationHandlerRegistration>(),
-            value => value.NotificationType == typeof(PvpParticipantPublished));
-        Assert.Equal(1, registration.RetryLimit);
-        Assert.Equal(typeof(PvpParticipantPublishedHandler), registration.HandlerType);
+        return services.Select(item => item.ImplementationInstance).OfType<NotificationHandlerRegistration>().ToArray();
+    }
+    private static void AssertPvpWiring(IEnumerable<NotificationHandlerRegistration> registrations)
+    {
+        var binding = Assert.Single(registrations, item => item.NotificationType == typeof(PvpParticipantPublished));
+        Assert.Equal(typeof(PvpParticipantPublishedHandler), binding.HandlerType);
+        Assert.Equal(typeof(NotificationComposer<PvpParticipantPublished>), binding.ComposerType);
+    }
+    private sealed class WrongPvpHandler : INotificationHandler<PvpParticipantPublished>
+    {
+        public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
+            PvpParticipantPublished notification, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
     }
 
     private static IEnumerable<Type> ProductionNotificationHandlers() =>

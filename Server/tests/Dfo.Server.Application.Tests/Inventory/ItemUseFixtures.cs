@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -14,6 +16,7 @@ using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Dfo.Server.Protocol.Game.UseStackable;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -85,37 +88,53 @@ internal sealed class AdvanceableTimeProvider(DateTimeOffset start) : TimeProvid
 /// so a bus that opened none would be testing the handler against a container it can never meet.
 /// </remarks>
 internal sealed class DirectCommandBus(
-    ICommandHandler<UseStackableCommand, ItemUseResult>? use = null,
-    ICommandHandler<MoveItemSpaceCommand, ItemMoveResult>? move = null,
-    DomainTransactionScope? scope = null,
-    ICommandHandler<GrantTutorialRewardCommand, TutorialRewardResult>? reward = null) : ICommandBus
+    DomainTransactionScope? scope = null, TutorialRewardTestDriver? reward = null) : ICommandBus, ICommandWorkUnits
 {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
     private readonly DomainTransactionScope scope = scope ?? new DomainTransactionScope();
-
-    public async ValueTask<TResult> SendAsync<TResult>(
-        ICommand<TResult> command,
-        CancellationToken cancellationToken = default)
-        where TResult : notnull
+    private ICommandHandler<Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand, bool>? report;
+    public Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler Report(
+        Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
+        Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
+        Dfo.Server.Abstractions.World.ITutorialRewardDomainService rewards,
+        Dfo.Server.Protocol.Game.IGameMessageSender sender,
+        Microsoft.Extensions.Logging.ILogger<Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler> logger)
     {
-        var context = new CommandExecutionContext(
-            Guid.Empty, command.GetType(), typeof(DirectCommandBus),
-            CommandExecutionKind.Transactional);
-
-        await using var transaction = this.scope.Begin();
-        object dispatched = command switch
-        {
-            UseStackableCommand value => await use!
-                .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
-            MoveItemSpaceCommand value => await move!
-                .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
-            GrantTutorialRewardCommand value => await reward!
-                .HandleAsync(context, value, cancellationToken).ConfigureAwait(false),
-            _ => throw new NotSupportedException($"No handler registered for {command.GetType()}."),
-        };
-
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        return (TResult)dispatched;
+        report = new Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommandHandler(users,sessions,            rewards,reward!.Containers,reward.Delivery,ProtocolAlgorithmFixture.Default<ITutorialCompletionDomainService>(),this,new TestOutbox(sender),logger);
+        return new(this);
     }
+    private sealed class TestOutbox(Dfo.Server.Protocol.Game.IGameMessageSender sender):Dfo.Server.Protocol.Game.IGameCommandOutbox {
+        public ValueTask RegisterCmdAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameCmdMessage m,CancellationToken ct)=>sender.SendCmdAsync(id,m,ct);
+        public ValueTask RegisterNotiAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameNotiMessage m,CancellationToken ct)=>sender.SendNotiAsync(id,m,ct);
+        public ValueTask RegisterExplicitAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.GameExplicitMessageDelivery d,CancellationToken ct)=>sender.SendExplicitAsync(id,d,ct);
+        public ValueTask RegisterBatchAsync(Dfo.Server.Data.Networking.NetworkConnectionContext c,IReadOnlyList<Dfo.Server.Protocol.Game.IGameServerMessage> m,CancellationToken ct)=>throw new NotSupportedException();
+    }
+    public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct = default) where TResult : notnull
+    {
+        var context = DomainCommandFixture.Context(Guid.Empty, command.GetType(), typeof(DirectCommandBus));
+        if(command is Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand q)
+            return (TResult)(object)await report!.HandleAsync(context,q,ct);
+        await using var transaction = scope.Begin();
+        var result = await reward!.HandleAsync(context,(TutorialRewardTestInput)(object)command,ct);
+        await transaction.CommitAsync(ct); return (TResult)(object)result;
+    }
+    public async ValueTask<T> WriteAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a, CancellationToken ct=default) where T:notnull
+    { await using var tx=scope.Begin();var result=await a(null!,ct);await tx.CommitAsync(ct);return result; }
+    public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
+    public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
+}
+
+internal sealed record TutorialRewardTestInput(CharacterId CharacterId, IReadOnlyList<DeclaredRewardItem> Declared,
+    Dfo.Server.Data.Accounts.AccountId AccountId, bool CompleteTutorial=false) : ICommand<TutorialRewardResult>;
+internal sealed class TutorialRewardTestDriver(ICharacterContainerDomainService containers, IItemDeliveryDomainService delivery,
+    Dfo.Server.Abstractions.Characters.ITutorialCompletionDomainService tutorial)
+{
+    internal ICharacterContainerDomainService Containers => containers;
+    internal IItemDeliveryDomainService Delivery => delivery;
+    public ValueTask<TutorialRewardResult> HandleAsync(CommandExecutionContext context,TutorialRewardTestInput input,CancellationToken ct) =>
+        Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommandHandler.GrantAsync(containers,delivery,tutorial,input.CharacterId,input.Declared,input.AccountId,input.CompleteTutorial,ct);
 }
 
 /// <summary>
@@ -149,14 +168,14 @@ internal abstract class FakeMainInventory(int characterId = 60)
         IItemPlacementDefinitionSource? placements = null)
     {
         var containers = new CharacterContainerDomainService();
-        containers.Register(this.character, new PersistentItemContainer(
+        TestGameplay.Run(() => containers.Register(this.character, new PersistentItemContainer(
             this.Main,
             new ContainerShape(InventoryContainerType.Main, 0),
             this.store,
             this.Scope,
             new ItemPlacementRuleService(
                 placements ?? new ConsumableBandPlacements(), new NoWearables()),
-            new ItemSlotRuleService()));
+            new ItemSlotRuleService())));
         return containers;
     }
 
@@ -261,4 +280,82 @@ internal sealed class OneCharacter(ICharacter character) : ICharacterDomainServi
 
     private static NotSupportedException Unused() =>
         new("This repository knows one character and nothing else about characters.");
+}
+
+/// <summary>Builds a complete fresh transport input for the actual protocol command.</summary>
+internal static class WholeUse
+{
+    private static long ordinal;
+    internal static Dfo.Server.Protocol.Game.UseStackable.GameUseStackableCommand Command(IServiceProvider services,
+        Dfo.Server.Data.World.SelectedSessionIdentity session, BusinessSlot slot, int itemCode)
+    {
+        var query = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services);
+        if (!query.TryGetByConnection(session.ConnectionId, out var user) || user is null) throw new InvalidOperationException("Missing physical fixture connection.");
+        var game = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService().ToGameSlot(slot);
+        return new(new(user.Connection), Input(game, itemCode));
+    }
+    internal static Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest Input(GameSlot slot, int itemCode, int instance = 0)
+    {
+        var next = Interlocked.Increment(ref ordinal);
+        var body = new byte[11];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt16LittleEndian(body, checked((short)slot.Index));
+        body[2] = (byte)slot.Space;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), instance);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(7), itemCode);
+        var metadata = (new Dfo.Server.Data.Networking.GameMessageMetadata(1, 0x2C, 0, unchecked((ushort)next))
+            { InboundOrdinal = next, SequenceIsFresh = true }).WithRawBody(body);
+        return new(metadata, slot, instance, itemCode);
+    }
+}
+
+/// <summary>Direct domain access retaining the original explicit fixture transaction.</summary>
+internal sealed class DirectInventoryMove(IInventoryMoveDomainService move,DomainTransactionScope? scope=null)
+{
+    private readonly DomainTransactionScope scope=scope??new();
+    public async ValueTask<ItemMoveResult> MoveAsync(InventoryMoveRequest request,CancellationToken ct=default)
+    {
+        if(scope.Current is not null)return await move.MoveAsync(request,ct);
+        await using var tx=scope.Begin();var result=await move.MoveAsync(request,ct);await tx.CommitAsync(ct);return result;
+    }
+}
+internal static class InventoryMoveTestAccess
+{
+    internal static async ValueTask<ItemMoveResult> MoveAsync(IServiceProvider services,InventoryMoveRequest request,CancellationToken ct=default)=>
+        await TestGameplay.RunAsync(services,async()=>await new DirectInventoryMove(
+            Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IInventoryMoveDomainService>(services),
+            Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<DomainTransactionScope>(services)).MoveAsync(request,ct));
+}
+/// <summary>Local whole orchestration with the original fake inventory's actual transaction.</summary>
+internal static class MoveWholeTestDriver
+{
+    internal sealed record Execution(IInventoryMoveDomainService Domain,DomainTransactionScope Scope);
+    internal static MoveItemSpaceHandler Create(ISelectedSessionDomainService sessions,
+        ISelectedCharacterCurrentViewDomainService views,IInventorySlotMappingRuleService slots,
+        Execution execution,Dfo.Server.Protocol.Game.IGameMessageSender sender,
+        Microsoft.Extensions.Logging.ILogger<GameMoveItemSpaceCommandHandler> logger,
+        ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
+        TimeProvider time,Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing=null)=>
+        new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Scope),new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
+    private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
+    {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        public async ValueTask<T> SendAsync<T>(ICommand<T> command,CancellationToken ct=default)where T:notnull=>
+            (T)(object)await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameMoveItemSpaceCommand),typeof(GameMoveItemSpaceCommandHandler)),Assert.IsType<GameMoveItemSpaceCommand>(command),ct);
+    }
+    private sealed class Units(DomainTransactionScope scope):ICommandWorkUnits
+    {
+        public async ValueTask<T> WriteAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull
+        {Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);Assert.Empty(d.Participants);if(scope.Current is not null)return await a(null!,ct);await using var tx=scope.Begin();var result=await a(null!,ct);await tx.CommitAsync(ct);return result;}
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
+    }
+    private sealed class Outbox(Dfo.Server.Protocol.Game.IGameMessageSender sender):Dfo.Server.Protocol.Game.IGameCommandOutbox
+    {
+        public ValueTask RegisterCmdAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameCmdMessage m,CancellationToken ct)=>sender.SendCmdAsync(id,m,ct);
+        public ValueTask RegisterNotiAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameNotiMessage m,CancellationToken ct)=>sender.SendNotiAsync(id,m,ct);
+        public ValueTask RegisterBatchAsync(Dfo.Server.Data.Networking.NetworkConnectionContext target,IReadOnlyList<Dfo.Server.Protocol.Game.IGameServerMessage> m,CancellationToken ct)=>sender.SendBatchAsync(target,m,ct);
+        public ValueTask RegisterExplicitAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.GameExplicitMessageDelivery d,CancellationToken ct)=>sender.SendExplicitAsync(id,d,ct);
+    }
 }

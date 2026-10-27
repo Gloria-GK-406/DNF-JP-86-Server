@@ -13,10 +13,21 @@ public interface IPasswordCredentialRuleService
     void VerifyDummy(string password);
 }
 
+/// <summary>
+/// The launcher's credential half that runs off the executor (RQ-007): validation, the account read
+/// and every hash or verification. Its results are the inputs of the registration and login CMDs.
+/// </summary>
+public interface ILauncherCredentialReader
+{
+    ValueTask<RegistrationPreparation> PrepareRegistrationAsync(string loginId, string password, CancellationToken cancellationToken);
+    ValueTask<LoginVerification> VerifyLoginAsync(string loginId, string password, CancellationToken cancellationToken);
+}
+
 public interface IAuthenticationDomainService
 {
-    ValueTask<RegistrationResult> RegisterAsync(string loginId, string password, CancellationToken cancellationToken);
-    ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(string loginId, string password, CancellationToken cancellationToken);
+    ValueTask<RegistrationResult> RegisterAsync(PreparedRegistration registration, CancellationToken cancellationToken);
+    /// <summary>Returns <see cref="AuthenticationStatus.CredentialChanged"/> when the verified record is no longer the stored one.</summary>
+    ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(VerifiedLogin login, CancellationToken cancellationToken);
     ValueTask<AccountId?> BindSessionAsync(Dfo.Server.Data.Networking.NetworkConnectionId connectionId, string mId, string ticket, CancellationToken cancellationToken);
 }
 

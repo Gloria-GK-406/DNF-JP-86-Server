@@ -4,6 +4,7 @@ using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -17,68 +18,77 @@ public sealed class DungeonClearDomainServiceTests
     [Fact]
     public async Task Tournament_room_clear_never_opens_the_ordinary_result_screen()
     {
-        var definition = new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16);
-        var layout = BossLayout() with { Tournament = new(definition, [], [], 1) };
-        var runs = new DungeonRunDomainService();
-        var run = runs.Begin(Leader, layout, difficulty: 0);
-        var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });
-        Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        Assert.False(runs.Find(Leader)!.ClearOpen);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var definition = new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16);
+            var layout = BossLayout() with { Tournament = new(definition, [], [], 1) };
+            var runs = new DungeonRunDomainService();
+            var run = runs.Begin(Leader, layout, difficulty: 0);
+            var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });
+            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.False(runs.Find(Leader)!.ClearOpen);
+        });
     }
 
     [Fact]
     public async Task Enemy_APC_death_does_not_clear_a_room_while_its_APC_boss_is_alive()
     {
-        var runs = new DungeonRunDomainService();
-        var layout = BossLayout();
-        var seed = new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
-        [
-            Apc(100, 14003, 8, hostile: true),
-            Apc(101, 10610, 5, hostile: true),
-            Apc(102, 10610, 5, hostile: true),
-            Apc(103, 461, 5, hostile: false),
-            Apc(104, 20444, 8, hostile: true) with { IsHellTemplate = true, HellGroupIndex = 1 },
-        ], []) { HellGroups = [new(1, [104], [])] };
-        var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
-            seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-        var service = new DungeonClearDomainService(runs, new MonsterKillDomainService());
-        Assert.False(run.IsCleared);
-        var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
-        Assert.NotNull(first);
-        Assert.Empty(first.AutoKilledActorSequences);
-        Assert.False(first.IsCellCleared);
-        Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        var boss = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
-        Assert.NotNull(boss);
-        Assert.Equal(new ushort[] { 102 }, boss.AutoKilledActorSequences);
-        Assert.True(boss.IsCellCleared);
-        Assert.False(boss.Run.CurrentCellState.FindActor(103)!.IsDead);
-        Assert.False(boss.Run.CurrentCellState.FindActor(104)!.IsDead);
-        Assert.Equal(0, boss.Run.KillSummary.Boss); // APCs do not enter the ordinary XP ledger.
-        Assert.NotNull(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var layout = BossLayout();
+            var seed = new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
+            [
+                Apc(100, 14003, 8, hostile: true),
+                Apc(101, 10610, 5, hostile: true),
+                Apc(102, 10610, 5, hostile: true),
+                Apc(103, 461, 5, hostile: false),
+                Apc(104, 20444, 8, hostile: true) with { IsHellTemplate = true, HellGroupIndex = 1 },
+            ], []) { HellGroups = [new(1, [104], [])] };
+            var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
+                seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService());
+            Assert.False(run.IsCleared);
+            var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
+            Assert.NotNull(first);
+            Assert.Empty(first.AutoKilledActorSequences);
+            Assert.False(first.IsCellCleared);
+            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            var boss = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
+            Assert.NotNull(boss);
+            Assert.Equal(new ushort[] { 102 }, boss.AutoKilledActorSequences);
+            Assert.True(boss.IsCellCleared);
+            Assert.False(boss.Run.CurrentCellState.FindActor(103)!.IsDead);
+            Assert.False(boss.Run.CurrentCellState.FindActor(104)!.IsDead);
+            Assert.Equal(0, boss.Run.KillSummary.Boss); // APCs do not enter the ordinary XP ledger.
+            Assert.NotNull(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+        });
     }
 
     [Fact]
     public async Task Every_hostile_boss_must_die_before_remaining_enemies_are_suppressed()
     {
-        var runs = new DungeonRunDomainService();
-        var layout = BossLayout();
-        var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
-            new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
-            [Apc(100, 14003, 8, true), Apc(101, 14003, 8, true), Apc(102, 10610, 5, true)], []),
-            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-        var service = new DungeonClearDomainService(runs, new MonsterKillDomainService());
-        var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
-        Assert.NotNull(first);
-        Assert.Empty(first.AutoKilledActorSequences);
-        Assert.False(first.Run.CurrentCellState.FindActor(101)!.IsDead);
-        Assert.False(first.Run.CurrentCellState.FindActor(102)!.IsDead);
-        Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        var last = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
-        Assert.NotNull(last);
-        Assert.Equal(new ushort[] { 102 }, last.AutoKilledActorSequences);
-        Assert.NotNull(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var layout = BossLayout();
+            var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
+                new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
+                [Apc(100, 14003, 8, true), Apc(101, 14003, 8, true), Apc(102, 10610, 5, true)], []),
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService());
+            var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
+            Assert.NotNull(first);
+            Assert.Empty(first.AutoKilledActorSequences);
+            Assert.False(first.Run.CurrentCellState.FindActor(101)!.IsDead);
+            Assert.False(first.Run.CurrentCellState.FindActor(102)!.IsDead);
+            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            var last = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
+            Assert.NotNull(last);
+            Assert.Equal(new ushort[] { 102 }, last.AutoKilledActorSequences);
+            Assert.NotNull(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+        });
     }
 
     [Fact]
@@ -100,79 +110,91 @@ public sealed class DungeonClearDomainServiceTests
     [Fact]
     public async Task Verified_boss_room_clear_does_not_wait_for_its_own_quest_trigger()
     {
-        var runs = new DungeonRunDomainService();
-        var run = runs.Begin(
-            Leader,
-            BossLayout() with
-            {
-                Purpose = DungeonRunPurpose.QuestLinked(
-                    1781, DungeonQuestConnectionState.Active),
-            },
-            difficulty: 0);
-        var service = new DungeonClearDomainService(
-            runs, new MutableRoomCleared { Cleared = true });
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var run = runs.Begin(
+                Leader,
+                BossLayout() with
+                {
+                    Purpose = DungeonRunPurpose.QuestLinked(
+                        1781, DungeonQuestConnectionState.Active),
+                },
+                difficulty: 0);
+            var service = new DungeonClearDomainService(
+                runs, new MutableRoomCleared { Cleared = true });
 
-        var opened = await service.EvaluateAsync(
-            LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
+            var opened = await service.EvaluateAsync(
+                LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
 
-        Assert.NotNull(opened);
-        Assert.True(runs.Find(Leader)!.ClearOpen);
+            Assert.NotNull(opened);
+            Assert.True(runs.Find(Leader)!.ClearOpen);
+        });
     }
 
     [Fact]
     public async Task Boss_clear_opens_only_after_the_room_is_cleared()
     {
-        var runs = new DungeonRunDomainService();
-        var run = runs.Begin(Leader, BossLayout(), difficulty: 0);
-        var room = new MutableRoomCleared();
-        var service = new DungeonClearDomainService(runs, room);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var run = runs.Begin(Leader, BossLayout(), difficulty: 0);
+            var room = new MutableRoomCleared();
+            var service = new DungeonClearDomainService(runs, room);
 
-        Assert.Null(await service.EvaluateAsync(
-            LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-        room.Cleared = true;
+            Assert.Null(await service.EvaluateAsync(
+                LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            room.Cleared = true;
 
-        var opened = await service.EvaluateAsync(
-            LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
+            var opened = await service.EvaluateAsync(
+                LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
 
-        Assert.NotNull(opened);
-        Assert.True(runs.Find(Leader)!.ClearOpen);
-        Assert.Null(await service.EvaluateAsync(
-            LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.NotNull(opened);
+            Assert.True(runs.Find(Leader)!.ClearOpen);
+            Assert.Null(await service.EvaluateAsync(
+                LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+        });
     }
 
     [Fact]
     public async Task Party_helper_can_open_the_shared_clear()
     {
-        var runs = new DungeonRunDomainService();
-        var run = runs.BeginParty(
-            [
-                new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
-                new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
-            ],
-            BossLayout(),
-            difficulty: 0);
-        var service = new DungeonClearDomainService(
-            runs, new MutableRoomCleared { Cleared = true });
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var run = runs.BeginParty(
+                [
+                    new DungeonRunParticipant(LeaderAccount, Leader, 0, IsLeader: true),
+                    new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
+                ],
+                BossLayout(),
+                difficulty: 0);
+            var service = new DungeonClearDomainService(
+                runs, new MutableRoomCleared { Cleared = true });
 
-        var opened = await service.EvaluateAsync(
-            HelperAccount, Helper, run.RunId, run.RoomVersion, default);
+            var opened = await service.EvaluateAsync(
+                HelperAccount, Helper, run.RunId, run.RoomVersion, default);
 
-        Assert.NotNull(opened);
-        Assert.Equal([Leader, Helper], opened.Recipients);
+            Assert.NotNull(opened);
+            Assert.Equal([Leader, Helper], opened.Recipients);
+        });
     }
 
     [Fact]
     public async Task Ordinary_room_and_stale_room_version_cannot_open_the_clear()
     {
-        var runs = new DungeonRunDomainService();
-        var ordinary = runs.Begin(Leader, OrdinaryLayout(), difficulty: 0);
-        var service = new DungeonClearDomainService(
-            runs, new MutableRoomCleared { Cleared = true });
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var ordinary = runs.Begin(Leader, OrdinaryLayout(), difficulty: 0);
+            var service = new DungeonClearDomainService(
+                runs, new MutableRoomCleared { Cleared = true });
 
-        Assert.Null(await service.EvaluateAsync(
-            LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion, default));
-        Assert.Null(await service.EvaluateAsync(
-            LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion + 1, default));
+            Assert.Null(await service.EvaluateAsync(
+                LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion, default));
+            Assert.Null(await service.EvaluateAsync(
+                LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion + 1, default));
+        });
     }
 
     private static DungeonLayout BossLayout() => new(

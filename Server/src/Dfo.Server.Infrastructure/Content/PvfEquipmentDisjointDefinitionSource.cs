@@ -7,7 +7,7 @@ namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Reads system-disjoint inputs from the archive; it does not perform a roll.</summary>
 internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider provider)
-    : IEquipmentDisjointDefinitionSource
+    : IEquipmentDisjointDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -44,6 +44,47 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     private bool tableRead;
     private EquipmentDisjointTable? table;
 
+    public string Name => "equipment-disjoint";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        await GetSystemTableAsync(cancellationToken).ConfigureAwait(false);
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            EquipmentPathsIndex(archive);
+            StackablePathsIndex(archive);
+            EquipmentSaleRateIndex();
+            PortableLevelLimitsIndex();
+            return equipmentPaths.Count + stackablePaths.Count + portableLevelLimits.Count;
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentPaths))]
+    private void EquipmentPathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
+    private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(portableLevelLimits))]
+    private void PortableLevelLimitsIndex()
+    {
+        portableLevelLimits ??= ReadPortableLevelLimits();
+    }
+
+    private void EquipmentSaleRateIndex()
+    {
+        equipmentSaleRate ??= ReadEquipmentSaleRate();
+    }
+
     public ValueTask<EquipmentDestructionDefinition?> GetDestructionEquipmentAsync(
         int itemId, CancellationToken cancellationToken)
     {
@@ -59,8 +100,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     private EquipmentDestructionDefinition? ReadDestructionEquipment(int itemId)
     {
         var archive = provider.Archive;
-        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        EquipmentPathsIndex(archive);
         if (!equipmentPaths.TryGetValue(itemId, out var relative)) return null;
         var sections = DestructionRootSections(
             PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative));
@@ -148,15 +188,14 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     private EquipmentDisjointDefinition? ReadEquipment(int itemId)
     {
         var archive = provider.Archive;
-        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        EquipmentPathsIndex(archive);
         if (!equipmentPaths.TryGetValue(itemId, out var relative))
             return null;
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative);
         var value = OneInt(archive, sections, Fields.ValueField);
         var rarity = OneInt(archive, sections, Fields.RarityField);
         var minimumLevel = OneInt(archive, sections, Fields.MinimumLevelField);
-        equipmentSaleRate ??= ReadEquipmentSaleRate();
+        EquipmentSaleRateIndex();
         if (value is not { } equipmentValue || equipmentValue < 0
             || rarity is not { } equipmentRarity || equipmentRarity < 0
             || minimumLevel is not { } equipmentLevel || equipmentLevel < 0
@@ -181,14 +220,13 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     private PortableDisjointMachineDefinition? ReadPortableMachine(int itemId)
     {
         var archive = provider.Archive;
-        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        StackablePathsIndex(archive);
         if (!stackablePaths.TryGetValue(itemId, out var relative))
             return null;
 
         var grade = OneInt(archive, PvfNpcShopDefinitionSource.Sections(
             archive, "stackable/" + relative), Fields.PortableDisjointField);
-        portableLevelLimits ??= ReadPortableLevelLimits();
+        PortableLevelLimitsIndex();
         return grade is { } value
             && portableLevelLimits.TryGetValue(value, out var maximumLevel)
             && maximumLevel > 0

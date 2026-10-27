@@ -8,6 +8,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -94,21 +95,24 @@ public sealed class ItemClassificationTests
     [SkippableFact]
     public async Task Creation_rejects_kind_bytes_that_disagree_with_the_archive()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        var rules = ArchiveRules(out var content);
-        using (content)
+        await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
-            var store = new Dfo.Server.Persistence.Tests.Support.VolatileItemDomainStore();
-            var lifecycle = new ItemLifecycleDomainService(store, scope, rules);
-            await using var tx = scope.Begin();
-            await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
-                ItemSnapshot.FromCore(Core(ConsumableKindByte, ContractCreatureItemId), true), default).AsTask());
-            await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
-                ItemSnapshot.FromCore(Core(EquipmentKindByte, StackableItemId), false), default).AsTask());
-            Assert.Empty(await store.SessionIn(scope.Current!).GetAllAsync(Main, default));
-            await tx.CommitAsync(default);
-        }
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            var rules = ArchiveRules(out var content);
+            using (content)
+            {
+                var scope = new DomainTransactionScope();
+                var store = new Dfo.Server.Persistence.Tests.Support.VolatileItemDomainStore();
+                var lifecycle = new ItemLifecycleDomainService(store, scope, rules);
+                await using var tx = scope.Begin();
+                await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
+                    ItemSnapshot.FromCore(Core(ConsumableKindByte, ContractCreatureItemId), true), default).AsTask());
+                await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
+                    ItemSnapshot.FromCore(Core(EquipmentKindByte, StackableItemId), false), default).AsTask());
+                Assert.Empty(await store.SessionIn(scope.Current!).GetAllAsync(Main, default));
+                await tx.CommitAsync(default);
+            }
+        });
     }
 
     private static ItemPlacementRuleService ArchiveRules(out ServiceProvider content)

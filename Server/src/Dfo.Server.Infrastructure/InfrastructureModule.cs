@@ -41,6 +41,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();
         services.TryAddSingleton<ITeleportConsumableDefinitionSource, PvfTeleportConsumableDefinitionSource>();
         services.TryAddSingleton<IServerConfigService>(_ => new ServerConfigService(configuration));
+        services.TryAddSingleton<IChannelLoginDeploymentSource, ChannelLoginDeploymentSource>();
         if (bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
             && launcherEnabled)
         {
@@ -170,7 +171,75 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IStackableActionDefinitionSource, PvfStackableActionDefinitionSource>();
         services.TryAddSingleton<IItemUsageRuleSource, PvfItemUsageRuleSource>();
         services.TryAddSingleton(ReadChannelEntryOptions(configuration));
+        AddContentWarmups(services);
     }
+
+    /// <summary>Content sources that load on first use and are warmed at startup (spec appendix B "启动预热").</summary>
+    private static void AddContentWarmups(IServiceCollection services) => services
+        .AddContentWarmup<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>()
+        .AddContentWarmup<IGoldCarryLimitSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IHellRewardDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.ISaoTowerContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageProposalContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Content.IMarriageHousingContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IDespairTowerContentSource>()
+        .AddContentWarmup<ITownDefinitionSource>()
+        .AddContentWarmup<IDailyActivityDefinitionSource>()
+        .AddContentWarmup<ICollectionBoxDefinitionSource>()
+        .AddContentWarmup<IQuestDefinitionSource>()
+        .AddContentWarmup<IItemPlacementDefinitionSource>()
+        .AddContentWarmup<IInitialEquipmentDefinitionSource>()
+        .AddContentWarmup<IInitialSkillDefinitionSource>()
+        .AddContentWarmup<IDungeonDefinitionSource>()
+        .AddContentWarmup<IDungeonMapDefinitionSource>()
+        .AddContentWarmup<IDungeonRoomDropSource>()
+        .AddContentWarmup<IDungeonRoomActorSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IAltarDungeonContentSource>()
+        // Whole indexes outside the synthetic load that executor jobs still reach (TASK-15 round 3, review B2).
+        .AddContentWarmup<ICreatureDefinitionSource>()
+        .AddContentWarmup<ICreatureEquipmentLifetimeSource>()
+        .AddContentWarmup<ICreatureRuleSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.ICycleDungeonDefinitionSource>()
+        .AddContentWarmup<IEquipmentResealContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IMirrorDungeonDefinitionSource>()
+        .AddContentWarmup<IQuestParameterSource>()
+        .AddContentWarmup<IInventoryExpansionDefinitionSource>()
+        .AddContentWarmup<IItemCatalogSource>()
+        .AddContentWarmup<IEquipmentForgingContentSource>()
+        .AddContentWarmup<IEquipmentOutworldContentSource>()
+        .AddContentWarmup<IIllusionTowerContentSource>()
+        .AddContentWarmup<IDropRateTableSource>()
+        .AddContentWarmup<IClearRewardRateSource>()
+        .AddContentWarmup<IAvatarCompoundDefinitionSource>()
+        .AddContentWarmup<ICargoItemDefinitionSource>()
+        .AddContentWarmup<ICeraShopDefinitionSource>()
+        .AddContentWarmup<IEquipmentDisjointDefinitionSource>()
+        .AddContentWarmup<IEquipmentEnchantContentSource>()
+        .AddContentWarmup<IEquipmentMagicSealContentSource>()
+        .AddContentWarmup<IEquipmentMagicSealGradeDefinitionSource>()
+        .AddContentWarmup<IEquipmentQualityDefinitionSource>()
+        .AddContentWarmup<IEquipmentReinforcementDefinitionSource>()
+        .AddContentWarmup<IEquipmentRepairDefinitionSource>()
+        .AddContentWarmup<IEquipmentRequirementDefinitionSource>()
+        .AddContentWarmup<IExperienceItemDefinitionSource>()
+        .AddContentWarmup<IInventorySortKeySource>()
+        .AddContentWarmup<IItemSaleDefinitionSource>()
+        .AddContentWarmup<IItemSocketDefinitionSource>()
+        .AddContentWarmup<IItemUsageRuleSource>()
+        .AddContentWarmup<IItemUseRuleDefinitionSource>()
+        .AddContentWarmup<IMailItemDefinitionSource>()
+        .AddContentWarmup<INpcShopDefinitionSource>()
+        .AddContentWarmup<IRecipeContentSource>()
+        .AddContentWarmup<IStackableActionDefinitionSource>()
+        .AddContentWarmup<ITeleportConsumableDefinitionSource>()
+        .AddContentWarmup<ITutorialRewardDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource>()
+        .AddContentWarmup<IEquipmentSlotDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource>();
 
     /// <summary>
     /// Which channels carry special entry rules. Defaults reproduce the legacy server, so

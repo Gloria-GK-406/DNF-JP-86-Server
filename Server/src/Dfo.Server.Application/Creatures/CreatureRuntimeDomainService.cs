@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Inventory;
@@ -21,12 +22,11 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         CreateContext(transactions.Current ?? throw new InvalidOperationException(
             "Creature instances require a use case."), characterId));
 
-    private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId) =>
+    private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId, bool leaving = false) =>
         new(characterId, tx, store.SessionIn(tx),
             inventories?.GetStore(characterId, BusinessInventoryStoreKind.Creature), rules, clock,
-            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, tx, session) : null);
+            sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, sessions, tx, session, leaving) : null);
 
-    private bool IsCurrent(SelectedSessionIdentity session) => sessions.FindByCharacter(session.CharacterId) == session;
     private DateTimeOffset Now => clock.GetUtcNow();
     private readonly object gate = new();
     private readonly Dictionary<CharacterId, Entry> entries = [];
@@ -35,6 +35,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     private readonly Queue<CreaturePendingProjection> projections = new();
     public IReadOnlyList<CreaturePendingProjection> DrainProjections()
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(DrainProjections));
         lock (gate)
         {
             var result = projections.ToArray();
@@ -58,6 +59,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void QueueRoomExperience(SelectedSessionIdentity session, DungeonRunId runId, MazeCell cell, int amount)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(QueueRoomExperience));
         if (amount <= 0) return;
         lock (gate)
         {
@@ -69,6 +71,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void Enter(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(Enter));
         lock (gate)
         {
             foreach (var old in roomRewards.Keys.Where(x => x.CharacterId == session.CharacterId).ToArray())
@@ -80,6 +83,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void DiscardExact(SelectedSessionIdentity session)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(DiscardExact));
         lock (gate)
         {
             if (entries.TryGetValue(session.CharacterId, out var entry) && entry.Session == session) entries.Remove(session.CharacterId);
@@ -92,6 +96,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void ChangeCombat(CharacterId characterId, bool combat)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(ChangeCombat));
         lock (gate)
         {
             if (!entries.TryGetValue(characterId, out var entry) || entry.Combat == combat) return;
@@ -115,6 +120,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public void Invalidate(CharacterId characterId)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(Invalidate));
         lock (gate)
             if (entries.TryGetValue(characterId, out var entry))
                 entries[characterId] = entry with { Due = clock.GetUtcNow() };
@@ -129,14 +135,19 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     }
 
     public async ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceAsync(SelectedSessionIdentity session,
-        CancellationToken cancellationToken, bool? combat = null) =>
-        await WithinAsync(tx => AdvanceCoreAsync(tx, session, combat, cancellationToken), cancellationToken)
+        CancellationToken cancellationToken, bool? combat = null)
+    {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(AdvanceAsync));
+        return await WithinAsync(tx => AdvanceCoreAsync(tx, session, combat, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
+    }
 
     private async ValueTask<IReadOnlyList<CreatureRuntimeChange>> AdvanceCoreAsync(IDomainTransaction tx,
-        SelectedSessionIdentity session, bool? combat, CancellationToken ct)
+        SelectedSessionIdentity session, bool? combat, CancellationToken ct, bool leaving = false)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return [];
+        // Leaving settles what the session still holds even after its connection was revoked, as
+        // teardown does; everything else needs the session in the world.
+        if (leaving ? sessions.StandingOf(session) is null : !sessions.IsInWorld(session)) return [];
         var pending = tx.Enlist(this, () => new Pending(this));
         var previous = pending.Read(session.CharacterId);
         if (previous is null || previous.Session != session) return [];
@@ -145,7 +156,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         var all = await pets.ReadAllAsync(session.CharacterId, ct).ConfigureAwait(false);
         var current = await pets.ReadCurrentAsync(session.CharacterId, ct).ConfigureAwait(false);
         var fighting = combat ?? previous.Combat;
-        var context = CreateContext(tx, session.CharacterId);
+        var context = CreateContext(tx, session.CharacterId, leaving);
         var next = new Dictionary<int, Balance>();
         var changed = new List<CreatureRuntimeChange>();
         var nextDelay = TimeSpan.FromMinutes(6);
@@ -192,7 +203,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             var uid = reward.ResolveInitialPet ? current?.ItemUid : reward.CreatureKey;
             var pet = uid is { } id ? await pets.ReadAsync(session.CharacterId, id, ct).ConfigureAwait(false) : null;
             if (pet is not null)
-                await GainCoreAsync(tx, session, pet, reward.Amount, ct).ConfigureAwait(false);
+                await GainCoreAsync(tx, session, pet, reward.Amount, ct, leaving).ConfigureAwait(false);
             pending.Acknowledge(session, reward);
         }
         return changed;
@@ -201,7 +212,8 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureTransformationReceipt?> HatchAsync(SelectedSessionIdentity session,
         BusinessSlot eggSlot, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(HatchAsync));
+        if (!sessions.IsInWorld(session)
             || eggSlot.Space != BusinessInventorySpace.CreatureInventory || eggSlot.Index is < 0 or > 139) return null;
         var tx = transactions.Current ?? throw new InvalidOperationException("Hatching requires a use case.");
         var context = CreateContext(tx, session.CharacterId);
@@ -216,17 +228,18 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureRuntimeChange?> GainExperienceAsync(SelectedSessionIdentity session,
         int amount, CancellationToken ct)
     {
-        if (sessions.FindByCharacter(session.CharacterId) != session) return null;
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(GainExperienceAsync));
+        if (!sessions.IsInWorld(session)) return null;
         var pet = await Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false);
         return pet is null ? null : await pet.AddExpAsync(amount, ct).ConfigureAwait(false);
     }
 
     private async ValueTask<CreatureRuntimeChange?> GainCoreAsync(IDomainTransaction tx,
-        SelectedSessionIdentity session, CreatureState pet, int amount, CancellationToken ct)
+        SelectedSessionIdentity session, CreatureState pet, int amount, CancellationToken ct, bool leaving = false)
     {
         var rule = await rules.GetAsync(pet.ItemTemplateId, ct).ConfigureAwait(false);
         if (rule is null || rule.IsEgg) return null;
-        var context = CreateContext(tx, session.CharacterId);
+        var context = CreateContext(tx, session.CharacterId, leaving);
         var reference = await context.FindAsync(pet.ItemUid, ct).ConfigureAwait(false);
         return reference is null ? null : await new PetInstance(reference, context)
             .AddExpCoreAsync(amount, ct).ConfigureAwait(false);
@@ -235,6 +248,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
     public async ValueTask<CreatureRuntimeChange?> GainRoomExperienceAsync(SelectedSessionIdentity session,
         DungeonRunId runId, MazeCell cell, int amount, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(GainRoomExperienceAsync));
         var tx = transactions.Current ?? throw new InvalidOperationException("Room experience requires a use case.");
         var pending = tx.Enlist(this, () => new Pending(this));
         var entry = pending.Read(session.CharacterId);
@@ -250,10 +264,11 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     public async ValueTask LeaveAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(LeaveAsync));
         lock (gate) if (!entries.TryGetValue(session.CharacterId, out var entry) || entry.Session != session) return;
         await WithinAsync(async tx =>
         {
-            await AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
+            await AdvanceCoreAsync(tx, session, null, ct, leaving: true).ConfigureAwait(false);
             var pending = tx.Enlist(this, () => new Pending(this));
             if (pending.Read(session.CharacterId)?.Session == session) pending.Write(session.CharacterId, null);
             return true;
@@ -270,6 +285,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
             await lease.CommitAsync(ct).ConfigureAwait(false);
             return result;
         }
+        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(WithinAsync));
         var transaction = new DomainTransaction();
         try
         {
@@ -280,17 +296,17 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         catch { await transaction.RollbackAsync().ConfigureAwait(false); throw; }
     }
 
-    private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, IDomainTransaction tx,
-        SelectedSessionIdentity session) : ICreatureInstanceRuntime
+    private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, ISelectedSessionDomainService sessions,
+        IDomainTransaction tx, SelectedSessionIdentity session, bool leaving) : ICreatureInstanceRuntime
     {
         private Pending Pending => tx.Enlist(owner, () => new Pending(owner));
         public void EnsureActive()
         {
-            if (!owner.IsCurrent(session))
+            if (leaving ? sessions.StandingOf(session) is null : !sessions.IsInWorld(session))
                 throw new InvalidOperationException("The creature's selected session has changed.");
         }
         public async ValueTask SynchronizeAsync(CancellationToken ct) =>
-            _ = await owner.AdvanceCoreAsync(tx, session, null, ct).ConfigureAwait(false);
+            _ = await owner.AdvanceCoreAsync(tx, session, null, ct, leaving).ConfigureAwait(false);
         public double Stomach(int uid, int baseline)
         {
             var pending = Pending;

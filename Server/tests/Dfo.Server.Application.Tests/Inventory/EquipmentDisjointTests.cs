@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -7,6 +8,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -508,30 +510,30 @@ public sealed class EquipmentDisjointTests
         Assert.Equal(0x13, response.ErrorCode);
     }
 
-    private static ShopFixture Fixture(
+    internal static ShopFixture Fixture(
         int equipmentLevel = 10,
-        IReadOnlyList<EquipmentDisjointReward>? rewards = null) => new(services =>
+        IReadOnlyList<EquipmentDisjointReward>? rewards = null, Action<IServiceCollection>? configure = null) => new(services =>
     {
         services.AddSingleton<IEquipmentDisjointRuleService>(new FixedRules(
             rewards ?? [new EquipmentDisjointReward(1000, 12)]));
         services.AddSingleton<IEquipmentDisjointDefinitionSource>(
             new DisjointContent(equipmentLevel));
+        configure?.Invoke(services);
     });
 
     private static InventoryItemCoreState Piece() =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = 45 };
 
-    private static ValueTask Disjoint(
+    private static async ValueTask Disjoint(
         ShopFixture shop,
         short slot,
         int? disjointProviderId = null,
         short disjointToolSlot = -1) =>
-        shop.Services.GetRequiredService<DisjointItemHandler>().HandleAsync(new(shop.Connection),
-            new DisjointItemRequest(
-                GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot,
-                disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0)),
-            default);
+        await EffectRequestTransport.Send(shop, new DisjointItemRequest(
+            new(1, 0x001A, 0, EffectRequestTransport.FreshSequence(shop)),
+            new GameSlot(InventoryContainerType.Main, slot), disjointToolSlot,
+            disjointProviderId ?? (disjointToolSlot < 0 ? 1000 : 0)));
+
 
     private sealed class FixedRules(IReadOnlyList<EquipmentDisjointReward> rewards)
         : IEquipmentDisjointRuleService

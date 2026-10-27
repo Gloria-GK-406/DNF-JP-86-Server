@@ -18,7 +18,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Application.Creatures;
 namespace Dfo.Server.Application.Inventory;
 internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, ICharacterTable characters,
+    ICharacterTable characters,
     ICharacterBusinessInventoryDomainService businessInventories, IItemDomainStore store,
     IBusinessInventorySlotDomainService slots,
     IDomainTransactionAccessor transactions, ICharacterInventoryEntryDomainService inventory,
@@ -29,10 +29,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     public async ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
     {
         _ = transactions.Current ?? throw new InvalidOperationException("Opening requires a transaction.");
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId || online.CurrentCharacterId != session.CharacterId
+        if (!sessions.IsInWorld(session)
             || !await characters.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false))
             throw new OpeningRejectedException(OpeningRejection.NoSession, "No current owned selection.");
         var bag = businessInventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(slot.Space))
@@ -52,11 +49,12 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         premiums.For(session.AccountId).ReadAsync(ct);
 
     public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session,
-        IReadOnlyList<DomainEffect> plan, DateTimeOffset now, CancellationToken ct)
+        IReadOnlyList<DomainEffect> plan, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var transaction = transactions.Current ?? throw new InvalidOperationException("Opening requires a transaction.");
         ApplyEffectsResult applied;
-        try { applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, session), plan, ct).ConfigureAwait(false); }
+        try { applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, now, footprint, session), plan, ct).ConfigureAwait(false); }
         catch (InventoryEffectException exception)
         {
             var reason = exception.Rejection switch {
@@ -66,6 +64,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             };
             throw new OpeningRejectedException(reason, exception.Message);
         }
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         await store.SessionIn(transaction).ApplyDecidedWritesAsync(ct).ConfigureAwait(false);
         var touched = applied.Changes<ContainerConsumptionChange>().Select(x => x.Slot)
             .Concat(applied.Changes<PreparedItemGrantChange>().SelectMany(x => x.Slots))

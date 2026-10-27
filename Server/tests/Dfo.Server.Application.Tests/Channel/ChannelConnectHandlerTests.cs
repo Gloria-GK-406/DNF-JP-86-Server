@@ -1,6 +1,5 @@
-using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Channel;
 using Dfo.Server.Protocol.Channel.Connect;
 
 namespace Dfo.Server.Application.Tests.Channel;
@@ -8,58 +7,32 @@ namespace Dfo.Server.Application.Tests.Channel;
 public sealed class ChannelConnectHandlerTests
 {
     [Fact]
-    public async Task HandleAsync_SendsTheDateBasedConnectKeyToTheSameConnection()
+    public async Task HandleAsync_ForwardsTheOriginalRequestAndExactConnectionContext()
     {
-        var sender = new RecordingSender();
-        var keyProvider = new ChannelProtocolKeyProvider(
-            new FixedTimeProvider(new DateTimeOffset(2026, 8, 10, 12, 0, 0, TimeSpan.FromHours(8))));
-        var handler = new ChannelConnectHandler(sender, keyProvider);
-        var connectionId = new NetworkConnectionId("channel-42");
+        var bus = new RecordingBus();
+        var handler = new ChannelConnectHandler(bus);
         var context = new NetworkDispatchContext(
-            new NetworkConnectionContext(connectionId, NetworkEndpointKind.Channel, 7001));
+            new NetworkConnectionContext(new("channel-42"), NetworkEndpointKind.Channel, 7001));
+        var request = new ChannelConnectRequest(ChannelMessageMetadata.Empty);
 
-        await handler.HandleAsync(
-            context,
-            new ChannelConnectRequest(ChannelMessageMetadata.Empty),
-            CancellationToken.None);
+        await handler.HandleAsync(context, request, CancellationToken.None);
 
-        Assert.Equal(connectionId, sender.ConnectionId);
-        var response = Assert.IsType<ChannelConnectResponse>(sender.Message);
-        Assert.Equal("20260810000006", response.EncryptionKey);
+        var command = Assert.IsType<ChannelConnectCommand>(Assert.Single(bus.Commands));
+        Assert.Same(context, command.Dispatch);
+        Assert.Same(request, command.Request);
     }
 
-    private sealed class RecordingSender : INetworkMessageSender
+    private sealed class RecordingBus : ICommandBus
     {
-        public NetworkConnectionId ConnectionId { get; private set; }
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
 
-        public IServerNetworkMessage? Message { get; private set; }
-
-        public ValueTask SendAsync(
-            NetworkConnectionId connectionId,
-            IServerNetworkMessage message,
-            CancellationToken cancellationToken)
+        public List<ICommand> Commands { get; } = [];
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull
         {
-            ConnectionId = connectionId;
-            Message = message;
-            return ValueTask.CompletedTask;
+            Commands.Add(command);
+            return ValueTask.FromResult((TResult)(object)default(ChannelConnectCompleted));
         }
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            ExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not use explicit-recipient delivery.");
-    }
-
-    private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => value.ToUniversalTime();
-
-        public override TimeZoneInfo LocalTimeZone { get; } =
-            TimeZoneInfo.CreateCustomTimeZone(
-                "Test/UTC+8",
-                TimeSpan.FromHours(8),
-                "Test/UTC+8",
-                "Test/UTC+8");
     }
 }

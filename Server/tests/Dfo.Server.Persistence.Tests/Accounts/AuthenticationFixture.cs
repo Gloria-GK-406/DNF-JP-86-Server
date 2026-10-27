@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Accounts;
 
@@ -40,6 +41,12 @@ internal sealed class AuthenticationFixture : IDisposable
         _ = Store;
     }
 
+    public Task<Dfo.Server.Data.Authentication.RegistrationResult> RegisterAsync(string loginId, string password) =>
+        TestCredentials.RegisterDomainAsync(Services, loginId, password);
+
+    public Task<Dfo.Server.Data.Authentication.AuthenticationResult> LoginAsync(string loginId, string password) =>
+        TestCredentials.LoginDomainAsync(Services, loginId, password);
+
     public async Task<object?> Scalar(string sql)
     {
         await using var connection = new SqliteConnection($"Data Source={DatabasePath};Pooling=False");
@@ -62,10 +69,13 @@ internal sealed class AuthenticationFixture : IDisposable
 
     public async Task<Dfo.Server.Data.Accounts.AccountId?> Consume(string mId, string ticket, Dfo.Server.Data.Networking.NetworkConnectionId? connectionId = null)
     {
-        await using var lease = Scope.Begin();
-        var result = await Services.GetRequiredService<IAuthenticationDomainService>().BindSessionAsync(connectionId ?? new Dfo.Server.Data.Networking.NetworkConnectionId(Guid.NewGuid().ToString()), mId, ticket, CancellationToken.None);
-        await lease.CommitAsync(CancellationToken.None);
-        return result;
+        return await TestGameplay.RunAsync(Services, async () =>
+        {
+            await using var lease = Scope.Begin();
+            var result = await Services.GetRequiredService<IAuthenticationDomainService>().BindSessionAsync(connectionId ?? new Dfo.Server.Data.Networking.NetworkConnectionId(Guid.NewGuid().ToString()), mId, ticket, CancellationToken.None);
+            await lease.CommitAsync(CancellationToken.None);
+            return result;
+        });
     }
 
     public void Dispose()

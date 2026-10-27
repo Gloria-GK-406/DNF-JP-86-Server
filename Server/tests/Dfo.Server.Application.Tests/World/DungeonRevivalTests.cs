@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -9,6 +14,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -21,20 +27,23 @@ public sealed class DungeonRevivalTests
 
     private static DungeonRunId EnterDead(ShopFixture shop, bool tournament = false)
     {
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
-        if (tournament) layout = layout with
+        return TestGameplay.Run(shop.Services, () =>
         {
-            Tournament = new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
-                { CoinLimit = 1 }, [], [], 1),
-        };
-        var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
-            layout, DungeonDifficulty.Normal)).Run;
-        runs.TryMarkParticipantReady(shop.Session.CharacterId, run.RunId, run.RoomVersion);
-        runs.TryMarkParticipantDead(shop.Session.CharacterId, run.RunId, run.RoomVersion);
-        runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
-        return run.RunId;
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
+            if (tournament) layout = layout with
+            {
+                Tournament = new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
+                    { CoinLimit = 1 }, [], [], 1),
+            };
+            var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
+                layout, DungeonDifficulty.Normal)).Run;
+            runs.TryMarkParticipantReady(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+            runs.TryMarkParticipantDead(shop.Session.CharacterId, run.RunId, run.RoomVersion);
+            runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
+            return run.RunId;
+        });
     }
 
     [Theory]
@@ -45,11 +54,14 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture();
         await shop.Seed(1, 1, coins, 0);
         var run = EnterDead(shop);
-        var command = new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var command = new RevivalInput(shop.Session, shop.Session.CharacterId, run);
+        var bus = new RevivalDriver(shop.Services);
         Assert.True((await bus.SendAsync(command)).Succeeded);
         Assert.Equal(coins - 1, (await Coins(shop)));
-        Assert.Empty(shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.Empty(shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        });
         Assert.False((await bus.SendAsync(command)).Succeeded);
         Assert.Equal(coins - 1, (await Coins(shop)));
     }
@@ -65,24 +77,31 @@ public sealed class DungeonRevivalTests
         var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var target = new Dfo.Server.Data.Characters.CharacterId(2);
-        var run = shop.InTransaction(() => runs.PreparePartyEntry([
-            new(shop.Session.AccountId, shop.Session.CharacterId, 0, true),
-            new(new(2), target, 1, false)], layout, DungeonDifficulty.Normal)).Run;
-        foreach (var id in new[] { shop.Session.CharacterId, target })
+        var run = TestGameplay.Run(shop.Services, () =>
         {
-            runs.TryMarkParticipantReady(id, run.RunId, run.RoomVersion);
-            runs.TryMarkParticipantDead(id, run.RunId, run.RoomVersion);
-        }
-        runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, target, run.RunId));
+            var run = shop.InTransaction(() => runs.PreparePartyEntry([
+                new(shop.Session.AccountId, shop.Session.CharacterId, 0, true),
+                new(new(2), target, 1, false)], layout, DungeonDifficulty.Normal)).Run;
+            foreach (var id in new[] { shop.Session.CharacterId, target })
+            {
+                runs.TryMarkParticipantReady(id, run.RunId, run.RoomVersion);
+                runs.TryMarkParticipantDead(id, run.RunId, run.RoomVersion);
+            }
+            runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch);
+            return run;
+        });
+        var result = await new RevivalDriver(shop.Services).SendAsync(
+            new RevivalInput(shop.Session, target, run.RunId));
         Assert.True(result.Succeeded);
         Assert.Equal(9, await Coins(shop));
-        Assert.Empty(runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
-        runs.TryMarkParticipantDead(target, run.RunId, run.RoomVersion);
-        Assert.Empty(runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(12)));
-        Assert.Empty(runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(21)));
-        Assert.Equal([run.RunId], runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(22)));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.Empty(runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+            runs.TryMarkParticipantDead(target, run.RunId, run.RoomVersion);
+            Assert.Empty(runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(12)));
+            Assert.Empty(runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(21)));
+            Assert.Equal([run.RunId], runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(22)));
+        });
     }
 
     [Fact]
@@ -92,10 +111,13 @@ public sealed class DungeonRevivalTests
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop);
         shop.Sql("CREATE TRIGGER refuse_coin BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
-        await Assert.ThrowsAsync<SqliteException>(async () => await shop.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run)));
+        await Assert.ThrowsAsync<SqliteException>(async () => await new RevivalDriver(shop.Services)
+            .SendAsync(new RevivalInput(shop.Session, shop.Session.CharacterId, run)));
         Assert.Equal(10, (await Coins(shop)));
-        Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        });
     }
 
     [Theory]
@@ -106,11 +128,14 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture();
         if (foreignTarget) await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new UseRevivalCoinCommand(
-            shop.OnlineUser, shop.Session, foreignTarget ? new(999) : shop.Session.CharacterId, run));
+        var result = await new RevivalDriver(shop.Services).SendAsync(new RevivalInput(
+            shop.Session, foreignTarget ? new(999) : shop.Session.CharacterId, run));
         Assert.False(result.Succeeded);
         Assert.Equal(foreignTarget ? 10 : 0, (await Coins(shop)));
-        Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        });
     }
 
     [Fact]
@@ -120,12 +145,15 @@ public sealed class DungeonRevivalTests
         using var shop = new ShopFixture(services => services.AddSingleton<ITournamentDungeonDomainService>(tournament));
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop, tournament: true);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run));
+        var result = await new RevivalDriver(shop.Services).SendAsync(
+            new RevivalInput(shop.Session, shop.Session.CharacterId, run));
         Assert.False(result.Succeeded);
         Assert.Equal(10, await Coins(shop));
         Assert.Equal(0, tournament.Revivals);
-        Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        });
     }
 
     [Fact]
@@ -139,19 +167,42 @@ public sealed class DungeonRevivalTests
         }));
         await shop.Seed(1, 1, 10, 0);
         var run = EnterDead(shop, tournament: true);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
-        var command = new UseRevivalCoinCommand(shop.OnlineUser, shop.Session, shop.Session.CharacterId, run);
+        var bus = new RevivalDriver(shop.Services);
+        var command = new RevivalInput(shop.Session, shop.Session.CharacterId, run);
         shop.Sql("CREATE TRIGGER refuse_coin BEFORE UPDATE OF count ON item_slots BEGIN SELECT RAISE(ABORT,'coin failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(async () => await bus.SendAsync(command));
         Assert.Equal(10, await Coins(shop));
         Assert.Equal(0, tournament.Revivals);
-        Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.Equal([run], shop.Services.GetRequiredService<IDungeonRunDomainService>().FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));
+        });
         shop.Sql("DROP TRIGGER refuse_coin;");
         Assert.True((await bus.SendAsync(command)).Succeeded);
         Assert.Equal(9, await Coins(shop));
         Assert.Equal(1, tournament.Revivals);
         Assert.False((await bus.SendAsync(command)).Succeeded);
         Assert.Equal(9, await Coins(shop));
+    }
+
+    // These existing domain/transaction fixtures invoke the owning CMD settlement algorithm;
+    // real inbound scope/physical failure evidence belongs to CharacterDeathFailureBoundaryTests.
+    private sealed record RevivalInput(SelectedSessionIdentity Payer, Dfo.Server.Data.Characters.CharacterId Target, DungeonRunId Run);
+    private sealed class RevivalDriver(IServiceProvider services)
+    {
+        private readonly GameUseRevivalCoinCommandHandler handler = new(ProtocolAlgorithmFixture.Default<ISelectedSessionDomainService>(),ProtocolAlgorithmFixture.Default<IOnlineUserQueryDomainService>(),ProtocolAlgorithmFixture.Default<IDungeonRunDomainService>(),ProtocolAlgorithmFixture.Default<IDungeonRunProjectionDomainService>(),        services.GetRequiredService<IDungeonRevivalDomainService>(),services.GetRequiredService<ICommandWorkUnits>(),ProtocolAlgorithmFixture.Default<IGameCommandOutbox>(),        services.GetRequiredService<TimeProvider>(),Microsoft.Extensions.Logging.Abstractions.NullLogger<GameUseRevivalCoinCommandHandler>.Instance,ProtocolAlgorithmFixture.Default<IBossTowerDomainService>());
+        public async ValueTask<DungeonRevivalResult> SendAsync(RevivalInput input)
+        {
+            return await TestGameplay.RunAsync(services,async()=>
+            {
+            var dispatch=new Dfo.Server.Data.Networking.NetworkDispatchContext(new Dfo.Server.Data.Networking.NetworkConnectionContext(input.Payer.ConnectionId,Dfo.Server.Data.Networking.NetworkEndpointKind.Game,10011));
+            var message=new UseRevivalCoinRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty,input.Payer.WireUserId);
+            var command=new GameUseRevivalCoinCommand(dispatch,message);
+            var request=new CommandRequestContext.ProtocolNonEffect(dispatch,message,command.Frame,()=>true);
+            var context=DomainCommandFixture.Context(Guid.NewGuid(),command.GetType(),GetType()) with{Request=request};
+            try{return await handler.ReviveAsync(context,input.Payer,input.Target,input.Run,default);}finally{await request.DrainOperationsAsync();request.Close();}
+            });
+        }
     }
 
     private sealed class TournamentRevival : ITournamentDungeonDomainService

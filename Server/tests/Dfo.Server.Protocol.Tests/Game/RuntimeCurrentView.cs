@@ -7,7 +7,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Tests.Game;
 
 internal sealed class RuntimeCurrentView(
-    ISelectedSessionRuntimeDirectory runtime,
+    ILegacySessionSnapshotFixture runtime,
     ICharacterStateProjectionDomainService? projection = null,
     ICharacterInventoryEntryDomainService? inventory = null)
     : ISelectedCharacterCurrentViewDomainService
@@ -15,8 +15,7 @@ internal sealed class RuntimeCurrentView(
     public async ValueTask<SelectCharacterResult?> TryLoadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
-        if (runtime is not ILegacySessionSnapshotFixture fixture
-            || !fixture.TryGet(session, out var result, out _) || result is null)
+        if (!runtime.TryGet(session, out var result, out _) || result is null)
             return null;
         if (inventory is not null)
             result = result with

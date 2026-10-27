@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Dfo.Server.Protocol.Channel;
 
 /// <summary>
@@ -7,7 +5,5 @@ namespace Dfo.Server.Protocol.Channel;
 /// </summary>
 public sealed class ChannelProtocolKeyProvider(TimeProvider timeProvider)
 {
-    public string GetCurrentKey() => timeProvider
-        .GetLocalNow()
-        .ToString("yyyyMMdd'000006'", CultureInfo.InvariantCulture);
+    public string GetCurrentKey() => ChannelProtocolKey.ForLocalTime(timeProvider.GetLocalNow());
 }

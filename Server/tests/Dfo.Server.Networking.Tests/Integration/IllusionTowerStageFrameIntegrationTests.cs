@@ -28,6 +28,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -41,7 +42,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
         var channelPort = AvailablePort();
         var gamePort = AvailablePort();
         while (gamePort == channelPort) gamePort = AvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true",
@@ -55,6 +56,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
         builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new TestCredentials.FixtureReadiness());
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         // Keep persistence and the production tower aggregate/command pipeline real. Only the
@@ -75,37 +77,71 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             var stream = client.GetStream();
             _ = await ReadFrameAsync(stream, timeout.Token);
 
+            var online = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var connectionId = await ConnectedIdAsync(
-                host.Services.GetRequiredService<IGameTcpService>(),
-                host.Services.GetRequiredService<IOnlineUserQueryDomainService>(), timeout.Token);
-            var selected = SelectedSessionIdentity.Create(
-                new AccountId(7401), new CharacterId(1), connectionId, 1, gamePort);
+                host.Services.GetRequiredService<IGameTcpService>(), online, timeout.Token);
+            // The connection logs in the way a client does, so the session can enter the world on it.
+            var commands = host.Services.GetRequiredService<ICommandBus>();
+            await TestCredentials.RegisterAsync(host.Services, "towerwire", "test password", timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, "towerwire", "test password", timeout.Token);
+            var anonymous = TestGameplay.Run(host.Services, () =>
+            {
+                Assert.True(online.TryGetByConnection(connectionId, out var anonymous));
+                return anonymous;
+            });
+            var redeemed = await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var transaction = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var account = await host.Services.GetRequiredService<Dfo.Server.Abstractions.Authentication.IGameLoginAuthenticationDomainService>()
+                    .AuthenticateSessionAsync(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!, timeout.Token);
+                await transaction.CommitAsync(timeout.Token);
+                return account;
+            });
+            Assert.NotNull(redeemed);
+            var selected = TestGameplay.Run(host.Services, () =>
+                SelectedSessionIdentity.Create(
+                redeemed.Value, new CharacterId(1), connectionId,
+                online.GetRequired(anonymous!.OnlineUserId).Generation, gamePort)
+            );
             // The real grant service verifies ownership even for temporary tower containers.
             await using (var seed = new SqliteConnection($"Data Source={host.DatabasePath}"))
             {
                 await seed.OpenAsync(timeout.Token);
                 using var insert = seed.CreateCommand();
-                insert.CommandText = "INSERT INTO characters(character_id, account_id, name, level) VALUES(1, 7401, 'tower-test', 60)";
+                insert.CommandText = $"INSERT INTO characters(character_id, account_id, name, level) VALUES(1, {selected.AccountId.Value}, 'tower-test', 60)";
                 Assert.Equal(1, await insert.ExecuteNonQueryAsync(timeout.Token));
             }
-            host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
+            TestGameplay.Run(host.Services, () =>
+            {
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(selected);
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(selected);
+            });
 
             var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
             if (dungeonId == 11000)
             {
-                containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForCharacter(selected.CharacterId, InventoryContainerType.Main), InventoryContainerType.Main));
-                containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForAccount(selected.AccountId, InventoryContainerType.SharedMaterial), InventoryContainerType.SharedMaterial));
-                containers.Register(selected.CharacterId, new EmptyDefault(new ContainerId("tower:empty:network-test"), InventoryContainerType.QuickSlot));
+                TestGameplay.Run(host.Services, () =>
+                {
+                    containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForCharacter(selected.CharacterId, InventoryContainerType.Main), InventoryContainerType.Main));
+                    containers.Register(selected.CharacterId, new EmptyDefault(ContainerId.ForAccount(selected.AccountId, InventoryContainerType.SharedMaterial), InventoryContainerType.SharedMaterial));
+                    containers.Register(selected.CharacterId, new EmptyDefault(new ContainerId("tower:empty:network-test"), InventoryContainerType.QuickSlot));
+                });
             }
             var bus = host.Services.GetRequiredService<ICommandBus>();
-            var entered = await bus.SendAsync(
-                new EnterIllusionTowerCommand([new TowerEntryMember(selected, 0)], selected, 0x12345678, dungeonId),
-                timeout.Token);
-            var run = Assert.IsType<IllusionTowerSnapshot>(entered.Run);
-            var loaded = await bus.SendAsync(
-                new LoadIllusionTowerCommand(new TowerActionContext(selected, run.RunId, run.Room.Version)),
-                timeout.Token);
-            Assert.Equal(TowerRoomPhase.Ready, loaded.Run?.Room.Phase);
+            await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var tx = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                Assert.NotNull((await host.Services.GetRequiredService<IIllusionTowerDomainService>().EnterAsync([new TowerEntryMember(selected, 0)], selected, 0x12345678, timeout.Token, dungeonId)).Run);
+                await tx.CommitAsync(timeout.Token);
+            });
+            var run = TestGameplay.Run(host.Services, () => host.Services.GetRequiredService<IIllusionTowerDomainService>().Find(selected)!);
+            await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var tx = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var loaded = await host.Services.GetRequiredService<IIllusionTowerDomainService>().LoadAsync(new(selected, run.RunId, run.Room.Version), timeout.Token);
+                Assert.Equal(TowerRoomPhase.Ready, loaded.Run?.Room.Phase);
+                await tx.CommitAsync(timeout.Token);
+            });
 
             await stream.WriteAsync(ClientFrame(0x009F, [1], sequence: 1), timeout.Token);
 
@@ -113,15 +149,19 @@ public sealed class IllusionTowerStageFrameIntegrationTests
             await WaitUntilAsync(
                 () => towers.Find(selected)?.Room.Phase == TowerRoomPhase.Fighting,
                 timeout.Token);
-            Assert.Equal(run.RunId, towers.Find(selected)?.RunId);
+            TestGameplay.Run(host.Services, () =>
+            {
+                Assert.Equal(run.RunId, towers.Find(selected)?.RunId);
+            });
             if (dungeonId == 11000)
             {
-                var killed = await bus.SendAsync(new KillIllusionTowerActorCommand(
-                    new(selected, run.RunId, run.Room.Version), run.Room.Actors[0].Uid), timeout.Token);
-                var drop = Assert.Single(killed.Drops);
+                var deathBody=new byte[62];BinaryPrimitives.WriteUInt32LittleEndian(deathBody,run.Room.Actors[0].Uid);
+                await stream.WriteAsync(ClientFrame(0x0027,deathBody,sequence:2),timeout.Token);
+                await WaitUntilAsync(()=>towers.Find(selected)!.Room.Actors[0].Dead,timeout.Token);
+                var drop=Assert.Single(towers.Find(selected)!.Room.Items);
                 var body = new byte[18];
                 BinaryPrimitives.WriteUInt16LittleEndian(body, drop.Uid);
-                await stream.WriteAsync(ClientFrame(0x002B, body, sequence: 2), timeout.Token);
+                await stream.WriteAsync(ClientFrame(0x002B, body, sequence: 3), timeout.Token);
                 await WaitUntilAsync(() => towers.Find(selected)!.Room.Items.Single().Claimed, timeout.Token);
                 var acknowledged = false;
                 for (var count = 0; count < 8 && !acknowledged; count++)
@@ -187,14 +227,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
         while (!condition()) await Task.Delay(10, token);
     }
 
-    private static int AvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
 
     private sealed class TowerRules : IIllusionTowerRuleService
     {
@@ -249,7 +282,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
     {
         public CharacterId Id => new(1);
 
-    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, CancellationToken ct) => throw new NotSupportedException();
+    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<CharacterProgressionState> SetExpAsync(long experience, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct) => throw new NotSupportedException();

@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : INpcShopDefinitionSource
+internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : INpcShopDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -47,6 +47,46 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     private Dictionary<int, string>? stackables;
     private Dictionary<int, string>? equipment;
 
+    public string Name => "npc-shop-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            NpcsIndex(archive);
+            ShopPathsIndex(archive);
+            StackablesIndex(archive);
+            EquipmentIndex(archive);
+            return ValueTask.FromResult(npcs.Count + shopPaths.Count + stackables.Count + equipment.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(npcs))]
+    private void NpcsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        npcs ??= Paths(archive, "npc/npc.lst");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(shopPaths))]
+    private void ShopPathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        shopPaths ??= Paths(archive, "itemshop/itemshop.lst");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
+    private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        stackables ??= Paths(archive, "stackable/stackable.lst");
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipment))]
+    private void EquipmentIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        equipment ??= Paths(archive, "equipment/equipment.lst");
+    }
+
     public ValueTask<NpcShopDefinition?> GetShopAsync(int npcId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -72,8 +112,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     private NpcShopDefinition? ReadShop(int npcId)
     {
         var archive = provider.Archive;
-        npcs ??= Paths(archive, "npc/npc.lst");
-        shopPaths ??= Paths(archive, "itemshop/itemshop.lst");
+        NpcsIndex(archive);
+        ShopPathsIndex(archive);
         if (!npcs.TryGetValue(npcId, out var npcPath))
             return null;
         var npcSections = Sections(archive, "npc/" + npcPath);
@@ -142,8 +182,8 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     private NpcShopItemDefinition? ReadItem(int itemId)
     {
         var archive = provider.Archive;
-        stackables ??= Paths(archive, "stackable/stackable.lst");
-        equipment ??= Paths(archive, "equipment/equipment.lst");
+        StackablesIndex(archive);
+        EquipmentIndex(archive);
         var path = stackables.TryGetValue(itemId, out var stackable)
             ? "stackable/" + stackable
             : equipment.TryGetValue(itemId, out var piece) ? "equipment/" + piece : null;

@@ -13,6 +13,7 @@ using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Schema;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory.Lifecycle;
 
@@ -135,43 +136,46 @@ public sealed class CreatureLifecycleTests
     [Fact]
     public async Task OnlineFractionSurvivesDetailChangesButExternalStomachResetsFractionAndAnchor()
     {
-        using var db = new Database(); var scope = new DomainTransactionScope(); var clock = new Clock();
-        var session = SelectedSessionIdentity.Create(new(3), Owner, new("Game:creature"), 1, 10021);
-        var sessions = new Sessions(session);
-        var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock);
-        await using (var seed = scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var items = db.Items.SessionIn(scope.Current!);
-            await items.PutAsync(Worn, 25, await items.CreateAsync(Pet() with
-                { CreatureDetail = Pet().CreatureDetail! with { Field04 = 50 } }, default), default);
-            await seed.CommitAsync(default);
-        }
-        runtime.Enter(session); await runtime.AdvanceAsync(session, default);
-        clock.Advance(180); await runtime.AdvanceAsync(session, default);
-        await using (var rename = scope.Begin())
-        {
-            var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
-            Assert.Equal(50.5, (await pet.ReadAsync(default)).ExactStomach);
-            clock.Advance(60);
-            await pet.RenameAsync([65], default);
-            await rename.CommitAsync(default);
-        }
-        clock.Advance(120); await runtime.AdvanceAsync(session, default);
-        await using (var external = scope.Begin())
-        {
-            var items = db.Items.SessionIn(scope.Current!); var reference = (await items.GetAsync(Worn, 25, default))!;
-            Assert.Equal(51, reference.Snapshot.CreatureDetail!.Field04);
-            await items.UpdateAsync(reference, x => x with { CreatureDetail = x.CreatureDetail! with { Field04 = 80 } }, default);
-            await external.CommitAsync(default);
-        }
-        clock.Advance(3600); await runtime.AdvanceAsync(session, default);
-        clock.Advance(180); await runtime.AdvanceAsync(session, default);
-        await using (var read = scope.Begin())
-        {
-            var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
-            Assert.Equal(80.5, (await pet.ReadAsync(default)).ExactStomach);
-            await read.CommitAsync(default);
-        }
+            using var db = new Database(); var scope = new DomainTransactionScope(); var clock = new Clock();
+            var session = SelectedSessionIdentity.Create(new(3), Owner, new("Game:creature"), 1, 10021);
+            var sessions = new Sessions(session);
+            var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock);
+            await using (var seed = scope.Begin())
+            {
+                var items = db.Items.SessionIn(scope.Current!);
+                await items.PutAsync(Worn, 25, await items.CreateAsync(Pet() with
+                    { CreatureDetail = Pet().CreatureDetail! with { Field04 = 50 } }, default), default);
+                await seed.CommitAsync(default);
+            }
+            runtime.Enter(session); await runtime.AdvanceAsync(session, default);
+            clock.Advance(180); await runtime.AdvanceAsync(session, default);
+            await using (var rename = scope.Begin())
+            {
+                var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
+                Assert.Equal(50.5, (await pet.ReadAsync(default)).ExactStomach);
+                clock.Advance(60);
+                await pet.RenameAsync([65], default);
+                await rename.CommitAsync(default);
+            }
+            clock.Advance(120); await runtime.AdvanceAsync(session, default);
+            await using (var external = scope.Begin())
+            {
+                var items = db.Items.SessionIn(scope.Current!); var reference = (await items.GetAsync(Worn, 25, default))!;
+                Assert.Equal(51, reference.Snapshot.CreatureDetail!.Field04);
+                await items.UpdateAsync(reference, x => x with { CreatureDetail = x.CreatureDetail! with { Field04 = 80 } }, default);
+                await external.CommitAsync(default);
+            }
+            clock.Advance(3600); await runtime.AdvanceAsync(session, default);
+            clock.Advance(180); await runtime.AdvanceAsync(session, default);
+            await using (var read = scope.Begin())
+            {
+                var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
+                Assert.Equal(80.5, (await pet.ReadAsync(default)).ExactStomach);
+                await read.CommitAsync(default);
+            }
+        });
     }
 
     private sealed class Rules : ICreatureRuleService
@@ -191,6 +195,53 @@ public sealed class CreatureLifecycleTests
     }
     private sealed class Sessions(SelectedSessionIdentity session) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Select(SelectedSessionIdentity value) => throw new NotSupportedException();
         public bool ReleaseExact(SelectedSessionIdentity value) => throw new NotSupportedException();
         public SelectedSessionIdentity? Find(AccountId id) => session.AccountId == id ? session : null;

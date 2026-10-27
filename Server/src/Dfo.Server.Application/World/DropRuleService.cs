@@ -17,8 +17,24 @@ internal sealed class DropRuleService(
     IDropRateTableSource rateTables,
     IGoldDropTableSource goldTables,
     IDropItemPoolSource pools,
-    DropRateOptions options) : IDropRuleService
+    DropRateOptions options) : IDropRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
+    public string Name => "drop-rules";
+
+    /// <remarks>The monster tables these rules read, and the item pool of every family.</remarks>
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        _ = rateTables.Load(DropRateTables.Monster);
+        _ = goldTables.Load(DropRateTables.Monster);
+        var families = Enum.GetValues<DropItemFamily>();
+        foreach (var family in families)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = pools.Load(family);
+        }
+        return ValueTask.FromResult(2 + families.Length);
+    }
+
     public DropRates? RatesFor(MonsterDropRequest kill)
     {
         ArgumentNullException.ThrowIfNull(kill);

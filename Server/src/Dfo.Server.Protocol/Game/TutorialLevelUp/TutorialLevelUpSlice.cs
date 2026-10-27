@@ -93,47 +93,6 @@ public sealed record TutorialLevelUpResult(
         new(status, 0, 0);
 }
 
-/// <summary>One character being put where the tutorial says it should be by now.</summary>
-public sealed record GrantTutorialLevelCommand(CharacterId CharacterId)
-    : ICommand<TutorialLevelUpResult>;
-
-/// <summary>
-/// Sets the character to the level the tutorial ends at, and the experience that level begins with.
-/// </summary>
-/// <remarks>
-/// A set, not a gain. The reference server writes the target level and the threshold that level
-/// starts at rather than adding anything, so a character who reaches this step having earned
-/// nothing and one who reaches it having earned something both leave it standing in the same
-/// place -- which is what makes the tutorial's ending the same for everybody.
-/// <para>
-/// The threshold comes from the archive's own <c>character/ExpTable.tbl</c>, the same table the
-/// dungeon settlement reads. Entry <c>n-1</c> is what a character must hold to be level <c>n</c>,
-/// so reaching level two means holding the first entry.
-/// </para>
-/// </remarks>
-public sealed class GrantTutorialLevelCommandHandler(ICharacterDomainService characters)
-    : ICommandHandler<GrantTutorialLevelCommand, TutorialLevelUpResult>
-{
-    /// <summary>Where the tutorial leaves a character, as the reference server names it.</summary>
-    public const byte TargetLevel = 2;
-
-    public async ValueTask<TutorialLevelUpResult> HandleAsync(
-        CommandExecutionContext context,
-        GrantTutorialLevelCommand command,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(command);
-
-        if (await characters.Get(command.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
-            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NotPersisted);
-        if (progress.Level >= TargetLevel)
-            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.AlreadyPast);
-
-        var next = await characters.Get(command.CharacterId).SetLevelAsync(TargetLevel, cancellationToken).ConfigureAwait(false);
-        return new TutorialLevelUpResult(TutorialLevelUpStatus.Granted, next.Level, next.Experience);
-    }
-}
-
 /// <summary>
 /// Grants the tutorial's level and tells the client what the character now stands at.
 /// </summary>
@@ -145,31 +104,32 @@ public sealed class GrantTutorialLevelCommandHandler(ICharacterDomainService cha
 /// is sent carries the level, so the client learns it; what is not sent is written down in
 /// <c>Docs/ProtocolScaffoldDissonances.md</c> rather than left to be rediscovered.
 /// </remarks>
-public sealed class TutorialLevelUpHandler(
+public sealed class GameTutorialLevelUpCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
     IDungeonRunDomainService runs,
-    ICommandBus commandBus,
-    IGameMessageSender sender,
+    ICommandWorkUnits units,
+    IGameCommandOutbox outbox,
     IQuestOfferRefreshDomainService offers,
-    ILogger<TutorialLevelUpHandler> logger) : ClientMessageHandler<TutorialLevelUpRequest>
+    ILogger<GameTutorialLevelUpCommandHandler> logger) : ICommandHandler<GameTutorialLevelUpCommand,bool>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        TutorialLevelUpRequest message,
+    public async ValueTask<bool> HandleAsync(
+        CommandExecutionContext context,
+        GameTutorialLevelUpCommand command,
         CancellationToken cancellationToken)
     {
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        var dispatch=command.Dispatch;
+        var session = selectedSessions.FindByConnection(dispatch.Connection.ConnectionId);
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null)
         {
             logger.LogWarning(
                 "Tutorial level up {ConnectionId}: no published session, refusing",
-                context.Connection.ConnectionId);
-            await this.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
-            return;
+                dispatch.Connection.ConnectionId);
+            await this.RefuseAsync(dispatch, cancellationToken).ConfigureAwait(false);
+            return true;
         }
 
         // In a dungeon, as the reference server requires. The tutorial asks for this from inside
@@ -179,26 +139,24 @@ public sealed class TutorialLevelUpHandler(
         {
             logger.LogInformation(
                 "Tutorial level up {ConnectionId} character={CharacterId}: not in a run, refusing",
-                context.Connection.ConnectionId,
+                dispatch.Connection.ConnectionId,
                 session.CharacterId.Value);
-            await this.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
-            return;
+            await this.RefuseAsync(dispatch, cancellationToken).ConfigureAwait(false);
+            return true;
         }
 
-        var granted = await commandBus.SendAsync(
-            new GrantTutorialLevelCommand(
-                session.CharacterId),
-            cancellationToken).ConfigureAwait(false);
+        var granted = await units.WriteAsync(context,new("TutorialLevelUp",[]),
+            (_,token)=>GrantAsync(characters,session.CharacterId,token),cancellationToken).ConfigureAwait(false);
 
         if (granted.Status is not TutorialLevelUpStatus.Granted)
         {
             logger.LogInformation(
                 "Tutorial level up {ConnectionId} character={CharacterId}: refused as {Status}",
-                context.Connection.ConnectionId,
+                dispatch.Connection.ConnectionId,
                 session.CharacterId.Value,
                 granted.Status);
-            await this.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
-            return;
+            await this.RefuseAsync(dispatch, cancellationToken).ConfigureAwait(false);
+            return true;
         }
 
         var updated = result with
@@ -231,7 +189,7 @@ public sealed class TutorialLevelUpHandler(
 
         logger.LogInformation(
             "Tutorial level up {ConnectionId} character={CharacterId}: now level {Level} at {Exp}",
-            context.Connection.ConnectionId,
+            dispatch.Connection.ConnectionId,
             session.CharacterId.Value,
             granted.Level,
             granted.Experience);
@@ -259,17 +217,38 @@ public sealed class TutorialLevelUpHandler(
             granted.Level, updated.World.Content.AvailableQuests));
         frames.Add(new TutorialLevelUpResponse(TutorialLevelUpResponse.Granted));
 
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
+        await outbox.RegisterExplicitAsync(
+            dispatch.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
     private ValueTask RefuseAsync(
-        NetworkDispatchContext context, CancellationToken cancellationToken) =>
-        sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
+        NetworkDispatchContext dispatch, CancellationToken cancellationToken) =>
+        outbox.RegisterExplicitAsync(
+            dispatch.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [new TutorialLevelUpResponse(TutorialLevelUpResponse.Refused)], []),
             cancellationToken);
+
+    // Shared with direct algorithm fixtures; production calls it only inside the declared write.
+    internal static async ValueTask<TutorialLevelUpResult> GrantAsync(ICharacterDomainService characters,CharacterId characterId,CancellationToken ct)
+    {
+        if(await characters.Get(characterId).ProgressAsync(ct).ConfigureAwait(false) is not {} progress)
+            return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.NotPersisted);
+        if(progress.Level>=2) return TutorialLevelUpResult.Refused(TutorialLevelUpStatus.AlreadyPast);
+        var next=await characters.Get(characterId).SetLevelAsync(2,ct).ConfigureAwait(false);
+        return new(TutorialLevelUpStatus.Granted,next.Level,next.Experience);
+    }
+}
+public sealed record GameTutorialLevelUpCommand(NetworkDispatchContext Dispatch,TutorialLevelUpRequest Input):IProtocolCommand<bool>
+{
+    public IClientNetworkMessage Message=>Input;
+    public ProtocolFrameMetadata Frame=>new ProtocolFrameMetadata.Game(Input.Metadata);
+}
+public sealed class TutorialLevelUpHandler(ICommandBus commands):ClientMessageHandler<TutorialLevelUpRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameTutorialLevelUpCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,TutorialLevelUpRequest message,CancellationToken ct)=>
+        _ = await commands.SendAsync(new GameTutorialLevelUpCommand(context,message),ct).ConfigureAwait(false);
 }

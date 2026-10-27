@@ -1,4 +1,5 @@
 using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Data.Networking;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -19,11 +20,22 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Protocol.Game.Mailbox;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
 public sealed partial class GmOfficialMailHttpTests
 {
+    private static async Task<MailboxResult> MailboxWhole(GmTestHost host, NetworkConnectionContext connection, IClientNetworkMessage message)
+    {
+        var type = message is MailboxClaimRequest ? (ushort)0x005F : (ushort)0x0060;
+        byte[] body = message is MailboxClaimRequest claim ? BitConverter.GetBytes(claim.AttachmentId) : [];
+        var metadata = new GameMessageMetadata(1, type, 0, 1) { InboundOrdinal = 1, SequenceIsFresh = true };
+        metadata = metadata.WithRawBody(body);
+        var registration = host.Services.GetServices<GameMessageDecoderRegistration>().Single(row => row.Selector == 1 && row.Type == type);
+        var decoded = ((IGameMessageDecoder)host.Services.GetRequiredService(registration.DecoderType)).Decode(metadata, body) ?? throw new InvalidDataException("The registered mailbox decoder rejected the test body.");
+        return (await host.Services.GetRequiredService<ICommandBus>().SendAsync(new GameMailboxCommand(new(connection), decoded))).Result;
+    }
     private static object Payload(Guid id, int[]? recipients = null, string body = "测试金币", string title = "官方补偿", int gold = 100, object[]? items = null) =>
         new { requestId = id, title, body, recipientIds = recipients ?? [1], items = items ?? [], gold };
     private static async Task<(string Csrf, string Secret)> Login(GmTestHost host, string name = "operator")
@@ -205,11 +217,11 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.Equal(HttpStatusCode.Forbidden, (await host.Client.GetAsync("/api/gm/v1/characters")).StatusCode);
         var bus = host.Services.GetRequiredService<ICommandBus>();
         var input = new GmMailInput("", "测试", [1], [], 0);
-        var preparation = (GmMailPreparation)(await bus.SendAsync(new QueryGmMailCommand(login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: input))).Value;
+        var preparation = (GmMailPreparation)(await MailStageDriver.Query(host, login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: input)).Value;
         await host.ExecuteAsync("UPDATE gm_administrators SET permissions=1;");
-        Assert.Equal(GmMailRefusal.Forbidden, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Forbidden, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         await host.ExecuteAsync("UPDATE gm_administrators SET permissions=2; DELETE FROM gm_sessions;");
-        Assert.Equal(GmMailRefusal.Unauthorized, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Unauthorized, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 
@@ -218,11 +230,21 @@ public sealed partial class GmOfficialMailHttpTests
     {
         await using var host = await GmTestHost.StartAsync(); await GmPlayerDirectoryHttpTests.SeedAsync(host); var login = await Login(host);
         var bus = host.Services.GetRequiredService<ICommandBus>();
-        var preparation = (GmMailPreparation)(await bus.SendAsync(new QueryGmMailCommand(login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "测试", [1], [], 0)))).Value;
+        var preparation = (GmMailPreparation)(await MailStageDriver.Query(host, login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "测试", [1], [], 0))).Value;
         await host.ExecuteAsync("UPDATE characters SET account_id=2 WHERE character_id=1;");
-        Assert.Equal(GmMailRefusal.Changed, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Changed, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
+
+    /// <summary>
+    /// F-104: the host runs the dispatch group loop, which can take a delivery before <c>DrainOnceAsync</c> reads it;
+    /// the job consuming it is then already on the executor, so a marker job enqueued afterwards waits for it.
+    /// </summary>
+    private static async Task Settled(GmTestHost host) =>
+        await host.Services.GetRequiredService<Dfo.Server.Abstractions.Execution.IGameplayQueue>().RunAsync(
+            new Dfo.Server.Abstractions.Execution.GameplayWork(Dfo.Server.Abstractions.Execution.GameplayShardKey.World,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Gm),
+                "test:settled", _ => ValueTask.CompletedTask), default);
 
     [Fact]
     public async Task ReminderExceptionAfterCommitNeverRegrantsAndSuccessRemainsQueryable()
@@ -236,6 +258,7 @@ public sealed partial class GmOfficialMailHttpTests
             using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(id)); Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
             Assert.Equal("unconfirmed", (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("reminder").GetString());
             await host.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync();
+            await Settled(host);
             Assert.Equal(1, notices.Count); // A replay must not announce an existing letter again.
         }
         Assert.Equal(1, notices.Count); Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
@@ -277,7 +300,7 @@ public sealed partial class GmOfficialMailHttpTests
             var user = await GmPlayerDirectoryHttpTests.ConnectAsync(host, character.Value, 21011);
             var session = GmPlayerDirectoryHttpTests.Publish(host, user, character.Value, character.Value, 21011);
             var recipient = new NotificationRecipient(character, session.ConnectionId);
-            var opened = await commands.SendAsync(new MailboxCommand(user.OnlineUserId, session, MailboxOperation.Open));
+            var opened = await MailboxWhole(host, user.Connection, new MailboxOpenRequest(GameMessageMetadata.Empty));
             var projected = Assert.Single(opened.Inbox!.Messages);
             foreach (var attachment in projected.Attachments.Where(x => x.ItemTemplateId == 27312))
             {
@@ -285,7 +308,7 @@ public sealed partial class GmOfficialMailHttpTests
                 Assert.Equal(core, attachment.ItemCore);
                 Assert.Equal(BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(5, 4)), attachment.InstanceValue);
                 var single = opened.Inbox with { Messages = [projected with { Attachments = [attachment], Gold = 0, GoldAttachments = [] }] };
-                var messages = await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxOpenResponse(0), new(Inbox: single)), default);
+                var messages = await TestGameplay.RunAsync(host.Services, async () => await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxOpenResponse(0), new(Inbox: single)), default));
                 var body = EncodeBody(host, messages, 0x0061);
                 using var reader = new BinaryReader(new MemoryStream(body));
                 Assert.Equal(1, reader.ReadByte()); reader.ReadByte(); reader.ReadUInt32(); Assert.Equal(0, reader.ReadInt32());
@@ -298,7 +321,7 @@ public sealed partial class GmOfficialMailHttpTests
             Assert.Equal(5, mail.Attachments.Length);
             foreach (var attachment in mail.Attachments)
             {
-                var claimed = await commands.SendAsync(new MailboxCommand(user.OnlineUserId, session, MailboxOperation.Claim, attachment.Id));
+                var claimed = await MailboxWhole(host, user.Connection, new MailboxClaimRequest(GameMessageMetadata.Empty, checked(0x40000000u + (uint)attachment.Id)));
                 if (attachment.Asset is not MailAsset.Equipment equipment) continue;
                 var update = Assert.Single(claimed.Assets!.Updates);
                 Assert.Equal(equipment.Identity, update.Identity);
@@ -306,7 +329,7 @@ public sealed partial class GmOfficialMailHttpTests
                 Assert.Equal(BinaryPrimitives.ReadInt32LittleEndian(core.AsSpan(5, 4)), update.Core.Value);
                 Assert.Equal(BinaryPrimitives.ReadUInt16LittleEndian(core.AsSpan(10, 2)), update.Core.Durability);
                 Assert.Equal(core[12], update.Core.SealFlag);
-                var messages = await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxClaimResponse(0), claimed), default);
+                var messages = await TestGameplay.RunAsync(host.Services, async () => await completion.ComposeAsync(recipient, new MailboxCompleted(session, new MailboxClaimResponse(0), claimed), default));
                 var body = EncodeBody(host, messages, 0x000E);
                 Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(1, 2)));
                 Assert.Equal(27312, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(5, 4)));
@@ -354,11 +377,17 @@ public sealed partial class GmOfficialMailHttpTests
             var coordinate = LegacyInventoryStorageCoordinates.ToStorage(new BusinessSlot(placement.Destination.Space, index));
             await host.ExecuteAsync($"INSERT INTO items(item_core) SELECT item_core FROM items WHERE item_uid={uid}; INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count) VALUES('character',1,{(int)coordinate.List},{coordinate.Index},'world',last_insert_rowid(),last_insert_rowid(),1);");
         }
-        Assert.Equal(MailFailure.NoCapacity, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gear.Id).AsTask())).Reason);
-        Assert.Equal(MailFailure.GoldLimit, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gold.Id).AsTask())).Reason);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            Assert.Equal(MailFailure.NoCapacity, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gear.Id).AsTask())).Reason);
+            Assert.Equal(MailFailure.GoldLimit, (await Assert.ThrowsAsync<MailException>(() => mailbox.ClaimAsync(character, gold.Id).AsTask())).Reason);
+        });
         Assert.All(Assert.Single(await mailbox.InboxAsync(character)).Attachments, x => Assert.False(x.Claimed));
         await host.ExecuteAsync("DELETE FROM item_slots WHERE owner_scope='character' AND owner_id=1; UPDATE character_stats SET carried_gold=0 WHERE character_id=1;");
-        await mailbox.ClaimAsync(character, gear.Id); await mailbox.ClaimAsync(character, gold.Id);
+        await TestGameplay.RunAsync(host.Services, async () =>
+        {
+            await mailbox.ClaimAsync(character, gear.Id); await mailbox.ClaimAsync(character, gold.Id);
+        });
         Assert.Equal(new[] { uid.ToString(System.Globalization.CultureInfo.InvariantCulture) }, await host.ReadAsync("SELECT id FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND kind='world';"));
         Assert.Equal(new[] { "100" }, await host.ReadAsync("SELECT carried_gold FROM character_stats WHERE character_id=1;"));
     }
@@ -488,9 +517,9 @@ public sealed partial class GmOfficialMailHttpTests
         foreach (var character in new[] { 1, 47 }) { var mail = Assert.Single(await mailbox.InboxAsync(new CharacterId(character))); Assert.Equal("同文\n换行", mail.Body); Assert.Equal(mail.Body, mail.Title); Assert.Empty(mail.Attachments); }
         Assert.Equal(first.GetProperty("expiresAt").GetString(), (await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/operations/" + id)).GetProperty("expiresAt").GetString());
         var bus = host.Services.GetRequiredService<ICommandBus>();
-        var preparation = (GmMailPreparation)(await bus.SendAsync(new QueryGmMailCommand(login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "预检", [1, 2], [], 0)))).Value;
+        var preparation = (GmMailPreparation)(await MailStageDriver.Query(host, login.Secret, GmMailQuery.Prepare, id: Guid.NewGuid(), input: new GmMailInput("", "预检", [1, 2], [], 0))).Value;
         await host.ExecuteAsync("UPDATE characters SET delete_flag=1 WHERE character_id=2;");
-        Assert.Equal(GmMailRefusal.Invalid, (await Assert.ThrowsAsync<GmMailException>(() => bus.SendAsync(new SendGmMailCommand(login.Secret, preparation)).AsTask())).Reason);
+        Assert.Equal(GmMailRefusal.Invalid, (await Assert.ThrowsAsync<GmMailException>(() => MailStageDriver.Send(host, login.Secret, preparation))).Reason);
         Assert.Equal(new[] { "2" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
 

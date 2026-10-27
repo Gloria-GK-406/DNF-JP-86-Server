@@ -1,0 +1,16 @@
+SelectedSessionRuntimeDirectory: 0 
+IActiveCharacterDomainService: 0 
+ActiveCharacterDomainService: 0 
+activeByAccount: 0 
+ICharacterPositionDomainService: 0 
+ICharacterVitalRuntimeDomainService: 0 
+ICharacterItemCooldownDomainService: 0 
+ISpiritPotionDomainService: 0 
+SpiritPotionDomainService: 0 
+CharacterPositionDomainService: 0 
+CharacterItemCooldownDomainService: 0 
+CharacterVitalRuntimeDomainService: 0 
+TryGetPositionPersistence: 0 
+IsPublishedExact: 0 
+HashSet<SelectedSessionIdentity> blocked: 0 
+[Obsolete: 0 

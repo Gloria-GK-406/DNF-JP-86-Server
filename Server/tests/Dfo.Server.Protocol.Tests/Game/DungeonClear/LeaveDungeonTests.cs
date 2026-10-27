@@ -1,3 +1,9 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Marriage;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Protocol.Tests.Support;
+using Dfo.Server.Protocol.Tests.Game.Party;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
@@ -8,7 +14,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -28,9 +33,9 @@ using Dfo.Server.Protocol.Game.Weakness;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Protocol.Tests.Game.TownProjection;
-using Dfo.Server.Protocol.Tests.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -48,16 +53,19 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task Ordinary_rechallenge_retains_ordinary_selection_after_the_run_ends()
     {
-        var runs = new OneRun();
-        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
-        await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
 
-        Assert.True(runs.Ended);
-        var intent = intents.Find(Identity);
-        Assert.NotNull(intent);
-        Assert.Equal(144, intent.Value.DirectedDungeonId);
-        Assert.Equal(DungeonEntryIntentKind.OrdinaryRechallenge, intent.Value.Kind);
+            Assert.True(runs.Ended);
+            var intent = intents.Find(Identity);
+            Assert.NotNull(intent);
+            Assert.Equal(144, intent.Value.DirectedDungeonId);
+            Assert.Equal(DungeonEntryIntentKind.OrdinaryRechallenge, intent.Value.Kind);
+        });
     }
 
     [Theory]
@@ -66,10 +74,13 @@ public sealed class LeaveDungeonTests
     [InlineData(2, false)]
     public async Task Only_ordinary_retry_retains_the_rechallenge_intent(byte option, bool story)
     {
-        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
-        await StoryHandler(new OneRun(story: story), new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, option), default);
-        Assert.Null(intents.Find(Identity));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            await StoryHandler(new OneRun(story: story), new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 1, option), default);
+            Assert.Null(intents.Find(Identity));
+        });
     }
 
     [Theory]
@@ -78,17 +89,20 @@ public sealed class LeaveDungeonTests
     [InlineData("hell")]
     public async Task Specialized_retries_do_not_gain_the_ordinary_retry_intent(string kind)
     {
-        var runs = new OneRun(layoutChange: layout => kind switch
+        await TestGameplay.RunAsync(async () =>
         {
-            "sao" => layout with { Sao = new(new("test")) },
-            "mirror" => layout with { Mirror = new(8000, 31, 14299) },
-            _ => layout with { EntryKind = DungeonEntryKind.ManualHell },
+            var runs = new OneRun(layoutChange: layout => kind switch
+            {
+                "sao" => layout with { Sao = new(new("test")) },
+                "mirror" => layout with { Mirror = new(8000, 31, 14299) },
+                _ => layout with { EntryKind = DungeonEntryKind.ManualHell },
+            });
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
+            Assert.True(runs.Ended);
+            Assert.Null(intents.Find(Identity));
         });
-        var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
-        await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
-        Assert.True(runs.Ended);
-        Assert.Null(intents.Find(Identity));
     }
 
     /// <summary>
@@ -118,102 +132,58 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task Next_story_preflight_and_confirmation_project_the_town_only_once()
     {
-        var runs = new OneRun();
-        var sender = new RecordingSender();
-        var handler = StoryHandler(runs, sender);
-        foreach (var (state, option) in new (byte, byte)[] { (2, 3), (1, 1), (1, 3) })
-            await handler.HandleAsync(Dispatch(), new EplpCommandRequest(
-                GameMessageMetadata.Empty, state, option), CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var sender = new RecordingSender();
+            var handler = StoryHandler(runs, sender);
+            foreach (var (state, option) in new (byte, byte)[] { (2, 3), (1, 1), (1, 3) })
+                await handler.HandleAsync(Dispatch(), new EplpCommandRequest(
+                    GameMessageMetadata.Empty, state, option), CancellationToken.None);
 
-        Assert.True(runs.Ended);
-        Assert.Equal(new byte[] { 2, 1 }, sender.Sent.OfType<EplpCommandResponse>().Select(x => x.State));
-        Assert.Equal(new byte[] { 3, 1 }, sender.Sent.OfType<EplpCommandResponse>().Select(x => x.Option));
-        Assert.Single(sender.Sent.OfType<UserAreaNotification>());
-        Assert.Single(sender.Sent.OfType<AreaUsersNotification>());
+            Assert.True(runs.Ended);
+            Assert.Equal(new byte[] { 2, 1 }, sender.Sent.OfType<EplpCommandResponse>().Select(x => x.State));
+            Assert.Equal(new byte[] { 3, 1 }, sender.Sent.OfType<EplpCommandResponse>().Select(x => x.Option));
+            Assert.Single(sender.Sent.OfType<UserAreaNotification>());
+            Assert.Single(sender.Sent.OfType<AreaUsersNotification>());
+        });
     }
 
     [Fact]
     public async Task Next_story_confirmation_with_a_run_only_acknowledges()
     {
-        var runs = new OneRun();
-        var sender = new RecordingSender();
-        await StoryHandler(runs, sender).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), CancellationToken.None);
-        Assert.False(runs.Ended);
-        Assert.IsType<EplpCommandResponse>(Assert.Single(sender.Sent));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var sender = new RecordingSender();
+            await StoryHandler(runs, sender).HandleAsync(Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), CancellationToken.None);
+            Assert.False(runs.Ended);
+            Assert.IsType<EplpCommandResponse>(Assert.Single(sender.Sent));
+        });
     }
 
-    [Fact]
-    public async Task Exit_owns_the_transition_until_its_last_town_frame_is_sent()
-    {
-        var gate = new SelectedSessionTransitionGate();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var sender = new RecordingSender { BeforeSend = async messages =>
-        {
-            if (!messages.Any(x => x is UserAreaNotification)) return;
-            entered.TrySetResult();
-            await release.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        }};
-        var exit = StoryHandler(new OneRun(), sender, gate).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default).AsTask();
-        Task<IAsyncDisposable>? next = null;
-        try
-        {
-            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            next = gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default).AsTask();
-            Assert.False(next.IsCompleted);
-            release.TrySetResult();
-            await exit.WaitAsync(TimeSpan.FromSeconds(5));
-            await (await next.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
-            Assert.Single(sender.Sent.OfType<UserAreaNotification>());
-        }
-        finally
-        {
-            release.TrySetResult();
-            await exit.WaitAsync(TimeSpan.FromSeconds(5));
-            if (next is not null) await (await next.WaitAsync(TimeSpan.FromSeconds(5))).DisposeAsync();
-        }
-        Assert.Equal(0, gate.TrackedEntryCount);
-    }
-
-    private static EplpCommandHandler StoryHandler(OneRun runs, RecordingSender sender,
-        SelectedSessionTransitionGate? gate = null, IDungeonEntryIntentDomainService? intents = null) => new(
+    private static EplpDriver StoryHandler(OneRun runs, RecordingSender sender,
+        IDungeonEntryIntentDomainService? intents = null) => new(
         new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
         runs, new DungeonRunDeliveryRegistry(), sender,
         TownAreaProjectionTestFactory.Create(new OneSession(Identity), new OneRuntimeSession(Entry()), sender),
-        NullLogger<EplpCommandHandler>.Instance, gate ?? new SelectedSessionTransitionGate(), entryIntents: intents);
+        NullLogger<EplpCommandHandler>.Instance, entryIntents: intents);
 
     [Fact]
     public async Task Failed_exit_delivery_releases_the_transition_without_repeating_the_exit()
     {
-        var runs = new OneRun();
-        var gate = new SelectedSessionTransitionGate();
-        var sender = new RecordingSender { BeforeSend = _ => throw new IOException("send failed") };
-        var handler = StoryHandler(runs, sender, gate);
-        await Assert.ThrowsAsync<IOException>(async () => await handler.HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default));
-        Assert.True(runs.Ended);
-        Assert.Equal(0, gate.TrackedEntryCount);
-        await handler.HandleAsync(Dispatch(), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), default);
-        Assert.Empty(sender.Sent);
-    }
-
-    [Fact]
-    public async Task An_exit_queued_for_an_old_run_does_not_end_its_replacement()
-    {
-        var runs = new OneRun();
-        var gate = new SelectedSessionTransitionGate();
-        var sender = new RecordingSender();
-        var blocker = await gate.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, default);
-        var pending = StoryHandler(runs, sender, gate).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default).AsTask();
-        Assert.False(pending.IsCompleted);
-        runs.Replace();
-        await blocker.DisposeAsync();
-        await pending.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.False(runs.Ended);
-        Assert.Empty(sender.Sent);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var sender = new RecordingSender { Failure = () => new IOException("send failed") };
+            var handler = StoryHandler(runs, sender);
+            await Assert.ThrowsAsync<IOException>(async () => await handler.HandleAsync(Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 1, 1), default));
+            Assert.True(runs.Ended);
+            await handler.HandleAsync(Dispatch(), new EplpCommandRequest(GameMessageMetadata.Empty, 1, 3), default);
+            Assert.Empty(sender.Sent);
+        });
     }
 
     [Theory]
@@ -221,12 +191,15 @@ public sealed class LeaveDungeonTests
     [InlineData(true)]
     public async Task A_new_selection_intent_prevents_an_old_town_projection(bool hasRun)
     {
-        var runs = new OneRun(hasRun);
-        var sender = new RecordingSender();
-        await StoryHandler(runs, sender, intents: new SelectedIntent()).HandleAsync(Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2), default);
-        Assert.False(runs.Ended);
-        Assert.Empty(sender.Sent);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun(hasRun);
+            var sender = new RecordingSender();
+            await StoryHandler(runs, sender, intents: new SelectedIntent()).HandleAsync(Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2), default);
+            Assert.False(runs.Ended);
+            Assert.Empty(sender.Sent);
+        });
     }
 
     private sealed class SelectedIntent : IDungeonEntryIntentDomainService
@@ -239,7 +212,7 @@ public sealed class LeaveDungeonTests
     }
 
     [Fact]
-    public async Task Exit_command_borrows_the_projection_lease_through_the_real_pipeline()
+    public async Task Exit_command_ends_the_run_through_the_explicit_domain_entry()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -247,13 +220,11 @@ public sealed class LeaveDungeonTests
         var runs = new OneRun();
         services.AddSingleton<IDungeonRunDomainService>(runs);
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
-        services.AddCommandHandler<LeaveDungeonCommand, LeaveDungeonResult, LeaveDungeonCommandHandler>(
-            CommandExecutionKind.Direct, accountAccessMode: UserAccessMode.Exclusive);
+        services.AddFixtureCommand<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
+            FixtureUnitKind.Direct);
         await using var provider = services.BuildServiceProvider();
-        await using var lease = await provider.GetRequiredService<SelectedSessionTransitionGate>()
-            .AcquireManyExclusiveAsync([Identity.AccountId], default);
-        var result = await provider.GetRequiredService<ICommandBus>().SendAsync(
-            new LeaveDungeonCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        var result = await DomainCommandFixture.Bus(provider).SendAsync(
+            new LeaveDungeonAlgorithmCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal([Identity.CharacterId], result.EndedCharacters);
         Assert.True(runs.Ended);
     }
@@ -307,14 +278,18 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task Leaving_ends_the_run_and_projects_the_town()
     {
-        var runs = new OneRun();
-        var sent = await Leave(LeaveState, runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var sent = await Leave(LeaveState, runs);
 
-        Assert.True(runs.Ended);
-        Assert.Equal(
-            [typeof(EplpCommandResponse), typeof(UserStateNotification),
-             typeof(UserAreaNotification), typeof(AreaUsersNotification)],
-            sent.Select(frame => frame.GetType()));
+            Assert.True(runs.Ended);
+            Assert.Equal(
+                [typeof(EplpCommandResponse), typeof(UserStateNotification),
+                 typeof(UserAreaNotification), typeof(AreaUsersNotification), typeof(WeaknessProjectionNotification)],
+                sent.Select(frame => frame.GetType()));
+            Assert.Equal((byte)37, Assert.Single(sent.OfType<WeaknessProjectionNotification>()).Value);
+        });
     }
 
     /// <summary>The projection carries where the character is standing, not the channel's spawn.</summary>
@@ -326,17 +301,20 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task The_projection_carries_where_the_character_is_standing()
     {
-        var sent = await Leave(LeaveState, new OneRun());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sent = await Leave(LeaveState, new OneRun());
 
-        var area = sent.OfType<UserAreaNotification>().Single();
-        Assert.Equal(StandingAreaId, area.AreaId);
+            var area = sent.OfType<UserAreaNotification>().Single();
+            Assert.Equal(StandingAreaId, area.AreaId);
 
-        var users = sent.OfType<AreaUsersNotification>().Single();
-        Assert.Equal(StandingTownId, users.TownId);
-        Assert.Equal(StandingAreaId, users.AreaId);
-        var presence = Assert.Single(users.Users);
-        Assert.Equal(StandingX, presence.X);
-        Assert.Equal(StandingY, presence.Y);
+            var users = sent.OfType<AreaUsersNotification>().Single();
+            Assert.Equal(StandingTownId, users.TownId);
+            Assert.Equal(StandingAreaId, users.AreaId);
+            var presence = Assert.Single(users.Users);
+            Assert.Equal(StandingX, presence.X);
+            Assert.Equal(StandingY, presence.Y);
+        });
     }
 
     /// <summary>Every other state is answered and moves nothing.</summary>
@@ -351,12 +329,15 @@ public sealed class LeaveDungeonTests
     [InlineData((byte)9)]
     public async Task A_state_that_is_not_the_exit_is_answered_and_moves_nothing(byte state)
     {
-        var runs = new OneRun();
-        var sent = await Leave(state, runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var sent = await Leave(state, runs);
 
-        Assert.False(runs.Ended);
-        var answer = Assert.IsType<EplpCommandResponse>(Assert.Single(sent));
-        Assert.Equal(state, answer.State);
+            Assert.False(runs.Ended);
+            var answer = Assert.IsType<EplpCommandResponse>(Assert.Single(sent));
+            Assert.Equal(state, answer.State);
+        });
     }
 
     /// <summary>
@@ -369,45 +350,55 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task Leaving_without_a_run_is_still_answered_and_still_projects_the_town()
     {
-        var runs = new OneRun(hasRun: false);
-        var sent = await Leave(LeaveState, runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun(hasRun: false);
+            var sent = await Leave(LeaveState, runs);
 
-        Assert.Equal(4, sent.Count);
-        Assert.Contains(sent, frame => frame is AreaUsersNotification);
+            Assert.Equal(5, sent.Count);
+            Assert.Contains(sent, frame => frame is AreaUsersNotification);
+            Assert.Equal(
+                [typeof(EplpCommandResponse), typeof(UserStateNotification), typeof(UserAreaNotification),
+                 typeof(AreaUsersNotification), typeof(WeaknessProjectionNotification)],
+                sent.Select(frame => frame.GetType()));
+            Assert.Equal((byte)37, Assert.Single(sent.OfType<WeaknessProjectionNotification>()).Value);
+        });
     }
 
     [Fact]
     public async Task Leaving_removes_only_this_participant_from_the_frozen_delivery_set()
     {
-        var runs = new OneRun();
-        var helper = SelectedSessionIdentity.Create(
-            new AccountId(2),
-            new CharacterId(61),
-            new NetworkConnectionId("helper"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var deliveries = new DungeonRunDeliveryRegistry();
-        deliveries.Register(runs.RunId, [Identity, helper]);
-        var handler = new EplpCommandHandler(
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
-            new StandingWhereTheyAre(),
-            runs,
-            deliveries,
-            new RecordingSender(),
-            TownAreaProjectionTestFactory.Create(
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var helper = SelectedSessionIdentity.Create(
+                new AccountId(2),
+                new CharacterId(61),
+                new NetworkConnectionId("helper"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(runs.RunId, [Identity, helper]);
+            var handler = new EplpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                new RecordingSender()),
-            NullLogger<EplpCommandHandler>.Instance,
-            new SelectedSessionTransitionGate());
+                new StandingWhereTheyAre(),
+                runs,
+                deliveries,
+                new RecordingSender(),
+                TownAreaProjectionTestFactory.Create(
+                    new OneSession(Identity),
+                    new OneRuntimeSession(Entry()),
+                    new RecordingSender()),
+                NullLogger<EplpCommandHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
+                CancellationToken.None);
 
-        Assert.Equal([helper], deliveries.Find(runs.RunId));
+            Assert.Equal([helper], deliveries.Find(runs.RunId));
+        });
     }
 
     [Theory]
@@ -415,192 +406,173 @@ public sealed class LeaveDungeonTests
     [InlineData((byte)100)]
     public async Task GiveUp_sends_weakness_once_after_success_and_before_town(byte weaknessValue)
     {
-        var runs = new OneRun();
-        var deliveries = new DungeonRunDeliveryRegistry();
-        deliveries.Register(runs.RunId, [Identity]);
-        var sender = new RecordingSender();
-        var commands = new RecordingCommandBus();
-        var handler = new GiveUpGameHandler(
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
-            new StandingWhereTheyAre(),
-            runs,
-            deliveries,
-            sender,
-            new TownAreaProjectionDelivery(
-                new SessionPresenceDomainService(),
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun();
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(runs.RunId, [Identity]);
+            var sender = new RecordingSender();
+            var parties = new RecordingPartyMutations();
+            var handler = new GiveUpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                new NoopNotificationBus(),
-                new NoopPartyTownProjection(),
+                new StandingWhereTheyAre(),
+                runs,
+                deliveries,
                 sender,
-                SharedTownMovementDomainService.Instance,
-                weaknessProjection: new WeaknessProjectionDelivery(
-                    new FixedWeakness(weaknessValue), new OneSession(Identity), sender)),
-            NullLogger<GiveUpGameHandler>.Instance,
-            new SelectedSessionTransitionGate(),
-            new SessionPresenceDomainService(),
-            commands,
-            new PartyNotificationDelivery(new NoopNotificationBus()));
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(new SessionPresenceDomainService(), new OneSession(Identity), new OneRuntimeSession(Entry()), new NoopNotificationBus(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance, new FixedWeakness(weaknessValue)),
+                NullLogger<GiveUpGameHandler>.Instance,
+                new SessionPresenceDomainService(),
+                parties,
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotificationBus()));
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new GiveUpGameRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new GiveUpGameRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.True(runs.Ended);
-        Assert.Equal(
-            [typeof(GiveUpGameResponse), typeof(WeaknessProjectionNotification), typeof(UserStateNotification),
-             typeof(UserAreaNotification), typeof(AreaUsersNotification)],
-            sender.Sent.Select(frame => frame.GetType()));
-        Assert.Equal(weaknessValue, Assert.Single(sender.Sent.OfType<WeaknessProjectionNotification>()).Value);
-        Assert.Equal(
-            StandingAreaId,
-            Assert.Single(sender.Sent.OfType<UserAreaNotification>()).AreaId);
-        Assert.Empty(deliveries.Find(runs.RunId));
-        Assert.Equal(
-            Identity.CharacterId,
-            Assert.IsType<LeavePartyCommand>(Assert.Single(commands.Commands)).CharacterId);
+            Assert.True(runs.Ended);
+            Assert.Equal(
+                [typeof(GiveUpGameResponse), typeof(WeaknessProjectionNotification), typeof(UserStateNotification),
+                 typeof(UserAreaNotification), typeof(AreaUsersNotification)],
+                sender.Sent.Select(frame => frame.GetType()));
+            Assert.Equal(weaknessValue, Assert.Single(sender.Sent.OfType<WeaknessProjectionNotification>()).Value);
+            Assert.Equal(
+                StandingAreaId,
+                Assert.Single(sender.Sent.OfType<UserAreaNotification>()).AreaId);
+            Assert.Empty(deliveries.Find(runs.RunId));
+            Assert.Equal(
+                Identity.CharacterId,
+                Assert.Single(parties.Left));
+        });
     }
 
     [Fact]
     public async Task GiveUp_without_an_active_run_does_not_leave_the_party()
     {
-        var commands = new RecordingCommandBus();
-        var handler = new GiveUpGameHandler(
-            new OneSession(Identity),
-            new OneRuntimeSession(Entry()),
-            new StandingWhereTheyAre(),
-            new OneRun(hasRun: false),
-            new DungeonRunDeliveryRegistry(),
-            new RecordingSender(),
-            TownAreaProjectionTestFactory.Create(
+        await TestGameplay.RunAsync(async () =>
+        {
+            var parties = new RecordingPartyMutations();
+            var handler = new GiveUpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                new RecordingSender()),
-            NullLogger<GiveUpGameHandler>.Instance,
-            new SelectedSessionTransitionGate(),
-            new SessionPresenceDomainService(),
-            commands,
-            new PartyNotificationDelivery(new NoopNotificationBus()));
+                new StandingWhereTheyAre(),
+                new OneRun(hasRun: false),
+                new DungeonRunDeliveryRegistry(),
+                new RecordingSender(),
+                TownAreaProjectionTestFactory.Create(
+                    new OneSession(Identity),
+                    new OneRuntimeSession(Entry()),
+                    new RecordingSender()),
+                NullLogger<GiveUpGameHandler>.Instance,
+                new SessionPresenceDomainService(),
+                parties,
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotificationBus()));
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new GiveUpGameRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new GiveUpGameRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.Empty(commands.Commands);
+            Assert.Empty(parties.Left);
+        });
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Give_up_completes_through_real_command_locks_and_releases_the_session(bool isAltar)
+    public async Task Give_up_completes_through_the_real_command_bus_and_releases_the_session(bool isAltar)
     {
         var runs = new OneRun(isAltar: isAltar);
-        var deliveries = new DungeonRunDeliveryRegistry(); deliveries.Register(runs.RunId, [Identity]);
-        var sessions = new OneSession(Identity);
-        var sender = new RecordingSender(); var transitions = new SelectedSessionTransitionGate();
-        var projections = new DungeonProjectionGate(); var clock = TimeProvider.System;
-        var trace = new ExitCommandTrace();
+        var deliveries = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => deliveries.Register(runs.RunId, [Identity]));
+        var sessions = new OneSession(Identity); var sender = new RecordingSender(); var trace = new ExitCommandTrace();
         var services = new ServiceCollection().AddLogging();
-        services.AddSingleton<TimeProvider>(clock);
-        services.AddSingleton<ISelectedSessionDomainService>(sessions);
-        services.AddSingleton(transitions);
-        services.AddSingleton(trace);
+        services.AddSingleton<TimeProvider>(TimeProvider.System); services.AddSingleton<ISelectedSessionDomainService>(sessions);
         services.AddCommandDispatching();
-        services.AddCommandHandler<AltarActionCommand, AltarCommandResult, ExitAltarCommandHandler>(
-            CommandExecutionKind.Transactional, accountAccessMode: UserAccessMode.Exclusive);
-        services.AddCommandHandler<LeavePartyCommand, PartyOperationResult, ExitPartyCommandHandler>(CommandExecutionKind.Workflow);
+        services.AddScoped<ExitBusHandler>(provider => new(sessions, runs, deliveries, sender,
+            new RecordingPartyMutations(trace.PartyLeaves.Add), provider.GetRequiredService<ICommandWorkUnits>(),
+            new TracedAltar(runs.RunId, trace, provider.GetRequiredService<IDomainTransactionAccessor>())));
+        services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, ExitBusHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
+        services.AddScoped<ICommandHandler<GameGiveUpGameCommand, bool>>(p => p.GetRequiredService<ExitBusHandler>());
         using var provider = services.BuildServiceProvider();
-        var commands = provider.GetRequiredService<ICommandBus>();
-        var altars = new AltarView(runs.RunId); var wake = new AltarWakeSignal(clock);
-        var projection = new AltarProjectionDelivery(altars, runs, sessions, deliveries, commands,
-            new NoopNotificationBus(), clock, wake, null!, NullLogger<AltarProjectionDelivery>.Instance);
-        var coordinator = new AltarProtocolCoordinator(runs, sessions, projections, transitions,
-            projection, commands, sender, null!);
+        var commands = DomainCommandFixture.Bus(provider);
         runs.BeforeEnd = () =>
         {
-            if (isAltar) Assert.Equal(AltarOperation.SettleParticipantBeforeExit,
-                Assert.IsType<AltarActionCommand>(Assert.Single(trace.Commands)).Operation);
+            if (isAltar) Assert.Equal(AltarOperation.SettleParticipantBeforeExit, Assert.Single(trace.Commands));
             else Assert.Empty(trace.Commands);
         };
-        var handler = new GiveUpGameHandler(sessions, new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
-            runs, deliveries, sender, TownAreaProjectionTestFactory.Create(sessions, new OneRuntimeSession(Entry()), sender),
-            NullLogger<GiveUpGameHandler>.Instance, transitions,
-            townAreas: new SessionPresenceDomainService(), commands: commands, altars: coordinator, projectionGate: projections);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-        await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), deadline.Token)
-            .AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        await commands.SendAsync(new GameGiveUpGameCommand(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty)), deadline.Token).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(runs.Ended); Assert.Empty(deliveries.Find(runs.RunId));
-        Assert.Single(sender.Sent.OfType<GiveUpGameResponse>());
-        Assert.Single(sender.Sent.OfType<UserAreaNotification>());
-        await handler.HandleAsync(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty), default);
-        Assert.Equal(isAltar ? 2 : 1, trace.Commands.Count);
-        Assert.Single(trace.Commands.OfType<LeavePartyCommand>());
-        await using var available = await transitions.AcquireAsync(Identity.AccountId, UserAccessMode.Exclusive, deadline.Token);
+        Assert.Single(sender.Sent.OfType<GiveUpGameResponse>()); Assert.Single(sender.Sent.OfType<UserAreaNotification>());
+        await commands.SendAsync(new GameGiveUpGameCommand(Dispatch(), new GiveUpGameRequest(GameMessageMetadata.Empty)), default);
+        Assert.Equal(isAltar ? 1 : 0, trace.Commands.Count); Assert.Equal(Identity.CharacterId, Assert.Single(trace.PartyLeaves));
+    }
+    private sealed class ExitBusHandler(OneSession selected, OneRun runs, DungeonRunDeliveryRegistry registry, RecordingSender sender,
+        RecordingPartyMutations parties, ICommandWorkUnits units, IAltarDungeonDomainService altars)
+        : ICommandHandler<GameGiveUpGameCommand, bool>
+    {
+        private readonly GamePartyTransitionCommandHandler handler = new(selected,new OneRuntimeSession(Entry()),new StandingWhereTheyAre(),runs,registry,            parties,new SessionPresenceDomainService(),ProtocolAlgorithmFixture.Default<ICommandProjections>(),ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterStateProjectionDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),ProtocolAlgorithmFixture.Default<ITownMovementDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),ProtocolAlgorithmFixture.NoOnline(),units,            new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),ProtocolAlgorithmFixture.Default<IDungeonCardPresentationControl>(),ProtocolAlgorithmFixture.Default<IDungeonEntryIntentDomainService>(),altars,ProtocolAlgorithmFixture.Default<IAltarSchedulerWakeSignal>(),ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(),TimeProvider.System,            NullLogger<GamePartyTransitionCommandHandler>.Instance,ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>());
+        public ValueTask<bool> HandleAsync(CommandExecutionContext context, GameGiveUpGameCommand command, CancellationToken ct) =>
+            handler.HandleAsync(context, command, ct);
+    }
+    private sealed class TracedAltar(DungeonRunId id, ExitCommandTrace trace, IDomainTransactionAccessor transactions) : AltarView(id)
+    {
+        public override ValueTask<AltarActionResult?> SettleBeforeExitAsync(DungeonRunId run, CancellationToken token, CharacterId? participant = null)
+        {
+            Assert.NotNull(transactions.Current); Assert.Equal(Identity.CharacterId, participant);
+            trace.Commands.Add(participant is null ? AltarOperation.SettleBeforeExit : AltarOperation.SettleParticipantBeforeExit);
+            return ValueTask.FromResult<AltarActionResult?>(null);
+        }
     }
 
-    private sealed class ExitCommandTrace { public List<ICommand> Commands { get; } = []; }
-    private sealed class ExitAltarCommandHandler(ExitCommandTrace trace, IDomainTransactionAccessor transactions)
-        : ICommandHandler<AltarActionCommand, AltarCommandResult>
-    {
-        public ValueTask<AltarCommandResult> HandleAsync(CommandExecutionContext context, AltarActionCommand command, CancellationToken ct)
-        {
-            Assert.NotNull(transactions.Current);
-            trace.Commands.Add(command);
-            return ValueTask.FromResult(new AltarCommandResult(null));
-        }
-    }
-    private sealed class ExitPartyCommandHandler(ExitCommandTrace trace) : ICommandHandler<LeavePartyCommand, PartyOperationResult>
-    {
-        public ValueTask<PartyOperationResult> HandleAsync(CommandExecutionContext context, LeavePartyCommand command, CancellationToken ct)
-        {
-            trace.Commands.Add(command);
-            return ValueTask.FromResult(PartyOperationResult.Success());
-        }
-    }
+    private sealed class ExitCommandTrace { public List<AltarOperation> Commands { get; } = []; public List<CharacterId> PartyLeaves { get; } = []; }
 
     [Fact]
     public async Task Stale_give_up_stops_before_any_current_run_or_party_capture()
     {
-        var stale = new GameMessageMetadata(1, 0x002A, 0, 9)
+        await TestGameplay.RunAsync(async () =>
         {
-            InboundOrdinal = 2,
-            SequenceIsFresh = false,
-        };
-        var handler = new GiveUpGameHandler(
-            null!, null!, null!, null!, null!, null!, null!, null!, null!);
+            var stale = new GameMessageMetadata(1, 0x002A, 0, 9)
+            {
+                InboundOrdinal = 2,
+                SequenceIsFresh = false,
+            };
+            var handler = new GiveUpDriver(
+                null!, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        await handler.HandleAsync(
-            Dispatch(), new GiveUpGameRequest(stale), CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(), new GiveUpGameRequest(stale), CancellationToken.None);
+        });
     }
 
     /// <summary>Nothing is answered on a connection with no published session.</summary>
     [Fact]
     public async Task A_command_without_a_published_session_is_ignored()
     {
-        var sender = new RecordingSender();
-        var handler = new EplpCommandHandler(
-            new NoSession(),
-            new NoRuntimeSession(),
-            new StandingNowhere(),
-            new OneRun(),
-            new DungeonRunDeliveryRegistry(),
-            sender,
-            TownAreaProjectionTestFactory.Create(
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = new EplpDriver(
                 new NoSession(),
                 new NoRuntimeSession(),
-                sender),
-            NullLogger<EplpCommandHandler>.Instance,
-            new SelectedSessionTransitionGate());
+                new StandingNowhere(),
+                new OneRun(),
+                new DungeonRunDeliveryRegistry(),
+                sender,
+                TownAreaProjectionTestFactory.Create(
+                    new NoSession(),
+                    new NoRuntimeSession(),
+                    sender),
+                NullLogger<EplpCommandHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
+                CancellationToken.None);
 
-        Assert.Empty(sender.Sent);
+            Assert.Empty(sender.Sent);
+        });
     }
 
     /// <summary>
@@ -614,149 +586,71 @@ public sealed class LeaveDungeonTests
     [Fact]
     public async Task Cancelling_out_of_the_selection_screen_projects_the_same_frames()
     {
-        var runs = new OneRun();
-        var deliveries = new DungeonRunDeliveryRegistry();
-        deliveries.Register(runs.RunId, [Identity]);
-        var sender = new RecordingSender();
-        var handler = new BackToVillageHandler(
-            new OneSession(Identity),
-            new RuntimeCurrentView(new OneRuntimeSession(Entry())),
-            new StandingWhereTheyAre(),
-            runs,
-            deliveries,
-            sender,
-            TownAreaProjectionTestFactory.Create(
-                new OneSession(Identity),
-                new OneRuntimeSession(Entry()),
-                sender),
-            NullLogger<BackToVillageHandler>.Instance,
-            new SelectedSessionTransitionGate(),
-            new VirtualOnlyPartyService());
-
-        await handler.HandleAsync(
-            Dispatch(),
-            new BackToVillageRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
-
-        Assert.Equal(
-            [typeof(BackToVillageResponse), typeof(UserStateNotification),
-             typeof(UserAreaNotification), typeof(AreaUsersNotification)],
-            sender.Sent.Select(frame => frame.GetType()));
-
-        // The same values the dungeon's exit projects, asserted the same way rather than by
-        // comparing the two message objects: the roster notification holds a list, and records
-        // compare lists by reference, so an object-level equality here would pass or fail for a
-        // reason that has nothing to do with the projection agreeing.
-        var users = sender.Sent.OfType<AreaUsersNotification>().Single();
-        Assert.Equal(StandingTownId, users.TownId);
-        Assert.Equal(StandingAreaId, users.AreaId);
-        var presence = Assert.Single(users.Users);
-        Assert.Equal(StandingX, presence.X);
-        Assert.Equal(StandingY, presence.Y);
-        Assert.Equal(SpawnAreaState, presence.AreaState);
-        Assert.Empty(deliveries.Find(runs.RunId));
-    }
-
-    [Fact]
-    public async Task A_return_waiting_on_the_transition_gate_cannot_overwrite_a_replacement()
-    {
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(Identity);
-        var runtimes = new SelectedSessionRuntimeDirectory();
-        var runtime = Entry();
-        runtime = runtime with
+        await TestGameplay.RunAsync(async () =>
         {
-            Character = runtime.Character with
-            {
-                Identity = runtime.Character.Identity with
-                {
-                    CharacterId = Identity.CharacterId,
-                },
-            },
-        };
-        runtimes.Publish(Identity, false);
-        var currentViews = new FixedCurrentViews();
-        currentViews.Publish(Identity, runtime);
-        var areas = new SessionPresenceDomainService();
-        areas.Admit(new SessionPresence(
-            Identity.CharacterId,
-            Identity.ListenerPort,
-            StandingTownId,
-            StandingAreaId,
-            true,
-            Identity,
-            true,
-            10));
-        var sender = new RecordingSender();
-        var transitionGate = new SelectedSessionTransitionGate();
-        var projection = new TownAreaProjectionDelivery(
-            areas,
-            sessions,
-            currentViews,
-            new NoopNotificationBus(),
-            new NoopPartyTownProjection(),
-            sender,
-            SharedTownMovementDomainService.Instance);
-        var handler = new EplpCommandHandler(
-            sessions,
-            currentViews,
-            new StandingWhereTheyAre(),
-            new OneRun(),
-            new DungeonRunDeliveryRegistry(),
-            sender,
-            projection,
-            NullLogger<EplpCommandHandler>.Instance,
-            transitionGate);
-        var blocker = await transitionGate.AcquireAsync(
-            Identity.AccountId,
-            UserAccessMode.Exclusive,
-            CancellationToken.None);
-        var pending = handler.HandleAsync(
-            Dispatch(),
-            new EplpCommandRequest(GameMessageMetadata.Empty, LeaveState, CapturedOption),
-            CancellationToken.None).AsTask();
-        Assert.False(pending.IsCompleted);
+            var runs = new OneRun();
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(runs.RunId, [Identity]);
+            var sender = new RecordingSender();
+            var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Back(
+                new OneSession(Identity),
+                new RuntimeCurrentView(new OneRuntimeSession(Entry())),
+                new StandingWhereTheyAre(),
+                runs,
+                deliveries,
+                sender,
+                ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(new SessionPresenceDomainService(),
+                    new OneSession(Identity), new OneRuntimeSession(Entry()), sender,
+                    new NoopNotificationBus(), new NoopPartyTownProjection(), SharedTownMovementDomainService.Instance,
+                    new FixedWeakness(37)),
+                NullLogger<BackToVillageHandler>.Instance,
+                new VirtualOnlyPartyService());
 
-        var replacement = SelectedSessionIdentity.Create(
-            Identity.AccountId,
-            Identity.CharacterId,
-            new NetworkConnectionId("replacement"),
-            Identity.ConnectionGeneration + 1,
-            Identity.ListenerPort);
-        sessions.Select(replacement);
-        areas.Admit(new SessionPresence(
-            replacement.CharacterId,
-            replacement.ListenerPort,
-            StandingTownId,
-            StandingAreaId,
-            true,
-            replacement,
-            true,
-            10));
-        await blocker.DisposeAsync();
-        await pending;
+            await handler.HandleAsync(
+                Dispatch(),
+                new BackToVillageRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
 
-        Assert.True(replacement.Owns(
-            ((ITownAreaDomainService)areas).Find(replacement.CharacterId)!));
-        Assert.Empty(sender.Sent);
+            Assert.Equal(
+                [typeof(BackToVillageResponse), typeof(UserStateNotification),
+                 typeof(UserAreaNotification), typeof(AreaUsersNotification), typeof(WeaknessProjectionNotification)],
+                sender.Sent.Select(frame => frame.GetType()));
+            Assert.Equal((byte)37, Assert.Single(sender.Sent.OfType<WeaknessProjectionNotification>()).Value);
+
+            // The same values the dungeon's exit projects, asserted the same way rather than by
+            // comparing the two message objects: the roster notification holds a list, and records
+            // compare lists by reference, so an object-level equality here would pass or fail for a
+            // reason that has nothing to do with the projection agreeing.
+            var users = sender.Sent.OfType<AreaUsersNotification>().Single();
+            Assert.Equal(StandingTownId, users.TownId);
+            Assert.Equal(StandingAreaId, users.AreaId);
+            var presence = Assert.Single(users.Users);
+            Assert.Equal(StandingX, presence.X);
+            Assert.Equal(StandingY, presence.Y);
+            Assert.Equal(SpawnAreaState, presence.AreaState);
+            Assert.Empty(deliveries.Find(runs.RunId));
+        });
     }
 
     private static async Task<IReadOnlyList<IGameServerMessage>> Leave(byte state, OneRun runs)
     {
         var sender = new RecordingSender();
-        var handler = new EplpCommandHandler(
+        var areas = new SessionPresenceDomainService();
+        if (runs.Find(Identity.CharacterId) is null)
+            areas.Admit(new SessionPresence(Identity.CharacterId, Identity.ListenerPort, StandingTownId, StandingAreaId,
+                true, Identity, true, Entry().World.Channel.ChannelId));
+        var handler = new EplpDriver(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
             new StandingWhereTheyAre(),
             runs,
             new DungeonRunDeliveryRegistry(),
             sender,
-            TownAreaProjectionTestFactory.Create(
-                new OneSession(Identity),
-                new OneRuntimeSession(Entry()),
-                sender),
-            NullLogger<EplpCommandHandler>.Instance,
-            new SelectedSessionTransitionGate());
+            ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(areas,
+                new OneSession(Identity), new OneRuntimeSession(Entry()), sender,
+                new NoopNotificationBus(), new NoopPartyTownProjection(), SharedTownMovementDomainService.Instance,
+                new FixedWeakness(37)),
+            NullLogger<EplpCommandHandler>.Instance, townAreas: areas);
 
         await handler.HandleAsync(
             Dispatch(),
@@ -820,7 +714,7 @@ public sealed class LeaveDungeonTests
         new AccountId(1),
         new CharacterId(60),
         new NetworkConnectionId("one"),
-        connectionGeneration: 1,
+        connectionGeneration: 2,
         listenerPort: 10010);
 
     /// <summary>A run that records whether it was ended, and refuses everything else.</summary>
@@ -897,6 +791,53 @@ public sealed class LeaveDungeonTests
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
@@ -914,6 +855,53 @@ public sealed class LeaveDungeonTests
 
     private sealed class NoSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
@@ -982,11 +970,11 @@ public sealed class LeaveDungeonTests
     }
 
     /// <summary>The service that owns where the character is, answering the one place they are.</summary>
-    private sealed class StandingWhereTheyAre : ICharacterPositionDomainService
+    private sealed class StandingWhereTheyAre : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? Find(CharacterId characterId) => Standing;
+        public CharacterPositionState? PositionOf(CharacterId characterId) => Standing;
 
-        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
             throw new NotSupportedException("Leaving a dungeon does not place anyone.");
 
         public CharacterPositionState CrossInto(
@@ -997,16 +985,24 @@ public sealed class LeaveDungeonTests
             SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException("Leaving a dungeon reports no movement.");
 
-        public bool ForgetExact(SelectedSessionIdentity session) =>
+        public bool EndExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("Leaving a dungeon does not end the session.");
+
+        // Test double: only the position is modelled; the rest of the runtime is empty.
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public byte HpPercentOf(CharacterId characterId) => 0;
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) { }
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
     /// <summary>Nobody is standing anywhere, which is what no published session looks like.</summary>
-    private sealed class StandingNowhere : ICharacterPositionDomainService
+    private sealed class StandingNowhere : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? Find(CharacterId characterId) => null;
+        public CharacterPositionState? PositionOf(CharacterId characterId) => null;
 
-        public void Place(SelectedSessionIdentity session, CharacterPositionState position) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
         public CharacterPositionState CrossInto(
@@ -1017,36 +1013,45 @@ public sealed class LeaveDungeonTests
             SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
-        public bool ForgetExact(SelectedSessionIdentity session) =>
+        public bool EndExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("This fixture holds nothing.");
+
+        // Test double: only the position is modelled; the rest of the runtime is empty.
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public byte HpPercentOf(CharacterId characterId) => 0;
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) { }
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => 0;
     }
 
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox (an explicit delivery with its direct messages
+    /// only, as before); every call goes to the real protocol sender over it (TASK-25). <see cref="Failure"/> makes the
+    /// direct messages of an explicit delivery fail to encode where they are registered; a CMD fails there as the old
+    /// double refused one.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
-        public Func<IReadOnlyList<IGameServerMessage>, Task>? BeforeSend { get; init; }
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("These frames are sent explicitly.");
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken)
+        public RecordingSender()
         {
-            Sent.Add(message);
-            return ValueTask.CompletedTask;
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("These frames are sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is not null && outbound.IsDirect(message) && Failure is not null,
+                () => Failure!());
         }
 
-        public async ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            if (BeforeSend is not null) await BeforeSend(delivery.RequiredDirectMessages);
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-        }
+        public List<IGameServerMessage> Sent => [.. outbound.CallMessages.Cast<IGameServerMessage>()];
+        public Func<Exception>? Failure { get; init; }
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class FixedWeakness(byte value) : IWeaknessDomainService, IWeakness
@@ -1064,6 +1069,9 @@ public sealed class LeaveDungeonTests
 
     private sealed class RecordingCommandBus : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         public List<ICommand> Commands { get; } = [];
 
         public ValueTask<TResult> SendAsync<TResult>(
@@ -1072,13 +1080,12 @@ public sealed class LeaveDungeonTests
             where TResult : notnull
         {
             Commands.Add(command);
-            if (command is AltarActionCommand) return ValueTask.FromResult((TResult)(object)new AltarCommandResult(null));
             return ValueTask.FromResult(
                 (TResult)(object)PartyOperationResult.Success());
         }
     }
 
-    private sealed class AltarView(DungeonRunId runId) : IAltarDungeonDomainService
+    private class AltarView(DungeonRunId runId) : IAltarDungeonDomainService
     {
         public bool Supports(int id) => true;
         public AltarDungeonState? Find(DungeonRunId id) => id == runId ? new(runId,
@@ -1089,7 +1096,7 @@ public sealed class LeaveDungeonTests
         public ValueTask<AltarActionResult?> AdvanceAsync(DungeonRunId id, long room, long generation, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<AltarActionResult?> SelectDifficultyAsync(SelectedSessionIdentity session, DungeonRunId id, long room, long generation, byte difficulty, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<AltarActionResult?> FailAsync(DungeonRunId id, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<AltarActionResult?> SettleBeforeExitAsync(DungeonRunId id, CancellationToken ct, CharacterId? participant = null) => throw new NotSupportedException();
+        public virtual ValueTask<AltarActionResult?> SettleBeforeExitAsync(DungeonRunId id, CancellationToken ct, CharacterId? participant = null) => throw new NotSupportedException();
         public ValueTask<IReadOnlyList<AltarQuotaSnapshot>> ReadQuotaAsync(CharacterId id, CancellationToken ct) => throw new NotSupportedException();
         public bool CanRevive(CharacterId character, DungeonRunId id) => false;
         public bool StageRevival(CharacterId character, DungeonRunId id) => false;
@@ -1108,7 +1115,6 @@ public sealed class LeaveDungeonTests
     {
         public ValueTask RefreshObservedPartiesAsync(
             IReadOnlyList<SelectedSessionIdentity> recipients,
-            IReadOnlyList<SelectedSessionIdentity> representedSessions,
             CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
         public ValueTask RefreshMovedPartyAsync(

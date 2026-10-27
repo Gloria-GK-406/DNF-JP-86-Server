@@ -10,10 +10,11 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleContentSource content, IItemDeliveryDomainService delivery,
-    ITownAreaDomainService areas, HousingState housing, IRequestReplayProjectionDomainService replay, IDungeonRunDomainService runs, IEventService events)
+    ITownAreaDomainService areas, HousingState housing, IDungeonRunDomainService runs, IEventService events)
 {
-    public async ValueTask<MarriageCapsuleResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation, MarriageCapsuleAction action, CancellationToken ct)
+    public async ValueTask<MarriageCapsuleResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation, MarriageCapsuleAction action, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandActive(actor);
         var town = areas.Find(actor.CharacterId);
         if (town is null || town.Lease != actor.TownAreaLease() || runs.Find(actor.CharacterId) is not null) return new(action == MarriageCapsuleAction.Make ? -6 : action == MarriageCapsuleAction.Give ? -7 : -8);
         if (action == MarriageCapsuleAction.Take && (await housing.ReadAsync(relation.Id, ct).ConfigureAwait(false) is not { } room || !housing.IsInside(actor, room))) return new(-8);
@@ -32,22 +33,28 @@ internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleContent
                 if (other.Pending >= rules.MaximumPending) return new(-6);
                 own = own with { Owned = checked((byte)(own.Owned - 1)) };
                 other = other with { Pending = checked((byte)(other.Pending + 1)) };
+                footprint.DemandActive(actor);
                 await state.SaveAsync(relation.Id, peer.CharacterId, other, ct).ConfigureAwait(false); break;
             case MarriageCapsuleAction.Take:
                 if (own.Pending == 0) return new(-4);
                 try
                 {
+                    footprint.DemandActive(actor);
                     var grant = await delivery.DeliverAsync(actor.AccountId, actor.CharacterId, [new(rules.ItemId, 1)], "marriage-capsule", ct, ItemDeliveryMode.InventoryOnly).ConfigureAwait(false);
                     items = grant.Inventory.Select(x => new MarriageCapsuleItem(x.Slot, x.Snapshot)).ToArray();
-                    replay.RecordInventorySlots(actor, items.Select(x => x.Slot).ToArray());
+                    footprint.RecordInventorySlots(actor, items.Select(x => x.Slot).ToArray());
                 }
                 catch (ContainerAdditionException e) when (e.Reason == ContainerAdditionFailure.NoRoom) { throw new MarriageCapsuleRejectedException(-6); }
                 own = own with { Pending = checked((byte)(own.Pending - 1)) }; break;
             default: throw new ArgumentOutOfRangeException(nameof(action));
         }
+        footprint.DemandActive(actor);
         await state.SaveAsync(relation.Id, actor.CharacterId, own, ct).ConfigureAwait(false);
         if (action is MarriageCapsuleAction.Give or MarriageCapsuleAction.Take)
+        {
+            footprint.DemandActive(actor);
             await events.EnqueueAsync(new MarriageCapsuleGiftChanged(peer.CharacterId), ct).ConfigureAwait(false);
+        }
         return new(0) { State = own, Partner = peer.CharacterId, PartnerState = new(other, own.Pending > 0), Items = items };
     }
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -10,6 +11,7 @@ using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.QuestAcceptance;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
 
 namespace Dfo.Server.Application.Tests.Marriage;
@@ -115,13 +117,13 @@ public sealed class MarriageEngagementCharacterizationTests
             s.AddSingleton<IQuestDefinitionSource, Definitions>();
             s.AddSingleton<IQuestParameterSource, Parameters>();
             s.AddSingleton<IMarriageDungeonContentSource, Dungeons>();
-            s.AddCommandHandler<AcceptQuestCommand, QuestAcceptOutcome, AcceptQuestCommandHandler>(CommandExecutionKind.Transactional);
+            QuestTestCommands.RegisterLegacy(s,"QuestAcceptance","AcceptQuest");
         });
         return (f, peer);
     }
 
     internal static async Task AcceptTrialAsync(LearningFixture f, int account, int character) =>
-        Assert.True((await f.Services.GetRequiredService<ICommandBus>().SendAsync(new AcceptQuestCommand(new(account), new(character), 20737), default)).Accepted);
+        Assert.True((await new QuestTestCommands(f.Services).SendAsync(new QuestAcceptTestInput(new(account), new(character), 20737), default)).Accepted);
 
     [Fact]
     public async Task Quest_eligibility_follows_the_engaged_owner_only()
@@ -148,26 +150,32 @@ public sealed class MarriageEngagementCharacterizationTests
         var valid = new DungeonMapCleared(DungeonRunId.New(), 2, DungeonDifficulty.Normal, new(0, 0), 100, 1, DateTimeOffset.UtcNow.AddSeconds(1),
             [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)]) { IsBossRoom = true };
         var subscriber = TrialClears(f);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            foreach (var rejected in new[]
+            await using (var tx = f.Scope.Begin())
             {
-                valid with { RunId = new DungeonRunId(Guid.Empty) },
-                valid with { MapId = 101 },
-                valid with { Participants = [new(new(1), new(71), 0, true), new(new(1), new(71), 1, false)] },
-                valid with { Participants = [new(new(1), new(71), 0, true), new(new(3), new(72), 1, false)] },
-                valid with { Participants = [new(new(3), new(71), 0, true), new(new(2), new(72), 1, false)] },
-            })
-                await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), rejected.ClearedAt, Guid.NewGuid(), rejected), default);
-            await tx.CommitAsync(default);
-        }
+                foreach (var rejected in new[]
+                {
+                    valid with { RunId = new DungeonRunId(Guid.Empty) },
+                    valid with { MapId = 101 },
+                    valid with { Participants = [new(new(1), new(71), 0, true), new(new(1), new(71), 1, false)] },
+                    valid with { Participants = [new(new(1), new(71), 0, true), new(new(3), new(72), 1, false)] },
+                    valid with { Participants = [new(new(3), new(71), 0, true), new(new(2), new(72), 1, false)] },
+                })
+                    await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), rejected.ClearedAt, Guid.NewGuid(), rejected), default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
         Assert.Equal(10, f.Scalar("SELECT SUM(trigger_value) FROM character_active_quests WHERE quest_id=20737"));
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), valid.ClearedAt, Guid.NewGuid(), valid), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), valid.ClearedAt, Guid.NewGuid(), valid), default);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM marriage_trial_clears"));
         Assert.Equal(8, f.Scalar("SELECT SUM(trigger_value) FROM character_active_quests WHERE quest_id=20737"));
     }

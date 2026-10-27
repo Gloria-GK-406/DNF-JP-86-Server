@@ -10,6 +10,7 @@ using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -359,17 +360,20 @@ public sealed class SqliteItemDomainStoreTests
     [Fact]
     public async Task Read_SeesThisSessionsOwnUncommittedWrites()
     {
-        await using var store = await NewStoreAsync((65, Potion(5)));
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        var session = store.Value.SessionIn(scope.Current!);
-        await session.PutAsync(Main, 66, await session.CreateAsync(Pile(Potion(2)), default), default);
-        await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default), default);
-        Assert.Equal(2, (await session.GetAsync(Main, 66, default))!.Count);
-        Assert.Null(await session.GetAsync(Main, 65, default));
-        Assert.Equal([66], (await session.GetAllAsync(Main, default)).Select(item => item.SlotIndex));
-        // SQL writes are immediate within the transaction, but remain invisible to another connection.
-        Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var store = await NewStoreAsync((65, Potion(5)));
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            var session = store.Value.SessionIn(scope.Current!);
+            await session.PutAsync(Main, 66, await session.CreateAsync(Pile(Potion(2)), default), default);
+            await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(Main, 65, default))!, null, default), default);
+            Assert.Equal(2, (await session.GetAsync(Main, 66, default))!.Count);
+            Assert.Null(await session.GetAsync(Main, 65, default));
+            Assert.Equal([66], (await session.GetAllAsync(Main, default)).Select(item => item.SlotIndex));
+            // SQL writes are immediate within the transaction, but remain invisible to another connection.
+            Assert.Equal([(65, PotionId, 5)], await ReadSlotsAsync(store.Path));
+        });
     }
 
     [Fact]
@@ -504,10 +508,13 @@ public sealed class SqliteItemDomainStoreTests
 
     private static async Task InTransactionAsync(SqliteItemDomainStore store, Func<IItemDomainStoreSession, ValueTask> action)
     {
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        await action(store.SessionIn(scope.Current!));
-        await transaction.CommitAsync(default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            await action(store.SessionIn(scope.Current!));
+            await transaction.CommitAsync(default);
+        });
     }
 
     private const int PotionId = 1000;

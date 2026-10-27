@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
@@ -14,8 +16,7 @@ internal sealed class MercenaryInfoMessageDecoder : IGameMessageDecoder
 /// Answers CMD 0x01BA with a well-formed but empty mercenary roster.
 /// </summary>
 /// <remarks>
-/// Mercenary expeditions are not implemented, so there is no domain to consult and this stays in
-/// the handler. It is answered anyway because the client blocks waiting on it: the query is sent
+/// Mercenary expeditions are not implemented, so there is no domain to consult. It is answered anyway because the client blocks waiting on it: the query is sent
 /// unprompted from the roster screen and its receive handler reads a leading status byte.
 ///
 /// Reporting an empty roster rather than the legacy error code is deliberate. An error is a claim
@@ -23,24 +24,12 @@ internal sealed class MercenaryInfoMessageDecoder : IGameMessageDecoder
 /// would get from a working server. The shape is the legacy success layout with a zero record
 /// count -- status 1, manage level 0, manage point 0, zero records.
 /// </remarks>
-public sealed class MercenaryInfoHandler(
-    IGameMessageSender sender,
-    ILogger<MercenaryInfoHandler> logger)
-    : ClientMessageHandler<MercenaryInfoRequest>
+public sealed class MercenaryInfoHandler(ICommandBus commands)
+    : ClientMessageHandler<MercenaryInfoRequest>, IProtocolCommandMessageHandler<GameMercenaryInfoCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        MercenaryInfoRequest message,
-        CancellationToken cancellationToken)
-    {
-        logger.LogInformation(
-            "Mercenary info {ConnectionId}: replying with an empty expedition roster",
-            context.Connection.ConnectionId);
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new MercenaryInfoResponse(),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        MercenaryInfoRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameMercenaryInfoCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class MercenaryInfoResponseEncoder : GameCmdMessageEncoder<MercenaryInfoResponse>

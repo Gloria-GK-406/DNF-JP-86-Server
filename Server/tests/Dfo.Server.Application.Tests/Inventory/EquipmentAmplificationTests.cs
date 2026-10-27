@@ -10,6 +10,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.ReinforceItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -23,7 +24,7 @@ public sealed class EquipmentAmplificationTests
         {
             s.AddSingleton<IEquipmentDefinitionSource>(new Content("weapon", 45));
             s.AddSingleton<IEquipmentReinforcementRollSource>(new Roll(99999));
-        });
+        }, useArchive: true);
         await Seed(f, Piece()); f.Sql("UPDATE character_stats SET carried_gold=1000000 WHERE character_id=1");
         await Send(f, 7);
         var ack = Assert.Single(f.Sender.Messages.OfType<ReinforceItemResponse>());
@@ -53,13 +54,16 @@ public sealed class EquipmentAmplificationTests
         var equipment = Assert.Single(DeltaEntries(f), x => BitConverter.ToInt16(x, 0) == 9);
         Assert.Equal((byte)0xA1, equipment[0x0A]);
         Assert.Equal((byte)4, equipment[0x13]); Assert.Equal((ushort)5, BitConverter.ToUInt16(equipment, 0x14));
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId); f.Select(1);
-        await using var transaction = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        var reloaded = await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)
-            .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default);
-        Assert.NotNull(reloaded);
-        Assert.Equal((byte)1, (await reloaded.ReadAsync(default)).Snapshot.ToCore().ReinforcementLevel);
-        Assert.Equal((ushort)5, (await reloaded.ReadAsync(default)).Snapshot.ToCore().AmplifyValue);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(f.Session.CharacterId); f.Select(1);
+            await using var transaction = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            var reloaded = await f.Services.GetRequiredService<IEquipmentDomainService>().Of(f.Session.CharacterId)
+                .FindAtAsync(new(BusinessInventorySpace.CarriedEquipment, 0), default);
+            Assert.NotNull(reloaded);
+            Assert.Equal((byte)1, (await reloaded.ReadAsync(default)).Snapshot.ToCore().ReinforcementLevel);
+            Assert.Equal((ushort)5, (await reloaded.ReadAsync(default)).Snapshot.ToCore().AmplifyValue);
+        });
     }
 
     [Theory]
@@ -119,7 +123,8 @@ public sealed class EquipmentAmplificationTests
     {
         using var f = Fixture(); await Seed(f, Piece()); await Send(f, 7); await Send(f, 7); await Assert.ThrowsAsync<InvalidDataException>(() => Send(f, 7, method: 0).AsTask());
         var replies = f.Sender.Messages.OfType<ReinforceItemResponse>().ToArray();
-        Assert.Single(replies); Assert.Single(f.Sender.Batches);
+        Assert.Single(replies); Assert.Single(f.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(3, Assert.Single(f.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Equal(19, f.Count(3242)); Assert.Equal(99700, f.Gold); Assert.Equal((byte)1, f.StoredCore(9)[9]);
     }
 

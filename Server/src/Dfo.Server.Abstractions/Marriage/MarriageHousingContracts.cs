@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Marriage;
@@ -35,7 +36,7 @@ public interface IMarriageHousingQueryDomainService
 }
 public interface IMarriageHousingDomainService
 {
-    ValueTask<HousingResult> ExecuteAsync(SelectedSessionIdentity actor, HousingRequest request, IReadOnlyList<AccountId> accounts, CancellationToken ct);
+    ValueTask<HousingResult> ExecuteAsync(SelectedSessionIdentity actor, HousingRequest request, IReadOnlyList<AccountId> accounts, IEffectFootprintRecorder footprint, CancellationToken ct);
     ValueTask InitializeAsync(AccountId account, CharacterId character, CancellationToken ct);
     ValueTask<Dfo.Server.Data.Inventory.NpcShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity actor,
         int itemId, int count, int shopId, IReadOnlyList<AccountId> accounts, CancellationToken ct);

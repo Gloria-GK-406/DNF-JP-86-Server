@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -9,7 +10,6 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Inventory;
@@ -21,9 +21,11 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class OnlineExpiredItemCleanupTests
 {
+    private static ValueTask<bool> CleanupSession(ShopFixture f, SelectedSessionIdentity session) =>
+        ScheduledCleanupFixture.RunSessionAsync(f.Services, session);
     private static void Select(ShopFixture f, int character)
     {
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(new(character));
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(new(character)));
         f.Select(character);
     }
     private const string Subscriber = "inventory.expiration.notifications";
@@ -34,7 +36,7 @@ public sealed class OnlineExpiredItemCleanupTests
         await f.SeedCore(121, StackableItemCore.Create(2, 9001, 3) with { ExpireTime = 1 });
         await f.SeedCore(122, StackableItemCore.Create(2, 9005, 3) with { ExpireTime = int.MaxValue });
         await f.SeedCore(123, StackableItemCore.Create(2, 9006, 3) with { ExpireTime = int.MaxValue - 1 });
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
     }
     private static ValueTask<IReadOnlyList<PendingDomainEventDelivery>> Pending(ShopFixture f) =>
         f.Services.GetRequiredService<IDomainEventPersistence>().ReadDueAsync(Subscriber, f.Clock.GetUtcNow(), 100, default);
@@ -47,12 +49,12 @@ public sealed class OnlineExpiredItemCleanupTests
         await Seed(f);
         Select(f, 1);
         await Seed(f);
-        await f.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(default);
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "inventory.expiration.online");
         Assert.Equal(0, f.Count(9001));
         Assert.Equal(3, f.Count(9005));
         Assert.Equal(3, f.Count(9006));
         Assert.Single(await Pending(f));
-        await f.Services.GetRequiredService<OnlineExpiredItemCleanupJob>().RunAsync(default);
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "inventory.expiration.online");
         Assert.Single(await Pending(f));
         Select(f, 2);
         Assert.Equal(3, f.Count(9001)); // Offline character was not touched.
@@ -64,18 +66,25 @@ public sealed class OnlineExpiredItemCleanupTests
         using var f = new ShopFixture(s => s.AddSingleton<IQuestHelperPuppetRuleService>(new PuppetRules()));
         f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,582,4000000000)");
         var puppets = f.Services.GetRequiredService<IQuestHelperPuppetDomainService>();
-        await using (var tx = Transactions(f).Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            Assert.True(await puppets.EnsureDailyAsync(new(1), new(1), default));
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = Transactions(f).Begin())
+            {
+                Assert.True(await puppets.EnsureDailyAsync(new(1), new(1), default));
+                await tx.CommitAsync(default);
+            }
+        });
         var mailbox = f.Services.GetRequiredService<IMailboxDomainService>();
-        var old = Assert.Single(await mailbox.InboxAsync(new(1)));
-        await mailbox.ClaimAsync(new(1), old.Attachments[0].Id);
-        Assert.Equal(1, f.Count(3257));
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(f.Session, false);
+        var old = await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var old = Assert.Single(await mailbox.InboxAsync(new(1)));
+            await mailbox.ClaimAsync(new(1), old.Attachments[0].Id);
+            Assert.Equal(1, f.Count(3257));
+            f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
+            return old;
+        });
         f.Clock.Advance(TimeSpan.FromDays(1));
-        await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
+        await CleanupSession(f, f.Session);
         Assert.Equal(0, f.Count(3257));
         var current = Assert.Single(await mailbox.InboxAsync(new(1)));
         Assert.NotEqual(old.Id, current.Id);
@@ -86,7 +95,7 @@ public sealed class OnlineExpiredItemCleanupTests
         Assert.Contains("InventoryFullSnapshotMessage", kinds);
         Assert.Contains("MailboxStateMessage", kinds);
         Assert.True(kinds.IndexOf("InventoryFullSnapshotMessage") < kinds.IndexOf("MailboxStateMessage"));
-        await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
+        await CleanupSession(f, f.Session);
         Assert.Equal(current.Id, Assert.Single(await mailbox.InboxAsync(new(1))).Id);
     }
 
@@ -100,9 +109,12 @@ public sealed class OnlineExpiredItemCleanupTests
     {
         using var f = new ShopFixture();
         await Seed(f);
-        await using (var tx = Transactions(f).Begin())
-            Assert.True(await f.Services.GetRequiredService<IOnlineExpiredItemCleanupDomainService>()
-                .CleanupAsync(f.Session, default));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using (var tx = Transactions(f).Begin())
+                Assert.True(await f.Services.GetRequiredService<IOnlineExpiredItemCleanupDomainService>()
+                    .CleanupAsync(f.Session, default));
+        });
         Assert.Equal(3, f.Count(9001));
         Assert.Empty(await Pending(f));
         Assert.Empty(f.Sender.Messages);
@@ -113,13 +125,16 @@ public sealed class OnlineExpiredItemCleanupTests
     {
         using var f = new ShopFixture();
         await Seed(f);
-        var gate = f.Services.GetRequiredService<AccountExecutionGate>();
-        var lease = await gate.AcquireAsync(f.Session.AccountId, UserAccessMode.Exclusive, default);
-        var pending = f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session)).AsTask();
-        Assert.False(pending.IsCompleted);
-        f.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().RemoveExact(f.Session);
-        await lease.DisposeAsync();
-        Assert.False(await pending.WaitAsync(TimeSpan.FromSeconds(10)));
+        // The release and reselection are a CMD of their own that runs before the cleanup CMD.
+        TestGameplay.Run(f.Services, () =>
+        {
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Session);
+        f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().Select(f.Session);
+        });
+        var pending = CleanupSession(f, f.Session).AsTask();
+        // Out of the world means no longer the active character either, so the queued cleanup is
+        // refused at the account gate rather than skipped inside the service.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal(3, f.Count(9001));
         Assert.Empty(await Pending(f));
     }
@@ -131,8 +146,7 @@ public sealed class OnlineExpiredItemCleanupTests
         await Seed(f);
         var old = f.Session;
         Select(f, 2);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new CleanupOnlineExpiredItemsCommand(old)).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CleanupSession(f, old).AsTask());
         Assert.Empty(await Pending(f));
         Select(f, 1);
         Assert.Equal(3, f.Count(9001));
@@ -143,7 +157,7 @@ public sealed class OnlineExpiredItemCleanupTests
     {
         using var f = new ShopFixture();
         await Seed(f);
-        await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
+        await CleanupSession(f, f.Session);
         Assert.Empty(f.Sender.Messages);
         // Another item takes the same slot before the live projection is consumed.
         await f.Seed(121, 9001, 8);
@@ -159,7 +173,7 @@ public sealed class OnlineExpiredItemCleanupTests
         Assert.Equal(8, BinaryPrimitives.ReadInt32LittleEndian(entry.AsSpan(6, 4)));
         f.Sender.Messages.Clear();
         await f.SeedCore(124, StackableItemCore.Create(2, 9001, 1) with { ExpireTime = 1 });
-        await f.Services.GetRequiredService<ICommandBus>().SendAsync(new CleanupOnlineExpiredItemsCommand(f.Session));
+        await CleanupSession(f, f.Session);
         Select(f, 2);
         await f.Services.GetRequiredService<DomainEventDispatcher>().DrainOnceAsync(Subscriber);
         Assert.Empty(f.Sender.Messages);
@@ -168,26 +182,32 @@ public sealed class OnlineExpiredItemCleanupTests
     [Fact]
     public async Task Failure_does_not_skip_next_character_and_remains_retryable()
     {
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(SelectedSessionIdentity.Create(new(1), new(1), new("one"), 1, 10011));
-        sessions.Select(SelectedSessionIdentity.Create(new(2), new(2), new("two"), 1, 10011));
-        var commands = new FailingCommands();
-        var job = new OnlineExpiredItemCleanupJob(sessions, commands, sessions, NullLogger<OnlineExpiredItemCleanupJob>.Instance);
-        await Assert.ThrowsAsync<AggregateException>(() => job.RunAsync(default).AsTask());
-        Assert.Equal(new[] { 1, 2 }, commands.Attempts);
-        commands.Fail = false;
-        await job.RunAsync(default);
-        Assert.Equal(new[] { 1, 2, 1, 2 }, commands.Attempts);
-    }
-    private sealed class FailingCommands : ICommandBus
-    {
-        public bool Fail { get; set; } = true;
-        public List<int> Attempts { get; } = [];
-        public ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
+        using var f = new ShopFixture(services => services.AddSingleton<IOnlineExpiredItemCleanupDomainService>(new ControlledFailures()));
+        TestGameplay.Run(f.Services, () =>
         {
-            var id = ((IAccountCommand)command).AccountId.Value;
-            Attempts.Add(id);
-            return id == 1 && Fail ? ValueTask.FromException<T>(new IOException("failure")) : ValueTask.FromResult((T)(object)true);
+            var state = f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
+            var connection = new Dfo.Server.Data.Networking.NetworkConnectionContext(new("second-failed-cleanup"), Dfo.Server.Data.Networking.NetworkEndpointKind.Game, 10011);
+            var user = state.RegisterConnection(connection);
+            state.Authenticate(user.OnlineUserId, new(2));
+            var second = SelectedSessionIdentity.Create(new(2), new(2), connection.ConnectionId, state.GetRequiredUser(user.OnlineUserId).Generation, 10011);
+            state.Select(second); state.EnterWorld(second);
+        });
+        await Assert.ThrowsAsync<AggregateException>(() => Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "inventory.expiration.online").AsTask());
+        var cleanup = (ControlledFailures)f.Services.GetRequiredService<IOnlineExpiredItemCleanupDomainService>();
+        Assert.Equal(new[] { 1, 2 }, cleanup.Attempts);
+        cleanup.Fail = false;
+        await Dfo.Server.Application.Tests.Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "inventory.expiration.online");
+        Assert.Equal(new[] { 1, 2, 1, 2 }, cleanup.Attempts);
+    }
+
+    private sealed class ControlledFailures : IOnlineExpiredItemCleanupDomainService
+    {
+        internal bool Fail = true;
+        internal List<int> Attempts { get; } = [];
+        public ValueTask<bool> CleanupAsync(SelectedSessionIdentity session, CancellationToken ct)
+        {
+            Attempts.Add(session.CharacterId.Value);
+            return Fail && session.CharacterId.Value == 1 ? ValueTask.FromException<bool>(new IOException("failure")) : ValueTask.FromResult(true);
         }
     }
 }

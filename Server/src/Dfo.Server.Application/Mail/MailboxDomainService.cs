@@ -178,15 +178,15 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
             if (lease is not null) await lease.CommitAsync(ct);
             return result;
         }
-        catch
+        catch (Exception originalCause)
         {
-            await AbortAsync();
+            await AbortAsync(originalCause);
             throw;
         }
         finally { if (lease is not null) await lease.DisposeAsync(); }
 
         // A caller cannot catch a mail refusal and accidentally commit partial assets.
-        ValueTask AbortAsync() => transactions.Current is DomainTransaction active
-            ? active.RollbackAsync() : ValueTask.CompletedTask;
+        ValueTask AbortAsync(Exception cause) => transactions.Current is DomainTransaction active
+            ? active.AbortActionAsync(cause) : ValueTask.CompletedTask;
     }
 }

@@ -3,6 +3,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
+[Trait("Category", "Unit")]
 public sealed class InventorySlotMappingRuleServiceTests
 {
     private readonly InventorySlotMappingRuleService _rules = new();

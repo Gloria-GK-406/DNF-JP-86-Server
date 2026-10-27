@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -15,61 +17,60 @@ public sealed class SelectedCharacterCurrentViewTests
     [Fact]
     public async Task ReplacementCannotReadOrRemoveItsPredecessorsPublication()
     {
-        var old = Session("old", 1);
-        var replacement = Session("replacement", 2);
-        var sessions = new SelectedSessionDomainService();
-        var published = new SelectedSessionRuntimeDirectory();
-        var query = new FixedQuery();
-        var views = new SelectedCharacterCurrentViewDomainService(sessions, published, query);
-        sessions.Select(old);
-        published.Publish(old, true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            var query = new FixedQuery();
+            var views = new SelectedCharacterCurrentViewDomainService(sessions, query);
+            var old = sessions.InWorld(state, new AccountId(7), new CharacterId(70), "old");
 
-        Assert.NotNull(await views.TryLoadAsync(old, CancellationToken.None));
-        sessions.Select(replacement);
-        published.Publish(replacement, false);
+            Assert.NotNull(await views.TryLoadAsync(old, CancellationToken.None));
+            var replacement = sessions.InWorld(state, new AccountId(7), new CharacterId(70), "replacement");
 
-        Assert.Null(await views.TryLoadAsync(old, CancellationToken.None));
-        Assert.False(published.RemoveExact(old));
-        Assert.True(published.IsPublishedExact(replacement));
-        Assert.NotNull(await views.TryLoadAsync(replacement, CancellationToken.None));
-        Assert.Equal(2, query.Loads);
+            Assert.Null(await views.TryLoadAsync(old, CancellationToken.None));
+            Assert.False(sessions.ReleaseExact(old));
+            Assert.True(sessions.IsInWorld(replacement));
+            Assert.NotNull(await views.TryLoadAsync(replacement, CancellationToken.None));
+            Assert.Equal(2, query.Loads);
+        });
     }
 
     [Fact]
     public async Task DelayedReadCannotProjectIntoReplacementConnection()
     {
-        var old = Session("old", 1);
-        var replacement = Session("replacement", 2);
-        var sessions = new SelectedSessionDomainService();
-        var published = new SelectedSessionRuntimeDirectory();
-        var query = new FixedQuery { HoldNextRead = true };
-        var views = new SelectedCharacterCurrentViewDomainService(sessions, published, query);
-        sessions.Select(old);
-        published.Publish(old, true);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            var query = new FixedQuery { HoldNextRead = true };
+            var views = new SelectedCharacterCurrentViewDomainService(sessions, query);
+            var old = sessions.InWorld(state, new AccountId(7), new CharacterId(70), "old");
 
-        var delayed = views.TryLoadAsync(old, CancellationToken.None).AsTask();
-        await query.Started.Task;
-        sessions.Select(replacement);
-        published.Publish(replacement, false);
-        query.Release();
+            var delayed = views.TryLoadAsync(old, CancellationToken.None).AsTask();
+            await query.Started.Task;
+            var replacement = sessions.InWorld(state, new AccountId(7), new CharacterId(70), "replacement");
+            query.Release();
 
-        Assert.Null(await delayed);
-        Assert.True(published.IsPublishedExact(replacement));
+            Assert.Null(await delayed);
+            Assert.True(sessions.IsInWorld(replacement));
+        });
     }
 
     [Fact]
     public void LateVitalCleanupDoesNotEraseTheReplacement()
     {
-        var old = Session("old", 1);
-        var replacement = Session("replacement", 2);
-        var vitals = new CharacterVitalRuntimeDomainService();
-        vitals.Publish(old, 70);
-        vitals.Publish(replacement, 85);
+        TestGameplay.Run(() =>
+        {
+            var old = Session("old", 1);
+            var replacement = Session("replacement", 2);
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            vitals.Begin(old, new CharacterPositionState(1, 0, 0, 0, 0), 70);
+            vitals.Begin(replacement, new CharacterPositionState(1, 0, 0, 0, 0), 85);
 
-        Assert.False(vitals.RemoveExact(old));
-        Assert.Equal(85, vitals.HpPercentOf(old.CharacterId));
-        Assert.True(vitals.RemoveExact(replacement));
-        Assert.Equal(0, vitals.HpPercentOf(old.CharacterId));
+            Assert.False(vitals.EndExact(old));
+            Assert.Equal(85, vitals.HpPercentOf(old.CharacterId));
+            Assert.True(vitals.EndExact(replacement));
+            Assert.Equal(0, vitals.HpPercentOf(old.CharacterId));
+        });
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>

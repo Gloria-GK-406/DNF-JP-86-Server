@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../Dfo.Server.Application.Tests/Support/CardAlgorithmsDriver.cs" Link="Support/CardAlgorithmsDriver.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
@@ -16,7 +17,18 @@
   <ItemGroup>
     <Compile Include="../Dfo.Pvf.Tests/Support/PvfArchiveBuilder.cs" Link="Support/PvfArchiveBuilder.cs" />
     <Compile Include="../Dfo.Server.Application.Tests/Support/TestExperienceRules.cs" Link="Support/TestExperienceRules.cs" />
+    <Compile Include="../Dfo.Server.Application.Tests/Execution/GameplayJobHostClosure.cs" Link="Support/GameplayJobHostClosure.cs" />
     <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
+    <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
+    <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
+    <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
+    <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
+    <Compile Include="../Support/TestCredentials.cs" Link="Support/TestCredentials.cs" />
+    <Compile Include="../Support/OutboundRegistrationParts.cs" Link="Support/OutboundRegistrationParts.cs" />
+    <Compile Include="../Support/RecordedOutbound.cs" Link="Support/RecordedOutbound.cs" />
+    <Compile Include="../Support/RecordedOutbound.Game.cs" Link="Support/RecordedOutbound.Game.cs" />
     <ProjectReference Include="..\..\src\Dfo.Server.Host\Dfo.Server.Host.csproj" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../Support/ProtocolAlgorithmFixture.cs" Link="Support/ProtocolAlgorithmFixture.cs" /></ItemGroup>
 </Project>

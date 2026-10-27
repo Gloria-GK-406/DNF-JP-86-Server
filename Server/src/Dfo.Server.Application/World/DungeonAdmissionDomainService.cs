@@ -18,7 +18,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
     ICharacterDomainService? characters = null, IIllusionTowerDomainService? tower = null,
     ICharacterQuestLogDomainService? quests = null, IUsageQuotaDomainService? quotas = null,
     IEventService? events = null, IDomainTransactionAccessor? transactions = null,
-    ISelectedSessionDomainService? sessions = null, ICharacterPositionDomainService? positions = null,
+    ISelectedSessionDomainService? sessions = null, IOnlineCharacterRuntimeDomainService? onlineCharacters = null,
     IDungeonRunDomainService? runs = null, CoupleDungeonRule? couples = null, IDungeonAdmissionRuleService? admissionRules = null, IDungeonParticipationDomainService? participation = null) : IDungeonAdmissionDomainService
 {
     public async ValueTask<DungeonAdmissionDecision> PrepareAsync(DungeonEntryContext context, DungeonAdmissionOptions options, CancellationToken ct)
@@ -52,13 +52,13 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if (context.DungeonId == CoupleDungeonRule.DungeonId)
             {
                 selected = sessions?.Find(member.AccountId);
-                if (selected?.CharacterId != member.CharacterId) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
+                if (selected?.CharacterId != member.CharacterId || !sessions!.IsInWorld(selected)) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }
             if (options.MirrorCatalog is { } catalog)
             {
                 selected = sessions?.Find(member.AccountId);
-                var position = positions?.Find(member.CharacterId);
-                if (selected is null || selected.CharacterId != member.CharacterId || position is null
+                var position = onlineCharacters?.PositionOf(member.CharacterId);
+                if (selected is null || selected.CharacterId != member.CharacterId || !sessions!.IsInWorld(selected) || position is null
                     || position.TownId != catalog.EntryTownId || position.AreaId != catalog.EntryAreaId)
                     return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }
@@ -159,7 +159,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             var permit = (Permit)raw;
             if (owned.Options.ConsumesFatigue == true && (await fatigue.BalanceOfAsync(permit.Participant.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
                 return new(null, new(null, DungeonEntryFailure.InsufficientFatigue, permit.Participant.Slot));
-            if (permit.Selected is { } selected && sessions?.Find(selected.AccountId) != selected)
+            if (permit.Selected is { } selected && sessions?.IsInWorld(selected) != true)
                 return new(null, new(null, DungeonEntryFailure.MissingPrerequisite, permit.Participant.Slot));
             if (permit.Requirements.Length > 0)
             {
@@ -225,7 +225,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             || !ReferenceEquals(paid.Batch.Transaction, transactions?.Current) || paid.Batch.Context.DungeonId != dungeonId
             || !paid.Batch.Context.Participants.SequenceEqual(participants))
             throw new InvalidOperationException("Entry receipt is foreign, stale or already used.");
-        if (paid.Batch.Permits.Cast<Permit>().Any(x => x.Selected is { } selected && sessions?.Find(selected.AccountId) != selected))
+        if (paid.Batch.Permits.Cast<Permit>().Any(x => x.Selected is { } selected && sessions?.IsInWorld(selected) != true))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Mirror participants changed during entry.");
         paid.Started = true;
         return null;

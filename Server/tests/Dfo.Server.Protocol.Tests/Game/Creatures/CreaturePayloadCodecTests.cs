@@ -3,6 +3,7 @@ using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Tests.Game.Creatures;
 
+[Trait("Category", "Unit")]
 public sealed class CreaturePayloadCodecTests
 {
     [Fact]

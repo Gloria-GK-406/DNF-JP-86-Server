@@ -5,7 +5,7 @@ using Dfo.Server.Data.Marriage;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfMarriageCeremonyContentSource(PvfArchiveProvider provider)
-    : IMarriageCeremonyContentSource
+    : IMarriageCeremonyContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<MarriageCeremonyContent> content = new(() =>
     {
@@ -54,4 +54,8 @@ internal sealed class PvfMarriageCeremonyContentSource(PvfArchiveProvider provid
     });
 
     public MarriageCeremonyContent Load() => content.Value;
+    public string Name => "marriage-ceremony";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load() is null ? 0 : 1);
+
 }

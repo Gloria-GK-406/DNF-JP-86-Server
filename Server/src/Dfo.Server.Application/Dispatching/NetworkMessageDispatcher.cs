@@ -1,4 +1,6 @@
 using Dfo.Server.Application.Effects;
+using Dfo.Server.Application.Execution.Outbox;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,9 +9,10 @@ namespace Dfo.Server.Application.Dispatching;
 
 internal sealed class NetworkMessageDispatcher(
     MessageHandlerRegistry registry,
-    IServiceScopeFactory scopeFactory) : INetworkMessageDispatcher
+    IServiceScopeFactory scopeFactory,
+    Commands.CommandJobEntry entry) : INetworkMessageDispatcher
 {
-    public async ValueTask DispatchAsync(
+    public ValueTask DispatchAsync(
         NetworkDispatchContext context,
         IClientNetworkMessage message,
         CancellationToken cancellationToken)
@@ -17,19 +20,45 @@ internal sealed class NetworkMessageDispatcher(
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(message);
 
+        if (!registry.TryGet(message.MessageType, out var route))
+            return entry.RejectUnregisteredAsync(context, message, cancellationToken);
+        return route.IsTelemetry
+            ? DispatchTelemetryAsync(context, message, route.HandlerType, cancellationToken)
+            : DispatchProtocolAsync(context, message, route, cancellationToken);
+    }
+
+    private async ValueTask DispatchProtocolAsync(NetworkDispatchContext context, IClientNetworkMessage message,
+        MessageHandlerRoute route, CancellationToken ct)
+    {
+        if (route.AllowedMessageClrTypes?.Contains(message.GetType()) != true)
+            throw new InvalidOperationException("The protocol route received an unbound message CLR type.");
         await using var scope = scopeFactory.CreateAsyncScope();
-        var safety = scope.ServiceProvider.GetRequiredService<Commands.SelectedSessionSafety>();
-        if (safety.IsBlocked(context.Connection)) return;
-        // A replaced login/connection loses authority before asynchronous transport closure.
-        var sessions = scope.ServiceProvider.GetService<Authentication.LoginSessionRegistry>();
-        if (sessions?.IsSuperseded(context.Connection.ConnectionId) == true) return;
-        var authority = sessions?.CaptureAuthority(context.Connection.ConnectionId);
-        using var authorization = scope.ServiceProvider
-            .GetRequiredService<Commands.NetworkCommandAuthorization>().Enter(
-                () => !safety.IsBlocked(context.Connection) && (authority?.Invoke() ?? true),
-                // Telemetry only; authorization and settlement never depend on reflected payload facts.
-                message.GetType().GetProperty("Metadata")?.GetValue(message) as GameMessageMetadata);
-        var handlerType = registry.GetHandlerType(message.MessageType);
+        var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(route.HandlerType);
+        if (!handler.CanHandle(message)) throw new InvalidOperationException("The protocol handler rejected its registered message.");
+        await handler.HandleAsync(context, message, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Pure telemetry stays in the receive callback, off the executor (spec appendix B). The fence and
+    /// supersession are still read first, as before, so a blocked or replaced connection's telemetry is
+    /// dropped silently; both are reads. No authorization frame: a telemetry handler injects only logging.
+    /// </summary>
+    private async ValueTask DispatchTelemetryAsync(
+        NetworkDispatchContext context,
+        IClientNetworkMessage message,
+        Type handlerType,
+        CancellationToken cancellationToken)
+    {
+        if (message is IEffectSettlementRequest)
+        {
+            throw new InvalidOperationException(
+                $"Effect request '{message.GetType().Name}' is registered as telemetry under '{message.MessageType}'.");
+        }
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        if (scope.ServiceProvider.GetRequiredService<Commands.SelectedSessionSafety>().IsBlocked(context.Connection)) return;
+        if (scope.ServiceProvider.GetService<Authentication.LoginSessionRegistry>()
+                ?.IsSuperseded(context.Connection.ConnectionId) == true) return;
         var handler = (IClientMessageHandler)scope.ServiceProvider.GetRequiredService(handlerType);
         if (!handler.CanHandle(message))
         {
@@ -38,10 +67,6 @@ internal sealed class NetworkMessageDispatcher(
                 $"registered as '{message.MessageType}'.");
         }
 
-        if (message is IEffectSettlementRequest effect)
-            await scope.ServiceProvider.GetRequiredService<EffectOperationLedger>().DispatchAsync(context.Connection, effect,
-                () => handler.HandleAsync(context, message, cancellationToken), cancellationToken).ConfigureAwait(false);
-        else
-            await handler.HandleAsync(context, message, cancellationToken);
+        await handler.HandleAsync(context, message, cancellationToken);
     }
 }

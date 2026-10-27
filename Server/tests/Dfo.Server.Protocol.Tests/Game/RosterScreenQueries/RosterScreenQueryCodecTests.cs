@@ -12,6 +12,7 @@ namespace Dfo.Server.Protocol.Tests.Game.RosterScreenQueries;
 /// The three roster-screen protocols the 2026-08-16 capture pinned down: the option write-back,
 /// the one-byte query that precedes selection, and selection itself.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class RosterScreenQueryCodecTests
 {
     private static byte[] OptionBody(int declaredLength, int actualBytes)

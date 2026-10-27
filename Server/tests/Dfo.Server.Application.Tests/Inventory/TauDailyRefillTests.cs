@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Inventory;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -39,31 +40,34 @@ public sealed partial class ItemDeliveryTests
     [Fact]
     public async Task Per_item_game_day_survives_same_calendar_day_attempt_and_rollback()
     {
-        using var f = new ShopFixture(s =>
+        await TestGameplay.RunAsync(async () =>
         {
-            s.AddSingleton<IItemPlacementDefinitionSource>(new RefillContent());
-            s.AddSingleton<IDailyRefillRuleService>(new MixedDays());
+            using var f = new ShopFixture(s =>
+            {
+                s.AddSingleton<IItemPlacementDefinitionSource>(new RefillContent());
+                s.AddSingleton<IDailyRefillRuleService>(new MixedDays());
+            });
+            var refill = f.Services.GetRequiredService<IDailyRefillDomainService>();
+            var rule = new DailyRefillRule(9001, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 3,
+                new(BusinessInventorySpace.Material, 0, 0));
+            var before = new DateTimeOffset(2026, 10, 15, 5, 59, 0, TimeSpan.FromHours(8));
+            foreach (var at in new[] { before, before.AddMinutes(1), before.AddMinutes(2) })
+            {
+                await using var tx = Scope(f).Begin();
+                await refill.ApplyDailyRefillAsync(new(1), new(1), [rule], at, default);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(2, f.Count(9001));
+            await using (var tx = Scope(f).Begin())
+                await refill.ApplyDailyRefillAsync(new(1), new(1), [rule], before.AddDays(1).AddMinutes(1), default);
+            Assert.Equal(2, f.Count(9001));
+            await using (var tx = Scope(f).Begin())
+            {
+                await refill.ApplyDailyRefillAsync(new(1), new(1), [rule], before.AddDays(3), default);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(3, f.Count(9001)); // Missed offline periods are not accumulated.
         });
-        var refill = f.Services.GetRequiredService<IDailyRefillDomainService>();
-        var rule = new DailyRefillRule(9001, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 3,
-            new(BusinessInventorySpace.Material, 0, 0));
-        var before = new DateTimeOffset(2026, 10, 15, 5, 59, 0, TimeSpan.FromHours(8));
-        foreach (var at in new[] { before, before.AddMinutes(1), before.AddMinutes(2) })
-        {
-            await using var tx = Scope(f).Begin();
-            await refill.ApplyDailyRefillAsync(new(1), new(1), [rule], at, default);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(2, f.Count(9001));
-        await using (var tx = Scope(f).Begin())
-            await refill.ApplyDailyRefillAsync(new(1), new(1), [rule], before.AddDays(1).AddMinutes(1), default);
-        Assert.Equal(2, f.Count(9001));
-        await using (var tx = Scope(f).Begin())
-        {
-            await refill.ApplyDailyRefillAsync(new(1), new(1), [rule], before.AddDays(3), default);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(3, f.Count(9001)); // Missed offline periods are not accumulated.
     }
 
     [Theory]
@@ -84,36 +88,39 @@ public sealed partial class ItemDeliveryTests
     [Fact]
     public async Task Tau_only_online_refill_does_not_claim_ordinary_batch_and_new_ordinary_rules_wait_until_tomorrow()
     {
-        using var f = new ShopFixture(s =>
+        await TestGameplay.RunAsync(async () =>
         {
-            s.AddSingleton<IItemPlacementDefinitionSource>(new RefillContent());
-            s.AddSingleton<IDailyRefillRuleService>(new MixedDays());
+            using var f = new ShopFixture(s =>
+            {
+                s.AddSingleton<IItemPlacementDefinitionSource>(new RefillContent());
+                s.AddSingleton<IDailyRefillRuleService>(new MixedDays());
+            });
+            var refill = f.Services.GetRequiredService<IDailyRefillDomainService>();
+            var tau = new DailyRefillRule(9001, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 3,
+                new(BusinessInventorySpace.Material, 0, 0));
+            var ordinary = tau with { ItemId = 9005, Destination = new(BusinessInventorySpace.Consumable, 0, 55) };
+            var addedLater = ordinary with { ItemId = 9006 };
+            var at = new DateTimeOffset(2026, 10, 15, 6, 0, 0, TimeSpan.FromHours(8));
+            async Task Apply(params DailyRefillRule[] rules)
+            {
+                await using var tx = Scope(f).Begin();
+                await refill.ApplyDailyRefillAsync(new(1), new(1), rules, at, default);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = Scope(f).Begin())
+            {
+                await refill.ApplyIndependentRefillAsync(new(1), new(1), [tau], at, default);
+                await tx.CommitAsync(default);
+            }
+            await Apply(tau, ordinary);
+            Assert.Equal(1, f.Count(9005));
+            await Apply(tau, ordinary, addedLater);
+            Assert.Equal(0, f.Count(9006));
+            Assert.Equal(1, f.Count(9001));
+            at = at.AddDays(1);
+            await Apply(tau, ordinary, addedLater);
+            Assert.Equal(1, f.Count(9006));
         });
-        var refill = f.Services.GetRequiredService<IDailyRefillDomainService>();
-        var tau = new DailyRefillRule(9001, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 3,
-            new(BusinessInventorySpace.Material, 0, 0));
-        var ordinary = tau with { ItemId = 9005, Destination = new(BusinessInventorySpace.Consumable, 0, 55) };
-        var addedLater = ordinary with { ItemId = 9006 };
-        var at = new DateTimeOffset(2026, 10, 15, 6, 0, 0, TimeSpan.FromHours(8));
-        async Task Apply(params DailyRefillRule[] rules)
-        {
-            await using var tx = Scope(f).Begin();
-            await refill.ApplyDailyRefillAsync(new(1), new(1), rules, at, default);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = Scope(f).Begin())
-        {
-            await refill.ApplyIndependentRefillAsync(new(1), new(1), [tau], at, default);
-            await tx.CommitAsync(default);
-        }
-        await Apply(tau, ordinary);
-        Assert.Equal(1, f.Count(9005));
-        await Apply(tau, ordinary, addedLater);
-        Assert.Equal(0, f.Count(9006));
-        Assert.Equal(1, f.Count(9001));
-        at = at.AddDays(1);
-        await Apply(tau, ordinary, addedLater);
-        Assert.Equal(1, f.Count(9006));
     }
 
     [Theory]
@@ -121,27 +128,30 @@ public sealed partial class ItemDeliveryTests
     [InlineData(true)]
     public async Task First_login_claims_ordinary_batch_even_when_configuration_is_empty_or_tau_only(bool tauOnly)
     {
-        using var f = new ShopFixture(s =>
+        await TestGameplay.RunAsync(async () =>
         {
-            s.AddSingleton<IItemPlacementDefinitionSource>(new RefillContent());
-            s.AddSingleton<IDailyRefillRuleService>(new MixedDays());
+            using var f = new ShopFixture(s =>
+            {
+                s.AddSingleton<IItemPlacementDefinitionSource>(new RefillContent());
+                s.AddSingleton<IDailyRefillRuleService>(new MixedDays());
+            });
+            var refill = f.Services.GetRequiredService<IDailyRefillDomainService>();
+            var tau = new DailyRefillRule(9001, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 3,
+                new(BusinessInventorySpace.Material, 0, 0));
+            var ordinary = tau with { ItemId = 9005, Destination = new(BusinessInventorySpace.Consumable, 0, 55) };
+            var at = f.Clock.GetUtcNow();
+            await using (var tx = Scope(f).Begin())
+            {
+                await refill.ApplyDailyRefillAsync(new(1), new(1), tauOnly ? [tau] : [], at, default);
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = Scope(f).Begin())
+            {
+                await refill.ApplyDailyRefillAsync(new(1), new(1), [tau, ordinary], at, default);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(0, f.Count(9005));
         });
-        var refill = f.Services.GetRequiredService<IDailyRefillDomainService>();
-        var tau = new DailyRefillRule(9001, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 3,
-            new(BusinessInventorySpace.Material, 0, 0));
-        var ordinary = tau with { ItemId = 9005, Destination = new(BusinessInventorySpace.Consumable, 0, 55) };
-        var at = f.Clock.GetUtcNow();
-        await using (var tx = Scope(f).Begin())
-        {
-            await refill.ApplyDailyRefillAsync(new(1), new(1), tauOnly ? [tau] : [], at, default);
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = Scope(f).Begin())
-        {
-            await refill.ApplyDailyRefillAsync(new(1), new(1), [tau, ordinary], at, default);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(0, f.Count(9005));
     }
 
 }

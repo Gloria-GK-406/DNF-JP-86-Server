@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game.SessionMetrics;
 
 namespace Dfo.Server.Protocol.Tests.Game.SessionMetrics;
 
+[Trait("Category", "Unit")]
 public sealed class SessionMetricsPayloadCodecTests
 {
     /// <summary>The shape without values: every tag in place, every mean zero, both sections empty.</summary>

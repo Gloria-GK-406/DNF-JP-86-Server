@@ -1,8 +1,11 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -12,6 +15,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.CharacterDeath;
 
@@ -29,54 +33,102 @@ public sealed class CharacterDeathHandlerTests
     public async Task Death_targets_exact_admitted_sessions_and_duplicate_reports_do_not_restart_the_ui(
         bool replaceActor, bool replaceMember, int directCount, int secondaryCount)
     {
-        var participant = new DungeonRunParticipant(Current.AccountId, Current.CharacterId, 0, true);
-        var run = new DungeonRunState(
-            new DungeonLayout(
-                10000,
-                0,
-                1,
-                1,
-                new MazeCell(0, 0),
+        await TestGameplay.RunAsync(async () =>
+        {
+            var participant = new DungeonRunParticipant(Current.AccountId, Current.CharacterId, 0, true);
+            var run = new DungeonRunState(
+                new DungeonLayout(
+                    10000,
+                    0,
+                    1,
+                    1,
+                    new MazeCell(0, 0),
+                    new MazeCell(0, 0),
+                    61000,
+                    1,
+                    new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
                 new MazeCell(0, 0),
                 61000,
-                1,
-                new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)}),
-            new MazeCell(0, 0),
-            61000,
-            new HashSet<MazeCell> { new(0, 0) },
-            DateTimeOffset.UnixEpoch,
-            RunId: DungeonRunId.New(),
-            Participant: participant,
-            Participants: [participant, new DungeonRunParticipant(Other.AccountId, Other.CharacterId, 1, false)],
-            EntryRevision: 1,
-            CurrentCellState: DungeonCellSeed.CompleteEmpty(
-                new MazeCell(0, 0), 61000).Snapshot());
-        var runs = new Runs(run);
-        var sessions = new Sessions();
-        if (replaceActor) sessions.Values[Current.CharacterId] = Current with { ConnectionGeneration = 2 };
-        if (replaceMember) sessions.Values[Other.CharacterId] = Other with { ConnectionGeneration = Other.ConnectionGeneration + 1 };
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [Current, Other]);
-        var sender = new Sender();
-        var handler = new CharacterDeathHandler(sessions, runs, registry,
-            new SelectedSessionTransitionGate(), new DungeonProjectionGate(), new Commands(runs),
-            sender, NullLogger<CharacterDeathHandler>.Instance);
-        var context = new NetworkDispatchContext(new NetworkConnectionContext(Current.ConnectionId, NetworkEndpointKind.Game, 10011));
-        var request = new CharacterDeathRequest(GameMessageMetadata.Empty, 612, 294, 0);
-        await handler.HandleAsync(context, request, CancellationToken.None);
-        await handler.HandleAsync(context, request, CancellationToken.None);
-        Assert.Equal(directCount, sender.Deliveries.Count);
-        if (directCount == 0) { Assert.Empty(runs.Find(Current.CharacterId)!.DeadParticipants); return; }
-        var delivery = Assert.Single(sender.Deliveries);
-        Assert.Equal(2, delivery.RequiredDirectMessages.Count);
-        Assert.IsType<CharacterDeathResponse>(delivery.RequiredDirectMessages[0]);
-        var noti = Assert.IsType<CharacterLifeStateNotification>(delivery.RequiredDirectMessages[1]);
-        Assert.Equal(Current.WireUserId, noti.ActorId);
-        Assert.Equal(secondaryCount, delivery.BestEffortTargets.Count);
+                new HashSet<MazeCell> { new(0, 0) },
+                DateTimeOffset.UnixEpoch,
+                RunId: DungeonRunId.New(),
+                Participant: participant,
+                Participants: [participant, new DungeonRunParticipant(Other.AccountId, Other.CharacterId, 1, false)],
+                EntryRevision: 1,
+                CurrentCellState: DungeonCellSeed.CompleteEmpty(
+                    new MazeCell(0, 0), 61000).Snapshot());
+            var runs = new Runs(run);
+            var sessions = new Sessions();
+            if (replaceActor) sessions.Values[Current.CharacterId] = Current with { ConnectionGeneration = 2 };
+            if (replaceMember) sessions.Values[Other.CharacterId] = Other with { ConnectionGeneration = Other.ConnectionGeneration + 1 };
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [Current, Other]);
+            var sender = new Sender();
+            var handler = new DeathDriver(sessions,runs,registry,sender);
+            var context = new NetworkDispatchContext(new NetworkConnectionContext(Current.ConnectionId, NetworkEndpointKind.Game, 10011));
+            var request = new CharacterDeathRequest(GameMessageMetadata.Empty, 612, 294, 0);
+            await handler.HandleAsync(context, request, CancellationToken.None);
+            await handler.HandleAsync(context, request, CancellationToken.None);
+            Assert.Equal(directCount, sender.Deliveries.Count);
+            if (directCount == 0) { Assert.Empty(runs.Find(Current.CharacterId)!.DeadParticipants); return; }
+            var delivery = Assert.Single(sender.Deliveries);
+            Assert.Equal(2, delivery.RequiredDirectMessages.Count);
+            Assert.IsType<CharacterDeathResponse>(delivery.RequiredDirectMessages[0]);
+            var noti = Assert.IsType<CharacterLifeStateNotification>(delivery.RequiredDirectMessages[1]);
+            Assert.Equal(Current.WireUserId, noti.ActorId);
+            Assert.Equal(secondaryCount, delivery.BestEffortTargets.Count);
+        });
     }
 
     private sealed class Sessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public Dictionary<CharacterId, SelectedSessionIdentity> Values { get; } = new() { [Current.CharacterId] = Current, [Other.CharacterId] = Other };
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Values.Values.SingleOrDefault(x => x.ConnectionId == connectionId);
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => Values.GetValueOrDefault(characterId);
@@ -85,22 +137,35 @@ public sealed class CharacterDeathHandlerTests
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => throw new NotSupportedException();
         public bool ReleaseExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
-    private sealed class Commands(Runs runs) : ICommandBus
-    {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) where TResult : notnull
+    // Same whole body in an existing gameplay fixture; this does not prove inbound scope lifecycle.
+    private sealed class DeathDriver(Sessions selected,Runs runs,DungeonRunDeliveryRegistry registry,Sender sender)
         {
-            var death = Assert.IsType<MarkDungeonParticipantDeadCommand>(command);
-            return ValueTask.FromResult((TResult)(object)new MarkDungeonParticipantDeadResult(
-                runs.TryMarkParticipantDead(death.CharacterId, death.RunId, death.RoomVersion)));
-        }
+        private readonly GameCharacterDeathCommandHandler handler = new(selected,runs,registry,ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(selected),ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),new DeathOutbox(sender),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),TimeProvider.System,NullLogger<GameCharacterDeathCommandHandler>.Instance);
+        public ValueTask<bool> HandleAsync(NetworkDispatchContext dispatch,CharacterDeathRequest input,CancellationToken ct)=>handler.HandleAsync(null!,new(dispatch,input),ct);
     }
+    private sealed class DeathOutbox(IGameMessageSender sender):IGameCommandOutbox
+    {
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery delivery,CancellationToken ct)=>sender.SendExplicitAsync(id,delivery,ct);
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id,IGameCmdMessage message,CancellationToken ct)=>sender.SendCmdAsync(id,message,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id,IGameNotiMessage message,CancellationToken ct)=>sender.SendNotiAsync(id,message,ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext c,IReadOnlyList<IGameServerMessage> m,CancellationToken ct)=>sender.SendExplicitAsync(c.ConnectionId,new(m,[]),ct);
+    }
+    /// <summary>
+    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
+    /// real protocol sender over it, and the direct recipient is checked at the registration point (TASK-25). A CMD or
+    /// NOTI outside an explicit delivery fails there as the old double refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<GameExplicitMessageDelivery> Deliveries { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public Sender() => outbound.RefuseOutsideExplicit();
+        public List<GameExplicitMessageDelivery> Deliveries => [.. outbound.GameExplicits];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         public ValueTask SendExplicitAsync(NetworkConnectionId connectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
-        { Assert.Equal(Current.ConnectionId, connectionId); Deliveries.Add(delivery); return ValueTask.CompletedTask; }
+        { Assert.Equal(Current.ConnectionId, connectionId); return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken); }
     }
     private sealed class Runs(DungeonRunState initial) : IDungeonRunDomainService
     {

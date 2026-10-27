@@ -4,10 +4,14 @@ using Dfo.Server.Abstractions.Achievements;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfAchievementDefinitionSource(PvfArchiveProvider provider) : IAchievementDefinitionSource
+internal sealed class PvfAchievementDefinitionSource(PvfArchiveProvider provider) : IAchievementDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<IReadOnlyList<AchievementDefinition>> catalog = new(() => Read(provider));
     public IReadOnlyList<AchievementDefinition> Load() => catalog.Value;
+    public string Name => "achievement-catalog";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Count);
+
     private static IReadOnlyList<AchievementDefinition> Read(PvfArchiveProvider provider)
     {
         var archive = provider.Archive;
@@ -47,10 +51,14 @@ internal sealed class PvfAchievementDefinitionSource(PvfArchiveProvider provider
     }
 }
 
-internal sealed class PvfTitleBookDefinitionSource(PvfArchiveProvider provider) : ITitleBookDefinitionSource
+internal sealed class PvfTitleBookDefinitionSource(PvfArchiveProvider provider) : ITitleBookDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<IReadOnlyList<TitleBookCategoryDefinition>> catalog = new(() => Read(provider));
     public IReadOnlyList<TitleBookCategoryDefinition> Load() => catalog.Value;
+    public string Name => "title-book-catalog";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Count);
+
     private static IReadOnlyList<TitleBookCategoryDefinition> Read(PvfArchiveProvider provider)
     {
         const string path = "etc/titlebook.etc";

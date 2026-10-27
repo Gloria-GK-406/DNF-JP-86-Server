@@ -22,6 +22,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// channel contribution was added on top. That contribution is not this rule's, and these are the
 /// numbers underneath it.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class MonsterExperienceRulesTests
 {
     [Theory]

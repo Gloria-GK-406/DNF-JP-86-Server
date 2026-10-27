@@ -1,19 +1,23 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.Commands.Pipeline;
 using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Application.Execution;
+using Dfo.Server.Application.Tests.Execution;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.DomainEvents;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.DomainEvents;
 
-public sealed class DomainEventDispatchTests
+public sealed partial class DomainEventDispatchTests
 {
     [Fact]
     public async Task Enqueue_requires_a_writable_transaction_and_never_records_rejected_facts()
@@ -29,11 +33,14 @@ public sealed class DomainEventDispatchTests
     public async Task Business_write_and_all_event_rows_roll_back_together()
     {
         await using var f = new Fixture();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Probe.WriteAsync("business", 10, default);
-            await f.Events.EnqueueAsync(new Awarded("a", 2));
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Probe.WriteAsync("business", 10, default);
+                await f.Events.EnqueueAsync(new Awarded("a", 2));
+            }
+        });
         Assert.Equal(0, f.Count("business"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_events"));
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM domain_event_deliveries"));
@@ -44,13 +51,16 @@ public sealed class DomainEventDispatchTests
     public async Task Each_fact_is_retained_with_one_transaction_batch_and_an_independent_delivery_per_subscriber()
     {
         await using var f = new Fixture();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            await f.Probe.WriteAsync("business", 10, default);
-            Assert.NotEqual(await f.Events.EnqueueAsync(new Awarded("a", 2)),
-                await f.Events.EnqueueAsync(new Awarded("a", 3)));
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Probe.WriteAsync("business", 10, default);
+                Assert.NotEqual(await f.Events.EnqueueAsync(new Awarded("a", 2)),
+                    await f.Events.EnqueueAsync(new Awarded("a", 3)));
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(10, f.Count("business"));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM domain_events"));
         Assert.Equal(1, f.Scalar("SELECT COUNT(DISTINCT batch_id) FROM domain_events"));
@@ -156,18 +166,20 @@ public sealed class DomainEventDispatchTests
     }
 
     [Fact]
-    public async Task Commit_under_database_admission_returns_and_the_worker_consumes_after_admission_is_released()
+    public async Task Commit_returns_at_once_and_the_worker_consumes_the_delivery_afterwards()
     {
         await using var f = new Fixture();
         using var stop = new CancellationTokenSource();
         var worker = f.Dispatcher.RunAsync(stop.Token);
-        await using (var admission = await f.Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default))
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
         await using (var tx = f.Scope.Begin())
         {
             await f.Events.EnqueueAsync(new Awarded("a", 3));
             await tx.CommitAsync(default).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(0, f.Count("counter"));
         }
+        });
         await f.Probe.CounterCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.AuditCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await stop.CancelAsync();
@@ -234,8 +246,12 @@ public sealed class DomainEventDispatchTests
         Assert.Equal(9, restored.Count("counter"));
     }
 
+    /// <summary>
+    /// RQ-043: subscriber groups no longer run beside each other, so a slow live hint holds the
+    /// executor; the other groups are postponed, not lost, and the hint still runs outside any transaction.
+    /// </summary>
     [Fact]
-    public async Task A_slow_live_group_does_not_block_other_groups_or_hold_the_business_transaction()
+    public async Task A_slow_live_hint_postpones_other_groups_and_still_runs_outside_the_business_transaction()
     {
         await using var f = new Fixture(extraLive: true);
         f.Probe.BlockLive = true;
@@ -243,6 +259,17 @@ public sealed class DomainEventDispatchTests
         using var stop = new CancellationTokenSource();
         var worker = f.Dispatcher.RunAsync(stop.Token);
         await f.Probe.LiveEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var marker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var queued = f.Services.GetRequiredService<IGameplayQueue>().RunAsync(new GameplayWork(GameplayShardKey.World,
+            GameplayCallChain.NewRoot(GameplayCallSource.Connection), "test:marker", _ =>
+            {
+                marker.TrySetResult();
+                return ValueTask.CompletedTask;
+            }), CancellationToken.None).AsTask();
+        await Task.Delay(100);
+        Assert.False(marker.Task.IsCompleted);
+        f.Probe.LiveRelease.TrySetResult();
+        await queued.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.FastLive.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.CounterCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await f.Probe.AuditCommitted.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -251,7 +278,7 @@ public sealed class DomainEventDispatchTests
         await f.SendAsync(new Awarded("b", 2)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         await stop.CancelAsync();
         await worker.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Single(f.Probe.Live);
+        Assert.Single(f.Probe.Live, hint => hint.Owner == "a");
         Assert.Equal(0, f.Clock.ActiveTimers);
     }
 
@@ -290,6 +317,74 @@ public sealed class DomainEventDispatchTests
         await hosted.StopAsync(default);
     }
 
+    /// <summary>
+    /// F-30 (TASK-31 section 2.2): the event CMD fails because recording its retry fails. The executor logs that
+    /// failure with its stack; the group loop only adds that it backs off, as a warning without the stack.
+    /// </summary>
+    [Fact]
+    public async Task A_group_whose_failure_record_fails_backs_off_with_a_warning_and_one_error()
+    {
+        await using var f = new Fixture(record: true);
+        f.Probe.FailingAttempts = 1;
+        f.Probe.FailRetryRecordingOnce = 1;
+        await f.SendAsync(new Awarded("a", 8));
+        using var stop = new CancellationTokenSource();
+        var worker = f.Dispatcher.RunAsync(stop.Token);
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (!f.Logs.Entries.Any(x => x.Message.Contains("could not persist or scan", StringComparison.Ordinal)))
+        {
+            Assert.True(DateTime.UtcNow < deadline, "the group loop never backed off");
+            await Task.Delay(5);
+        }
+        await stop.CancelAsync();
+        await worker.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var backoff = Assert.Single(f.Logs.Entries, x => x.Message.Contains("could not persist or scan", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Warning, backoff.Level);
+        Assert.Null(backoff.Exception);
+        var error = Assert.Single(f.Logs.Entries, x => x.Level >= LogLevel.Error);
+        Assert.StartsWith("Gameplay event:counter failed", error.Message, StringComparison.Ordinal);
+        Assert.IsType<IOException>(error.Exception);
+    }
+
+    /// <summary>
+    /// F-31 (TASK-31 section 3): a group loop that stops enqueuing because the executor's loop faulted says why,
+    /// as a warning that carries the stop and its cause; an ordinary stop stays an information line.
+    /// </summary>
+    [Fact]
+    public async Task A_group_loop_ended_by_a_faulted_executor_logs_the_cause_as_a_warning()
+    {
+        var cause = new InvalidOperationException("the consumption loop faulted");
+        await using var f = new Fixture(record: true, queue: p => new FaultedExecutorQueue(
+            new GameplayQueue(p.GetRequiredService<GameplayShardSelector>()), cause));
+        await f.SendAsync(new Awarded("a", 3));
+
+        await f.Dispatcher.RunAsync(CancellationToken.None).WaitAsync(Patience);
+
+        var stopped = f.Logs.Entries.Where(x => x.Message.Contains("the gameplay executor has stopped", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(3, stopped.Length);
+        Assert.All(stopped, x =>
+        {
+            Assert.Equal(LogLevel.Warning, x.Level);
+            Assert.Same(cause, Assert.IsType<GameplayExecutorStoppedException>(x.Exception).InnerException);
+        });
+        Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM domain_event_deliveries WHERE state=0"));
+    }
+
+    /// <summary>Refuses every event CMD as an executor whose consumption loop faulted would; other work runs.</summary>
+    private sealed class FaultedExecutorQueue(IGameplayQueue inner, Exception cause) : IGameplayQueue
+    {
+        public ValueTask<T> RunAsync<T>(GameplayWork<T> work, CancellationToken cancellationToken) =>
+            work.CommandType.StartsWith("event:", StringComparison.Ordinal)
+                ? ValueTask.FromException<T>(new GameplayExecutorStoppedException(work.CommandType, cause))
+                : inner.RunAsync(work, cancellationToken);
+
+        public ValueTask RunAsync(GameplayWork work, CancellationToken cancellationToken) =>
+            work.CommandType.StartsWith("event:", StringComparison.Ordinal)
+                ? ValueTask.FromException(new GameplayExecutorStoppedException(work.CommandType, cause))
+                : inner.RunAsync(work, cancellationToken);
+    }
+
     internal sealed record Awarded(string Owner, int Amount) : IDomainEvent;
     internal sealed record QuestFinished(int QuestId, int Amount) : IDomainEvent;
 
@@ -301,7 +396,9 @@ public sealed class DomainEventDispatchTests
         private async ValueTask ApplyAsync(int amount, CancellationToken ct)
         {
             probe.CounterAttempts++;
+            probe.CounterSeen.Enqueue(Probe.Here());
             await probe.WriteAsync("counter", amount, ct);
+            probe.Observe?.Invoke("counter");
             probe.CounterEntered.TrySetResult();
             if (probe.BlockCounter) await Task.Delay(Timeout.Infinite, ct);
             if (probe.FailingAttempts-- > 0) throw new IOException("Injected subscriber failure after writing business data.");
@@ -324,10 +421,12 @@ public sealed class DomainEventDispatchTests
     {
         public async ValueTask HandleAsync(DomainEventEnvelope<Awarded> e, CancellationToken ct)
         {
+            probe.LiveSeen.Enqueue(Probe.Here() with { InTransaction = probe.Transactions.Current is not null });
+            probe.Observe?.Invoke("live");
             Assert.Null(probe.Transactions.Current);
             probe.Live.Enqueue(e.Payload);
             probe.LiveEntered.TrySetResult();
-            if (probe.BlockLive) await Task.Delay(Timeout.Infinite, ct);
+            if (probe.BlockLive) await probe.LiveRelease.Task.WaitAsync(ct);
             if (probe.FailLive) throw new IOException("Injected live failure.");
         }
     }
@@ -337,9 +436,30 @@ public sealed class DomainEventDispatchTests
         { Assert.Null(probe.Transactions.Current); probe.FastLive.TrySetResult(); return ValueTask.CompletedTask; }
     }
 
+    private sealed class DirectSubscriber(Probe probe) : IDomainEventSubscriber<Awarded>
+    {
+        public ValueTask HandleAsync(DomainEventEnvelope<Awarded> e, CancellationToken ct)
+        { probe.DirectSeen.Enqueue(Probe.Here()); return ValueTask.CompletedTask; }
+    }
+
+    /// <summary>Where a subscriber or a persistence call ran: on an executor, and as which CMD.</summary>
+    private sealed record Seen(string Method, string Subscriber, bool OnExecutor, GameplayCallChain? Current,
+        bool InTransaction = false);
+
     private sealed class Probe(SqliteDatabase database, IDomainTransactionAccessor transactions)
     {
+        public static Seen Here(string method = "", string subscriber = "") =>
+            new(method, subscriber, GameplayJob.IsOnExecutor, GameplayJob.Current);
         public IDomainTransactionAccessor Transactions => transactions;
+        public ConcurrentQueue<Seen> CounterSeen { get; } = [];
+        public ConcurrentQueue<Seen> LiveSeen { get; } = [];
+        public ConcurrentQueue<Seen> DirectSeen { get; } = [];
+        public ConcurrentQueue<Seen> Persisted { get; } = [];
+        public ConcurrentQueue<Seen> RelayedSeen { get; } = [];
+        public ConcurrentQueue<Seen> LifecycleSeen { get; } = [];
+        public int ReadDueCalls;
+        public Action<string>? Observe { get; set; }
+        public TaskCompletionSource LiveRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int FailingAttempts;
         public int CounterAttempts;
         public int FailRetryRecordingOnce;
@@ -370,7 +490,17 @@ public sealed class DomainEventDispatchTests
         public IEventService Events => Services.GetRequiredService<IEventService>();
         public DomainEventDispatcher Dispatcher => Services.GetRequiredService<DomainEventDispatcher>();
         public Probe Probe => Services.GetRequiredService<Probe>();
-        public Fixture(string? path = null, DomainEventDispatchOptions? options = null, bool extraLive = false)
+        public RecordingGameplayQueue Queue => (RecordingGameplayQueue)Services.GetRequiredService<IGameplayQueue>();
+        public LogRecorder Logs { get; } = new();
+        public ChainSender Sender { get; } = new();
+        public ChainContexts Contexts { get; } = new();
+        public Dfo.Server.Abstractions.Networking.INetworkConnectionLifecycleDispatcher Lifecycle =>
+            Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkConnectionLifecycleDispatcher>();
+        /// <param name="chain">Every log level, an outbound sender and connection contexts that record, and a lifecycle observer.</param>
+        /// <param name="relay">A reliable subscriber of <see cref="Awarded"/> that publishes <see cref="Relayed"/>, and its subscriber.</param>
+        /// <param name="queue">Replaces the queue the dispatcher enqueues on (it wins over <paramref name="record"/>'s).</param>
+        public Fixture(string? path = null, DomainEventDispatchOptions? options = null, bool extraLive = false,
+            bool record = false, bool chain = false, bool relay = false, Func<IServiceProvider, IGameplayQueue>? queue = null)
         {
             owns = path is null;
             Path = path ?? System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dfo-domain-events-" + Guid.NewGuid().ToString("N") + ".db");
@@ -388,16 +518,41 @@ public sealed class DomainEventDispatchTests
             services.AddDomainSubscriber<Awarded, AuditSubscriber>("audit", DomainEventDeliveryPolicy.Reliable);
             services.AddDomainSubscriber<Awarded, LiveSubscriber>("live", DomainEventDeliveryPolicy.LiveOnly, e => e.Owner);
             if (extraLive) services.AddDomainSubscriber<Awarded, FastLiveSubscriber>("fast-live", DomainEventDeliveryPolicy.LiveOnly);
+            if (record)
+            {
+                services.AddSingleton<IGameplayQueue>(p =>
+                    new RecordingGameplayQueue(new GameplayQueue(p.GetRequiredService<GameplayShardSelector>())));
+                services.AddSingleton<ILoggerProvider>(Logs);
+                services.AddRuntimeEventSubscriber<Awarded, DirectSubscriber>();
+            }
+            if (chain)
+            {
+                services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace));
+                Dfo.Server.Application.Dispatching.NetworkMessageDispatchingExtensions.AddNetworkMessageDispatching(services);
+                services.AddSingleton<IOutboundSender>(Sender);
+                services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionContexts>(Contexts);
+                services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(p =>
+                    new ChainObserver(p.GetRequiredService<Probe>()));
+            }
+            if (relay)
+            {
+                services.AddDomainEvent<Relayed>("award.relayed", 1);
+                services.AddDomainSubscriber<Awarded, RelaySubscriber>("relay", DomainEventDeliveryPolicy.Reliable);
+                services.AddDomainSubscriber<Relayed, RelayedSubscriber>("relayed", DomainEventDeliveryPolicy.Reliable);
+            }
+            if (queue is not null) services.AddSingleton<IGameplayQueue>(queue);
             Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             _ = Services.GetRequiredService<SqliteDatabase>();
             Sql("CREATE TABLE IF NOT EXISTS event_test_counter(owner TEXT PRIMARY KEY,amount INTEGER NOT NULL)");
         }
         public async ValueTask SendAsync<TEvent>(TEvent e) where TEvent : class, IDomainEvent
         {
-            await using var admission = await Services.GetRequiredService<TransactionalExecutionGate>().AcquireAsync(default);
-            await using var tx = Scope.Begin();
-            await Events.EnqueueAsync(e);
-            await tx.CommitAsync(default);
+            await TestGameplay.RunAsync(Services, async () =>
+            {
+                await using var tx = Scope.Begin();
+                await Events.EnqueueAsync(e);
+                await tx.CommitAsync(default);
+            });
         }
         public long Count(string owner) => Scalar($"SELECT COALESCE((SELECT amount FROM event_test_counter WHERE owner='{owner}'),0)");
         public long Scalar(string sql)
@@ -443,13 +598,21 @@ public sealed class DomainEventDispatchTests
     private sealed class FaultingRetryPersistence(IDomainEventPersistence inner, Probe probe) : IDomainEventPersistence
     {
         public ValueTask AppendAsync(StoredDomainEvent e, IReadOnlyList<DomainEventDeliveryTarget> s, CancellationToken ct) => inner.AppendAsync(e, s, ct);
-        public ValueTask<IReadOnlyList<PendingDomainEventDelivery>> ReadDueAsync(string id, DateTimeOffset now, int limit, CancellationToken ct) => inner.ReadDueAsync(id, now, limit, ct);
+        public ValueTask<IReadOnlyList<PendingDomainEventDelivery>> ReadDueAsync(string id, DateTimeOffset now, int limit, CancellationToken ct)
+        { Interlocked.Increment(ref probe.ReadDueCalls); return inner.ReadDueAsync(id, now, limit, ct); }
         public ValueTask<DateTimeOffset?> NextDueAsync(string id, CancellationToken ct) => inner.NextDueAsync(id, ct);
-        public ValueTask<bool> TryBeginAsync(Guid id, string s, DateTimeOffset now, CancellationToken ct) => inner.TryBeginAsync(id, s, now, ct);
+        public ValueTask<bool> TryBeginAsync(Guid id, string s, DateTimeOffset now, CancellationToken ct)
+        { probe.Persisted.Enqueue(Probe.Here("TryBegin", s)); return inner.TryBeginAsync(id, s, now, ct); }
         public ValueTask<bool> HasCompletedCoalescingKeyAsync(Guid batch, string s, string key, CancellationToken ct) => inner.HasCompletedCoalescingKeyAsync(batch, s, key, ct);
-        public ValueTask CompleteAsync(Guid id, string s, DateTimeOffset now, string reason, CancellationToken ct) => inner.CompleteAsync(id, s, now, reason, ct);
+        public ValueTask CompleteAsync(Guid id, string s, DateTimeOffset now, string reason, CancellationToken ct)
+        { probe.Persisted.Enqueue(Probe.Here("Complete", s)); return inner.CompleteAsync(id, s, now, reason, ct); }
+        public ValueTask<bool> QuarantineAsync(Guid id, string s, int expected, string error, CancellationToken ct) =>
+            inner.QuarantineAsync(id, s, expected, error, ct);
+        public ValueTask<bool> TryFailAsync(Guid id, string s, int expected, DateTimeOffset next, string error, bool terminal, CancellationToken ct)
+        { probe.Persisted.Enqueue(Probe.Here("TryFail", s)); return inner.TryFailAsync(id, s, expected, next, error, terminal, ct); }
         public ValueTask FailAsync(Guid id, string s, DateTimeOffset next, string error, bool terminal, CancellationToken ct)
         {
+            probe.Persisted.Enqueue(Probe.Here("Fail", s));
             if (s == "counter" && Interlocked.Exchange(ref probe.FailRetryRecordingOnce, 0) != 0)
             {
                 probe.RetryRecordingRejected.TrySetResult();

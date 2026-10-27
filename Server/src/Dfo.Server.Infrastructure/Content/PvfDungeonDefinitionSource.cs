@@ -28,7 +28,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// <see cref="DungeonDefinition.OffersPaidCard"/>; nothing is decided here beyond reading it.
 /// </para>
 /// </remarks>
-internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDungeonAdmissionDefinitionSource
+internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDungeonAdmissionDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -71,6 +71,14 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
     private IReadOnlyDictionary<int, string>? _paths;
 
     public PvfDungeonDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "dungeon-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate) return ValueTask.FromResult(Paths().Count);
+    }
 
     public ValueTask<DungeonDefinition?> GetAsync(int dungeonId, CancellationToken cancellationToken)
     {

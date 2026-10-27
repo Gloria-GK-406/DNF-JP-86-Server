@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -24,16 +25,17 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
         if (transactions.Current is null) throw new InvalidOperationException("Tower awards require the owner's transaction.");
     }
     public async ValueTask<ImmutableArray<TowerKillReward>> KillAsync(IllusionTowerSnapshot run,
-        TowerActor actor, CancellationToken token)
+        TowerActor actor, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         RequireTransaction();
         var rewards = ImmutableArray.CreateBuilder<TowerKillReward>();
         foreach (var member in run.Members)
         {
             var session = member.Session;
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerKillExperienceContext(
                 new(ExperienceEvent.TowerKill, session.AccountId, session.CharacterId, run.DungeonId), actor.Seed.ActorType),
-                clock.GetUtcNow(), session, token).ConfigureAwait(false)
+                clock.GetUtcNow(), session, footprint, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
             var request = new QuestEnemyDropRequest(
                 actor.Seed.ActorType is >= 5 and <= 8 ? QuestEnemyType.APC : QuestEnemyType.Monster,
@@ -41,7 +43,8 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 unchecked((int)run.Room.Seed), run.Room.Level, 0, run.Room.MapId);
             var pending = await questDrops.DrawAsync(request,
                 new(session.AccountId, session.CharacterId), token).ConfigureAwait(false);
-            var updates = await GrantQuestItemsAsync(session, pending, token).ConfigureAwait(false);
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+            var updates = await GrantQuestItemsAsync(session, pending, footprint, token).ConfigureAwait(false);
             var facts = new List<QuestProgressFact>
             {
                 new QuestEnemyDefeated(run.DungeonId, DungeonDifficulty.Normal, actor.Seed.TemplateId,
@@ -49,6 +52,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                     MonsterRank.Ordinary),
             };
             if (!updates.IsEmpty) facts.Add(new QuestHoldingsChanged());
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var report = await quests.ReportAsync(session.AccountId, session.CharacterId,
                 facts, token).ConfigureAwait(false);
             rewards.Add(new(session, member.Slot, award, report.NotificationSnapshot)
@@ -58,8 +62,9 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
     }
 
     private async ValueTask<ImmutableArray<TowerInventoryUpdate>> GrantQuestItemsAsync(
-        SelectedSessionIdentity session, IReadOnlyList<RolledDrop> pending, CancellationToken token)
+        SelectedSessionIdentity session, IReadOnlyList<RolledDrop> pending, IEffectFootprintRecorder footprint, CancellationToken token)
     {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var changed = new Dictionary<BusinessSlot, TowerInventoryUpdate>();
         var active = (await questLogs.LogOf(session.AccountId, session.CharacterId)
                 .CarriedAsync(token).ConfigureAwait(false))
@@ -79,6 +84,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             var remaining = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
             if (remaining > 0)
             {
+                footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
                 var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
                     [new(drop.ItemId, remaining)], "任务掉落奖励", token, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
                 foreach (var item in receipt.Inventory) changed[item.Slot] = new(item.Slot, item.Snapshot);
@@ -87,7 +93,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
         return changed.OrderBy(value => value.Key.Space).ThenBy(value => value.Key.Index)
             .Select(value => value.Value).ToImmutableArray();
     }
-    public async ValueTask<TowerSettlementReceipt> SettleAsync(IllusionTowerSnapshot run, ulong seed, CancellationToken token)
+    public async ValueTask<TowerSettlementReceipt> SettleAsync(IllusionTowerSnapshot run, ulong seed, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         RequireTransaction();
         var completion = run.Completion ?? throw new InvalidOperationException("Tower has not ended.");
@@ -95,6 +101,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
         foreach (var member in run.Members)
         {
             var session = member.Session;
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var character = characters.Get(session.CharacterId);
             var progress = await character.ProgressAsync(token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
@@ -111,11 +118,13 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 if (candidate.ItemId == 0)
                 {
                     var previousGold = goldBalance;
+                    footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
                     goldBalance = await character.AddGoldAsync(candidate.DisplayValue, token).ConfigureAwait(false);
                     candidates[i] = candidate with { Delivered = goldBalance > previousGold };
                     continue;
                 }
                 if (candidate.ItemId < 0) continue;
+                footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
                 var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
                     [new(candidate.ItemId, 1) { Durability = candidate.Durability }], "塔通关奖励", token, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
                 candidates[i] = candidate with { DisplayValue = receipt.Inventory.FirstOrDefault()?.Snapshot.InstanceValue
@@ -125,11 +134,12 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             }
             var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerClearExperienceContext(
                 new(ExperienceEvent.TowerClear, session.AccountId, session.CharacterId, run.DungeonId), completion.RewardLevel),
-                clock.GetUtcNow(), session, token).ConfigureAwait(false)
+                clock.GetUtcNow(), session, footprint, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
             var facts = new List<QuestProgressFact>();
             if (completion.Reason == TowerEndReason.Completed) facts.Add(new QuestDungeonCleared(run.DungeonId, DungeonDifficulty.Normal));
             if (goldBalance != beforeGold || delivered.Count > 0) facts.Add(new QuestHoldingsChanged());
+            footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var report = await quests.ReportAsync(session.AccountId, session.CharacterId, facts, token).ConfigureAwait(false);
             receipts.Add(new(session.CharacterId, award.Gained, goldBalance - beforeGold, delivered.ToImmutable())
             {

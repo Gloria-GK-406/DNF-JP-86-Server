@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
@@ -11,6 +12,7 @@ using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -166,16 +168,19 @@ public sealed class ResultScreenTests
     [Fact]
     public async Task A_confirmation_without_a_published_session_is_ignored()
     {
-        var runs = new OneRun(deadActor: CapturedActorSequence);
-        var handler = new BossDieCheckHandler(
-            new NoSession(), runs, NullLogger<BossDieCheckHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new OneRun(deadActor: CapturedActorSequence);
+            var handler = new BossDieCheckDriver(
+                new NoSession(), runs, NullLogger<BossDieCheckHandler>.Instance);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new BossDieCheckRequest(GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new BossDieCheckRequest(GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
+                CancellationToken.None);
 
-        Assert.Equal(0, runs.TimesRead);
+            Assert.Equal(0, runs.TimesRead);
+        });
     }
 
     /// <summary>The scroll's state is acknowledged, which is what moves the run off the screen.</summary>
@@ -212,8 +217,8 @@ public sealed class ResultScreenTests
 
         await Scroll(sender, new NoSession());
 
-        Assert.IsType<ScoreScrollStateResponse>(sender.Sent[0]);
-        Assert.IsType<CardSelectRightStateResponse>(sender.Sent[1]);
+        // The registered non-null presentation control cannot open a layout without a session.
+        Assert.IsType<ScoreScrollStateResponse>(Assert.Single(sender.Sent));
     }
 
     /// <summary>The acknowledgement goes out under the type the client's frame arrived on.</summary>
@@ -230,28 +235,42 @@ public sealed class ResultScreenTests
 
     private static async Task Confirm(OneRun runs, int arrivals)
     {
-        var handler = new BossDieCheckHandler(
-            new OneSession(Identity), runs, NullLogger<BossDieCheckHandler>.Instance);
-
-        for (var arrival = 0; arrival < arrivals; arrival++)
+        await TestGameplay.RunAsync(async () =>
         {
-            await handler.HandleAsync(
-                Dispatch(),
-                new BossDieCheckRequest(
-                    GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
-                CancellationToken.None);
-        }
+            var handler = new BossDieCheckDriver(
+                new OneSession(Identity), runs, NullLogger<BossDieCheckHandler>.Instance);
+
+            for (var arrival = 0; arrival < arrivals; arrival++)
+            {
+                await handler.HandleAsync(
+                    Dispatch(),
+                    new BossDieCheckRequest(
+                        GameMessageMetadata.Empty, CapturedUserId, CapturedActorSequence),
+                    CancellationToken.None);
+            }
+        });
     }
 
     private static async Task Scroll(RecordingSender sender, ISelectedSessionDomainService sessions)
     {
-        var handler = new ScoreScrollStateHandler(
-            sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = sessions.FindByConnection(Identity.ConnectionId);
+            var runs = session is null ? null : SettledCardRun.Create(session);
+            var signals = new ProtocolAlgorithmFixture.CardSignals();
+            var handler = new ScoreScrollDriver(
+                sessions, sender, NullLogger<ScoreScrollStateHandler>.Instance, signals, runs);
 
-        await handler.HandleAsync(
-            Dispatch(),
-            new ScoreScrollStateRequest(GameMessageMetadata.Empty),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                Dispatch(),
+                new ScoreScrollStateRequest(GameMessageMetadata.Empty),
+                CancellationToken.None);
+            if (session is not null)
+            {
+                Assert.True(runs!.Find(session.CharacterId)!.CardLayoutOpen);
+                Assert.Equal("auto", Assert.Single(signals.Calls).Phase);
+            }
+        });
     }
 
     private static NetworkDispatchContext Dispatch() =>
@@ -359,6 +378,53 @@ public sealed class ResultScreenTests
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => identity;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => identity;
@@ -376,6 +442,53 @@ public sealed class ResultScreenTests
 
     private sealed class NoSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => null;
 
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) => null;
@@ -391,28 +504,27 @@ public sealed class ResultScreenTests
             throw new NotSupportedException("This fixture only answers.");
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The result screen's frames are sent explicitly.");
+        public RecordingSender() => outbound.RefuseOutsideExplicit(
+            () => new InvalidOperationException("The result screen's frames are sent explicitly."));
 
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The result screen's frames are sent explicitly.");
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
 
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -5,7 +6,7 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IAvatarCompoundDomainService
 {
-    ValueTask<AvatarCompoundResult> CompoundAsync(SelectedSessionIdentity session, AvatarCompoundInput input, CancellationToken ct);
+    ValueTask<AvatarCompoundResult> CompoundAsync(SelectedSessionIdentity session, AvatarCompoundInput input, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 public interface IAvatarCompoundRuleService
 {

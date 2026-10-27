@@ -22,7 +22,7 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         CancellationToken cancellationToken)
     {
         var before = intents.Find(session);
-        if (sessions.Find(session.AccountId) != session || before is null)
+        if (!sessions.IsInWorld(session) || before is null)
             return new(false, Refusal: "No current dungeon selection.");
         var facts = await FactsAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         var region = facts is null ? null : await rules.EligibleAsync(dungeonId, questId, facts, cancellationToken).ConfigureAwait(false);
@@ -38,7 +38,7 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         // The native retry sends preparation before abandoning its previous quest.
         // Preparation changes only the selection; persisted quest conflicts belong
         // to acceptance, after the client has performed its own cancellation.
-        if (sessions.Find(session.AccountId) != session
+        if (!sessions.IsInWorld(session)
             || !intents.TryReplaceExact(session, before.Value, DungeonEntryIntent.Cycle(dungeonId, questId)))
             return new(false, Refusal: "Selection changed while preparing.");
         return new(true, questId);
@@ -48,7 +48,7 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         CancellationToken cancellationToken)
     {
         var session = sessions.Find(accountId);
-        if (session is null || session.CharacterId != characterId || intents.Find(session) is not { } intent
+        if (session is null || session.CharacterId != characterId || !sessions.IsInWorld(session) || intents.Find(session) is not { } intent
             || intent.Kind != DungeonEntryIntentKind.Cycle || intent.CycleQuestId != questId
             || intent.DirectedDungeonId is not > 0) return false;
         var facts = await FactsAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
@@ -56,7 +56,7 @@ internal sealed class CycleDungeonEntryDomainService(ISelectedSessionDomainServi
         if (region is null) return false;
         var carried = await quests.LogOf(accountId, characterId).CarriedAsync(cancellationToken).ConfigureAwait(false);
         if (carried.Any(x => x.QuestId != questId && rules.RewardsForQuest(x.QuestId).Count > 0)) return false;
-        return sessions.Find(accountId) == session && intents.Find(session) == intent;
+        return sessions.IsInWorld(session) && intents.Find(session) == intent;
     }
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken cancellationToken)

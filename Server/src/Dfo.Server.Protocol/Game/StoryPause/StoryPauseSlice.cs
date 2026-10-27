@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Networking;
@@ -86,39 +88,10 @@ internal sealed class StoryPauseDecoder : IGameMessageDecoder
 }
 
 /// <summary>Confirms a scripted pause so the script can carry on.</summary>
-public sealed class StoryPauseHandler(
-    ISelectedSessionDomainService selectedSessions,
-    IGameMessageSender sender,
-    ILogger<StoryPauseHandler> logger) : ClientMessageHandler<StoryPauseRequest>
+public sealed class StoryPauseHandler(ICommandBus commands)
+    : ClientMessageHandler<StoryPauseRequest>, IProtocolCommandMessageHandler<GameStoryPauseCommand>
 {
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        StoryPauseRequest message,
-        CancellationToken cancellationToken)
-    {
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
-        {
-            logger.LogWarning(
-                "Story pause {ConnectionId}: no published session, ignoring pause={Pause} type={Type}",
-                context.Connection.ConnectionId,
-                message.PauseFlag,
-                message.RequestType);
-            return;
-        }
-
-        logger.LogInformation(
-            "Story pause {ConnectionId} user={WireUserId}: pause={Pause} type={Type}",
-            context.Connection.ConnectionId,
-            session.WireUserId,
-            message.PauseFlag,
-            message.RequestType);
-
-        await sender.SendExplicitAsync(
-            context.Connection.ConnectionId,
-            new GameExplicitMessageDelivery(
-                [new StoryPauseNotification(session.WireUserId, message.PauseFlag, message.RequestType)],
-                []),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        StoryPauseRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameStoryPauseCommand(context, message), cancellationToken).ConfigureAwait(false);
 }

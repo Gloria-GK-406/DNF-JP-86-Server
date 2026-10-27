@@ -7,6 +7,7 @@ using Dfo.Server.Application.World.BossTower;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -15,19 +16,22 @@ public sealed class BossTowerFoundationTests
     [Fact]
     public async Task Entry_projection_is_permanent_by_default_and_explicit_disable_closes_it()
     {
-        await using var f = new LearningFixture();
-        await f.SeedAsync();
-        var projection = f.Services.GetRequiredService<IEventPlayerProjectionDomainService>();
-        Assert.True(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons,
-            x => x.DungeonId == 3505).Open);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(
-                new(2329, 0, "disable"), "test", DateTimeOffset.UtcNow, default);
-            await tx.CommitAsync(default);
-        }
-        Assert.False(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons,
-            x => x.DungeonId == 3505).Open);
+            await using var f = new LearningFixture();
+            await f.SeedAsync();
+            var projection = f.Services.GetRequiredService<IEventPlayerProjectionDomainService>();
+            Assert.True(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons,
+                x => x.DungeonId == 3505).Open);
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(
+                    new(2329, 0, "disable"), "test", DateTimeOffset.UtcNow, default);
+                await tx.CommitAsync(default);
+            }
+            Assert.False(Assert.Single((await projection.ReadNowAsync(f.Session, default)).ScheduledDungeons,
+                x => x.DungeonId == 3505).Open);
+        });
     }
 
     [SkippableFact]

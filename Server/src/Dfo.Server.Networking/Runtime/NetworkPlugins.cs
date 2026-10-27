@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
@@ -10,48 +11,64 @@ namespace Dfo.Server.Networking.Runtime;
 
 internal abstract class NetworkPluginBase(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkConnectionLifecycleDispatcher lifecycle,
     NetworkEndpointKind endpointKind) : PluginBase, ITcpConnectedPlugin, ITcpClosedPlugin
 {
     protected TouchSocketConnectionRegistry Connections { get; } = connections;
 
     protected NetworkEndpointKind EndpointKind { get; } = endpointKind;
 
-    public async Task OnTcpConnected(ITcpSession client, ConnectedEventArgs e)
+    // Stream boundaries, like the receive callbacks. The registry is transport state and changes
+    // here, before the lifecycle CMD is enqueued. A lifecycle job that fails has already registered the
+    // close of this connection after its other entries (RQ-031(c)) and the executor has logged it, so
+    // the failure is not passed on to TouchSocket, whose own close would overtake those frames.
+    public Task OnTcpConnected(ITcpSession client, ConnectedEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         var context = Connections.Add(client, EndpointKind);
-        foreach (var observer in observers)
+        try
         {
-            await observer.ConnectedAsync(context, CancellationToken.None);
+            await lifecycle.DispatchConnectedAsync(context, CancellationToken.None);
+        }
+        catch (Exception error) when (GameplayJob.EndedAJob(error))
+        {
+            return;
         }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 
-    public async Task OnTcpClosed(ITcpSession client, ClosedEventArgs e)
+    // Counted as in flight from the removal until its lifecycle CMD has run, so the transport drain
+    // cannot see an empty registry while a teardown is still to be enqueued.
+    public Task OnTcpClosed(ITcpSession client, ClosedEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
-        var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, EndpointKind);
-        if (Connections.TryRemove(connectionId, out var context))
+        Connections.BeginClosing();
+        try
         {
-            foreach (var observer in observers)
+            var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, EndpointKind);
+            if (Connections.TryRemove(connectionId, out var context))
             {
-                await observer.DisconnectedAsync(context!, CancellationToken.None);
+                await lifecycle.DispatchDisconnectedAsync(context!, CancellationToken.None);
             }
         }
+        finally
+        {
+            Connections.EndClosing();
+        }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 }
 
 internal sealed class ChannelNetworkPlugin(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkConnectionLifecycleDispatcher lifecycle,
     INetworkMessageDispatcher dispatcher,
     ChannelMessageDecoderRegistry decoders,
     ILogger<ChannelNetworkPlugin> logger)
-    : NetworkPluginBase(connections, observers, NetworkEndpointKind.Channel), ITcpReceivedPlugin
+    : NetworkPluginBase(connections, lifecycle, NetworkEndpointKind.Channel), ITcpReceivedPlugin
 {
-    public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+    // Stream boundary: whatever context TouchSocket runs this on, the dispatch it starts is off the executor.
+    public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         if (e.RequestInfo is ChannelFrameRequestInfo frame)
         {
@@ -68,20 +85,26 @@ internal sealed class ChannelNetworkPlugin(
                 }
                 catch (Exception error)
                 {
-                    logger.LogError(
+                    // A job's own failure was logged by the executor with its chain (F-30): Debug here.
+                    var failed = GameplayJob.EndedAJob(error);
+                    logger.Log(
+                        failed ? Microsoft.Extensions.Logging.LogLevel.Debug : Microsoft.Extensions.Logging.LogLevel.Error,
                         error,
                         "Channel handler failed {ConnectionId}: message=0x{MessageNumber:X2} "
                             + "handler={Message}",
                         connectionId,
                         frame.MessageNumber,
                         message.GetType().Name);
+                    // The failed job closes this connection itself, after what its outbox kept (RQ-031(c)).
+                    if (failed)
+                        return;
                     throw;
                 }
             }
         }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 
     private IClientNetworkMessage? Decode(ChannelFrameRequestInfo frame, NetworkConnectionId connectionId)
     {
@@ -124,15 +147,16 @@ internal sealed class ChannelNetworkPlugin(
 
 internal sealed class GameNetworkPlugin(
     TouchSocketConnectionRegistry connections,
-    IEnumerable<INetworkConnectionObserver> observers,
+    INetworkConnectionLifecycleDispatcher lifecycle,
     INetworkMessageDispatcher dispatcher,
     GameMessageDecoderRegistry decoders,
     ILogger<GameNetworkPlugin> logger)
-    : NetworkPluginBase(connections, observers, NetworkEndpointKind.Game), ITcpReceivedPlugin
+    : NetworkPluginBase(connections, lifecycle, NetworkEndpointKind.Game), ITcpReceivedPlugin
 {
     private readonly ConditionalWeakTable<NetworkConnectionContext, GameInboundFrameCounter> frameCounters = new();
 
-    public async Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e)
+    // Stream boundary: whatever context TouchSocket runs this on, the dispatch it starts is off the executor.
+    public Task OnTcpReceived(ITcpSession client, ReceivedDataEventArgs e) => GameplayJob.RunDetachedAsync(async () =>
     {
         if (e.RequestInfo is GameClientFrameRequestInfo frame)
         {
@@ -151,12 +175,16 @@ internal sealed class GameNetworkPlugin(
                 }
                 catch (Exception error)
                 {
-                    // Logged and rethrown, not handled. Without this the frame simply stops being
-                    // processed and the connection drops with nothing written anywhere: command
-                    // failures are logged by the command pipeline, but a handler that throws after
-                    // its commands succeeded had no reporting path at all. Rethrowing keeps the
-                    // existing behaviour exactly; only the silence is removed.
-                    logger.LogError(
+                    // Logged, because a handler that throws after its commands succeeded has no other
+                    // reporting path. A job that failed is not rethrown (DR-15, RQ-031(c)): its outbox
+                    // closes this connection after the entries it kept, where a rethrow would let
+                    // TouchSocket close it at once and overtake them. A refusal to run the job (the
+                    // executor stopped, the depth limit) registered nothing and is still rethrown, so
+                    // the transport closes the connection as before. A job's own failure was logged by
+                    // the executor with its chain and connection (F-30), so this line is Debug then.
+                    var failed = GameplayJob.EndedAJob(error);
+                    logger.Log(
+                        failed ? Microsoft.Extensions.Logging.LogLevel.Debug : Microsoft.Extensions.Logging.LogLevel.Error,
                         error,
                         "Game handler failed {ConnectionId}: selector=0x{Selector:X2} "
                             + "type=0x{Type:X4} message={Message}",
@@ -164,13 +192,15 @@ internal sealed class GameNetworkPlugin(
                         frame.Selector,
                         frame.Type,
                         message.GetType().Name);
+                    if (failed)
+                        return;
                     throw;
                 }
             }
         }
 
         await e.InvokeNext();
-    }
+    }).AsTask();
 
     /// <remarks>
     /// The first-byte selector is not interpreted here. It is part of the wire key, so a frame whose

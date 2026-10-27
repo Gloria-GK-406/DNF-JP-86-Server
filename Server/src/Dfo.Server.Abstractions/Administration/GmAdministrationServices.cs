@@ -16,11 +16,19 @@ public interface IGmAdministrationPersistence
     ValueTask<GmAuditPage> QueryAuditAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken);
 }
 
+/// <summary>The GM credential half that runs off the executor (RQ-007): the administrator read and every hash or verification.</summary>
+public interface IGmCredentialReader
+{
+    ValueTask<GmCredentialCheck> CheckLoginAsync(string loginName, string password, CancellationToken cancellationToken);
+    /// <summary>The bootstrap password's record, or null when its length is outside 12..256.</summary>
+    ValueTask<string?> PrepareBootstrapAsync(string password, CancellationToken cancellationToken);
+}
+
 public interface IGmAccessDomainService
 {
     ValueTask<bool> IsInitializedAsync(CancellationToken cancellationToken);
-    ValueTask<bool> BootstrapAsync(string loginName, string password, GmPermission permissions, CancellationToken cancellationToken);
-    ValueTask<GmLoginResult> LoginAsync(string loginName, string password, CancellationToken cancellationToken);
+    ValueTask<bool> BootstrapAsync(string loginName, string? passwordRecord, GmPermission permissions, CancellationToken cancellationToken);
+    ValueTask<GmLoginResult> LoginAsync(GmCredentialCheck check, CancellationToken cancellationToken);
     ValueTask<GmIdentity?> IdentifyAsync(string? sessionSecret, CancellationToken cancellationToken);
     ValueTask<bool> LogoutAsync(string sessionSecret, CancellationToken cancellationToken);
 }

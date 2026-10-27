@@ -6,6 +6,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class ExtraDropRuleServiceTests
 {
     private static MonsterDropRequest Request() => new(1, new(DungeonRunId.New(), 144, 23,

@@ -15,7 +15,7 @@ public sealed class SharedMaterialPvfTests
     public async Task ActualPvfAllowsAllElevenMaterialsToSplitMergeAndReturnWithoutLosingQuantity(BusinessInventorySpace cargoSpace)
     {
         using var host = new ShopFixture(services =>
-            services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>());
+            services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>(), useArchive: true);
         host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
         WarehouseStorageTests.Bind(host);
         var rules = host.Services.GetRequiredService<IItemPlacementRuleService>();

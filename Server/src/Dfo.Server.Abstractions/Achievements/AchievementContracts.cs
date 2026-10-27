@@ -70,6 +70,8 @@ public interface ITitleBookPersistence
 {
     ValueTask<bool> TryUnlockTitleAsync(CharacterId character, int category, int index, int itemId, CancellationToken ct);
     ValueTask<IReadOnlyList<StoredTitleBookItem>> ReadTitlesAsync(CharacterId character, CancellationToken ct);
+    /// <summary>The canonical title currently projected by the equipped mirror, without acquiring item custody.</summary>
+    ValueTask<ItemIdentity?> ReadWearSourceAsync(CharacterId character, CancellationToken ct);
     ValueTask<IReadOnlyList<(int Category, int Index)>> ReadUnlockedSlotsAsync(CharacterId character, CancellationToken ct);
 }
 public interface IAchievementDomainService

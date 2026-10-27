@@ -1,0 +1,7 @@
+# Final source freeze02：emptycase source-close 证据加强
+
+formal01已自然结束：Release0/0、App5128仅原2Dim、Protocol1773通过；Networking197/199，两个Connection refused完整原raw保留，父runner按检查停止未跑controls。两目标在同freeze01精确隔离复跑2/2通过，尚未证明TCP refusal根因，不能归为旧Dim基线或假称由下面的assert修改修复。
+
+主控授权后仅新emptycase增加Assert.Same(f.Connection,close.Connection)，JSON由实际ReferenceEquals导出sourceCloseExact，其他产品及九个final现有源完全未变，原Level mutation目标方法未变。before42／old-driver及旧断言完全保留；旧emptycase直接断言只到Single/IsClose/nofence，physical同源还由共同source-close实现及SQLcase支持，不把旧hardcoded字段冒作该case独立动态引用断言。新case会在fresh formal02直接证明exact reference。
+
+依主控严格口径，freeze02重新Release＋三个无filter full＋四freshcontrols，01仅历史诊断，不冒最终证据。未改Network/Host测试、timeout、parallel、Skip或任何业务实现。Root-cause diagnosis边界另记录，最终Net02必须实际0fail；若仍复现保直接证据，不盲重试。

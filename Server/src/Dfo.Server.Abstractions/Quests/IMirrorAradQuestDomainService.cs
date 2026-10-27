@@ -59,7 +59,7 @@ public interface IMirrorAradQuestDomainService
     ValueTask<QuestAcceptance> AcceptAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct);
     ValueTask<QuestAdvance> TriggerAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct);
     ValueTask<MirrorQuestCompletionPreparation> PrepareCompletionAsync(AccountId account, CharacterId character, ushort quest,
-        ushort selection, ushort count, DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct);
+        ushort selection, ushort count, DateTimeOffset at, SelectedSessionIdentity? session, IEffectFootprintRecorder footprint, CancellationToken ct);
     ValueTask CommitCompletionAsync(AccountId account, CharacterId character, MirrorQuestCompletionPreparation preparation, CancellationToken ct);
     ValueTask<bool> GiveUpAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct);
     ValueTask<bool> ReportAsync(AccountId account, CharacterId character, IReadOnlyList<QuestProgressFact> facts, CancellationToken ct);

@@ -1,3 +1,8 @@
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
@@ -28,6 +33,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 
@@ -45,10 +51,10 @@ public sealed class MonsterDeathHandlerTests
 {
     // Keep the wire assertions and injected reward outcomes, but execute the new domain settlement
     // and its real transaction coordinator rather than emulating transaction boundaries in the handler.
-    private static MonsterDeathHandler CreateHandler(ISelectedSessionDomainService sessions,
+    private static DeathAlgorithmDriver CreateHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService unusedView, ICharacterDomainService characters,
         IDungeonRunDomainService runs, IMonsterKillDomainService kills, IDungeonClearDomainService clear,
-        DungeonClearProjectionDelivery clearProjection, ICommandBus rewards, IQuestOfferRefreshDomainService offers,
+        DungeonClearProjectionDriver clearProjection, ICommandBus rewards, IQuestOfferRefreshDomainService offers,
         DungeonRunDeliveryRegistry registry, IGameMessageSender sender, ExperienceDiagnostics diagnostics,
         Microsoft.Extensions.Logging.ILogger<MonsterDeathHandler> logger, DungeonPartyRecipients? partyRecipients = null,
         Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService? creatures = null,
@@ -56,11 +62,11 @@ public sealed class MonsterDeathHandlerTests
     {
         _ = unusedView;
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
-        var service = new MonsterDeathDomainService(scope, sessions, new PublishedSessions(), characters,
+        var service = new MonsterDeathDomainService(scope, sessions, characters,
             runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
             events: new DeathEvents(scope));
-        return new MonsterDeathHandler(sessions, runs, clear, clearProjection, new DeathBus(scope, service, rewards),
-            registry, sender, diagnostics, logger, partyRecipients, creatures, safety);
+        return new DeathAlgorithmDriver(sessions, runs, clear, clearProjection, scope, service, rewards,
+            registry, sender, diagnostics, partyRecipients, creatures, safety);
     }
     private sealed class DeathEvents(Dfo.Server.Application.Transactions.DomainTransactionScope scope) : IEventService
     {
@@ -83,33 +89,96 @@ public sealed class MonsterDeathHandlerTests
             TNotification notification, CancellationToken cancellationToken = default)
             where TNotification : class, INotification<TNotification> => throw new NotSupportedException();
     }
-    private sealed class PublishedSessions : ISelectedSessionRuntimeDirectory
+    // Same whole-owned ordinary algorithm and real domain transaction. A focused algorithm
+    // fixture: its injected results and manual failure policy do not prove the inbound bus/scope.
+    private sealed class DeathAlgorithmDriver(ISelectedSessionDomainService selected, IDungeonRunDomainService runs,
+        IDungeonClearDomainService clear, DungeonClearProjectionDriver clearProjection,
+        Dfo.Server.Application.Transactions.DomainTransactionScope scope, IMonsterDeathDomainService service, ICommandBus fallback,
+        DungeonRunDeliveryRegistry registry, IGameMessageSender sender, ExperienceDiagnostics diagnostics,
+        DungeonPartyRecipients? recipients, Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService? creatures,
+        SelectedSessionSafety? safety)
     {
-        public bool IsPublishedExact(SelectedSessionIdentity session) => true;
-        public void Publish(SelectedSessionIdentity session, bool persist) => throw new NotSupportedException();
-        public bool TryGetPositionPersistence(SelectedSessionIdentity session, out bool persist) { persist = false; return false; }
-        public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
-    }
-    private sealed class DeathBus(Dfo.Server.Application.Transactions.DomainTransactionScope scope,
-        IMonsterDeathDomainService service, ICommandBus fallback) : ICommandBus
-    {
-        public async ValueTask<T> SendAsync<T>(ICommand<T> command, CancellationToken ct = default) where T : notnull
+        internal async ValueTask HandleAsync(NetworkDispatchContext dispatch, MonsterDeathRequest input, CancellationToken ct)
         {
-            if (command is not ProcessMonsterDeathCommand death) return await fallback.SendAsync(command, ct);
-            await using var tx = scope.Begin();
-            var result = await service.SettleAsync(death.Request, ct);
-            await tx.CommitAsync(ct);
-            return (T)(object)result;
+            var actor = selected.FindByConnection(dispatch.Connection.ConnectionId);
+            var run = actor is null ? null : runs.Find(actor.CharacterId);
+            var parties = recipients is not null ? ProtocolAlgorithmFixture.Field<IPartyService>(recipients)
+                : run is { Participants.Count: > 0 } ? new Dfo.Server.Protocol.Tests.Support.DungeonProjectionParty(run)
+                : ProtocolAlgorithmFixture.Default<IPartyService>();
+            var units = new DeathUnits(scope, fallback, selected, runs, registry, parties);
+            var handler = ProtocolAlgorithmFixture.Create<GameMonsterDeathCommandHandler>(selected, runs, registry, parties,
+                clear, service, creatures ?? ProtocolAlgorithmFixture.Create<Dfo.Server.Application.Creatures.CreatureRuntimeDomainService>(selected, scope),
+                ProtocolAlgorithmFixture.Field<IQuestQueryDomainService>(clearProjection),
+                new DeathUsers(selected, dispatch, safety), units, new DriverOutbox(sender));
+            var command = new GameMonsterDeathCommand(dispatch, input with { LabelProbe = diagnostics.LabelProbe });
+            try { _ = await handler.HandleAsync(Dfo.Server.Protocol.Tests.Support.ComponentContext.For(command, handler.GetType()), command, ct); }
+            catch (Exception error) when (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            {
+                if (safety is not null)
+                    foreach (var recipient in units.Captured) await safety.BlockAsync(recipient, error, nameof(DeathAlgorithmDriver));
+                throw;
+            }
         }
+    }
+    private sealed class DeathUsers(ISelectedSessionDomainService sessions, NetworkDispatchContext dispatch,
+        SelectedSessionSafety? safety) : Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService
+    {
+        public Dfo.Server.Data.OnlineUsers.OnlineUserSnapshot GetRequired(Dfo.Server.Data.OnlineUsers.OnlineUserId id) => throw new NotSupportedException();
+        public bool TryGetByConnection(NetworkConnectionId id, out Dfo.Server.Data.OnlineUsers.OnlineUserSnapshot? user)
+        {
+            var session = sessions.FindByConnection(id);
+            var connection = session is null ? null : safety is not null ? safety.Capture(session, null).Connection
+                : id == dispatch.Connection.ConnectionId ? dispatch.Connection : null;
+            user = session is null || connection is null ? null : new(Dfo.Server.Data.OnlineUsers.OnlineUserId.New(),
+                connection, session.AccountId, session.CharacterId, Dfo.Server.Data.OnlineUsers.OnlineUserState.CharacterActive,
+                session.ConnectionGeneration);
+            return user is not null;
+        }
+    }
+    private sealed class DeathUnits(Dfo.Server.Application.Transactions.DomainTransactionScope scope, ICommandBus objectResults,
+        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, DungeonRunDeliveryRegistry registry,
+        IPartyService parties) : ICommandWorkUnits
+    {
+        internal IReadOnlyList<SelectedSessionRecipient> Captured { get; private set; } = [];
+        public async ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
+        {
+            if (declaration.Name == "destroy-dungeon-object" && typeof(T) == typeof(ObjectDestructionResult)
+                && context.Request is CommandRequestContext.ProtocolNonEffect { Message: MonsterDeathRequest { ObjectCode: { } code } } request)
+            {
+                var session = sessions.FindByConnection(request.Dispatch.Connection.ConnectionId)!;
+                var run = runs.Find(session.CharacterId)!;
+                var participants = run.PartyMemberCount > 1
+                    ? DungeonPartyRecipients.FindCurrent(parties, sessions, runs, registry, session, run.RunId) : [session];
+                return (T)(object)await objectResults.SendAsync(new ObjectDestructionFacts(session, run.RunId,
+                    run.RoomVersion, code, participants), ct);
+            }
+            if (declaration.Name != "settle-monster-death" || typeof(T) != typeof(MonsterDeathSettlementResult))
+                throw new NotSupportedException("Only the original death fixture transaction and object-result boundary are supplied.");
+            Captured = declaration.Participants;
+            await using var tx = scope.Begin();
+            var result = await TestEffectFootprints.Run(declaration.FootprintOwners!, async footprint =>
+            {
+                var unit = new CommandWorkUnit(scope.Current!, context.Request!, footprint);
+                try { return await action(unit, ct); }
+                finally { unit.Close(); }
+            });
+            await tx.CommitAsync(ct);
+            return result;
+        }
+        public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
+        public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull => throw new NotSupportedException();
     }
     private sealed class RewardAdapter(ICommandBus bus) : IMonsterKillRewardsDomainService
     {
         public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session, AccountId account,
             CharacterId character, IdentifiedKill kill, int dungeon, DungeonDifficulty difficulty, double weight,
             int count, PartyKey party, bool boss, DungeonRunId? run, RoomActorId? actor, int? world,
-            IReadOnlyList<RolledDrop>? loot, CancellationToken ct)
+            IReadOnlyList<RolledDrop>? loot, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
-            var applied = await bus.SendAsync(new ApplyMonsterKillCommand(account, character,
+            var applied = await bus.SendAsync(new MonsterRewardFacts(account, character,
                 new(kill.Code, kill.Level, kill.Rank, kill.IsNamedMonster), dungeon, difficulty, weight,
                 kill.IsMonster ? HuntEnemyTargetTypes.Monster : HuntEnemyTargetTypes.AiCharacter,
                 count, loot, party, boss, session, run, actor, world), ct);
@@ -155,21 +224,24 @@ public sealed class MonsterDeathHandlerTests
     [Fact]
     public async Task ThePointsReportedAreTheOnesTheKillLeftBehind()
     {
-        var crossed = new SkillPointLedger();
-        var reported = await Kill(leveledUp: true, ledger: crossed);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var crossed = new SkillPointLedger();
+            var reported = await Kill(leveledUp: true, ledger: crossed);
 
-        Assert.Equal(2, crossed.TimesAsked);
-        var afterTheLevel = reported.OfType<ExperienceNotification>().Single();
-        Assert.Equal(SkillPointLedger.AfterTheLevel, afterTheLevel.SkillPoints);
-        Assert.NotEqual(SkillPointLedger.StaleEntryMirror, afterTheLevel.SkillPoints);
+            Assert.Equal(2, crossed.TimesAsked);
+            var afterTheLevel = reported.OfType<ExperienceNotification>().Single();
+            Assert.Equal(SkillPointLedger.AfterTheLevel, afterTheLevel.SkillPoints);
+            Assert.NotEqual(SkillPointLedger.StaleEntryMirror, afterTheLevel.SkillPoints);
 
-        var stayed = new SkillPointLedger();
-        var unchanged = await Kill(ledger: stayed);
+            var stayed = new SkillPointLedger();
+            var unchanged = await Kill(ledger: stayed);
 
-        Assert.Equal(1, stayed.TimesAsked);
-        var beforeTheLevel = unchanged.OfType<ExperienceNotification>().Single();
-        Assert.Equal(SkillPointLedger.BeforeTheLevel, beforeTheLevel.SkillPoints);
-        Assert.NotEqual(SkillPointLedger.StaleEntryMirror, beforeTheLevel.SkillPoints);
+            Assert.Equal(1, stayed.TimesAsked);
+            var beforeTheLevel = unchanged.OfType<ExperienceNotification>().Single();
+            Assert.Equal(SkillPointLedger.BeforeTheLevel, beforeTheLevel.SkillPoints);
+            Assert.NotEqual(SkillPointLedger.StaleEntryMirror, beforeTheLevel.SkillPoints);
+        });
     }
 
     /// <summary>
@@ -186,18 +258,21 @@ public sealed class MonsterDeathHandlerTests
     [Fact]
     public async Task TheKillReportsTheStandingItLeftBehind()
     {
-        var content = new StubWorldContentEntryRuleService();
-        var sent = await Kill(leveledUp: true, content: content);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var content = new StubWorldContentEntryRuleService();
+            var sent = await Kill(leveledUp: true, content: content);
 
-        Assert.Equal(
-            [typeof(ExperienceNotification), typeof(MonsterDeathNotification),
-             typeof(AvailableQuestListMessage)],
-            sent.Select(frame => frame.GetType()));
+            Assert.Equal(
+                [typeof(ExperienceNotification), typeof(MonsterDeathNotification),
+                 typeof(AvailableQuestListMessage)],
+                sent.Select(frame => frame.GetType()));
 
-        var experience = sent.OfType<ExperienceNotification>().Single();
-        Assert.Equal(StartingLevel + 1, experience.Level);
-        Assert.Equal(StartingExperience + KillGain, experience.TotalExperience);
-        Assert.Equal(StartingLevel + 1, content.LastSubject?.Level);
+            var experience = sent.OfType<ExperienceNotification>().Single();
+            Assert.Equal(StartingLevel + 1, experience.Level);
+            Assert.Equal(StartingExperience + KillGain, experience.TotalExperience);
+            Assert.Equal(StartingLevel + 1, content.LastSubject?.Level);
+        });
     }
 
     /// <summary>
@@ -212,214 +287,247 @@ public sealed class MonsterDeathHandlerTests
     [Fact]
     public async Task WithoutASkillLedgerTheKillIsNeitherPaidNorReported()
     {
-        var bus = new FixedKillAward(leveledUp: false);
-        var sent = await Kill(bus: bus, withLedger: false);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new FixedKillAward(leveledUp: false);
+            var sent = await Kill(bus: bus, withLedger: false);
 
-        Assert.Equal(0, bus.TimesAsked);
-        var acknowledgement = Assert.IsType<MonsterDeathNotification>(Assert.Single(sent));
-        Assert.Equal(DeadActor, acknowledgement.ActorSequence);
-        Assert.Empty(acknowledgement.Drops);
+            Assert.Equal(0, bus.TimesAsked);
+            var acknowledgement = Assert.IsType<MonsterDeathNotification>(Assert.Single(sent));
+            Assert.Equal(DeadActor, acknowledgement.ActorSequence);
+            Assert.Empty(acknowledgement.Drops);
+        });
     }
 
     [Fact]
     public async Task MaxLevelKillProjectsTheTemporaryCumulativeValue()
     {
-        const uint maximum = 1046561640;
-        var award = new ExperienceAward(new(Base: 14), 86, maximum, false)
-            { NotificationTotal = maximum + 14, Overflow = 14 };
-        var sent = await Kill(bus: new FixedKillAward(false, overrideAward: award));
-        var notice = Assert.Single(sent.OfType<ExperienceNotification>());
-        Assert.Equal(86, notice.Level);
-        Assert.Equal(maximum + 14, notice.TotalExperience);
-        Assert.Equal(maximum, award.Total);
+        await TestGameplay.RunAsync(async () =>
+        {
+            const uint maximum = 1046561640;
+            var award = new ExperienceAward(new(Base: 14), 86, maximum, false)
+                { NotificationTotal = maximum + 14, Overflow = 14 };
+            var sent = await Kill(bus: new FixedKillAward(false, overrideAward: award));
+            var notice = Assert.Single(sent.OfType<ExperienceNotification>());
+            Assert.Equal(86, notice.Level);
+            Assert.Equal(maximum + 14, notice.TotalExperience);
+            Assert.Equal(maximum, award.Total);
+        });
     }
 
     [Fact]
     public async Task ADeathWithNoNewRewardAtCapReportsOnlyTheCap()
     {
-        const uint maximum = 1046561640;
-        var ledger = new SkillPointLedger { Progress = new(86, maximum) };
-        var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
-        Assert.Equal(maximum, Assert.Single(sent.OfType<ExperienceNotification>()).TotalExperience);
+        await TestGameplay.RunAsync(async () =>
+        {
+            const uint maximum = 1046561640;
+            var ledger = new SkillPointLedger { Progress = new(86, maximum) };
+            var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
+            Assert.Equal(maximum, Assert.Single(sent.OfType<ExperienceNotification>()).TotalExperience);
+        });
     }
 
     [Fact]
     public async Task A_kill_without_an_award_reports_current_progress_instead_of_the_entry_copy()
     {
-        var ledger = new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) };
-        var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
-        var experience = Assert.Single(sent.OfType<ExperienceNotification>());
-        Assert.Equal(9, experience.Level);
-        Assert.Equal(6000u, experience.TotalExperience);
-        Assert.Equal([typeof(ExperienceNotification), typeof(MonsterDeathNotification)], sent.Select(frame => frame.GetType()));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var ledger = new SkillPointLedger { Progress = new CharacterProgressionState(9, 6000) };
+            var sent = await Kill(ledger: ledger, bus: new FixedKillAward(false, awarded: false));
+            var experience = Assert.Single(sent.OfType<ExperienceNotification>());
+            Assert.Equal(9, experience.Level);
+            Assert.Equal(6000u, experience.TotalExperience);
+            Assert.Equal([typeof(ExperienceNotification), typeof(MonsterDeathNotification)], sent.Select(frame => frame.GetType()));
+        });
     }
 
     [Fact]
     public async Task A_direct_quest_grant_refreshes_the_receivers_bag_and_quest_after_death()
     {
-        var item = new InventoryItemState(
-            null, 180, StackableItemCore.Create(6, 10149163, 1));
-        var update = new CommittedInventoryUpdateState(
-            InventoryContainerType.Main, [item], DateTimeOffset.UnixEpoch);
-        var progress = new QuestProgressSnapshot(
-            [new CarriedQuest(0, 1779, 14)]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var item = new InventoryItemState(
+                null, 180, StackableItemCore.Create(6, 10149163, 1));
+            var update = new CommittedInventoryUpdateState(
+                InventoryContainerType.Main, [item], DateTimeOffset.UnixEpoch);
+            var progress = new QuestProgressSnapshot(
+                [new CarriedQuest(0, 1779, 14)]);
 
-        var sent = await Kill(bus: new FixedKillAward(
-            leveledUp: false, questItems: update, questProgress: progress));
+            var sent = await Kill(bus: new FixedKillAward(
+                leveledUp: false, questItems: update, questProgress: progress));
 
-        Assert.Equal(
-            [typeof(ExperienceNotification), typeof(MonsterDeathNotification),
-                typeof(InventoryDeltaMessage), typeof(AcceptedQuestProgressMessage)],
-            sent.Select(frame => frame.GetType()));
-        Assert.Equal(180, Assert.Single(sent.OfType<InventoryDeltaMessage>()).Items.Single().SlotIndex);
+            Assert.Equal(
+                [typeof(ExperienceNotification), typeof(MonsterDeathNotification),
+                    typeof(InventoryDeltaMessage), typeof(AcceptedQuestProgressMessage)],
+                sent.Select(frame => frame.GetType()));
+            Assert.Equal(180, Assert.Single(sent.OfType<InventoryDeltaMessage>()).Items.Single().SlotIndex);
+        });
     }
 
     [Fact]
     public async Task A_server_counted_kill_pushes_its_quest_progress_without_a_trigger_request()
     {
-        var sent = await Kill(bus: new FixedKillAward(
-            leveledUp: false,
-            questProgress: new QuestProgressSnapshot([new CarriedQuest(0, 1776, 0)])));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sent = await Kill(bus: new FixedKillAward(
+                leveledUp: false,
+                questProgress: new QuestProgressSnapshot([new CarriedQuest(0, 1776, 0)])));
 
-        var notice = Assert.Single(sent.OfType<AcceptedQuestProgressMessage>());
-        Assert.Equal([(1776, 0u)], notice.Quests
-            .Select(quest => ((int)quest.QuestId, quest.TriggerValue)));
+            var notice = Assert.Single(sent.OfType<AcceptedQuestProgressMessage>());
+            Assert.Equal([(1776, 0u)], notice.Quests
+                .Select(quest => ((int)quest.QuestId, quest.TriggerValue)));
+        });
     }
 
     [Fact]
     public async Task AVerifiedFirstDeathProducesOneCanonicalQuestKillFact()
     {
-        var bus = new FixedKillAward(leveledUp: false);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new FixedKillAward(leveledUp: false);
 
-        await Kill(bus: bus);
+            await Kill(bus: bus);
 
-        var fact = Assert.IsType<ApplyMonsterKillCommand>(bus.LastKillCommand);
-        Assert.Equal(144, fact.DungeonId);
-        Assert.Equal(3001, fact.Monster.Code);
-        Assert.Equal(0, (int)fact.Monster.Rank);
-        Assert.Equal(1, bus.QuestCommands);
+            var fact = Assert.IsType<MonsterRewardFacts>(bus.LastKillCommand);
+            Assert.Equal(144, fact.DungeonId);
+            Assert.Equal(3001, fact.Monster.Code);
+            Assert.Equal(0, (int)fact.Monster.Rank);
+            Assert.Equal(1, bus.QuestCommands);
+        });
     }
 
     [Fact]
     public async Task AFailedDurableKillCanBeRetriedWithoutDoubleApplyingIt()
     {
-        var run = new OneRun();
-        var bus = new FixedKillAward(leveledUp: false, failuresBeforeSuccess: 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var run = new OneRun();
+            var bus = new FixedKillAward(leveledUp: false, failuresBeforeSuccess: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await Kill(bus: bus, run: run));
-        var sent = await Kill(bus: bus, run: run);
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await Kill(bus: bus, run: run));
+            var sent = await Kill(bus: bus, run: run);
 
-        Assert.Equal(1, run.Restores);
-        Assert.Equal(2, bus.TimesAsked);
-        Assert.Single(sent.OfType<MonsterDeathNotification>());
+            Assert.Equal(1, run.Restores);
+            Assert.Equal(2, bus.TimesAsked);
+            Assert.Single(sent.OfType<MonsterDeathNotification>());
+        });
     }
 
     [Fact]
     public async Task AnAiCharacterDeathProducesOnlyOneServerVerifiedAiQuestFact()
     {
-        var run = new OneRun();
-        var bus = new FixedKillAward(
-            leveledUp: false,
-            awarded: false,
-            failuresBeforeSuccess: 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var run = new OneRun();
+            var bus = new FixedKillAward(
+                leveledUp: false,
+                awarded: false,
+                failuresBeforeSuccess: 1);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await Kill(
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await Kill(
+                    bus: bus,
+                    run: run,
+                    killRules: new OneDeclaredAiCharacter()));
+            var sent = await Kill(
                 bus: bus,
                 run: run,
-                killRules: new OneDeclaredAiCharacter()));
-        var sent = await Kill(
-            bus: bus,
-            run: run,
-            killRules: new OneDeclaredAiCharacter());
-        await Kill(
-            bus: bus,
-            run: run,
-            killRules: new OneDeclaredAiCharacter());
+                killRules: new OneDeclaredAiCharacter());
+            await Kill(
+                bus: bus,
+                run: run,
+                killRules: new OneDeclaredAiCharacter());
 
-        Assert.Equal(1, run.Restores);
-        Assert.Equal(2, bus.TimesAsked);
-        Assert.Equal(HuntEnemyTargetTypes.AiCharacter, bus.LastKillCommand?.EnemyType);
-        Assert.Single(sent.OfType<MonsterDeathNotification>());
+            Assert.Equal(1, run.Restores);
+            Assert.Equal(2, bus.TimesAsked);
+            Assert.Equal(HuntEnemyTargetTypes.AiCharacter, bus.LastKillCommand?.EnemyType);
+            Assert.Single(sent.OfType<MonsterDeathNotification>());
+        });
     }
 
     [Fact]
     public async Task AnAPCDeathProjectsItsCommittedIndependentDropWithoutMonsterExperience()
     {
-        var bus = new FixedKillAward(leveledUp: false, awarded: false);
-        var sent = await Kill(bus: bus, run: new OneRun(apcDrop: true),
-            killRules: new OneDeclaredAiCharacter());
-        var death = Assert.Single(sent.OfType<MonsterDeathNotification>());
-        Assert.Equal(1001, Assert.Single(death.Drops).ItemId);
-        Assert.Equal(HuntEnemyTargetTypes.AiCharacter, bus.LastKillCommand?.EnemyType);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var bus = new FixedKillAward(leveledUp: false, awarded: false);
+            var sent = await Kill(bus: bus, run: new OneRun(apcDrop: true),
+                killRules: new OneDeclaredAiCharacter());
+            var death = Assert.Single(sent.OfType<MonsterDeathNotification>());
+            Assert.Equal(1001, Assert.Single(death.Drops).ItemId);
+            Assert.Equal(HuntEnemyTargetTypes.AiCharacter, bus.LastKillCommand?.EnemyType);
+        });
     }
 
     [Fact]
     public async Task APartyKillPaysEachFrozenExactParticipantAndBroadcastsOneSharedDeath()
     {
-        var leader = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(
-            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
-        var participants = new[]
+        await TestGameplay.RunAsync(async () =>
         {
-            new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, Slot: 0, IsLeader: true),
-            new DungeonRunParticipant(
-                member.AccountId, member.CharacterId, Slot: 1, IsLeader: false),
-        };
-        var run = new PartyRun(participants);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, member]);
-        var sessions = new PartySessions([leader, member]);
-        var runtime = new PartyRuntimeSessions([leader, member]);
-        var bus = new PartyKillBus();
-        var settlement = new RecordingSettlementRules();
-        var sender = new PartyRecordingSender();
-        var killRules = new OneClearedBossMonster();
-        var handler = CreateHandler(
-            sessions,
-            runtime,
-            new PartyCharacters([leader.CharacterId, member.CharacterId]),
-            run,
-            killRules,
-            new DungeonClearDomainService(run, killRules),
-            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
-            bus,
-            new QuestOfferRefreshDomainService(
-                new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            registry,
-            sender,
-            ExperienceDiagnostics.None,
-            NullLogger<MonsterDeathHandler>.Instance);
+            var leader = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+            var member = SelectedSessionIdentity.Create(
+                new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+            var participants = new[]
+            {
+                new DungeonRunParticipant(
+                    leader.AccountId, leader.CharacterId, Slot: 0, IsLeader: true),
+                new DungeonRunParticipant(
+                    member.AccountId, member.CharacterId, Slot: 1, IsLeader: false),
+            };
+            var run = new PartyRun(participants);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, member]);
+            var sessions = new PartySessions([leader, member]);
+            var runtime = new PartyRuntimeSessions([leader, member]);
+            var bus = new PartyKillBus();
+            var settlement = new RecordingSettlementRules();
+            var sender = new PartyRecordingSender();
+            var killRules = new OneClearedBossMonster();
+            var handler = CreateHandler(
+                sessions,
+                runtime,
+                new PartyCharacters([leader.CharacterId, member.CharacterId]),
+                run,
+                killRules,
+                new DungeonClearDomainService(run, killRules),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                registry,
+                sender,
+                ExperienceDiagnostics.None,
+                NullLogger<MonsterDeathHandler>.Instance);
 
-        await handler.HandleAsync(
-            ContextOf(leader),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
-            CancellationToken.None);
-        await handler.HandleAsync(
-            ContextOf(member),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, member.WireUserId),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                ContextOf(leader),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
+                CancellationToken.None);
+            await handler.HandleAsync(
+                ContextOf(member),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, member.WireUserId),
+                CancellationToken.None);
 
-        Assert.Equal([leader.CharacterId, member.CharacterId],
-            bus.Commands.Select(command => command.CharacterId));
-        Assert.Equal(new[] { leader, member }, bus.Commands.Select(command => command.Session));
-        Assert.All(bus.Commands, command => Assert.Equal(2, command.PartyMemberCount));
-        Assert.All(bus.Commands, command => Assert.True(command.IsFinalBossDeath));
+            Assert.Equal([leader.CharacterId, member.CharacterId],
+                bus.Commands.Select(command => command.CharacterId));
+            Assert.Equal(new[] { leader, member }, bus.Commands.Select(command => command.Session));
+            Assert.All(bus.Commands, command => Assert.Equal(2, command.PartyMemberCount));
+            Assert.All(bus.Commands, command => Assert.True(command.IsFinalBossDeath));
 
-        foreach (var session in new[] { leader, member })
-        {
-            var received = sender.For(session.ConnectionId);
-            Assert.Single(received.OfType<ExperienceNotification>());
-            var death = received.OfType<MonsterDeathNotification>().First();
-            Assert.Single(death.Drops);
-            Assert.Equal(leader.WireUserId, death.Owner);
-            Assert.Single(received.OfType<EnableClearDungeonNotification>());
-            Assert.Single(received.OfType<SecretShopNpcNotification>());
-        }
+            foreach (var session in new[] { leader, member })
+            {
+                var received = sender.For(session.ConnectionId);
+                Assert.Single(received.OfType<ExperienceNotification>());
+                var death = received.OfType<MonsterDeathNotification>().First();
+                Assert.Single(death.Drops);
+                Assert.Equal(leader.WireUserId, death.Owner);
+                Assert.Single(received.OfType<EnableClearDungeonNotification>());
+                Assert.Single(received.OfType<SecretShopNpcNotification>());
+            }
+        });
     }
 
     [Theory]
@@ -427,57 +535,66 @@ public sealed class MonsterDeathHandlerTests
     [InlineData(true)]
     public async Task Object_rewards_are_projected_only_to_each_owners_exact_session(bool replaceMember)
     {
-        var leader = SelectedSessionIdentity.Create(new(1), new(60), new("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(new(2), new(61), new("member"), 1, 10011);
-        var sessions = new Dfo.Server.Application.Sessions.SelectedSessionDomainService();
-        sessions.Select(leader);
-        sessions.Select(member);
-        var run = new PartyRun([
-            new(leader.AccountId, leader.CharacterId, 0, true),
-            new(member.AccountId, member.CharacterId, 1, false)]);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, member]);
-        var sender = new PartyRecordingSender();
-        var kills = new OneDeclaredMonster();
-        var replacement = member with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
-        var bus = new ObjectRewardBus(() => { if (replaceMember) sessions.Select(replacement); });
-        var handler = CreateHandler(sessions, new PartyRuntimeSessions([leader, member]),
-            new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
-            new DungeonClearDomainService(run, kills),
-            new DungeonClearProjectionDelivery(sessions, run, registry, sender), bus,
-            new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
-                new RecordingQuestLogs(), CurrentCharacterStub.Domain()), registry, sender,
-            ExperienceDiagnostics.None, NullLogger<MonsterDeathHandler>.Instance);
-        await handler.HandleAsync(ContextOf(leader),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, 0, ushort.MaxValue) { ObjectCode = 8961 }, default);
-        Assert.Equal([leader, member], bus.Command!.Recipients);
-        foreach (var recipient in replaceMember ? new[] { leader } : new[] { leader, member })
+        await TestGameplay.RunAsync(async () =>
         {
-            var frames = sender.For(recipient.ConnectionId);
-            Assert.Equal(2, frames.Count);
-            var item = Assert.Single(Assert.IsType<InventoryDeltaMessage>(frames[0]).Items);
-            Assert.Equal(recipient.CharacterId.Value, item.Core.Value);
-            Assert.IsType<AcceptedQuestProgressMessage>(frames[1]);
-            Assert.Empty(frames.OfType<ExperienceNotification>());
-            Assert.Empty(frames.OfType<MonsterDeathNotification>());
-        }
-        Assert.Empty(sender.For(replacement.ConnectionId));
-        if (replaceMember) Assert.Empty(sender.For(member.ConnectionId));
+            var leader = SelectedSessionIdentity.Create(new(1), new(60), new("leader"), 2, 10010);
+            var member = SelectedSessionIdentity.Create(new(2), new(61), new("member"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, leader);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, member);
+            var run = new PartyRun([
+                new(leader.AccountId, leader.CharacterId, 0, true),
+                new(member.AccountId, member.CharacterId, 1, false)]);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, member]);
+            var sender = new PartyRecordingSender();
+            var kills = new OneDeclaredMonster();
+            var replacement = member with { ConnectionId = new("replacement"), ConnectionGeneration = 2 };
+            var bus = new ObjectRewardBus(() =>
+            {
+                if (replaceMember) Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, replacement);
+            });
+            var handler = CreateHandler(sessions, new PartyRuntimeSessions([leader, member]),
+                new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
+                new DungeonClearDomainService(run, kills),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender), bus,
+                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
+                    new RecordingQuestLogs(), CurrentCharacterStub.Domain()), registry, sender,
+                ExperienceDiagnostics.None, NullLogger<MonsterDeathHandler>.Instance);
+            await handler.HandleAsync(ContextOf(leader),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, 0, ushort.MaxValue) { ObjectCode = 8961 }, default);
+            Assert.Equal([leader, member], bus.Command!.Recipients);
+            foreach (var recipient in replaceMember ? new[] { leader } : new[] { leader, member })
+            {
+                var frames = sender.For(recipient.ConnectionId);
+                Assert.Equal(2, frames.Count);
+                var item = Assert.Single(Assert.IsType<InventoryDeltaMessage>(frames[0]).Items);
+                Assert.Equal(recipient.CharacterId.Value, item.Core.Value);
+                Assert.IsType<AcceptedQuestProgressMessage>(frames[1]);
+                Assert.Empty(frames.OfType<ExperienceNotification>());
+                Assert.Empty(frames.OfType<MonsterDeathNotification>());
+            }
+            Assert.Empty(sender.For(replacement.ConnectionId));
+            if (replaceMember) Assert.Empty(sender.For(member.ConnectionId));
+        });
     }
 
     private sealed class ObjectRewardBus(Action afterCommit) : ICommandBus
     {
-        public ApplyObjectDestructionCommand? Command { get; private set; }
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        public ObjectDestructionFacts? Command { get; private set; }
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken ct)
             where TResult : notnull
         {
-            this.Command = Assert.IsType<ApplyObjectDestructionCommand>(command);
+            this.Command = Assert.IsType<ObjectDestructionFacts>(command);
             var rewards = this.Command.Recipients.Select(session => new ObjectQuestReward(session,
-                new ApplyMonsterKillResult(null, [], new CommittedInventoryUpdateState(
+                new MonsterKillEffects(null, new QuestProgressSnapshot([new CarriedQuest(0, 2201, 8)]), new CommittedInventoryUpdateState(
                     InventoryContainerType.Main,
                     [new InventoryItemState(null, 0,
                         StackableItemCore.Create(6, 10149163, session.CharacterId.Value))], DateTimeOffset.UtcNow),
-                    new QuestProgressSnapshot([new CarriedQuest(0, 2201, 8)]), []))).ToArray();
+                    []))).ToArray();
             afterCommit();
             return ValueTask.FromResult((TResult)(object)new ObjectDestructionResult(rewards));
         }
@@ -486,246 +603,261 @@ public sealed class MonsterDeathHandlerTests
     [Fact]
     public async Task AReplacementConnectionDoesNotInheritAnOlderRunsKillEffects()
     {
-        var leader = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
-        var frozenMember = SelectedSessionIdentity.Create(
-            new AccountId(2), new CharacterId(61), new NetworkConnectionId("old-member"), 1, 10011);
-        var replacement = frozenMember with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("replacement"),
-            ConnectionGeneration = 2,
-        };
-        var run = new PartyRun(
-        [
-            new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, 0, IsLeader: true),
-            new DungeonRunParticipant(
-                frozenMember.AccountId, frozenMember.CharacterId, 1,
-                IsLeader: false),
-        ]);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, frozenMember]);
-        var bus = new PartyKillBus();
-        var sender = new PartyRecordingSender();
-        var sessions = new PartySessions([leader, replacement]);
-        var killRules = new OneClearedBossMonster();
-        var settlement = new RecordingSettlementRules();
-        var handler = CreateHandler(
-            sessions,
-            new PartyRuntimeSessions([leader, replacement]),
-            new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
-            run,
-            killRules,
-            new DungeonClearDomainService(run, killRules),
-            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
-            bus,
-            new QuestOfferRefreshDomainService(
-                new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            registry,
-            sender,
-            ExperienceDiagnostics.None,
-            NullLogger<MonsterDeathHandler>.Instance);
+            var leader = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+            var frozenMember = SelectedSessionIdentity.Create(
+                new AccountId(2), new CharacterId(61), new NetworkConnectionId("old-member"), 1, 10011);
+            var replacement = frozenMember with
+            {
+                ConnectionId = new NetworkConnectionId("replacement"),
+                ConnectionGeneration = 2,
+            };
+            var run = new PartyRun(
+            [
+                new DungeonRunParticipant(
+                    leader.AccountId, leader.CharacterId, 0, IsLeader: true),
+                new DungeonRunParticipant(
+                    frozenMember.AccountId, frozenMember.CharacterId, 1,
+                    IsLeader: false),
+            ]);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, frozenMember]);
+            var bus = new PartyKillBus();
+            var sender = new PartyRecordingSender();
+            var sessions = new PartySessions([leader, replacement]);
+            var killRules = new OneClearedBossMonster();
+            var settlement = new RecordingSettlementRules();
+            var handler = CreateHandler(
+                sessions,
+                new PartyRuntimeSessions([leader, replacement]),
+                new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
+                run,
+                killRules,
+                new DungeonClearDomainService(run, killRules),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                registry,
+                sender,
+                ExperienceDiagnostics.None,
+                NullLogger<MonsterDeathHandler>.Instance);
 
-        await handler.HandleAsync(
-            ContextOf(leader),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                ContextOf(leader),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
+                CancellationToken.None);
 
-        var applied = Assert.Single(bus.Commands);
-        Assert.Equal(leader.CharacterId, applied.CharacterId);
-        Assert.Equal(2, applied.PartyMemberCount);
-        Assert.Empty(sender.For(frozenMember.ConnectionId));
-        Assert.Empty(sender.For(replacement.ConnectionId));
+            var applied = Assert.Single(bus.Commands);
+            Assert.Equal(leader.CharacterId, applied.CharacterId);
+            Assert.Equal(2, applied.PartyMemberCount);
+            Assert.Empty(sender.For(frozenMember.ConnectionId));
+            Assert.Empty(sender.For(replacement.ConnectionId));
+        });
     }
 
     [Fact]
     public async Task ARemainingMemberCanFinishTheSharedBossAfterTheLeaderLeavesDelivery()
     {
-        var leader = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(
-            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
-        var run = new PartyRun(
-        [
-            new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, 0, IsLeader: true),
-            new DungeonRunParticipant(
-                member.AccountId, member.CharacterId, 1, IsLeader: false),
-        ], leader.CharacterId);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, member]);
-        Assert.True(registry.RemoveParticipant(run.RunId, leader.CharacterId));
-        var bus = new PartyKillBus();
-        var settlement = new RecordingSettlementRules();
-        var sender = new PartyRecordingSender();
-        var sessions = new PartySessions([member]);
-        var killRules = new OneClearedBossMonster();
-        var handler = CreateHandler(
-            sessions,
-            new PartyRuntimeSessions([member]),
-            new PartyCharacters([member.CharacterId]),
-            run,
-            killRules,
-            new DungeonClearDomainService(run, killRules),
-            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
-            bus,
-            new QuestOfferRefreshDomainService(
-                new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            registry,
-            sender,
-            ExperienceDiagnostics.None,
-            NullLogger<MonsterDeathHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var leader = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+            var member = SelectedSessionIdentity.Create(
+                new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+            var run = new PartyRun(
+            [
+                new DungeonRunParticipant(
+                    leader.AccountId, leader.CharacterId, 0, IsLeader: true),
+                new DungeonRunParticipant(
+                    member.AccountId, member.CharacterId, 1, IsLeader: false),
+            ], leader.CharacterId);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, member]);
+            Assert.True(registry.RemoveParticipant(run.RunId, leader.CharacterId));
+            var bus = new PartyKillBus();
+            var settlement = new RecordingSettlementRules();
+            var sender = new PartyRecordingSender();
+            var sessions = new PartySessions([member]);
+            var killRules = new OneClearedBossMonster();
+            var handler = CreateHandler(
+                sessions,
+                new PartyRuntimeSessions([member]),
+                new PartyCharacters([member.CharacterId]),
+                run,
+                killRules,
+                new DungeonClearDomainService(run, killRules),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                registry,
+                sender,
+                ExperienceDiagnostics.None,
+                NullLogger<MonsterDeathHandler>.Instance);
 
-        await handler.HandleAsync(
-            ContextOf(member),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, member.WireUserId),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                ContextOf(member),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, member.WireUserId),
+                CancellationToken.None);
 
-        var applied = Assert.Single(bus.Commands);
-        Assert.Equal(member.CharacterId, applied.CharacterId);
-        Assert.Equal(2, applied.PartyMemberCount);
-        Assert.True(applied.IsFinalBossDeath);
-        var memberFrames = sender.For(member.ConnectionId);
-        Assert.Single(memberFrames.OfType<EnableClearDungeonNotification>());
-        var death = Assert.Single(memberFrames.OfType<MonsterDeathNotification>());
-        Assert.Equal(
-            leader.WireUserId,
-            Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, ushort>>(death.DropOwners)[1]);
+            var applied = Assert.Single(bus.Commands);
+            Assert.Equal(member.CharacterId, applied.CharacterId);
+            Assert.Equal(2, applied.PartyMemberCount);
+            Assert.True(applied.IsFinalBossDeath);
+            var memberFrames = sender.For(member.ConnectionId);
+            Assert.Single(memberFrames.OfType<EnableClearDungeonNotification>());
+            var death = Assert.Single(memberFrames.OfType<MonsterDeathNotification>());
+            Assert.Equal(
+                leader.WireUserId,
+                Assert.IsAssignableFrom<IReadOnlyDictionary<ushort, ushort>>(death.DropOwners)[1]);
+        });
     }
 
     [Fact]
     public void DungeonRecipientsFollowCurrentPartyButNeverAdmitAReplacementConnection()
     {
-        var leader = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(
-            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
-        var townMember = SelectedSessionIdentity.Create(
-            new AccountId(3), new CharacterId(62), new NetworkConnectionId("town-member"), 1, 10012);
-        var replacement = member with
+        TestGameplay.Run(() =>
         {
-            ConnectionId = new NetworkConnectionId("replacement"),
-            ConnectionGeneration = 2,
-        };
-        var party = new PartyService(
-            new FixedPartyMemberStatus(), new PartyModeRuleService(),
-            TimeProvider.System, NoPartyEndpoints.Instance);
-        var scope = new PartyDirectoryScope(11, 1, 1);
-        var first = new PartyCharacterSnapshot(
-            leader.AccountId, leader.CharacterId, leader.WireUserId, scope);
-        var second = new PartyCharacterSnapshot(
-            member.AccountId, member.CharacterId, member.WireUserId, scope);
-        Assert.True(party.RequestInvite(first, second,
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(party.AcceptInvite(second, first).Succeeded);
-        var third = new PartyCharacterSnapshot(
-            townMember.AccountId, townMember.CharacterId, townMember.WireUserId, scope);
-        Assert.True(party.RequestInvite(first, third,
-            new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
-        Assert.True(party.AcceptInvite(third, first).Succeeded);
-        var run = new PartyRun([
-            new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, true),
-            new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, false),
-        ]) { PartyKey = party.FindParty(first).Key };
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, member]);
-        var recipients = new DungeonPartyRecipients(
-            party, new PartySessions([leader, member, townMember]), run, registry);
+            var leader = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+            var member = SelectedSessionIdentity.Create(
+                new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+            var townMember = SelectedSessionIdentity.Create(
+                new AccountId(3), new CharacterId(62), new NetworkConnectionId("town-member"), 1, 10012);
+            var replacement = member with
+            {
+                ConnectionId = new NetworkConnectionId("replacement"),
+                ConnectionGeneration = 2,
+            };
+            var party = new PartyService(
+                new FixedPartyMemberStatus(), new PartyModeRuleService(),
+                TimeProvider.System, NoPartyEndpoints.Instance);
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var first = new PartyCharacterSnapshot(
+                leader.AccountId, leader.CharacterId, leader.WireUserId, scope);
+            var second = new PartyCharacterSnapshot(
+                member.AccountId, member.CharacterId, member.WireUserId, scope);
+            Assert.True(party.RequestInvite(first, second,
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(party.AcceptInvite(second, first).Succeeded);
+            var third = new PartyCharacterSnapshot(
+                townMember.AccountId, townMember.CharacterId, townMember.WireUserId, scope);
+            Assert.True(party.RequestInvite(first, third,
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(party.AcceptInvite(third, first).Succeeded);
+            var run = new PartyRun([
+                new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, true),
+                new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, false),
+            ]) { PartyKey = party.FindParty(first).Key };
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, member]);
+            var recipients = new DungeonPartyRecipients(
+                party, new PartySessions([leader, member, townMember]), run, registry);
 
-        Assert.Equal([leader, member], recipients.Find(leader, run.RunId));
-        Assert.Equal([leader], new DungeonPartyRecipients(
-            party, new PartySessions([leader, replacement]), run, registry)
-            .Find(leader, run.RunId));
-        Assert.True(party.LeaveParty(leader.CharacterId).Succeeded);
-        Assert.Equal([member], recipients.Find(member, run.RunId));
-        Assert.Empty(new DungeonPartyRecipients(
-            party, new PartySessions([replacement]), run, registry)
-            .Find(member, run.RunId));
+            Assert.Equal([leader, member], recipients.Find(leader, run.RunId));
+            Assert.Equal([leader], new DungeonPartyRecipients(
+                party, new PartySessions([leader, replacement]), run, registry)
+                .Find(leader, run.RunId));
+            Assert.True(party.LeaveParty(leader.CharacterId).Succeeded);
+            Assert.Equal([member], recipients.Find(member, run.RunId));
+            Assert.Empty(new DungeonPartyRecipients(
+                party, new PartySessions([replacement]), run, registry)
+                .Find(member, run.RunId));
+        });
     }
 
     [Fact]
     public async Task AFailureAfterOneParticipantWriteRetriesTheWholeKill()
     {
-        var leader = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(
-            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
-        var run = new PartyRun(
-        [
-            new DungeonRunParticipant(
-                leader.AccountId, leader.CharacterId, 0, IsLeader: true),
-            new DungeonRunParticipant(
-                member.AccountId, member.CharacterId, 1, IsLeader: false),
-        ]);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, member]);
-        var bus = new PartyKillBus(member.CharacterId, leader.CharacterId);
-        var sender = new PartyRecordingSender();
-        var runtime = new PartyRuntimeSessions([leader, member]);
-        var sessions = new PartySessions([leader, member]);
-        var killRules = new OneClearedBossMonster();
-        var settlement = new RecordingSettlementRules();
-        var handler = CreateHandler(
-            sessions,
-            runtime,
-            new PartyCharacters([leader.CharacterId, member.CharacterId]),
-            run,
-            killRules,
-            new DungeonClearDomainService(run, killRules),
-            new DungeonClearProjectionDelivery(sessions, run, registry, sender),
-            bus,
-            new QuestOfferRefreshDomainService(
-                new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            registry,
-            sender,
-            ExperienceDiagnostics.None,
-            NullLogger<MonsterDeathHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var leader = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+            var member = SelectedSessionIdentity.Create(
+                new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+            var run = new PartyRun(
+            [
+                new DungeonRunParticipant(
+                    leader.AccountId, leader.CharacterId, 0, IsLeader: true),
+                new DungeonRunParticipant(
+                    member.AccountId, member.CharacterId, 1, IsLeader: false),
+            ]);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, member]);
+            var bus = new PartyKillBus(member.CharacterId, leader.CharacterId);
+            var sender = new PartyRecordingSender();
+            var runtime = new PartyRuntimeSessions([leader, member]);
+            var sessions = new PartySessions([leader, member]);
+            var killRules = new OneClearedBossMonster();
+            var settlement = new RecordingSettlementRules();
+            var handler = CreateHandler(
+                sessions,
+                runtime,
+                new PartyCharacters([leader.CharacterId, member.CharacterId]),
+                run,
+                killRules,
+                new DungeonClearDomainService(run, killRules),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                registry,
+                sender,
+                ExperienceDiagnostics.None,
+                NullLogger<MonsterDeathHandler>.Instance);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await handler.HandleAsync(
+                    ContextOf(leader),
+                    new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
+                    CancellationToken.None));
             await handler.HandleAsync(
-                ContextOf(leader),
-                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
-                CancellationToken.None));
-        await handler.HandleAsync(
-            ContextOf(member),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, member.WireUserId),
-            CancellationToken.None);
+                ContextOf(member),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, member.WireUserId),
+                CancellationToken.None);
 
-        Assert.Equal(
-            [leader.CharacterId, member.CharacterId, leader.CharacterId, member.CharacterId],
-            bus.Commands.Select(command => command.CharacterId));
-        Assert.Equal(1, run.CommitCount);
-        Assert.Equal(1, run.ReleaseCount);
-        Assert.Single(sender.For(leader.ConnectionId).OfType<MonsterDeathNotification>());
-        Assert.Single(sender.For(member.ConnectionId).OfType<MonsterDeathNotification>());
-        var leaderExperience = Assert.Single(
-            sender.For(leader.ConnectionId).OfType<ExperienceNotification>());
-        Assert.Equal((byte)(StartingLevel + 1), leaderExperience.Level);
-        Assert.Equal(17u, leaderExperience.Lines[ExperienceBonusKind.PartyReward]);
-        Assert.Single(sender.For(leader.ConnectionId).OfType<AvailableQuestListMessage>());
-        Assert.Equal(StartingExperience + KillGain, leaderExperience.TotalExperience);
+            Assert.Equal(
+                [leader.CharacterId, member.CharacterId, leader.CharacterId, member.CharacterId],
+                bus.Commands.Select(command => command.CharacterId));
+            Assert.Equal(1, run.CommitCount);
+            Assert.Equal(1, run.ReleaseCount);
+            Assert.Single(sender.For(leader.ConnectionId).OfType<MonsterDeathNotification>());
+            Assert.Single(sender.For(member.ConnectionId).OfType<MonsterDeathNotification>());
+            var leaderExperience = Assert.Single(
+                sender.For(leader.ConnectionId).OfType<ExperienceNotification>());
+            Assert.Equal((byte)(StartingLevel + 1), leaderExperience.Level);
+            Assert.Equal(17u, leaderExperience.Lines[ExperienceBonusKind.PartyReward]);
+            Assert.Single(sender.For(leader.ConnectionId).OfType<AvailableQuestListMessage>());
+            Assert.Equal(StartingExperience + KillGain, leaderExperience.TotalExperience);
+        });
     }
 
     [Fact]
     public async Task ASoloBossClearUsesTheReportingSessionInsteadOfTheLegacyRunPlaceholder()
     {
-        var settlement = new RecordingSettlementRules();
-        var run = new PartyRun(
-        [
-            new DungeonRunParticipant(
-                new AccountId(0), new CharacterId(60), Slot: 0,
-                IsLeader: true),
-        ]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var settlement = new RecordingSettlementRules();
+            var run = new PartyRun(
+            [
+                new DungeonRunParticipant(
+                    new AccountId(0), new CharacterId(60), Slot: 0,
+                    IsLeader: true),
+            ]);
 
-        var sent = await Kill(
-            run: run,
-            killRules: new OneClearedBossMonster(),
-            settlementRules: settlement);
+            var sent = await Kill(
+                run: run,
+                killRules: new OneClearedBossMonster(),
+                settlementRules: settlement);
 
-        Assert.Single(sent.OfType<EnableClearDungeonNotification>());
+            Assert.Single(sent.OfType<EnableClearDungeonNotification>());
+        });
     }
 
     [Theory]
@@ -733,37 +865,80 @@ public sealed class MonsterDeathHandlerTests
     [InlineData(true)]
     public async Task Enemy_APC_death_only_projects_clear_when_the_actual_APC_boss_dies(bool killBoss)
     {
-        var runs = new DungeonRunDomainService();
-        var layout = BossLayout();
-        var other = checked((ushort)(DeadActor + 1));
-        var primary = new DungeonRoomActor(killBoss ? 14003 : 10610, 60,
-            killBoss ? (byte)8 : (byte)5) { IsHostile = true };
-        var secondary = new DungeonRoomActor(killBoss ? 10610 : 14003, 60,
-            killBoss ? (byte)5 : (byte)8) { IsHostile = true };
-        runs.PreparePartyEntry([new(new(1), new(60), 0, true)], layout, 0,
-            new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
-            [new(DeadActor, primary, true, false, [], IsMonster: false),
-                new(other, secondary, true, false, [], IsMonster: false)], []),
-            DungeonRunId.New(), DateTimeOffset.UnixEpoch);
-        var sent = await Kill(run: runs, killRules: new MonsterKillDomainService());
-        Assert.Equal(killBoss, runs.Find(new CharacterId(60))!.ClearOpen);
-        Assert.Equal(killBoss ? 1 : 0, sent.OfType<EnableClearDungeonNotification>().Count());
-        Assert.Equal(killBoss ? new[] { DeadActor, other } : new[] { DeadActor },
-            sent.OfType<MonsterDeathNotification>().Select(message => message.ActorSequence));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var layout = BossLayout();
+            var other = checked((ushort)(DeadActor + 1));
+            var primary = new DungeonRoomActor(killBoss ? 14003 : 10610, 60,
+                killBoss ? (byte)8 : (byte)5) { IsHostile = true };
+            var secondary = new DungeonRoomActor(killBoss ? 10610 : 14003, 60,
+                killBoss ? (byte)5 : (byte)8) { IsHostile = true };
+            runs.PreparePartyEntry([new(new(1), new(60), 0, true)], layout, 0,
+                new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
+                [new(DeadActor, primary, true, false, [], IsMonster: false),
+                    new(other, secondary, true, false, [], IsMonster: false)], []),
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch);
+            var sent = await Kill(run: runs, killRules: new MonsterKillDomainService());
+            Assert.Equal(killBoss, runs.Find(new CharacterId(60))!.ClearOpen);
+            Assert.Equal(killBoss ? 1 : 0, sent.OfType<EnableClearDungeonNotification>().Count());
+            Assert.Equal(killBoss ? new[] { DeadActor, other } : new[] { DeadActor },
+                sent.OfType<MonsterDeathNotification>().Select(message => message.ActorSequence));
+        });
     }
 
     [Fact]
     public async Task Boss_death_projects_remaining_monsters_as_empty_deaths_before_clear()
     {
-        var runs = new DungeonRunDomainService();
-        var layout = BossLayout();
-        var character = new CharacterId(60);
-        var other = checked((ushort)(DeadActor + 1));
-        _ = runs.PreparePartyEntry(
-            [new DungeonRunParticipant(new AccountId(1), character, 0, IsLeader: true)],
-            layout, difficulty: 0,
-            new DungeonCellSeed(
-                layout.StartCell, layout.StartRoomMapId, DeadActor,
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = new DungeonRunDomainService();
+            var layout = BossLayout();
+            var character = new CharacterId(60);
+            var other = checked((ushort)(DeadActor + 1));
+            _ = runs.PreparePartyEntry(
+                [new DungeonRunParticipant(new AccountId(1), character, 0, IsLeader: true)],
+                layout, difficulty: 0,
+                new DungeonCellSeed(
+                    layout.StartCell, layout.StartRoomMapId, DeadActor,
+                    [
+                        new DungeonCellActorState(
+                            DeadActor, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss),
+                            IsAiCharacter: false, IsDead: false, PendingLoot: []),
+                        new DungeonCellActorState(
+                            other, new DungeonRoomActor(65601, 1, 0),
+                            IsAiCharacter: false, IsDead: false, PendingLoot: []),
+                    ], []),
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch);
+
+            var sent = await Kill(run: runs, killRules: new OneClearedBossMonster());
+
+            Assert.Equal([DeadActor, other], sent.OfType<MonsterDeathNotification>()
+                .Select(notification => notification.ActorSequence));
+            Assert.Empty(sent.OfType<MonsterDeathNotification>().Last().Drops);
+            Assert.Single(sent.OfType<EnableClearDungeonNotification>());
+        });
+    }
+
+    [Fact]
+    public async Task Party_boss_death_projects_the_same_remaining_monsters_to_both_players()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var leader = SelectedSessionIdentity.Create(
+                new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
+            var member = SelectedSessionIdentity.Create(
+                new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
+            var layout = BossLayout();
+            var other = checked((ushort)(DeadActor + 1));
+            var runs = new DungeonRunDomainService();
+            var run = runs.PreparePartyEntry(
+                [
+                    new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, IsLeader: true),
+                    new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, IsLeader: false),
+                ],
+                layout, difficulty: 0,
+                new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
                 [
                     new DungeonCellActorState(
                         DeadActor, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss),
@@ -772,144 +947,113 @@ public sealed class MonsterDeathHandlerTests
                         other, new DungeonRoomActor(65601, 1, 0),
                         IsAiCharacter: false, IsDead: false, PendingLoot: []),
                 ], []),
-            DungeonRunId.New(), DateTimeOffset.UnixEpoch);
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [leader, member]);
+            var sessions = new PartySessions([leader, member]);
+            var sender = new PartyRecordingSender();
+            var killRules = new OneClearedBossMonster();
+            var bus = new PartyKillBus();
+            var handler = CreateHandler(
+                sessions,
+                new PartyRuntimeSessions([leader, member]),
+                new PartyCharacters([leader.CharacterId, member.CharacterId]),
+                runs, killRules,
+                new DungeonClearDomainService(runs, killRules),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender),
+                bus,
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                registry, sender, ExperienceDiagnostics.None,
+                NullLogger<MonsterDeathHandler>.Instance);
 
-        var sent = await Kill(run: runs, killRules: new OneClearedBossMonster());
+            await handler.HandleAsync(
+                ContextOf(leader),
+                new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
+                CancellationToken.None);
 
-        Assert.Equal([DeadActor, other], sent.OfType<MonsterDeathNotification>()
-            .Select(notification => notification.ActorSequence));
-        Assert.Empty(sent.OfType<MonsterDeathNotification>().Last().Drops);
-        Assert.Single(sent.OfType<EnableClearDungeonNotification>());
-    }
-
-    [Fact]
-    public async Task Party_boss_death_projects_the_same_remaining_monsters_to_both_players()
-    {
-        var leader = SelectedSessionIdentity.Create(
-            new AccountId(1), new CharacterId(60), new NetworkConnectionId("leader"), 1, 10010);
-        var member = SelectedSessionIdentity.Create(
-            new AccountId(2), new CharacterId(61), new NetworkConnectionId("member"), 1, 10011);
-        var layout = BossLayout();
-        var other = checked((ushort)(DeadActor + 1));
-        var runs = new DungeonRunDomainService();
-        var run = runs.PreparePartyEntry(
-            [
-                new DungeonRunParticipant(leader.AccountId, leader.CharacterId, 0, IsLeader: true),
-                new DungeonRunParticipant(member.AccountId, member.CharacterId, 1, IsLeader: false),
-            ],
-            layout, difficulty: 0,
-            new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, DeadActor,
-            [
-                new DungeonCellActorState(
-                    DeadActor, new DungeonRoomActor(65303, 1, (byte)MonsterRank.Boss),
-                    IsAiCharacter: false, IsDead: false, PendingLoot: []),
-                new DungeonCellActorState(
-                    other, new DungeonRoomActor(65601, 1, 0),
-                    IsAiCharacter: false, IsDead: false, PendingLoot: []),
-            ], []),
-            DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [leader, member]);
-        var sessions = new PartySessions([leader, member]);
-        var sender = new PartyRecordingSender();
-        var killRules = new OneClearedBossMonster();
-        var bus = new PartyKillBus();
-        var handler = CreateHandler(
-            sessions,
-            new PartyRuntimeSessions([leader, member]),
-            new PartyCharacters([leader.CharacterId, member.CharacterId]),
-            runs, killRules,
-            new DungeonClearDomainService(runs, killRules),
-            new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
-            bus,
-            new QuestOfferRefreshDomainService(
-                new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
-            registry, sender, ExperienceDiagnostics.None,
-            NullLogger<MonsterDeathHandler>.Instance);
-
-        await handler.HandleAsync(
-            ContextOf(leader),
-            new MonsterDeathRequest(GameMessageMetadata.Empty, DeadActor, leader.WireUserId),
-            CancellationToken.None);
-
-        Assert.Equal(2, bus.Commands.Count);
-        Assert.True(runs.Find(member.CharacterId)!.IsCleared);
-        foreach (var session in new[] { leader, member })
-        {
-            var received = sender.For(session.ConnectionId);
-            Assert.Equal([DeadActor, other], received.OfType<MonsterDeathNotification>()
-                .Select(notification => notification.ActorSequence));
-            Assert.Single(received.OfType<EnableClearDungeonNotification>());
-        }
+            Assert.Equal(2, bus.Commands.Count);
+            Assert.True(runs.Find(member.CharacterId)!.IsCleared);
+            foreach (var session in new[] { leader, member })
+            {
+                var received = sender.For(session.ConnectionId);
+                Assert.Equal([DeadActor, other], received.OfType<MonsterDeathNotification>()
+                    .Select(notification => notification.ActorSequence));
+                Assert.Single(received.OfType<EnableClearDungeonNotification>());
+            }
+        });
     }
 
     [Fact]
     public async Task Death_send_failure_cannot_erase_the_committed_shared_clear_fact()
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(1),
-            new CharacterId(60),
-            new NetworkConnectionId("one"),
-            connectionGeneration: 1,
-            listenerPort: 10010);
-        var runs = new DungeonRunDomainService();
-        var layout = BossLayout();
-        var run = runs.PreparePartyEntry(
-            [new DungeonRunParticipant(
-                session.AccountId, session.CharacterId, 0, IsLeader: true)],
-            layout,
-            difficulty: 0,
-            new DungeonCellSeed(
-                layout.StartCell,
-                layout.StartRoomMapId,
-                FirstActorSequence: DeadActor,
-                Actors:
-                [
-                    new DungeonCellActorState(
-                        DeadActor,
-                        new DungeonRoomActor(3001, 0, 0),
-                        IsAiCharacter: false,
-                        IsDead: false,
-                        PendingLoot: [],
-                        IsMonster: true),
-                ],
-                GroundItems: []),
-            DungeonRunId.New(),
-            DateTimeOffset.UnixEpoch).Run;
-        var sessions = new OneSession(session);
-        var registry = new DungeonRunDeliveryRegistry();
-        registry.Register(run.RunId, [session]);
-        var sender = new ThrowingSender();
-        var killRules = new OneClearedBossMonster();
-        var handler = CreateHandler(
-            sessions,
-            new OneRuntimeSession(ExperienceFrameEntry.At(
-                StartingLevel, StartingExperience)),
-            new OnePlayingCharacter(new SkillPointLedger()),
-            runs,
-            killRules,
-            new DungeonClearDomainService(runs, killRules),
-            new DungeonClearProjectionDelivery(sessions, runs, registry, sender),
-            new FixedKillAward(leveledUp: false),
-            new QuestOfferRefreshDomainService(
-                new StubWorldContentEntryRuleService(),
-                new RecordingQuestLogs(),
-                CurrentCharacterStub.Domain()),
-            registry,
-            sender,
-            ExperienceDiagnostics.None,
-            NullLogger<MonsterDeathHandler>.Instance);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(1),
+                new CharacterId(60),
+                new NetworkConnectionId("one"),
+                connectionGeneration: 1,
+                listenerPort: 10010);
+            var runs = new DungeonRunDomainService();
+            var layout = BossLayout();
+            var run = runs.PreparePartyEntry(
+                [new DungeonRunParticipant(
+                    session.AccountId, session.CharacterId, 0, IsLeader: true)],
+                layout,
+                difficulty: 0,
+                new DungeonCellSeed(
+                    layout.StartCell,
+                    layout.StartRoomMapId,
+                    FirstActorSequence: DeadActor,
+                    Actors:
+                    [
+                        new DungeonCellActorState(
+                            DeadActor,
+                            new DungeonRoomActor(3001, 0, 0),
+                            IsAiCharacter: false,
+                            IsDead: false,
+                            PendingLoot: [],
+                            IsMonster: true),
+                    ],
+                    GroundItems: []),
+                DungeonRunId.New(),
+                DateTimeOffset.UnixEpoch).Run;
+            var sessions = new OneSession(session);
+            var registry = new DungeonRunDeliveryRegistry();
+            registry.Register(run.RunId, [session]);
+            var sender = new ThrowingSender();
+            var killRules = new OneClearedBossMonster();
+            var handler = CreateHandler(
+                sessions,
+                new OneRuntimeSession(ExperienceFrameEntry.At(
+                    StartingLevel, StartingExperience)),
+                new OnePlayingCharacter(new SkillPointLedger()),
+                runs,
+                killRules,
+                new DungeonClearDomainService(runs, killRules),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender),
+                new FixedKillAward(leveledUp: false),
+                new QuestOfferRefreshDomainService(
+                    new StubWorldContentEntryRuleService(),
+                    new RecordingQuestLogs(),
+                    CurrentCharacterStub.Domain()),
+                registry,
+                sender,
+                ExperienceDiagnostics.None,
+                NullLogger<MonsterDeathHandler>.Instance);
 
-        await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
-            await handler.HandleAsync(
-                ContextOf(session),
-                new MonsterDeathRequest(
-                    GameMessageMetadata.Empty, DeadActor, session.WireUserId),
-                default));
+            await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
+                await handler.HandleAsync(
+                    ContextOf(session),
+                    new MonsterDeathRequest(
+                        GameMessageMetadata.Empty, DeadActor, session.WireUserId),
+                    default));
 
-        Assert.True(runs.Find(session.CharacterId)!.ClearOpen);
-        Assert.Null(runs.TryOpenClear(session.CharacterId, run.RunId, run.RoomVersion));
+            Assert.True(runs.Find(session.CharacterId)!.ClearOpen);
+            Assert.Null(runs.TryOpenClear(session.CharacterId, run.RunId, run.RoomVersion));
+        });
     }
 
     [Theory]
@@ -918,13 +1062,16 @@ public sealed class MonsterDeathHandlerTests
     [InlineData(2)]
     public async Task Solo_payment_lost_participant_or_actor_publication_never_becomes_payable_again(int mode)
     {
-        var run = new PartyRun([new(new(1),new(60),0,true)]) { RejectParticipantPublication = mode == 0, RejectActorPublication = mode == 1, ThrowActorPublication = mode == 2 };
-        var bus = new FixedKillAward(false);
-        var failures = new List<Exception>();
-        await Kill(run: run, bus: bus, reports: 2, failures: failures);
-        Assert.Equal(1, bus.TimesAsked);
-        Assert.Equal(0, run.ReleaseCount);
-        Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(Assert.Single(failures));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var run = new PartyRun([new(new(1),new(60),0,true)]) { RejectParticipantPublication = mode == 0, RejectActorPublication = mode == 1, ThrowActorPublication = mode == 2 };
+            var bus = new FixedKillAward(false);
+            var failures = new List<Exception>();
+            await Kill(run: run, bus: bus, reports: 2, failures: failures);
+            Assert.Equal(1, bus.TimesAsked);
+            Assert.Equal(0, run.ReleaseCount);
+            Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(Assert.Single(failures));
+        });
     }
 
     [Fact]
@@ -934,7 +1081,7 @@ public sealed class MonsterDeathHandlerTests
         var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
         var run = new PartyRun([new(leader.AccountId,leader.CharacterId,0,true),new(member.AccountId,member.CharacterId,1,false)])
             { RejectParticipantCharacter = member.CharacterId };
-        var registry = new DungeonRunDeliveryRegistry(); registry.Register(run.RunId,[leader,member]);
+        var registry = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => registry.Register(run.RunId,[leader,member]));
         var sessions = new PartySessions([leader,member]); var sender = new PartyRecordingSender();
         var bus = new PartyKillBus(); var killRules = new OneClearedBossMonster();
         var users = new RecipientConnections([leader,member]);
@@ -945,20 +1092,68 @@ public sealed class MonsterDeathHandlerTests
         Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services,users);
         using var provider = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services);
         var safety = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<SelectedSessionSafety>(provider);
-        var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
-            run,killRules,new DungeonClearDomainService(run,killRules),new DungeonClearProjectionDelivery(sessions,run,registry,sender),bus,
-            new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
-            registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
-        await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
-            await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
-        Assert.True(safety.IsBlocked(users.Connections[member.ConnectionId]));
-        Assert.True(safety.IsBlocked(users.Connections[leader.ConnectionId]));
-        Assert.True(safety.IsBlocked(member)); Assert.True(safety.IsBlocked(leader));
-        Assert.Equal(0,run.ReleaseCount);
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
-        Assert.Equal(2,bus.Commands.Count);
+        await TestGameplay.RunAsync(provider, async () =>
+        {
+            var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
+                run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),bus,
+                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
+                registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
+            await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
+                await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
+            Assert.True(safety.IsBlocked(users.Connections[member.ConnectionId]));
+            Assert.True(safety.IsBlocked(users.Connections[leader.ConnectionId]));
+            Assert.True(((ISelectedSessionDomainService)sessions).StandingOf(member)?.Fenced);
+            Assert.True(((ISelectedSessionDomainService)sessions).StandingOf(leader)?.Fenced);
+            Assert.Equal(0,run.ReleaseCount);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
+            Assert.Equal(2,bus.Commands.Count);
+        });
     }
+    /// <summary>
+    /// DR-4, VC-4 (TASK-24 T5): after the commit, one participant's death batch fails in transport. The sender
+    /// closes only his connection; the CMD succeeds and nobody in the run is fenced.
+    /// </summary>
+    [Fact]
+    public async Task A_participant_whose_death_batch_fails_in_transport_is_closed_alone_and_nobody_is_fenced()
+    {
+        var leader = SelectedSessionIdentity.Create(new(1),new(60),new("leader"),1,10010);
+        var member = SelectedSessionIdentity.Create(new(2),new(61),new("member"),1,10011);
+        var run = new PartyRun([new(leader.AccountId,leader.CharacterId,0,true),new(member.AccountId,member.CharacterId,1,false)]);
+        var registry = new DungeonRunDeliveryRegistry(); TestGameplay.Run(() => registry.Register(run.RunId,[leader,member]));
+        var sessions = new PartySessions([leader,member]);
+        var bus = new PartyKillBus(); var killRules = new OneClearedBossMonster();
+        var users = new RecipientConnections([leader,member]);
+        await using var outbound = new Dfo.Server.Protocol.Tests.Outbox.XoDelivery(configure: services =>
+        {
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services,sessions);
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services,users);
+        });
+        outbound.Connect(leader, member);
+        outbound.Transport.Fail(member.ConnectionId);
+        var safety = new SelectedSessionSafety(outbound.Services, NullLogger<SelectedSessionSafety>.Instance);
+
+        await outbound.RunFromAsync(leader.ConnectionId, async () =>
+        {
+            var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
+                run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, outbound.Game),bus,
+                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
+                registry,outbound.Game,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
+            await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default);
+        });
+        await outbound.SettledAsync();
+
+        Assert.Contains(outbound.Messages(member.ConnectionId), frame => frame is MonsterDeathNotification);
+        Assert.Contains(outbound.Messages(leader.ConnectionId), frame => frame is MonsterDeathNotification);
+        Assert.True(await outbound.ClosedAsync(member.ConnectionId));
+        Assert.False(outbound.Transport.IsClosed(leader.ConnectionId));
+        Assert.DoesNotContain(outbound.Recorder.Entries, entry => entry.IsClose);
+        Assert.False(((ISelectedSessionDomainService)sessions).StandingOf(member)?.Fenced);
+        Assert.False(((ISelectedSessionDomainService)sessions).StandingOf(leader)?.Fenced);
+        Assert.False(safety.IsBlocked(users.Connections[member.ConnectionId]));
+        Assert.False(safety.IsBlocked(users.Connections[leader.ConnectionId]));
+    }
+
     private sealed class RecipientConnections : Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService
     {
         private readonly Dictionary<NetworkConnectionId,OnlineUserSnapshot> users;
@@ -1019,7 +1214,7 @@ public sealed class MonsterDeathHandlerTests
             effectiveRun,
             effectiveKills,
             new DungeonClearDomainService(effectiveRun, effectiveKills),
-            new DungeonClearProjectionDelivery(sessions, effectiveRun, registry, sender),
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
                 content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
@@ -1053,6 +1248,9 @@ public sealed class MonsterDeathHandlerTests
         CommittedInventoryUpdateState? questItems = null,
         QuestProgressSnapshot? questProgress = null, ExperienceAward? overrideAward = null) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         private int _remainingFailures = failuresBeforeSuccess;
 
         /// <summary>How many times the kill was priced, which a repeated death would raise.</summary>
@@ -1060,20 +1258,20 @@ public sealed class MonsterDeathHandlerTests
 
         public int QuestCommands { get; private set; }
 
-        public ApplyMonsterKillCommand? LastKillCommand { get; private set; }
+        public MonsterRewardFacts? LastKillCommand { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var kill = Assert.IsType<ApplyMonsterKillCommand>(command);
+            var kill = Assert.IsType<MonsterRewardFacts>(command);
             Assert.Equal(SelectedSessionIdentity.Create(new(1), new(60), new("one"), 1, 10010), kill.Session);
             this.QuestCommands++;
             this.LastKillCommand = kill;
             this.TimesAsked++;
             if (this._remainingFailures-- > 0)
                 throw new InvalidOperationException("injected durable kill failure");
-            var result = new ApplyMonsterKillResult(
+            var result = new MonsterRewardResult(
                 awarded ? overrideAward ?? new ExperienceAward(
                     Breakdown: new ExperienceBreakdown(Base: KillGain),
                     Level: leveledUp ? (byte)(StartingLevel + 1) : StartingLevel,
@@ -1435,6 +1633,53 @@ public sealed class MonsterDeathHandlerTests
     private sealed class PartySessions(IReadOnlyList<SelectedSessionIdentity> sessions)
         : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Find(AccountId accountId) =>
             sessions.SingleOrDefault(value => value.AccountId == accountId);
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
@@ -1509,14 +1754,17 @@ public sealed class MonsterDeathHandlerTests
         CharacterId? failFor = null,
         CharacterId? levelFor = null) : ICommandBus
     {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
         private bool failed;
-        public List<ApplyMonsterKillCommand> Commands { get; } = [];
+        public List<MonsterRewardFacts> Commands { get; } = [];
 
         public ValueTask<TResult> SendAsync<TResult>(
             ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            var kill = Assert.IsType<ApplyMonsterKillCommand>(command);
+            var kill = Assert.IsType<MonsterRewardFacts>(command);
             this.Commands.Add(kill);
             if (!this.failed && kill.CharacterId == failFor)
             {
@@ -1532,7 +1780,7 @@ public sealed class MonsterDeathHandlerTests
                     : StartingLevel,
                 Total: StartingExperience + KillGain,
                 LeveledUp: kill.CharacterId == levelFor);
-            return ValueTask.FromResult((TResult)(object)new ApplyMonsterKillResult(award, []));
+            return ValueTask.FromResult((TResult)(object)new MonsterRewardResult(award, []));
         }
     }
 
@@ -1564,56 +1812,54 @@ public sealed class MonsterDeathHandlerTests
         }
     }
 
+    /// <summary>
+    /// What was registered for each connection, read from the outbox of a real registration adapter; every call goes
+    /// to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails where it is
+    /// registered, with the exception the old double threw.
+    /// </summary>
     private sealed class PartyRecordingSender : IGameMessageSender
     {
-        private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public PartyRecordingSender() => this.outbound.RefuseOutsideExplicit(Unused);
 
         public IReadOnlyList<IGameServerMessage> For(NetworkConnectionId connectionId) =>
-            this.sent.TryGetValue(connectionId, out var frames) ? frames : [];
+            [.. this.outbound.MessagesFor(connectionId).Cast<IGameServerMessage>()];
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId, IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw Unused();
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId, IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw Unused();
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            this.Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
-            foreach (var target in delivery.BestEffortTargets)
-                this.Add(target.ConnectionId, target.OrderedMessages);
-            return ValueTask.CompletedTask;
-        }
-
-        private void Add(
-            NetworkConnectionId connectionId, IReadOnlyList<IGameServerMessage> frames)
-        {
-            if (!this.sent.TryGetValue(connectionId, out var received))
-                this.sent[connectionId] = received = [];
-            received.AddRange(frames);
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
 
         private static NotSupportedException Unused() =>
             new("This fixture records only explicit deliveries.");
     }
 
+    /// <summary>
+    /// A real registration adapter whose every direct message fails to encode where it is registered, with the
+    /// exception the old double threw (TASK-25 §6.1); every call goes to the real protocol sender over it.
+    /// </summary>
     private sealed class ThrowingSender : IGameMessageSender
     {
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken) => throw new IOException("send failed");
+        private readonly RecordedOutbound outbound = new();
+
+        public ThrowingSender() => outbound.FailAny(outbound.IsDirect, () => new IOException("send failed"));
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
+}
+
+internal sealed class DriverOutbox(IGameMessageSender sender) : IGameCommandOutbox
+{
+    public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery delivery,CancellationToken ct=default)=>sender.SendExplicitAsync(id,delivery,ct);
+    public ValueTask RegisterBatchAsync(NetworkConnectionContext connection,IReadOnlyList<IGameServerMessage> messages,CancellationToken ct)=>sender.SendExplicitAsync(connection.ConnectionId,new(messages,[]),ct);
+    public ValueTask RegisterCmdAsync(NetworkConnectionId id,IGameCmdMessage message,CancellationToken ct=default)=>sender.SendCmdAsync(id,message,ct);
+    public ValueTask RegisterNotiAsync(NetworkConnectionId id,IGameNotiMessage message,CancellationToken ct=default)=>sender.SendNotiAsync(id,message,ct);
 }

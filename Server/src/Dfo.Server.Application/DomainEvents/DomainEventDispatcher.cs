@@ -1,8 +1,9 @@
 using System.Text.Json;
 using System.Threading.Channels;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.Commands.Pipeline;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,33 +24,23 @@ internal sealed class DomainEventWakeups(DomainEventRegistry registry)
 }
 
 /// <summary>Each subscriber ID is serial; retries can be overtaken by later due facts.</summary>
-internal sealed class DomainEventDispatcher
+/// <remarks>
+/// The dispatcher is a producer (RQ-041): it reads due deliveries off the executor (read-only SQLite) and
+/// consumes each one as its own event CMD, waiting for it before the next. A group stays serial because
+/// it has one drain loop, and that loop waits for each event CMD before it queues the next. A test that
+/// drains a group from its own thread while the loop runs interleaves the reads, not the consumption:
+/// each delivery is still consumed once, and a backed-off one is not retried early, because
+/// <c>TryBeginAsync</c> claims a delivery only while it is pending and due.
+/// </remarks>
+internal sealed class DomainEventDispatcher(DomainEventRegistry registry, IServiceProvider services,
+    DomainTransactionScope transactions, DomainEventWakeups wakeups, DomainEventInstance instance,
+    TimeProvider clock, DomainEventDispatchOptions options, ILogger<DomainEventDispatcher> logger,
+    Dfo.Server.Application.Commands.ICommandBus commands, DomainEventCallChains chains, FailedDomainEventAttempts failures)
 {
-    private readonly DomainEventRegistry registry;
-    private readonly IServiceProvider services;
-    private readonly IServiceScopeFactory scopes;
-    private readonly DomainTransactionScope transactions;
-    private readonly TransactionalExecutionGate gate;
-    private readonly DomainEventWakeups wakeups;
-    private readonly DomainEventInstance instance;
-    private readonly TimeProvider clock;
-    private readonly DomainEventDispatchOptions options;
-    private readonly ILogger<DomainEventDispatcher> logger;
-    private readonly Dictionary<string, SemaphoreSlim> groupGates;
+    private readonly DomainEventDispatchOptions options = Validated(options);
+    private static DomainEventDispatchOptions Validated(DomainEventDispatchOptions options) { options.Validate(); return options; }
     private IDomainEventPersistence Persistence => services.GetRequiredService<IDomainEventPersistence>();
-
-    public DomainEventDispatcher(DomainEventRegistry registry, IServiceProvider services, IServiceScopeFactory scopes,
-        DomainTransactionScope transactions, TransactionalExecutionGate gate, DomainEventWakeups wakeups,
-        DomainEventInstance instance, TimeProvider clock, DomainEventDispatchOptions options,
-        ILogger<DomainEventDispatcher> logger)
-    {
-        options.Validate();
-        this.registry = registry; this.services = services; this.scopes = scopes; this.transactions = transactions;
-        this.gate = gate; this.wakeups = wakeups; this.instance = instance; this.clock = clock;
-        this.options = options; this.logger = logger;
-        groupGates = registry.Groups.Keys.ToDictionary(id => id, _ => new SemaphoreSlim(1, 1), StringComparer.Ordinal);
-    }
-
+    internal const string DepthExceededReason = "Depth limit exceeded; live hint skipped.";
     internal async ValueTask<int> DrainOnceAsync(CancellationToken cancellationToken = default)
     {
         var processed = 0;
@@ -62,103 +53,92 @@ internal sealed class DomainEventDispatcher
     {
         if (transactions.Current is not null)
             throw new InvalidOperationException("Dispatch begins outside the publishing business transaction.");
-        var serial = groupGates[subscriberId];
-        await serial.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var due = await Persistence.ReadDueAsync(subscriberId, clock.GetUtcNow(), options.BatchSize, cancellationToken)
-                .ConfigureAwait(false);
-            var processed = 0;
-            foreach (var delivery in due)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (await ProcessAsync(delivery, cancellationToken).ConfigureAwait(false)) processed++;
-            }
-            return processed;
-        }
-        finally { serial.Release(); }
-    }
-
-    private async ValueTask<bool> ProcessAsync(PendingDomainEventDelivery delivery, CancellationToken ct)
-    {
-        try
-        {
-            var type = registry.For(delivery.Event.EventType, delivery.Event.SchemaVersion);
-            var subscriber = registry.SubscriberFor(type.PayloadType, delivery.SubscriberId);
-            var envelope = type.Rehydrate(delivery.Event);
-            return subscriber.Policy == DomainEventDeliveryPolicy.Reliable
-                ? await ReliableAsync(delivery, subscriber, envelope, ct).ConfigureAwait(false)
-                : await LiveOnlyAsync(delivery, subscriber, envelope, ct).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-        catch (Exception error)
-        {
-            var terminal = error is JsonException or InvalidDataException
-                || delivery.AttemptCount + 1 >= options.MaximumAttempts;
-            logger.LogWarning(error, "Domain event {EventId} subscriber {SubscriberId} failed; terminal={Terminal}",
-                delivery.Event.EventId, delivery.SubscriberId, terminal);
-            // The failed handler's entire transaction has already unwound before recording its retry.
-            await using var admission = await gate.AcquireAsync(ct).ConfigureAwait(false);
-            await using var transaction = transactions.Begin();
-            var delay = RetryDelay(delivery.AttemptCount);
-            var description = error.ToString();
-            await Persistence.FailAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow() + delay,
-                description[..Math.Min(description.Length, 4000)], terminal, ct).ConfigureAwait(false);
-            await transaction.CommitAsync(ct).ConfigureAwait(false);
-            return true;
-        }
-    }
-
-    private async ValueTask<bool> ReliableAsync(PendingDomainEventDelivery delivery,
-        DomainSubscriberRegistration subscriber, object envelope, CancellationToken ct)
-    {
-        await using var admission = await gate.AcquireAsync(ct).ConfigureAwait(false);
-        await using var transaction = transactions.Begin();
-        if (!await Persistence.TryBeginAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(), ct)
-                .ConfigureAwait(false)) return false;
-        await using var scope = scopes.CreateAsyncScope();
-        await subscriber.Invoke(scope.ServiceProvider, envelope, ct).ConfigureAwait(false);
-        await Persistence.CompleteAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(), "", ct)
+        // Draining from inside a job would queue event CMDs and then wait for them behind itself (RQ-003).
+        GameplayJob.AssertNotOnExecutor("Draining domain event deliveries");
+        var due = await Persistence.ReadDueAsync(subscriberId, clock.GetUtcNow(), options.BatchSize, cancellationToken)
             .ConfigureAwait(false);
-        await transaction.CommitAsync(ct).ConfigureAwait(false);
-        return true;
-    }
-
-    private async ValueTask<bool> LiveOnlyAsync(PendingDomainEventDelivery delivery,
-        DomainSubscriberRegistration subscriber, object envelope, CancellationToken ct)
-    {
-        var invoke = false;
-        await using (var admission = await gate.AcquireAsync(ct).ConfigureAwait(false))
-        await using (var transaction = transactions.Begin())
+        var processed = 0;
+        foreach (var delivery in due)
         {
-            var now = clock.GetUtcNow();
-            if (!await Persistence.TryBeginAsync(delivery.Event.EventId, delivery.SubscriberId, now, ct)
-                    .ConfigureAwait(false)) return false;
-            var reason = "";
-            if (delivery.Event.OriginInstanceId != instance.Id) reason = "Previous process instance; live hint skipped.";
-            else if (now - delivery.Event.OccurredAt > options.LiveEventLifetime) reason = "Expired live hint.";
-            else if (delivery.CoalescingKey is { } key && await Persistence.HasCompletedCoalescingKeyAsync(
-                    delivery.Event.BatchId, delivery.SubscriberId, key, ct).ConfigureAwait(false)) reason = "Coalesced live hint.";
-            else invoke = true;
-            await Persistence.CompleteAsync(delivery.Event.EventId, delivery.SubscriberId, now, reason, ct)
-                .ConfigureAwait(false);
-            await transaction.CommitAsync(ct).ConfigureAwait(false);
-        }
-        if (invoke)
-        {
-            // Consumption is durable before the external side effect. Failure or a crash never replays a live hint.
+            cancellationToken.ThrowIfCancellationRequested();
+            if (failures.Find(delivery) is { } previous)
+            {
+                if (previous.Failure.FinalFailure is { } final)
+                {
+                    await SettleFailureAsync(previous, final, cancellationToken).ConfigureAwait(false);
+                    processed++;
+                }
+                continue;
+            }
+            bool consumed;
+            var attempt = new ConsumeDomainEventCommand(delivery);
             try
             {
-                await using var scope = scopes.CreateAsyncScope();
-                await subscriber.Invoke(scope.ServiceProvider, envelope, ct).ConfigureAwait(false);
+                var chain = ChainOf(delivery);
+                consumed = await commands.SendInternalAsync(attempt,
+                    new(chain.Source, chain, CommandTypeOf(delivery), Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly),
+                    cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception error)
+            catch (GameplayDepthExceededException refused) when (!GameplayJob.EndedAJob(refused))
             {
-                logger.LogWarning(error, "Consumed live event {EventId} subscriber {SubscriberId} failed; no replay.",
-                    delivery.Event.EventId, delivery.SubscriberId);
+                consumed = await SettleAsync(delivery, refused, cancellationToken).ConfigureAwait(false);
             }
+            catch (OperationCanceledException error) when (attempt.Failure.WasCleanlyCancelled(error))
+            {
+                failures.Settled(attempt);
+                throw;
+            }
+            catch (Exception error) when (GameplayJob.EndedAJob(error) && attempt.Failure.Observed)
+            {
+                failures.Finalize(attempt, error);
+                cancellationToken.ThrowIfCancellationRequested();
+                // The failed request is already closed; only this new command may record its retry or quarantine.
+                await SettleFailureAsync(attempt, error, cancellationToken).ConfigureAwait(false);
+                consumed = true;
+            }
+            if (consumed) processed++;
         }
+        return processed;
+    }
+
+    private ValueTask<bool> SettleFailureAsync(ConsumeDomainEventCommand attempt, Exception error, CancellationToken token) =>
+        commands.SendInternalAsync(new SettleFailedDomainEventCommand(attempt, error),
+            new(GameplayCallSource.Event, GameplayCallChain.NewRoot(GameplayCallSource.Event),
+                CommandTypeOf(attempt.Delivery) + "/failure-settlement", Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly), token);
+
+    private bool IsLocal(PendingDomainEventDelivery delivery) => delivery.Event.OriginInstanceId == instance.Id;
+
+    /// <summary>
+    /// RQ-050, RQ-051: the publishing CMD's child, the same parent for every retry of the delivery. A delivery of
+    /// another process is a startup recovery root; one this process published off the executor, an event root.
+    /// </summary>
+    private GameplayCallChain ChainOf(PendingDomainEventDelivery delivery)
+    {
+        if (!IsLocal(delivery)) return GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery);
+        return chains.TryGet(delivery.Event.EventId, delivery.SubscriberId, out var publisher)
+            ? publisher.Child(GameplayCallSource.Event)
+            : GameplayCallChain.NewRoot(GameplayCallSource.Event);
+    }
+
+    private string CommandTypeOf(PendingDomainEventDelivery delivery) =>
+        (IsLocal(delivery) ? "event:" : "startup:event/") + delivery.SubscriberId;
+
+
+    /// <summary>
+    /// RQ-053(b): a system CMD, a new root so the depth check passes it, settles the refused delivery without running
+    /// its subscriber, then closes the refused chain's root connection (RQ-053(a)). The refusal itself was logged by
+    /// the executor. A failure of this CMD goes to the group loop, which reads the row again and settles it again.
+    /// </summary>
+    private async ValueTask<bool> SettleAsync(PendingDomainEventDelivery delivery, GameplayDepthExceededException refused,
+        CancellationToken cancellationToken)
+    {
+        var outcome = await commands.SendInternalAsync(new SettleDepthExceededDomainEventCommand(delivery, refused.Chain, refused.CommandType),
+            new(GameplayCallSource.Event, GameplayCallChain.NewRoot(GameplayCallSource.Event),
+                CommandTypeOf(delivery) + "/depth-exceeded", Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly),
+            cancellationToken).ConfigureAwait(false);
+        logger.LogWarning("Domain event {EventId} subscriber {SubscriberId} exceeded the depth limit and was settled {Outcome} " +
+            "without running: refused root {RootId}, parent {ParentId}, depth {Depth}",
+            delivery.Event.EventId, delivery.SubscriberId, outcome, refused.Chain.RootId, refused.Chain.ParentId, refused.Chain.Depth);
         return true;
     }
 
@@ -186,9 +166,22 @@ internal sealed class DomainEventDispatcher
                 await WaitForWakeOrDueAsync(reader, delay, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
+            catch (GameplayExecutorStoppedException stopped)
+            {
+                // Only a container disposed outside the host's stop order gets here; deliveries stay pending.
+                // A cause is the executor's faulted consumption loop (F-31).
+                logger.Log(stopped.InnerException is null ? LogLevel.Information : LogLevel.Warning, stopped,
+                    "Domain event dispatch group {SubscriberId} enqueues no more: the gameplay executor has stopped.",
+                    subscriberId);
+                return;
+            }
             catch (Exception error)
             {
-                logger.LogError(error, "Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);
+                // An event CMD's own failure was logged by the executor with its stack (F-30).
+                if (GameplayJob.EndedAJob(error))
+                    logger.LogWarning("Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);
+                else
+                    logger.LogError(error, "Domain event dispatch group {SubscriberId} could not persist or scan; backing off.", subscriberId);
                 try { await Task.Delay(options.RetryDelay, clock, stoppingToken).ConfigureAwait(false); }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             }
@@ -214,8 +207,7 @@ internal sealed class DomainEventDispatcher
         ct.ThrowIfCancellationRequested();
     }
 
-    private TimeSpan RetryDelay(int failedAttempts) => TimeSpan.FromTicks((long)Math.Min(
-        options.MaximumRetryDelay.Ticks, options.RetryDelay.Ticks * Math.Pow(2, Math.Min(failedAttempts, 30))));
+
 }
 
 internal sealed class DomainEventHostedService(DomainEventDispatcher dispatcher) : BackgroundService

@@ -3,6 +3,7 @@ using Dfo.Server.Protocol.Game.Outworld;
 
 namespace Dfo.Server.Protocol.Tests.Game;
 
+[Trait("Category", "Unit")]
 public sealed class EquipmentOutworldWireTests
 {
     [Theory]

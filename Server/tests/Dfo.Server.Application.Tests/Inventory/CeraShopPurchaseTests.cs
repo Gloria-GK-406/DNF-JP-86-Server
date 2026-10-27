@@ -7,6 +7,10 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Networking.Runtime;
+using System.Runtime.CompilerServices;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -16,6 +20,7 @@ using Dfo.Server.Protocol.Game.CeraShopPurchase;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -360,9 +365,10 @@ public sealed class CeraShopPurchaseTests
     public async Task Send_failure_does_not_repeat_or_undo_the_committed_purchase()
     {
         using var shop = new CeraShopFixture();
-        shop.Host.Sender.BeforeSend = () => throw new IOException("closed socket");
+        shop.Host.Sender.FailSends(() => new IOException("closed socket"));
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry()));
         Assert.Equal(1, shop.Host.Sender.Attempts);
+        Assert.Empty(shop.Host.Sender.Messages);
         Assert.Equal(96400, shop.Cera);
         Assert.Equal(1, shop.Host.Count(3));
     }
@@ -393,9 +399,12 @@ public sealed class CeraShopPurchaseTests
         using var shop = new CeraShopFixture();
         var result = await shop.Buy(CeraShopTestContent.Entry());
         shop.Host.Select(2);
-        await shop.Host.Services.GetRequiredService<IEventService>().ProjectAsync(
-            new NotificationAudience.TheseCharacters([result.Receipt!.Session.CharacterId]),
-            new CeraShopPurchaseCompleted(result.Receipt), default);
+        await TestGameplay.RunAsync(shop.Host.Services, async () =>
+        {
+            await shop.Host.Services.GetRequiredService<IEventService>().ProjectAsync(
+                new NotificationAudience.TheseCharacters([result.Receipt!.Session.CharacterId]),
+                new CeraShopPurchaseCompleted(result.Receipt), default);
+        });
         Assert.Empty(shop.Host.Sender.Messages);
         Assert.Equal(96400, shop.Cera);
     }
@@ -528,12 +537,13 @@ internal sealed class CeraShopFixture : IDisposable
     public CeraShopTestContent Content { get; } = new();
     public ShopFixture Host { get; }
     public int Cera => Host.Scalar("SELECT cera FROM accounts WHERE account_id=1");
-    public CeraShopFixture(bool useArchive = false, Action<IServiceCollection>? configure = null)
+    public CeraShopFixture(bool useArchive = false, Action<IServiceCollection>? configure = null, bool questProtocol = false)
     {
-        Host = new(services =>
+        Host = new(questProtocol, services =>
         {
             if (useArchive)
             {
+                ShopFixtureContent.RegisterArchive(services);
                 services.AddSingleton<ICeraShopDefinitionSource, PvfCeraShopDefinitionSource>();
                 services.AddSingleton<IDungeonExperienceProgressionPolicySource, PvfDungeonExperienceProgressionPolicySource>();
                 services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
@@ -548,21 +558,76 @@ internal sealed class CeraShopFixture : IDisposable
         });
         Host.Sql($"UPDATE accounts SET cera=100000; UPDATE characters SET level=85,exp={Host.ExperienceForLevel(85)};");
         foreach (var type in (InventoryContainerType[])[InventoryContainerType.Avatar, InventoryContainerType.Pet])
-            Host.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Host.Session.CharacterId,
+            TestGameplay.Run(Host.Services, () => Host.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Host.Session.CharacterId,
                 new PersistentItemContainer(ContainerId.ForCharacter(Host.Session.CharacterId, type), new(type, 0),
-                    Host.Services.GetRequiredService<IItemDomainStore>(), Host.Services.GetRequiredService<IDomainTransactionAccessor>(), Host.Services.GetRequiredService<IItemPlacementRuleService>(), Host.Services.GetRequiredService<IItemSlotRuleService>()));
+                    Host.Services.GetRequiredService<IItemDomainStore>(), Host.Services.GetRequiredService<IDomainTransactionAccessor>(), Host.Services.GetRequiredService<IItemPlacementRuleService>(), Host.Services.GetRequiredService<IItemSlotRuleService>())));
     }
     public Task<CeraShopPurchaseResult> Buy(params CeraShopPurchaseEntry[] entries) => Command(Host.Session, entries);
-    public ValueTask Handle(CeraShopPurchaseInput input) => Host.Services.GetRequiredService<CeraShopPurchaseHandler>().HandleAsync(
-        new(Host.Connection), new CeraShopPurchaseRequest(GameMessageMetadata.Empty, input), default);
+    public async ValueTask Handle(CeraShopPurchaseInput input) =>
+        _ = await CeraPurchaseWire.SendAsync(Host, input);
     public byte[] Encode(IServerNetworkMessage message)
     {
         var registration = Host.Services.GetServices<ServerMessageEncoderRegistration>().Single(value => value.MessageType == message.GetType());
         var encoder = (IServerMessageEncoder)Host.Services.GetRequiredService(registration.EncoderType);
         return Assert.Single(encoder.Encode(message));
     }
+    // Domain/transaction evidence: deliberately preserves original raw domain failures and stale-session inputs.
     public Task<CeraShopPurchaseResult> Command(SelectedSessionIdentity session, params CeraShopPurchaseEntry[] entries) =>
-        Host.Services.GetRequiredService<ICommandBus>().SendAsync(new CeraShopPurchaseCommand(Host.OnlineUser, session,
-            CeraShopTestContent.Input(entries))).AsTask();
+        TestGameplay.RunAsync(Host.Services, async () =>
+        {
+            await using var transaction = Host.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            using var footprint = new TestEffectFootprints.Lease(session);
+            try
+            {
+                var result = await Host.Services.GetRequiredService<ICeraShopDomainService>().PurchaseAsync(session,
+                    CeraShopTestContent.Input(entries), Host.Clock.GetUtcNow(), footprint, default);
+                await transaction.CommitAsync(default);
+                return result;
+            }
+            catch (Exception cause)
+            {
+                await transaction.AbortAsync(cause);
+                throw;
+            }
+        });
     public void Dispose() => Host.Dispose();
+}
+
+internal static class CeraPurchaseWire
+{
+    private sealed class State { internal ushort Sequence; internal readonly GameInboundFrameCounter Counter = new(); }
+    private static readonly ConditionalWeakTable<ShopFixture, State> states = new();
+    internal static async ValueTask<CeraShopPurchaseRequest> SendAsync(ShopFixture host,
+        CeraShopPurchaseInput input, ushort? sequence = null, CancellationToken ct = default)
+    {
+        var body = Body(input);
+        var state = states.GetOrCreateValue(host);
+        var seq = sequence ?? ++state.Sequence;
+        var (ordinal, fresh) = state.Counter.Observe(seq);
+        var metadata = new GameMessageMetadata(1, 0x0040, 0, seq) { InboundOrdinal = ordinal, SequenceIsFresh = fresh };
+        metadata = metadata.WithRawBody(body);
+        var registration = host.Services.GetServices<GameMessageDecoderRegistration>().Single(x => x.Selector == 1 && x.Type == 0x0040);
+        var decoded = Assert.IsType<CeraShopPurchaseRequest>(((IGameMessageDecoder)host.Services.GetRequiredService(registration.DecoderType)).Decode(metadata, body));
+        Assert.Same(metadata, decoded.Metadata);
+        await host.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(host.Connection), decoded, ct);
+        return decoded;
+    }
+    internal static byte[] Body(CeraShopPurchaseInput input)
+    {
+        // InvalidReason is a decoder diagnostic, never an invented wire field.
+        if (input.InvalidReason is not null) return [input.Header0, input.Header1, 1, input.CouponIndicator];
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write(input.Header0); writer.Write(input.Header1); writer.Write(checked((byte)input.Entries.Length)); writer.Write(input.CouponIndicator);
+        foreach (var entry in input.Entries)
+        {
+            writer.Write(entry.Mode); writer.Write(entry.Attribute); writer.Write(entry.Variant); writer.Write(entry.ProductId);
+            writer.Write(checked((byte)entry.AvatarChoices.Length));
+            foreach (var choice in entry.AvatarChoices) { writer.Write(choice.ItemId); writer.Write(choice.Ability); }
+            writer.Write(checked((byte)entry.Selections.Length));
+            foreach (var choice in entry.Selections) { writer.Write(choice.PackageItemId); writer.Write(choice.GroupIndex); writer.Write(choice.SelectionIndex); }
+            writer.Write(entry.CouponItemId); writer.Write(entry.CouponSlot);
+        }
+        return stream.ToArray();
+    }
 }

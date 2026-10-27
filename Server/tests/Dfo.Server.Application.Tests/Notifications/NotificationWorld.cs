@@ -1,13 +1,21 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Application.DomainEvents;
+using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Users;
+using Dfo.Server.Testing;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Networking.Outbound;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -43,6 +51,31 @@ internal sealed class TownBellHandler(ComposeRule rule) : INotificationHandler<T
 internal sealed class AwkwardSessions(ISelectedSessionDomainService inner)
     : ISelectedSessionDomainService
 {
+    // Every answer is the real directory's, except that looking up a refused character throws.
+    // A lookup by character inside the bus goes through FindByCharacter, so it throws too.
+    public void EnterWorld(SelectedSessionIdentity session) => inner.EnterWorld(session);
+
+    public bool Fence(SelectedSessionIdentity session) => inner.Fence(session);
+
+    public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
+
+    public bool IsSelected(SelectedSessionIdentity session) => inner.IsSelected(session);
+
+    public bool IsInWorld(SelectedSessionIdentity session) => inner.IsInWorld(session);
+
+    public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session)
+    {
+        session = FindByCharacter(characterId);
+        if (session is not null && !inner.IsInWorld(session)) session = null;
+        return session is not null;
+    }
+
+    public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        inner.TryGetInWorld(wireUserId, out session);
+
+    public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        inner.TryGetInWorld(connectionId, out session);
+
     private readonly HashSet<CharacterId> refusing = [];
 
     public void ThrowFor(CharacterId characterId) => refusing.Add(characterId);
@@ -65,45 +98,160 @@ internal sealed class AwkwardSessions(ISelectedSessionDomainService inner)
         inner.FindByConnection(connectionId);
 }
 
-internal sealed class RecordingSender : INetworkMessageSender
+/// <summary>
+/// What became of the world's outbound entries: the bus registers them in the publishing job's outbox,
+/// the job hands them to a real <see cref="OutboundSender"/>, and this records the submissions and
+/// plays the transport. A connection can be told to fail its sends, as a socket that went away.
+/// </summary>
+internal sealed class WorldDelivery : IOutboundSender, IOutboundDeliveryObserver, IOutboundTransport
 {
+    private readonly object sync = new();
+    private readonly List<OutboundEntry> submitted = [];
+    private readonly Dictionary<OutboundEntry, OutboundOutcome> outcomes = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<NetworkConnectionContext, WorldConnection> live = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<NetworkConnectionId> failing = [];
-    private readonly HashSet<NetworkConnectionId> stalling = [];
+    private OutboundSender? sender;
 
-    public List<(NetworkConnectionId ConnectionId, IServerNetworkMessage Message)> Sent { get; } = [];
+    public void Attach(OutboundSender real) => sender = real;
 
-    /// <summary>Every connection a send was started for, whatever became of it.</summary>
-    public List<NetworkConnectionId> Attempted { get; } = [];
-
-    public Action<NetworkConnectionId>? OnSend { get; set; }
-
-    public void FailFor(NetworkConnectionId connectionId) => failing.Add(connectionId);
-
-    /// <summary>The connection recovers, so a retry has something to succeed at.</summary>
-    public void StopFailing() => failing.Clear();
-
-    public void StallFor(NetworkConnectionId connectionId) => stalling.Add(connectionId);
-
-    public async ValueTask SendAsync(
-        NetworkConnectionId connectionId,
-        IServerNetworkMessage message,
-        CancellationToken cancellationToken)
+    /// <summary>Every entry the publishing jobs handed over, in the order they were registered.</summary>
+    public IReadOnlyList<OutboundEntry> Registered
     {
-        Attempted.Add(connectionId);
-        OnSend?.Invoke(connectionId);
-        if (failing.Contains(connectionId))
-            throw new IOException($"Connection '{connectionId}' went away.");
-        if (stalling.Contains(connectionId))
-            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        Sent.Add((connectionId, message));
+        get { lock (sync) return [.. submitted]; }
     }
 
-    public ValueTask SendExplicitAsync(
-        NetworkConnectionId requiredDirectConnectionId,
-        ExplicitMessageDelivery delivery,
-        CancellationToken cancellationToken) =>
-        throw new NotSupportedException("A notification never sends a delivery plan.");
+    /// <summary>What reached a connection, in registration order.</summary>
+    public IReadOnlyList<(NetworkConnectionId ConnectionId, IServerNetworkMessage Message)> Sent
+    {
+        get
+        {
+            lock (sync)
+                return
+                [
+                    .. submitted
+                        .Where(entry => outcomes.TryGetValue(entry, out var outcome) && outcome == OutboundOutcome.Delivered)
+                        .SelectMany(entry => entry.Messages.Select(message => (entry.Connection.ConnectionId, message))),
+                ];
+        }
+    }
+
+    public void FailFor(NetworkConnectionId connectionId)
+    {
+        lock (sync) failing.Add(connectionId);
+    }
+
+    public bool IsClosed(NetworkConnectionId connectionId)
+    {
+        lock (sync) return live.Values.Any(connection => connection.Id == connectionId && connection.Closed);
+    }
+
+    public void Connect(NetworkConnectionContext context)
+    {
+        lock (sync) live[context] = new WorldConnection(this, context.ConnectionId);
+    }
+
+    public void Submit(IReadOnlyList<OutboundEntry> entries)
+    {
+        lock (sync) submitted.AddRange(entries);
+        sender!.Submit(entries);
+    }
+
+    /// <summary>Waits until every submitted entry has an outcome.</summary>
+    public async Task SettledAsync()
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (true)
+        {
+            lock (sync)
+            {
+                if (submitted.All(outcomes.ContainsKey))
+                    return;
+            }
+            if (DateTime.UtcNow > deadline)
+                throw new TimeoutException("The world's outbound entries did not settle.");
+            await Task.Delay(5);
+        }
+    }
+
+    public void OnEntryCompleted(OutboundDeliveryReport report)
+    {
+        lock (sync) outcomes[report.Entry] = report.Outcome;
+    }
+
+    public void OnConnectionFailed(NetworkConnectionContext connection, OutboundOutcome reason)
+    {
+    }
+
+    IOutboundConnection? IOutboundTransport.Resolve(NetworkConnectionContext expected)
+    {
+        lock (sync) return live.TryGetValue(expected, out var connection) && !connection.Closed ? connection : null;
+    }
+
+    private bool Fails(NetworkConnectionId connectionId)
+    {
+        lock (sync) return failing.Contains(connectionId);
+    }
+
+    private sealed class WorldConnection(WorldDelivery owner, NetworkConnectionId id) : IOutboundConnection
+    {
+        public NetworkConnectionId Id { get; } = id;
+
+        public bool Closed { get; private set; }
+
+        public ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken) =>
+            owner.Fails(Id)
+                ? ValueTask.FromException(new IOException($"Connection '{Id}' went away."))
+                : ValueTask.CompletedTask;
+
+        public bool HasClosedSendSide(Exception error) => false;
+
+        public ValueTask CloseAsync()
+        {
+            Closed = true;
+            return ValueTask.CompletedTask;
+        }
+    }
+}
+
+/// <summary>The connections the world's players are on, as the transport would answer for them.</summary>
+internal sealed class WorldConnections : INetworkConnectionContexts
+{
+    private readonly Dictionary<NetworkConnectionId, NetworkConnectionContext> contexts = [];
+    private readonly List<NetworkConnectionId> lookups = [];
+
+    /// <summary>Every connection asked about, in order.</summary>
+    public IReadOnlyList<NetworkConnectionId> Lookups
+    {
+        get { lock (contexts) return [.. lookups]; }
+    }
+
+    public NetworkConnectionContext Add(NetworkConnectionId connectionId, int listenerPort)
+    {
+        var context = new NetworkConnectionContext(connectionId, NetworkEndpointKind.Game, listenerPort);
+        lock (contexts) contexts[connectionId] = context;
+        return context;
+    }
+
+    public bool TryGet(NetworkConnectionId connectionId, out NetworkConnectionContext? connection)
+    {
+        lock (contexts)
+        {
+            lookups.Add(connectionId);
+            return contexts.TryGetValue(connectionId, out connection);
+        }
+    }
+}
+
+/// <summary>Encodes a bell message as its text; a text starting "unencodable" cannot be encoded.</summary>
+internal sealed class WorldEncoder : IOutboundMessageEncoder
+{
+    public byte[] EncodeMessage(NetworkConnectionContext connection, IServerNetworkMessage message) =>
+        ((TownBellMessage)message).Text.StartsWith("unencodable", StringComparison.Ordinal)
+            ? throw new InvalidDataException($"'{((TownBellMessage)message).Text}' cannot be encoded.")
+            : System.Text.Encoding.UTF8.GetBytes(((TownBellMessage)message).Text);
+
+    public byte[] EncodeBatch(NetworkConnectionContext connection, IReadOnlyList<IServerNetworkMessage> messages) =>
+        [.. messages.SelectMany(message => EncodeMessage(connection, message))];
 }
 
 /// <summary>Keeps what the bus logged, so a case can read it back.</summary>
@@ -143,38 +291,40 @@ internal sealed class RecordingLoggerProvider : ILoggerProvider
 
 /// <summary>A server with some characters playing on it and one notification wired up.</summary>
 /// <remarks>
-/// Shared by the delivery cases and the retry ones because they need the same server: the same
-/// people playing, the same handler, the same sender that can be told to fail, stall or refuse.
-/// Two copies of this would drift, and the second copy is where a case that only passes because
-/// its own stand-in was wrong would live.
+/// Every publish runs as a job on the world's own executor, as a CMD's projection does: the bus
+/// composes and registers in that job's outbox, the job hands its outbox to a real outbound sender,
+/// and the world waits for every entry to settle before the case reads what reached whom.
 /// </remarks>
 internal sealed class NotificationWorld
 {
-    private readonly SelectedSessionDomainService sessions = new();
+    private readonly OnlineStateRegistry state;
+    private readonly SelectedSessionDomainService sessions;
     private readonly Dictionary<CharacterId, SelectedSessionIdentity> playing = [];
     private readonly ServiceProvider provider;
+    private readonly WorldConnections connections = new();
 
-    /// <param name="retryLimit">
-    /// How many further goes a failed recipient gets. Zero by default, so a case that is not about
-    /// retries sees a publish end where it ends.
-    /// </param>
-    /// <param name="timeout">Per recipient. Long by default, so no case waits on it by accident.</param>
-    public NotificationWorld(int retryLimit = 0, TimeSpan? timeout = null)
+    public NotificationWorld()
     {
+        sessions = TestSessions.Directory(out state);
         Sessions = new AwkwardSessions(sessions);
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.AddProvider(Log));
         services.AddSingleton<ISelectedSessionDomainService>(Sessions);
-        services.AddSingleton<INetworkMessageSender>(Sender);
-        // The drain interval is infinite because every case here drains by hand. A loop on a clock
-        // would make these cases wait for one, and make them flaky when the machine is busy.
-        services.AddSingleton(new NotificationDeliveryOptions(
-            timeout ?? TimeSpan.FromSeconds(5),
-            RetryInterval: Timeout.InfiniteTimeSpan));
-        services.AddSingleton(new ComposeRule(recipient => Compose(recipient)));
+        services.AddSingleton<INetworkConnectionContexts>(connections);
+        services.AddSingleton<IOutboundMessageEncoder>(new WorldEncoder());
+        services.AddSingleton<IOutboundSender>(Sender);
+        services.AddSingleton(new ComposeRule(recipient =>
+        {
+            Composing?.Invoke(recipient);
+            Composed.Add(recipient.CharacterId);
+            return Compose(recipient);
+        }));
+        services.AddEventDispatching();
         services.AddNotificationDispatching();
-        services.AddNotificationHandler<TownBellRang, TownBellHandler>(retryLimit);
+        services.AddNotificationHandler<TownBellRang, TownBellHandler>();
         provider = services.BuildServiceProvider();
+        Sender.Attach(new OutboundSender(Sender, [Sender],
+            provider.GetRequiredService<ILogger<OutboundSender>>(), OutboundSendOptions.Default));
     }
 
     /// <summary>What a recorded frame says, so a case can name it rather than compare objects.</summary>
@@ -183,78 +333,134 @@ internal sealed class NotificationWorld
     /// <summary>What the bus said about deliveries that did not arrive.</summary>
     public RecordingLoggerProvider Log { get; } = new();
 
-    public RecordingSender Sender { get; } = new();
+    public WorldDelivery Sender { get; } = new();
+
+    /// <summary>The connection table the registration side asks.</summary>
+    public WorldConnections Connections => connections;
 
     public AwkwardSessions Sessions { get; }
 
     public Func<NotificationRecipient, IReadOnlyList<IServerNetworkMessage>> Compose { get; set; } =
         recipient => [new TownBellMessage($"for-{recipient.CharacterId.Value}")];
 
+    /// <summary>Runs as each recipient is composed, before the handler answers.</summary>
+    public Action<NotificationRecipient>? Composing { get; set; }
+
+    /// <summary>Every recipient the handler was asked about, across publishes.</summary>
+    public List<CharacterId> Composed { get; } = [];
+
     public void Play(CharacterId characterId)
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(characterId.Value),
-            characterId,
-            new NetworkConnectionId($"Game:{characterId.Value}"),
-            connectionGeneration: 1,
-            listenerPort: 10011);
-        playing[characterId] = session;
-        _ = sessions.Select(session);
+        playing[characterId] = sessions.InWorld(
+            state, new AccountId(characterId.Value), characterId, $"Game:{characterId.Value}");
+        Connect(playing[characterId]);
     }
 
-    public void Leave(CharacterId characterId) => sessions.ReleaseExact(playing[characterId]);
+    /// <summary>Selected but not yet in the world, as a character is while its entry is under way.</summary>
+    public void SelectOnly(CharacterId characterId)
+    {
+        playing[characterId] = sessions.Selected(
+            state, new AccountId(characterId.Value), characterId, $"Game:{characterId.Value}");
+        Connect(playing[characterId]);
+    }
+
+    /// <summary>The connection is revoked under the session, which waits for its teardown.</summary>
+    public void Revoke(CharacterId characterId) => TestGameplay.Run(() =>
+        Assert.True(state.TryDisconnectConnection(playing[characterId].ConnectionId)));
+
+    public void Leave(CharacterId characterId) => TestGameplay.Run(() => sessions.ReleaseExact(playing[characterId]));
 
     /// <summary>The same character, back on a connection this publish never resolved.</summary>
-    public void Reconnect(CharacterId characterId)
+    public void Reconnect(CharacterId characterId) => TestGameplay.Run(() =>
     {
         var previous = playing[characterId];
         sessions.ReleaseExact(previous);
-        var session = SelectedSessionIdentity.Create(
-            previous.AccountId,
-            characterId,
-            new NetworkConnectionId($"Game:{characterId.Value}-again"),
-            connectionGeneration: previous.ConnectionGeneration + 1,
-            listenerPort: previous.ListenerPort);
-        playing[characterId] = session;
-        _ = sessions.Select(session);
-    }
+        state.TryDisconnectConnection(previous.ConnectionId);
+        playing[characterId] = sessions.InWorld(
+            state, previous.AccountId, characterId, $"Game:{characterId.Value}-again", previous.ListenerPort);
+        Connect(playing[characterId]);
+    });
 
-    public void ReplaceKeepingConnection(CharacterId characterId, int listenerPort)
+    public void ReplaceKeepingConnection(CharacterId characterId, int listenerPort) => TestGameplay.Run(() =>
     {
         var previous = playing[characterId];
+        sessions.ReleaseExact(previous);
+        Assert.True(state.TryGetByConnection(previous.ConnectionId, out var owner));
         var session = previous with
         {
-            ConnectionGeneration = previous.ConnectionGeneration + 1,
+            ConnectionGeneration = owner!.Generation,
             ListenerPort = listenerPort,
         };
+        sessions.Select(session);
+        sessions.EnterWorld(session);
         playing[characterId] = session;
-        _ = sessions.Select(session);
-    }
+    });
 
     public NetworkConnectionId ConnectionOf(CharacterId characterId) =>
         playing[characterId].ConnectionId;
 
     public SelectedSessionIdentity SessionOf(CharacterId characterId) => playing[characterId];
 
-    /// <summary>How many recipients are waiting for another go.</summary>
-    public int Waiting => provider.GetRequiredService<NotificationRetryQueue>().Count;
-
     public ValueTask<NotificationDelivery> PublishToAsync(
         IReadOnlyList<CharacterId> audience, CancellationToken cancellationToken = default) =>
-        provider.GetRequiredService<INotificationBus>().PublishAsync(
-            new NotificationAudience.TheseCharacters(audience),
-            new TownBellRang("closing time"),
-            cancellationToken);
+        PublishAsync(new NotificationAudience.TheseCharacters(audience), cancellationToken);
 
     public ValueTask<NotificationDelivery> PublishToExactAsync(
         IReadOnlyList<SelectedSessionIdentity> audience,
         CancellationToken cancellationToken = default) =>
-        provider.GetRequiredService<INotificationBus>().PublishAsync(
-            new NotificationAudience.TheseSessions(audience),
-            new TownBellRang("closing time"),
-            cancellationToken);
+        PublishAsync(new NotificationAudience.TheseSessions(audience), cancellationToken);
 
-    /// <summary>One retry pass, driven by hand rather than by a clock.</summary>
-    public ValueTask DrainAsync(CancellationToken cancellationToken = default) =>
-        provider.GetRequiredService<INotificationRetryDrain>().DrainAsync(cancellationToken);
+    /// <summary>An immediate projection made from wherever the caller is, through the event service.</summary>
+    public ValueTask<NotificationDelivery> ProjectHereAsync(IReadOnlyList<CharacterId> audience) =>
+        provider.GetRequiredService<IEventService>().ProjectAsync(
+            new NotificationAudience.TheseCharacters(audience), new TownBellRang("closing time"));
+
+    /// <summary>The publish as one job on the world's executor; returns once its entries have settled.</summary>
+    private async ValueTask<NotificationDelivery> PublishAsync(NotificationAudience audience, CancellationToken cancellationToken)
+    {
+        var executor = provider.GetRequiredService<GameplayExecutor>();
+        var bus = provider.GetRequiredService<INotificationBus>();
+        try
+        {
+            return await executor.RunAsync(new GameplayWork<NotificationDelivery>(
+                GameplayShardKey.World,
+                GameplayCallChain.NewRoot(GameplayCallSource.Connection),
+                "test:publish",
+                ct => bus.PublishAsync(audience, new TownBellRang("closing time"), ct)), cancellationToken);
+        }
+        finally
+        {
+            await Sender.SettledAsync();
+        }
+    }
+
+    /// <summary>Observes the real bus result inside its publishing job, before its outbox is submitted.</summary>
+    public async ValueTask<NotificationDelivery> PublishToObservedAsync(
+        IReadOnlyList<SelectedSessionIdentity> audience,
+        Action<NotificationDelivery> observe)
+    {
+        var executor = provider.GetRequiredService<GameplayExecutor>();
+        var bus = provider.GetRequiredService<INotificationBus>();
+        try
+        {
+            return await executor.RunAsync(new GameplayWork<NotificationDelivery>(
+                GameplayShardKey.World,
+                GameplayCallChain.NewRoot(GameplayCallSource.Connection),
+                "test:publish-observed",
+                async ct =>
+                {
+                    var result = await bus.PublishAsync(
+                        new NotificationAudience.TheseSessions(audience), new TownBellRang("closing time"), ct);
+                    observe(result);
+                    return result;
+                }), CancellationToken.None);
+        }
+        finally
+        {
+            await Sender.SettledAsync();
+        }
+    }
+
+    private void Connect(SelectedSessionIdentity session) =>
+        Sender.Connect(connections.Add(session.ConnectionId, session.ListenerPort));
 }

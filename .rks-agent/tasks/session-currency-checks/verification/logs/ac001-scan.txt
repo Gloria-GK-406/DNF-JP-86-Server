@@ -1,0 +1,46 @@
+
+=== C CharacterActive 读取: 1
+  Dfo.Server.Application/Users/OnlineStateRegistry.cs:357: character is not null ? OnlineUserState.CharacterActive : user.State,
+
+=== D 当前性 helper 定义: 9
+  Dfo.Server.Application/Accounts/ClientSettingsDomainService.cs:88: private bool IsCurrent(ClientSettingsOrigin origin) =>
+  Dfo.Server.Application/Marriage/ChurchRooms.cs:42: public bool IsPresent(SelectedSessionIdentity original, MarriageChurchRoom room)
+  Dfo.Server.Application/Marriage/HousingState.cs:51: private bool IsPresent(SelectedSessionIdentity actor) => sessions.IsInWorld(actor)
+  Dfo.Server.Application/Marriage/MarriageEligibility.cs:18: public bool IsCurrent(SelectedSessionIdentity session) => sessions.IsInWorld(session);
+  Dfo.Server.Application/Notifications/NotificationBus.cs:264: private bool IsStillHere(NotificationRecipient recipient) =>
+  Dfo.Server.Protocol/Game/BossTowerProjectionDelivery.cs:816: private bool Current(IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members,
+  Dfo.Server.Protocol/Game/CardReward/DungeonCardPresentationCoordinator.cs:244: private bool IsCurrent(
+  Dfo.Server.Protocol/Game/Dungeons/DungeonLoadingProjectionDelivery.cs:151: private bool IsCurrentSession(
+  Dfo.Server.Protocol/Game/IllusionTowerProjectionDelivery.cs:741: private bool Current(IReadOnlyList<(SelectedSessionIdentity Session, SelectCharacterResult Runtime, byte Slot)> members,
+
+=== E1 保留(b) 选角/清理路径 Find: 8
+  Dfo.Server.Application/Sessions/SelectCharacterLifecycleServices.cs:199: if (sessions.FindByCharacter(session.CharacterId) is null)
+  Dfo.Server.Protocol/Game/OnlineUserConnectionObserver.cs:82: if (selectedSessions.FindByConnection(connection.ConnectionId) is { } orphaned)
+  Dfo.Server.Protocol/Game/OnlineUserConnectionObserver.cs:93: var selectedBefore = selectedSessions.FindByConnection(connection.ConnectionId);
+  Dfo.Server.Protocol/Game/OnlineUserConnectionObserver.cs:105: var selected = selectedSessions.FindByConnection(connection.ConnectionId);
+  Dfo.Server.Protocol/Game/ReturnToSelection/ReturnToSelectionCommand.cs:33: var session = sessions.Find(command.AccountId);
+  Dfo.Server.Protocol/Game/ReturnToSelection/ReturnToSelectionCommand.cs:68: : sessions.Find(prepared.AccountId) is not null)
+  Dfo.Server.Protocol/Game/ReturnToSelection/ReturnToSelectionCommand.cs:84: || (sessions.Find(accountId) is { } selected && selected.ConnectionId != connectionId))
+  Dfo.Server.Protocol/Game/SelectCharacter/SelectCharacterPhaseCommands.cs:53: var previous = sessions.Find(command.AccountId);
+
+=== E2 保留(a) 请求方自己连接 Find（启发式）: 131
+
+=== E3 其余 Find（逐条说明）: 18
+  Dfo.Server.Application/Accounts/ClientSettingsDomainService.cs:94: : sessions.FindByConnection(origin.Connection.ConnectionId) is null)
+  Dfo.Server.Application/Administration/GmCeraDomainService.cs:21: var account = new AccountId(id); var session = sessions.Find(account);
+  Dfo.Server.Application/Creatures/CreatureRuntimeDomainService.cs:27: sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, sessions, tx, session, leaving) : null);
+  Dfo.Server.Application/World/CycleDungeonEntryDomainService.cs:50: var session = sessions.Find(accountId);
+  Dfo.Server.Application/World/DungeonAdmissionDomainService.cs:54: selected = sessions?.Find(member.AccountId);
+  Dfo.Server.Application/World/DungeonAdmissionDomainService.cs:59: selected = sessions?.Find(member.AccountId);
+  Dfo.Server.Protocol/Game/AccountWalletChangedHandler.cs:14: var current = sessions.Find(notice.Account);
+  Dfo.Server.Protocol/Game/BossTowerPartyCoordination.cs:190: .Select(member => sessions.FindByCharacter(member.CharacterId))
+  Dfo.Server.Protocol/Game/BossTowerPartyCoordination.cs:353: if (sessions.FindByCharacter(member.CharacterId) is not { } current
+  Dfo.Server.Protocol/Game/CeraShopPurchase/NameTagExpiredSubscriber.cs:15: var owner = sessions.Find(change.AccountId);
+  Dfo.Server.Protocol/Game/IllusionTowerPartyCoordination.cs:188: .Select(member => sessions.FindByCharacter(member.CharacterId))
+  Dfo.Server.Protocol/Game/IllusionTowerPartyCoordination.cs:351: if (sessions.FindByCharacter(member.CharacterId) is not { } current
+  Dfo.Server.Protocol/Game/MarriageProposal/MarriageLovePointSlice.cs:62: var peer = profile is null ? null : sessions.FindByCharacter(new(profile.CharacterId));
+  Dfo.Server.Protocol/Game/MoveItemSpace/MoveItemSpaceSlice.cs:401: var session = touchesPet ? sessions?.FindByCharacter(command.CharacterId) : null;
+  Dfo.Server.Protocol/Game/Rental/RentalSlice.cs:164: if(!message.Payload.NotifyGain||sessions.Find(message.Payload.AccountId) is not { } owner||!sessions.IsInWorld(owner))return;
+  Dfo.Server.Protocol/Game/StateSynchronization/ExpiredItemsProjection.cs:27: var owner = sessions.Find(change.AccountId);
+  Dfo.Server.Protocol/Game/Tournament/TournamentSlice.cs:173: var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
+  Dfo.Server.Protocol/Game/TownProjection/TownAreaProjectionDelivery.cs:429: && selectedSessions.FindByCharacter(member.CharacterId) is { } exact

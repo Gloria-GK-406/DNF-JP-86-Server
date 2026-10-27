@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -23,10 +24,10 @@ public sealed partial class AchievementTitleBookTests
     private static void PrepareQuestSettlement(Fixture f)
     {
         f.Sql("INSERT OR IGNORE INTO character_stats(character_id) VALUES(1)");
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
             new PersistentItemContainer(ContainerId.ForCharacter(Character, InventoryContainerType.Main), new(InventoryContainerType.Main, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
     }
 
     private static async ValueTask HuntQuestReadyAsync(Fixture f)
@@ -53,13 +54,13 @@ public sealed partial class AchievementTitleBookTests
         Assert.Equal(1, (await f.Achievements.GetAsync(Character, default)).Single(x => x.AchievementId == 6501).P1);
         Assert.Empty(f.ItemUids(26596));
         var completion = f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>();
-        Assert.True((await f.WriteAsync(async () => await completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default))).Finished);
+        Assert.True((await f.WriteAsync(async () => await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default)))).Finished);
         Assert.Empty(f.ItemUids(26596)); // Reward is delivered through the committed quest event.
         await f.DrainAsync();
         var uid = Assert.Single(f.ItemUids(26596));
         Assert.Contains((await f.Titles.GetAsync(Character, default)).SelectMany(x => x.Entries), x => x.ItemId == 26596);
         Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM item_slots WHERE list_type=1 AND core_uid=" + uid));
-        Assert.False((await f.WriteAsync(async () => await completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default))).Finished);
+        Assert.False((await f.WriteAsync(async () => await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => completion.FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default)))).Finished);
         await f.SendAsync(new QuestCompleted(Character, 4303));
         await f.DrainAsync();
         await using var restored = new Fixture(f.Path);
@@ -71,13 +72,16 @@ public sealed partial class AchievementTitleBookTests
     public async Task Rolled_back_task_finish_does_not_clear_or_unlock_or_enqueue_reward()
     {
         await using var f = new Fixture();
-        await HuntQuestReadyAsync(f);
-        var events = f.Scalar("SELECT COUNT(*) FROM domain_events");
-        await using (var tx = f.Scope.Begin())
-            Assert.True((await f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default)).Finished);
-        Assert.Equal(events, f.Scalar("SELECT COUNT(*) FROM domain_events"));
-        Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE slot_index=4303"));
-        Assert.Single(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), Character).CarriedAsync(default));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await HuntQuestReadyAsync(f);
+            var events = f.Scalar("SELECT COUNT(*) FROM domain_events");
+            await using (var tx = f.Scope.Begin())
+                Assert.True((await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, 4303, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default))).Finished);
+            Assert.Equal(events, f.Scalar("SELECT COUNT(*) FROM domain_events"));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE slot_index=4303"));
+            Assert.Single(await f.Services.GetRequiredService<ICharacterQuestLogDomainService>().LogOf(new(1), Character).CarriedAsync(default));
+        });
         await f.DrainAsync();
         Assert.Empty(f.ItemUids(26596));
     }
@@ -85,21 +89,24 @@ public sealed partial class AchievementTitleBookTests
     [PvfFact]
     public async Task Title_reward_is_routed_to_the_book_and_an_unmapped_reward_is_refused()
     {
-        await using var f = new Fixture();
-        PrepareQuestSettlement(f);
-        await using var tx = f.Scope.Begin();
-        var character = f.Services.GetRequiredService<ICharacterDomainService>().Get(Character);
-        var facts = new QuestCompletionFacts((await character.IdentityAsync(default))!, (await character.ProgressAsync(default))!,
-            await f.Services.GetRequiredService<IConsumableStateDomainService>().QuestsAsync(new(1), Character, default), [],
-            (await f.Services.GetRequiredService<ICharacterCarriedGoldTable>().FindAsync(Character, default))!, null, null);
-        var definition = (await f.Services.GetRequiredService<IQuestContentRuleService>().FindAsync(4303, default))!;
-        var rules = f.Services.GetRequiredService<IQuestCompletionEffectRuleService>();
-        var mapped = rules.Rewards(definition, facts, ushort.MaxValue, 1);
-        Assert.True(mapped.IsValid);
-        Assert.DoesNotContain(mapped.Plan!.Items, x => x.ItemId == 26596);
-        var unmapped = rules.Rewards(definition with { QuestId = 29999 }, facts, ushort.MaxValue, 1);
-        Assert.False(unmapped.IsValid);
-        Assert.Equal(QuestRewardRejection.UnmappedTitleReward, unmapped.Rejection);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture();
+            PrepareQuestSettlement(f);
+            await using var tx = f.Scope.Begin();
+            var character = f.Services.GetRequiredService<ICharacterDomainService>().Get(Character);
+            var facts = new QuestCompletionFacts((await character.IdentityAsync(default))!, (await character.ProgressAsync(default))!,
+                await f.Services.GetRequiredService<IConsumableStateDomainService>().QuestsAsync(new(1), Character, default), [],
+                (await f.Services.GetRequiredService<ICharacterCarriedGoldTable>().FindAsync(Character, default))!, null, null);
+            var definition = (await f.Services.GetRequiredService<IQuestContentRuleService>().FindAsync(4303, default))!;
+            var rules = f.Services.GetRequiredService<IQuestCompletionEffectRuleService>();
+            var mapped = rules.Rewards(definition, facts, ushort.MaxValue, 1);
+            Assert.True(mapped.IsValid);
+            Assert.DoesNotContain(mapped.Plan!.Items, x => x.ItemId == 26596);
+            var unmapped = rules.Rewards(definition with { QuestId = 29999 }, facts, ushort.MaxValue, 1);
+            Assert.False(unmapped.IsValid);
+            Assert.Equal(QuestRewardRejection.UnmappedTitleReward, unmapped.Rejection);
+        });
     }
 
     [PvfTheory]

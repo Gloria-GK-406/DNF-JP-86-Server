@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Data.Sqlite;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -31,33 +32,39 @@ public sealed class CharacterExperienceTests
     [Fact]
     public async Task AnAwardRaisesTheStoredTotal()
     {
-        using var characters = new AwardFixture(level: 1, experience: 10);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 10);
+            var grant = characters;
 
-        var award = await grant.AwardAsync( _ => Worth(30), CancellationToken.None);
+            var award = await grant.AwardAsync( _ => Worth(30), CancellationToken.None);
 
-        Assert.NotNull(award);
-        Assert.Equal(30u, award!.Gained);
-        Assert.Equal(40u, award!.Total);
-        Assert.Equal(1, award!.Level);
-        Assert.False(award!.LeveledUp);
-        Assert.Equal((1, 40u), characters.LastWrite);
+            Assert.NotNull(award);
+            Assert.Equal(30u, award!.Gained);
+            Assert.Equal(40u, award!.Total);
+            Assert.Equal(1, award!.Level);
+            Assert.False(award!.LeveledUp);
+            Assert.Equal((1, 40u), characters.LastWrite);
+        });
     }
 
     /// <summary>Crossing a threshold raises the level and keeps the surplus.</summary>
     [Fact]
     public async Task AnAwardPastAThresholdLevelsTheCharacter()
     {
-        using var characters = new AwardFixture(level: 1, experience: 90);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 90);
+            var grant = characters;
 
-        var award = await grant.AwardAsync( _ => Worth(30), CancellationToken.None);
+            var award = await grant.AwardAsync( _ => Worth(30), CancellationToken.None);
 
-        Assert.NotNull(award);
-        Assert.True(award!.LeveledUp);
-        Assert.Equal(2, award!.Level);
-        Assert.Equal(120u, award!.Total);
-        Assert.Equal((2, 120u), characters.LastWrite);
+            Assert.NotNull(award);
+            Assert.True(award!.LeveledUp);
+            Assert.Equal(2, award!.Level);
+            Assert.Equal(120u, award!.Total);
+            Assert.Equal((2, 120u), characters.LastWrite);
+        });
     }
 
     /// <remarks>
@@ -68,14 +75,17 @@ public sealed class CharacterExperienceTests
     [Fact]
     public async Task AnAwardPastSeveralThresholdsCrossesThemAll()
     {
-        using var characters = new AwardFixture(level: 1, experience: 0);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 0);
+            var grant = characters;
 
-        var award = await grant.AwardAsync( _ => Worth(460), CancellationToken.None);
+            var award = await grant.AwardAsync( _ => Worth(460), CancellationToken.None);
 
-        Assert.NotNull(award);
-        Assert.Equal(4, award!.Level);
-        Assert.Equal(460u, award!.Total);
+            Assert.NotNull(award);
+            Assert.Equal(4, award!.Level);
+            Assert.Equal(460u, award!.Total);
+        });
     }
 
     /// <summary>The level is derived from stored experience before valuation.</summary>
@@ -86,15 +96,18 @@ public sealed class CharacterExperienceTests
     [Fact]
     public async Task TheValuationIsAskedWithTheExperienceDerivedLevel()
     {
-        using var characters = new AwardFixture(level: 12, experience: 0);
-        var grant = characters;
-        byte asked = 0;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 12, experience: 0);
+            var grant = characters;
+            byte asked = 0;
 
-        await grant.AwardAsync(
-            level => { asked = level; return Worth(1); },
-            CancellationToken.None);
+            await grant.AwardAsync(
+                level => { asked = level; return Worth(1); },
+                CancellationToken.None);
 
-        Assert.Equal(1, asked);
+            Assert.Equal(1, asked);
+        });
     }
 
     /// <remarks>
@@ -105,58 +118,70 @@ public sealed class CharacterExperienceTests
     [Fact]
     public async Task ASecondAwardAddsToWhatTheFirstLeftBehind()
     {
-        using var characters = new AwardFixture(level: 1, experience: 0);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 0);
+            var grant = characters;
 
-        var first = await grant.AwardAsync( _ => Worth(25), CancellationToken.None);
-        var second = await grant.AwardAsync( _ => Worth(25), CancellationToken.None);
+            var first = await grant.AwardAsync( _ => Worth(25), CancellationToken.None);
+            var second = await grant.AwardAsync( _ => Worth(25), CancellationToken.None);
 
-        Assert.Equal(25u, first!.Total);
-        Assert.Equal(50u, second!.Total);
+            Assert.Equal(25u, first!.Total);
+            Assert.Equal(50u, second!.Total);
+        });
     }
 
     /// <summary>Contributions are part of what is granted, and are reported with it.</summary>
     [Fact]
     public async Task ContributionsAreAddedAndCarriedBackNamed()
     {
-        using var characters = new AwardFixture(level: 1, experience: 0);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 0);
+            var grant = characters;
 
-        var award = await grant.AwardAsync(
-            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 20, Other: 10)),
-            CancellationToken.None);
+            var award = await grant.AwardAsync(
+                _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 20, Other: 10)),
+                CancellationToken.None);
 
-        Assert.NotNull(award);
-        Assert.Equal(20u, award!.Base);
-        Assert.Equal(30u, award!.Gained);
-        Assert.Equal(30u, award!.Total);
-        Assert.Equal(10u, award!.Breakdown.Other);
+            Assert.NotNull(award);
+            Assert.Equal(20u, award!.Base);
+            Assert.Equal(30u, award!.Gained);
+            Assert.Equal(30u, award!.Total);
+            Assert.Equal(10u, award!.Breakdown.Other);
+        });
     }
 
     /// <summary>An occasion that pays nothing writes nothing.</summary>
     [Fact]
     public async Task AnAwardOfNothingLeavesTheStoreAlone()
     {
-        using var characters = new AwardFixture(level: 3, experience: 300);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 3, experience: 300);
+            var grant = characters;
 
-        var award = await grant.AwardAsync(
-            _ => ValueTask.FromResult(new ExperienceBreakdown()), CancellationToken.None);
+            var award = await grant.AwardAsync(
+                _ => ValueTask.FromResult(new ExperienceBreakdown()), CancellationToken.None);
 
-        Assert.Equal(0u, award!.Gained);
-        Assert.Equal(300u, award!.Total);
-        Assert.Equal(3, award!.Level);
-        Assert.Null(characters.LastWrite);
+            Assert.Equal(0u, award!.Gained);
+            Assert.Equal(300u, award!.Total);
+            Assert.Equal(3, award!.Level);
+            Assert.Null(characters.LastWrite);
+        });
     }
 
     /// <summary>A refused basic write aborts the complete award transaction.</summary>
     [Fact]
     public async Task AWriteTheStoreRefusesAbortsTheAward()
     {
-        using var characters = new AwardFixture(level: 1, experience: 10) { AcceptWrites = false };
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 10) { AcceptWrites = false };
+            var grant = characters;
 
-        await Assert.ThrowsAsync<SqliteException>(async () => await grant.AwardAsync(_ => Worth(30), CancellationToken.None));
+            await Assert.ThrowsAsync<SqliteException>(async () => await grant.AwardAsync(_ => Worth(30), CancellationToken.None));
+        });
     }
 
     /// <summary>A character the store does not hold has no standing to report.</summary>
@@ -168,85 +193,98 @@ public sealed class CharacterExperienceTests
     [Fact]
     public async Task ACharacterTheStoreDoesNotHoldHasNoStanding()
     {
-        using var characters = new AwardFixture(level: 1, experience: 0) { Exists = false };
-        var award = await characters.AwardAsync(_ => Worth(30), CancellationToken.None);
-        Assert.Null(award);
-        Assert.Null(characters.LastWrite);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 0) { Exists = false };
+            var award = await characters.AwardAsync(_ => Worth(30), CancellationToken.None);
+            Assert.Null(award);
+            Assert.Null(characters.LastWrite);
+        });
     }
 
     /// <summary>The total saturates at the last threshold rather than running past the table.</summary>
     [Fact]
     public async Task ATotalCannotRunPastTheLastThreshold()
     {
-        using var characters = new AwardFixture(level: 4, experience: 690);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 4, experience: 690);
+            var grant = characters;
 
-        var award = await grant.AwardAsync( _ => Worth(1_000_000), CancellationToken.None);
+            var award = await grant.AwardAsync( _ => Worth(1_000_000), CancellationToken.None);
 
-        Assert.Equal(Thresholds[^1], award!.Total);
+            Assert.Equal(Thresholds[^1], award!.Total);
+        });
     }
 
     [Fact]
     public async Task CrossingTheCeilingKeepsTheRewardAndCapsOnlyProgression()
     {
-        using var characters = new AwardFixture(level: 4, experience: 690);
-        var grant = characters;
-        var award = await grant.AwardAsync(
-            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 1_000_000, Channel: 50_000)),
-            CancellationToken.None);
-        Assert.NotNull(award);
-        Assert.Equal(1_050_000u, award.Gained);
-        Assert.Equal(1_000_000u, award.Base);
-        Assert.Equal(50_000u, award.Breakdown.Channel);
-        Assert.Equal(700u, award.Total);
-        Assert.Equal(5, award.Level);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 4, experience: 690);
+            var grant = characters;
+            var award = await grant.AwardAsync(
+                _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 1_000_000, Channel: 50_000)),
+                CancellationToken.None);
+            Assert.NotNull(award);
+            Assert.Equal(1_050_000u, award.Gained);
+            Assert.Equal(1_000_000u, award.Base);
+            Assert.Equal(50_000u, award.Breakdown.Channel);
+            Assert.Equal(700u, award.Total);
+            Assert.Equal(5, award.Level);
+        });
     }
 
     [Fact]
     public async Task ACharacterAtTheCeilingKeepsTheFullRewardBreakdown()
     {
-        using var characters = new AwardFixture(level: 5, experience: Thresholds[^1]);
-        var grant = characters;
-        var award = await grant.AwardAsync(
-            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Channel: 3)),
-            CancellationToken.None);
-        Assert.NotNull(award);
-        Assert.Equal(75u, award.Gained);
-        Assert.Equal(72u, award.Base);
-        Assert.Equal(3u, award.Breakdown.Channel);
-        Assert.Equal(5, award.Level);
-        Assert.False(award.LeveledUp);
-        Assert.Equal(Thresholds[^1], award.Total);
-        Assert.Null(characters.LastWrite);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 5, experience: Thresholds[^1]);
+            var grant = characters;
+            var award = await grant.AwardAsync(
+                _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Channel: 3)),
+                CancellationToken.None);
+            Assert.NotNull(award);
+            Assert.Equal(75u, award.Gained);
+            Assert.Equal(72u, award.Base);
+            Assert.Equal(3u, award.Breakdown.Channel);
+            Assert.Equal(5, award.Level);
+            Assert.False(award.LeveledUp);
+            Assert.Equal(Thresholds[^1], award.Total);
+            Assert.Null(characters.LastWrite);
+        });
     }
 
     /// <summary>The award explains itself in one line, which is what a live log has to carry.</summary>
     [Fact]
     public async Task AnAwardCanSayWhereItCameFrom()
     {
-        using var characters = new AwardFixture(level: 1, experience: 0);
-        var grant = characters;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var characters = new AwardFixture(level: 1, experience: 0);
+            var grant = characters;
 
-        var award = await grant.AwardAsync(
-            _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Other: 3)),
-            CancellationToken.None);
+            var award = await grant.AwardAsync(
+                _ => ValueTask.FromResult(new ExperienceBreakdown(Base: 72, Other: 3)),
+                CancellationToken.None);
 
-        Assert.NotNull(award);
-        Assert.Contains("Base = 72", award!.ToString(), StringComparison.Ordinal);
-        Assert.Contains("Other = 3", award!.ToString(), StringComparison.Ordinal);
-        Assert.Contains("75", award!.ToString(), StringComparison.Ordinal);
+            Assert.NotNull(award);
+            Assert.Contains("Base = 72", award!.ToString(), StringComparison.Ordinal);
+            Assert.Contains("Other = 3", award!.ToString(), StringComparison.Ordinal);
+            Assert.Contains("75", award!.ToString(), StringComparison.Ordinal);
+        });
     }
 
     [Fact]
     public async Task TutorialRequestWithStaleLevelNeverLowersCurrentProgress()
     {
         var row = new RecordingCharacterTable(level: 5, experience: 700);
-        var handler = new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommandHandler(
+        var characters =
             new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
-                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!, experienceRules: new FixedProgression(Thresholds)), null!));
-        var result = await handler.HandleAsync(null!,
-            new Dfo.Server.Protocol.Game.TutorialLevelUp.GrantTutorialLevelCommand(Character),
-            CancellationToken.None);
+                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!, experienceRules: new FixedProgression(Thresholds)), null!);
+        var result = await Dfo.Server.Application.Tests.Support.TutorialGrantDriver.Grant(characters,Character,CancellationToken.None);
         Assert.Equal(Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpStatus.AlreadyPast, result.Status);
         Assert.Equal(5, (await row.FindProgressAsync(Character, CancellationToken.None))!.Level);
         Assert.Null(row.LastWrite);
@@ -274,78 +312,99 @@ public sealed class CharacterExperienceTests
     [Fact]
     public async Task AtCapEachNotificationUsesOnlyThatAwardAndCapsuleReceivesEachOnce()
     {
-        using var fixture = new AwardFixture(5, 700);
-        var first = await fixture.AwardAsync(_ => Worth(14), default);
-        var second = await fixture.AwardAsync(_ => Worth(57), default);
-        Assert.Equal(700u, first!.Total);
-        Assert.Equal(714u, first.NotificationTotal);
-        Assert.Equal(700u, second!.Total);
-        Assert.Equal(757u, second.NotificationTotal);
-        Assert.Equal(71, fixture.Capsule);
-        Assert.Equal(71, fixture.Honour);
-        Assert.Null(fixture.LastWrite);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(5, 700);
+            var first = await fixture.AwardAsync(_ => Worth(14), default);
+            var second = await fixture.AwardAsync(_ => Worth(57), default);
+            Assert.Equal(700u, first!.Total);
+            Assert.Equal(714u, first.NotificationTotal);
+            Assert.Equal(700u, second!.Total);
+            Assert.Equal(757u, second.NotificationTotal);
+            Assert.Equal(71, fixture.Capsule);
+            Assert.Equal(71, fixture.Honour);
+            Assert.Null(fixture.LastWrite);
+        });
     }
 
     [Fact]
     public async Task CrossingCapFillsOnlyTheOverflowIntoCapsule()
     {
-        using var fixture = new AwardFixture(4, 690);
-        var award = await fixture.AwardAsync(_ => Worth(30), default);
-        Assert.Equal(700u, award!.Total);
-        Assert.Equal(720u, award.NotificationTotal);
-        Assert.Equal(20u, award.Overflow);
-        Assert.Equal(20, fixture.Capsule);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(4, 690);
+            var award = await fixture.AwardAsync(_ => Worth(30), default);
+            Assert.Equal(700u, award!.Total);
+            Assert.Equal(720u, award.NotificationTotal);
+            Assert.Equal(20u, award.Overflow);
+            Assert.Equal(20, fixture.Capsule);
+        });
     }
 
     [Fact]
     public async Task LegacyOverflowIsNormalizedWithoutBecomingANewReward()
     {
-        using var fixture = new AwardFixture(86, 3347);
-        var award = await fixture.AwardAsync(_ => Worth(14), default);
-        Assert.Equal(700u, award!.Total);
-        Assert.Equal(714u, award.NotificationTotal);
-        Assert.Equal(14, fixture.Capsule);
-        Assert.Equal((5, 700u), fixture.LastWrite);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(86, 3347);
+            var award = await fixture.AwardAsync(_ => Worth(14), default);
+            Assert.Equal(700u, award!.Total);
+            Assert.Equal(714u, award.NotificationTotal);
+            Assert.Equal(14, fixture.Capsule);
+            Assert.Equal((5, 700u), fixture.LastWrite);
+        });
     }
 
     [Fact]
     public async Task AProgressWriteFailureRollsBackTheCapsuleToo()
     {
-        using var fixture = new AwardFixture(4, 690) { AcceptWrites = false };
-        await Assert.ThrowsAsync<SqliteException>(async () => await fixture.AwardAsync(_ => Worth(30), default));
-        Assert.Equal(0, fixture.Capsule);
-        Assert.Equal(0, fixture.Honour);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(4, 690) { AcceptWrites = false };
+            await Assert.ThrowsAsync<SqliteException>(async () => await fixture.AwardAsync(_ => Worth(30), default));
+            Assert.Equal(0, fixture.Capsule);
+            Assert.Equal(0, fixture.Honour);
+        });
     }
 
     [Fact]
     public async Task ATransactionDiscardedAfterRewardRollsBackBothOwners()
     {
-        using var fixture = new AwardFixture(4, 690);
-        await fixture.AwardWithoutCommitAsync(30);
-        Assert.Equal(0, fixture.Capsule);
-        Assert.Equal(0, fixture.Honour);
-        Assert.Null(fixture.LastWrite);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(4, 690);
+            await fixture.AwardWithoutCommitAsync(30);
+            Assert.Equal(0, fixture.Capsule);
+            Assert.Equal(0, fixture.Honour);
+            Assert.Null(fixture.LastWrite);
+        });
     }
 
     [Fact]
     public async Task UnrepresentableNotificationRefusesBeforeAnyOwnerChanges()
     {
-        using var fixture = new AwardFixture(5, 700);
-        await Assert.ThrowsAsync<OverflowException>(async () => await fixture.AwardAsync(_ => Worth(uint.MaxValue), default));
-        Assert.Equal(0, fixture.Capsule);
-        Assert.Null(fixture.LastWrite);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(5, 700);
+            await Assert.ThrowsAsync<OverflowException>(async () => await fixture.AwardAsync(_ => Worth(uint.MaxValue), default));
+            Assert.Equal(0, fixture.Capsule);
+            Assert.Null(fixture.LastWrite);
+        });
     }
 
     [Fact]
     public async Task CapsuleSaturatesWithoutReducingTheReturnedReward()
     {
-        using var fixture = new AwardFixture(5, 700);
-        var award = await fixture.AwardAsync(_ => Worth(100000), default);
-        Assert.Equal(100000u, award!.Gained);
-        Assert.Equal(100700u, award.NotificationTotal);
-        Assert.Equal(10000, fixture.Capsule);
-        await fixture.AwardAsync(_ => Worth(14), default);
-        Assert.Equal(10000, fixture.Capsule);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var fixture = new AwardFixture(5, 700);
+            var award = await fixture.AwardAsync(_ => Worth(100000), default);
+            Assert.Equal(100000u, award!.Gained);
+            Assert.Equal(100700u, award.NotificationTotal);
+            Assert.Equal(10000, fixture.Capsule);
+            await fixture.AwardAsync(_ => Worth(14), default);
+            Assert.Equal(10000, fixture.Capsule);
+        });
     }
 
     private static ValueTask<ExperienceBreakdown> Worth(uint amount) => ValueTask.FromResult(new ExperienceBreakdown(Base: amount));
@@ -378,9 +437,9 @@ public sealed class CharacterExperienceTests
         {
             price = valuation;
             await using var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            var award = await shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(
+            var award = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null), cap => shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(
                 new QuestExperienceContext(new(ExperienceEvent.QuestCompletion, new(1), new(1), 0), 0),
-                shop.Clock.GetUtcNow(), null, ct);
+                shop.Clock.GetUtcNow(), null, cap, ct));
             await tx.CommitAsync(ct);
             return award;
         }

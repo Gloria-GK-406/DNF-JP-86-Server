@@ -14,6 +14,8 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
+using Dfo.Server.Protocol.Tests.Support;
 
 namespace Dfo.Server.Protocol.Tests.Game.LevelUpTicket;
 
@@ -80,20 +82,36 @@ public sealed class LevelUpTicketCodecTests
     [InlineData("050001")]
     public async Task Invalid_request_gets_a_refusal_without_entering_the_domain(string body)
     {
-        var sender = new Sender();
-        var handler = new LevelUpTicketHandler(null!, null!, null!, null!, sender,
-            null!, null!, null!, null!, NullLogger<LevelUpTicketHandler>.Instance);
-        var request = (LevelUpTicketRequest)new LevelUpTicketDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString(body));
-        await handler.HandleAsync(NetworkDispatchContext.Unknown, request, default);
-        Assert.Equal(new LevelUpTicketResponse(request.SourceSlot, 1), Assert.Single(sender.Sent));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new Sender();
+            var request = (LevelUpTicketRequest)new LevelUpTicketDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString(body));
+            await SkillGrowthDirectDriver.Handle("LevelUpTicket","LevelUpTicket",
+                [null,null,null,null,sender,null,null,null,null,SkillGrowthDirectDriver.Logger,null],
+                [null,null,null,null,null,null,new SkillGrowthDirectDriver.Outbox(sender),null,null,null,null,SkillGrowthDirectDriver.Logger,null],
+                NetworkDispatchContext.Unknown,request);
+            Assert.Equal(new LevelUpTicketResponse(request.SourceSlot, 1), Assert.Single(sender.Sent));
+        });
     }
 
+    /// <summary>
+    /// The CMDs a real registration adapter registered, read from its outbox; every call goes to the real protocol
+    /// sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, as the old double refused one.
+    /// </summary>
     private sealed class Sender : IGameMessageSender
     {
-        public List<IGameCmdMessage> Sent { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public Sender()
+        {
+            outbound.RefuseExplicit();
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage, () => new NotSupportedException());
+        }
+        public List<IGameCmdMessage> Sent => [.. outbound.MessagesAs<IGameCmdMessage>()];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

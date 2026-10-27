@@ -8,6 +8,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Networking.Runtime;
 using Dfo.Server.Protocol.Game.CollectionBox;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -68,8 +69,8 @@ public sealed class CollectionBoxNetworkSettlementTests
         using var f = new ShopFixture(s =>
         {
             s.AddSingleton<ICollectionBoxDefinitionSource,Definitions>();
-            s.AddSingleton<INetworkMessageSender>(transport);
         });
+        transport.Use(f.Sender.Outbound);
         transport.Current = f.Connection;
         transport.Replacement = f.Connection with { };
         await f.Seed(65,1000,2);
@@ -81,38 +82,30 @@ public sealed class CollectionBoxNetworkSettlementTests
         Assert.Same(f.Connection,ack.Connection);
         Assert.DoesNotContain(transport.Delivered,x=>ReferenceEquals(x.Connection,transport.Replacement));
     }
-    [Fact]
-    public async Task Refusal_is_not_delivered_to_a_connection_replaced_before_transport_lookup()
+    /// <summary>
+    /// The reusable-ID lookup, through the real registration (TASK-25): once a prepared batch is registered the ID
+    /// names <see cref="Replacement"/> in the connection table, so a later send by ID would be registered for it.
+    /// <see cref="Delivered"/> is what was registered, with the exact context each entry was registered for.
+    /// </summary>
+    private sealed class ReusingConnectionSender
     {
-        var transport=new ReusingConnectionSender { ReplaceBeforeDelivery=true };
-        using var f=new ShopFixture(s=>{s.AddSingleton<ICollectionBoxDefinitionSource,Definitions>();s.AddSingleton<INetworkMessageSender>(transport);});
-        transport.Current=f.Connection;transport.Replacement=f.Connection with { };
-        var counter=new GameInboundFrameCounter();var (ordinal,fresh)=counter.Observe(1);
-        byte[] body=[1,0,65,0,0xE8,3,0,0];
-        var request=new CollectionBoxRequest((new GameMessageMetadata(1,0x03E6,0,1){InboundOrdinal=ordinal,SequenceIsFresh=fresh}).WithRawBody(body),CollectionBoxAction.Put,1,65,1000);
-        await Assert.ThrowsAsync<IOException>(async()=>await f.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(f.Connection),request,default));
-        Assert.Empty(transport.Delivered);
-        Assert.Equal(0,f.Count(1000));
-    }
-    // Models the transport's reusable-ID lookup and physically bound batch semantics.
-    private sealed class ReusingConnectionSender : INetworkMessageSender
-    {
+        private RecordedOutbound outbound = null!;
         public NetworkConnectionContext Current { get; set; } = null!;
         public NetworkConnectionContext Replacement { get; set; } = null!;
-        public bool ReplaceBeforeDelivery { get; init; }
-        public List<(NetworkConnectionContext Connection,IServerNetworkMessage Message)> Delivered { get; }=[];
-        public ValueTask SendAsync(NetworkConnectionId id,IServerNetworkMessage message,CancellationToken ct)
-        { if(ReplaceBeforeDelivery) Current=Replacement; Delivered.Add((Current,message)); return ValueTask.CompletedTask; }
-        public ValueTask SendBatchAsync(NetworkConnectionContext expected,IReadOnlyList<IServerNetworkMessage> messages,CancellationToken ct)
+        public List<(NetworkConnectionContext Connection,IServerNetworkMessage Message)> Delivered =>
+            [.. outbound.Entries.Where(entry => !entry.IsClose).SelectMany(entry => entry.Messages.Select(message => (entry.Connection, message)))];
+
+        public void Use(RecordedOutbound recorded)
         {
-            if(ReplaceBeforeDelivery) Current=Replacement;
-            if(!ReferenceEquals(Current,expected)) throw new IOException("Physical connection replaced.");
-            Delivered.AddRange(messages.Select(x=>(expected,x)));
-            Current=Replacement;
-            return ValueTask.CompletedTask;
+            outbound = recorded;
+            recorded.BeforeSend = () =>
+            {
+                if (recorded.Batches.Count == 0 || ReferenceEquals(Current, Replacement)) return;
+                recorded.Connections.Remove(Current.ConnectionId);
+                recorded.Connections.Add(Replacement);
+                Current = Replacement;
+            };
         }
-        public ValueTask SendExplicitAsync(NetworkConnectionId id,ExplicitMessageDelivery delivery,CancellationToken ct) =>
-            throw new NotSupportedException();
     }
     private sealed class Definitions : ICollectionBoxDefinitionSource
     {

@@ -49,7 +49,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// combination, and the assumption, belong to the rule service above.
 /// </para>
 /// </remarks>
-internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IClearRewardRateSource
+internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IClearRewardRateSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     /// <summary>How many bands each named profile holds.</summary>
     private static readonly PvfField<int> BandCountSection = PvfField.Int32("[drop prob count]");
@@ -163,6 +163,14 @@ internal sealed class PvfClearRewardRateSource(PvfArchiveProvider provider) : IC
         /// </summary>
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ChronicleSetRewardRate = PvfField.Tokens("[chronicle set reward rate]", optional: true);
 
+    }
+
+    public string Name => "clear-reward-rates";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(Load(DropRateTables.ClearReward) is null ? 0 : 1);
     }
 
     public ClearRewardTable Load(string archivePath)

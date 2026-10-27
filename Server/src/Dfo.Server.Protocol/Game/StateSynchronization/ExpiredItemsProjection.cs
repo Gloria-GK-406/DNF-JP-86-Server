@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Mail;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -17,16 +16,15 @@ internal sealed record ExpiredItemsRefresh(SelectedSessionIdentity Owner,
     bool MailboxChanged = false) : INotification<ExpiredItemsRefresh>;
 
 internal sealed class ExpiredItemsNotificationSubscriber(IEventService events,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
+    ISelectedSessionDomainService sessions,
     ICharacterVisibleSessionDomainService visible) : IDomainEventSubscriber<OnlineExpiredItemsRemoved>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<OnlineExpiredItemsRemoved> message, CancellationToken ct)
     {
         var change = message.Payload;
-        await using var lease = await transitions.BorrowOrAcquireExclusiveAsync(change.AccountId, ct).ConfigureAwait(false);
         var owner = sessions.Find(change.AccountId);
         if (owner is null || owner.CharacterId != change.CharacterId || owner.ConnectionId.Value != change.ConnectionId
-            || owner.ConnectionGeneration != change.ConnectionGeneration) return;
+            || owner.ConnectionGeneration != change.ConnectionGeneration || !sessions.IsInWorld(owner)) return;
         var recipients = change.Containers.Contains(InventoryContainerType.Equipment)
             ? visible.Resolve(owner) : [owner];
         await events.ProjectAsync(new NotificationAudience.TheseSessions(recipients), new ExpiredItemsRefresh(owner, change.Containers, message.OccurredAt, change.MailboxChanged), ct)
@@ -37,8 +35,8 @@ internal sealed class ExpiredItemsNotificationSubscriber(IEventService events,
 internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, ICharacterVisibleSessionDomainService visible,
     ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IMailboxQueryDomainService? mailbox = null)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
+    IMailboxQueryDomainService mailbox)
     : INotificationHandler<ExpiredItemsRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -46,13 +44,12 @@ internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService s
     {
         var change = notification;
         var owner = change.Owner;
-        var receiver = sessions.FindByConnection(recipient.ConnectionId);
-        if (receiver is null || receiver.CharacterId != recipient.CharacterId
+        if (!sessions.TryGetInWorld(recipient.ConnectionId, out var receiver) || receiver.CharacterId != recipient.CharacterId
             || recipient.ExpectedSession is { } expected && expected != receiver
-            || sessions.Find(owner.AccountId) != owner || !visible.Resolve(owner).Contains(receiver)) return [];
+            || !sessions.IsInWorld(owner) || !visible.Resolve(owner).Contains(receiver)) return [];
         var inventory = await inventories.ReadCurrentAsync(owner.AccountId, owner.CharacterId, ct).ConfigureAwait(false);
         var account = await accounts.LoadAsync(owner.AccountId, owner.CharacterId, ct).ConfigureAwait(false);
-        if (sessions.FindByConnection(receiver.ConnectionId) != receiver
+        if (!sessions.IsInWorld(receiver)
             || !visible.Resolve(owner).Contains(receiver)) return [];
         var messages = new List<IServerNetworkMessage>();
         if (receiver == owner)
@@ -71,7 +68,7 @@ internal sealed class ExpiredItemsRefreshHandler(ISelectedSessionDomainService s
         if (change.Containers.Contains(InventoryContainerType.Equipment))
         {
             var current = await views.TryLoadAsync(owner, ct).ConfigureAwait(false);
-            if (current is null || sessions.FindByConnection(receiver.ConnectionId) != receiver
+            if (current is null || !sessions.IsInWorld(receiver)
                 || !visible.Resolve(owner).Contains(receiver)) return [];
             messages.AddRange(CharacterUserStateProjection.Compose(current, receiver == owner));
             if (receiver == owner) messages.AddRange(await HousingCurrentProjection.ReadAsync(housing, owner, ct).ConfigureAwait(false));

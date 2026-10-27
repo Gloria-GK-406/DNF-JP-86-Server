@@ -34,8 +34,10 @@ internal sealed class GrantOpeningGoldEffectHandler(ICharacterDomainService char
 
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, GrantOpeningGoldEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         var character = characters.Get(context.CharacterId);
         var total = await TotalAsync(context, await character.GoldAsync(ct).ConfigureAwait(false), effect.Amount, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         if (await character.AddGoldAsync(effect.Amount, ct).ConfigureAwait(false) != total)
             throw new InventoryEffectException(InventoryEffectRejection.NoRoom);
         var slot = new BusinessSlot(BusinessInventorySpace.VirtualResource, 0);

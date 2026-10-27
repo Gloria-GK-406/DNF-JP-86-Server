@@ -9,6 +9,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -59,17 +60,17 @@ public sealed class AvatarAppearanceTests
     private static ShopFixture Fixture()
     {
         var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         f.Sql("UPDATE characters SET job=0"); f.SetLevel(80);
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar),
                 new(InventoryContainerType.Avatar, 0), f.Services.GetRequiredService<IItemDomainStore>(),
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
-                f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
     private static Task<ItemMoveResult> Move(ShopFixture f, BusinessSlot source, BusinessSlot destination) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new MoveItemSpaceCommand(f.Session.CharacterId,
+        InventoryMoveTestAccess.MoveAsync(f.Services, new InventoryMoveRequest(f.Session.CharacterId,
             source, 1, destination) { Session = f.Session }).AsTask();
     private static int Appearance(ShopFixture f, int slot, int list = 3) => f.Scalar(
         $"SELECT appearance_item_id FROM items JOIN item_slots ON item_uid=core_uid WHERE owner_id=1 AND list_type={list} AND slot_index={slot}");
@@ -104,15 +105,18 @@ public sealed class AvatarAppearanceTests
         Assert.Equal(ItemMoveStatus.Moved, (await Move(f, new(BusinessInventorySpace.WornAvatar, 3), new(BusinessInventorySpace.Avatar, 1))).Status);
         Assert.Equal(40735, Appearance(f, 3)); Assert.Equal(40735, Appearance(f, 1, 1));
         // Remove the source costume: only the copied value remains necessary.
-        var scope = (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(scope.Current!);
-            var avatarId = ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar);
-            await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(avatarId, 0, default))!, null, default), default);
-            Assert.Equal(40735, (await session.GetAsync(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Equipment), 3, default))!.Snapshot.AppearanceItemId);
-            await tx.CommitAsync(default);
-        }
+            var scope = (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using (var tx = scope.Begin())
+            {
+                var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(scope.Current!);
+                var avatarId = ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar);
+                await session.DeleteItemAsync(await session.TakeAsync((await session.GetAsync(avatarId, 0, default))!, null, default), default);
+                Assert.Equal(40735, (await session.GetAsync(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Equipment), 3, default))!.Snapshot.AppearanceItemId);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(ItemMoveStatus.Moved, (await Move(f, new(BusinessInventorySpace.WornAvatar, 3), new(BusinessInventorySpace.Avatar, 2))).Status);
         Assert.Equal(ItemMoveStatus.Moved, (await Move(f, new(BusinessInventorySpace.Avatar, 2), new(BusinessInventorySpace.WornAvatar, 3))).Status);
         Assert.Equal(0, Appearance(f, 3));

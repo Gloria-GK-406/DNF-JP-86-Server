@@ -17,6 +17,7 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestProgress;
 /// NPC, so none of them carries this frame in either direction. What the expectations below assert
 /// is that this codec writes what that builder writes.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class SetQuestTriggerPayloadCodecTests
 {
     /// <summary>The observed report, read field by field past the echoed type.</summary>

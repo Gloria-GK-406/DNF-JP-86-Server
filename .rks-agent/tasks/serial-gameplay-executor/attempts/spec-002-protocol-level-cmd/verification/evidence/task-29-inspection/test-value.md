@@ -1,0 +1,5 @@
+# TASK29 test-value gate
+
+VC-B4保护结果是已提交或不确定购买不被普通拒绝ACK伪装、精确买家受默认保护且不误伤其它身份。原测试及Task28只验证旧ACK/no-fence，编译与静态搬迁无法阻止新whole宽catch吞typed/scope错误。真实decoder/core/SQLite/outbox测试直接观察真实资产、异常原因和actor/连接/运行态/关闭，而非依赖特定协作者，保行为的内部重排仍应通过。新的可恢复commit消费还可能漏映原拒绝；原native787加ACK/实际close oracle与消费者变异具有增量保护价值。旧强领域测试保原断言，结构搬迁本身不造编译RED。
+
+先用真正旧scope例获取原exit0观察，再独立新期望要求默认failure/actor保护，失败exit1应来自已证旧正常返回和无Fence，非fixture/编译错误。正式新路径与永久回归再证明GREEN。局部consumer commit-result重新抛cause的可编译变异应使native787仍确认回滚但原ACK丢失/来源被关闭而RED，恢复后GREEN。

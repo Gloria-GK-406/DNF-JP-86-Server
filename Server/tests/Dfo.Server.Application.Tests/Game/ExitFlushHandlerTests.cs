@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
@@ -18,6 +20,7 @@ using Dfo.Server.Protocol.Game.SessionMetrics;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -31,9 +34,9 @@ public sealed class ExitFlushHandlerTests
     public async Task SessionMetrics_ReportsNothingSampledForTheObservedAllZeroBody()
     {
         var logger = new RecordingLogger<SessionMetricsHandler>();
-        var handler = new SessionMetricsHandler(Attributed(out var context), logger);
+        var online = Attributed(out var context);
 
-        await handler.HandleAsync(context, AllZeroMetrics(), CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, AllZeroMetrics(), online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -48,15 +51,13 @@ public sealed class ExitFlushHandlerTests
     public async Task SessionMetrics_DistinguishesMeasuredMeansFromUnsampledOnes()
     {
         var logger = new RecordingLogger<SessionMetricsHandler>();
-        var handler = new SessionMetricsHandler(Unattributed(out var context), logger);
+        var online = Unattributed(out var context);
         var means = Enumerable.Range(0, 7)
             .Select(index => new SessionMetricMean((ushort)index, index == 2 ? 480u : 0u))
             .ToArray();
 
-        await handler.HandleAsync(
-            context,
-            new SessionMetricsReportRequest(GameMessageMetadata.Empty, means, [], []),
-            CancellationToken.None);
+        await LightweightMessageDispatch.Send(context,
+            new SessionMetricsReportRequest(new(1, 0x00FA, 0, 1), means, [], []), online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("unattributed", entry.Message);
@@ -67,14 +68,14 @@ public sealed class ExitFlushHandlerTests
     public async Task SessionMetrics_RendersPopulatedSections()
     {
         var logger = new RecordingLogger<SessionMetricsHandler>();
-        var handler = new SessionMetricsHandler(Unattributed(out var context), logger);
+        var online = Unattributed(out var context);
         var report = new SessionMetricsReportRequest(
-            GameMessageMetadata.Empty,
+            new(1, 0x00FA, 0, 1),
             [.. Enumerable.Range(0, 7).Select(index => new SessionMetricMean((ushort)index, 0))],
             [new SessionMetricRecord(1, 2, 3, 4, 5)],
             [new SessionMetricRecord(9, 8, 7, 6, 5), new SessionMetricRecord(0, 0, 0, 0, 1)]);
 
-        await handler.HandleAsync(context, report, CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, report, online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("section7=1/2/3/4/5", entry.Message);
@@ -91,14 +92,14 @@ public sealed class ExitFlushHandlerTests
     {
         var logger = new RecordingLogger<TaggedIdReportHandler>();
         var sender = new RecordingExplicitSender();
-        var handler = new TaggedIdReportHandler(
+        var handler = Report(
             Attributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), sender, logger);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             context,
             new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 31, RewardFlag: 1),
-            CancellationToken.None);
+            CancellationToken.None));
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("id=31 flag=1", entry.Message);
@@ -114,24 +115,27 @@ public sealed class ExitFlushHandlerTests
     [Fact]
     public async Task TaggedIdReport_AcknowledgesTheSlotAnItemActuallyReached()
     {
-        var logger = new RecordingLogger<TaggedIdReportHandler>();
-        var sender = new RecordingExplicitSender();
-        var stored = new RecordingInventory();
-        var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new OneReward())),
-            Rewarding(stored, new KnownPlacement()), sender, logger);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var logger = new RecordingLogger<TaggedIdReportHandler>();
+            var sender = new RecordingExplicitSender();
+            var stored = new RecordingInventory();
+            var handler = Report(
+                Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new OneReward())),
+                Rewarding(stored, new KnownPlacement()), sender, logger);
 
-        await handler.HandleAsync(
-            context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                context,
+                new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
+                CancellationToken.None);
 
-        var item = Assert.Single(
-            Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted);
-        Assert.Equal(121, item.Slot);
-        Assert.Equal(8474u, item.ItemId);
-        Assert.Equal(1u, item.Count);
-        Assert.Equal((8474, 1), Assert.Single(stored.Granted));
+            var item = Assert.Single(
+                Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted);
+            Assert.Equal(121, item.Slot);
+            Assert.Equal(8474u, item.ItemId);
+            Assert.Equal(1u, item.Count);
+            Assert.Equal((8474, 1), Assert.Single(stored.Granted));
+        });
     }
 
     /// <summary>
@@ -145,23 +149,26 @@ public sealed class ExitFlushHandlerTests
     [Fact]
     public async Task TaggedIdReport_SettlesEveryItemOfOneStepTogether()
     {
-        var sender = new RecordingExplicitSender();
-        var stored = new RecordingInventory();
-        var handler = new TaggedIdReportHandler(
-            Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new TwoOfOneReward())),
-            Rewarding(stored, new KnownPlacement()), sender,
-            new RecordingLogger<TaggedIdReportHandler>());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingExplicitSender();
+            var stored = new RecordingInventory();
+            var handler = Report(
+                Attributed(out var context), new OneSession(), new TutorialRewardDomainService(new TutorialRewardRuleService(new TwoOfOneReward())),
+                Rewarding(stored, new KnownPlacement()), sender,
+                new RecordingLogger<TaggedIdReportHandler>());
 
-        await handler.HandleAsync(
-            context,
-            new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
-            CancellationToken.None);
+            await handler.HandleAsync(
+                context,
+                new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 38, RewardFlag: 1),
+                CancellationToken.None);
 
-        // One pile of two, not two piles of one.
-        Assert.Equal([(121, 8474, 2)], stored.Rows());
-        var granted = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted;
-        Assert.Equal(2, granted.Count);
-        Assert.All(granted, item => Assert.Equal(121, item.Slot));
+            // One pile of two, not two piles of one.
+            Assert.Equal([(121, 8474, 2)], stored.Rows());
+            var granted = Assert.IsType<TutorialFlagAcknowledgement>(Assert.Single(sender.Sent)).Granted;
+            Assert.Equal(2, granted.Count);
+            Assert.All(granted, item => Assert.Equal(121, item.Slot));
+        });
     }
 
     [Fact]
@@ -169,15 +176,15 @@ public sealed class ExitFlushHandlerTests
     {
         // It arrives after the server has answered EXIT, so the online user may already be gone.
         var logger = new RecordingLogger<TaggedIdReportHandler>();
-        var handler = new TaggedIdReportHandler(
+        var handler = Report(
             Unattributed(out var context), new NoSessions(), new TutorialRewardDomainService(new TutorialRewardRuleService(new NoRewards())),
             Rewarding(new RecordingInventory(), new NoPlacement()), new RecordingExplicitSender(),
             logger);
 
-        await handler.HandleAsync(
+        await TestGameplay.RunAsync(async () => await handler.HandleAsync(
             context,
             new TaggedIdReportRequest(GameMessageMetadata.Empty, Mode: 0, FlagIndex: 77, RewardFlag: 0),
-            CancellationToken.None);
+            CancellationToken.None));
 
         Assert.Contains("unattributed", Assert.Single(logger.Entries).Message);
     }
@@ -186,17 +193,12 @@ public sealed class ExitFlushHandlerTests
     public async Task RosterFollowUp_FlagsTheSentinelButNotOtherValues()
     {
         var logger = new RecordingLogger<RosterFollowUpHandler>();
-        var sender = new CountingGameMessageSender();
-        var handler = new RosterFollowUpHandler(Attributed(out var context), sender, logger);
+        var online = Attributed(out var context);
 
-        await handler.HandleAsync(
-            context,
-            new RosterFollowUpRequest(GameMessageMetadata.Empty, 0xFFFF),
-            CancellationToken.None);
-        await handler.HandleAsync(
-            context,
-            new RosterFollowUpRequest(GameMessageMetadata.Empty, 0x1234),
-            CancellationToken.None);
+        var first = await LightweightMessageDispatch.Send(context,
+            new RosterFollowUpRequest(new(1, 0x02A8, 0, 1), 0xFFFF), online, logger);
+        var second = await LightweightMessageDispatch.Send(context,
+            new RosterFollowUpRequest(new(1, 0x02A8, 0, 2), 0x1234), online, logger);
 
         Assert.Equal(2, logger.Entries.Count);
         Assert.Contains("0xFFFF (sentinel)", logger.Entries[0].Message);
@@ -205,8 +207,19 @@ public sealed class ExitFlushHandlerTests
 
         // Answered, not merely logged. Both values get a reply: the reference server's handler
         // does not look at the body at all.
-        Assert.Equal(2, sender.CmdCount);
+        var frames = first.Concat(second).ToArray();
+        Assert.Equal(2, frames.Length);
+        Assert.All(frames, frame =>
+        {
+            Assert.Equal(1, frame[0]);
+            Assert.Equal(0x02A8, BitConverter.ToUInt16(frame, 1));
+            Assert.Equal(new byte[] { 0, 0 }, frame[15..]);
+        });
     }
+
+    private static TaggedIdReportHandler Report(IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
+        ITutorialRewardDomainService rewards, DirectCommandBus bus, IGameMessageSender sender, ILogger<TaggedIdReportHandler> logger) =>
+        bus.Report(users,sessions,rewards,sender,logger);
 
     private sealed class NoPlacement : IItemPlacementDefinitionSource
     {
@@ -229,11 +242,11 @@ public sealed class ExitFlushHandlerTests
     /// The command is transactional, so the boundary comes with it -- the container it writes
     /// through refuses a change made outside one.
     /// </remarks>
-    private static ICommandBus Rewarding(
+    private static DirectCommandBus Rewarding(
         RecordingInventory inventory, IItemPlacementDefinitionSource placements) =>
         new DirectCommandBus(
             scope: inventory.Scope,
-            reward: new GrantTutorialRewardCommandHandler(
+            reward: new TutorialRewardTestDriver(
                 inventory.Containers(placements),
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(inventory.Grants(placements), inventory.Containers(placements)), null!));
 
@@ -247,6 +260,53 @@ public sealed class ExitFlushHandlerTests
 
     private sealed class NoSessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
         public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => null;
@@ -257,6 +317,53 @@ public sealed class ExitFlushHandlerTests
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(1), new CharacterId(1), new NetworkConnectionId("Game:tutorial"), 1, 10011);
 
@@ -292,56 +399,43 @@ public sealed class ExitFlushHandlerTests
                 [new TutorialRewardItem(8474, 1), new TutorialRewardItem(8474, 1)]);
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingExplicitSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingExplicitSender()
+        {
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("The tutorial acknowledgement is sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The tutorial acknowledgement is a CMD."));
+        }
+
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The tutorial acknowledgement is sent explicitly.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The tutorial acknowledgement is a CMD.");
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
-        }
-    }
-
-    private sealed class CountingGameMessageSender : IGameMessageSender
-    {
-        public int CmdCount { get; private set; }
-
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken)
-        {
-            CmdCount++;
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The roster follow-up answers with a CMD.");
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("This handler does not use explicit delivery.");
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private static SessionMetricsReportRequest AllZeroMetrics() => new(

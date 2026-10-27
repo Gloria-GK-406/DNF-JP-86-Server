@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -9,36 +11,14 @@ namespace Dfo.Server.Protocol.Game.ClientSpecStatistic;
 /// Consumes the CLIENT_SPEC_STATISTIC (0x00AB) hardware report and logs it.
 /// The client sends it once after Game LOGIN and expects no response, so this handler
 /// deliberately sends nothing. There is no storage consumer yet, so the report is only
-/// logged with its semantic decode; it does not mutate domain state and therefore does
-/// not go through the command bus.
+/// logged with its semantic decode; its protocol command does not mutate domain state.
 /// </summary>
-public sealed class ClientSpecStatisticHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    ILogger<ClientSpecStatisticHandler> logger) : ClientMessageHandler<ClientSpecStatisticReportRequest>
+public sealed class ClientSpecStatisticHandler(ICommandBus commands)
+    : ClientMessageHandler<ClientSpecStatisticReportRequest>, IProtocolCommandMessageHandler<GameClientSpecStatisticCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ClientSpecStatisticReportRequest message,
-        CancellationToken cancellationToken)
-    {
-        // The report follows LOGIN on the same connection; attribute it when possible but
-        // stay tolerant of unexpected ordering rather than dropping the telemetry.
-        var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            && onlineUser is not null;
-
-        logger.LogInformation(
-            "Client hardware report {ConnectionId} {Attribution}: trigger={Trigger} reported={Reported} cpu={Cpu} gpu={Gpu} os={OperatingSystem} memory={Memory}",
-            context.Connection.ConnectionId,
-            attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
-            message.TriggerPath,
-            message.ReportedFlag,
-            ClientSpecStatisticSlotDescriptor.DescribeCpu(message.Slots),
-            ClientSpecStatisticSlotDescriptor.DescribeGraphics(message.Slots),
-            ClientSpecStatisticSlotDescriptor.DescribeOperatingSystem(message.Slots),
-            ClientSpecStatisticSlotDescriptor.DescribeMemory(message.Slots));
-
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ClientSpecStatisticReportRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameClientSpecStatisticCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>

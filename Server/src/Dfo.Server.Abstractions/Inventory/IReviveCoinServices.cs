@@ -20,6 +20,6 @@ public interface IReviveCoinQueryDomainService
 }
 public interface IReviveCoinDomainService : IReviveCoinQueryDomainService
 {
-    ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, CancellationToken ct);
-    ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, CancellationToken ct);
+    ValueTask<ItemUseApplication?> TryUseAsync(SelectedSessionIdentity session, BusinessSlot source, ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<DailyReviveCoinResult> ClaimAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct);
 }

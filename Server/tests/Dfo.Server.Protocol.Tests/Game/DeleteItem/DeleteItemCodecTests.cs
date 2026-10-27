@@ -13,6 +13,7 @@ using Dfo.Server.Protocol.Game.DeleteItem;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DeleteItem;
 
@@ -24,14 +25,20 @@ public sealed class DeleteItemCodecTests
     [InlineData(65535)]
     public async Task Unmapped_slot_is_rejected_without_throwing_or_touching_business_state(int slot)
     {
-        var sender = new CmdSender();
-        var handler = new DeleteItemHandler(null!, null!, new InventorySlotMappingRuleService(), null!, null!, sender,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<DeleteItemHandler>.Instance);
-        await handler.HandleAsync(new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011)),
-            new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1),default);
-        var rejected=Assert.IsType<DeleteItemResponse>(Assert.Single(sender.Sent));
-        Assert.False(rejected.Success);
-        Assert.Equal(DeleteItemResponse.CannotDelete,rejected.ErrorCode);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new CmdSender();
+            // Actual whole executes the mapper before any query/domain/unit. Null dependencies fail if touched.
+            var handler = new GameDeleteItemCommandHandler(null!, null!, new InventorySlotMappingRuleService(),
+                null!, null!, null!, null!, null!, null!, new RejectionOutbox(sender),
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<GameDeleteItemCommandHandler>.Instance);
+            var dispatch = new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011));
+            var request = new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1);
+            Assert.False(await handler.HandleAsync(new(Guid.NewGuid(),typeof(GameDeleteItemCommand),typeof(GameDeleteItemCommandHandler)),new(dispatch,request),default));
+            var rejected=Assert.IsType<DeleteItemResponse>(Assert.Single(sender.Sent));
+            Assert.False(rejected.Success);
+            Assert.Equal(DeleteItemResponse.CannotDelete,rejected.ErrorCode);
+        });
     }
 
     [Fact]
@@ -44,32 +51,55 @@ public sealed class DeleteItemCodecTests
     [Fact]
     public async Task Discard_sends_the_corrected_quest_snapshot_after_its_success_answer()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("discard-quest"), 1, 10011);
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(session);
-        var receipt = new ItemDiscardReceipt(
-            session, new BusinessSlot(BusinessInventorySpace.Consumable, 0), 5000, 1,
-            null, DateTimeOffset.UnixEpoch);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("discard-quest"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var receipt = new ItemDiscardReceipt(
+                session, new BusinessSlot(BusinessInventorySpace.Consumable, 0), 5000, 1,
+                null, DateTimeOffset.UnixEpoch);
 
-        var messages = await new ItemDiscardCompletedHandler(
-            sessions, new SlotProjection()).ComposeAsync(
-            new NotificationRecipient(session.CharacterId, session.ConnectionId),
-            new ItemDiscardCompleted(receipt,
-                new QuestProgressSnapshot([new CarriedQuest(0, 2001, 1)])),
-            CancellationToken.None);
+            var messages = await new ItemDiscardCompletedHandler(
+                sessions, new SlotProjection()).ComposeAsync(
+                new NotificationRecipient(session.CharacterId, session.ConnectionId),
+                new ItemDiscardCompleted(receipt,
+                    new QuestProgressSnapshot([new CarriedQuest(0, 2001, 1)])),
+                CancellationToken.None);
 
-        Assert.IsType<DeleteItemResponse>(messages[0]);
-        var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[1]);
-        Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+            Assert.IsType<DeleteItemResponse>(messages[0]);
+            var progress = Assert.IsType<AcceptedQuestProgressMessage>(messages[1]);
+            Assert.Equal(1u, Assert.Single(progress.Quests).TriggerValue);
+        });
     }
 
+    /// <summary>
+    /// The CMDs a real registration adapter registered, read from its outbox; every call goes to the real protocol
+    /// sender over it (TASK-25). A NOTI or an explicit delivery fails where it is registered, as the old double refused one.
+    /// </summary>
     private sealed class CmdSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken ct) => throw new NotSupportedException();
+        private readonly RecordedOutbound outbound = new();
+        public CmdSender()
+        {
+            outbound.RefuseExplicit();
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage, () => new NotSupportedException());
+        }
+        public List<IGameServerMessage> Sent => [.. outbound.MessagesAs<IGameServerMessage>()];
+        public ValueTask SendCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken ct) =>
+            outbound.Game.SendCmdAsync(connection, message, ct);
+        public ValueTask SendNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken ct) =>
+            outbound.Game.SendNotiAsync(connection, message, ct);
+        public ValueTask SendExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
+            outbound.Game.SendExplicitAsync(connection, delivery, ct);
+    }
+
+    private sealed class RejectionOutbox(CmdSender sender) : IGameCommandOutbox
+    {
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => sender.SendCmdAsync(id,message,ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext connection,IReadOnlyList<IGameServerMessage> messages,CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery delivery,CancellationToken ct) => throw new NotSupportedException();
     }
 
     private sealed class SlotProjection : IInventorySlotProjectionDomainService

@@ -10,6 +10,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -18,21 +19,24 @@ public sealed class SealedTreasureTests
     [Fact]
     public async Task Activity_switch_projects_3557_independently_of_existing_activity_gates()
     {
-        await using var f = new LearningFixture(); await f.SeedAsync();
-        var activities = f.Services.GetRequiredService<IEventManagementDomainService>();
-        var projections = f.Services.GetRequiredService<IEventPlayerProjectionDomainService>();
-        var open = await projections.ReadNowAsync(f.Session, default);
-        Assert.True(Assert.Single(open.ScheduledDungeons, x => x.DungeonId == 3557).Open);
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await activities.ChangeAsync(new(2331, 0, "disable"), "test", DateTimeOffset.UtcNow, default);
-            await tx.CommitAsync(default);
-        }
-        var closed = await projections.ReadNowAsync(f.Session, default);
-        Assert.False(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 3557).Open);
-        Assert.True(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 100).Open);
-        Assert.True(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 3700).Open);
-        Assert.Single(closed.Information, x => x.EventId == 69);
+            await using var f = new LearningFixture(); await f.SeedAsync();
+            var activities = f.Services.GetRequiredService<IEventManagementDomainService>();
+            var projections = f.Services.GetRequiredService<IEventPlayerProjectionDomainService>();
+            var open = await projections.ReadNowAsync(f.Session, default);
+            Assert.True(Assert.Single(open.ScheduledDungeons, x => x.DungeonId == 3557).Open);
+            await using (var tx = f.Scope.Begin())
+            {
+                await activities.ChangeAsync(new(2331, 0, "disable"), "test", DateTimeOffset.UtcNow, default);
+                await tx.CommitAsync(default);
+            }
+            var closed = await projections.ReadNowAsync(f.Session, default);
+            Assert.False(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 3557).Open);
+            Assert.True(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 100).Open);
+            Assert.True(Assert.Single(closed.ScheduledDungeons, x => x.DungeonId == 3700).Open);
+            Assert.Single(closed.Information, x => x.EventId == 69);
+        });
     }
 
     [SkippableFact]
@@ -81,59 +85,62 @@ public sealed class SealedTreasureTests
     [SkippableFact]
     public async Task Admission_uses_free_ticket_once_rolls_back_and_never_spends_exhausted_fatigue()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        await using var f = await Fixture();
-        var service = f.Services.GetRequiredService<ISealedTreasureDomainService>();
-        var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
-        await using (var tx = f.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var grant = f.Services.GetRequiredService<IItemGrantDomainService>();
-            await grant.GrantAllPersistentAsync(new(71), 10003196, 2, default);
-            await grant.GrantAllPersistentAsync(new(71), 10003235, 1, default);
-            await fatigue.SpendAsync(new(71), (await fatigue.BalanceOfAsync(new(71), default)).Remaining, default);
-            await tx.CommitAsync(default);
-        }
-        var used = (await fatigue.BalanceOfAsync(new(71), default)).Used;
-        await using (var tx = f.Scope.Begin())
-            Assert.NotNull((await service.EnterAsync(Entry(), default)).Entry);
-        Assert.Equal(1, await Count(f, 10003235));
-        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with { PracticeMode = 1 }, default)).Failure);
-            Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with { RequestMode = 1 }, default)).Failure);
-            Assert.Equal(DungeonEntryFailure.DifficultyNotUnlocked, (await service.EnterAsync(Entry() with { Facts = DungeonEntryFacts.None }, default)).Failure);
-            Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with {
-                Participants = [.. Entry().Participants, new(new(2), new(72), 1, false)] }, default)).Failure);
-            await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(69, default);
-            Assert.Equal(DungeonEntryFailure.LevelTooLow, (await service.EnterAsync(Entry(), default)).Failure);
-            await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(70, default);
-            Assert.NotNull((await service.EnterAsync(Entry(), default)).Entry);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(0, await Count(f, 10003235)); Assert.Equal(2, await Count(f, 10003196));
-        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
-        var run = runs.Find(new CharacterId(71))!;
-        var target = run.Layout.Cells.Keys.First(x => run.Layout.CanTraverse(run.CurrentCell, x));
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.Equal(DungeonEntryFailure.AlreadyInDungeon, (await service.EnterAsync(Entry(), default)).Failure);
-            Assert.NotNull(await f.Services.GetRequiredService<IDungeonVisitDomainService>().MoveAsync(new(71), run, target, default));
-            await tx.CommitAsync(default);
-        }
-        await using (var tx = f.Scope.Begin())
-        {
-            Assert.NotNull(await f.Services.GetRequiredService<IDungeonVisitDomainService>().MoveAsync(new(71), runs.Find(new CharacterId(71))!, run.CurrentCell, default));
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(used, (await fatigue.BalanceOfAsync(new(71), default)).Used);
-        await using (var tx = f.Scope.Begin())
-        {
-            await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(new(2331, 0, "disable"), "test", DateTimeOffset.UtcNow, default);
-            Assert.Equal(DungeonEntryFailure.OutsideOpeningHours, (await service.EnterAsync(Entry(), default)).Failure);
-            await tx.CommitAsync(default);
-        }
-        Assert.Equal(2, await Count(f, 10003196));
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await using var f = await Fixture();
+            var service = f.Services.GetRequiredService<ISealedTreasureDomainService>();
+            var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
+            await using (var tx = f.Scope.Begin())
+            {
+                var grant = f.Services.GetRequiredService<IItemGrantDomainService>();
+                await grant.GrantAllPersistentAsync(new(71), 10003196, 2, default);
+                await grant.GrantAllPersistentAsync(new(71), 10003235, 1, default);
+                await fatigue.SpendAsync(new(71), (await fatigue.BalanceOfAsync(new(71), default)).Remaining, default);
+                await tx.CommitAsync(default);
+            }
+            var used = (await fatigue.BalanceOfAsync(new(71), default)).Used;
+            await using (var tx = f.Scope.Begin())
+                Assert.NotNull((await service.EnterAsync(Entry(), default)).Entry);
+            Assert.Equal(1, await Count(f, 10003235));
+            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with { PracticeMode = 1 }, default)).Failure);
+                Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with { RequestMode = 1 }, default)).Failure);
+                Assert.Equal(DungeonEntryFailure.DifficultyNotUnlocked, (await service.EnterAsync(Entry() with { Facts = DungeonEntryFacts.None }, default)).Failure);
+                Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with {
+                    Participants = [.. Entry().Participants, new(new(2), new(72), 1, false)] }, default)).Failure);
+                await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(69, default);
+                Assert.Equal(DungeonEntryFailure.LevelTooLow, (await service.EnterAsync(Entry(), default)).Failure);
+                await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71)).SetLevelAsync(70, default);
+                Assert.NotNull((await service.EnterAsync(Entry(), default)).Entry);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(0, await Count(f, 10003235)); Assert.Equal(2, await Count(f, 10003196));
+            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var run = runs.Find(new CharacterId(71))!;
+            var target = run.Layout.Cells.Keys.First(x => run.Layout.CanTraverse(run.CurrentCell, x));
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.Equal(DungeonEntryFailure.AlreadyInDungeon, (await service.EnterAsync(Entry(), default)).Failure);
+                Assert.NotNull(await f.Services.GetRequiredService<IDungeonVisitDomainService>().MoveAsync(new(71), run, target, default));
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.NotNull(await f.Services.GetRequiredService<IDungeonVisitDomainService>().MoveAsync(new(71), runs.Find(new CharacterId(71))!, run.CurrentCell, default));
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(used, (await fatigue.BalanceOfAsync(new(71), default)).Used);
+            await using (var tx = f.Scope.Begin())
+            {
+                await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(new(2331, 0, "disable"), "test", DateTimeOffset.UtcNow, default);
+                Assert.Equal(DungeonEntryFailure.OutsideOpeningHours, (await service.EnterAsync(Entry(), default)).Failure);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(2, await Count(f, 10003196));
+        });
     }
 
     private static DungeonEntryContext Entry() => new(3557,
@@ -146,10 +153,10 @@ public sealed class SealedTreasureTests
         var f = new LearningFixture(useArchive: true, configure: s =>
             s.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path }));
         await f.SeedAsync();
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71), new PersistentItemContainer(
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(new(71), new PersistentItemContainer(
             ContainerId.ForCharacter(new(71), InventoryContainerType.Main), new(InventoryContainerType.Main, 0),
             f.Services.GetRequiredService<IItemDomainStore>(), f.Scope,
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         f.Services.GetRequiredService<IIndependentDropRuleService>().Initialize();
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();

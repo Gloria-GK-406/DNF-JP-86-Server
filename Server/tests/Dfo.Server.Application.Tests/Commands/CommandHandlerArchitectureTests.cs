@@ -21,6 +21,7 @@ namespace Dfo.Server.Application.Tests.Commands;
 /// handlers broke it while every check stayed green.
 /// </para>
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CommandHandlerArchitectureTests
 {
     /// <summary>
@@ -34,11 +35,38 @@ public sealed class CommandHandlerArchitectureTests
     private static readonly IReadOnlyDictionary<Type, string> Exempt =
         new Dictionary<Type, string>
         {
+            [typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal)] = "仅唤醒原祭坛调度器的具名纯信号；不提供等待、排程、世界读取或队列权限。",
+            [typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl)] = "仅原翻牌生产者的固定两阶段与精确取消，不提供world或任意调度能力。",
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
+            [typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink)] = "仅Joust首次成功在独立当前态读取后登记Inventory与Joust快照；不嵌套派发或授raw。",
+            [typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery)] = "仅Joust按原采样点取得广播的精确选中集；只读、不调度或修改状态。",
+            [typeof(Dfo.Server.Application.DomainEvents.ICommandDomainEventConsumption)] = "仅事件注册分发及原可靠消费/重试阶段，不向CMD暴露持久化或动态解析。",
+            [typeof(Dfo.Server.Application.Scheduling.ICommandScheduledTaskDispatch)] = "仅已注册typed计划任务的固定分发，不传业务委托或world输入。",
+            [typeof(ICommandConnectionLifecycle)] = "仅连接生命周期typed注册分发与原深度降级，不接受任意业务委托。",
+            [typeof(ICommandSelectedSessionCleanup)] = "只执行已批准选角与回选的固定精确会话清理，不授正常工作或通用恢复。",
+            [typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory)] = "既有纯协议帧工厂及完整预校验，不读写世界。",
+            [typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions)] = "既有协议尾帧发送配置。",
+            [typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions)] = "既有彩票实验协议开关，默认关闭。",
+            [typeof(ICommandHttpFailureAudit)] = "仅已失败HTTP发放的一次固定审计；不恢复普通写入或登记。",
+            [typeof(ICommandWorkUnits)] = "当前CMD的显式事务边界，不派发其它CMD。",
+            [typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox)] = "只登记当前CMD的消息，不等待传输。",
+            [typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures)] = "只登记精确连接关闭。",
+            [typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections)] = "只登记即时投影，不发布领域事实。",
+            [typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox)] = "Protocol所有的CMD/NOTI强类型登记。",
+            [typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)] = "显式收件人的登记顺序组。",
+            [typeof(Dfo.Server.Abstractions.Inventory.IInventorySlotMappingRuleService)] = "固定协议槽位到业务位置的地址换算。",
             [typeof(IPartyService)] =
                 "队伍聚合的权威边界按领域语言明确命名为 PartyService；用户要求该名称不追加 Domain 后缀。",
         };
+
+    private interface IPretendLifecycleDispatch;
+    private interface IPretendScheduledDispatch;
+    private interface IPretendEventConsumption;
+    private interface IPretendOutbox;
+    private interface IPretendSnapshotQuery;
+    private interface IPretendCardPresentationControl { void Cancel(); }
+    private interface IPretendAltarSchedulerWakeSignal { void Wake(); }
 
     private static readonly Assembly Abstractions = typeof(ICharacterDomainService).Assembly;
 
@@ -100,21 +128,57 @@ public sealed class CommandHandlerArchitectureTests
     /// Without this, a rule that accepted everything would pass the check above just as quietly as
     /// a repository with no violations. The types below stand for the four ways the injection
     /// surface has actually gone wrong here: reaching a single table, reaching a storage seam,
-    /// reaching a container, and dispatching another command.
+    /// reaching a container, and dispatching another command; the two senders stand for a command
+    /// calling a sender itself (AC-011).
     /// </remarks>
     [Theory]
     [InlineData(typeof(Dfo.Server.Abstractions.Persistence.ICharacterTable))]
     [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionPositionPersistence))]
-    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionRuntimeDirectory))]
     [InlineData(typeof(ICommandBus))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.INetworkMessageSender))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.IGameMessageSender))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.INetworkConnectionCloser))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Execution.IGameplayQueue))]
+    [InlineData(typeof(Dfo.Server.Application.Execution.GameplayExecutor))]
+    [InlineData(typeof(IServiceProvider))]
+    [InlineData(typeof(IPretendLifecycleDispatch))]
+    [InlineData(typeof(IPretendScheduledDispatch))]
+    [InlineData(typeof(IPretendEventConsumption))]
+    [InlineData(typeof(IPretendOutbox))]
+    [InlineData(typeof(IPretendSnapshotQuery))]
+    [InlineData(typeof(IPretendCardPresentationControl))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.CardReward.DungeonCardPresentationCoordinator))]
+    [InlineData(typeof(IPretendAltarSchedulerWakeSignal))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.Altar.AltarWakeSignal))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
 
     [Theory]
+    [InlineData(typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl))]
     [InlineData(typeof(ICharacterDomainService))]
     [InlineData(typeof(IPartyService))]
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]
     [InlineData(typeof(TimeProvider))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionSnapshotQuery))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink))]
+    [InlineData(typeof(ICommandConnectionLifecycle))]
+    [InlineData(typeof(Dfo.Server.Application.Scheduling.ICommandScheduledTaskDispatch))]
+    [InlineData(typeof(Dfo.Server.Application.DomainEvents.ICommandDomainEventConsumption))]
+    [InlineData(typeof(ICommandSelectedSessionCleanup))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions))]
+    [InlineData(typeof(ICommandHttpFailureAudit))]
+    [InlineData(typeof(ICommandWorkUnits))]
+    [InlineData(typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures))]
+    [InlineData(typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering))]
+    [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IInventorySlotMappingRuleService))]
+    [InlineData(typeof(Microsoft.Extensions.Logging.ILogger<CommandHandlerArchitectureTests>))]
     public void ADomainShapeOrANamedExemptionIsPermitted(Type type) => Assert.True(IsPermitted(type));
 
     /// <summary>Every exemption states why it is one.</summary>
@@ -122,14 +186,85 @@ public sealed class CommandHandlerArchitectureTests
     public void EveryExemptionCarriesItsReason() =>
         Assert.All(Exempt, entry => Assert.False(string.IsNullOrWhiteSpace(entry.Value)));
 
+    [Fact]
+    public void ActualProtocolRegistrationsAreCoveredByTheStructuralSweep()
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        new Dfo.Server.Protocol.ProtocolModule().ConfigureServices(services,
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        var registrations = services.Where(descriptor => descriptor.ServiceType == typeof(CommandHandlerRegistration))
+            .Select(descriptor => Assert.IsType<CommandHandlerRegistration>(descriptor.ImplementationInstance)).ToArray();
+        Assert.NotEmpty(registrations);
+        Assert.Contains(registrations, entry => entry.Route == CommandRouteKind.Internal);
+        Assert.Contains(registrations, entry => entry.Route == CommandRouteKind.Protocol);
+        var swept = ProductionCommandHandlers().ToHashSet();
+        Assert.All(registrations, entry => Assert.Contains(entry.HandlerType, swept));
+        Assert.All(registrations.Select(entry => entry.HandlerType).Distinct(), handler =>
+            Assert.Empty(IncompleteCollaborations(handler)));
+    }
+
+    [Fact]
+    public void ProductionCommandsOwnTheirWorkflowAndRequireCompleteCollaborations() =>
+        Assert.All(ProductionCommandHandlers(), handler => Assert.Empty(IncompleteCollaborations(handler)));
+
+    [Theory]
+    [InlineData(typeof(InheritedWorkflow), "A command inherits a shared class.")]
+    [InlineData(typeof(NullableCollaboration), "characters is an incomplete nullable collaboration.")]
+    [InlineData(typeof(MissingCollaboration), "characters defaults to a missing collaboration.")]
+    [InlineData(typeof(DeferredCollaboration), "characters supplies executable capability.")]
+    public void StructuralRuleRejectsRealIncompleteShapes(Type handler, string reason) =>
+        Assert.Contains(reason, IncompleteCollaborations(handler));
+
+    [Fact]
+    public void CompleteDependenciesAndNullableBusinessValuesAreDifferentShapes()
+    {
+        Assert.Empty(IncompleteCollaborations(typeof(CompleteCollaboration)));
+        Assert.True(IsPermitted(typeof(ICommandWorkUnits)));
+        var input = new OptionalBusinessInput(null);
+        Assert.Null(input.Character);
+        Func<int, int> pureTransform = value => value + 1;
+        Assert.Equal(2, pureTransform(1));
+    }
+
+    private static string[] IncompleteCollaborations(Type handler)
+    {
+        var violations = new List<string>();
+        if (handler.BaseType != typeof(object)) violations.Add("A command inherits a shared class.");
+        var nullability = new NullabilityInfoContext();
+        foreach (var parameter in handler.GetConstructors().SelectMany(constructor => constructor.GetParameters()))
+        {
+            if (typeof(Delegate).IsAssignableFrom(parameter.ParameterType))
+                violations.Add($"{parameter.Name} supplies executable capability.");
+            if (!parameter.ParameterType.IsValueType && nullability.Create(parameter).ReadState != NullabilityState.NotNull)
+                violations.Add($"{parameter.Name} is an incomplete nullable collaboration.");
+            if (parameter.HasDefaultValue && parameter.DefaultValue is null)
+                violations.Add($"{parameter.Name} defaults to a missing collaboration.");
+        }
+        return violations.ToArray();
+    }
+
+    private class SharedWorkflow;
+    private sealed class InheritedWorkflow : SharedWorkflow;
+    private sealed class NullableCollaboration(ICharacterDomainService? characters)
+    { public ICharacterDomainService? Characters { get; } = characters; }
+    private sealed class MissingCollaboration(ICharacterDomainService characters = null!)
+    { public ICharacterDomainService Characters { get; } = characters; }
+    private sealed class DeferredCollaboration(Func<ICharacterDomainService> characters)
+    { public Func<ICharacterDomainService> Characters { get; } = characters; }
+    private sealed class CompleteCollaboration(ICharacterDomainService characters, ICommandWorkUnits units)
+    { public ICharacterDomainService Characters { get; } = characters; public ICommandWorkUnits Units { get; } = units; }
+    private sealed record OptionalBusinessInput(Dfo.Server.Data.Characters.CharacterId? Character);
+
     private static IEnumerable<Type> ProductionCommandHandlers() =>
-        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.Authentication.RegisterAccountCommand).Assembly }
+        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.Commands.HttpRouteCommand).Assembly }
             .Distinct().SelectMany(assembly => assembly.GetTypes())
             .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
                 contract.IsGenericType
                 && contract.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)));
 
-    private static bool IsPermitted(Type type) => Exempt.ContainsKey(type) || IsDomainShape(type);
+    private static bool IsPermitted(Type type) => Exempt.ContainsKey(type) || IsDomainShape(type)
+        || type == typeof(Microsoft.Extensions.Logging.ILogger)
+        || type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Microsoft.Extensions.Logging.ILogger<>);
 
     /// <summary>
     /// A domain shape is an interface the seam layer publishes whose name says which of the two it

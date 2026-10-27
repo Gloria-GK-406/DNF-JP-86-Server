@@ -10,6 +10,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -95,15 +96,18 @@ public sealed class CreatureRevivalAddressesByIdentityTests
     private static async Task<SelectCharacterPetRevival?> ReviveAsync(
         DomainTransactionScope scope, string path, int listed)
     {
-        await using var lease = scope.Begin();
-        var service = new SelectCharacterPetEntryService(
-            new SqliteCharacterDomainStore(path),
-            new SqliteItemDomainStore(path),
-            new AmbientStoreAccess(scope));
-        var revival = await service.ReviveAsync(
-            Session(), Prepared(listed), CancellationToken.None);
-        await lease.CommitAsync(CancellationToken.None);
-        return revival;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = scope.Begin();
+            var service = new SelectCharacterPetEntryService(
+                new SqliteCharacterDomainStore(path),
+                new SqliteItemDomainStore(path),
+                new AmbientStoreAccess(scope));
+            var revival = await service.ReviveAsync(
+                Session(), Prepared(listed), CancellationToken.None);
+            await lease.CommitAsync(CancellationToken.None);
+            return revival;
+        });
     }
 
     private static SelectedSessionIdentity Session() =>

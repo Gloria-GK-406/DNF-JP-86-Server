@@ -1,9 +1,11 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Transactions;
 
+[Trait("Category", "Unit")]
 public sealed class ReadOnlyCommandFailureTests
 {
     [Fact]
@@ -12,11 +14,11 @@ public sealed class ReadOnlyCommandFailureTests
         var probe = new Failures(new IOException("query storage read failed"), new IOException("snapshot cleanup failed"));
         var services = new ServiceCollection().AddLogging().AddCommandDispatching();
         services.AddSingleton(probe);
-        services.AddCommandHandler<QueryCommand, long, QueryHandler>(CommandExecutionKind.ReadOnly);
+        services.AddFixtureCommand<QueryCommand, long, QueryHandler>(FixtureUnitKind.ReadOnly);
         await using var provider = services.BuildServiceProvider();
 
         var failure = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
-            await provider.GetRequiredService<ICommandBus>().SendAsync(new QueryCommand()));
+            await DomainCommandFixture.Bus(provider).SendAsync(new QueryCommand()));
 
         Assert.Equal(TransactionUncertaintyReason.RollbackFailure, failure.Reason);
         var causes = Assert.IsType<AggregateException>(failure.InnerException);

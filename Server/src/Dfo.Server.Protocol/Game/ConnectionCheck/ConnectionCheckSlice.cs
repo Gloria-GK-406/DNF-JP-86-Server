@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 
@@ -61,17 +63,12 @@ internal sealed class ConnectionCheckMessageDecoder : IGameMessageDecoder
         ConnectionCheckPayloadCodec.Decode(metadata, body);
 }
 
-public sealed class ConnectionCheckHandler(IGameMessageSender sender)
-    : ClientMessageHandler<ConnectionCheckRequest>
+public sealed class ConnectionCheckHandler(ICommandBus commands)
+    : ClientMessageHandler<ConnectionCheckRequest>, IProtocolCommandMessageHandler<GameConnectionCheckCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ConnectionCheckRequest message,
-        CancellationToken cancellationToken) =>
-        sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new ConnectionCheckResponse(),
-            cancellationToken);
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ConnectionCheckRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameConnectionCheckCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class ConnectionCheckResponseEncoder

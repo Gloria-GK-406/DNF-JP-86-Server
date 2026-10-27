@@ -48,7 +48,7 @@ internal sealed class NotificationAudienceResolver(
                      .SelectMany(area => area.Members)
                      .Where(member => member.SharesTownPresence))
         {
-            if (sessions.FindByCharacter(candidate.CharacterId) is not { } current
+            if (!sessions.TryGetInWorld(candidate.CharacterId, out var current)
                 || !current.Owns(candidate))
             {
                 continue;
@@ -70,7 +70,7 @@ internal sealed class NotificationAudienceResolver(
         foreach (var exact in exactSessions)
         {
             ArgumentNullException.ThrowIfNull(exact);
-            if (sessions.FindByCharacter(exact.CharacterId) == exact)
+            if (sessions.IsInWorld(exact))
             {
                 recipients.Add(new NotificationRecipient(
                     exact.CharacterId,
@@ -88,7 +88,7 @@ internal sealed class NotificationAudienceResolver(
         var recipients = new List<NotificationRecipient>(characterIds.Count);
         foreach (var characterId in characterIds)
         {
-            if (sessions.FindByCharacter(characterId) is { } session)
+            if (sessions.TryGetInWorld(characterId, out var session))
                 recipients.Add(new NotificationRecipient(characterId, session.ConnectionId));
         }
 

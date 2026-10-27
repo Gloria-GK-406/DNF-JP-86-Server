@@ -1,10 +1,10 @@
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,19 +15,18 @@ namespace Dfo.Server.Application.Commands;
 public sealed record SelectedSessionRecipient(SelectedSessionIdentity Session, NetworkConnectionContext? Connection, GameMessageMetadata? Metadata = null);
 
 /// <summary>Unknown settlement outcomes survive retries and session/cache rebinding.</summary>
-public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSessionTransitionGate lifecycle,
-    ILogger<SelectedSessionSafety> logger)
+public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<SelectedSessionSafety> logger)
 {
+    // The connection fence outlives the online user: dispatch consults it before any session is
+    // resolved, and the connection is only asked to close after it is raised. Whether a session
+    // is fenced is part of the session's own record.
     private readonly object gate = new();
-    private readonly HashSet<SelectedSessionIdentity> blocked = [];
     private readonly ConditionalWeakTable<NetworkConnectionContext, Fence> connections = new();
     private sealed class Fence;
     public bool IsBlocked(NetworkConnectionContext connection)
     { lock (gate) return connections.TryGetValue(connection, out _); }
-    public bool IsBlocked(SelectedSessionIdentity session)
-    { lock (gate) return blocked.Contains(session); }
 
-    public SelectedSessionRecipient Capture(SelectedSessionIdentity session)
+    public SelectedSessionRecipient Capture(SelectedSessionIdentity session, GameMessageMetadata? metadata)
     {
         DemandCurrent(session);
         var users = services.GetService<IOnlineUserQueryDomainService>();
@@ -39,11 +38,11 @@ public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSes
             connection = user.Connection;
             if (IsBlocked(connection)) throw new InvalidOperationException("The recipient connection has an unknown settlement outcome.");
         }
-        return new(session, connection, services.GetService<NetworkCommandAuthorization>()?.Metadata);
+        return new(session, connection, metadata);
     }
     public void DemandCurrent(SelectedSessionIdentity session)
     {
-        if (IsBlocked(session) || services.GetService<ISelectedSessionDomainService>()?.FindByCharacter(session.CharacterId) != session)
+        if (services.GetService<ISelectedSessionDomainService>()?.StandingOf(session) is not { Fenced: false })
             throw new InvalidOperationException("The selected session is stale or has an unknown settlement outcome.");
     }
     public void DemandCurrent(SelectedSessionRecipient recipient)
@@ -58,25 +57,23 @@ public sealed class SelectedSessionSafety(IServiceProvider services, SelectedSes
     }
     public async ValueTask BlockAsync(SelectedSessionRecipient recipient, Exception error, string operation)
     {
-        lock (gate)
-        {
-            blocked.Add(recipient.Session);
-            if (recipient.Connection is { } connection) connections.GetValue(connection, _ => new());
-        }
-        await using var lease = await lifecycle.BorrowOrAcquireSharedAsync(recipient.Session.AccountId, CancellationToken.None).ConfigureAwait(false);
+        GameplayWriteAssertion.Writing(nameof(SelectedSessionSafety) + "." + nameof(BlockAsync));
+        services.GetService<ISelectedSessionDomainService>()?.Fence(recipient.Session);
+        if (recipient.Connection is { } connection)
+            lock (gate) connections.GetValue(connection, _ => new());
         try { services.GetService<ICreatureRuntimeDomainService>()?.DiscardExact(recipient.Session); }
         catch (Exception cleanup) { TryLog(() => logger.LogError(cleanup, "Discard of uncertain creature runtime failed")); }
-        TryLog(() => logger.LogError(error, "Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",
+        TryLog(() => logger.LogWarning("Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",
             operation, TransactionOutcomeUncertainException.Find(error)?.Reason, recipient.Session.AccountId,
             recipient.Session.CharacterId, recipient.Session.ConnectionId, recipient.Session.ConnectionGeneration, recipient.Metadata?.Sequence, recipient.Metadata?.InboundOrdinal));
         if (recipient.Connection is { } original && services.GetService<INetworkConnectionCloser>() is { } closer)
-            try { await closer.RequestCloseExactAsync(original, CancellationToken.None).ConfigureAwait(false); }
-            catch (Exception close) { TryLog(() => logger.LogError(close, "Scheduling exact uncertain connection close failed")); }
+            await closer.RequestCloseExactAsync(original, CancellationToken.None).ConfigureAwait(false);
     }
     private static void TryLog(Action log) { try { log(); } catch { /* Preserve settlement cause and continue exact close. */ } }
     public async ValueTask<TransactionOutcomeUncertainException> PublicationFailedAsync(
         SelectedSessionRecipient recipient, Exception cause, string operation)
     {
+        GameplayWriteAssertion.Writing(nameof(SelectedSessionSafety) + "." + nameof(PublicationFailedAsync));
         var error = new TransactionOutcomeUncertainException(TransactionUncertaintyReason.PostCommitPublicationFailure,
             "Durable effects committed, but their runtime claim could not be published.", cause);
         await BlockAsync(recipient, error, operation).ConfigureAwait(false);

@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Accounts;
@@ -9,6 +13,7 @@ using Dfo.Server.Protocol.Game.ReturnToSelection;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.ReturnToSelection;
 
@@ -35,11 +40,28 @@ public sealed class ReturnToSelectionTests
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         using var provider = services.BuildServiceProvider();
         var sender = new EncodedSender(provider);
-        var delivery = new CharacterSelectionDelivery(sender, new NoCleanupNotices());
-        var roster = new AccountCharacterRoster(new AccountId(1), 24, []);
-
-        await delivery.SendAsync(new("return"), new ReturnToSelectionResponse(), roster, knight,
-            CancellationToken.None);
+        var sessions = TestSessions.Directory(out var state);
+        var session = sessions.InWorld(state, new AccountId(1), new CharacterId(1), "return");
+        var roster = new AccountCharacterRoster(session.AccountId, 24,
+            knight ? [new CharacterSummary(session.CharacterId, 0, new byte[20], 12, 0, 1, 0, [])] : []);
+        var characters = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),
+            (method, _) => method.Name == nameof(ICharacterDomainService.GetAccountRosterWithAppearanceAsync)
+                ? (true, (object)ValueTask.FromResult(roster)) : (false, null));
+        var cleanup = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICommandSelectedSessionCleanup>(),
+            (method, _) => method.Name == nameof(ICommandSelectedSessionCleanup.CleanupAsync)
+                ? (true, (object)ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session))) : (false, null));
+        var handler = ProtocolAlgorithmFixture.Create<GameReturnToSelectionCommandHandler>(sessions, characters, cleanup, sender);
+        var input = new ReturnToSelectionRequest(GameMessageMetadata.Empty);
+        var dispatch = new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var request = new CommandRequestContext.ProtocolNonEffect(dispatch, input, new ProtocolFrameMetadata.Game(input.Metadata), () => true);
+            try
+            {
+                await handler.HandleAsync(new(Guid.NewGuid(), typeof(GameReturnToSelectionCommand), handler.GetType()) { Request = request }, new(dispatch, input), default);
+            }
+            finally { await request.DrainOperationsAsync(); request.Close(); }
+        });
 
         Assert.Equal(knight ? new ushort[] { 0x0245, 7, 2, 0x0289 } : [7, 2, 0x0289],
             sender.Frames.Select(frame => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))));
@@ -57,28 +79,27 @@ public sealed class ReturnToSelectionTests
         Assert.Equal(0, sender.Frames[offset + 2][0]);
     }
 
-    private sealed class NoCleanupNotices : ICleanupNotificationDelivery
+    /// <summary>
+    /// The frames the protocol's registered encoders made at a real registration point, read from its outbox; every
+    /// call goes to the real protocol sender over it (TASK-25). An explicit delivery fails there as the old double
+    /// refused one.
+    /// </summary>
+    private sealed class EncodedSender : IGameMessageSender
     {
-        public ValueTask DeliverAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) =>
-            ValueTask.CompletedTask;
-    }
-
-    private sealed class EncodedSender(ServiceProvider provider) : IGameMessageSender
-    {
-        public List<byte[]> Frames { get; } = [];
-        public ValueTask SendCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken ct) =>
-            Encode(message);
-        public ValueTask SendNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken ct) =>
-            Encode(message);
-        public ValueTask SendExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
-            throw new NotSupportedException();
-        private ValueTask Encode(IGameServerMessage message)
+        private readonly RecordedOutbound outbound;
+        public EncodedSender(ServiceProvider provider)
         {
-            var registration = provider.GetServices<ServerMessageEncoderRegistration>()
-                .Single(value => value.MessageType == message.GetType());
-            var encoder = (IServerMessageEncoder)provider.GetRequiredService(registration.EncoderType);
-            Frames.AddRange(encoder.Encode(message));
-            return ValueTask.CompletedTask;
+            var encoders = new RegistrationEncoder();
+            encoders.Use(provider);
+            outbound = new RecordedOutbound(encoders);
+            outbound.RefuseExplicit();
         }
+        public List<byte[]> Frames => [.. outbound.Frames];
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

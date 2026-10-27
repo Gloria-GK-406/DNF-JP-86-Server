@@ -1,23 +1,9 @@
 namespace Dfo.Server.Application.Commands;
 
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Application.Effects;
 using Dfo.Server.Data.World;
-using Dfo.Server.Data.OnlineUsers;
-
-public enum CommandExecutionKind
-{
-    Direct = 0,
-    Transactional = 1,
-    Workflow = 2,
-    ReadOnly = 3,
-}
-
-public enum UserAccessMode
-{
-    Unscoped = 0,
-    Shared = 1,
-    Exclusive = 2,
-}
 
 /// <summary>A dispatchable command. Its CLR type is its identity.</summary>
 public interface ICommand;
@@ -31,66 +17,29 @@ public interface ICommand;
 public interface ICommand<TResult> : ICommand
     where TResult : notnull;
 
-/// <summary>Effects owned by one exact selected generation; null is trusted offline work.</summary>
-public interface ISelectedSessionCommand : ICommand
-{
-    SelectedSessionIdentity? Session { get; }
-}
-
-/// <summary>The single primary settlement belonging to an effect network request. XP and reads are separate.</summary>
-public interface IRequestSettlementCommand : ISelectedSessionCommand;
-
-public interface IMultiSelectedSessionCommand : ISelectedSessionCommand
-{
-    IReadOnlyList<SelectedSessionIdentity> Sessions { get; }
-}
-
-public interface IOnlineUserCommand : ICommand
-{
-    OnlineUserId OnlineUserId { get; }
-}
-
-public interface IAccountCommand : ICommand
-{
-    AccountId AccountId { get; }
-}
-
-/// <summary>Accounts whose state must remain protected for one shared transaction.</summary>
-public interface IMultiAccountCommand : ICommand
-{
-    IReadOnlyList<AccountId> AccountIds { get; }
-}
-
 public interface ICommandBus
 {
     ValueTask<TResult> SendAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
         where TResult : notnull;
+
+    ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin,
+        CancellationToken cancellationToken = default) where TResult : notnull;
 }
 
 public sealed record CommandExecutionContext(
     Guid ExecutionId,
     Type CommandType,
-    Type HandlerType,
-    CommandExecutionKind ExecutionKind,
-    UserAccessMode OnlineUserAccessMode = UserAccessMode.Unscoped,
-    UserAccessMode AccountAccessMode = UserAccessMode.Unscoped);
-
-/// <summary>The remainder of the pipeline, carrying the command's own result type.</summary>
-public delegate ValueTask<TResult> CommandExecutionDelegate<TResult>()
-    where TResult : notnull;
-
-public interface ICommandPipelineBehavior<TResult>
-    where TResult : notnull
+    Type HandlerType)
 {
-    int Order { get; }
-
-    ValueTask<TResult> ExecuteAsync(
-        CommandExecutionContext context,
-        ICommand command,
-        CommandExecutionDelegate<TResult> next,
-        CancellationToken cancellationToken);
+    public CommandRequestContext? Request { get; init; }
+    internal CommandRequestContext DemandRequest()
+    {
+        var request = Request ?? throw new InvalidOperationException("An explicit command request is required.");
+        request.DemandCurrent();
+        return request;
+    }
 }
 
 /// <summary>

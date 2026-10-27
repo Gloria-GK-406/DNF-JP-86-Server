@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRecipeContentSource
+internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRecipeContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -24,6 +24,25 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
     private readonly Lock gate = new();
     private readonly Dictionary<int, RecipePlan?> cache = [];
     private Dictionary<int, string>? paths;
+    public string Name => "recipe-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            PathsIndex(archive);
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+    }
+
     public ValueTask<RecipePlan?> GetAsync(int drawingId, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -36,7 +55,7 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
     private RecipePlan? Read(int id)
     {
         var archive = provider.Archive;
-        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+        PathsIndex(archive);
         if (!paths.TryGetValue(id, out var path)) return null;
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + path);
         var type = sections.SingleOrDefault(s => s.Name == Fields.StackableTypeField.Name);

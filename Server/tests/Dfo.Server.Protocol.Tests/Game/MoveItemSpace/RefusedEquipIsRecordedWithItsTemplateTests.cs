@@ -17,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -29,7 +30,7 @@ namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 /// the names in it ended in <c>avatar]</c>. Template 101500690, which the archive declares under
 /// <c>[coat avatar]</c>, was run through this path and observed getting nothing back from
 /// <c>PvfEquipmentSlotDefinitionSource</c> and being refused by
-/// <c>MoveItemSpaceCommandHandler.PutOnAsync</c> as <c>NotWearable</c>. What the request had
+/// <c>InventoryMoveDomainService.PutOnAsync</c> as <c>NotWearable</c>. What the request had
 /// written in its destination end came back out of the log beside the template number, and that
 /// pair is what eleven costume slots were then measured with.
 /// <para>
@@ -146,20 +147,23 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     [Dfo.Server.Testing.PvfFact]
     public async Task An_avatar_aimed_at_the_wrong_costume_slot_is_recorded_with_its_template_and_that_slot()
     {
-        var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender, logger) = this.Build(CoatAvatarTemplate);
 
-        await handler.HandleAsync(
-            Context, Request(CoatAvatarTemplate, NamedAvatarSlot), CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(CoatAvatarTemplate, NamedAvatarSlot), CancellationToken.None);
 
-        Assert.Equal(
-            $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
-                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
-                + $"to list {(byte)InventoryContainerType.Equipment} slot {NamedAvatarSlot} "
-                + "refused as ItemCannotOccupySlot",
-            Assert.Single(logger.Entries).Message);
-        Assert.Equal(
-            MoveItemSpaceResponse.NotMovable,
-            ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+            Assert.Equal(
+                $"Move item space game-avatar-refusal character=60: item {CoatAvatarTemplate} "
+                    + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                    + $"to list {(byte)InventoryContainerType.Equipment} slot {NamedAvatarSlot} "
+                    + "refused as ItemCannotOccupySlot",
+                Assert.Single(logger.Entries).Message);
+            Assert.Equal(
+                MoveItemSpaceResponse.NotMovable,
+                ((MoveItemSpaceResponse)sender.Sent.Single()).ErrorCode);
+        });
     }
 
     /// <summary>
@@ -175,31 +179,37 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     [Dfo.Server.Testing.PvfFact]
     public async Task A_piece_aimed_at_the_wrong_slot_is_recorded_with_its_template_and_that_slot()
     {
-        var (handler, _, logger) = this.Build(OrdinaryCoatTemplate);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, _, logger) = this.Build(OrdinaryCoatTemplate);
 
-        await handler.HandleAsync(
-            Context, Request(OrdinaryCoatTemplate, WrongSlotForACoat), CancellationToken.None);
+            await handler.HandleAsync(
+                Context, Request(OrdinaryCoatTemplate, WrongSlotForACoat), CancellationToken.None);
 
-        Assert.Equal(
-            $"Move item space game-avatar-refusal character=60: item {OrdinaryCoatTemplate} "
-                + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
-                + $"to list {(byte)InventoryContainerType.Equipment} slot {WrongSlotForACoat} "
-                + "refused as ItemCannotOccupySlot",
-            Assert.Single(logger.Entries).Message);
+            Assert.Equal(
+                $"Move item space game-avatar-refusal character=60: item {OrdinaryCoatTemplate} "
+                    + $"from list {(byte)InventoryContainerType.Main} slot {BagSlot} "
+                    + $"to list {(byte)InventoryContainerType.Equipment} slot {WrongSlotForACoat} "
+                    + "refused as ItemCannotOccupySlot",
+                Assert.Single(logger.Entries).Message);
+        });
     }
 
     [Dfo.Server.Testing.PvfFact]
     public async Task Putting_on_a_piece_refuses_a_displaced_item_that_cannot_return_to_the_source_band()
     {
-        var (handler, sender, _) = this.Build(OrdinaryCoatTemplate, CoatAvatarTemplate,
-            out var bag, out var worn);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender, _) = this.Build(OrdinaryCoatTemplate, CoatAvatarTemplate,
+                out var bag, out var worn);
 
-        await handler.HandleAsync(Context, Request(OrdinaryCoatTemplate, 14), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(OrdinaryCoatTemplate, 14), CancellationToken.None);
 
-        Assert.Equal(MoveItemSpaceResponse.NotMovable,
-            Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent)).ErrorCode);
-        Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSnapshotAsync(BagSlot, default))!.ItemId);
-        Assert.Equal(CoatAvatarTemplate, (await worn.ReadSnapshotAsync(14, default))!.ItemId);
+            Assert.Equal(MoveItemSpaceResponse.NotMovable,
+                Assert.IsType<MoveItemSpaceResponse>(Assert.Single(sender.Sent)).ErrorCode);
+            Assert.Equal(OrdinaryCoatTemplate, (await bag.ReadSnapshotAsync(BagSlot, default))!.ItemId);
+            Assert.Equal(CoatAvatarTemplate, (await worn.ReadSnapshotAsync(14, default))!.ItemId);
+        });
     }
 
     /// <summary>The drag: out of the bag, onto the worn list, at the slot the client named.</summary>
@@ -229,7 +239,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         containers.Register(character, worn);
 
         var mappings = new InventorySlotMappingRuleService();
-        var commandHandler = new MoveItemSpaceCommandHandler(
+        var commandHandler = new InventoryMoveDomainService(
             new BusinessInventorySlotDomainService(containers, mappings),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
@@ -238,10 +248,10 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
         return (
-            new MoveItemSpaceHandler(
+            MoveItemProtocolTestDriver.Create(
                 new OneSession(), new NoPublishedRuntime(),
                 mappings,
-                new DirectMoveBus(commandHandler, fixture), sender, logger, null!, null!, TimeProvider.System),
+                new MoveItemProtocolTestDriver.Execution(commandHandler, fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger);
     }
@@ -254,24 +264,57 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     }
 
     /// <summary>A bus that runs the move command on the handler that owns it.</summary>
-    private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
-    {
-        public async ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            var context = new CommandExecutionContext(
-                Guid.Empty, command.GetType(), typeof(DirectMoveBus),
-                CommandExecutionKind.Transactional);
-            var result = await fixture.RunAsync(() => move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
-            return (TResult)(object)result;
-        }
-    }
+
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(60), Connection, 1, 10011);
 
@@ -289,30 +332,32 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
             Session;
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The move acknowledgement is sent explicitly.");
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The move acknowledgement is a CMD.");
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
+        public RecordingSender()
         {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("The move acknowledgement is sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The move acknowledgement is a CMD."));
         }
+
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
 
@@ -360,7 +405,7 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
     }
 
     /// <summary>The log, kept as the sentences it would have written.</summary>
-    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+    private sealed class RecordingLogger : ILogger<GameMoveItemSpaceCommandHandler>
     {
         public List<(LogLevel Level, string Message)> Entries { get; } = [];
 

@@ -11,10 +11,10 @@ public sealed class AuthenticationConcurrencyTests
     {
         using var passwords = new InterleavedPasswords();
         using var fixture = new AuthenticationFixture(passwords);
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("first", "first password"));
-        await fixture.Bus.SendAsync(new RegisterAccountCommand("second", "second password"));
+        await fixture.RegisterAsync("first", "first password");
+        await fixture.RegisterAsync("second", "second password");
         passwords.Armed = true;
-        var first = Task.Run(async () => await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("first", "first password")));
+        var first = Task.Run(async () => await fixture.LoginAsync("first", "first password"));
         Task<AuthenticationResult>? second = null;
         try
         {
@@ -23,11 +23,11 @@ public sealed class AuthenticationConcurrencyTests
             second = Task.Factory.StartNew(async () =>
             {
                 secondStarted.SetResult();
-                return await fixture.Bus.SendAsync(new AuthenticateAndIssueTicketCommand("second", "second password"));
+                return await fixture.LoginAsync("second", "second password");
             }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
             await secondStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            // Without write intent, force both credential snapshots to exist before first commits.
-            // With write intent, second is waiting in SQLite and cannot reach its read yet.
+            // Both verifications run before their login commands, outside any SQLite snapshot, so they
+            // overlap here; each command then rereads its record and commits on its own.
             await Task.WhenAny(passwords.SecondRead.Task, Task.Delay(500));
             passwords.ReleaseFirst.Set();
             var firstResult = await first.WaitAsync(TimeSpan.FromSeconds(10));

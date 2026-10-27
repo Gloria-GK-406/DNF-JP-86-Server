@@ -8,6 +8,7 @@ namespace Dfo.Server.Application.Tests.Transactions;
 /// happens before anything becomes visible. Test participants stand in for the real ones so the
 /// guarantee is proved without a database.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class DomainTransactionTests
 {
     [Fact]

@@ -12,6 +12,7 @@ namespace Dfo.Server.Application.Tests.Characters;
 /// was to build a database, put rows in it, and read rows back out. What is asserted below is the
 /// same behaviour those round trips asserted; what has gone is the round trip.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class CharacterEntryRuleServiceTests
 {
     public sealed class GoldLimits

@@ -25,6 +25,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// multiplier. None of them is read off the implementation.
 /// </para>
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class ClearRewardRulesTests
 {
     /// <summary>The basis, which is also how many values the dice has.</summary>

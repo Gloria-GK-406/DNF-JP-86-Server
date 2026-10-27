@@ -1,12 +1,16 @@
 using System.Collections.Concurrent;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using TouchSocket.Sockets;
 
 namespace Dfo.Server.Networking.Runtime;
 
-internal sealed class TouchSocketConnectionRegistry
+internal sealed class TouchSocketConnectionRegistry : INetworkConnectionContexts
 {
     private readonly ConcurrentDictionary<NetworkConnectionId, ConnectionEntry> connections = new();
+    private readonly object idleGate = new();
+    private readonly List<TaskCompletionSource> idleWaiters = [];
+    private int closing;
 
     public NetworkConnectionContext Add(ITcpSession session, NetworkEndpointKind endpointKind)
     {
@@ -31,6 +35,7 @@ internal sealed class TouchSocketConnectionRegistry
         if (connections.TryRemove(connectionId, out var entry))
         {
             context = entry.Context;
+            SignalIfIdle();
             return true;
         }
 
@@ -38,7 +43,53 @@ internal sealed class TouchSocketConnectionRegistry
         return false;
     }
 
+    public IReadOnlyList<ConnectionEntry> Snapshot() => [.. connections.Values];
+
+    /// <summary>A close callback has started; it ends with <see cref="EndClosing"/>.</summary>
+    public void BeginClosing()
+    {
+        lock (idleGate) closing++;
+    }
+
+    public void EndClosing()
+    {
+        lock (idleGate) closing--;
+        SignalIfIdle();
+    }
+
+    /// <summary>Completes once no connection is registered and no close callback is in flight.</summary>
+    public Task WhenIdleAsync(CancellationToken cancellationToken)
+    {
+        lock (idleGate)
+        {
+            if (IsIdle) return Task.CompletedTask;
+            var waiter = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            idleWaiters.Add(waiter);
+            return waiter.Task.WaitAsync(cancellationToken);
+        }
+    }
+
+    private bool IsIdle => closing == 0 && connections.IsEmpty;
+
+    private void SignalIfIdle()
+    {
+        TaskCompletionSource[] ready;
+        lock (idleGate)
+        {
+            if (idleWaiters.Count == 0 || !IsIdle) return;
+            ready = [.. idleWaiters];
+            idleWaiters.Clear();
+        }
+        foreach (var waiter in ready) waiter.TrySetResult();
+    }
+
     public bool TryGet(NetworkConnectionId id, out ConnectionEntry? entry) => connections.TryGetValue(id, out entry);
+
+    bool INetworkConnectionContexts.TryGet(NetworkConnectionId connectionId, out NetworkConnectionContext? connection)
+    {
+        connection = connections.TryGetValue(connectionId, out var entry) ? entry.Context : null;
+        return connection is not null;
+    }
 
     public ConnectionEntry Get(NetworkConnectionId connectionId) => connections.TryGetValue(connectionId, out var entry)
         ? entry

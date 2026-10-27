@@ -95,9 +95,10 @@ public sealed class EquippedUpgradeTicketTests
 
         await Send(shop, method, ticket, slot);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
-        Assert.Single(shop.Sender.Batches);
+        Assert.Single(shop.Sender.Batches, EffectRequestTransport.IsStateReplay);
+        Assert.Equal(4, Assert.Single(shop.Sender.Batches, batch => batch.Messages.Any(message => message is ReinforceItemResponse)).Messages.Length);
         Assert.Equal(1, shop.Count(ticket));
-        shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         Assert.Equal(before, shop.StoredCore(slot, InventoryContainerType.Equipment));
         Assert.Equal(uid, shop.Scalar($"SELECT core_uid FROM item_slots WHERE owner_id=1 AND list_type=3 AND slot_index={slot}"));

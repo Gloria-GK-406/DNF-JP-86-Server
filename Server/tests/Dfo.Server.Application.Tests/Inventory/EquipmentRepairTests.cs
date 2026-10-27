@@ -6,6 +6,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.RepairItem;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -118,11 +119,7 @@ public sealed class EquipmentRepairTests
     {
         using var shop = Fixture();
         await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
-        await shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(
-                GameMessageMetadata.Empty,
-                new GameSlot(InventoryContainerType.Equipment, 12), -1, 0, 0, 1),
-            default);
+        await RepairWire.Send(shop, "single", quick: 1);
         Assert.Equal(100000, shop.Gold);
         Assert.Equal((ushort)0, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.NotEqual(0, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
@@ -149,10 +146,14 @@ public sealed class EquipmentRepairTests
         await shop.SeedCore(12, Piece(0), InventoryContainerType.Equipment);
         var old = shop.Session;
         shop.Select(2);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new RepairItemCommand(
-                shop.OnlineUser, old,
-                new BusinessSlot(BusinessInventorySpace.WornEquipment, 1)));
+        var result = await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var tx = shop.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            var value = await shop.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IEquipmentRepairDomainService>().RepairAsync(
+                old, new BusinessSlot(BusinessInventorySpace.WornEquipment, 1), default);
+            await tx.CommitAsync(default);
+            return value;
+        });
         Assert.Equal(EquipmentRepairRejection.NoSession, result.Rejection);
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
         Assert.Empty(shop.Sender.Messages);
@@ -167,13 +168,8 @@ public sealed class EquipmentRepairTests
     private static InventoryItemCoreState Piece(ushort durability) =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = durability };
 
-    private static ValueTask Repair(ShopFixture shop, InventoryContainerType container, short slot) =>
-        shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(
-                GameMessageMetadata.Empty,
-                slot == -1 ? null : new GameSlot(container, slot), -1, 0, 0, 0,
-                container),
-            default);
+    private static async ValueTask Repair(ShopFixture shop, InventoryContainerType container, short slot) =>
+        _ = await RepairWire.Send(shop, slot == -1 ? container == InventoryContainerType.PersonalCargo ? "personal-all" : "all" : "single", container, slot);
 
     private sealed class PremiumRules : IPremiumServiceDefinitionSource
     {
@@ -189,9 +185,8 @@ public sealed class EquipmentRepairTests
         public int ReadAutoRepairDailyLimit() => 6;
     }
 
-    private static ValueTask AutoRepair(ShopFixture shop) =>
-        shop.Services.GetRequiredService<RepairItemHandler>().HandleAsync(new(shop.Connection),
-            new RepairItemRequest(GameMessageMetadata.Empty, null, -1, 1, 0, 0), default);
+    private static async ValueTask AutoRepair(ShopFixture shop) =>
+        _ = await RepairWire.Send(shop, "auto");
 
     [Fact]
     public async Task Automatic_repair_is_free_repairs_worn_and_quick_slots_once_and_preserves_bag()

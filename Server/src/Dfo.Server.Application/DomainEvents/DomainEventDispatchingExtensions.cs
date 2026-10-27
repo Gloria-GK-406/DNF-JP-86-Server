@@ -17,9 +17,20 @@ public static class DomainEventDispatchingExtensions
         services.TryAddSingleton<DomainEventInstance>();
         services.TryAddSingleton<DomainEventRegistry>();
         services.TryAddSingleton<DomainEventWakeups>();
+        services.TryAddSingleton<DomainEventCallChains>();
+        services.TryAddSingleton<FailedDomainEventAttempts>();
         services.TryAddScoped(typeof(NotificationProjectionSubscriber<>));
-        services.TryAddSingleton<IEventService, EventService>();
+        services.TryAddSingleton<EventService>();
+        services.TryAddSingleton<IEventService>(provider => provider.GetRequiredService<EventService>());
+        services.TryAddSingleton<ICommandProjections>(provider => provider.GetRequiredService<EventService>());
         services.TryAddSingleton<DomainEventDispatcher>();
+        services.TryAddScoped<ICommandDomainEventConsumption, CommandDomainEventConsumption>();
+        if (!services.Any(x => x.ServiceType == typeof(ICommandHandler<ConsumeDomainEventCommand, bool>)))
+        {
+            services.AddInternalCommandHandler<ConsumeDomainEventCommand, bool, ConsumeDomainEventCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+            services.AddInternalCommandHandler<SettleFailedDomainEventCommand, bool, SettleFailedDomainEventCommandHandler>();
+            services.AddInternalCommandHandler<SettleDepthExceededDomainEventCommand, string, SettleDepthExceededDomainEventCommandHandler>();
+        }
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, DomainEventHostedService>());
         return services;
     }

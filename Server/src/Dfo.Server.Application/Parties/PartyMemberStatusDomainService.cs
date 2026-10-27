@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.Parties;
 internal sealed class PartyMemberStatusDomainService(
     Func<ICharacterInventoryEntryDomainService> inventories,
     ICharacterFatigueDomainService fatigue,
-    ICharacterVitalRuntimeDomainService vitals) : IPartyMemberStatusDomainService
+    IOnlineCharacterRuntimeDomainService onlineCharacters) : IPartyMemberStatusDomainService
 {
     private const int ReviveCoinSlot = 1;
     private const int ReviveCoinItemId = 1;
@@ -48,5 +48,5 @@ internal sealed class PartyMemberStatusDomainService(
             AntiMagic: 0);
     }
 
-    public byte CurrentHpPercentOf(CharacterId characterId) => vitals.HpPercentOf(characterId);
+    public byte CurrentHpPercentOf(CharacterId characterId) => onlineCharacters.HpPercentOf(characterId);
 }

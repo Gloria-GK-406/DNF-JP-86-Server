@@ -10,17 +10,18 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas, IDungeonRunDomainService runs, ICharacterPositionDomainService positions,
+    ITownAreaDomainService townAreas, IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
     ITeleportConsumableRuleService rules, IItemUseJudgementService judgement,
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService
 {
     public async ValueTask<TeleportConsumableResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
-        int expectedItemId, byte townId, ChannelEntryIdentity channel, CancellationToken ct)
+        int expectedItemId, byte townId, ChannelEntryIdentity channel, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session || runs.Find(session.CharacterId) is not null
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
             || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)
-            || positions.Find(session.CharacterId) is not { } standing)
+            || onlineCharacters.PositionOf(session) is not { } standing)
             return new(ItemUsability.CharacterStateUnavailable);
         var bound = slots.Find(session.CharacterId, source);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);
@@ -33,7 +34,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
         var at = clock.GetUtcNow();
         var plan = await rules.BuildAsync(rule, source, item, facts, standing, townId, channel, member.Area, at, ct).ConfigureAwait(false);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status);
-        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, session), plan.Effects, ct).ConfigureAwait(false);
+        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Effects, ct).ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().Single().RemainingCount;
         return new(ItemUsability.Allowed, new(session, source, item.ItemId, remaining,
             applied.Changes<TownPositionChange>().Single().After, TimeSpan.FromMilliseconds(rule.Use.CooldownMilliseconds), at,

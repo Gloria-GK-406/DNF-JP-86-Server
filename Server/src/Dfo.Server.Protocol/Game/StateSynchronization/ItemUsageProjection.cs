@@ -4,10 +4,11 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -38,43 +39,20 @@ internal sealed record ItemUsageCountMessage(IReadOnlyList<ItemUsageState> Items
     }
 }
 
-public sealed record ReadItemUsageSnapshotCommand(SelectedSessionIdentity Session)
-    : ICommand<ItemUsageSnapshotResult>, IAccountCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
 public sealed record ItemUsageSnapshotResult(IReadOnlyList<ItemUsageState> Items, bool IsCurrent)
 {
     public DateTimeOffset At { get; init; }
 }
-public sealed class ReadItemUsageSnapshotCommandHandler(IItemUsageDomainService usage, ISelectedSessionDomainService sessions, TimeProvider clock)
-    : ICommandHandler<ReadItemUsageSnapshotCommand, ItemUsageSnapshotResult>
+internal static class ItemUsageSnapshotReader
 {
-    public async ValueTask<ItemUsageSnapshotResult> HandleAsync(CommandExecutionContext context,
-        ReadItemUsageSnapshotCommand command, CancellationToken token)
+    internal static async ValueTask<ItemUsageSnapshotResult> ReadAsync(IItemUsageDomainService usage,
+        ISelectedSessionDomainService sessions, TimeProvider clock, SelectedSessionIdentity session, CancellationToken token)
     {
-        if (sessions.FindByCharacter(command.Session.CharacterId) != command.Session) return new([], false);
+        if (!sessions.IsInWorld(session)) return new([], false);
         var at = clock.GetUtcNow();
-        return new(await usage.GetSnapshotAtAsync(command.Session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
+        return new(await usage.GetSnapshotAtAsync(session.CharacterId, at, token).ConfigureAwait(false), true) { At = at };
     }
 }
-public sealed class ItemUsageProjectionDelivery(ICommandBus commands, ISelectedSessionDomainService sessions, IGameMessageSender sender)
-{
-    // Callers hold the selected-session transition lease across read and delivery (including reset + chunks).
-    public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
-    {
-        var snapshot = await commands.SendAsync(new ReadItemUsageSnapshotCommand(session), token).ConfigureAwait(false);
-        if (!snapshot.IsCurrent || sessions.FindByCharacter(session.CharacterId) != session) return;
-        var messages = ItemUsageCountMessage.FullSnapshot(snapshot.Items).Cast<IGameNotiMessage>()
-            .Concat(ItemUsageCooldownProjection.Snapshot(snapshot.Items, snapshot.At)).ToArray();
-        foreach (var message in messages)
-        {
-            if (sessions.FindByCharacter(session.CharacterId) != session) return;
-            await sender.SendNotiAsync(session.ConnectionId, message, token).ConfigureAwait(false);
-        }
-    }
-}
-
 internal static class ItemUsageCooldownProjection
 {
     internal static IReadOnlyList<ItemCooldownStateMessage> Snapshot(IReadOnlyList<ItemUsageState> items, DateTimeOffset at)
@@ -84,39 +62,5 @@ internal static class ItemUsageCooldownProjection
                 checked((int)Math.Ceiling((item.CooldownUntil!.Value - at).TotalSeconds)))).ToArray();
         // 00AC upserts cooldowns. Do not invent a reset packet or restart an expired cooldown.
         return entries.Chunk(byte.MaxValue).Select(chunk => new ItemCooldownStateMessage(chunk)).ToArray();
-    }
-}
-
-// One server timer only checks online sessions. Offline counters remain untouched and reset on read.
-public sealed class ItemUsageDailyRefreshService(ISelectedSessionSnapshotQuery directory,
-    ISelectedSessionDomainService sessions, SelectedSessionTransitionGate transitions,
-    IDailyResetRuleService days, TimeProvider clock, ItemUsageProjectionDelivery delivery,
-    ILogger<ItemUsageDailyRefreshService> logger) : BackgroundService
-{
-    private readonly Dictionary<SelectedSessionIdentity, DateTimeOffset> delivered = [];
-    public async Task RefreshAsync(CancellationToken token)
-    {
-        var current = directory.Snapshot();
-        foreach (var stale in delivered.Keys.Except(current).ToArray()) delivered.Remove(stale);
-        foreach (var session in current)
-        {
-            var period = days.PeriodStart(clock.GetUtcNow());
-            if (delivered.TryGetValue(session, out var previous) && previous == period) continue;
-            try
-            {
-                await using var lease = await transitions.AcquireAsync(session.AccountId, UserAccessMode.Exclusive, token).ConfigureAwait(false);
-                if (sessions.FindByCharacter(session.CharacterId) != session) continue;
-                await delivery.SendAsync(session, token).ConfigureAwait(false);
-                delivered[session] = period;
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception ex) { logger.LogWarning(ex, "Item usage projection failed character={CharacterId}", session.CharacterId); }
-        }
-    }
-    protected override async Task ExecuteAsync(CancellationToken token)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
-        try { while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) await RefreshAsync(token).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 }

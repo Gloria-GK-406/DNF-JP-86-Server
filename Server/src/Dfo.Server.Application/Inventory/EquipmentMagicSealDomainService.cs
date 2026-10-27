@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentMagicSealDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IEquipmentDomainService equipments,
     IEquipmentEffectPlanRuleService rules,
     IApplyEffectsDomainService effects,
@@ -23,22 +22,19 @@ internal sealed class EquipmentMagicSealDomainService(
 {
     public ValueTask<EquipmentMagicSealResult> UnsealAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? scrollSlot,
-        CancellationToken ct) => ApplyAsync(session, targetSlot, scrollSlot, null, ct);
+        IEffectFootprintRecorder footprint, CancellationToken ct) => ApplyAsync(session, targetSlot, scrollSlot, null, footprint, ct);
 
     public ValueTask<EquipmentMagicSealResult> ChangeAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? materialSlot,
-        byte optionIndex, CancellationToken ct) =>
-        ApplyAsync(session, targetSlot, materialSlot, optionIndex, ct);
+        byte optionIndex, IEffectFootprintRecorder footprint, CancellationToken ct) =>
+        ApplyAsync(session, targetSlot, materialSlot, optionIndex, footprint, ct);
 
     private async ValueTask<EquipmentMagicSealResult> ApplyAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, BusinessSlot? materialSlot,
-        byte? changeIndex, CancellationToken ct)
+        byte? changeIndex, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        if (!sessions.IsInWorld(session))
             return new(EquipmentMagicSealRejection.NoSession);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment
             || materialSlot is not null)
@@ -68,7 +64,7 @@ internal sealed class EquipmentMagicSealDomainService(
             return new(EquipmentMagicSealRejection.NoSession);
         if (await character.GoldAsync(ct).ConfigureAwait(false) < decision.GoldCost)
             return new(EquipmentMagicSealRejection.InsufficientGold);
-        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), session);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, clock.GetUtcNow(), footprint, session);
         if ((await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false)).Rejection != InventoryEffectRejection.None)
             return new(EquipmentMagicSealRejection.InsufficientGold);
         var applied = await effects.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -12,7 +13,7 @@ public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, Busin
 public interface ILotteryOpeningDomainService
 {
     ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, BusinessSlot slot,
-        ushort mode, CancellationToken token);
+        ushort mode, IEffectFootprintRecorder footprint, CancellationToken token);
 }
 
 public interface ILotteryRandomSource

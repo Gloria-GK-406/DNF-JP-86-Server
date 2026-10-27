@@ -1,0 +1,3 @@
+# Task08 Test-value
+
+保护结果：前置已失效目标不应继续查询/投影旧状态；真实实现移到CMD容易漏掉原target复查。现有领域和composer也有当前性判定，会把丢掉前置保护的成功帧测试掩成绿。因此fixture在wire lookup之后换代target，query替身保固定可成功计划；CMD之外断言query0、projection0、outbox0，直接观察原拒绝边界。真实同provider投影链另守消息目标与bytes，原domain/composer测试不改。变异将新CMD target判定替换为requester（仍可编译），若真实query次数从0到1即明确红；恢复源SHA后绿。纯DTO/薄入口机械变化不造编译RED。

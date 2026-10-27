@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
@@ -15,6 +16,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
 
     public TownAreaMembershipChange Enter(TownAreaMember member)
     {
+        GameplayWriteAssertion.Writing(nameof(TownAreaDomainService) + "." + nameof(Enter));
         ArgumentNullException.ThrowIfNull(member);
         if (member.Area.TownId == 101 && member.Area.Instance == 0) throw new InvalidOperationException("A couple room requires a private instance.");
 
@@ -85,6 +87,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
         TownAreaMembershipLease lease,
         TownAreaDepartureReason reason)
     {
+        GameplayWriteAssertion.Writing(nameof(TownAreaDomainService) + "." + nameof(LeaveExact));
         TownAreaMembershipChange? change;
         lock (sync)
         {
@@ -114,6 +117,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
         CharacterPositionState position,
         bool sharesTownPresence)
     {
+        GameplayWriteAssertion.Writing(nameof(TownAreaDomainService) + "." + nameof(TransferExact));
         ArgumentNullException.ThrowIfNull(position);
         if (destination.TownId == 101 && destination.Instance == 0) return null;
         if (position.TownId != destination.TownId || position.AreaId != destination.AreaId)
@@ -169,6 +173,7 @@ internal sealed class TownAreaDomainService(IPartyDirectoryPresenceSink? parties
         TownAreaMembershipLease lease,
         CharacterPositionState position)
     {
+        GameplayWriteAssertion.Writing(nameof(TownAreaDomainService) + "." + nameof(MoveExact));
         ArgumentNullException.ThrowIfNull(position);
         lock (sync)
         {

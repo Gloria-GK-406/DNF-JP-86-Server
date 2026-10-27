@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfItemUsageRuleSource(PvfArchiveProvider provider) : IItemUsageRuleSource
+internal sealed class PvfItemUsageRuleSource(PvfArchiveProvider provider) : IItemUsageRuleSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -15,6 +15,26 @@ internal sealed class PvfItemUsageRuleSource(PvfArchiveProvider provider) : IIte
     private readonly Lock gate = new();
     private readonly Dictionary<int, ItemUsageRule?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
+    public string Name => "item-usage-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            PathsIndex(archive);
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
+                .ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+    }
+
     public ValueTask<ItemUsageRule?> GetAsync(int itemId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -22,8 +42,7 @@ internal sealed class PvfItemUsageRuleSource(PvfArchiveProvider provider) : IIte
         {
             if (cache.TryGetValue(itemId, out var found)) return ValueTask.FromResult(found);
             var archive = provider.Archive;
-            paths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-                .ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+            PathsIndex(archive);
             if (!paths.TryGetValue(itemId, out var path)) return ValueTask.FromResult<ItemUsageRule?>(null);
             var reader = archive.OpenScript(path);
             var unreadable = false;

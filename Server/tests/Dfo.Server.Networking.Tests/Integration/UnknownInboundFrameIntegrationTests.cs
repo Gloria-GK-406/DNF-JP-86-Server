@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Exit;
@@ -42,7 +43,7 @@ public sealed class UnknownInboundFrameIntegrationTests
             gamePort = GetAvailablePort();
         }
 
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true",
@@ -114,7 +115,7 @@ public sealed class UnknownInboundFrameIntegrationTests
     {
         var channelPort = GetAvailablePort(); var gamePort = GetAvailablePort();
         while (gamePort == channelPort) gamePort = GetAvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),
             ["Networking:GamePorts:0"] = gamePort.ToString(), ["Game:EndpointHost"] = "127.0.0.1",
@@ -153,13 +154,16 @@ public sealed class UnknownInboundFrameIntegrationTests
         }
         finally { await host.StopAsync(timeout.Token); }
     }
-    private sealed class RawMetadataDispatcher(INetworkMessageSender sender) : INetworkMessageDispatcher
+    // The reply is registered by a job, as the production dispatcher's is, and delivered when it ends (T-006).
+    private sealed class RawMetadataDispatcher(INetworkMessageSender sender, IGameplayQueue queue) : INetworkMessageDispatcher
     {
         public List<GameMessageMetadata> Records { get; } = [];
         public async ValueTask DispatchAsync(NetworkDispatchContext context, IClientNetworkMessage message, CancellationToken ct)
         {
             Records.Add(Assert.IsType<GameExitRequest>(message).Metadata);
-            await sender.SendAsync(context.Connection.ConnectionId, new GameExitResponse(true), ct);
+            await queue.RunAsync(new GameplayWork(GameplayShardKey.World,
+                GameplayCallChain.NewRoot(GameplayCallSource.Connection, context.Connection.ConnectionId), "test:raw-metadata",
+                token => sender.SendAsync(context.Connection.ConnectionId, new GameExitResponse(true), token)), ct);
         }
     }
 
@@ -189,14 +193,7 @@ public sealed class UnknownInboundFrameIntegrationTests
         return frame;
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
     /// <remarks>
     /// Entries arrive on the socket receive thread rather than the test thread, so the list is

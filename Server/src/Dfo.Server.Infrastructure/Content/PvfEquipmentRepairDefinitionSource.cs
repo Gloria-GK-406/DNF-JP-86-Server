@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider provider) : IEquipmentRepairDefinitionSource
+internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider provider) : IEquipmentRepairDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -20,6 +20,25 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
     private readonly Dictionary<int, EquipmentRepairDefinition?> cache = [];
     private Dictionary<int, string>? paths;
     private (float CostRate, IReadOnlyList<float> UpgradeRates)? rates;
+
+    public string Name => "equipment-repair";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        await RatesAsync(cancellationToken).ConfigureAwait(false);
+        lock (gate)
+        {
+            PathsIndex(provider.Archive);
+            return paths.Count;
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        paths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
+            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+    }
 
     public ValueTask<EquipmentRepairDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
@@ -42,8 +61,7 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
     private EquipmentRepairDefinition? Read(int itemId)
     {
         var archive = provider.Archive;
-        paths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        PathsIndex(archive);
         if (!paths.TryGetValue(itemId, out var relative))
             return null;
         var sections = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative);

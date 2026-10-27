@@ -59,6 +59,9 @@ public sealed class DomainEventSchedulingTests
         public ValueTask<bool> HasCompletedCoalescingKeyAsync(Guid batchId, string subscriberId, string key, CancellationToken ct) => ValueTask.FromResult(false);
         public ValueTask CompleteAsync(Guid eventId, string subscriberId, DateTimeOffset now, string reason, CancellationToken ct)
         { if (subscriberId == "other") probe.OtherCompleted = true; return ValueTask.CompletedTask; }
+        public ValueTask<bool> QuarantineAsync(Guid id, string s, int expected, string error, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> TryFailAsync(Guid id, string subscriber, int expected, DateTimeOffset next, string error, bool terminal, CancellationToken token) =>
+            throw new NotSupportedException();
         public ValueTask FailAsync(Guid eventId, string subscriberId, DateTimeOffset nextAttemptAt, string error, bool terminal, CancellationToken ct) => throw new NotSupportedException();
     }
 }

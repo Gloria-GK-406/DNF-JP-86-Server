@@ -4,10 +4,14 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfGoldSilverHornContentSource(PvfArchiveProvider provider) : IGoldSilverHornContentSource
+internal sealed class PvfGoldSilverHornContentSource(PvfArchiveProvider provider) : IGoldSilverHornContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<GoldSilverHornContent> cache = new(() => Read(provider.Archive));
     public GoldSilverHornContent Load() => cache.Value;
+    public string Name => "gold-silver-horn";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load() is null ? 0 : 1);
+
 
     internal static GoldSilverHornContent Read(PvfArchive archive)
     {

@@ -20,7 +20,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// request's word for it.
 /// </para>
 /// </remarks>
-internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitionSource
+internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -41,6 +41,30 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
     private readonly Dictionary<int, BusinessSlot?> _cache = [];
     private IReadOnlyDictionary<int, string>? _paths;
 
+    public string Name => "equipment-slot-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            PathsIndex(_provider.Archive);
+            return ValueTask.FromResult(_paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        if (_paths is null)
+        {
+            var paths = new Dictionary<int, string>();
+            foreach (var (id, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
+                paths.TryAdd(id, relativePath);
+            _paths = paths;
+        }
+    }
+
     public PvfEquipmentSlotDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
 
     public ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken)
@@ -59,13 +83,7 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
 
     private BusinessSlot? Read(PvfArchive archive, int itemId)
     {
-        if (_paths is null)
-        {
-            var paths = new Dictionary<int, string>();
-            foreach (var (id, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
-                paths.TryAdd(id, relativePath);
-            _paths = paths;
-        }
+        PathsIndex(archive);
 
         if (!_paths.TryGetValue(itemId, out var path))
             return null;

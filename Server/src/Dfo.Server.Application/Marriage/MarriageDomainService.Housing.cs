@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Data.Accounts;
@@ -17,10 +18,12 @@ internal sealed partial class MarriageDomainService
         await ledger.DailyPointAsync(relation.Id, character, housing.Period, ct).ConfigureAwait(false);
     }
     public async ValueTask<HousingResult> ExecuteAsync(SelectedSessionIdentity actor, HousingRequest request,
-        IReadOnlyList<AccountId> accounts, CancellationToken ct)
+        IReadOnlyList<AccountId> accounts, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandActive(actor);
         if (!eligibility.IsCurrent(actor) || await ledger.ForSessionAsync(actor, ct).ConfigureAwait(false) is not { Stage: MarriageStage.Married } relation
             || !accounts.SequenceEqual(CoupleAccounts(relation, actor))) return new(-4);
+        footprint.DemandActive(actor);
         var room = await housingState.EnsureAsync(relation.Id, ct).ConfigureAwait(false);
         HousingResult result;
         if (request.Action == HousingAction.UpgradeRing)
@@ -28,13 +31,18 @@ internal sealed partial class MarriageDomainService
             var level = await ledger.RingAsync(relation.Id, ct).ConfigureAwait(false);
             if (level >= 5 || request.Count != level + 1) return new(-6);
             var itemId = 10002611 + level;
-            var spent = await housing.ConsumeAsync(actor, request.Slot, itemId, ct).ConfigureAwait(false);
+            var spent = await housing.ConsumeAsync(actor, request.Slot, itemId, footprint, ct).ConfigureAwait(false);
             if (spent is null) return new(-7);
+            footprint.DemandActive(actor);
             if (!await ledger.UpgradeRingAsync(relation.Id, level, ct).ConfigureAwait(false))
                 throw new HousingRejectedException(-6);
             result = new(0) { RingLevel = checked((byte)(level + 1)), ConsumedSlot = spent.Value.Slot, Remaining = spent.Value.Remaining };
         }
-        else result = await housing.ExecuteAsync(actor, relation, room, request, ct).ConfigureAwait(false);
+        else
+        {
+            footprint.DemandActive(actor);
+            result = await housing.ExecuteAsync(actor, relation, room, request, footprint, ct).ConfigureAwait(false);
+        }
         return result with { Audience = [relation.Proposer.CharacterId, relation.Recipient.CharacterId] };
     }
 

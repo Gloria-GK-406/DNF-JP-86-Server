@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
@@ -11,6 +12,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -22,50 +24,51 @@ public sealed class EpicCraftTests
         public IReadOnlyList<EpicPieceDefinition> Load() => [new(Piece, 3000)];
         public IReadOnlyList<EpicCraftRecipe> LoadRecipes() => [new(3000, Piece, 1000, [new(3244, 25), new(3262, 100)])];
     }
-    private static ShopFixture Fixture()
+    internal static ShopFixture Fixture(Action<IServiceCollection>? configure = null)
     {
         var content = new OpeningContent();
         content.Items[3000] = content.Items[3000] with { Placement = new(1, 1,
             new(BusinessInventorySpace.CarriedEquipment, 0, 1)) { WorldClass = ItemWorldClass.Equipment } };
         return new(s => { s.AddSingleton<IEpicBookDefinitionSource>(new Catalog());
-            s.AddSingleton<IPackageOpeningDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); });
+            s.AddSingleton<IPackageOpeningDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); configure?.Invoke(s); });
     }
-    private static async Task Seed(ShopFixture f, int count = 1)
+    internal static async Task Seed(ShopFixture f, int count = 1)
     {
         f.Sql($"INSERT INTO account_epic_pieces(account_id,piece_id,count) VALUES(1,{Piece},{1000 * count})");
         await f.Seed(140, 3244, 25 * count, 3);
         await f.SeedShared(3262, 100 * count);
     }
     private static int Balance(ShopFixture f) => f.Scalar("SELECT COALESCE(SUM(count),0) FROM account_epic_pieces WHERE account_id=1");
-    private static Task<EpicCraftReceipt> Craft(ShopFixture f, int id = 3000) => f.Services.GetRequiredService<ICommandBus>()
-        .SendAsync(new EpicCraftCommand(f.OnlineUser, f.Session, id)).AsTask();
+    private static Task<EpicCraftReceipt> Craft(ShopFixture f, int id = 3000) => OpeningDomainTestDriver.Epic(f, f.Session, id);
     private static ValueTask Send(ShopFixture f, ushort seq = 7, int id = 3000) => EffectRequestTransport.Send(f,
         new EpicCraftRequest(new(1, 0x0313, 0, seq), id));
 
     [Fact]
     public async Task SQLite_commit_failure_rolls_back_pieces_materials_and_new_equipment()
     {
-        using var f = Fixture(); await Seed(f);
-        f.Sql("CREATE TABLE craft_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await f.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(f.Session, 3000, f.Clock.GetUtcNow(), default);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (command, ct) =>
+            using var f = Fixture(); await Seed(f);
+            f.Sql("CREATE TABLE craft_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
             {
-                command.CommandText = "INSERT INTO craft_commit_probe VALUES(99999)";
-                await command.ExecuteNonQueryAsync(ct);
-            }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(1000, Balance(f)); Assert.Equal(25, f.Count(3244)); Assert.Equal(100, f.SharedCount(3262));
-        Assert.Equal(0, f.Count(3000)); Assert.Empty(f.Sender.Messages);
+                await TestEffectFootprints.Run(f.Session, cap => f.Services.GetRequiredService<IEpicCraftDomainService>().CraftAsync(f.Session, 3000, f.Clock.GetUtcNow(), cap, default));
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (command, ct) =>
+                {
+                    command.CommandText = "INSERT INTO craft_commit_probe VALUES(99999)";
+                    await command.ExecuteNonQueryAsync(ct);
+                }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(1000, Balance(f)); Assert.Equal(25, f.Count(3244)); Assert.Equal(100, f.SharedCount(3262));
+            Assert.Equal(0, f.Count(3000)); Assert.Empty(f.Sender.Messages);
+        });
     }
     [Fact]
     public async Task Stale_selection_cannot_consume_the_account_balance()
     {
         using var f = Fixture(); await Seed(f); var stale = f.Session; f.Select(2);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new EpicCraftCommand(f.OnlineUser, stale, 3000)));
+        await Assert.ThrowsAnyAsync<Exception>(async () => await OpeningDomainTestDriver.Epic(f, stale, 3000));
         Assert.Equal(1000, Balance(f)); Assert.Equal(100, f.SharedCount(3262));
     }
     [Fact]
@@ -87,7 +90,7 @@ public sealed class EpicCraftTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         var recipe = f.Services.GetRequiredService<IEpicBookRuleService>().FindRecipe(450004)!;
         f.Sql($"INSERT INTO account_epic_pieces(account_id,piece_id,count) VALUES(1,{recipe.PieceId},{recipe.PieceCount})");
         var materialSlot = 140;

@@ -5,6 +5,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 using Dfo.Server.Protocol.Game.UseStackable;
 namespace Dfo.Server.Protocol.Tests;
+[Trait("Category", "Unit")]
 public sealed class WeddingRepairCodecTests
 {
     [Theory]

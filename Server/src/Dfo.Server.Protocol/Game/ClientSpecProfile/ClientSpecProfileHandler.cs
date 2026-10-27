@@ -1,3 +1,5 @@
+using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Networking;
@@ -7,42 +9,17 @@ namespace Dfo.Server.Protocol.Game.ClientSpecProfile;
 
 /// <summary>
 /// Consumes the CLIENT_SPEC_PROFILE (0x00C2) hardware report and logs it.
-/// Fire-and-forget like 0x00AB and 0x01DD: no response, no domain change, no command bus.
+/// Fire-and-forget like 0x00AB and 0x01DD: no response, no domain change.
 /// The 336-byte table is summarised rather than dumped -- it is all zeroes in every sample so
 /// far, and its meaning is unconfirmed, so the log records how much of it is populated instead
 /// of pretending to interpret it.
 /// </summary>
-public sealed class ClientSpecProfileHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    ILogger<ClientSpecProfileHandler> logger) : ClientMessageHandler<ClientSpecProfileReportRequest>
+public sealed class ClientSpecProfileHandler(ICommandBus commands)
+    : ClientMessageHandler<ClientSpecProfileReportRequest>, IProtocolCommandMessageHandler<GameClientSpecProfileCommand>
 {
-    protected override ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        ClientSpecProfileReportRequest message,
-        CancellationToken cancellationToken)
-    {
-        var attributed = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            && onlineUser is not null;
-
-        logger.LogInformation(
-            "Client spec profile {ConnectionId} {Attribution}: cpu={Cpu} gpu={Gpu} os={OperatingSystem} "
-            + "normalized={Normalized} directX={DirectX} timings={Timings} unknown={Unknown} "
-            + "table={Table} entries={Entries}",
-            context.Connection.ConnectionId,
-            attributed ? $"account={onlineUser!.AccountId} onlineUser={onlineUser.OnlineUserId}" : "unattributed",
-            $"cores={message.CpuLogicalCores} clock={message.CpuClockMhz}MHz",
-            $"pci={message.GpuPciVendorId:X4}:{message.GpuPciDeviceId:X4}",
-            ClientSpecProfileDescriptor.DescribeOperatingSystem(message.OperatingSystemKind),
-            $"video={message.NormalizedVideoMemoryMegabytes}MB total={message.NormalizedTotalMemoryMegabytes}MB",
-            ClientSpecProfileDescriptor.DescribeDirectXVersion(message.DirectXVersion),
-            $"startLoading={ClientSpecProfileDescriptor.DescribeSeconds(message.StartLoadingSeconds)}"
-            + $" returnVillage={ClientSpecProfileDescriptor.DescribeSeconds(message.ReturnVillageSeconds)}",
-            $"off15={message.Unknown15} off20={message.Unknown20}",
-            ClientSpecProfileDescriptor.DescribeTable(message.Table),
-            ClientSpecProfileDescriptor.DescribeEntries(message.Entries));
-
-        return ValueTask.CompletedTask;
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        ClientSpecProfileReportRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameClientSpecProfileCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 /// <summary>

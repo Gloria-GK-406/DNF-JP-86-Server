@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
@@ -13,6 +14,7 @@ using Dfo.Server.Protocol.Game.RecoverStamina;
 using Dfo.Server.Protocol.Game.Weakness;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -52,18 +54,21 @@ public sealed class WeaknessGoldRecoveryTests
     [Fact]
     public async Task Timestamp_counter_rejects_a_stale_write_instead_of_losing_consumption()
     {
-        using var shop = PremiumShop();
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using var transaction = scope.Begin();
-        var table = shop.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.IPremiumServiceUsageTable>();
-        var id = shop.Session.CharacterId;
-        var now = shop.Clock.GetUtcNow();
-        Assert.Equal(1, await table.TryWriteAsync(id, "premium_free_weakness_used", null, 1, now, default));
-        Assert.Equal(0, await table.TryWriteAsync(id, "premium_free_weakness_used", null, 1, now, default));
-        var first = await table.ReadAsync(id, "premium_free_weakness_used", default);
-        Assert.Equal(1, await table.TryWriteAsync(id, "premium_free_weakness_used", first, 2, now, default));
-        Assert.Equal(0, await table.TryWriteAsync(id, "premium_free_weakness_used", first, 2, now, default));
-        Assert.Equal(2, (await table.ReadAsync(id, "premium_free_weakness_used", default))!.UsedCount);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = PremiumShop();
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using var transaction = scope.Begin();
+            var table = shop.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.IPremiumServiceUsageTable>();
+            var id = shop.Session.CharacterId;
+            var now = shop.Clock.GetUtcNow();
+            Assert.Equal(1, await table.TryWriteAsync(id, "premium_free_weakness_used", null, 1, now, default));
+            Assert.Equal(0, await table.TryWriteAsync(id, "premium_free_weakness_used", null, 1, now, default));
+            var first = await table.ReadAsync(id, "premium_free_weakness_used", default);
+            Assert.Equal(1, await table.TryWriteAsync(id, "premium_free_weakness_used", first, 2, now, default));
+            Assert.Equal(0, await table.TryWriteAsync(id, "premium_free_weakness_used", first, 2, now, default));
+            Assert.Equal(2, (await table.ReadAsync(id, "premium_free_weakness_used", default))!.UsedCount);
+        });
     }
 
     [Fact]
@@ -123,7 +128,7 @@ public sealed class WeaknessGoldRecoveryTests
         Assert.Equal(4, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).ErrorCode);
         Assert.Equal(10, exhausted.Value);
         // Re-selecting does not reset persisted usage.
-        shop.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>().Clear(shop.Session.CharacterId);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>().Clear(shop.Session.CharacterId));
         shop.Select(1);
         await Recover(shop, 1);
         Assert.Equal(10, exhausted.Value);
@@ -160,7 +165,7 @@ public sealed class WeaknessGoldRecoveryTests
         Assert.Equal(100, state.Value);
         Assert.Equal(1, shop.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_free_weakness_used'"));
         Assert.Equal(18, Assert.IsType<RecoverStaminaResponse>(shop.Sender.Messages.Last()).ErrorCode);
-        await state.SetWeakness();
+        await TestGameplay.RunAsync(shop.Services, async () => await state.SetWeakness());
         shop.Sql("CREATE TRIGGER refuse_usage BEFORE UPDATE ON character_daily_counters BEGIN SELECT RAISE(ABORT,'usage failure'); END;");
         await Recover(shop, 1);
         Assert.Equal(10, state.Value);
@@ -185,14 +190,12 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Clock.Advance(TimeSpan.FromDays(1));
         await refresh.RefreshAsync(default);
         Assert.Equal(2, shop.Sender.Messages.Count);
-        var next = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new Dfo.Server.Protocol.Game.StateSynchronization.ReadPremiumSnapshotCommand(shop.Session));
+        var next = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, shop.Session);
         Assert.Equal(0, next.Usage.Single(x => x.SlotIndex == 5).UsedCount);
         shop.Select(2);
         await refresh.RefreshAsync(default);
         Assert.Equal(3, shop.Sender.Messages.Count);
-        var stale = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new Dfo.Server.Protocol.Game.StateSynchronization.ReadPremiumSnapshotCommand(old));
+        var stale = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, old);
         Assert.False(stale.IsCurrent);
     }
 
@@ -211,7 +214,7 @@ public sealed class WeaknessGoldRecoveryTests
         shop.Select(2);
         shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=2");
         var other = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
-        await other.SetWeakness();
+        await TestGameplay.RunAsync(shop.Services, async () => await other.SetWeakness());
         await Recover(shop, 1);
         Assert.Equal(100, other.Value);
         Assert.Equal(2, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_free_weakness_used' AND value=1"));
@@ -290,7 +293,9 @@ public sealed class WeaknessGoldRecoveryTests
         using var shop = new ShopFixture();
         var state = await Weaken(shop);
         Assert.Equal(56530, await state.RecoveryGoldCost());
-        await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new AdvanceWeaknessRecoveryCommand());
+        await shop.Services.GetRequiredService<ICommandBus>().SendInternalAsync(new RecoverWeaknessTickCommand(),
+            new(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), "timer:WeaknessRecoveryService"));
+        Assert.Equal(19, Assert.Single(shop.Sender.Messages.OfType<WeaknessProjectionNotification>()).Value);
         Assert.Equal(19, state.Value);
         Assert.Equal(50877, await state.RecoveryGoldCost());
         await Recover(shop);
@@ -313,42 +318,92 @@ public sealed class WeaknessGoldRecoveryTests
     [Fact]
     public async Task Failure_at_final_durable_commit_does_not_publish_memory_recovery()
     {
-        using var shop = new ShopFixture();
-        var state = await Weaken(shop);
-        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using var transaction = scope.Begin();
-        var durable = new RecordingParticipant("database", [], true) { CommitFailure = new IOException("commit failed") };
-        scope.Current!.Enlist(durable, () => durable);
-        state.Recover();
-        Assert.Equal(10, state.Value);
-        await Assert.ThrowsAsync<IOException>(() => transaction.CommitAsync(default).AsTask());
-        Assert.Equal(10, state.Value);
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = new ShopFixture();
+            var state = await Weaken(shop);
+            var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+            await using var transaction = scope.Begin();
+            var durable = new RecordingParticipant("database", [], true) { CommitFailure = new IOException("commit failed") };
+            scope.Current!.Enlist(durable, () => durable);
+            state.Recover();
+            Assert.Equal(10, state.Value);
+            await Assert.ThrowsAsync<IOException>(() => transaction.CommitAsync(default).AsTask());
+            Assert.Equal(10, state.Value);
+        });
     }
 
     [Fact]
     public async Task A_replaced_session_cannot_recover_the_old_character()
     {
-        using var shop = new ShopFixture();
+        Dfo.Server.Data.World.SelectedSessionIdentity? stale = null;
+        using var shop = new ShopFixture(services =>
+        {
+            var original = services.Last(x => x.ServiceType == typeof(Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService));
+            services.AddSingleton<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(provider =>
+                StaleSessionQuery.Wrap((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)(original.ImplementationInstance
+                    ?? original.ImplementationFactory?.Invoke(provider) ?? ActivatorUtilities.CreateInstance(provider, original.ImplementationType!)), () => stale));
+        });
         var state = await Weaken(shop);
         var old = shop.Session;
         shop.Select(2);
+        stale = old;
         var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new RecoverStaminaCommand(shop.OnlineUser, old, 0));
+            new GameRecoverStaminaCommand(new(shop.Connection), new(GameMessageMetadata.Empty, 0)));
         Assert.Equal(4, result.ErrorCode);
         Assert.Equal(10, state.Value);
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
+        Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=2"));
+    }
+
+    public class StaleSessionQuery : System.Reflection.DispatchProxy
+    {
+        private Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService actual = null!;
+        private Func<Dfo.Server.Data.World.SelectedSessionIdentity?> stale = null!;
+        internal static Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService Wrap(
+            Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService actual, Func<Dfo.Server.Data.World.SelectedSessionIdentity?> stale)
+        {
+            var proxy = Create<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService, StaleSessionQuery>();
+            ((StaleSessionQuery)proxy).actual = actual; ((StaleSessionQuery)proxy).stale = stale; return proxy;
+        }
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            if (method!.Name == "FindByConnection" && stale() is { } old) return old;
+            try { return method.Invoke(actual, args); }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException is { } cause)
+            { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(cause); throw; }
+        }
+    }
+
+    [Fact]
+    public async Task A_selected_session_not_yet_in_world_is_silently_ignored_by_the_recovery_protocol()
+    {
+        using var shop = new ShopFixture();
+        var state = await Weaken(shop);
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            var sessions = shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
+            Assert.True(sessions.ReleaseExact(shop.Session));
+            Assert.Null(sessions.Select(shop.Session));
+            Assert.Equal(shop.Session, sessions.FindByConnection(shop.Connection.ConnectionId));
+            Assert.False(sessions.IsInWorld(shop.Session));
+        });
+        await Recover(shop);
+        Assert.Empty(shop.Sender.Messages);
+        Assert.Equal(100000, shop.Gold);
+        Assert.Equal(10, state.Value);
     }
 
     private static async Task<IWeakness> Weaken(ShopFixture shop)
     {
         shop.Sql($"UPDATE characters SET level=85,exp={shop.ExperienceForLevel(85)} WHERE character_id=1");
         var state = shop.Services.GetRequiredService<IWeaknessDomainService>().For(shop.Session.CharacterId);
-        await state.SetWeakness();
+        await TestGameplay.RunAsync(shop.Services, async () => await state.SetWeakness());
         Assert.Equal(10, state.Value);
         return state;
     }
 
     private static ValueTask Recover(ShopFixture shop, ushort mode = 0) =>
-        shop.Services.GetRequiredService<RecoverStaminaHandler>().HandleAsync(new(shop.Connection),
+        shop.Services.GetRequiredService<Dfo.Server.Abstractions.Networking.INetworkMessageDispatcher>().DispatchAsync(new(shop.Connection),
             new RecoverStaminaRequest(GameMessageMetadata.Empty, mode), default);
 }

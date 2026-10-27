@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentReinforcementDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentUpgradeRuleService rules,
@@ -27,13 +26,10 @@ internal sealed class EquipmentReinforcementDomainService(
         SelectedSessionIdentity session, BusinessSlot targetSlot, int expectedItemId,
         BusinessSlot? materialSlot,
         BusinessSlot? protectionSlot,
-        CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
+        IEffectFootprintRecorder footprint, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
     {
-        if (sessions.Find(session.AccountId) != session
-            || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId)
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        if (!sessions.IsInWorld(session))
             return new(EquipmentReinforcementRejection.NoSession);
         if (!(targetSlot.Space.IsCarriedItemSpace() || targetSlot.Space.IsWornEquipmentSpace())
             || expectedItemId <= 0
@@ -121,7 +117,7 @@ internal sealed class EquipmentReinforcementDomainService(
             new(protectionDefinition, succeeded || quote.IsTicket ? 0 : rolls.Next(10_000), succeeded || quote.IsTicket ? 0 : rolls.Next(10_000), kind), succeeded, ct).ConfigureAwait(false);
         var decision = plan.Decision;
         if (decision.Rejection != EquipmentReinforcementRejection.None) return new(decision.Rejection);
-        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, timeProvider.GetUtcNow(), session);
+        var context = new EffectExecutionContext(session.AccountId, session.CharacterId, timeProvider.GetUtcNow(), footprint, session);
         var preview = await preflight.PreviewAsync(context, plan.Effects, ct).ConfigureAwait(false);
         if (preview.Rejection != InventoryEffectRejection.None)
             return new(preview.Rejection switch

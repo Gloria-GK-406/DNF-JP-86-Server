@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Quests;
@@ -20,6 +21,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
+
+using Dfo.Server.Application.Inventory;
 
 namespace Dfo.Server.Application.Tests.Achievements;
 
@@ -135,12 +138,15 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
     [PvfFact]
     public async Task Snapshot_completion_rolls_back_without_events_or_rewards_and_follows_dependency_chain()
     {
-        await using var f = new Fixture(definitions:new FakeDefinitions([
-            new(9002,1,99,new("clear quest",-1,[9001],1),[]),
-            new(9001,1,99,new("level up",-1,[70],1),[])]));
-        await using (var tx=f.Scope.Begin()) Assert.Equal(2,(await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)).Count);
-        Assert.Empty(await f.Achievements.GetAsync(Character,default)); Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM domain_events"));
-        Assert.Equal(new[]{9001,9002},await f.WriteAsync(async()=>await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture(definitions:new FakeDefinitions([
+                new(9002,1,99,new("clear quest",-1,[9001],1),[]),
+                new(9001,1,99,new("level up",-1,[70],1),[])]));
+            await using (var tx=f.Scope.Begin()) Assert.Equal(2,(await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)).Count);
+            Assert.Empty(await f.Achievements.GetAsync(Character,default)); Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM domain_events"));
+            Assert.Equal(new[]{9001,9002},await f.WriteAsync(async()=>await f.Achievements.UnlockSatisfiedAchievementsAsync(Character,default)));
+        });
     }
     private sealed class RefuseSnapshot : IAchievementCharacterFactsDomainService
     {
@@ -155,7 +161,10 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
     {
         await using var f = new Fixture(definitions:new FakeDefinitions([new(9001,1,99,new("huntmonster",-1,[-1,-1,-1,30],1),[])]));
         await f.WriteAsync(async () => await f.Achievements.PrepareAsync(Character,80,default));
-        await using (var tx=f.Scope.Begin()) await f.Events.EnqueueAsync(new MonsterDefeated(Character,100,0,1,0));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using (var tx=f.Scope.Begin()) await f.Events.EnqueueAsync(new MonsterDefeated(Character,100,0,1,0));
+        });
         await f.DrainAsync();
         Assert.Equal(30,(await f.Achievements.GetAsync(Character,default)).Single(x=>x.AchievementId==9001).P1);
         var envelope = new DomainEventEnvelope<MonsterDefeated>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(Character,100,0,1,0));
@@ -308,7 +317,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         // Existing legacy active records must not provide a second reward route either.
         f.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,{questId},0)");
         var before = f.ItemsAndPositions();
-        var finish = await f.WriteAsync(async () => await f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, questId, ushort.MaxValue, 1, DateTimeOffset.UtcNow, default));
+        var finish = await f.WriteAsync(async () => await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), Character, null), cap => f.Services.GetRequiredService<IQuestCompletionSettlementDomainService>().FinishAsync(new(1), Character, questId, ushort.MaxValue, 1, DateTimeOffset.UtcNow, cap, default)));
         Assert.False(finish.Finished); Assert.Equal(before, f.ItemsAndPositions());
         Assert.Single(await log.CarriedAsync(default));
     }
@@ -342,45 +351,48 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
     [InlineData(false, true, false)]
     public async Task Equipping_a_sealed_title_unseals_only_the_incoming_instance_and_rolls_back_with_the_move(bool reverse, bool occupied, bool commit)
     {
-        await using var f = new Fixture();
-        var bag = ContainerId.ForCharacter(Character, InventoryContainerType.Main);
-        var wornContainer = ContainerId.ForCharacter(Character, InventoryContainerType.Equipment);
-        var worn = (await f.Services.GetRequiredService<IItemPlacementRuleService>().WornSlotForAsync(26596, default))!.Value;
-        var game = f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn);
-        ItemSnapshot? original = null, previous = null;
-        await f.WriteAsync(async () => {
-            var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            var item = await session.CreateAsync(new() { ItemId=26596, LegacyKind=1, Type=ItemTraits.Equipment, SealFlag=1, Attribute=12, EnchantCardId=123, Durability=47, AmplifyType=3, AmplifyValue=91 }, default);
-            original = (await session.PutAsync(bag,9,item,default)).Snapshot;
-            if (occupied) {
-                var old = await session.CreateAsync(new() { ItemId=26596, LegacyKind=1, Type=ItemTraits.Equipment, Attribute=8, Durability=23 },default);
-                previous = (await session.PutAsync(wornContainer,game.Index,old,default)).Snapshot;
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new Fixture();
+            var bag = ContainerId.ForCharacter(Character, InventoryContainerType.Main);
+            var wornContainer = ContainerId.ForCharacter(Character, InventoryContainerType.Equipment);
+            var worn = (await f.Services.GetRequiredService<IItemPlacementRuleService>().WornSlotForAsync(26596, default))!.Value;
+            var game = f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn);
+            ItemSnapshot? original = null, previous = null;
+            await f.WriteAsync(async () => {
+                var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                var item = await session.CreateAsync(new() { ItemId=26596, LegacyKind=1, Type=ItemTraits.Equipment, SealFlag=1, Attribute=12, EnchantCardId=123, Durability=47, AmplifyType=3, AmplifyValue=91 }, default);
+                original = (await session.PutAsync(bag,9,item,default)).Snapshot;
+                if (occupied) {
+                    var old = await session.CreateAsync(new() { ItemId=26596, LegacyKind=1, Type=ItemTraits.Equipment, Attribute=8, Durability=23 },default);
+                    previous = (await session.PutAsync(wornContainer,game.Index,old,default)).Snapshot;
+                }
+            });
+            var before = f.ItemsAndPositions();
+            foreach (var type in new[] { InventoryContainerType.Main, InventoryContainerType.Equipment })
+                f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
+                    new Dfo.Server.Application.Inventory.PersistentItemContainer(ContainerId.ForCharacter(Character,type),new(type,0),
+                        f.Services.GetRequiredService<IItemDomainStore>(),f.Services.GetRequiredService<IDomainTransactionAccessor>(),
+                        f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>()));
+            var handler = new Dfo.Server.Application.Inventory.InventoryMoveDomainService(
+                f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(), f.Services.GetRequiredService<IItemMovementDomainService>());
+            var carried = new BusinessSlot(BusinessInventorySpace.CarriedEquipment,0);
+            await using (var tx = f.Scope.Begin()) {
+                var result = await handler.MoveAsync(
+                    new(Character,reverse ? worn : carried,1,reverse ? carried : worn),default);
+                Assert.Equal(Dfo.Server.Abstractions.Inventory.ItemMoveStatus.Moved,result.Status);
+                if (commit) await tx.CommitAsync(default);
             }
+            if (!commit) { Assert.Equal(before,f.ItemsAndPositions()); return; }
+            await f.WriteAsync(async () => {
+                var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
+                Assert.Equal(original! with { SealFlag=0 },(await session.GetAsync(wornContainer,game.Index,default))!.Snapshot);
+                Assert.Equal(previous,(await session.GetAsync(bag,9,default))?.Snapshot);
+            });
+            var slot = f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().Single(x=>x.Category==4).Slots.First(x=>x.SlotType>=0 && x.QuestId==-1 && x.ItemIds.Contains(-1));
+            Assert.True((await f.WriteAsync(async () => await f.Titles.StoreAsync(Character,worn,26596,slot.Category,slot.Index,default))).Success);
+            Assert.Equal((byte)0, Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries),x=>x.ItemId==26596).SealFlag);
         });
-        var before = f.ItemsAndPositions();
-        foreach (var type in new[] { InventoryContainerType.Main, InventoryContainerType.Equipment })
-            f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(Character,
-                new Dfo.Server.Application.Inventory.PersistentItemContainer(ContainerId.ForCharacter(Character,type),new(type,0),
-                    f.Services.GetRequiredService<IItemDomainStore>(),f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                    f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>()));
-        var handler = new Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommandHandler(
-            f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(), f.Services.GetRequiredService<IItemMovementDomainService>());
-        var carried = new BusinessSlot(BusinessInventorySpace.CarriedEquipment,0);
-        await using (var tx = f.Scope.Begin()) {
-            var result = await handler.HandleAsync(new(Guid.NewGuid(),typeof(Dfo.Server.Protocol.Game.MoveItemSpace.MoveItemSpaceCommand),handler.GetType(),Dfo.Server.Application.Commands.CommandExecutionKind.Transactional),
-                new(Character,reverse ? worn : carried,1,reverse ? carried : worn),default);
-            Assert.Equal(Dfo.Server.Protocol.Game.MoveItemSpace.ItemMoveStatus.Moved,result.Status);
-            if (commit) await tx.CommitAsync(default);
-        }
-        if (!commit) { Assert.Equal(before,f.ItemsAndPositions()); return; }
-        await f.WriteAsync(async () => {
-            var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);
-            Assert.Equal(original! with { SealFlag=0 },(await session.GetAsync(wornContainer,game.Index,default))!.Snapshot);
-            Assert.Equal(previous,(await session.GetAsync(bag,9,default))?.Snapshot);
-        });
-        var slot = f.Services.GetRequiredService<ITitleBookRuleService>().Catalog().Single(x=>x.Category==4).Slots.First(x=>x.SlotType>=0 && x.QuestId==-1 && x.ItemIds.Contains(-1));
-        Assert.True((await f.WriteAsync(async () => await f.Titles.StoreAsync(Character,worn,26596,slot.Category,slot.Index,default))).Success);
-        Assert.Equal((byte)0, Assert.Single((await f.Titles.GetAsync(Character,default)).SelectMany(x=>x.Entries),x=>x.ItemId==26596).SealFlag);
     }
     [PvfTheory]
     [InlineData((byte)1,(byte)1,(byte)0)]
@@ -428,8 +440,8 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
             if(owns) Sql($"UPDATE characters SET exp={Services.GetRequiredService<IExperienceRuleService>().CharacterScale().ExperienceForLevel(80)} WHERE character_id=1");
         }
         public async ValueTask SendAsync<T>(T fact) where T:class,IDomainEvent => await WriteAsync(async()=> {await Events.EnqueueAsync(fact);});
-        public async ValueTask WriteAsync(Func<ValueTask> action) {await using var tx=Scope.Begin(); await action(); await tx.CommitAsync(default);}
-        public async ValueTask<T> WriteAsync<T>(Func<ValueTask<T>> action) {await using var tx=Scope.Begin(); var result=await action(); await tx.CommitAsync(default); return result;}
+        public async ValueTask WriteAsync(Func<ValueTask> action) {await TestGameplay.RunAsync(Services, async () => {await using var tx=Scope.Begin(); await action(); await tx.CommitAsync(default);});}
+        public async ValueTask<T> WriteAsync<T>(Func<ValueTask<T>> action) {return await TestGameplay.RunAsync(Services, async () => {await using var tx=Scope.Begin(); var result=await action(); await tx.CommitAsync(default); return result;});}
         public async ValueTask DrainAsync() {var dispatcher=Services.GetRequiredService<DomainEventDispatcher>(); for(var i=0;i<8;i++) if(await dispatcher.DrainOnceAsync()==0) break;}
         public IReadOnlyList<long> ItemUids(int itemId) {using var connection=new SqliteConnection("Data Source="+Path);connection.Open();using var command=connection.CreateCommand();command.CommandText="SELECT item_uid,item_core FROM items";using var reader=command.ExecuteReader();var result=new List<long>();while(reader.Read())if(BinaryPrimitives.ReadInt32LittleEndian(((byte[])reader[1]).AsSpan(1))==itemId)result.Add(reader.GetInt64(0));return result;}
         public string ItemsAndPositions() {using var connection=new SqliteConnection("Data Source="+Path);connection.Open();using var command=connection.CreateCommand();command.CommandText="SELECT i.item_uid,hex(i.item_core),s.owner_scope,s.owner_id,s.list_type,s.slot_index,s.count FROM items i LEFT JOIN item_slots s ON s.core_uid=i.item_uid ORDER BY i.item_uid";using var reader=command.ExecuteReader();var rows=new List<string>();while(reader.Read())rows.Add(string.Join('|',Enumerable.Range(0,reader.FieldCount).Select(reader.GetValue)));return string.Join('\n',rows);}

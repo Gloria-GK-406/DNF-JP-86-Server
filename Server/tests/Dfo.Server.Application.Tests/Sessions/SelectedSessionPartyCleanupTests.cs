@@ -5,6 +5,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
@@ -22,127 +23,144 @@ public sealed class SelectedSessionPartyCleanupTests
     [Fact]
     public async Task Member_cleanup_clears_the_departing_member_and_refreshes_survivors()
     {
-        var fixture = new Fixture();
-        var leader = fixture.Admit(1);
-        var member = fixture.Admit(2);
-        var observer = fixture.Admit(3);
-        fixture.Form(leader, member);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var leader = fixture.Admit(1);
+            var member = fixture.Admit(2);
+            var observer = fixture.Admit(3);
+            fixture.Form(leader, member);
 
-        var plan = await fixture.Cleanup.CleanupAsync(
-            member, includeOwner: false, CancellationToken.None);
+            var plan = await TestEffectFootprints.Run(member, cap => fixture.Cleanup.CleanupAsync(
+                member, includeOwner: false, cap, CancellationToken.None));
 
-        Assert.Equal(
-            [member.CharacterId],
-            plan.PartyNotifications.ClearAudience.ToArray());
-        var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
-            plan.PartyNotifications.Snapshot);
-        Assert.Equal(
-            [leader.WireUserId],
-            survivors.Members.Select(value => value.WireUserId));
-        Assert.Equal(
-            new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), new PartyDirectoryScope(11, 1, 2)),
-            plan.PartyNotifications.DirectoryChange);
-        Assert.True(fixture.Parties.FindParty(member).IsVirtual);
-        Assert.False(fixture.Parties.FindParty(leader).IsVirtual);
+            Assert.Equal(
+                [member.CharacterId],
+                plan.PartyNotifications.ClearAudience.ToArray());
+            var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
+                plan.PartyNotifications.Snapshot);
+            Assert.Equal(
+                [leader.WireUserId],
+                survivors.Members.Select(value => value.WireUserId));
+            Assert.Equal(
+                new PartyDirectoryChange(new PartyDirectoryScope(11, 1, 2), new PartyDirectoryScope(11, 1, 2)),
+                plan.PartyNotifications.DirectoryChange);
+            Assert.True(fixture.Parties.FindParty(member).IsVirtual);
+            Assert.False(fixture.Parties.FindParty(leader).IsVirtual);
+        });
     }
 
     [Fact]
     public async Task Leader_cleanup_promotes_the_next_member_and_rekeys_every_old_member()
     {
-        var fixture = new Fixture();
-        var leader = fixture.Admit(1);
-        var member = fixture.Admit(2);
-        var observer = fixture.Admit(3);
-        fixture.Form(leader, member);
-        var oldParty = fixture.Parties.FindParty(leader);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var leader = fixture.Admit(1);
+            var member = fixture.Admit(2);
+            var observer = fixture.Admit(3);
+            fixture.Form(leader, member);
+            var oldParty = fixture.Parties.FindParty(leader);
 
-        var plan = await fixture.Cleanup.CleanupAsync(
-            leader, includeOwner: false, CancellationToken.None);
+            var plan = await TestEffectFootprints.Run(leader, cap => fixture.Cleanup.CleanupAsync(
+                leader, includeOwner: false, cap, CancellationToken.None));
 
-        var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
-            plan.PartyNotifications.Snapshot);
-        Assert.Equal(member.WireUserId, survivors.LeaderWireUserId);
-        Assert.Equal(member.CharacterId, Assert.Single(survivors.Members).CharacterId);
-        Assert.Equal(oldParty.Key, survivors.Key);
-        Assert.NotEqual(oldParty.LeadershipVersion, survivors.LeadershipVersion);
-        Assert.Equal(oldParty.Key, plan.PartyNotifications.ClearPartyKey);
-        Assert.Equal(oldParty.LeadershipVersion, plan.PartyNotifications.ClearLeadershipVersion);
-        Assert.Equal(
-            [leader.CharacterId, member.CharacterId],
-            plan.PartyNotifications.ClearAudience.ToArray());
-        Assert.Equal(
-            new PartyDirectoryChange(
-                new PartyDirectoryScope(11, 1, 2),
-                new PartyDirectoryScope(11, 1, 2)),
-            plan.PartyNotifications.DirectoryChange);
-        Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
-        Assert.False(fixture.Parties.FindParty(member).IsVirtual);
+            var survivors = Assert.IsType<Dfo.Server.Data.Parties.PartySnapshot>(
+                plan.PartyNotifications.Snapshot);
+            Assert.Equal(member.WireUserId, survivors.LeaderWireUserId);
+            Assert.Equal(member.CharacterId, Assert.Single(survivors.Members).CharacterId);
+            Assert.Equal(oldParty.Key, survivors.Key);
+            Assert.NotEqual(oldParty.LeadershipVersion, survivors.LeadershipVersion);
+            Assert.Equal(oldParty.Key, plan.PartyNotifications.ClearPartyKey);
+            Assert.Equal(oldParty.LeadershipVersion, plan.PartyNotifications.ClearLeadershipVersion);
+            Assert.Equal(
+                [leader.CharacterId, member.CharacterId],
+                plan.PartyNotifications.ClearAudience.ToArray());
+            Assert.Equal(
+                new PartyDirectoryChange(
+                    new PartyDirectoryScope(11, 1, 2),
+                    new PartyDirectoryScope(11, 1, 2)),
+                plan.PartyNotifications.DirectoryChange);
+            Assert.True(fixture.Parties.FindParty(leader).IsVirtual);
+            Assert.False(fixture.Parties.FindParty(member).IsVirtual);
+        });
     }
 
     [Fact]
     public async Task Late_old_session_cleanup_cannot_remove_a_replacement_party()
     {
-        var fixture = new Fixture();
-        var oldLeader = fixture.Admit(1);
-        var oldMember = fixture.Admit(2);
-        fixture.Form(oldLeader, oldMember);
-        await fixture.Cleanup.CleanupAsync(
-            oldLeader, includeOwner: false, CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var oldLeader = fixture.Admit(1);
+            var oldMember = fixture.Admit(2);
+            fixture.Form(oldLeader, oldMember);
+            await TestEffectFootprints.Run(oldLeader, cap => fixture.Cleanup.CleanupAsync(
+                oldLeader, includeOwner: false, cap, CancellationToken.None));
 
-        var replacement = fixture.Admit(1, generation: 2, connection: "replacement");
-        var replacementMember = fixture.Admit(3);
-        fixture.Form(replacement, replacementMember);
+            var replacement = fixture.Admit(1, connection: "replacement");
+            var replacementMember = fixture.Admit(3);
+            fixture.Form(replacement, replacementMember);
 
-        var stalePlan = await fixture.Cleanup.CleanupAsync(
-            oldLeader, includeOwner: false, CancellationToken.None);
+            var stalePlan = await TestEffectFootprints.Run(oldLeader, cap => fixture.Cleanup.CleanupAsync(
+                oldLeader, includeOwner: false, cap, CancellationToken.None));
 
-        Assert.Empty(stalePlan.PartyNotifications.ClearAudience);
-        Assert.Null(stalePlan.PartyNotifications.Snapshot);
-        Assert.False(fixture.Parties.FindParty(replacement).IsVirtual);
-        Assert.False(fixture.Parties.FindParty(replacementMember).IsVirtual);
+            Assert.Empty(stalePlan.PartyNotifications.ClearAudience);
+            Assert.Null(stalePlan.PartyNotifications.Snapshot);
+            Assert.False(fixture.Parties.FindParty(replacement).IsVirtual);
+            Assert.False(fixture.Parties.FindParty(replacementMember).IsVirtual);
+        });
     }
 
     [Fact]
     public async Task Later_cleanup_failure_preserves_the_already_resolved_party_projection()
     {
-        var fixture = new Fixture(failAfterPartyCleanup: true);
-        var leader = fixture.Admit(1);
-        var member = fixture.Admit(2);
-        fixture.Form(leader, member);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture(failAfterPartyCleanup: true);
+            var leader = fixture.Admit(1);
+            var member = fixture.Admit(2);
+            fixture.Form(leader, member);
 
-        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
-            await fixture.Cleanup.CleanupAsync(
-                member, includeOwner: false, CancellationToken.None));
+            var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
+                await TestEffectFootprints.Run(member, cap => fixture.Cleanup.CleanupAsync(
+                    member, includeOwner: false, cap, CancellationToken.None)));
 
-        Assert.Equal(
-            [member.CharacterId],
-            failure.NotificationPlan.PartyNotifications.ClearAudience.ToArray());
-        Assert.NotNull(failure.NotificationPlan.PartyNotifications.Snapshot);
+            Assert.Equal(
+                [member.CharacterId],
+                failure.NotificationPlan.PartyNotifications.ClearAudience.ToArray());
+            Assert.NotNull(failure.NotificationPlan.PartyNotifications.Snapshot);
+        });
     }
 
     [Fact]
     public async Task Cleanup_notifies_only_town_peers_on_the_same_listener()
     {
-        var fixture = new Fixture();
-        var owner = fixture.Admit(1);
-        var sameListener = fixture.Admit(2);
-        _ = fixture.Admit(3, listenerPort: 10012);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var owner = fixture.Admit(1);
+            var sameListener = fixture.Admit(2);
+            _ = fixture.Admit(3, listenerPort: 10012);
 
-        var plan = await fixture.Cleanup.CleanupAsync(
-            owner, includeOwner: false, CancellationToken.None);
+            var plan = await TestEffectFootprints.Run(owner, cap => fixture.Cleanup.CleanupAsync(
+                owner, includeOwner: false, cap, CancellationToken.None));
 
-        Assert.Equal(
-            [sameListener.CharacterId],
-            plan.PeerAudience.Select(value => value.CharacterId));
+            Assert.Equal(
+                [sameListener.CharacterId],
+                plan.PeerAudience.Select(value => value.CharacterId));
+        });
     }
 
     private sealed class Fixture
     {
-        private readonly SelectedSessionDomainService sessions = new();
+        private readonly SelectedSessionDomainService sessions;
+        private readonly Dfo.Server.Application.Users.OnlineStateRegistry state;
         private readonly SessionPresenceDomainService presence = new();
 
         public Fixture(bool failAfterPartyCleanup = false)
         {
+            sessions = Dfo.Server.Testing.TestSessions.Directory(out state);
             Parties = new PartyServiceTestAdapter(
                 sessions,
                 presence,
@@ -151,19 +169,15 @@ public sealed class SelectedSessionPartyCleanupTests
                 TimeProvider.System);
             Cleanup = new SelectedSessionCleanupService(
                 sessions,
-                new SelectedSessionRuntimeDirectory(),
                 new CharacterContainerDomainService(),
-                new CharacterItemCooldownDomainService(TimeProvider.System),
-                new SpiritPotionDomainService(TimeProvider.System),
-                failAfterPartyCleanup
-                    ? new ThrowingActiveCharacters()
-                    : new PassiveActiveCharacters(),
                 presence,
                 new ExpertStoreDomainService(),
                 new PvpLobbyDomainService(),
                 [],
-                new CharacterPositionDomainService(),
-                new CharacterVitalRuntimeDomainService(),
+                failAfterPartyCleanup
+                    ? new ThrowingRuntime()
+                    : new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+                new StubChannelEntryPolicy(),
                 Parties.Service,
                 new DungeonRunDomainService(),
                 []);
@@ -175,17 +189,15 @@ public sealed class SelectedSessionPartyCleanupTests
 
         public SelectedSessionIdentity Admit(
             int value,
-            long generation = 1,
             string? connection = null,
             int listenerPort = 10011)
         {
-            var session = SelectedSessionIdentity.Create(
+            var session = sessions.InWorld(
+                state,
                 new AccountId(value),
                 new CharacterId(value),
-                new NetworkConnectionId(connection ?? $"party-{value}"),
-                generation,
+                connection ?? $"party-{value}",
                 listenerPort);
-            sessions.Select(session);
             presence.Admit(new SessionPresence(
                 session.CharacterId, listenerPort, 1, 2, true, session,
                 ChannelId: listenerPort - 10_000));
@@ -202,22 +214,28 @@ public sealed class SelectedSessionPartyCleanupTests
         }
     }
 
-    private sealed class PassiveActiveCharacters : IActiveCharacterDomainService
+    /// <summary>A step after party cleanup that fails: ending the online character's record.</summary>
+    private sealed class ThrowingRuntime : IOnlineCharacterRuntimeDomainService
     {
-        public void Publish(SelectedSessionIdentity session)
-        {
-        }
+        private readonly OnlineCharacterRuntimeDomainService inner = new(TimeProvider.System);
 
-        public bool ClearExact(SelectedSessionIdentity session) => false;
-    }
-
-    private sealed class ThrowingActiveCharacters : IActiveCharacterDomainService
-    {
-        public void Publish(SelectedSessionIdentity session)
-        {
-        }
-
-        public bool ClearExact(SelectedSessionIdentity session) =>
+        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
+            inner.Begin(session, position, hpPercent);
+        public bool EndExact(SelectedSessionIdentity session) =>
             throw new InvalidOperationException("fault after party cleanup");
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => inner.PositionOf(session);
+        public CharacterPositionState? PositionOf(CharacterId characterId) => inner.PositionOf(characterId);
+        public CharacterPositionState CrossInto(SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+            inner.CrossInto(session, townId, areaId, x, y);
+        public CharacterPositionState StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
+            inner.StepTo(session, x, y, direction);
+        public byte HpPercentOf(CharacterId characterId) => inner.HpPercentOf(characterId);
+        public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) =>
+            inner.IsCoolingDown(characterId, key);
+        public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) =>
+            inner.StartCooldown(session, key, duration);
+        public void ApplySpiritPotion(SelectedSessionIdentity session, double bonusRate, TimeSpan duration) =>
+            inner.ApplySpiritPotion(session, bonusRate, duration);
+        public double SpiritPotionBonusRateOf(CharacterId characterId) => inner.SpiritPotionBonusRateOf(characterId);
     }
 }

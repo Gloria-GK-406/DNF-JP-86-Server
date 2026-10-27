@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -26,7 +27,6 @@ public interface IMarriageQueryDomainService
     ValueTask<ushort> RemainingInvitationsAsync(Guid ceremony, CharacterId actor, CancellationToken ct);
     ValueTask<IReadOnlyList<uint>> InvitedAsync(Guid ceremony, CancellationToken ct);
     ValueTask<IReadOnlyList<AccountId>> CoupleAccountsAsync(SelectedSessionIdentity actor, CancellationToken ct);
-    ValueTask<IReadOnlyList<AccountId>> WeddingAccountsAsync(Guid ceremony, CancellationToken ct);
     ValueTask<IReadOnlyList<Guid>> ActiveWeddingsAsync(CancellationToken ct);
 }
 
@@ -43,7 +43,7 @@ public interface IMarriageCoupleDomainService
     /// <exception cref="MarriageWeddingUnavailableException">Any step failed; the caller's transaction must roll back.</exception>
     ValueTask<IReadOnlyList<MarriageWeddingAdmission>> OpenWeddingAsync(MarriageCeremony ceremony, CancellationToken ct);
     ValueTask<MarriageLovePointResult> UseLovePointAsync(SelectedSessionIdentity actor, BusinessSlot slot,
-        IReadOnlyList<AccountId> accounts, CancellationToken ct);
+        IReadOnlyList<AccountId> accounts, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 
 public interface IMarriageVenueDomainService

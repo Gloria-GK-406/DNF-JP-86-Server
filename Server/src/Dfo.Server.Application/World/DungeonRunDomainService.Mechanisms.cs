@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
@@ -6,6 +7,7 @@ internal sealed partial class DungeonRunDomainService
 {
     public IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(AdvanceRoomMechanisms));
         lock (this.gate)
         {
             var views = new List<DungeonRoomMechanismView>();

@@ -20,8 +20,9 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId id, ushort quest,
-        ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null)
+        ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null)
     {
+        footprint.DemandEffects(new(account, id, session));
         QuestCompletionPreparation Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, projection);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
         if (definition is null || definition.Grade is QuestGrade.Title or QuestGrade.Crack
@@ -51,7 +52,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (reward.Plan!.GrowType is not null || reward.Plan.Awakening is not null)
             facts = facts with { Skills = await skills.ReadAsync(id, ct).ConfigureAwait(false), Builds = await skills.BuildsAsync(id, ct).ConfigureAwait(false) };
         var rewards = await rules.RewardsAsync(reward.Plan, facts, ct).ConfigureAwait(false);
-        var context = new EffectExecutionContext(account, id, at, session);
+        var context = new EffectExecutionContext(account, id, at, footprint, session);
         var inventory = await preview.PreviewWithHoldingsAsync(context, rewards, ct).ConfigureAwait(false);
         var goldEntry = rewards.OfType<SetQuestRewardGoldEffect>().Any(x => x.Value > x.Expected) ? 1 : 0;
         if (inventory.Rejection != InventoryEffectRejection.None

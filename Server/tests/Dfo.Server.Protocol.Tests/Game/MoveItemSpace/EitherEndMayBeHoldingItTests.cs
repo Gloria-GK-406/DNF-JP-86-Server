@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 
@@ -616,21 +617,24 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     [Dfo.Server.Testing.PvfFact]
     public async Task The_acknowledgement_for_a_reversed_move_names_the_two_cells_the_request_did()
     {
-        var (handler, sender, _, side) = this.BuildHandler();
-        side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, sender, _, side) = this.BuildHandler();
+            side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
-        await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
 
-        var acknowledgement = (MoveItemSpaceResponse)Assert.Single(sender.Sent);
-        Assert.Null(acknowledgement.ErrorCode);
-        Assert.Equal(InventoryContainerType.Avatar, acknowledgement.SourceSlot.Space);
-        Assert.Equal(AvatarSlot, acknowledgement.SourceSlot.Index);
-        Assert.Equal(InventoryContainerType.Equipment, acknowledgement.DestinationSlot.Space);
-        Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlot.Index);
-        Assert.Equal(1, acknowledgement.MoveValue);
+            var acknowledgement = (MoveItemSpaceResponse)Assert.Single(sender.Sent);
+            Assert.Null(acknowledgement.ErrorCode);
+            Assert.Equal(InventoryContainerType.Avatar, acknowledgement.SourceSlot.Space);
+            Assert.Equal(AvatarSlot, acknowledgement.SourceSlot.Index);
+            Assert.Equal(InventoryContainerType.Equipment, acknowledgement.DestinationSlot.Space);
+            Assert.Equal(WornCostumeSlot, acknowledgement.DestinationSlot.Index);
+            Assert.Equal(1, acknowledgement.MoveValue);
 
-        Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
-        Assert.Null(await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot));
+            Assert.Equal(Costume, (await side.ReadAsync(InventoryContainerType.Avatar, AvatarSlot))!.ItemId);
+            Assert.Null(await side.ReadAsync(InventoryContainerType.Equipment, WornCostumeSlot));
+        });
     }
 
     /// <summary>The line a move leaves says which lists it was between.</summary>
@@ -642,17 +646,20 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     [Dfo.Server.Testing.PvfFact]
     public async Task The_line_a_move_leaves_names_the_list_at_both_ends()
     {
-        var (handler, _, logger, side) = this.BuildHandler();
-        side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (handler, _, logger, side) = this.BuildHandler();
+            side.Seed(InventoryContainerType.Equipment, WornCostumeSlot, Costume);
 
-        await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
+            await handler.HandleAsync(Dispatch, TakeOffRequest(), CancellationToken.None);
 
-        Assert.Equal(
-            $"Move item space either-end character={Character}: item {Costume} "
-                + $"from list {(byte)InventoryContainerType.Avatar} slot {AvatarSlot} "
-                + $"to list {(byte)InventoryContainerType.Equipment} slot {WornCostumeSlot} "
-                + "count=1",
-            Assert.Single(logger.Entries).Message);
+            Assert.Equal(
+                $"Move item space either-end character={Character}: item {Costume} "
+                    + $"from list {(byte)InventoryContainerType.Avatar} slot {AvatarSlot} "
+                    + $"to list {(byte)InventoryContainerType.Equipment} slot {WornCostumeSlot} "
+                    + "count=1",
+                Assert.Single(logger.Entries).Message);
+        });
     }
 
     /// <summary>The drag that started all of this: a costume off the character, into the bag.</summary>
@@ -721,13 +728,13 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             [InventoryContainerType.Main, InventoryContainerType.Avatar,
              InventoryContainerType.Equipment, InventoryContainerType.Pet])
         {
-            containers.Register(character, new SlotBook(type, character, fixture));
+            TestGameplay.Run(() => containers.Register(character, new SlotBook(type, character, fixture)));
         }
 
         var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
-            new MoveItemSpaceCommandHandler(
+            new InventoryMoveDomainService(
                 new BusinessInventorySlotDomainService(containers, mappings),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
@@ -742,10 +749,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         var sender = new RecordingSender();
         var logger = new RecordingLogger();
         return (
-            new MoveItemSpaceHandler(
+            MoveItemProtocolTestDriver.Create(
                 new OneSession(), new NoPublishedRuntime(),
                 new InventorySlotMappingRuleService(),
-                new DirectMoveBus(side.Handler, side.Fixture), sender, logger, null!, null!, TimeProvider.System),
+                new MoveItemProtocolTestDriver.Execution(side.Handler, side.Fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger,
             side);
@@ -753,7 +760,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
     private sealed record Side(
         CharacterContainerDomainService Containers,
-        MoveItemSpaceCommandHandler Handler,
+        InventoryMoveDomainService Handler,
         CharacterId Character, MoveItemFixture Fixture)
     {
         public void Seed(InventoryContainerType type, short slotIndex, int itemId) =>
@@ -766,13 +773,8 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             short destinationSlot,
             int sourceInstanceValue = 0,
             int destinationInstanceValue = 0) =>
-            this.Fixture.RunAsync(() => this.Handler.HandleAsync(
-                new CommandExecutionContext(
-                    Guid.Empty,
-                    typeof(MoveItemSpaceCommand),
-                    typeof(Side),
-                    CommandExecutionKind.Transactional),
-                new MoveItemSpaceCommand(
+            this.Fixture.RunAsync(() => this.Handler.MoveAsync(
+                new InventoryMoveRequest(
                     this.Character,
                     ToBusinessSlot(source, sourceSlot),
                     1,
@@ -799,24 +801,57 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     }
 
     /// <summary>A bus that runs the move command on the handler that owns it.</summary>
-    private sealed class DirectMoveBus(
-        ICommandHandler<MoveItemSpaceCommand, ItemMoveResult> move, MoveItemFixture fixture) : ICommandBus
-    {
-        public async ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command, CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            var context = new CommandExecutionContext(
-                Guid.Empty, command.GetType(), typeof(DirectMoveBus),
-                CommandExecutionKind.Transactional);
-            var result = await fixture.RunAsync(() => move.HandleAsync(
-                context, (MoveItemSpaceCommand)(object)command, cancellationToken));
-            return (TResult)(object)result;
-        }
-    }
+
 
     private sealed class OneSession : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private static readonly SelectedSessionIdentity Session = SelectedSessionIdentity.Create(
             new AccountId(6), new CharacterId(Character), Connection, 1, 10011);
 
@@ -833,34 +868,36 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) => Session;
     }
 
+    /// <summary>
+    /// The direct messages of the explicit deliveries a real registration adapter registered, read from its outbox;
+    /// every call goes to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails
+    /// where it is registered, with the exception the old double threw.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Sent { get; } = [];
+        private readonly RecordedOutbound outbound = new();
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The move acknowledgement is sent explicitly.");
-
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("The move acknowledgement is a CMD.");
-
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
+        public RecordingSender()
         {
-            this.Sent.AddRange(delivery.RequiredDirectMessages);
-            return ValueTask.CompletedTask;
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("The move acknowledgement is sent explicitly."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                () => new InvalidOperationException("The move acknowledgement is a CMD."));
         }
+
+        public List<IGameServerMessage> Sent =>
+            [.. outbound.Explicits.SelectMany(call => call.Delivery.RequiredDirectMessages).Cast<IGameServerMessage>()];
+
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     /// <summary>The log, kept as the sentences it would have written.</summary>
-    private sealed class RecordingLogger : ILogger<MoveItemSpaceHandler>
+    private sealed class RecordingLogger : ILogger<GameMoveItemSpaceCommandHandler>
     {
         public List<(LogLevel Level, string Message)> Entries { get; } = [];
 

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
@@ -22,9 +23,9 @@ public sealed class ClientSpecProfileHandlerTests
             State: OnlineUserState.Authenticated,
             Generation: 1));
         var logger = new RecordingLogger();
-        var handler = new ClientSpecProfileHandler(onlineUsers, logger);
+        var online = onlineUsers;
 
-        await handler.HandleAsync(context, CreateReport(), CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, CreateReport(), online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Information, entry.Level);
@@ -45,10 +46,10 @@ public sealed class ClientSpecProfileHandlerTests
     {
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-7"), NetworkEndpointKind.Game, 10011));
-        var handler = new ClientSpecProfileHandler(
-            new StubOnlineUserQueryDomainService(snapshot: null), new RecordingLogger());
+        var online = new StubOnlineUserQueryDomainService(snapshot: null);
+        var logger = new RecordingLogger();
 
-        await handler.HandleAsync(context, CreateReport(), CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, CreateReport(), online, logger);
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public sealed class ClientSpecProfileHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-9"), NetworkEndpointKind.Game, 10011));
         var logger = new RecordingLogger();
-        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryDomainService(snapshot: null), logger);
+        var online = new StubOnlineUserQueryDomainService(snapshot: null);
         var rows = CreateTable();
         rows[2] = new ClientSpecProfileRow([0, 7, 0, 0], rows[2].Pairs);
         rows[4] = new ClientSpecProfileRow(rows[4].Words, [.. rows[4].Pairs.Take(5), new ClientSpecProfilePair(0, 2.5f)]);
@@ -67,7 +68,7 @@ public sealed class ClientSpecProfileHandlerTests
             Entries = [new ClientSpecProfileEntry(3, 1200), new ClientSpecProfileEntry(1, 40)],
         };
 
-        await handler.HandleAsync(context, report, CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, report, online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("6rows 2populated", entry.Message);
@@ -82,10 +83,10 @@ public sealed class ClientSpecProfileHandlerTests
         var context = new NetworkDispatchContext(
             new NetworkConnectionContext(new NetworkConnectionId("game-11"), NetworkEndpointKind.Game, 10011));
         var logger = new RecordingLogger();
-        var handler = new ClientSpecProfileHandler(new StubOnlineUserQueryDomainService(snapshot: null), logger);
+        var online = new StubOnlineUserQueryDomainService(snapshot: null);
         var report = CreateReport() with { StartLoadingSeconds = 23, ReturnVillageSeconds = 0 };
 
-        await handler.HandleAsync(context, report, CancellationToken.None);
+        await LightweightMessageDispatch.Send(context, report, online, logger);
 
         var entry = Assert.Single(logger.Entries);
         Assert.Contains("startLoading=23s returnVillage=0s", entry.Message);

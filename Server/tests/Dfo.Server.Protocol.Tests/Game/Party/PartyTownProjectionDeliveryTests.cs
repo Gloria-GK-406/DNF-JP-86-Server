@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
@@ -9,6 +10,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
@@ -17,256 +19,197 @@ public sealed class PartyTownProjectionDeliveryTests
     [Fact]
     public async Task A_leader_area_change_refreshes_members_and_clears_the_old_directory_observers()
     {
-        var previousScope = new PartyDirectoryScope(11, 1, 1);
-        var currentScope = new PartyDirectoryScope(11, 1, 2);
-        var snapshot = new PartySnapshot(
-            0x1234,
-            7,
-            4,
-            Leader.WireUserId,
-            new PartySettings([0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]),
-            PartyTitle.Empty,
-            ImmutableArray.Create(
-                new PartyMemberSnapshot(
-                    new PartyCharacterSnapshot(
-                        Leader.AccountId, Leader.CharacterId, Leader.WireUserId, currentScope),
-                    1, null, 100),
-                new PartyMemberSnapshot(Character(Member), 0, null, 100)));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            new StubParties((Leader, snapshot), (Member, snapshot)),
-            MovedPresence(),
-            new FixedSelectedSessions(),
-            bus,
-            new PartyProjectionStreamRegistry());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var previousScope = new PartyDirectoryScope(11, 1, 1);
+            var currentScope = new PartyDirectoryScope(11, 1, 2);
+            var snapshot = new PartySnapshot(
+                0x1234,
+                7,
+                4,
+                Leader.WireUserId,
+                new PartySettings([0, 0, 4, 0, 0, 0, 0, 5, 0, (byte)PartyCategory.Normal, 0, 0]),
+                PartyTitle.Empty,
+                ImmutableArray.Create(
+                    new PartyMemberSnapshot(
+                        new PartyCharacterSnapshot(
+                            Leader.AccountId, Leader.CharacterId, Leader.WireUserId, currentScope),
+                        1, null, 100),
+                    new PartyMemberSnapshot(Character(Member), 0, null, 100)));
+            var bus = new RecordingNotificationBus();
+            var delivery = new PartyTownProjectionDelivery(
+                new StubParties((Leader, snapshot), (Member, snapshot)),
+                MovedPresence(),
+                new FixedSelectedSessions(),
+                new global::Dfo.Server.Testing.TestCommandProjections(bus),
+                new PartyProjectionStreamRegistry());
 
-        await delivery.RefreshMovedPartyAsync(
-            Leader, previousScope, CancellationToken.None);
+            await delivery.RefreshMovedPartyAsync(
+                Leader, previousScope, CancellationToken.None);
 
-        Assert.Collection(
-            bus.Publications,
-            publication =>
-            {
-                Assert.Equal(
-                    [Leader, Member],
-                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-                Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
-            },
-            publication =>
-            {
-                Assert.Equal(
-                    [Observer],
-                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-                Assert.True(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
-            },
-            publication =>
-            {
-                Assert.Equal(
-                    [NoParty],
-                    Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-                Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
-            });
+            Assert.Collection(
+                bus.Publications,
+                publication =>
+                {
+                    Assert.Equal(
+                        [Leader, Member],
+                        Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                    Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+                },
+                publication =>
+                {
+                    Assert.Equal(
+                        [Observer],
+                        Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                    Assert.True(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+                },
+                publication =>
+                {
+                    Assert.Equal(
+                        [NoParty],
+                        Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+                    Assert.False(Assert.IsType<PartyRosterChanged>(publication.Notification).ClearsParty);
+                });
+        });
     }
 
     [Fact]
     public async Task RepresentedMembersOfOnePartyProduceOneRefreshForExactObservers()
     {
-        var snapshot = Snapshot(revision: 3);
-        var parties = new StubParties(
-            (Leader, snapshot),
-            (Member, snapshot));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            parties,
-            Presence(),
-            new FixedSelectedSessions(),
-            bus,
-            new PartyProjectionStreamRegistry());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var snapshot = Snapshot(revision: 3);
+            var parties = new StubParties(
+                (Leader, snapshot),
+                (Member, snapshot));
+            var bus = new RecordingNotificationBus();
+            var delivery = new PartyTownProjectionDelivery(
+                parties,
+                Presence(),
+                new FixedSelectedSessions(),
+                new global::Dfo.Server.Testing.TestCommandProjections(bus),
+                new PartyProjectionStreamRegistry());
 
-        await delivery.RefreshObservedPartiesAsync(
-            [Observer, Leader, Observer],
-            [Member, NoParty, Leader, Member],
-            CancellationToken.None);
+            await delivery.RefreshObservedPartiesAsync(
+                [Observer, Leader, Observer],
+                CancellationToken.None);
 
-        var publication = Assert.Single(bus.Publications);
-        Assert.Equal(
-            new[] { Observer },
-            Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
-        var roster = Assert.IsType<PartyRosterChanged>(publication.Notification);
-        Assert.Same(snapshot, roster.Snapshot);
-        Assert.False(roster.ClearsParty);
+            var publication = Assert.Single(bus.Publications);
+            Assert.Equal(
+                new[] { Observer },
+                Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
+            var roster = Assert.IsType<PartyRosterChanged>(publication.Notification);
+            Assert.Same(snapshot, roster.Snapshot);
+            Assert.False(roster.ClearsParty);
+        });
     }
 
     [Fact]
     public async Task ACommittedRevisionStillRefreshesANewObserverButAnOlderSnapshotDoesNot()
     {
-        var streams = new PartyProjectionStreamRegistry();
-        streams.GetOrAdd(7).LatestRevision = 3;
-        var currentBus = new RecordingNotificationBus();
-        var current = new PartyTownProjectionDelivery(
-            new StubParties((Leader, Snapshot(revision: 3))),
-            Presence(),
-            new FixedSelectedSessions(),
-            currentBus,
-            streams);
-
-        await current.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None);
-
-        Assert.Single(currentBus.Publications);
-
-        streams.GetOrAdd(7).LatestRevision = 4;
-        var staleBus = new RecordingNotificationBus();
-        var stale = new PartyTownProjectionDelivery(
-            new StubParties((Leader, Snapshot(revision: 3))),
-            Presence(),
-            new FixedSelectedSessions(),
-            staleBus,
-            streams);
-
-        await stale.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None);
-
-        Assert.Empty(staleBus.Publications);
-    }
-
-    [Fact]
-    public async Task ReadRepairWaitsForTheMutationGateAndRequeriesCurrentPartyState()
-    {
-        var streams = new PartyProjectionStreamRegistry();
-        var stream = streams.GetOrAdd(7);
-        await stream.Gate.WaitAsync(CancellationToken.None);
-        var parties = new MutableParties(Leader, Snapshot(revision: 3));
-        var bus = new RecordingNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            parties, Presence(), new FixedSelectedSessions(), bus, streams);
-
-        try
+        await TestGameplay.RunAsync(async () =>
         {
-            var pending = delivery.RefreshObservedPartiesAsync(
-                [Observer], [Leader], CancellationToken.None).AsTask();
-            Assert.Equal(1, parties.ReadCount);
-            Assert.False(pending.IsCompleted);
+            var streams = new PartyProjectionStreamRegistry();
+            streams.GetOrAdd(7).LatestRevision = 3;
+            var currentBus = new RecordingNotificationBus();
+            var current = new PartyTownProjectionDelivery(
+                new StubParties((Leader, Snapshot(revision: 3))),
+                Presence(),
+                new FixedSelectedSessions(),
+                new global::Dfo.Server.Testing.TestCommandProjections(currentBus),
+                streams);
 
-            parties.Current = Snapshot(revision: 4);
-            stream.Gate.Release();
-            await pending.WaitAsync(TimeSpan.FromSeconds(2));
-        }
-        finally
-        {
-            if (stream.Gate.CurrentCount == 0)
-                stream.Gate.Release();
-        }
+            await current.RefreshObservedPartiesAsync(
+                [Observer], CancellationToken.None);
 
-        var publication = Assert.Single(bus.Publications);
-        Assert.Equal(
-            4,
-            Assert.IsType<PartyRosterChanged>(publication.Notification).Snapshot!.Revision);
-        Assert.Equal(2, parties.ReadCount);
+            Assert.Single(currentBus.Publications);
+
+            streams.GetOrAdd(7).LatestRevision = 4;
+            var staleBus = new RecordingNotificationBus();
+            var stale = new PartyTownProjectionDelivery(
+                new StubParties((Leader, Snapshot(revision: 3))),
+                Presence(),
+                new FixedSelectedSessions(),
+                new global::Dfo.Server.Testing.TestCommandProjections(staleBus),
+                streams);
+
+            await stale.RefreshObservedPartiesAsync(
+                [Observer], CancellationToken.None);
+
+            Assert.Empty(staleBus.Publications);
+        });
     }
 
     [Fact]
     public async Task ReadRepairRetriesATransientRosterFailureFromOneTopLevelCall()
     {
-        var snapshot = Snapshot(revision: 3);
-        var bus = new FailFirstRosterNotificationBus();
-        var delivery = new PartyTownProjectionDelivery(
-            new StubParties((Leader, snapshot)),
-            Presence(),
-            new FixedSelectedSessions(),
-            bus,
-            new PartyProjectionStreamRegistry());
+        await TestGameplay.RunAsync(async () =>
+        {
+            var snapshot = Snapshot(revision: 3);
+            var bus = new FailFirstRosterNotificationBus();
+            var delivery = new PartyTownProjectionDelivery(
+                new StubParties((Leader, snapshot)),
+                Presence(),
+                new FixedSelectedSessions(),
+                new global::Dfo.Server.Testing.TestCommandProjections(bus),
+                new PartyProjectionStreamRegistry());
 
-        await delivery.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None);
+            await delivery.RefreshObservedPartiesAsync(
+                [Observer], CancellationToken.None);
 
-        Assert.Equal(2, bus.Attempts);
-        Assert.Equal(1, bus.Successes);
-    }
-
-    [Fact]
-    public async Task NewGenerationMutationCannotPassABlockedOldGenerationReadRepair()
-    {
-        var oldSnapshot = Snapshot(revision: 3, generation: 7);
-        var newSnapshot = Snapshot(revision: 1, generation: 8);
-        var streams = new PartyProjectionStreamRegistry();
-        var parties = new MutableParties(Leader, oldSnapshot);
-        var bus = new BlockingFirstRosterNotificationBus();
-        var fixedPresence = Presence();
-        var readRepair = new PartyTownProjectionDelivery(
-            parties, fixedPresence, new FixedSelectedSessions(), bus, streams);
-        var mutation = new PartyNotificationDelivery(
-            bus, streams, new FixedSelectedSessions(), fixedPresence);
-
-        var oldDelivery = readRepair.RefreshObservedPartiesAsync(
-            [Observer], [Leader], CancellationToken.None).AsTask();
-        await bus.FirstRosterEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        parties.Current = newSnapshot;
-
-        var newDelivery = mutation.DeliverAsync(
-            new PartyNotificationPlan(
-                [],
-                newSnapshot,
-                DirectoryChange: new PartyDirectoryChange(
-                    new PartyDirectoryScope(11, 1, 1),
-                    new PartyDirectoryScope(11, 1, 1))),
-            CancellationToken.None).AsTask();
-        await Task.Yield();
-
-        Assert.False(newDelivery.IsCompleted);
-        bus.ReleaseFirstRoster.TrySetResult();
-        await Task.WhenAll(oldDelivery, newDelivery).WaitAsync(TimeSpan.FromSeconds(2));
-
-        Assert.Equal(
-            [7L, 8L, 8L],
-            bus.Rosters.Select(value => value.Snapshot!.Generation));
+            Assert.Equal(2, bus.Attempts);
+            Assert.Equal(1, bus.Successes);
+        });
     }
 
     [Fact]
     public async Task TownReadRepairCannotSupersedePendingLeaderRekeyClearForSurvivor()
     {
-        var oldSnapshot = Snapshot(revision: 3);
-        var newSnapshot = Snapshot(revision: 4) with
+        await TestGameplay.RunAsync(async () =>
         {
-            PartyId = 0x5678,
-            LeaderWireUserId = Member.WireUserId,
-            Members = ImmutableArray.Create(
-                new PartyMemberSnapshot(Character(Member), 0, null, 100)),
-        };
-        var streams = new PartyProjectionStreamRegistry();
-        var bus = new RecordingNotificationBus();
-        var sessions = new FixedSelectedSessions();
-        var presence = Presence();
-        var mutation = new PartyNotificationDelivery(bus, streams, sessions, presence);
-        await mutation.DeliverAsync(
-            new PartyNotificationPlan([], oldSnapshot), CancellationToken.None);
-        bus.Publications.Clear();
+            var oldSnapshot = Snapshot(revision: 3);
+            var newSnapshot = Snapshot(revision: 4) with
+            {
+                PartyId = 0x5678,
+                LeaderWireUserId = Member.WireUserId,
+                Members = ImmutableArray.Create(
+                    new PartyMemberSnapshot(Character(Member), 0, null, 100)),
+            };
+            var streams = new PartyProjectionStreamRegistry();
+            var bus = new RecordingNotificationBus();
+            var sessions = new FixedSelectedSessions();
+            var presence = Presence();
+            var mutation = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(bus, streams, sessions, presence);
+            await mutation.DeliverAsync(
+                new PartyNotificationPlan([], oldSnapshot), CancellationToken.None);
+            bus.Publications.Clear();
 
-        var town = new PartyTownProjectionDelivery(
-            new MutableParties(Member, newSnapshot), presence, sessions, bus, streams);
-        await town.RefreshMovedPartyAsync(Member, Character(Member).DirectoryScope,
-            CancellationToken.None);
-        await mutation.DeliverAsync(
-            new PartyNotificationPlan(
-                [Leader.CharacterId, Member.CharacterId], newSnapshot,
-                ClearPartyId: oldSnapshot.PartyId,
-                ClearPartyGeneration: oldSnapshot.Generation,
-                ClearPartyRevision: newSnapshot.Revision),
-            CancellationToken.None);
+            var town = new PartyTownProjectionDelivery(
+                new MutableParties(Member, newSnapshot), presence, sessions, new TestCommandProjections(bus), streams);
+            await town.RefreshMovedPartyAsync(Member, Character(Member).DirectoryScope,
+                CancellationToken.None);
+            await mutation.DeliverAsync(
+                new PartyNotificationPlan(
+                    [Leader.CharacterId, Member.CharacterId], newSnapshot,
+                    ClearPartyId: oldSnapshot.PartyId,
+                    ClearPartyGeneration: oldSnapshot.Generation,
+                    ClearPartyRevision: newSnapshot.Revision),
+                CancellationToken.None);
 
-        var survivorRosters = bus.Publications
-            .Where(value => value.Notification is PartyRosterChanged
-                && Assert.IsType<NotificationAudience.TheseSessions>(value.Audience)
-                    .Sessions.Contains(Member))
-            .Select(value => Assert.IsType<PartyRosterChanged>(value.Notification))
-            .ToArray();
-        Assert.Contains(survivorRosters, value => value.ClearsParty
-            && value.ClearPartyId == oldSnapshot.PartyId);
-        Assert.Contains(survivorRosters, value => !value.ClearsParty
-            && value.Snapshot?.PartyId == newSnapshot.PartyId);
-        Assert.True(Array.FindIndex(survivorRosters, value => value.ClearsParty)
-            < Array.FindIndex(survivorRosters, value => !value.ClearsParty
-                && value.Snapshot?.PartyId == newSnapshot.PartyId));
+            var survivorRosters = bus.Publications
+                .Where(value => value.Notification is PartyRosterChanged
+                    && Assert.IsType<NotificationAudience.TheseSessions>(value.Audience)
+                        .Sessions.Contains(Member))
+                .Select(value => Assert.IsType<PartyRosterChanged>(value.Notification))
+                .ToArray();
+            Assert.Contains(survivorRosters, value => value.ClearsParty
+                && value.ClearPartyId == oldSnapshot.PartyId);
+            Assert.Contains(survivorRosters, value => !value.ClearsParty
+                && value.Snapshot?.PartyId == newSnapshot.PartyId);
+            Assert.True(Array.FindIndex(survivorRosters, value => value.ClearsParty)
+                < Array.FindIndex(survivorRosters, value => !value.ClearsParty
+                    && value.Snapshot?.PartyId == newSnapshot.PartyId));
+        });
     }
 
     private static PartySnapshot Snapshot(long revision, long generation = 7) => new(
@@ -340,42 +283,11 @@ public sealed class PartyTownProjectionDeliveryTests
             Attempts++;
             var outcome = Attempts == 1
                 ? NotificationOutcome.Failed
-                : NotificationOutcome.Delivered;
-            if (outcome == NotificationOutcome.Delivered)
+                : NotificationOutcome.Registered;
+            if (outcome == NotificationOutcome.Registered)
                 Successes++;
             return ValueTask.FromResult(new NotificationDelivery(
                 [new NotificationAttempt(Observer.CharacterId, outcome)]));
-        }
-    }
-
-    private sealed class BlockingFirstRosterNotificationBus : Dfo.Server.Testing.ProjectionEventService
-    {
-        private int rosterCount;
-
-        public TaskCompletionSource FirstRosterEntered { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public TaskCompletionSource ReleaseFirstRoster { get; } = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public List<PartyRosterChanged> Rosters { get; } = [];
-
-        public override async ValueTask<NotificationDelivery> ProjectAsync<TNotification>(
-            NotificationAudience audience,
-            TNotification notification,
-            CancellationToken cancellationToken)
-        {
-            if (notification is PartyRosterChanged roster)
-            {
-                Rosters.Add(roster);
-                if (Interlocked.Increment(ref rosterCount) == 1)
-                {
-                    FirstRosterEntered.TrySetResult();
-                    await ReleaseFirstRoster.Task.WaitAsync(cancellationToken);
-                }
-            }
-
-            return new NotificationDelivery([]);
         }
     }
 
@@ -538,6 +450,53 @@ public sealed class PartyTownProjectionDeliveryTests
 
     private sealed class FixedSelectedSessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         private readonly SelectedSessionIdentity[] values = [Leader, Member, Observer, NoParty];
 
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;

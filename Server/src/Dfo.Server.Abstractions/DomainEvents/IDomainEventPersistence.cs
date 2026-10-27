@@ -26,6 +26,12 @@ public interface IDomainEventPersistence
         CancellationToken cancellationToken);
     ValueTask CompleteAsync(Guid eventId, string subscriberId, DateTimeOffset now, string reason,
         CancellationToken cancellationToken);
+    /// <summary>Settles a completed failed job only if no newer attempt or completion has superseded it.</summary>
+    /// <summary>Uncertainty quarantines a still-pending row even when a newer retry record already exists.</summary>
+    ValueTask<bool> QuarantineAsync(Guid eventId, string subscriberId, int expectedAttemptCount, string error,
+        CancellationToken cancellationToken);
+    ValueTask<bool> TryFailAsync(Guid eventId, string subscriberId, int expectedAttemptCount, DateTimeOffset nextAttemptAt,
+        string error, bool terminal, CancellationToken cancellationToken);
     ValueTask FailAsync(Guid eventId, string subscriberId, DateTimeOffset nextAttemptAt,
         string error, bool terminal, CancellationToken cancellationToken);
 }

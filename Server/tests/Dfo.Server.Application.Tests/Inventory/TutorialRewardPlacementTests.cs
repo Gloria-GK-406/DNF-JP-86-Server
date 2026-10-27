@@ -6,6 +6,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -29,33 +30,38 @@ public sealed class TutorialRewardPlacementTests
 
     private static readonly CommandExecutionContext Context = new(
         Guid.Empty,
-        typeof(GrantTutorialRewardCommand),
-        typeof(GrantTutorialRewardCommandHandler),
-        CommandExecutionKind.Transactional);
+        typeof(TutorialRewardTestInput),
+        typeof(TutorialRewardTestDriver));
 
     [Fact]
     public async Task A_grant_joins_a_pile_the_character_already_has()
     {
-        var inventory = new RewardInventory { [65] = (Potion, 3) };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new RewardInventory { [65] = (Potion, 3) };
 
-        var result = await Grant(inventory, (Potion, 2));
+            var result = await Grant(inventory, (Potion, 2));
 
-        var placed = Assert.Single(result.Placed);
-        Assert.Equal(new PlacedRewardItem(65, Potion, 2), placed);
-        Assert.Equal([(65, Potion, 5)], inventory.Rows());
+            var placed = Assert.Single(result.Placed);
+            Assert.Equal(new PlacedRewardItem(65, Potion, 2), placed);
+            Assert.Equal([(65, Potion, 5)], inventory.Rows());
+        });
     }
 
     [Fact]
     public async Task A_grant_with_no_pile_opens_the_first_quick_slot()
     {
-        var inventory = new RewardInventory();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new RewardInventory();
 
-        var result = await Grant(inventory, (Potion, 2));
+            var result = await Grant(inventory, (Potion, 2));
 
-        // The bar before the band, which is where the tutorial's own potion has to arrive: the
-        // step that follows tells the player to press its key. See BagPlacementVerbTests.
-        Assert.Equal(new PlacedRewardItem(3, Potion, 2), Assert.Single(result.Placed));
-        Assert.Equal([(3, Potion, 2)], inventory.Rows());
+            // The bar before the band, which is where the tutorial's own potion has to arrive: the
+            // step that follows tells the player to press its key. See BagPlacementVerbTests.
+            Assert.Equal(new PlacedRewardItem(3, Potion, 2), Assert.Single(result.Placed));
+            Assert.Equal([(3, Potion, 2)], inventory.Rows());
+        });
     }
 
     /// <remarks>
@@ -66,12 +72,15 @@ public sealed class TutorialRewardPlacementTests
     [Fact]
     public async Task A_grant_larger_than_the_pile_can_take_places_only_what_fits()
     {
-        var inventory = new RewardInventory { [65] = (Potion, 8) };
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new RewardInventory { [65] = (Potion, 8) };
 
-        var result = await Grant(inventory, (Potion, 5));
+            var result = await Grant(inventory, (Potion, 5));
 
-        Assert.Equal(new PlacedRewardItem(65, Potion, 2), Assert.Single(result.Placed));
-        Assert.Equal([(65, Potion, 10)], inventory.Rows());
+            Assert.Equal(new PlacedRewardItem(65, Potion, 2), Assert.Single(result.Placed));
+            Assert.Equal([(65, Potion, 10)], inventory.Rows());
+        });
     }
 
     /// <remarks>
@@ -81,29 +90,35 @@ public sealed class TutorialRewardPlacementTests
     [Fact]
     public async Task An_item_whose_band_is_full_is_left_out_and_the_rest_of_the_step_proceeds()
     {
-        // Both of the potion's homes are taken: its own band by the scroll, and the quick bar by
-        // six of something else. Seeding only the band would leave the bar free, and the potion
-        // this is meant to leave out would quietly land there instead.
-        var inventory = new RewardInventory { [65] = (Scroll, 1) };
-        for (var slot = 3; slot <= 8; slot++)
-            inventory[slot] = (Unknown, 1);
+        await TestGameplay.RunAsync(async () =>
+        {
+            // Both of the potion's homes are taken: its own band by the scroll, and the quick bar by
+            // six of something else. Seeding only the band would leave the bar free, and the potion
+            // this is meant to leave out would quietly land there instead.
+            var inventory = new RewardInventory { [65] = (Scroll, 1) };
+            for (var slot = 3; slot <= 8; slot++)
+                inventory[slot] = (Unknown, 1);
 
-        var result = await Grant(inventory, (Potion, 1), (Scroll, 1));
+            var result = await Grant(inventory, (Potion, 1), (Scroll, 1));
 
-        Assert.Equal(new PlacedRewardItem(65, Scroll, 1), Assert.Single(result.Placed));
-        Assert.Equal(
-            [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
-             (8, Unknown, 1), (65, Scroll, 2)],
-            inventory.Rows());
+            Assert.Equal(new PlacedRewardItem(65, Scroll, 1), Assert.Single(result.Placed));
+            Assert.Equal(
+                [(3, Unknown, 1), (4, Unknown, 1), (5, Unknown, 1), (6, Unknown, 1), (7, Unknown, 1),
+                 (8, Unknown, 1), (65, Scroll, 2)],
+                inventory.Rows());
+        });
     }
 
     [Fact]
     public async Task An_unknown_reward_refuses_the_entire_tutorial_step()
     {
-        var inventory = new RewardInventory();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new RewardInventory();
 
-        await Assert.ThrowsAsync<InvalidDataException>(() => Grant(inventory, (Unknown, 1), (Scroll, 1)));
-        Assert.Empty(inventory.Rows());
+            await Assert.ThrowsAsync<InvalidDataException>(() => Grant(inventory, (Unknown, 1), (Scroll, 1)));
+            Assert.Empty(inventory.Rows());
+        });
     }
 
     /// <remarks>
@@ -114,26 +129,29 @@ public sealed class TutorialRewardPlacementTests
     [Fact]
     public async Task The_second_of_two_declarations_sees_what_the_first_wrote()
     {
-        var inventory = new RewardInventory();
+        await TestGameplay.RunAsync(async () =>
+        {
+            var inventory = new RewardInventory();
 
-        var result = await Grant(inventory, (Potion, 2), (Potion, 3));
+            var result = await Grant(inventory, (Potion, 2), (Potion, 3));
 
-        Assert.Equal(
-            [new PlacedRewardItem(3, Potion, 2), new PlacedRewardItem(3, Potion, 3)],
-            result.Placed);
-        Assert.Equal([(3, Potion, 5)], inventory.Rows());
+            Assert.Equal(
+                [new PlacedRewardItem(3, Potion, 2), new PlacedRewardItem(3, Potion, 3)],
+                result.Placed);
+            Assert.Equal([(3, Potion, 5)], inventory.Rows());
+        });
     }
 
     [Fact]
     public async Task A_character_with_no_bound_container_cannot_consume_the_reward()
     {
-        var handler = new GrantTutorialRewardCommandHandler(
+        var handler = new TutorialRewardTestDriver(
             new CharacterContainerDomainService(),
             new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()), null!);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(
             Context,
-            new GrantTutorialRewardCommand(
+            new TutorialRewardTestInput(
                 new CharacterId(60), [new DeclaredRewardItem(Potion, 1)], new AccountId(6)),
             CancellationToken.None));
     }
@@ -141,12 +159,12 @@ public sealed class TutorialRewardPlacementTests
     private static async Task<TutorialRewardResult> Grant(
         RewardInventory inventory, params (int ItemId, int Count)[] declared)
     {
-        var handler = new GrantTutorialRewardCommandHandler(
+        var handler = new TutorialRewardTestDriver(
             inventory.Containers(new RewardPlacements()),
             new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(inventory.Grants(new RewardPlacements()), inventory.Containers(new RewardPlacements())), null!);
         var bus = new DirectCommandBus(reward: handler, scope: inventory.Scope);
         return await bus.SendAsync(
-            new GrantTutorialRewardCommand(
+            new TutorialRewardTestInput(
                 new CharacterId(60),
                 [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
                 new AccountId(6)),

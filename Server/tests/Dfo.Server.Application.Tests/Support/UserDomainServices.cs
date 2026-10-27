@@ -11,22 +11,21 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Tests;
 
 /// <summary>
-/// The three online-state services over one registry, as a single object.
+/// The online-identity services over one registry, as a single object.
 /// </summary>
 /// <remarks>
-/// Production composes these three separately; this fixture exists because these tests exercise the
-/// account, online-user and active-character responsibilities of one connection together, and
-/// holding three references at every call site would obscure what each test is asserting.
-/// Online operations forward to production services sharing one registry. AuthenticateForTestAsync
+/// Production composes these separately; this fixture exists because these tests exercise the
+/// online-user, selected-session and endpoint responsibilities of one connection together, and
+/// holding several references at every call site would obscure what each test is asserting.
+/// Operations forward to production services sharing one registry. AuthenticateForTestAsync
 /// explicitly seeds the identity that real ticket redemption publishes; it does not test authentication.
 /// </remarks>
 internal sealed class UserDomainServices
-    : IOnlineUserDomainService, IActiveCharacterDomainService, IGameSessionEndpointDomainService
+    : IOnlineUserDomainService, IGameSessionEndpointDomainService
 {
     private readonly AccountId accountId;
     private readonly OnlineStateRegistry state;
     private readonly OnlineUserDomainService online;
-    private readonly ActiveCharacterDomainService active;
     private readonly GameSessionEndpointDomainService endpoints;
 
     public UserDomainServices(AccountId accountId)
@@ -35,9 +34,14 @@ internal sealed class UserDomainServices
         this.accountId = accountId;
         this.state = state;
         online = new OnlineUserDomainService(state);
-        active = new ActiveCharacterDomainService(state);
+        Sessions = new Dfo.Server.Application.Sessions.SelectedSessionDomainService(state);
         endpoints = new GameSessionEndpointDomainService(state);
     }
+
+    /// <summary>The selections made over these connections.</summary>
+    public Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions { get; }
+
+    public OnlineStateRegistry State => state;
 
     /// <summary>Seeds the identity that successful ticket redemption would publish.</summary>
     public ValueTask<AccountId> AuthenticateForTestAsync(OnlineUserId onlineUserId)
@@ -66,9 +70,15 @@ internal sealed class UserDomainServices
         out OnlineUserSnapshot? onlineUser) =>
         online.TryGetByConnection(connectionId, out onlineUser);
 
-    public void Publish(SelectedSessionIdentity session) => active.Publish(session);
+    /// <summary>Selects the session if it is not already selected, then enters it into the world.</summary>
+    public void Publish(SelectedSessionIdentity session)
+    {
+        if (Sessions.Find(session.AccountId) != session)
+            Sessions.Select(session);
+        Sessions.EnterWorld(session);
+    }
 
-    public bool ClearExact(SelectedSessionIdentity session) => active.ClearExact(session);
+    public bool ClearExact(SelectedSessionIdentity session) => Sessions.ReleaseExact(session);
 
     public bool TryObserve(GameSessionIdentity session, SessionEndpoint endpoint) =>
         endpoints.TryObserve(session, endpoint);

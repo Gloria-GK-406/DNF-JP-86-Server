@@ -21,17 +21,32 @@ namespace Dfo.Server.Application.Tests.Inventory;
 internal static class EffectRequestTransport
 {
     private static readonly ConditionalWeakTable<NetworkConnectionContext, CounterState> Counters = new();
+    public static ushort FreshSequence(ShopFixture fixture) => Counters.GetValue(fixture.Connection, _ => new()).Next;
     public static ValueTask Send(ShopFixture fixture, IEffectSettlementRequest request)
     {
-        var body = Body(request);
-        var (ordinal, fresh) = Counters.GetValue(fixture.Connection, _ => new()).Observe(request.Metadata.Sequence);
-        var metadata = (request.Metadata with { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body);
+        return SendRaw(fixture, request.Metadata, Body(request));
+    }
+    public static ValueTask SendRaw(ShopFixture fixture, GameMessageMetadata input, byte[] body)
+    {
+        var (ordinal, fresh) = Counters.GetValue(fixture.Connection, _ => new()).Observe(input.Sequence);
+        var metadata = (input with { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body);
         var decoderRegistration = fixture.Services.GetServices<GameMessageDecoderRegistration>()
             .Single(x => x.Selector == metadata.Selector && x.Type == metadata.Type);
         var decoded = ((IGameMessageDecoder)fixture.Services.GetRequiredService(decoderRegistration.DecoderType)).Decode(metadata, body)
             ?? throw new InvalidDataException("Fixture body was not decoded.");
         return fixture.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(fixture.Connection), decoded, default);
     }
+    /// <summary>
+    /// Whether a prepared batch is a replay of current state (it carries inventory snapshots), as distinct from the
+    /// batch a completion notification is registered as: the notification bus registers each recipient's messages as
+    /// one prepared batch (RQ-031(d), F-102), so a replayed request is no longer the only source of batches.
+    /// </summary>
+    public static bool IsStateReplay((NetworkConnectionContext Connection, IServerNetworkMessage[] Messages, byte[][] Frames) batch) =>
+        batch.Messages.Any(InventorySnapshot.IsInstanceOfType);
+
+    /// <summary>The protocol's inventory snapshot type; internal to Dfo.Server.Protocol, so found by name, and a rename fails here.</summary>
+    private static readonly Type InventorySnapshot = typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType(
+        "Dfo.Server.Protocol.Game.StateSynchronization.InventorySnapshotMessage", throwOnError: true)!;
     public static void ObserveOtherFrames(ShopFixture fixture, int count) =>
         Counters.GetValue(fixture.Connection, _ => new()).Other(count);
     public static byte[] MainSnapshot(ShopFixture fixture) => fixture.Sender.Batches.Last().Frames
@@ -42,11 +57,36 @@ internal static class EffectRequestTransport
         return Enumerable.Range(0, count).Where(n => BinaryPrimitives.ReadInt16LittleEndian(frame.AsSpan(20 + n * 101)) == slot)
             .Select(n => BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(26 + n * 101))).Single();
     }
-    private static byte[] Body(IEffectSettlementRequest request)
+    internal static byte[] Body(IEffectSettlementRequest request)
     {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         switch (request)
         {
+            case Dfo.Server.Protocol.Game.PackageOpening.PackageOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((short)x.Input.SourceSlot));
+                if (!x.Input.SelectedItems.IsEmpty)
+                {
+                    writer.Write((ushort)0); // Two opaque context bytes, preserved on the wire.
+                    foreach (var id in x.Input.SelectedItems) writer.Write(id);
+                    writer.Write(checked((byte)(x.AvatarInput?.Choices.Length ?? 0)));
+                    if (x.AvatarInput is { } options)
+                        foreach (var option in options.Choices) { writer.Write(option.ItemId); writer.Write(option.Ability); }
+                }
+                break;
+            case Dfo.Server.Protocol.Game.AvatarPackageOpening.AvatarPackageOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((short)x.Input.SourceSlot)); writer.Write(checked((byte)x.Input.Choices.Length));
+                foreach (var option in x.Input.Choices) { writer.Write(option.ItemId); writer.Write(option.Ability); }
+                break;
+            case Dfo.Server.Protocol.Game.MagicBoxSingleOpening.MagicBoxSingleOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((byte)x.Input.ListType)); writer.Write(checked((short)x.Input.SourceSlot));
+                writer.Write(checked((short)x.Input.MaterialSlot)); break;
+            case Dfo.Server.Protocol.Game.MagicBoxBatchOpening.MagicBoxBatchOpeningRequest x:
+                if (x.Input is null) break;
+                writer.Write(checked((byte)x.Input.ListType)); writer.Write(checked((short)x.Input.SourceSlot)); writer.Write(x.Input.ExpectedItemId);
+                writer.Write(checked((short)x.Input.MaterialSlot)); writer.Write(x.Input.ExpectedMaterialId); writer.Write(checked((ushort)x.Input.Count)); break;
             case Dfo.Server.Protocol.Game.ItemSockets.ItemSocketRequest x:
                 if (x.Avatar && !x.Open) writer.Write((byte)x.TargetList);
                 writer.Write(x.TargetSlot); writer.Write(x.ExpectedItemId);
@@ -90,6 +130,9 @@ internal static class EffectRequestTransport
                 writer.Write(x.Source); writer.Write(x.SourceMode); writer.Write(x.Count);
                 if (!x.Valid) { writer.Write((byte)1); writer.Write((byte)0); } break;
             case LotteryOpeningRequest x: writer.Write(x.Mode); writer.Write(x.Slot); break;
+            case Dfo.Server.Protocol.Game.QuestClearCoupon.QuestClearCouponRequest x:
+                writer.Write(x.SourceSlot); writer.Write(x.Container); writer.Write(x.Reserved1); writer.Write(x.Action); writer.Write(x.Reserved2); writer.Write(x.Reserved3);
+                if (!x.Complete) writer.Write((byte)1); break;
             case VendingMachineRequest x: writer.Write(x.MachineId); writer.Write(x.GroupId); writer.Write(x.Slot); break;
             default: throw new NotSupportedException($"Fixture has no raw encoder for {request.GetType().Name}.");
         }
@@ -99,6 +142,7 @@ internal static class EffectRequestTransport
     {
         private readonly GameInboundFrameCounter counter = new();
         private ushort? lastFresh;
+        public ushort Next => unchecked((ushort)((lastFresh ?? 0) + 1));
         public (long Ordinal, bool Fresh) Observe(ushort sequence)
         {
             var result = counter.Observe(sequence); if (result.Fresh) lastFresh = sequence; return result;

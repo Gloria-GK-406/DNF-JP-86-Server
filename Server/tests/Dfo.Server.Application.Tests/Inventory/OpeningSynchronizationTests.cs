@@ -11,6 +11,7 @@ using Dfo.Server.Protocol.Game.CompoundItem;
 using Dfo.Server.Protocol.Game.MagicBoxBatchOpening;
 using Dfo.Server.Protocol.Game.PackageOpening;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -23,8 +24,7 @@ public sealed class OpeningSynchronizationTests
     {
         using var opening = new OpeningFixture();
         await opening.Host.Seed(3, 1001, count);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, new(3, [])));
+        var result = await OpeningDomainTestDriver.Package(opening.Host, opening.Host.Session, new(3, []));
         var messages = await Compose(opening.Host, result.Receipt!, new PackageOpeningResponse(3, result));
         Assert.IsType<PackageOpeningResponse>(messages[0]);
         var client = new MainInventoryReplica((3, 1001, count));
@@ -40,8 +40,7 @@ public sealed class OpeningSynchronizationTests
         using var opening = new OpeningFixture();
         await opening.Host.Seed(3, 1001, 1);
         await opening.Host.Seed(4, 3, 5);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new PackageOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, new(3, [])));
+        var result = await OpeningDomainTestDriver.Package(opening.Host, opening.Host.Session, new(3, []));
         var messages = await Compose(opening.Host, result.Receipt!, new PackageOpeningResponse(3, result));
         var client = new MainInventoryReplica((3, 1001, 1), (4, 3, 5));
         client.Receive(opening.Host, messages);
@@ -56,8 +55,7 @@ public sealed class OpeningSynchronizationTests
         await opening.Host.Seed(3, 1000, 1);
         await opening.Host.Seed(4, 2000, 1);
         var input = new MagicBoxOpeningInput(0, 3, 1000, 4, 2000, 1);
-        var result = await opening.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new MagicBoxBatchOpeningCommand(opening.Host.OnlineUser, opening.Host.Session, input));
+        var result = await OpeningDomainTestDriver.Box(opening.Host, opening.Host.Session, input);
         var messages = await Compose(opening.Host, result.Receipt!, new MagicBoxBatchOpeningResponse(input, result));
         Assert.IsType<MagicBoxBatchOpeningResponse>(messages[0]);
         // Native magic-box ACK removes these piles before the absolute deltas arrive.
@@ -82,8 +80,7 @@ public sealed class OpeningSynchronizationTests
         });
         await host.Seed(3, 1001, 1);
         await host.Seed(4, 2000, 1);
-        var result = await host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new CompoundItemCommand(host.OnlineUser, host.Session, new(BusinessInventorySpace.QuickSlot, 0), 1));
+        var result = await OpeningDomainTestDriver.Recipe(host, host.Session, new(BusinessInventorySpace.QuickSlot, 0), 1);
         var messages = await Compose(host, result.Inventory, new CompoundItemResponse(result));
         var client = new MainInventoryReplica((3, 1001, 1), (4, 2000, 1));
         client.Receive(host, messages);
@@ -101,8 +98,8 @@ public sealed class OpeningSynchronizationTests
 
     private static async Task<IReadOnlyList<IServerNetworkMessage>> Compose(ShopFixture host,
         OpeningInventoryReceipt receipt, IGameCmdMessage response) =>
-        await new OpeningCompletedHandler(host.Services.GetRequiredService<ISelectedSessionDomainService>())
-            .ComposeAsync(new(receipt.Session.CharacterId, receipt.Session.ConnectionId), new(receipt, [response]), default);
+        await TestGameplay.RunAsync(host.Services, async () => await new OpeningCompletedHandler(host.Services.GetRequiredService<ISelectedSessionDomainService>())
+            .ComposeAsync(new(receipt.Session.CharacterId, receipt.Session.ConnectionId), new(receipt, [response]), default));
 
     // Bounded model of the A21 class-1 stackable consumer, not a native-client replay.
     // 0117E91E clears ID=-1; 0117E957 checks template; 0117EAF4 ignores differing IDs.

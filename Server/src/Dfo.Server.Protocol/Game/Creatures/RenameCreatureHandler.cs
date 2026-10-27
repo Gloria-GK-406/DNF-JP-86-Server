@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -8,34 +9,29 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
+using Microsoft.Extensions.Logging;
+
 namespace Dfo.Server.Protocol.Game.Creatures;
 
-internal sealed record RenameCreatureCommand(SelectedSessionIdentity Session,
-    BusinessSlot SourceSlot, byte[] NameBytes) : ICommand<RenameCreatureResult>, IRequestSettlementCommand;
-
-internal sealed record RenameCreatureResult(CreatureRenameReceipt? Receipt);
-
-internal sealed class RenameCreatureCommandHandler(ICreatureNamingDomainService naming)
-    : ICommandHandler<RenameCreatureCommand, RenameCreatureResult>
+internal sealed record GameRenameCreatureCommand(NetworkDispatchContext Dispatch, RenameCreatureRequest Input) : IProtocolCommand<bool>
 {
-    public async ValueTask<RenameCreatureResult> HandleAsync(CommandExecutionContext context,
-        RenameCreatureCommand command, CancellationToken cancellationToken) =>
-        new(await naming.RenameAsync(command.Session, command.SourceSlot,
-            command.NameBytes, cancellationToken).ConfigureAwait(false));
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-
-internal sealed class RenameCreatureHandler(
-    ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings,
-    ICommandBus commands,
-    IGameMessageSender sender,
-    CreatureProjectionDelivery delivery,
-    TimeProvider clock) : ClientMessageHandler<RenameCreatureRequest>
+internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainService sessions,
+    IInventorySlotMappingRuleService slotMappings, ICreatureNamingDomainService naming, ICommandWorkUnits units,
+    IGameCommandOutbox outbox, IDungeonRunDomainService runs, ITownAreaDomainService towns,
+    IIllusionTowerDomainService towers, ICommandConnectionClosures connections, Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
+    ILogger<GameRenameCreatureCommandHandler> logger, TimeProvider clock) : ICommandHandler<GameRenameCreatureCommand, bool>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        RenameCreatureRequest request, CancellationToken cancellationToken)
+    private sealed record RenameReceipt(CreatureRenameReceipt? Receipt);
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameRenameCreatureCommand command, CancellationToken cancellationToken)
     {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        var request = command.Input;
+        var commandRequest = context.Request ?? throw new InvalidOperationException("Rename requires its explicit request.");
+        var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
         BusinessSlot sourceSlot;
         try
         {
@@ -47,19 +43,19 @@ internal sealed class RenameCreatureHandler(
         }
 
         CreatureRenameReceipt? receipt = null;
-        if (session is not null && sourceSlot.Space == BusinessInventorySpace.CreatureConsumable)
+        if (session is not null && commandRequest is not CommandRequestContext.ProtocolEffectRejected && sourceSlot.Space == BusinessInventorySpace.CreatureConsumable)
         {
-            var result = await commands.SendAsync(
-                new RenameCreatureCommand(session, sourceSlot, request.NameBytes), cancellationToken)
-                .ConfigureAwait(false);
-            receipt = result.Receipt;
+            if (commandRequest is not CommandRequestContext.ProtocolEffectSelected selected || selected.Recipient.Session != session)
+                throw new InvalidOperationException("Rename requires its originally selected actor.");
+            receipt = (await units.WriteAsync(context, new("RenameCreature", [selected.Recipient], CommandWorkUnitKind.MainSettlement),
+                async (unit, token) => new RenameReceipt(await naming.RenameAsync(session, sourceSlot, request.NameBytes, unit.Footprint, token).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false)).Receipt;
         }
 
         if (receipt is null)
         {
-            await sender.SendCmdAsync(context.Connection.ConnectionId,
+            await outbox.RegisterCmdAsync(command.Dispatch.Connection.ConnectionId,
                 new RenameCreatureResponse(ErrorCode: 2), cancellationToken).ConfigureAwait(false);
-            return;
+            return false;
         }
 
         var sourceUpdate = receipt.RemainingSourceCore is { } remaining
@@ -69,13 +65,56 @@ internal sealed class RenameCreatureHandler(
             : GameInventoryDelivery.ClearedSlotNotification(
                 InventoryContainerType.Pet, request.Slot, clock.GetUtcNow());
         var owner = session!;
-        if (!await delivery.SendVisibleAsync(owner,
+        if (!await SendVisibleAsync(owner,
                 new CreatureRenameNotification(owner.WireUserId, receipt.Creature.NameBytes),
                 cancellationToken).ConfigureAwait(false))
-            return;
-        await sender.SendExplicitAsync(context.Connection.ConnectionId,
+            return false;
+        await outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
                 [new RenameCreatureResponse(request.Slot, request.List), sourceUpdate], []),
             cancellationToken).ConfigureAwait(false);
+        return true;
     }
+    private async ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct)
+    {
+        if (!sessions.IsInWorld(owner)) return false;
+        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
+        var ownerDelivered = true;
+        foreach (var receiver in receivers)
+        {
+            if (towerRunId is { } expectedRun
+                && (!sessions.IsInWorld(owner)
+                    || towers.Find(owner)?.RunId != expectedRun))
+                break;
+            if (towerRunId is not null
+                && (!sessions.IsInWorld(receiver)
+                    || towers.Find(receiver)?.RunId != towerRunId))
+                continue;
+            try
+            {
+                await outbox.RegisterNotiAsync(receiver.ConnectionId, notification, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                if (receiver == owner) ownerDelivered = false;
+                logger.LogWarning(exception,
+                    "Creature notification failed for receiver={CharacterId}; closing that connection",
+                    receiver.CharacterId);
+                if (sessions.IsInWorld(receiver))
+                    await CloseAsync(receiver, CancellationToken.None)
+                        .ConfigureAwait(false);
+            }
+        }
+        return ownerDelivered;
+    }
+    private ValueTask CloseAsync(SelectedSessionIdentity receiver, CancellationToken ct) =>
+        users.TryGetByConnection(receiver.ConnectionId, out var user) && user is not null
+            ? connections.RequestCloseAsync(user.Connection, ct) : ValueTask.CompletedTask;
+
+}
+internal sealed class RenameCreatureHandler(ICommandBus commands) : ClientMessageHandler<RenameCreatureRequest>, IProtocolCommandMessageHandler<GameRenameCreatureCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, RenameCreatureRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameRenameCreatureCommand(context, message), ct).ConfigureAwait(false);
 }

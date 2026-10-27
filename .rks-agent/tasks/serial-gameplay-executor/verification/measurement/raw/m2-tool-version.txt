@@ -1,0 +1,14 @@
+# M-2 (TASK-28) tool versions. The tool is read-only in this unit: no source edit, no rebuild.
+# Every run except the control run B-def-g0 uses the M-1 final dll (TASK-20 ruling 6, TASK-28 ruling 3):
+deb158a5a422ec2b9e32dc84aed934d8d1ff1d29bc061ea31d8f14782264cefa  Tool/GameplayLoad/bin/Release/net10.0/GameplayLoad.dll
+# control run B-def-g0 (m2-B-g0.md) uses the baseline dll:
+b3d6c286e61607baf20c532fe7880f0902af60d60e40f2fb33435b53be899753  Tool/GameplayLoad/bin/m1-base/GameplayLoad.dll
+# sources (identical to raw/m1-tool-version.txt, file by file):
+77b2b47d46916124fb28da63f26eda9822f1d980cbe65223187b23057f387210  Tool/GameplayLoad/Agents.cs
+b1bd21f3306e188e230d98fd511d8daff4164619de23a0f07ccd1c5823a221b5  Tool/GameplayLoad/EnvironmentProbe.cs
+cbe3a5cc35a4a63ac5ca72e5c453abd6df98cf5f4c9f8882f2b86a154c96e107  Tool/GameplayLoad/HostProcess.cs
+09842599662efef828317d20d0ec5ad7587696de58802a1c1aeac06a9c45fbe1  Tool/GameplayLoad/Program.cs
+18e6a69f32f358eca23913e663e66b0ef0dce1b627378d5c5841f3374cddf234  Tool/GameplayLoad/Protocol.cs
+76b2b86a0c38baffd2720a1eb54db1cec6a983222262596bc4f3dc35390d61c2  Tool/GameplayLoad/Recorder.cs
+c3a89ab3c73a7991d55cccc83e77743239156c043e0e0aa5023a1e52ff5ec314  Tool/GameplayLoad/Scenarios.cs
+42dab6ee1b084e8146933021e29485c6e51379b73469d20724efc2453b3c7a5e  Tool/GameplayLoad/Wire.cs

@@ -4,6 +4,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class FatigueRefreshTests
 {
@@ -13,11 +14,14 @@ public sealed class FatigueRefreshTests
         using var shop = new ShopFixture();
         var fatigue = shop.Services.GetRequiredService<ICharacterFatigueDomainService>();
         var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
-        await using (var tx = scope.Begin())
+        await TestGameplay.RunAsync(shop.Services, async () =>
         {
-            await fatigue.SpendAsync(shop.Session.CharacterId, 20, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = scope.Begin())
+            {
+                await fatigue.SpendAsync(shop.Session.CharacterId, 20, default);
+                await tx.CommitAsync(default);
+            }
+        });
         var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
         await refresh.RefreshAsync(default);
         await refresh.RefreshAsync(default);

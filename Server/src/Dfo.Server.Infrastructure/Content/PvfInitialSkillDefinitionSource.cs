@@ -20,7 +20,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// silently pick a growth-stage list for any job where it does not.
 /// </para>
 /// </remarks>
-internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionSource
+internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -40,6 +40,17 @@ internal sealed class PvfInitialSkillDefinitionSource : IInitialSkillDefinitionS
     private IReadOnlyDictionary<int, string>? _paths;
 
     public PvfInitialSkillDefinitionSource(PvfArchiveProvider provider) => _provider = provider;
+
+    public string Name => "initial-skills";
+
+    /// <remarks>Every job the archive's character list declares.</remarks>
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        int[] jobs;
+        lock (_gate) jobs = [.. Paths().Keys];
+        foreach (var job in jobs) await GetAsync(checked((byte)job), cancellationToken).ConfigureAwait(false);
+        return jobs.Length;
+    }
 
     public ValueTask<IReadOnlyList<InitialSkillGrant>> GetAsync(
         byte job, CancellationToken cancellationToken)

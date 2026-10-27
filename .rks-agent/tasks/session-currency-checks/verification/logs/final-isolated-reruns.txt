@@ -1,0 +1,10 @@
+HEAD b01f6841：全量运行中 Networking.Tests 有 2 个失败、Host.Tests 有 1 个失败，均为 Connection refused 或端口检查失败。之后对这两个测试项目单独复跑，结果如下：
+
+第 1 轮
+已通过! - 失败:     0，通过:    97，已跳过:     0，总计:    97，持续时间: 4 s - Dfo.Server.Networking.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:     5，已跳过:     0，总计:     5，持续时间: 6 s - Dfo.Server.Host.Tests.dll (net10.0)   [--filter ComponentLifecycleTests]
+第 2 轮
+已通过! - 失败:     0，通过:    97，已跳过:     0，总计:    97，持续时间: 4 s - Dfo.Server.Networking.Tests.dll (net10.0)
+已通过! - 失败:     0，通过:     5，已跳过:     0，总计:     5，持续时间: 6 s - Dfo.Server.Host.Tests.dll (net10.0)   [--filter ComponentLifecycleTests]
+
+在 a29d7586 上做全量运行时，这两个项目全部通过。b01f6841 相比 a29d7586 只改动了 Application.Tests 中的一条断言。

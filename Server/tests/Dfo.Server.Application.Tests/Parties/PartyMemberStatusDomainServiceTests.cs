@@ -11,6 +11,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Parties;
 
@@ -19,92 +20,92 @@ public sealed class PartyMemberStatusDomainServiceTests
     [Fact]
     public async Task Invite_and_realtime_values_come_from_their_current_domain_sources()
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(3),
-            new CharacterId(1),
-            new NetworkConnectionId("Game:party-status"),
-            connectionGeneration: 1,
-            listenerPort: 10011);
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
-            session.AccountId, session.CharacterId.Value, slotIndex: 0);
-        var inventory = result.CharacterInventory with
+        await TestGameplay.RunAsync(async () =>
         {
-            VirtualResources = [new InventoryRuntimeValueState(1, 1, 64)],
-        };
-        result = result with
-        {
-            CharacterInventory = inventory,
-            CharacterEntry = result.CharacterEntry with
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(3),
+                new CharacterId(1),
+                new NetworkConnectionId("Game:party-status"),
+                connectionGeneration: 1,
+                listenerPort: 10011);
+            var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
+                session.AccountId, session.CharacterId.Value, slotIndex: 0);
+            var inventory = result.CharacterInventory with
             {
-                Public = result.CharacterEntry.Public with
+                VirtualResources = [new InventoryRuntimeValueState(1, 1, 64)],
+            };
+            result = result with
+            {
+                CharacterInventory = inventory,
+                CharacterEntry = result.CharacterEntry with
                 {
-                    DerivedStats = result.CharacterEntry.Public.DerivedStats with
+                    Public = result.CharacterEntry.Public with
                     {
-                        CurrentHpMpPercent = 73,
+                        DerivedStats = result.CharacterEntry.Public.DerivedStats with
+                        {
+                            CurrentHpMpPercent = 73,
+                        },
                     },
                 },
-            },
-        };
-        var runtime = new SelectedSessionRuntimeDirectory();
-        runtime.Publish(session, shouldPersistPosition: false);
-        var vitals = new CharacterVitalRuntimeDomainService();
-        vitals.Publish(session, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(session);
-        var service = new PartyMemberStatusDomainService(
-            () => new FixedInventory(inventory),
-            new FixedFatigue(new CharacterFatigueBalance(188, 31)),
-            vitals);
+            };
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
+            var sessions = Dfo.Server.Testing.TestSessions.Directory();
+            sessions.Select(session);
+            var service = new PartyMemberStatusDomainService(
+                () => new FixedInventory(inventory),
+                new FixedFatigue(new CharacterFatigueBalance(188, 31)),
+                vitals);
 
-        var invitation = await service.InvitationOfAsync(
-            Character(session), CancellationToken.None);
+            var invitation = await service.InvitationOfAsync(
+                Character(session), CancellationToken.None);
 
-        Assert.Equal(new PartyInviteDisplayState(64, 157, 0, 0), invitation);
-        Assert.Equal(73, service.CurrentHpPercentOf(session.CharacterId));
+            Assert.Equal(new PartyInviteDisplayState(64, 157, 0, 0), invitation);
+            Assert.Equal(73, service.CurrentHpPercentOf(session.CharacterId));
+        });
     }
 
     [Fact]
     public async Task Missing_values_stay_zero_and_hp_is_bounded_for_the_wire()
     {
-        var session = SelectedSessionIdentity.Create(
-            new AccountId(3),
-            new CharacterId(1),
-            new NetworkConnectionId("Game:party-status"),
-            connectionGeneration: 1,
-            listenerPort: 10011);
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
-            session.AccountId, session.CharacterId.Value, slotIndex: 0);
-        result = result with
+        await TestGameplay.RunAsync(async () =>
         {
-            CharacterEntry = result.CharacterEntry with
+            var session = SelectedSessionIdentity.Create(
+                new AccountId(3),
+                new CharacterId(1),
+                new NetworkConnectionId("Game:party-status"),
+                connectionGeneration: 1,
+                listenerPort: 10011);
+            var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
+                session.AccountId, session.CharacterId.Value, slotIndex: 0);
+            result = result with
             {
-                Public = result.CharacterEntry.Public with
+                CharacterEntry = result.CharacterEntry with
                 {
-                    DerivedStats = result.CharacterEntry.Public.DerivedStats with
+                    Public = result.CharacterEntry.Public with
                     {
-                        CurrentHpMpPercent = 137,
+                        DerivedStats = result.CharacterEntry.Public.DerivedStats with
+                        {
+                            CurrentHpMpPercent = 137,
+                        },
                     },
                 },
-            },
-        };
-        var runtime = new SelectedSessionRuntimeDirectory();
-        runtime.Publish(session, shouldPersistPosition: false);
-        var vitals = new CharacterVitalRuntimeDomainService();
-        vitals.Publish(session, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(session);
-        var service = new PartyMemberStatusDomainService(
-            () => new FixedInventory(result.CharacterInventory with { VirtualResources = [] }),
-            new FixedFatigue(new CharacterFatigueBalance(0, 0)),
-            vitals);
+            };
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
+            var sessions = Dfo.Server.Testing.TestSessions.Directory();
+            sessions.Select(session);
+            var service = new PartyMemberStatusDomainService(
+                () => new FixedInventory(result.CharacterInventory with { VirtualResources = [] }),
+                new FixedFatigue(new CharacterFatigueBalance(0, 0)),
+                vitals);
 
-        Assert.Equal(new PartyInviteDisplayState(0, 0, 0, 0),
-            await service.InvitationOfAsync(Character(session), CancellationToken.None));
-        Assert.Equal(100, service.CurrentHpPercentOf(session.CharacterId));
-
-        Assert.True(runtime.RemoveExact(session));
-        Assert.True(vitals.RemoveExact(session));
-        Assert.Equal(0, service.CurrentHpPercentOf(session.CharacterId));
+            Assert.Equal(new PartyInviteDisplayState(0, 0, 0, 0),
+                await service.InvitationOfAsync(Character(session), CancellationToken.None));
+            Assert.Equal(100, service.CurrentHpPercentOf(session.CharacterId));
+            Assert.True(vitals.EndExact(session));
+            Assert.Equal(0, service.CurrentHpPercentOf(session.CharacterId));
+        });
     }
 
     private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>

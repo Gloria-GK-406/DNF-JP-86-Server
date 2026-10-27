@@ -17,6 +17,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -53,10 +54,13 @@ internal static class MarriageHarness
 
     internal static async Task<T> InTx<T>(LearningFixture f, Func<ValueTask<T>> action, bool commit = true)
     {
-        await using var tx = f.Scope.Begin();
-        var result = await action();
-        if (commit) await tx.CommitAsync(default);
-        return result;
+        return await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            var result = await action();
+            if (commit) await tx.CommitAsync(default);
+            return result;
+        });
     }
 
     private static readonly MethodInfo WeddingInfo = typeof(WeddingProposalRequest).Assembly
@@ -84,19 +88,35 @@ internal static class MarriageHarness
     internal static void MoveTo(LearningFixture f, SelectedSessionIdentity actor, byte town, byte area, int channel = 1,
         short x = 100, short y = 200)
     {
-        var moved = f.Services.GetRequiredService<ICharacterPositionDomainService>().CrossInto(actor, town, area, x, y);
-        f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(),
-            new(channel, town, area), moved, true);
+        TestGameplay.Run(f.Services, () =>
+        {
+            var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, town, area, x, y);
+            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(),
+                new(channel, town, area), moved, true);
+        });
     }
 
     internal static void Arrive(LearningFixture f, SelectedSessionIdentity actor, MarriageChurchRoom room) =>
         MoveTo(f, actor, room.TownId, room.AreaId, room.ChannelId, 300, 350);
 
+    /// <summary>
+    /// The same connection selects the same character again: the old session is released first, and
+    /// the new one carries the generation the connection is at by then.
+    /// </summary>
+    internal static SelectedSessionIdentity Reselect(LearningFixture f, SelectedSessionIdentity actor) =>
+        Dfo.Server.Testing.TestSessions.ReselectOnSameConnection(
+            f.Services.GetRequiredService<ISelectedSessionDomainService>(),
+            f.Services.GetRequiredService<OnlineStateRegistry>(),
+            actor);
+
     internal static void GoOffline(LearningFixture f, SelectedSessionIdentity actor)
     {
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(actor);
-        f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(actor.CharacterId, actor.TownAreaLease(),
-            TownAreaDepartureReason.SessionEnded);
+        TestGameplay.Run(f.Services, () =>
+        {
+            f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(actor);
+            f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(actor.CharacterId, actor.TownAreaLease(),
+                TownAreaDepartureReason.SessionEnded);
+        });
     }
 
     /// <summary>A further level-85 character, online in town 2 area 1 of <paramref name="channel"/>.</summary>
@@ -110,19 +130,23 @@ internal static class MarriageHarness
             UPDATE characters SET exp=(SELECT exp FROM characters WHERE character_id=71) WHERE character_id={character};
             INSERT INTO character_stats(character_id,carried_gold) VALUES({character},{gold});
             """);
-        var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
-        var connection = new NetworkConnectionContext(new($"marriage-extra-{character}"), NetworkEndpointKind.Game, 10011);
-        var user = registry.RegisterConnection(connection).OnlineUserId;
-        registry.Authenticate(user, new(account));
-        var session = SelectedSessionIdentity.Create(new(account), new(character), connection.ConnectionId,
-            registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(session);
-        f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-        var position = new CharacterPositionState(2, 1, 100, 200, 0);
-        f.Services.GetRequiredService<ICharacterPositionDomainService>().Place(session, position);
-        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(),
-            new(channel, 2, 1), position, true));
-        return session;
+        return TestGameplay.Run(f.Services, () =>
+        {
+            var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
+            var connection = new NetworkConnectionContext(new($"marriage-extra-{character}"), NetworkEndpointKind.Game, 10011);
+            var user = registry.RegisterConnection(connection).OnlineUserId;
+            registry.Authenticate(user, new(account));
+            var session = SelectedSessionIdentity.Create(new(account), new(character), connection.ConnectionId,
+                registry.GetRequiredUser(user).Generation, 10011);
+            registry.Select(session);
+            registry.EnterWorld(session);
+            f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+            var position = new CharacterPositionState(2, 1, 100, 200, 0);
+            f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(),
+                new(channel, 2, 1), position, true));
+            return session;
+        });
     }
 
     internal static async Task<Guid> EngageAsync(LearningFixture f, SelectedSessionIdentity proposer, SelectedSessionIdentity recipient)
@@ -135,6 +159,8 @@ internal static class MarriageHarness
     internal static async Task<Guid> EligibleAsync(World w, SelectedSessionIdentity applicant, SelectedSessionIdentity partner,
         int applicantGold = 500_000)
     {
+        return await TestGameplay.RunAsync(w.F.Services, async () =>
+        {
         var f = w.F;
         var relation = await EngageAsync(f, applicant, partner);
         foreach (var character in new[] { applicant.CharacterId, partner.CharacterId })
@@ -154,6 +180,7 @@ internal static class MarriageHarness
             ON CONFLICT(character_id) DO NOTHING;
             """);
         return relation;
+        });
     }
 
     internal static async Task<MarriageCeremony> ReserveAsync(World w, SelectedSessionIdentity applicant, SelectedSessionIdentity partner)

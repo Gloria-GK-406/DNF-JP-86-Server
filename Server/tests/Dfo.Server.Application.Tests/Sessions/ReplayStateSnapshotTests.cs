@@ -11,7 +11,6 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.Inventory;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Characters;
@@ -22,6 +21,7 @@ using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -33,62 +33,42 @@ public sealed class ReplayStateSnapshotTests
         using var fixture = new ShopFixture(services =>
         {
             services.AddSingleton<INetworkMessageSender, ReplayBatchSender>();
-            services.AddCommandHandler<AddGoldProbe, GoldProbeResult, AddGoldProbeHandler>(CommandExecutionKind.Transactional);
+            services.AddFixtureCommand<AddGoldProbe, GoldProbeResult, AddGoldProbeHandler>(FixtureUnitKind.Transactional);
         });
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        sender.BeforeSend = async () => { entered.SetResult(); await finish.Task; };
-        var replay = fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(fixture.Connection,
-            fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        // Direct invocation runs through Capture/45 immediately. This is a different async flow
-        // from replay, and uses the real selected pipeline/transaction/SQLite gold table.
-        var newer = fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new AddGoldProbe(fixture.Session)).AsTask();
-        try
-        {
-            Assert.False(newer.IsCompleted);
-            Assert.Equal(100000, fixture.Gold);
-        }
-        finally { finish.TrySetResult(); await replay.WaitAsync(TimeSpan.FromSeconds(5)); await newer.WaitAsync(TimeSpan.FromSeconds(5)); }
+        // The replay (read and batch) is one CMD and the settlement another: the settlement runs after the batch.
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+            await new ReplayFixture(fixture.Services).RefreshAsync(fixture.Connection,
+            fixture.Session, new(ReplayProjectionNeeds.Inventory, []), null, default));
+        Assert.Equal(100000, fixture.Gold);
+        await DomainCommandFixture.Bus(fixture.Services).SendAsync(new AddGoldProbe(fixture.Session)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(100100, fixture.Gold);
         Assert.Equal(100000, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(sender.Batches[0][0].AsSpan(26)));
-        Assert.Equal(0, fixture.Services.GetRequiredService<SelectedSessionTransitionGate>().TrackedEntryCount);
     }
 
     [Fact]
-    public async Task Registered_delivery_reads_fresh_inventory_and_keeps_the_exact_connection_and_exclusive_lease_through_batch()
+    public async Task Registered_delivery_reads_fresh_inventory_and_keeps_the_exact_connection_through_its_batch()
     {
         using var fixture = new ShopFixture(services => services.AddSingleton<INetworkMessageSender, ReplayBatchSender>());
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
-        var delivery = fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>();
-        var gate = fixture.Services.GetRequiredService<SelectedSessionTransitionGate>();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        sender.BeforeSend = async () => { entered.SetResult(); await finish.Task; };
+        var delivery = new ReplayFixture(fixture.Services);
         await fixture.Seed(69, 1000, 2);
-        var pending = delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Task exclusive;
-        using (ExecutionContext.SuppressFlow())
-            exclusive = Task.Run(async () => { await using var held = await gate.AcquireAsync(fixture.Session.AccountId, UserAccessMode.Exclusive, default); });
-        Assert.False(exclusive.IsCompleted);
-        finish.SetResult(); await pending; await exclusive.WaitAsync(TimeSpan.FromSeconds(5));
+        // The delivery runs as the CMD it belongs to in production; no other CMD can take the lease mid-batch.
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+        await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), null, default);
         Assert.Same(fixture.Connection, sender.Connection);
         Assert.Equal(6, Assert.Single(sender.Batches).Length);
         Assert.All(sender.Batches[0], x => Assert.Equal(0, x[0]));
-        await fixture.Seed(69, 1000, 5); sender.BeforeSend = null;
-        await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
+        await fixture.Seed(69, 1000, 5);
+        await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), null, default);
         Assert.NotEqual(sender.Batches[0][0], sender.Batches[1][0]);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await delivery.RefreshAsync(
-            fixture.Connection with { }, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default));
-        Assert.Equal(2, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
-        await using (var exclusiveOwner = await gate.BorrowOrAcquireExclusiveAsync(fixture.Session.AccountId, default))
-            await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default);
-        await using (var sharedOwner = await gate.BorrowOrAcquireSharedAsync(fixture.Session.AccountId, default))
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await delivery.RefreshAsync(fixture.Connection,
-                fixture.Session, new(ReplayProjectionNeeds.Inventory, []), default));
-        Assert.Equal(3, sender.Batches.Count); Assert.Equal(0, gate.TrackedEntryCount);
+            fixture.Connection with { }, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), null, default));
+        Assert.Equal(2, sender.Batches.Count);
+        await delivery.RefreshAsync(fixture.Connection, fixture.Session, new(ReplayProjectionNeeds.Inventory, []), null, default);
+        Assert.Equal(3, sender.Batches.Count);
+        });
     }
 
     [SkippableFact]
@@ -98,6 +78,7 @@ public sealed class ReplayStateSnapshotTests
         await using var fixture = new LearningFixture(configure: services =>
         {
             new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+            RecordedOutbound.AddTo(services);
             services.AddSingleton<INetworkMessageSender, ReplayBatchSender>();
         });
         await fixture.SeedAsync();
@@ -112,21 +93,27 @@ public sealed class ReplayStateSnapshotTests
         var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
             fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var session = store.SessionIn(fixture.Scope.Current!);
-            await session.PutAsync(equipment.Id, 25, await session.CreateAsync(ItemSnapshot.FromCore(
-                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var session = store.SessionIn(fixture.Scope.Current!);
+                await session.PutAsync(equipment.Id, 25, await session.CreateAsync(ItemSnapshot.FromCore(
+                    StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
+                await tx.CommitAsync(default);
+            }
+        });
         var before = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25");
-        var snapshot = await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(fixture.Session,
-            new(ReplayProjectionNeeds.CharacterAppearance, [])));
+        var snapshot = await new ReplayFixture(fixture.Services).ReadAsync(fixture.Session,
+            new(ReplayProjectionNeeds.CharacterAppearance, []), null);
         var pet = snapshot.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single();
         Assert.NotNull(pet.Noti2CreatureMarker);
-        var connection = fixture.Services.GetRequiredService<SelectedSessionSafety>().Capture(fixture.Session).Connection!;
-        await fixture.Services.GetRequiredService<IReplayStateProjectionDelivery>().RefreshAsync(connection, fixture.Session,
-            new(ReplayProjectionNeeds.CharacterAppearance, []), default);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            var connection = fixture.Services.GetRequiredService<SelectedSessionSafety>().Capture(fixture.Session, null).Connection!;
+            await new ReplayFixture(fixture.Services).RefreshAsync(connection, fixture.Session,
+                new(ReplayProjectionNeeds.CharacterAppearance, []), null, default);
+        });
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
         var frames = Assert.Single(sender.Batches); Assert.Equal(2, frames.Length);
         Assert.All(frames, frame => { Assert.Equal(0, frame[0]); Assert.Equal(2, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))); });
@@ -155,51 +142,28 @@ public sealed class ReplayStateSnapshotTests
     [Fact]
     public async Task Wrong_owner_stale_session_unknown_needs_and_nonphysical_slots_cannot_read()
     {
-        using var fixture = new ShopFixture(); var bus = fixture.Services.GetRequiredService<ICommandBus>();
+        using var fixture = new ShopFixture(); var bus = DomainCommandFixture.Bus(fixture.Services);
         var original = fixture.Session;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(original with { AccountId = new(999) }, new(ReplayProjectionNeeds.Inventory, []))));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,original with { AccountId = new(999) }, new(ReplayProjectionNeeds.Inventory, []), null));
         fixture.Select(2);
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))));
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(fixture.Session, new((ReplayProjectionNeeds)4096, []))));
-        await Assert.ThrowsAsync<InventorySlotMappingException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(fixture.Session, new(ReplayProjectionNeeds.Inventory,
-                [new(BusinessInventorySpace.VirtualResource, 0)]))));
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await bus.SendAsync(
-            new ReadReplayStateCommand(fixture.Session, new(ReplayProjectionNeeds.Inventory,
-                [new(BusinessInventorySpace.GuardianGem, 0)]))));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,original, new(ReplayProjectionNeeds.Inventory, []), null));
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new((ReplayProjectionNeeds)4096, []), null));
+        await Assert.ThrowsAsync<InventorySlotMappingException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new(ReplayProjectionNeeds.Inventory,
+                [new(BusinessInventorySpace.VirtualResource, 0)]), null));
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new(ReplayProjectionNeeds.Inventory,
+                [new(BusinessInventorySpace.GuardianGem, 0)]), null));
         Assert.Equal(100000, fixture.Gold);
     }
 
     [Fact]
-    public async Task Replacement_while_waiting_for_lifecycle_lease_rejects_the_original_read()
+    public async Task A_replacement_selected_before_the_original_read_runs_rejects_that_read()
     {
-        using var fixture = new ShopFixture(); var gate = fixture.Services.GetRequiredService<SelectedSessionTransitionGate>();
+        using var fixture = new ShopFixture();
         var original = fixture.Session;
-        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Task holder;
-        using (ExecutionContext.SuppressFlow())
-            holder = Task.Run(async () =>
-            {
-                await using var exclusive = await gate.AcquireAsync(original.AccountId, UserAccessMode.Exclusive, default);
-                held.SetResult(); await release.Task;
-            });
-        await held.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        try
-        {
-            // Invoke on this flow: Capture runs synchronously before the first 45 lease await.
-            // The exclusive holder is a different flow, so this cannot accidentally borrow it.
-            var pending = fixture.Services.GetRequiredService<ICommandBus>().SendAsync(
-                new ReadReplayStateCommand(original, new(ReplayProjectionNeeds.Inventory, []))).AsTask();
-            Assert.False(pending.IsCompleted);
-            fixture.Select(2); release.SetResult();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
-        }
-        finally { release.TrySetResult(); await holder.WaitAsync(TimeSpan.FromSeconds(5)); }
-        Assert.Equal(0, gate.TrackedEntryCount);
+        // The replacement is a CMD that completes before the original read's CMD runs.
+        fixture.Select(2);
+        var pending = Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,original, new(ReplayProjectionNeeds.Inventory, []), null).AsTask();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
     }
 
     [Fact]
@@ -208,12 +172,15 @@ public sealed class ReplayStateSnapshotTests
         var barriers = new ReadBarriers();
         using var fixture = new ShopFixture(services => services.AddSingleton<ICharacterInventoryEntryRepository>(provider =>
             new DelayedInventory(provider.GetRequiredService<InventoryEntryAssembly>(), barriers)));
+        // Staged on another account: the seed is a CMD and cannot run while the read's CMD is paused, so the
+        // mid-read write below moves the row to account 1 with raw SQL instead.
+        await fixture.SeedShared(3262, 7, account: 99);
         var read = Read(fixture, ReplayProjectionNeeds.Inventory);
         await barriers.Read.Task.WaitAsync(TimeSpan.FromSeconds(5));
         try
         {
             fixture.Sql("UPDATE character_stats SET carried_gold=200000 WHERE character_id=1");
-            await fixture.SeedShared(3262, 7);
+            fixture.Sql("UPDATE item_slots SET owner_id=1 WHERE owner_scope='account' AND owner_id=99 AND list_type=240");
             barriers.Release.TrySetResult();
             var snapshot = await read.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(100000, snapshot.Inventory!.Character().VirtualResources.Single(x => x.SlotIndex == 0).Value);
@@ -231,7 +198,7 @@ public sealed class ReplayStateSnapshotTests
         using var fixture = new ShopFixture();
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await fixture.Services
             .GetRequiredService<IReplayStateDomainService>().ReadAsync(fixture.Session,
-                new(ReplayProjectionNeeds.Inventory, []), default));
+                new(ReplayProjectionNeeds.Inventory, []), null, default));
     }
 
     [Fact]
@@ -242,7 +209,6 @@ public sealed class ReplayStateSnapshotTests
         await fixture.Seed(69, 1000, 2);
         await Assert.ThrowsAsync<IOException>(() => Read(fixture, ReplayProjectionNeeds.Inventory));
         Assert.Equal(2, fixture.Count(1000)); Assert.Equal(100000, fixture.Gold);
-        Assert.Equal(0, fixture.Services.GetRequiredService<SelectedSessionTransitionGate>().TrackedEntryCount);
     }
 
     [Fact]
@@ -257,18 +223,21 @@ public sealed class ReplayStateSnapshotTests
                     ["Premium:BlackDiamondExtraFatigue"] = "32", ["Fatigue:BaseTotal"] = "156" }).Build()));
         });
         await fixture.SeedAsync();
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            await fixture.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(fixture.Session.CharacterId, 7, default);
-            await fixture.Services.GetRequiredService<IItemUsageDomainService>().RecordUseAsync(fixture.Session.CharacterId, 1, default);
-            await fixture.Services.GetRequiredService<IPremiumServiceUsageTable>().TryWriteAsync(fixture.Session.CharacterId,
-                "lottery_double_reward_used", null, 1, clock.Now, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                await fixture.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(fixture.Session.CharacterId, 7, default);
+                await fixture.Services.GetRequiredService<IItemUsageDomainService>().RecordUseAsync(fixture.Session.CharacterId, 1, default);
+                await fixture.Services.GetRequiredService<IPremiumServiceUsageTable>().TryWriteAsync(fixture.Session.CharacterId,
+                    "lottery_double_reward_used", null, 1, clock.Now, default);
+                await tx.CommitAsync(default);
+            }
+        });
         var at = clock.Now;
         rules.BeforeRead = () => clock.Now = at.AddMinutes(2);
-        var state = await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(fixture.Session,
-            new(ReplayProjectionNeeds.Fatigue | ReplayProjectionNeeds.ItemUsage | ReplayProjectionNeeds.Premium, [])));
+        var state = await new ReplayFixture(fixture.Services).ReadAsync(fixture.Session,
+            new(ReplayProjectionNeeds.Fatigue | ReplayProjectionNeeds.ItemUsage | ReplayProjectionNeeds.Premium, []), null);
         Assert.Equal(at, state.At); Assert.Equal(at.AddMinutes(2), clock.Now);
         Assert.Equal(7, state.Fatigue!.Value.Used);
         Assert.Equal(1, Assert.Single(state.ItemUsage).UsedCount);
@@ -289,32 +258,38 @@ public sealed class ReplayStateSnapshotTests
         var equipment = new PersistentItemContainer(ContainerId.ForCharacter(fixture.Session.CharacterId, InventoryContainerType.Equipment), new(InventoryContainerType.Equipment, 0), store, fixture.Scope,
             fixture.Services.GetRequiredService<IItemPlacementRuleService>(),
             fixture.Services.GetRequiredService<IItemSlotRuleService>());
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var session = store.SessionIn(fixture.Scope.Current!);
-            await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
-                StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var session = store.SessionIn(fixture.Scope.Current!);
+                await session.PutAsync(equipment.Id, 24, await session.CreateAsync(ItemSnapshot.FromCore(
+                    StackableItemCore.Create(5, 63000, 1), false, creature: new(50, 1, 0, 0, 0, 1, [65], 0)), default), default);
+                await tx.CommitAsync(default);
+            }
+        });
         var identity = fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24");
-        var snapshot = await fixture.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(fixture.Session,
-            new(ReplayProjectionNeeds.Inventory, [])));
+        var snapshot = await new ReplayFixture(fixture.Services).ReadAsync(fixture.Session,
+            new(ReplayProjectionNeeds.Inventory, []), null);
         Assert.Equal(24, snapshot.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single().SlotIndex);
         Assert.Equal(identity, fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24"));
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25"));
-        await using (var tx = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var entry = await fixture.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
-                .LoadAsync(fixture.Session.AccountId, fixture.Session.CharacterId, default);
-            Assert.Equal(25, entry.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single().SlotIndex);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = fixture.Scope.Begin())
+            {
+                var entry = await fixture.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+                    .LoadAsync(fixture.Session.AccountId, fixture.Session.CharacterId, default);
+                Assert.Equal(25, entry.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single().SlotIndex);
+                await tx.CommitAsync(default);
+            }
+        });
         Assert.Equal(identity, fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25"));
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24"));
     }
 
     private static Task<ReplayStateSnapshot> Read(ShopFixture f, ReplayProjectionNeeds needs) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadReplayStateCommand(f.Session, new(needs, []))).AsTask();
+        new ReplayFixture(f.Services).ReadAsync(f.Session, new(needs, []), null).AsTask();
     private static InventoryItemState MainItem(ReplayStateSnapshot s) => s.Inventory!.Character().Containers
         .Single(x => x.ContainerType == InventoryContainerType.Main).Items.Single();
     private sealed class Clock : TimeProvider
@@ -348,30 +323,58 @@ public sealed class ReplayStateSnapshotTests
             CharacterId character, CancellationToken ct)
         { await inner.LoadCharacterAsync(account, character, ct); throw new IOException("late current inventory read"); }
     }
-    // Exercise the registered Protocol delivery, command bus and actual encoders. Socket registry,
-    // cap validation and captured transport are separately exercised by PreparedBatchTests.
-    private sealed class ReplayBatchSender(IServiceProvider provider) : INetworkMessageSender
+    // Exercise the registered Protocol delivery, command bus and actual encoders, now through the real registration
+    // adapter and outbox (TASK-25): this forwards every call to it and reads back the prepared batches it registered.
+    // A single send or an explicit delivery fails where it is registered, as the old double refused them. Socket
+    // registry, cap validation and captured transport are separately exercised by PreparedBatchTests.
+    private sealed class ReplayBatchSender : INetworkMessageSender
     {
-        public List<byte[][]> Batches { get; } = [];
-        public NetworkConnectionContext? Connection { get; private set; }
+        private readonly RecordedOutbound outbound;
+
+        public ReplayBatchSender(RecordedOutbound outbound)
+        {
+            this.outbound = outbound;
+            outbound.FailAny(_ => outbound.ExplicitInFlight is null && !outbound.BatchInFlight,
+                () => new NotSupportedException("Replay must use the typed batch."));
+            outbound.FailAny(_ => outbound.ExplicitInFlight is not null,
+                () => new NotSupportedException("Replay must not repeat explicit historical delivery."));
+        }
+
+        public List<byte[][]> Batches => [.. outbound.Batches.Select(batch => batch.Frames)];
+        public NetworkConnectionContext? Connection => outbound.Batches.LastOrDefault().Connection;
         public Func<Task>? BeforeSend { get; set; }
         public async ValueTask SendBatchAsync(NetworkConnectionContext expected, IReadOnlyList<IServerNetworkMessage> messages, CancellationToken ct)
         {
-            var registrations = provider.GetServices<ServerMessageEncoderRegistration>().ToDictionary(x => x.MessageType);
-            var frames = messages.SelectMany(message => ((IServerMessageEncoder)provider.GetRequiredService(registrations[message.GetType()].EncoderType))
-                .Encode(message)).Select(x => x.ToArray()).ToArray();
             if (BeforeSend is not null) await BeforeSend();
-            Connection = expected; Batches.Add(frames);
+            await outbound.Network.SendBatchAsync(expected, messages, ct);
         }
         public ValueTask SendAsync(NetworkConnectionId id, IServerNetworkMessage message, CancellationToken ct) =>
-            ValueTask.FromException(new NotSupportedException("Replay must use the typed batch."));
+            outbound.Network.SendAsync(id, message, ct);
         public ValueTask SendExplicitAsync(NetworkConnectionId id, ExplicitMessageDelivery delivery, CancellationToken ct) =>
-            ValueTask.FromException(new NotSupportedException("Replay must not repeat explicit historical delivery."));
+            outbound.Network.SendExplicitAsync(id, delivery, ct);
+    }
+    private sealed class ReplayFixture(IServiceProvider services)
+    {
+        internal ValueTask<ReplayStateSnapshot> ReadAsync(Dfo.Server.Data.World.SelectedSessionIdentity session, ReplayProjectionRequest request,GameMessageMetadata? metadata) =>
+            new(TestGameplay.RunAsync(services,async()=>{
+                var safety=services.GetRequiredService<SelectedSessionSafety>();var recipient=safety.Capture(session,metadata);
+                await using var tx=services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var snapshot=await services.GetRequiredService<IReplayStateDomainService>().ReadAsync(session,request,metadata,default);
+                safety.DemandCurrent(recipient);await tx.CommitAsync(default);return snapshot;
+            }));
+        internal async ValueTask RefreshAsync(NetworkConnectionContext connection,Dfo.Server.Data.World.SelectedSessionIdentity session,ReplayProjectionRequest request,GameMessageMetadata? metadata,CancellationToken ct)
+        {
+            var safety=services.GetRequiredService<SelectedSessionSafety>();var recipient=safety.Capture(session,metadata);
+            if(!ReferenceEquals(connection,recipient.Connection))throw new InvalidOperationException("Replay requires its exact original connection.");
+            var snapshot=await ReadAsync(session,request,metadata);safety.DemandCurrent(recipient);
+            await services.GetRequiredService<IReplayStateProjectionSink>().ProjectAsync(connection,session,metadata,snapshot,null,ct);
+        }
     }
     private sealed record AddGoldProbe(Dfo.Server.Data.World.SelectedSessionIdentity Session)
-        : ICommand<GoldProbeResult>, ISelectedSessionCommand, IAccountCommand
+        : ICommand<GoldProbeResult>, IDomainFixtureParticipants
     {
         public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
+        public IReadOnlyList<Dfo.Server.Data.World.SelectedSessionIdentity> Participants=>[Session];
     }
     private sealed record GoldProbeResult(int Gold);
     private sealed class AddGoldProbeHandler(ICharacterCarriedGoldTable gold) : ICommandHandler<AddGoldProbe, GoldProbeResult>

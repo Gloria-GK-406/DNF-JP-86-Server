@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
@@ -14,6 +15,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -36,7 +38,7 @@ public sealed class EquipmentSocketTests
         else Assert.Equal(65, request.DrillSlot);
     }
 
-    private sealed class Content : IItemSocketDefinitionSource, IItemPlacementDefinitionSource
+    internal sealed class Content : IItemSocketDefinitionSource, IItemPlacementDefinitionSource
     {
         public long DrillExpiresAt { get; set; }
         public ImmutableArray<ushort> EquipmentTypes { get; set; } = [4, 4];
@@ -55,19 +57,19 @@ public sealed class EquipmentSocketTests
             _ => new NpcShopTestContent().GetAsync(id, ct),
         };
     }
-    private static ShopFixture Fixture(Content? content = null)
+    internal static ShopFixture Fixture(Content? content = null, Action<IServiceCollection>? configure = null)
     {
         content ??= new();
-        var f = new ShopFixture(s => { s.AddSingleton<IItemSocketDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); });
-        f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+        var f = new ShopFixture(s => { s.AddSingleton<IItemSocketDefinitionSource>(content); s.AddSingleton<IItemPlacementDefinitionSource>(content); configure?.Invoke(s); });
+        TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar), new(InventoryContainerType.Avatar, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
     }
-    private static InventoryItemCoreState Equipment(byte sockets = 0) => StackableItemCore.Create(1, 3000, 123456) with
+    internal static InventoryItemCoreState Equipment(byte sockets = 0) => StackableItemCore.Create(1, 3000, 123456) with
     { Attribute = 7, Durability = 45, EnchantCardId = 3600, EmblemSocketCount = sockets, EmblemId1 = sockets > 0 ? -1 : 0, EmblemId2 = sockets == 2 ? -1 : 0 };
-    private static async Task Seed(ShopFixture f, byte sockets = 0, int drillCount = 2, int emblemCount = 3)
+    internal static async Task Seed(ShopFixture f, byte sockets = 0, int drillCount = 2, int emblemCount = 3)
     { await f.SeedCore(9, Equipment(sockets)); await f.Seed(65, 4000, drillCount); await f.Seed(289, 5000, emblemCount, 9); }
     private static ItemSocketInput Open(bool avatar = false) => new(avatar, true,
         new(avatar ? BusinessInventorySpace.Avatar : BusinessInventorySpace.CarriedEquipment, 0), avatar ? 3001 : 3000,
@@ -76,11 +78,14 @@ public sealed class EquipmentSocketTests
         new(BusinessInventorySpace.CarriedEquipment, 0), 3000, null, emblems.ToImmutableArray());
     private static EmblemPlacement Green(byte index, int id = 5000, int slot = 0) => new(new(BusinessInventorySpace.AvatarEmblem, slot), id, index);
     private static Task<ItemSocketResult> Apply(ShopFixture f, ItemSocketInput input) =>
-        f.Services.GetRequiredService<ICommandBus>().SendAsync(new ItemSocketCommand(f.OnlineUser, f.Session, input)).AsTask();
-    private static async Task<ItemSnapshot> Read(ShopFixture f, InventoryContainerType list, int slot)
+        ItemSocketDomainTestDriver.Apply(f, f.Session, input);
+    internal static async Task<ItemSnapshot> Read(ShopFixture f, InventoryContainerType list, int slot)
     {
-        await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
-        return (await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Services.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(ContainerId.ForCharacter(f.Session.CharacterId, list), slot, default))!.Snapshot;
+        return await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            return (await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Services.GetRequiredService<IDomainTransactionAccessor>().Current!).GetAsync(ContainerId.ForCharacter(f.Session.CharacterId, list), slot, default))!.Snapshot;
+        });
     }
     private static ValueTask SendOpen(ShopFixture f, ushort sequence = 7) => EffectRequestTransport.Send(f,
         new ItemSocketRequest(new(1, 0x037A, 0, sequence), InventoryContainerType.Main, 9, 3000, 65, []));
@@ -161,15 +166,18 @@ public sealed class EquipmentSocketTests
     [Fact]
     public async Task Database_commit_failure_does_not_leave_open_sockets_or_spent_drill()
     {
-        using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
-        f.Sql("CREATE TABLE socket_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.NotNull((await f.Services.GetRequiredService<IItemSocketDomainService>().ApplyAsync(f.Session, Open(), default)).Receipt);
-            await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) => { cmd.CommandText = "INSERT INTO socket_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
-            await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
-        }
-        Assert.Equal(before, f.StoredCore(9)); Assert.Equal(2, f.Count(4000));
+            using var f = Fixture(); await Seed(f); var before = f.StoredCore(9);
+            f.Sql("CREATE TABLE socket_commit_probe(account_id INTEGER REFERENCES accounts(account_id) DEFERRABLE INITIALLY DEFERRED)");
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                Assert.NotNull((await TestEffectFootprints.Run(f.Session, footprint => f.Services.GetRequiredService<IItemSocketDomainService>().ApplyAsync(f.Session, Open(), footprint, default))).Receipt);
+                await f.Services.GetRequiredService<SqliteDatabase>().WriteAsync(async (cmd, ct) => { cmd.CommandText = "INSERT INTO socket_commit_probe VALUES(99999)"; await cmd.ExecuteNonQueryAsync(ct); }, default);
+                await Assert.ThrowsAsync<SqliteException>(async () => await tx.CommitAsync(default));
+            }
+            Assert.Equal(before, f.StoredCore(9)); Assert.Equal(2, f.Count(4000));
+        });
     }
     [Fact]
     public async Task Open_ack_is_five_bytes_before_absolute_material_and_target_updates_and_replay_does_not_decrement_twice()
@@ -195,7 +203,7 @@ public sealed class EquipmentSocketTests
         using var f = Fixture(); await Seed(f, drillCount: 0); await SendOpen(f);
         Assert.Equal(new byte[] { 0, 0x11 }, Assert.Single(Frames(f))[15..]);
         await f.Seed(65, 4000, 2); var old = f.Session; f.Select(2);
-        await Assert.ThrowsAnyAsync<Exception>(async () => await f.Services.GetRequiredService<ICommandBus>().SendAsync(new ItemSocketCommand(f.OnlineUser, old, Open())));
+        await Assert.ThrowsAnyAsync<Exception>(async () => await ItemSocketDomainTestDriver.Apply(f, old, Open()));
         Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
     }
     [Theory]
@@ -207,12 +215,15 @@ public sealed class EquipmentSocketTests
         await f.SeedCore(0, StackableItemCore.Create(8, 3001, 98765), list); await f.Seed(65, 4001, 2);
         await f.Seed(289, 5003, 1, 9); await f.Seed(290, 5000, 2, 9);
         var slot = new BusinessSlot(worn ? BusinessInventorySpace.WornAvatar : BusinessInventorySpace.Avatar, 0);
-        await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+        await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var bound = f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Find(f.Session.CharacterId, slot)!;
-            await bound.Container.UpdateAsync((await bound.Container.GetAsync(0, default))!, x => x with { AppearanceItemId = 123, AvatarDetail = x.AvatarDetail! with { Color1 = 12, Color2 = 34 } }, default);
-            await tx.CommitAsync(default);
-        }
+            await using (var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin())
+            {
+                var bound = f.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Find(f.Session.CharacterId, slot)!;
+                await bound.Container.UpdateAsync((await bound.Container.GetAsync(0, default))!, x => x with { AppearanceItemId = 123, AvatarDetail = x.AvatarDetail! with { Color1 = 12, Color2 = 34 } }, default);
+                await tx.CommitAsync(default);
+            }
+        });
         var before = await Read(f, list, 0);
         Assert.NotNull((await Apply(f, Open(true) with { Target = slot })).Receipt);
         Assert.NotNull((await Apply(f, new(true, false, slot, 3001, null, [Green(0, 5003), Green(1, 5000, 1), Green(2, 5000, 1)]))).Receipt);
@@ -233,7 +244,7 @@ public sealed class EquipmentSocketTests
     public async Task Real_pvf_defines_eligible_parts_drills_and_colours_without_opening_weapons()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
-        using var f = new ShopFixture(); var source = f.Services.GetRequiredService<IItemSocketDefinitionSource>();
+        using var f = new ShopFixture(useArchive: true); var source = f.Services.GetRequiredService<IItemSocketDefinitionSource>();
         Assert.Equal(new ushort[] { 4, 4 }, (await source.TargetAsync(10018, default))!.OpenTypes);
         Assert.Null(await source.TargetAsync(27001, default));
         Assert.False((await source.DrillAsync(2749124, default))!.Avatar); Assert.True((await source.DrillAsync(7421, default))!.Avatar);
@@ -259,11 +270,11 @@ public sealed class EquipmentSocketTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
-        if (avatar) f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
+        if (avatar) TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar), new(InventoryContainerType.Avatar, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+                f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         var list = avatar ? InventoryContainerType.Avatar : InventoryContainerType.Main;
         ushort slot = avatar ? (ushort)0 : (ushort)9;
         await f.SeedCore(slot, StackableItemCore.Create(avatar ? (byte)8 : (byte)1, targetId, 123456), list);

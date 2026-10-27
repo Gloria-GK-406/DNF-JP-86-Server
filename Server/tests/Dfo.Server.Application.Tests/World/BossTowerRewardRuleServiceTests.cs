@@ -4,6 +4,7 @@ using Dfo.Server.Application.World.BossTower;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class BossTowerRewardRuleServiceTests
 {
     [Fact]

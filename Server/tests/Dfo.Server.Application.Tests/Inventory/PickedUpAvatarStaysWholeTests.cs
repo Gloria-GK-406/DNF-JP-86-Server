@@ -12,6 +12,8 @@ using Dfo.Server.Persistence.Tests.Support;
 using Dfo.Server.Protocol.Game.GroundPickup;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
+using Dfo.Server.Application.Tests.Support;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -119,36 +121,39 @@ public sealed class PickedUpAvatarStaysWholeTests
     [SkippableFact]
     public async Task An_avatar_taken_off_the_floor_is_served_again_with_its_six_facts()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var content = ContentArchive.CreateContentProvider();
-
-        await WithASeededCharacterAsync(content, async (side, handler, runs) =>
+        await TestGameplay.RunAsync(async () =>
         {
-            var lying = Assert.Single(BeginWithDrops(
-                runs, (30011, [Dropped(AvatarItemId)])));
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var content = ContentArchive.CreateContentProvider();
 
-            var taken = await side.InUseCaseAsync(token => PickUp(handler, lying.Number, token));
+            await WithASeededCharacterAsync(content, async (side, handler, runs) =>
+            {
+                var lying = Assert.Single(BeginWithDrops(
+                    runs, (30011, [Dropped(AvatarItemId)])));
 
-            Assert.Equal(GroundPickupStatus.PickedUp, taken.Status);
-            Assert.Equal(AvatarItemId, taken.ItemId);
+                var taken = await side.InUseCaseAsync(token => PickUp(handler, lying.Number, token));
 
-            var served = await OneItemAsync(side, taken.SlotIndex);
-            Assert.Equal(AvatarItemId, served.Core.ItemId);
-            Assert.Equal(KindStorageJudgesAnAvatarBy, served.Core.ItemKind);
+                Assert.Equal(GroundPickupStatus.PickedUp, taken.Status);
+                Assert.Equal(AvatarItemId, taken.ItemId);
 
-            // Its own identity, which is what the load, the save and both projections demand of a
-            // standing avatar.
-            Assert.True(served.Core.Value > 0);
+                var served = await OneItemAsync(side, taken.SlotIndex);
+                Assert.Equal(AvatarItemId, served.Core.ItemId);
+                Assert.Equal(KindStorageJudgesAnAvatarBy, served.Core.ItemKind);
 
-            var facts = served.AvatarDetail;
-            Assert.NotNull(facts);
-            Assert.Equal(NeverExpires, facts!.ExpireDate);
-            Assert.Equal(0, facts.ClearAvatarId);
-            Assert.Equal(JewelSocketLength, facts.JewelSocket.Length);
-            Assert.All(facts.JewelSocket, value => Assert.Equal(0, value));
-            Assert.Equal(0, facts.Color1);
-            Assert.Equal(0, facts.Color2);
-            Assert.Equal(0, facts.DeleteDate);
+                // Its own identity, which is what the load, the save and both projections demand of a
+                // standing avatar.
+                Assert.True(served.Core.Value > 0);
+
+                var facts = served.AvatarDetail;
+                Assert.NotNull(facts);
+                Assert.Equal(NeverExpires, facts!.ExpireDate);
+                Assert.Equal(0, facts.ClearAvatarId);
+                Assert.Equal(JewelSocketLength, facts.JewelSocket.Length);
+                Assert.All(facts.JewelSocket, value => Assert.Equal(0, value));
+                Assert.Equal(0, facts.Color1);
+                Assert.Equal(0, facts.Color2);
+                Assert.Equal(0, facts.DeleteDate);
+            });
         });
     }
 
@@ -166,38 +171,41 @@ public sealed class PickedUpAvatarStaysWholeTests
     [SkippableFact]
     public async Task Two_avatars_off_one_kill_keep_two_identities_of_their_own()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var content = ContentArchive.CreateContentProvider();
-
-        await WithASeededCharacterAsync(content, async (side, handler, runs) =>
+        await TestGameplay.RunAsync(async () =>
         {
-            var pair = BeginWithDrops(
-                runs, (30012, [Dropped(AvatarItemId), Dropped(AvatarItemId)]));
-            Assert.Equal(2, pair.Length);
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var content = ContentArchive.CreateContentProvider();
 
-            var earlier = await side.InUseCaseAsync(token => PickUp(handler, pair[0].Number, token));
-            var later = await side.InUseCaseAsync(token => PickUp(handler, pair[1].Number, token));
+            await WithASeededCharacterAsync(content, async (side, handler, runs) =>
+            {
+                var pair = BeginWithDrops(
+                    runs, (30012, [Dropped(AvatarItemId), Dropped(AvatarItemId)]));
+                Assert.Equal(2, pair.Length);
 
-            Assert.Equal(GroundPickupStatus.PickedUp, earlier.Status);
-            Assert.Equal(GroundPickupStatus.PickedUp, later.Status);
-            Assert.NotEqual(earlier.SlotIndex, later.SlotIndex);
+                var earlier = await side.InUseCaseAsync(token => PickUp(handler, pair[0].Number, token));
+                var later = await side.InUseCaseAsync(token => PickUp(handler, pair[1].Number, token));
 
-            // Read out of the container rather than out of the entry load, and read first. The
-            // load refuses a row whose facts are missing, so asking it before this comparison
-            // would let the refusal answer for the comparison and leave what the two cores
-            // actually carry untested.
-            var (one, other) = await side.InUseCaseAsync(async token => (
-                await Bag(side).GetAsync(earlier.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side).GetAsync(later.SlotIndex, token).ConfigureAwait(false)));
-            Assert.NotNull(one);
-            Assert.NotNull(other);
+                Assert.Equal(GroundPickupStatus.PickedUp, earlier.Status);
+                Assert.Equal(GroundPickupStatus.PickedUp, later.Status);
+                Assert.NotEqual(earlier.SlotIndex, later.SlotIndex);
 
-            // Not each other. One announced value written into both cores would fail here.
-            Assert.NotEqual(one!.Snapshot.ToCore().Value, other!.Snapshot.ToCore().Value);
+                // Read out of the container rather than out of the entry load, and read first. The
+                // load refuses a row whose facts are missing, so asking it before this comparison
+                // would let the refusal answer for the comparison and leave what the two cores
+                // actually carry untested.
+                var (one, other) = await side.InUseCaseAsync(async token => (
+                    await Bag(side).GetAsync(earlier.SlotIndex, token).ConfigureAwait(false),
+                    await Bag(side).GetAsync(later.SlotIndex, token).ConfigureAwait(false)));
+                Assert.NotNull(one);
+                Assert.NotNull(other);
 
-            // And both are still things the load serves, which is the half above.
-            Assert.NotNull((await OneItemAsync(side, earlier.SlotIndex)).AvatarDetail);
-            Assert.NotNull((await OneItemAsync(side, later.SlotIndex)).AvatarDetail);
+                // Not each other. One announced value written into both cores would fail here.
+                Assert.NotEqual(one!.Snapshot.ToCore().Value, other!.Snapshot.ToCore().Value);
+
+                // And both are still things the load serves, which is the half above.
+                Assert.NotNull((await OneItemAsync(side, earlier.SlotIndex)).AvatarDetail);
+                Assert.NotNull((await OneItemAsync(side, later.SlotIndex)).AvatarDetail);
+            });
         });
     }
 
@@ -220,45 +228,48 @@ public sealed class PickedUpAvatarStaysWholeTests
     [SkippableFact]
     public async Task A_piece_of_gear_taken_off_the_floor_still_carries_what_the_floor_announced()
     {
-        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
-        using var content = ContentArchive.CreateContentProvider();
-
-        await WithASeededCharacterAsync(content, async (side, handler, runs) =>
+        await TestGameplay.RunAsync(async () =>
         {
-            var all = BeginWithDrops(
-                runs,
-                (30013, [Dropped(WeaponItemId), Dropped(WeaponItemId)]),
-                (30014, [Dropped(WeaponItemId)]));
-            var pair = all[..2];
-            var alone = all[2];
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var content = ContentArchive.CreateContentProvider();
 
-            var first = await side.InUseCaseAsync(token => PickUp(handler, pair[0].Number, token));
-            var second = await side.InUseCaseAsync(token => PickUp(handler, pair[1].Number, token));
-            var third = await side.InUseCaseAsync(token => PickUp(handler, alone.Number, token));
+            await WithASeededCharacterAsync(content, async (side, handler, runs) =>
+            {
+                var all = BeginWithDrops(
+                    runs,
+                    (30013, [Dropped(WeaponItemId), Dropped(WeaponItemId)]),
+                    (30014, [Dropped(WeaponItemId)]));
+                var pair = all[..2];
+                var alone = all[2];
 
-            Assert.Equal(GroundPickupStatus.PickedUp, first.Status);
-            Assert.Equal(GroundPickupStatus.PickedUp, second.Status);
-            Assert.Equal(GroundPickupStatus.PickedUp, third.Status);
+                var first = await side.InUseCaseAsync(token => PickUp(handler, pair[0].Number, token));
+                var second = await side.InUseCaseAsync(token => PickUp(handler, pair[1].Number, token));
+                var third = await side.InUseCaseAsync(token => PickUp(handler, alone.Number, token));
 
-            var (one, other, apart) = await side.InUseCaseAsync(async token => (
-                await Bag(side, InventoryContainerType.Main).GetAsync(first.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side, InventoryContainerType.Main).GetAsync(second.SlotIndex, token).ConfigureAwait(false),
-                await Bag(side, InventoryContainerType.Main).GetAsync(third.SlotIndex, token).ConfigureAwait(false)));
-            Assert.NotNull(one);
-            Assert.NotNull(other);
-            Assert.NotNull(apart);
+                Assert.Equal(GroundPickupStatus.PickedUp, first.Status);
+                Assert.Equal(GroundPickupStatus.PickedUp, second.Status);
+                Assert.Equal(GroundPickupStatus.PickedUp, third.Status);
 
-            // One kill, one value.
-            Assert.Equal(one!.Snapshot.ToCore().Value, other!.Snapshot.ToCore().Value);
+                var (one, other, apart) = await side.InUseCaseAsync(async token => (
+                    await Bag(side, InventoryContainerType.Main).GetAsync(first.SlotIndex, token).ConfigureAwait(false),
+                    await Bag(side, InventoryContainerType.Main).GetAsync(second.SlotIndex, token).ConfigureAwait(false),
+                    await Bag(side, InventoryContainerType.Main).GetAsync(third.SlotIndex, token).ConfigureAwait(false)));
+                Assert.NotNull(one);
+                Assert.NotNull(other);
+                Assert.NotNull(apart);
 
-            // Another kill, another value -- and neither is the count the bag opened the slot with.
-            Assert.NotEqual(one.Snapshot.ToCore().Value, apart!.Snapshot.ToCore().Value);
-            Assert.NotEqual(one.Count, one.Snapshot.ToCore().Value);
+                // One kill, one value.
+                Assert.Equal(one!.Snapshot.ToCore().Value, other!.Snapshot.ToCore().Value);
 
-            // Not broken, on all three.
-            Assert.Equal(AnnouncedDurability, one.Snapshot.ToCore().Durability);
-            Assert.Equal(AnnouncedDurability, other.Snapshot.ToCore().Durability);
-            Assert.Equal(AnnouncedDurability, apart.Snapshot.ToCore().Durability);
+                // Another kill, another value -- and neither is the count the bag opened the slot with.
+                Assert.NotEqual(one.Snapshot.ToCore().Value, apart!.Snapshot.ToCore().Value);
+                Assert.NotEqual(one.Count, one.Snapshot.ToCore().Value);
+
+                // Not broken, on all three.
+                Assert.Equal(AnnouncedDurability, one.Snapshot.ToCore().Durability);
+                Assert.Equal(AnnouncedDurability, other.Snapshot.ToCore().Durability);
+                Assert.Equal(AnnouncedDurability, apart.Snapshot.ToCore().Durability);
+            });
         });
     }
 
@@ -311,10 +322,9 @@ public sealed class PickedUpAvatarStaysWholeTests
     }
 
     private static ValueTask<GroundPickupResult> PickUp(
-        PickUpGroundDropCommandHandler handler, ushort number, CancellationToken cancellationToken) =>
-        handler.HandleAsync(
-            default!,
-            new PickUpGroundDropCommand(new AccountId(Account), Who, number),
+        GroundPickupAlgorithmDriver handler, ushort number, CancellationToken cancellationToken) =>
+        handler.PickUpAsync(
+            new GroundPickupInput(new AccountId(Account), Who, number),
             cancellationToken);
 
     private static IItemContainer Bag(InventorySide side,
@@ -343,14 +353,14 @@ public sealed class PickedUpAvatarStaysWholeTests
     /// </remarks>
     private static async Task WithASeededCharacterAsync(
         ServiceProvider content,
-        Func<InventorySide, PickUpGroundDropCommandHandler, DungeonRunDomainService, Task> body)
+        Func<InventorySide, GroundPickupAlgorithmDriver, DungeonRunDomainService, Task> body)
     {
         var placements = content.GetRequiredService<IItemPlacementDefinitionSource>();
         var path = Path.Combine(Path.GetTempPath(), $"dfo-picked-avatar-{Guid.NewGuid():N}.db");
         try
         {
             var side = new InventorySide(path, placements);
-            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -366,7 +376,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             side.BindList(InventoryContainerType.Avatar, Character, placements: placements);
 
             var runs = new DungeonRunDomainService();
-            var handler = new PickUpGroundDropCommandHandler(
+            var handler = new GroundPickupAlgorithmDriver(
                 runs,
                 new GroundPickupDomainService(),
                 side.Containers,
@@ -380,7 +390,7 @@ public sealed class PickedUpAvatarStaysWholeTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             try
             {
                 File.Delete(path);

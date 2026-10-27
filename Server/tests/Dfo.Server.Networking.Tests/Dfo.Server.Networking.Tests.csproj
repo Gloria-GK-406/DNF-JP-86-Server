@@ -20,10 +20,23 @@
     <ProjectReference Include="..\..\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
+    <!-- Characterization tests compose the server as Dfo.Server.Host does, launcher HTTP included. -->
+    <ProjectReference Include="..\..\src\Dfo.Server.GameServer\Dfo.Server.GameServer.csproj" />
+    <ProjectReference Include="..\..\src\Dfo.Server.HttpApi\Dfo.Server.HttpApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Dfo.Server.Application.Tests\Support\DungeonRunTestEntryExtensions.cs"
              Link="Support\DungeonRunTestEntryExtensions.cs" />
+    <Compile Include="..\Support\PvfAttributes.cs" Link="Support\PvfAttributes.cs" />
+    <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
+    <Compile Include="..\Support\TestGameplay.cs" Link="Support\TestGameplay.cs" />
+    <Compile Include="..\Support\GameplayAssertionRecorder.cs" Link="Support\GameplayAssertionRecorder.cs" />
+    <Compile Include="..\Support\GameplayAssertionRecorderControlTests.cs" Link="Support\GameplayAssertionRecorderControlTests.cs" />
+    <Compile Include="..\Support\TestCredentials.cs" Link="Support\TestCredentials.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Characterization\Golden\*.hex" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

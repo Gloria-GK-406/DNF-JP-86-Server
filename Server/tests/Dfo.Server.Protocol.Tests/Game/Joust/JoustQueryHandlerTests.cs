@@ -5,7 +5,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Events;
@@ -16,6 +15,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Joust;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Joust;
 
@@ -93,7 +93,7 @@ public sealed class JoustQueryHandlerTests
         var state=new JoustState(true,DateTimeOffset.UnixEpoch,phase,"round",null,null,null,
             [],[1,2,3,4,1,3,1],0,1000,17);
         var session=SelectedSessionIdentity.Create(new(1),new(1),new("joust-test"),1,10010);
-        var handler=new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),new EventProjection(state));
+        var handler=new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),new EventProjection(state), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Characters.ICharacterDomainService>(), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>());
         for(var i=0;i<2;i++)
         {
             var messages=await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
@@ -111,7 +111,7 @@ public sealed class JoustQueryHandlerTests
         var state = new JoustState(false,DateTimeOffset.UnixEpoch,JoustPhase.Betting,"round",null,null,null,[],[],0,0,0);
         var session = SelectedSessionIdentity.Create(new(1),new(1),new("schedule-test"),1,10010);
         var handler = new Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler(new Sessions(session),
-            new EventProjection(state,[new(3700,open)]));
+            new EventProjection(state,[new(3700,open)]), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Characters.ICharacterDomainService>(), Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>());
         var messages = await handler.ComposeAsync(new(new(1),session.ConnectionId),new EventsChanged(),default);
         var schedule = Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>());
         Assert.Equal((ushort)0x033F,schedule.Type);
@@ -130,46 +130,107 @@ public sealed class JoustQueryHandlerTests
         var connection = new NetworkConnectionContext(new("joust-test"), NetworkEndpointKind.Game, 10010);
         var session = SelectedSessionIdentity.Create(new(1), new(1), connection.ConnectionId, 1, 10010);
         var sessions = new Sessions(session);
-        var transitions = new SelectedSessionTransitionGate();
         var sender = new Sender();
         using var services = new ServiceCollection()
             .AddSingleton<ISelectedSessionDomainService>(sessions)
             .AddSingleton<ISelectedSessionSnapshotQuery>(sessions)
             .AddSingleton<IOnlineUserQueryDomainService>(new Users(new(OnlineUserId.New(), connection,
                 session.AccountId, session.CharacterId, OnlineUserState.CharacterActive, 1)))
-            .AddSingleton<ICommandBus>(new Commands(state, history ?? []))
+            .AddSingleton<ICommandBus>(sp => new Commands(sp, state, history ?? []))
             .AddSingleton<IGameMessageSender>(sender)
             .AddSingleton<IEventService>(new Notices())
-            .AddSingleton(transitions)
-            .AddSingleton(sp => new SelectedSessionSafety(sp, transitions, NullLogger<SelectedSessionSafety>.Instance))
+            .AddSingleton(sp => new SelectedSessionSafety(sp, NullLogger<SelectedSessionSafety>.Instance))
             .BuildServiceProvider();
-        var handler = ActivatorUtilities.CreateInstance<JoustQueryHandler>(services);
-        var replies = new List<IReadOnlyList<IGameServerMessage>>();
-        for (var i = 0; i < 2; i++)
+        var replies = await TestGameplay.RunAsync(services, async () =>
         {
-            sender.Sent.Clear();
-            await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, type, 0, 1)), default);
-            replies.Add(sender.Sent.ToArray());
-        }
+            var handler = ActivatorUtilities.CreateInstance<JoustQueryHandler>(services);
+            var replies = new List<IReadOnlyList<IGameServerMessage>>();
+            for (var i = 0; i < 2; i++)
+            {
+                sender.Sent.Clear();
+                await handler.HandleAsync(new(connection), new JoustQueryRequest(new(1, type, 0, 1)), default);
+                replies.Add(sender.Sent.ToArray());
+            }
+            return replies;
+        });
         return [.. replies];
     }
 
-    private sealed class Commands(JoustState state, JoustHistoryEntry[] history) : ICommandBus
+    private sealed class Commands(IServiceProvider services, JoustState state, JoustHistoryEntry[] history) : ICommandBus
     {
-        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        public async ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
             where TResult : notnull
         {
-            object result = command switch
-            {
-                QueryJoustStateCommand => state,
-                QueryJoustHistoryCommand => history,
-                _ => throw new InvalidOperationException("Unexpected query command."),
-            };
-            return ValueTask.FromResult((TResult)result);
+            var query = Assert.IsType<GameJoustQueryCommand>(command);
+            var handler = new GameJoustQueryCommandHandler(services.GetRequiredService<ISelectedSessionDomainService>(),
+                services.GetRequiredService<IOnlineUserQueryDomainService>(), null!, TimeProvider.System,
+                new Units(state, history), (IGameCommandOutbox)services.GetRequiredService<IGameMessageSender>());
+            var execution = DomainCommandFixture.Context(Guid.NewGuid(), query.GetType(), handler.GetType());
+            return (TResult)(object)await handler.HandleAsync(execution, query, cancellationToken);
         }
+    }
+    private sealed class Units(JoustState state, JoustHistoryEntry[] history) : ICommandWorkUnits
+    {
+        public ValueTask<TResult> ReadOnlyAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CancellationToken, ValueTask<TResult>> action, CancellationToken ct = default) where TResult : notnull =>
+            ValueTask.FromResult((TResult)(object)(typeof(TResult) == typeof(JoustState) ? (object)state : history));
+        public ValueTask<TResult> WriteAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken ct = default) where TResult : notnull => throw new InvalidOperationException("A query must be read-only.");
+        public ValueTask<CommandWriteResult<TResult>> WriteResultAsync<TResult>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
+            Func<CommandWorkUnit, CancellationToken, ValueTask<TResult>> action, CancellationToken ct = default) where TResult : notnull => throw new InvalidOperationException("A query must be read-only.");
     }
     private sealed class Sessions(SelectedSessionIdentity session) : ISelectedSessionDomainService, ISelectedSessionSnapshotQuery
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Select(SelectedSessionIdentity value) => throw new NotSupportedException();
         public bool ReleaseExact(SelectedSessionIdentity value) => throw new NotSupportedException();
         public SelectedSessionIdentity? Find(AccountId id) => id == session.AccountId ? session : null;
@@ -193,16 +254,27 @@ public sealed class JoustQueryHandlerTests
     {
         public override ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notice, CancellationToken ct) => throw new InvalidOperationException("A query must not publish notifications.");
     }
-    private sealed class Sender : IGameMessageSender
+    /// <summary>
+    /// What the handler registered, read from the outbox of a real registration adapter (inside the job, what is still
+    /// in it); every call goes to the real protocol sender over it (TASK-25). An explicit delivery fails where it is
+    /// registered, as the old double refused one.
+    /// </summary>
+    private sealed class Sender : IGameMessageSender, IGameCommandOutbox
     {
-        public List<IGameServerMessage> Sent { get; } = [];
-        public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct)
-        { Sent.AddRange(messages); return ValueTask.CompletedTask; }
-        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct)
-        { Sent.Add(message); return ValueTask.CompletedTask; }
-        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct)
-            => throw new NotSupportedException();
+        public ValueTask RegisterCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) => SendCmdAsync(id, message, ct);
+        public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => SendNotiAsync(id, message, ct);
+        public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct) => SendBatchAsync(connection, messages, ct);
+        public ValueTask RegisterExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) => SendExplicitAsync(id, delivery, ct);
+        private readonly RecordedOutbound outbound = new();
+        public Sender() => outbound.RefuseExplicit();
+        public RecordedMessages<IGameServerMessage> Sent => outbound.MessagesAs<IGameServerMessage>();
+        public ValueTask SendBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken ct) =>
+            outbound.Game.SendBatchAsync(connection, messages, ct);
+        public ValueTask SendCmdAsync(NetworkConnectionId id, IGameCmdMessage message, CancellationToken ct) =>
+            outbound.Game.SendCmdAsync(id, message, ct);
+        public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) =>
+            outbound.Game.SendNotiAsync(id, message, ct);
+        public ValueTask SendExplicitAsync(NetworkConnectionId id, GameExplicitMessageDelivery delivery, CancellationToken ct) =>
+            outbound.Game.SendExplicitAsync(id, delivery, ct);
     }
 }

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Notices;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Notices;
@@ -9,7 +10,7 @@ using Dfo.Server.Data.OnlineUsers;
 namespace Dfo.Server.Application.Notices;
 
 internal sealed class NoticeStateDomainService(INoticeStateTable table,
-    IOnlineUserQueryDomainService users, ICharacterTable characters,
+    IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions, ICharacterTable characters,
     IDomainTransactionAccessor transactions) : INoticeStateDomainService
 {
     public async ValueTask<bool> MarkSeenAsync(GameSessionIdentity session, NoticeOwner owner,
@@ -27,8 +28,8 @@ internal sealed class NoticeStateDomainService(INoticeStateTable table,
         {
             if (owner.Id != accountId.Value) return false;
         }
-        else if (user.State != OnlineUserState.CharacterActive
-            || user.CurrentCharacterId != new CharacterId(owner.Id)
+        else if (!sessions.TryGetInWorld(session.ConnectionId, out var playing)
+            || playing.CharacterId != new CharacterId(owner.Id)
             || await characters.FindOwnerAsync(new CharacterId(owner.Id), cancellationToken) != accountId)
         {
             return false;

@@ -9,8 +9,8 @@ public sealed record SelectedSessionIdentity(
     AccountId AccountId,
     CharacterId CharacterId,
     NetworkConnectionId ConnectionId,
-    // Generation observed before BindCharacter publishes the selected character. The
-    // online-user aggregate advances independently after publication.
+    // Generation observed before the session enters the world. Entering advances the
+    // online user's generation; this one stays the one the selection was made under.
     long ConnectionGeneration,
     ushort WireUserId,
     int ListenerPort)
@@ -39,3 +39,26 @@ public sealed record SelectedSessionIdentity(
         return checked((ushort)characterId.Value);
     }
 }
+
+/// <summary>How far a selected session has got.</summary>
+public enum SelectedSessionPhase
+{
+    /// <summary>Selected and still loading: current, but not yet standing anywhere.</summary>
+    Selected,
+
+    /// <summary>Published into the world.</summary>
+    InWorld,
+}
+
+/// <summary>Where one exact selected session stands, read in one moment.</summary>
+/// <param name="Fenced">
+/// A settlement it ran has an unknown outcome; nothing more may be done in its name.
+/// </param>
+/// <param name="ConnectionRevoked">
+/// Its connection is no longer registered. The session stays current until its teardown has
+/// released what it holds elsewhere, but it can no longer act.
+/// </param>
+public sealed record SelectedSessionStanding(
+    SelectedSessionPhase Phase,
+    bool Fenced,
+    bool ConnectionRevoked);

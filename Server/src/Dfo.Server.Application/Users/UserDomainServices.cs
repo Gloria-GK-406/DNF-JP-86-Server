@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Users;
 internal sealed class OnlineUserDomainService(OnlineStateRegistry state) : IOnlineUserDomainService, IAuthenticatedGamePresenceQuery
 {
     public IReadOnlyList<AccountId> SnapshotAccounts() => state.SnapshotAuthenticatedGameAccounts();
-    public bool IsActiveExact(SelectedSessionIdentity session) => state.IsActiveExact(session);
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection) =>
         state.RegisterConnection(connection);
 
@@ -41,13 +40,4 @@ internal sealed class GameSessionEndpointDomainService(OnlineStateRegistry state
         state.TryObserveEndpoint(session, endpoint);
 
     public SessionEndpoint? Find(GameSessionIdentity session) => state.FindEndpoint(session);
-}
-
-/// <summary>The character each account currently has in play, and the session that owns it.</summary>
-internal sealed class ActiveCharacterDomainService(OnlineStateRegistry state)
-    : IActiveCharacterDomainService
-{
-    public void Publish(SelectedSessionIdentity session) => state.Publish(session);
-
-    public bool ClearExact(SelectedSessionIdentity session) => state.ClearExact(session);
 }

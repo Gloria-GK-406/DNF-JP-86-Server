@@ -17,6 +17,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.SelectCharacter;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
@@ -27,26 +28,29 @@ public sealed class SelectCharacterProductionStateTests
     [InlineData(true)]
     public async Task Login_and_current_view_use_authoritative_achievement_projection_instead_of_legacy_task_rows(bool login)
     {
-        var seed = SelectCharacterPayloadTestData.CreateComplete();
-        seed = seed with { CharacterEntry = seed.CharacterEntry with { Features = seed.CharacterEntry.Features with
-        { Collections = seed.CharacterEntry.Features.Collections with { Achievements = [new(4303, 0, 0, 0, 0)] } } } };
-        var sources = new Sources(seed, []);
-        var achievements = new ProjectionAchievements(login);
-        SelectCharacterResult result;
-        if (login) result = await PrepareAsync(sources, seed, achievements);
-        else
+        await TestGameplay.RunAsync(async () =>
         {
-            var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
-                new Dfo.Server.Data.Networking.NetworkConnectionId("achievement-read"), 1, 10011);
-            var positions = new CharacterPositionDomainService();
-            positions.Place(session, seed.Character.Position);
-            result = await Query(sources, seed, positions, achievements).ReadAsync(session, default);
-        }
-        Assert.Equal(6501, Assert.Single(result.CharacterEntry.Features.Collections.Achievements).AchievementId);
-        Assert.Equal(1, achievements.Reads);
-        Assert.Equal(login ? 2 : 0, achievements.Writes);
-        Assert.DoesNotContain(Assert.Single(new SelectedCharacterStateMessageFactoryService().CreateValidated(result)
-            .OfType<Dfo.Server.Protocol.Game.StateSynchronization.AchievementStateMessage>()).Achievements, x => x.AchievementId == 4303);
+            var seed = SelectCharacterPayloadTestData.CreateComplete();
+            seed = seed with { CharacterEntry = seed.CharacterEntry with { Features = seed.CharacterEntry.Features with
+            { Collections = seed.CharacterEntry.Features.Collections with { Achievements = [new(4303, 0, 0, 0, 0)] } } } };
+            var sources = new Sources(seed, []);
+            var achievements = new ProjectionAchievements(login);
+            SelectCharacterResult result;
+            if (login) result = await PrepareAsync(sources, seed, achievements);
+            else
+            {
+                var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                    new Dfo.Server.Data.Networking.NetworkConnectionId("achievement-read"), 1, 10011);
+                var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+                positions.Begin(session, seed.Character.Position, 100);
+                result = await Query(sources, seed, positions, achievements).ReadAsync(session, default);
+            }
+            Assert.Equal(6501, Assert.Single(result.CharacterEntry.Features.Collections.Achievements).AchievementId);
+            Assert.Equal(1, achievements.Reads);
+            Assert.Equal(login ? 2 : 0, achievements.Writes);
+            Assert.DoesNotContain(Assert.Single(new SelectedCharacterStateMessageFactoryService().CreateValidated(result)
+                .OfType<Dfo.Server.Protocol.Game.StateSynchronization.AchievementStateMessage>()).Achievements, x => x.AchievementId == 4303);
+        });
     }
 
     private sealed class ProjectionAchievements(bool allowPreparation) : IAchievementDomainService
@@ -90,36 +94,39 @@ public sealed class SelectCharacterProductionStateTests
     [Fact]
     public async Task CurrentView_ReadsChangedDurabilityWithoutRepeatingEntryRecovery()
     {
-        var seed = SelectCharacterPayloadTestData.CreateComplete();
-        var sources = new Sources(seed, []);
-        var session = SelectedSessionIdentity.Create(
-            seed.Account.AccountId, seed.Character.Identity.CharacterId,
-            new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
-        var positions = new CharacterPositionDomainService();
-        positions.Place(session, seed.Character.Position);
-        var service = Query(sources, seed, positions);
-        var equipment = seed.CharacterInventory.Containers.Single(container =>
-            container.ContainerType == InventoryContainerType.Equipment);
-        var changed = equipment with
+        await TestGameplay.RunAsync(async () =>
         {
-            Items = [equipment.Items.Single() with
+            var seed = SelectCharacterPayloadTestData.CreateComplete();
+            var sources = new Sources(seed, []);
+            var session = SelectedSessionIdentity.Create(
+                seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            positions.Begin(session, seed.Character.Position, 100);
+            var service = Query(sources, seed, positions);
+            var equipment = seed.CharacterInventory.Containers.Single(container =>
+                container.ContainerType == InventoryContainerType.Equipment);
+            var changed = equipment with
             {
-                Core = equipment.Items.Single().Core with { Durability = 37 },
-            }],
-        };
-        sources.CharacterInventory = seed.CharacterInventory with
-        {
-            Containers = seed.CharacterInventory.Containers
-                .Select(container => container.ContainerType == InventoryContainerType.Equipment
-                    ? changed : container).ToArray(),
-        };
+                Items = [equipment.Items.Single() with
+                {
+                    Core = equipment.Items.Single().Core with { Durability = 37 },
+                }],
+            };
+            sources.CharacterInventory = seed.CharacterInventory with
+            {
+                Containers = seed.CharacterInventory.Containers
+                    .Select(container => container.ContainerType == InventoryContainerType.Equipment
+                        ? changed : container).ToArray(),
+            };
 
-        var current = await service.ReadAsync(session, CancellationToken.None);
+            var current = await service.ReadAsync(session, CancellationToken.None);
 
-        Assert.Equal(37, current.CharacterInventory.Containers.Single(container =>
-            container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
-        Assert.Equal(0, sources.RecoveryCalls);
-        Assert.Equal(0, sources.ReconciliationCalls);
+            Assert.Equal(37, current.CharacterInventory.Containers.Single(container =>
+                container.ContainerType == InventoryContainerType.Equipment).Items.Single().Core.Durability);
+            Assert.Equal(0, sources.RecoveryCalls);
+            Assert.Equal(0, sources.ReconciliationCalls);
+        });
     }
 
     [Theory]
@@ -127,46 +134,52 @@ public sealed class SelectCharacterProductionStateTests
     [InlineData(12, 0)]
     public async Task CurrentView_UsesLivePositionWithoutLoginPlacementOrInventoryMaintenance(byte town, byte area)
     {
-        var seed = SelectCharacterPayloadTestData.CreateComplete();
-        var sources = new Sources(seed, []) { RejectPlacement = true };
-        var session = SelectedSessionIdentity.Create(
-            seed.Account.AccountId, seed.Character.Identity.CharacterId,
-            new Dfo.Server.Data.Networking.NetworkConnectionId("time-gate"), 1, 10011);
-        var positions = new CharacterPositionDomainService();
-        var standing = new CharacterPositionState(town, area, 185, 215, 2);
-        positions.Place(session, standing);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var seed = SelectCharacterPayloadTestData.CreateComplete();
+            var sources = new Sources(seed, []) { RejectPlacement = true };
+            var session = SelectedSessionIdentity.Create(
+                seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                new Dfo.Server.Data.Networking.NetworkConnectionId("time-gate"), 1, 10011);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var standing = new CharacterPositionState(town, area, 185, 215, 2);
+            positions.Begin(session, standing, 100);
 
-        var current = await Query(sources, seed, positions).ReadAsync(session, CancellationToken.None);
+            var current = await Query(sources, seed, positions).ReadAsync(session, CancellationToken.None);
 
-        Assert.Equal(standing, current.Character.Position);
-        Assert.Equal(town, current.World.Channel.Spawn.TownId);
-        Assert.Equal(area, current.World.Channel.Spawn.AreaId);
-        Assert.Equal(185, current.World.Channel.Spawn.X);
-        Assert.Equal(215, current.World.Channel.Spawn.Y);
-        Assert.Equal(2, current.World.Channel.Spawn.Direction);
-        Assert.Equal(standing, positions.Find(session.CharacterId));
-        Assert.Equal(0, sources.PlacementCalls);
-        Assert.Equal(0, sources.InventoryMaintenanceCalls);
-        Assert.Equal(0, sources.RecoveryCalls);
-        Assert.Equal(0, sources.ReconciliationCalls);
-        Assert.Equal((town, area), sources.AdjacentPosition);
+            Assert.Equal(standing, current.Character.Position);
+            Assert.Equal(town, current.World.Channel.Spawn.TownId);
+            Assert.Equal(area, current.World.Channel.Spawn.AreaId);
+            Assert.Equal(185, current.World.Channel.Spawn.X);
+            Assert.Equal(215, current.World.Channel.Spawn.Y);
+            Assert.Equal(2, current.World.Channel.Spawn.Direction);
+            Assert.Equal(standing, positions.PositionOf(session.CharacterId));
+            Assert.Equal(0, sources.PlacementCalls);
+            Assert.Equal(0, sources.InventoryMaintenanceCalls);
+            Assert.Equal(0, sources.RecoveryCalls);
+            Assert.Equal(0, sources.ReconciliationCalls);
+            Assert.Equal((town, area), sources.AdjacentPosition);
+        });
     }
 
     [Fact]
     public async Task CurrentView_RequiresLivePositionInsteadOfInventingALoginSpawn()
     {
-        var seed = SelectCharacterPayloadTestData.CreateComplete();
-        var sources = new Sources(seed, []) { RejectPlacement = true };
-        var session = SelectedSessionIdentity.Create(
-            seed.Account.AccountId, seed.Character.Identity.CharacterId,
-            new Dfo.Server.Data.Networking.NetworkConnectionId("missing-position"), 1, 10011);
-        await Assert.ThrowsAsync<InvalidDataException>(async () =>
-            await Query(sources, seed, new CharacterPositionDomainService()).ReadAsync(session, CancellationToken.None));
-        Assert.Equal(0, sources.PlacementCalls);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var seed = SelectCharacterPayloadTestData.CreateComplete();
+            var sources = new Sources(seed, []) { RejectPlacement = true };
+            var session = SelectedSessionIdentity.Create(
+                seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                new Dfo.Server.Data.Networking.NetworkConnectionId("missing-position"), 1, 10011);
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+                await Query(sources, seed, new OnlineCharacterRuntimeDomainService(TimeProvider.System)).ReadAsync(session, CancellationToken.None));
+            Assert.Equal(0, sources.PlacementCalls);
+        });
     }
 
     private static CharacterCurrentStateQueryDomainService Query(
-        Sources sources, SelectCharacterResult seed, ICharacterPositionDomainService positions, IAchievementDomainService? achievements = null) =>
+        Sources sources, SelectCharacterResult seed, IOnlineCharacterRuntimeDomainService positions, IAchievementDomainService? achievements = null) =>
         new(sources, sources, sources, sources, sources, sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
@@ -214,7 +227,7 @@ public sealed class SelectCharacterProductionStateTests
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("creature-entry"), 1, 10011);
-        result = await inventoryEntry.PrepareLeaseAsync(session, result, CancellationToken.None);
+        result = await TestGameplay.RunAsync(async () => await inventoryEntry.PrepareLeaseAsync(session, result, CancellationToken.None));
         result = (await inventoryEntry.ApplyDailyRefillAsync(
             session, result, CancellationToken.None)).Result;
 
@@ -391,13 +404,16 @@ public sealed class SelectCharacterProductionStateTests
         IReadOnlyList<CharacterRosterAppearanceState>? appearances = null) :
         ICharacterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
         ICharacterEntryStateDomainService, IAccountEntryStateDomainService, IEquippedCreatureQuery,
-        IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryPolicy,
+        IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryDomainService,
         ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
-        ISessionAdjacentEntryDomainService, IActiveCharacterDomainService,
+        ISessionAdjacentEntryDomainService,
         ISelectedSessionPositionPersistence, ITownMovementDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public bool Published { get; private set; }
         public int RequestedLoginTown { get; private set; }
         public bool RejectPlacement { get; init; }

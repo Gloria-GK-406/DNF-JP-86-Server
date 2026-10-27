@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.HttpApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -27,8 +28,11 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("").WithMetadata(new HttpListenerScope(options.ListenUrl!.Port));
-        group.MapGet("/api/gm/v1/health", () => Results.Ok(new { status = "ready" })).WithMetadata(new GmPublicEndpoint());
+        // Every GM route is a GM CMD unless it is marked OutsideGameplay with its spec appendix B row.
+        var group = endpoints.MapGroup("").WithMetadata(new HttpListenerScope(options.ListenUrl!.Port))
+            .RunsOnGameplay(GameplayCallSource.Gm, bodyLimit: 32768);
+        group.MapGet("/api/gm/v1/health", () => Results.Ok(new { status = "ready" }))
+            .WithMetadata(new GmPublicEndpoint(), new OutsideGameplay("不碰玩法状态的 HTTP 路由：常量"));
         GmAuthenticationEndpoints.Map(group);
         GmPlayerDirectoryEndpoints.Map(group);
         GmOfficialMailEndpoints.Map(group);
@@ -38,7 +42,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         GmEventsEndpoints.Map(group);
         GmServerInfoEndpoints.Map(group, options);
         GmItemEndpoints.Map(group);
-        group.MapGet("/gm/{**path}", ServePage);
+        group.MapGet("/gm/{**path}", ServePage).WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：静态文件"));
     }
 
     private static IResult ServePage(HttpContext context, string? path)

@@ -18,7 +18,7 @@ namespace Dfo.Server.Infrastructure.Content;
 /// catalogue is read under.
 /// </para>
 /// </remarks>
-internal sealed class PvfGoldCarryLimitSource(PvfArchiveProvider provider) : IGoldCarryLimitSource
+internal sealed class PvfGoldCarryLimitSource(PvfArchiveProvider provider) : IGoldCarryLimitSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<IReadOnlyList<int>> GoldLimitPairs =
         PvfField.Int32List("[gold limit from level]");
@@ -29,6 +29,10 @@ internal sealed class PvfGoldCarryLimitSource(PvfArchiveProvider provider) : IGo
 
     private readonly Lazy<IReadOnlyList<(int Level, int Limit)>> bands =
         new(() => Read(provider), LazyThreadSafetyMode.ExecutionAndPublication);
+
+    public string Name => "gold-carry-limits";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(bands.Value.Count);
 
     public int BaseLimitFor(int characterLevel)
     {

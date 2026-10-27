@@ -10,6 +10,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DisjointItem;
 
@@ -52,69 +53,75 @@ public sealed class DisjointItemCodecTests
     [Fact]
     public async Task Success_completion_also_publishes_committed_inventory_state()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-sync"), 1, 10011);
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(session);
-        var receipt = new EquipmentDisjointReceipt(
-            session,
-            new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
-            [new(new BusinessSlot(BusinessInventorySpace.Material, 0), 3037, 12)],
-            [
-                new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
-                new(new BusinessSlot(BusinessInventorySpace.Consumable, 0),
-                    ItemSnapshot.FromCore(StackableItemCore.Create(2, 2600469, 1), true)),
-                new(new BusinessSlot(BusinessInventorySpace.Material, 0),
-                    ItemSnapshot.FromCore(StackableItemCore.Create(3, 3037, 112), true)),
-            ],
-            DateTimeOffset.UnixEpoch,
-            new BusinessSlot(BusinessInventorySpace.Consumable, 0));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-sync"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var receipt = new EquipmentDisjointReceipt(
+                session,
+                new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
+                [new(new BusinessSlot(BusinessInventorySpace.Material, 0), 3037, 12)],
+                [
+                    new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
+                    new(new BusinessSlot(BusinessInventorySpace.Consumable, 0),
+                        ItemSnapshot.FromCore(StackableItemCore.Create(2, 2600469, 1), true)),
+                    new(new BusinessSlot(BusinessInventorySpace.Material, 0),
+                        ItemSnapshot.FromCore(StackableItemCore.Create(3, 3037, 112), true)),
+                ],
+                DateTimeOffset.UnixEpoch,
+                new BusinessSlot(BusinessInventorySpace.Consumable, 0));
 
-        var messages = await new EquipmentDisjointCompletedHandler(
-            sessions, new SlotProjection()).ComposeAsync(
-            new NotificationRecipient(session.CharacterId, session.ConnectionId),
-            new EquipmentDisjointCompleted(receipt),
-            CancellationToken.None);
+            var messages = await new EquipmentDisjointCompletedHandler(
+                sessions, new SlotProjection()).ComposeAsync(
+                new NotificationRecipient(session.CharacterId, session.ConnectionId),
+                new EquipmentDisjointCompleted(receipt),
+                CancellationToken.None);
 
-        Assert.IsType<DisjointItemResponse>(messages[0]);
-        var updates = messages.OfType<InventoryDeltaMessage>().ToArray();
-        Assert.Equal(2, updates.Length);
-        var cleared = Assert.Single(updates, update => update.Items.Count == 1
-            && update.Items[0].SlotIndex == 9);
-        Assert.Equal(-1, cleared.Items[0].Core.ItemId);
-        Assert.Equal(
-            [(65, 2600469, 1), (121, 3037, 112)],
-            Assert.Single(updates, update => update != cleared).Items
-                .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)));
+            Assert.IsType<DisjointItemResponse>(messages[0]);
+            var updates = messages.OfType<InventoryDeltaMessage>().ToArray();
+            Assert.Equal(2, updates.Length);
+            var cleared = Assert.Single(updates, update => update.Items.Count == 1
+                && update.Items[0].SlotIndex == 9);
+            Assert.Equal(-1, cleared.Items[0].Core.ItemId);
+            Assert.Equal(
+                [(65, 2600469, 1), (121, 3037, 112)],
+                Assert.Single(updates, update => update != cleared).Items
+                    .Select(item => (item.SlotIndex, item.Core.ItemId, item.Core.Value)));
+        });
     }
 
     [Fact]
     public async Task Account_material_completion_acks_the_virtual_slot_and_publishes_its_absolute_total()
     {
-        var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-account"), 1, 10011);
-        var sessions = new SelectedSessionDomainService();
-        sessions.Select(session);
-        var receipt = new EquipmentDisjointReceipt(
-            session,
-            new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
-            [new(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 12)],
-            [new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
-                new(new(BusinessInventorySpace.SharedMaterial, 4), ItemSnapshot.FromCore(StackableItemCore.Create(11, 3037, 112), true))],
-            DateTimeOffset.UnixEpoch);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var session = SelectedSessionIdentity.Create(new(1), new(2), new("disjoint-account"), 2, 10011);
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, session);
+            var receipt = new EquipmentDisjointReceipt(
+                session,
+                new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0),
+                [new(new(BusinessInventorySpace.SharedMaterial, 4), 3037, 12)],
+                [new(new BusinessSlot(BusinessInventorySpace.CarriedEquipment, 0), null),
+                    new(new(BusinessInventorySpace.SharedMaterial, 4), ItemSnapshot.FromCore(StackableItemCore.Create(11, 3037, 112), true))],
+                DateTimeOffset.UnixEpoch);
 
-        var messages = await new EquipmentDisjointCompletedHandler(
-            sessions, new SlotProjection()).ComposeAsync(
-            new NotificationRecipient(session.CharacterId, session.ConnectionId),
-            new EquipmentDisjointCompleted(receipt),
-            CancellationToken.None);
+            var messages = await new EquipmentDisjointCompletedHandler(
+                sessions, new SlotProjection()).ComposeAsync(
+                new NotificationRecipient(session.CharacterId, session.ConnectionId),
+                new EquipmentDisjointCompleted(receipt),
+                CancellationToken.None);
 
-        var response = Assert.IsType<DisjointItemResponse>(messages[0]);
-        Assert.Equal(
-            new DisjointItemMaterial(new GameSlot(InventoryContainerType.Main, 358), 3037, 12),
-            Assert.Single(response.Materials!));
-        var virtualUpdate = Assert.Single(messages.OfType<InventoryDeltaMessage>(),
-            update => update.Items.Any(item => item.SlotIndex == 358));
-        var item = Assert.Single(virtualUpdate.Items);
-        Assert.Equal((358, 3037, 112), (item.SlotIndex, item.Core.ItemId, item.Core.Value));
+            var response = Assert.IsType<DisjointItemResponse>(messages[0]);
+            Assert.Equal(
+                new DisjointItemMaterial(new GameSlot(InventoryContainerType.Main, 358), 3037, 12),
+                Assert.Single(response.Materials!));
+            var virtualUpdate = Assert.Single(messages.OfType<InventoryDeltaMessage>(),
+                update => update.Items.Any(item => item.SlotIndex == 358));
+            var item = Assert.Single(virtualUpdate.Items);
+            Assert.Equal((358, 3037, 112), (item.SlotIndex, item.Core.ItemId, item.Core.Value));
+        });
     }
 
     [Theory]

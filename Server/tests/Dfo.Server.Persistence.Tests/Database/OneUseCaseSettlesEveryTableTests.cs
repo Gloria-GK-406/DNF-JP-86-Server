@@ -2,6 +2,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Schema;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Database;
 
@@ -43,17 +44,20 @@ public sealed class OneUseCaseSettlesEveryTableTests : IAsyncDisposable
     [Fact]
     public async Task TwoTablesChangedByOneUseCaseBecomeVisibleTogether()
     {
-        await using (var lease = this.scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await this.WriteAsync("UPDATE characters SET level=42 WHERE character_id=1");
-            await this.WriteAsync(
-                "UPDATE character_stats SET gold_carry_limit=999 WHERE character_id=1");
-            await lease.CommitAsync(CancellationToken.None);
-        }
+            await using (var lease = this.scope.Begin())
+            {
+                await this.WriteAsync("UPDATE characters SET level=42 WHERE character_id=1");
+                await this.WriteAsync(
+                    "UPDATE character_stats SET gold_carry_limit=999 WHERE character_id=1");
+                await lease.CommitAsync(CancellationToken.None);
+            }
 
-        Assert.Equal(42L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
-        Assert.Equal(
-            999L, this.Scalar("SELECT gold_carry_limit FROM character_stats WHERE character_id=1"));
+            Assert.Equal(42L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
+            Assert.Equal(
+                999L, this.Scalar("SELECT gold_carry_limit FROM character_stats WHERE character_id=1"));
+        });
     }
 
     /// <remarks>
@@ -63,17 +67,20 @@ public sealed class OneUseCaseSettlesEveryTableTests : IAsyncDisposable
     [Fact]
     public async Task NeitherTableKeepsItsChangeWhenPartOfTheUseCaseFails()
     {
-        await Assert.ThrowsAsync<SqliteException>(async () =>
+        await TestGameplay.RunAsync(async () =>
         {
-            await using var lease = this.scope.Begin();
-            await this.WriteAsync("UPDATE characters SET level=42 WHERE character_id=1");
-            await this.WriteAsync("UPDATE character_stats SET nothing=1 WHERE character_id=1");
-            await lease.CommitAsync(CancellationToken.None);
-        });
+            await Assert.ThrowsAsync<SqliteException>(async () =>
+            {
+                await using var lease = this.scope.Begin();
+                await this.WriteAsync("UPDATE characters SET level=42 WHERE character_id=1");
+                await this.WriteAsync("UPDATE character_stats SET nothing=1 WHERE character_id=1");
+                await lease.CommitAsync(CancellationToken.None);
+            });
 
-        Assert.Equal(10L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
-        Assert.Equal(
-            700L, this.Scalar("SELECT gold_carry_limit FROM character_stats WHERE character_id=1"));
+            Assert.Equal(10L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
+            Assert.Equal(
+                700L, this.Scalar("SELECT gold_carry_limit FROM character_stats WHERE character_id=1"));
+        });
     }
 
     /// <remarks>
@@ -83,17 +90,20 @@ public sealed class OneUseCaseSettlesEveryTableTests : IAsyncDisposable
     [Fact]
     public async Task AUseCaseThatEndsWithoutCommittingKeepsNothing()
     {
-        await using (var lease = this.scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            await this.WriteAsync("UPDATE characters SET level=42 WHERE character_id=1");
-            await this.WriteAsync(
-                "UPDATE character_stats SET gold_carry_limit=999 WHERE character_id=1");
-            _ = lease;
-        }
+            await using (var lease = this.scope.Begin())
+            {
+                await this.WriteAsync("UPDATE characters SET level=42 WHERE character_id=1");
+                await this.WriteAsync(
+                    "UPDATE character_stats SET gold_carry_limit=999 WHERE character_id=1");
+                _ = lease;
+            }
 
-        Assert.Equal(10L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
-        Assert.Equal(
-            700L, this.Scalar("SELECT gold_carry_limit FROM character_stats WHERE character_id=1"));
+            Assert.Equal(10L, this.Scalar("SELECT level FROM characters WHERE character_id=1"));
+            Assert.Equal(
+                700L, this.Scalar("SELECT gold_carry_limit FROM character_stats WHERE character_id=1"));
+        });
     }
 
     private ValueTask WriteAsync(string sql) => this.database.WriteAsync(

@@ -7,6 +7,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -264,10 +265,13 @@ public sealed class WorldRowSurvivesTheMoveTests
     private static async Task SettleAsync(
         StoreUnderTest store, Func<IItemDomainStoreSession, ValueTask> work)
     {
-        var scope = new DomainTransactionScope();
-        await using var transaction = scope.Begin();
-        await work(store.Value.SessionIn(scope.Current!));
-        await transaction.CommitAsync(CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var scope = new DomainTransactionScope();
+            await using var transaction = scope.Begin();
+            await work(store.Value.SessionIn(scope.Current!));
+            await transaction.CommitAsync(CancellationToken.None);
+        });
     }
 
     private static async Task<int?> IdentityAtAsync(

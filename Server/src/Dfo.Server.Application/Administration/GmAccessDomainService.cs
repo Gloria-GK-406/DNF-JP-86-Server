@@ -1,32 +1,31 @@
 using System.Security.Cryptography;
 using System.Text;
 using Dfo.Server.Abstractions.Administration;
-using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Data.Administration;
 
 namespace Dfo.Server.Application.Administration;
 
 internal sealed class GmAccessDomainService(IGmAdministrationPersistence persistence,
-    IPasswordCredentialRuleService passwords, IGmAuditDomainService audit, TimeProvider clock) : IGmAccessDomainService
+    IGmAuditDomainService audit, TimeProvider clock) : IGmAccessDomainService
 {
     public ValueTask<bool> IsInitializedAsync(CancellationToken cancellationToken) => persistence.HasAdministratorAsync(cancellationToken);
-    public async ValueTask<bool> BootstrapAsync(string loginName, string password, GmPermission permissions, CancellationToken cancellationToken)
+    public async ValueTask<bool> BootstrapAsync(string loginName, string? passwordRecord, GmPermission permissions, CancellationToken cancellationToken)
     {
         await persistence.AcquireWriteIntentAsync(cancellationToken);
         if (await persistence.HasAdministratorAsync(cancellationToken)) return false;
-        if (!ValidName(loginName) || password.Length is < 12 or > 256 || permissions == GmPermission.None
+        if (!ValidName(loginName) || passwordRecord is null || permissions == GmPermission.None
             || (permissions & ~GmPermission.All) != 0) return false;
-        await persistence.CreateAdministratorAsync(loginName, passwords.Hash(password), permissions, cancellationToken);
+        await persistence.CreateAdministratorAsync(loginName, passwordRecord, permissions, cancellationToken);
         return true;
     }
 
-    public async ValueTask<GmLoginResult> LoginAsync(string loginName, string password, CancellationToken cancellationToken)
+    public async ValueTask<GmLoginResult> LoginAsync(GmCredentialCheck check, CancellationToken cancellationToken)
     {
         await persistence.AcquireWriteIntentAsync(cancellationToken);
-        var administrator = ValidName(loginName) ? await persistence.FindAdministratorAsync(loginName, cancellationToken) : null;
-        var accepted = false;
-        if (administrator is { Enabled: true }) accepted = passwords.Verify(administrator.PasswordRecord, password) != PasswordCheck.Failed;
-        else passwords.VerifyDummy(password);
+        var administrator = ValidName(check.LoginName) ? await persistence.FindAdministratorAsync(check.LoginName, cancellationToken) : null;
+        // The check was made off the executor; it only counts for the administrator and record it saw.
+        var accepted = check.Accepted && administrator is { Enabled: true }
+            && administrator.Id == check.AdministratorId && administrator.PasswordRecord == check.Record;
         await audit.AppendAsync(new(Guid.NewGuid().ToString("N"), clock.GetUtcNow(), "Login", administrator?.Id,
             administrator?.LoginName, "GM", accepted ? "Succeeded" : "Rejected", accepted ? "管理员登录" : "凭据无效"), cancellationToken);
         if (!accepted) return new(null, null);
@@ -56,7 +55,7 @@ internal sealed class GmAccessDomainService(IGmAdministrationPersistence persist
         return true;
     }
 
-    private static bool ValidName(string name) => name.Length is >= 1 and <= 64 && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.');
+    internal static bool ValidName(string name) => name.Length is >= 1 and <= 64 && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.');
     private static bool ValidSecret(string? secret) => secret is { Length: 64 } && secret.All(char.IsAsciiHexDigit);
     private static string Hash(string secret) => Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(secret)));
 }

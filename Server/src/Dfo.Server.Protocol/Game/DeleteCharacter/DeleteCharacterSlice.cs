@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -89,75 +90,12 @@ internal sealed class DeleteCharacterMessageDecoder : IGameMessageDecoder
         DeleteCharacterPayloadCodec.Decode(metadata, body);
 }
 
-public sealed record DeleteCharacterCommand(AccountId AccountId, ushort RosterIndex, byte[] RawName)
-    : ICommand<CharacterDeletionResult>, IAccountCommand;
-
-public sealed class DeleteCharacterCommandHandler(ICharacterDomainService characters)
-    : ICommandHandler<DeleteCharacterCommand, CharacterDeletionResult>
+public sealed class DeleteCharacterHandler(ICommandBus commands)
+    : ClientMessageHandler<DeleteCharacterRequest>, IProtocolCommandMessageHandler<GameDeleteCharacterCommand>
 {
-    public ValueTask<CharacterDeletionResult> HandleAsync(
-        CommandExecutionContext context,
-        DeleteCharacterCommand command,
-        CancellationToken cancellationToken) =>
-        characters.DeleteCharacterAsync(
-            command.AccountId,
-            command.RosterIndex,
-            command.RawName,
-            cancellationToken);
-}
-
-public sealed class DeleteCharacterHandler(
-    IOnlineUserQueryDomainService onlineUsers,
-    IGameMessageSender sender,
-    ICommandBus commandBus,
-    ILogger<DeleteCharacterHandler> logger)
-    : ClientMessageHandler<DeleteCharacterRequest>
-{
-    protected override async ValueTask HandleMessageAsync(
-        NetworkDispatchContext context,
-        DeleteCharacterRequest message,
-        CancellationToken cancellationToken)
-    {
-        if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var onlineUser)
-            || onlineUser?.AccountId is not { } accountId)
-        {
-            throw new InvalidOperationException(
-                $"Game connection '{context.Connection.ConnectionId}' is not authenticated.");
-        }
-
-        var result = message.RawName is null
-            ? new CharacterDeletionResult(CharacterDeletionStatus.MalformedRequest, null)
-            : await commandBus.SendAsync(
-                new DeleteCharacterCommand(accountId, message.RosterIndex, message.RawName),
-                cancellationToken).ConfigureAwait(false);
-
-        // RequestIndex against ResolvedSlot is the open question in one line: they agree on every
-        // gap-free roster, and the first disagreement proves the index is a position in the roster
-        // the server sent rather than a slot. Logged on every deletion so the answer arrives on its
-        // own rather than needing a staged experiment.
-        logger.LogInformation(
-            "Delete character {ConnectionId} account={AccountId} requestIndex={RequestIndex}: "
-                + "{Status} character={CharacterId} resolvedSlot={ResolvedSlot}",
-            context.Connection.ConnectionId,
-            accountId,
-            message.RosterIndex,
-            result.Status,
-            result.CharacterId?.Value ?? 0,
-            result.SlotIndex);
-
-        // The acknowledgement is the whole reply. Deletion does not refresh the roster, and
-        // creation does, because their acknowledgements differ: creation's carries no character,
-        // so only a roster tells the client what was made and where, while deletion's carries the
-        // id and the client removes that entry from its own view on receipt.
-        //
-        // Sending a roster anyway crashed the client. It had already dropped the entry, and the
-        // full roster arriving behind that left it indexing a list it had just mutated. The
-        // reference server sends the acknowledgement and stops; so does this.
-        await sender.SendCmdAsync(
-            context.Connection.ConnectionId,
-            new DeleteCharacterResponse(result.Status, message.RosterIndex),
-            cancellationToken).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
+        DeleteCharacterRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GameDeleteCharacterCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class DeleteCharacterResponseEncoder

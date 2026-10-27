@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Characters;
@@ -45,11 +46,11 @@ public interface IBossTowerDomainService
         byte difficulty = 0, byte practiceMode = 0);
     ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken ct);
     ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken ct);
-    ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, CancellationToken ct);
+    ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, IEffectFootprintRecorder footprint, CancellationToken ct);
     ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken ct);
     ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct);
-    ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, CancellationToken ct);
-    ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, CancellationToken ct);
+    ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken ct);
     ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct);
     ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken ct);
     ValueTask<BossTowerActionResult> SelectResultAsync(BossTowerActionContext context, byte option, CancellationToken ct);
@@ -69,6 +70,6 @@ public interface IBossTowerRewardRuleService
 }
 public interface IBossTowerRewardDomainService
 {
-    ValueTask<ImmutableArray<TowerKillReward>> KillAsync(BossTowerSnapshot run, TowerActor actor, CancellationToken ct);
-    ValueTask<TowerSettlementReceipt> SettleAsync(BossTowerSnapshot run, ulong seed, CancellationToken ct);
+    ValueTask<ImmutableArray<TowerKillReward>> KillAsync(BossTowerSnapshot run, TowerActor actor, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<TowerSettlementReceipt> SettleAsync(BossTowerSnapshot run, ulong seed, IEffectFootprintRecorder footprint, CancellationToken ct);
 }

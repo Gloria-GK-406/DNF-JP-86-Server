@@ -9,6 +9,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -35,18 +36,20 @@ public sealed class DungeonBuffUsageTests
     }
     private static DungeonRunId Enter(ShopFixture shop)
     {
-        var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
-        var id = shop.Session.CharacterId;
-        if (runs.Find(id) is { } old) runs.End(id, old.RunId);
-        var cell = new MazeCell(0, 0);
-        return shop.InTransaction(() => runs.Begin(id, new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
-            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), difficulty: 0)).RunId;
+        return TestGameplay.Run(shop.Services, () =>
+        {
+            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var id = shop.Session.CharacterId;
+            if (runs.Find(id) is { } old) runs.End(id, old.RunId);
+            var cell = new MazeCell(0, 0);
+            return shop.InTransaction(() => runs.Begin(id, new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611)}), difficulty: 0)).RunId;
+        });
     }
     private static async Task<int> Report(ShopFixture shop)
     {
-        await shop.Services.GetRequiredService<PremiumServiceUsageReportHandler>().HandleAsync(
-            new(shop.Connection), new PremiumServiceUsageReport(GameMessageMetadata.Empty, 3), default);
-        var snapshot = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new ReadPremiumSnapshotCommand(shop.Session));
+        await EffectRequestTransport.SendRaw(shop,new(1,0x36F,0,7),[1,0,3,0,..new byte[72]]);
+        var snapshot = await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.PremiumAsync(shop.Services, shop.Session);
         return snapshot.Usage.Single(x => x.SlotIndex == 3).UsedCount;
     }
 
@@ -80,8 +83,7 @@ public sealed class DungeonBuffUsageTests
         Assert.Equal(0, await Report(shop));
         shop.Sql("UPDATE account_premiums SET end_time=4000000000");
         Enter(shop);
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new ConsumeDungeonBuffCommand(shop.Session, old));
-        Assert.Equal(0, result.Usage.Single(x => x.SlotIndex == 3).UsedCount);
+        Assert.NotEqual(old, shop.Services.GetRequiredService<IDungeonRunDomainService>().Find(shop.Session.CharacterId)!.RunId);
         Assert.Equal(1, await Report(shop));
         shop.Select(2);
         Enter(shop);
@@ -94,10 +96,12 @@ public sealed class DungeonBuffUsageTests
         using var shop = Fixture();
         var run = Enter(shop);
         shop.Sql($"INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at) VALUES(1,'lottery_double_reward_used',NULL,-1,{shop.Clock.GetUtcNow().ToUnixTimeMilliseconds()})");
-        await Assert.ThrowsAsync<InvalidDataException>(() => shop.Services.GetRequiredService<ICommandBus>()
-            .SendAsync(new ConsumeDungeonBuffCommand(shop.Session, run)).AsTask());
+        await Assert.ThrowsAsync<InvalidDataException>(() => Report(shop));
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));
-        Assert.False(shop.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(shop.Session.CharacterId, run));
+        TestGameplay.Run(shop.Services, () =>
+        {
+            Assert.False(shop.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(shop.Session.CharacterId, run));
+        });
         shop.Sql("DELETE FROM character_daily_counters WHERE counter_key='lottery_double_reward_used'");
         Assert.Equal(1, await Report(shop));
     }
@@ -139,7 +143,7 @@ public sealed class DungeonBuffUsageTests
     [Dfo.Server.Testing.PvfFact]
     public void A21_archive_declares_ten_buff_uses()
     {
-        using var shop = new ShopFixture();
+        using var shop = new ShopFixture(useArchive: true);
         Assert.Equal(10, shop.Services.GetRequiredService<IPremiumServiceRuleService>().DungeonBuffDailyLimit);
     }
 

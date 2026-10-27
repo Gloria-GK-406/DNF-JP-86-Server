@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
@@ -14,21 +15,21 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class NpcShopDomainService(
     ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers,
     ITownAreaDomainService townAreas,
     ICharacterDomainService characters,
     IAccountWalletDomainService wallets,
     ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
-    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants, Dfo.Server.Abstractions.Effects.IRequestReplayProjectionDomainService replay,
+    INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, IDungeonParticipationDomainService? participation = null) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
-        DateTimeOffset now, CancellationToken cancellationToken)
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {
-        if (!IsCurrent(session))
+        footprint.DemandActive(session);
+        if (!sessions.IsInWorld(session))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var inBossTower = bossTower?.Find(session) is not null;
         if (inBossTower ? !bossTower!.CanShop(session, npcId, shopId)
@@ -95,22 +96,28 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var cera = checked((int)wallet.Cera);
 
-        replay.RecordInventorySlots(session, plan.MaterialChanges.Select(x => x.Slot).ToArray());
+        footprint.RecordInventorySlots(session, plan.MaterialChanges.Select(x => x.Slot).ToArray());
         if (quote.GoldCost > 0)
+        {
+            footprint.DemandActive(session);
             gold = await character.TrySpendGoldAsync(quote.GoldCost, cancellationToken).ConfigureAwait(false)
                 ?? throw new NpcShopPurchaseRejectedException(NpcShopRejection.InsufficientGold);
+        }
         foreach (var change in plan.MaterialChanges)
         {
             var bag = bags[change.Slot.Space];
             var existing = await bag.GetAsync(change.Slot.Index, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("Shop material disappeared after planning.");
+            footprint.DemandActive(session);
             await ItemContainerOperations.ConsumeAsync(bag, existing, existing.Count - (change.Core?.Count ?? 0), lifecycle, cancellationToken).ConfigureAwait(false);
         }
         foreach (var grant in plan.GrantedSlots)
         {
             var bag = bags[grant.Slot.Space];
+            footprint.DemandActive(session);
             await grants.ApplyPlannedAsync(bag, grant.Slot.Index, grant.Core, cancellationToken).ConfigureAwait(false);
         }
+        footprint.DemandActive(session);
         if (purchaseKey is not null
             && !await purchases.TryAddAsync(purchaseKey, quote.Count, quote.Definition.Limit!.Count, cancellationToken)
                 .ConfigureAwait(false))
@@ -123,7 +130,7 @@ internal sealed class NpcShopDomainService(
     public async ValueTask<NpcShopPurchaseCountsResult> PurchaseCountsAsync(
         SelectedSessionIdentity session, int npcId, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (!IsCurrent(session))
+        if (!sessions.IsInWorld(session))
             return new(NpcShopRejection.NoSession, []);
         var identity = await characters.Get(session.CharacterId).IdentityAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
@@ -147,10 +154,4 @@ internal sealed class NpcShopDomainService(
         new(limit.Scope == NpcShopLimitScope.Account ? "account" : "character",
             limit.Scope == NpcShopLimitScope.Account ? session.AccountId.Value : session.CharacterId.Value,
             npcId, itemId, rules.PurchasePeriod(limit, now));
-
-    private bool IsCurrent(SelectedSessionIdentity session) =>
-        sessions.Find(session.AccountId) == session
-        && onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-        && online is { State: OnlineUserState.CharacterActive }
-        && online.AccountId == session.AccountId && online.CurrentCharacterId == session.CharacterId;
 }

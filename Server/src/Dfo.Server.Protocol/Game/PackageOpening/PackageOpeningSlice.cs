@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -62,45 +63,8 @@ internal sealed class PackageOpeningEncoder : GameCmdMessageEncoder<PackageOpeni
         return OnePayload(0x00A0, body);
     }
 }
-public sealed record PackageOpeningCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, PackageOpeningInput Input, AvatarPackageOpeningInput? AvatarInput = null)
-    : ICommand<PackageOpeningResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+public sealed class PackageOpeningHandler(ICommandBus commands) : ClientMessageHandler<PackageOpeningRequest>, IProtocolCommandMessageHandler<GamePackageOpeningCommand>
 {
-    public AccountId AccountId => Session.AccountId;
-}
-public sealed class PackageOpeningCommandHandler(IPackageOpeningDomainService packages, IAvatarPackageOpeningDomainService avatars, TimeProvider clock)
-    : ICommandHandler<PackageOpeningCommand, PackageOpeningResult>
-{
-    public ValueTask<PackageOpeningResult> HandleAsync(CommandExecutionContext context, PackageOpeningCommand command, CancellationToken ct) =>
-        command.AvatarInput is { } options ? avatars.OpenAsync(command.Session, OpeningWireSlots.Business(options), clock.GetUtcNow(), ct) :
-        packages.OpenAsync(command.Session, OpeningWireSlots.Business(command.Input), clock.GetUtcNow(), ct);
-}
-public sealed class PackageOpeningHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, IEventService notifications, IGameMessageSender sender, ILogger<PackageOpeningHandler> logger)
-    : ClientMessageHandler<PackageOpeningRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, PackageOpeningRequest message, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        PackageOpeningResult result;
-        if (message.Input is null) result = new(OpeningRejection.InvalidRequest);
-        else if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
-            result = new(OpeningRejection.NoSession);
-        else
-        {
-            try { result = await commands.SendAsync(new PackageOpeningCommand(online.OnlineUserId, session, message.Input, message.AvatarInput), ct).ConfigureAwait(false); }
-            catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure)) { result = new(failure.Reason, Detail: failure.Message); }
-            catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
-            {
-                logger.LogError(failure, "Package opening storage failure for {ConnectionId}", context.Connection.ConnectionId);
-                result = new(OpeningRejection.StorageFailure);
-            }
-        }
-        logger.LogInformation("PackageOpening connection={ConnectionId} slot={Slot} result={Result} detail={Detail}",
-            context.Connection.ConnectionId, message.Input?.SourceSlot, result.Rejection, result.Detail);
-        var response = new PackageOpeningResponse(message.Input?.SourceSlot ?? 0, result);
-        if (result.Receipt is { } receipt)
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
-                new OpeningCompleted(receipt, [response]), ct).ConfigureAwait(false);
-        else await sender.SendCmdAsync(context.Connection.ConnectionId, response, ct).ConfigureAwait(false);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, PackageOpeningRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GamePackageOpeningCommand(context, message), ct).ConfigureAwait(false);
 }

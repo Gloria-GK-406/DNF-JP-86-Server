@@ -6,6 +6,7 @@ using Dfo.Server.Protocol.Game.DungeonSelection;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class DespairTowerPayloadTests
 {
     [Theory]

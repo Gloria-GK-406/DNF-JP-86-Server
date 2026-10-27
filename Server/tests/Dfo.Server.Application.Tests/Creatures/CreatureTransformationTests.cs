@@ -16,6 +16,7 @@ using Dfo.Server.Persistence.Creatures;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Schema;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Creatures;
 
@@ -27,70 +28,79 @@ public sealed class CreatureTransformationTests
     [Fact]
     public async Task Egg_handle_expires_after_move_and_refound_egg_returns_pet_that_can_grow()
     {
-        var fixture = new Fixture(new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4),
-            BusinessInventorySpace.CreatureInventory);
-        await using var tx = fixture.Scope.Begin();
-        var pets = new FakeCreatureDomain(fixture.Store, fixture.Scope, fixture.Rules).Of(Session.CharacterId);
-        var egg = (await pets.FindEggAsync(500, default))!;
-        var container = fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory);
-        var source = (await container.GetAsync(0, default))!;
-        await container.PutAsync(10, await container.TakeAsync(source, null, default), default);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => egg.BirthAsync(default).AsTask());
-        egg = (await pets.FindEggAsync(500, default))!;
-        var pet = await egg.BirthAsync(default);
-        Assert.NotNull(pet);
-        Assert.Equal(500, pet.ItemUid);
-        Assert.Equal(63023, (await pet.ReadAsync(default)).ItemTemplateId);
-        Assert.Equal(10, ((PetInstance)pet).BirthReceipt!.Slot.Index);
-        Assert.Null(await egg.BirthAsync(default));
-        Assert.Null(await pets.FindEggAsync(500, default));
-        await pet.AddExpAsync(2, default);
-        await pet.RenameAsync([0x42], default);
-        var state = await pet.ReadAsync(default);
-        Assert.Equal((2, 2, 100), (state.Experience, state.Level, state.Stomach));
-        Assert.Equal(new byte[] { 0x42 }, state.NameBytes);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture(new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4),
+                BusinessInventorySpace.CreatureInventory);
+            await using var tx = fixture.Scope.Begin();
+            var pets = new FakeCreatureDomain(fixture.Store, fixture.Scope, fixture.Rules).Of(Session.CharacterId);
+            var egg = (await pets.FindEggAsync(500, default))!;
+            var container = fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory);
+            var source = (await container.GetAsync(0, default))!;
+            await container.PutAsync(10, await container.TakeAsync(source, null, default), default);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => egg.BirthAsync(default).AsTask());
+            egg = (await pets.FindEggAsync(500, default))!;
+            var pet = await egg.BirthAsync(default);
+            Assert.NotNull(pet);
+            Assert.Equal(500, pet.ItemUid);
+            Assert.Equal(63023, (await pet.ReadAsync(default)).ItemTemplateId);
+            Assert.Equal(10, ((PetInstance)pet).BirthReceipt!.Slot.Index);
+            Assert.Null(await egg.BirthAsync(default));
+            Assert.Null(await pets.FindEggAsync(500, default));
+            await pet.AddExpAsync(2, default);
+            await pet.RenameAsync([0x42], default);
+            var state = await pet.ReadAsync(default);
+            Assert.Equal((2, 2, 100), (state.Experience, state.Level, state.Stomach));
+            Assert.Equal(new byte[] { 0x42 }, state.NameBytes);
+        });
     }
 
     [Fact]
     public async Task Hatch_reuses_egg_uid_and_initializes_creature_detail()
     {
-        var egg = new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4);
-        var fixture = new Fixture(egg, BusinessInventorySpace.CreatureInventory);
-        await using var tx = fixture.Scope.Begin();
-        var result = await fixture.Service.HatchAsync(Session,
-            new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), default);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var egg = new CreatureState(500, 63022, 31, 42, 7, [0x41], 1, 2, 3, 4);
+            var fixture = new Fixture(egg, BusinessInventorySpace.CreatureInventory);
+            await using var tx = fixture.Scope.Begin();
+            var result = await fixture.Service.HatchAsync(Session,
+                new BusinessSlot(BusinessInventorySpace.CreatureInventory, 0), default);
 
-        Assert.NotNull(result);
-        Assert.Equal(500, result.After.ItemUid);
-        Assert.Equal(63023, result.After.ItemTemplateId);
-        Assert.Equal((100, 0, 1), (result.After.Stomach, result.After.Experience, result.After.Level));
-        Assert.Empty(result.After.NameBytes);
-        Assert.Equal(500, result.Core.ToCore().Value);
-        Assert.Equal(63023, result.Core.ItemId);
-        Assert.Equal(1, fixture.Store.Saves);
+            Assert.NotNull(result);
+            Assert.Equal(500, result.After.ItemUid);
+            Assert.Equal(63023, result.After.ItemTemplateId);
+            Assert.Equal((100, 0, 1), (result.After.Stomach, result.After.Experience, result.After.Level));
+            Assert.Empty(result.After.NameBytes);
+            Assert.Equal(500, result.Core.ToCore().Value);
+            Assert.Equal(63023, result.Core.ItemId);
+            Assert.Equal(1, fixture.Store.Saves);
+        });
     }
 
     [Fact]
     public async Task Auto_evolution_preserves_progress_and_refuses_quest_or_unverified_target()
     {
-        var pet = new CreatureState(500, 63000, 61, 2151, 20, [0x41], 0, 0, 0, 0);
-        var fixture = new Fixture(pet, BusinessInventorySpace.WornCreature);
-        await using var tx = fixture.Scope.Begin();
-        var result = await (await fixture.Service.Of(Session.CharacterId).CurrentPetAsync(default))!.EvolveAsync(default);
-
-        Assert.NotNull(result);
-        Assert.Equal(pet with
+        await TestGameplay.RunAsync(async () =>
         {
-            ItemTemplateId = 63001, NameBytes = result.After.NameBytes, ExactStomach = pet.ExactStomach
-        }, result.After);
-        Assert.Equal(pet.NameBytes, result.After.NameBytes);
-        Assert.Equal(63001, result.Core.ItemId);
-        Assert.Equal(500, result.Core.ToCore().Value);
+            var pet = new CreatureState(500, 63000, 61, 2151, 20, [0x41], 0, 0, 0, 0);
+            var fixture = new Fixture(pet, BusinessInventorySpace.WornCreature);
+            await using var tx = fixture.Scope.Begin();
+            var result = await (await fixture.Service.Of(Session.CharacterId).CurrentPetAsync(default))!.EvolveAsync(default);
 
-        fixture.Rules.Rules[63001] = fixture.Rules.Rules[63001] with { CreatureId = 99 };
-        fixture.Store.Set(pet);
-        Assert.Null(await (await fixture.Service.Of(Session.CharacterId).CurrentPetAsync(default))!.EvolveAsync(default));
-        Assert.Equal(1, fixture.Store.Saves);
+            Assert.NotNull(result);
+            Assert.Equal(pet with
+            {
+                ItemTemplateId = 63001, NameBytes = result.After.NameBytes, ExactStomach = pet.ExactStomach
+            }, result.After);
+            Assert.Equal(pet.NameBytes, result.After.NameBytes);
+            Assert.Equal(63001, result.Core.ItemId);
+            Assert.Equal(500, result.Core.ToCore().Value);
+
+            fixture.Rules.Rules[63001] = fixture.Rules.Rules[63001] with { CreatureId = 99 };
+            fixture.Store.Set(pet);
+            Assert.Null(await (await fixture.Service.Of(Session.CharacterId).CurrentPetAsync(default))!.EvolveAsync(default));
+            Assert.Equal(1, fixture.Store.Saves);
+        });
     }
 
     [Theory]
@@ -101,18 +111,21 @@ public sealed class CreatureTransformationTests
     [InlineData("wrong-target")]
     public async Task Invalid_hatch_is_refused_without_saving_creature(string cause)
     {
-        var fixture = new Fixture(new CreatureState(500, cause == "not-egg" ? 63000 : 63022,
-            100, 0, 1, [], 0, 0, 0, 0), BusinessInventorySpace.CreatureInventory);
-        await using var tx = fixture.Scope.Begin();
-        if (cause == "expired")
-            await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).UpdateAsync(
-                (await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).GetAsync(0, default))!, x => x with { ExpireTime = 1 }, default);
-        if (cause == "wrong-target")
-            fixture.Rules.Rules[63023] = fixture.Rules.Rules[63023] with { CreatureId = 99 };
-        var session = cause == "stale-session" ? Session with { ConnectionGeneration = 2 } : Session;
-        var slot = new BusinessSlot(BusinessInventorySpace.CreatureInventory, cause == "wrong-slot" ? 140 : 0);
-        Assert.Null(await fixture.Service.HatchAsync(session, slot, default));
-        Assert.Equal(0, fixture.Store.Saves);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture(new CreatureState(500, cause == "not-egg" ? 63000 : 63022,
+                100, 0, 1, [], 0, 0, 0, 0), BusinessInventorySpace.CreatureInventory);
+            await using var tx = fixture.Scope.Begin();
+            if (cause == "expired")
+                await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).UpdateAsync(
+                    (await fixture.Store.GetContainer(BusinessInventorySpace.CreatureInventory).GetAsync(0, default))!, x => x with { ExpireTime = 1 }, default);
+            if (cause == "wrong-target")
+                fixture.Rules.Rules[63023] = fixture.Rules.Rules[63023] with { CreatureId = 99 };
+            var session = cause == "stale-session" ? Session with { ConnectionGeneration = 2 } : Session;
+            var slot = new BusinessSlot(BusinessInventorySpace.CreatureInventory, cause == "wrong-slot" ? 140 : 0);
+            Assert.Null(await fixture.Service.HatchAsync(session, slot, default));
+            Assert.Equal(0, fixture.Store.Saves);
+        });
     }
 
     [Theory]
@@ -120,12 +133,14 @@ public sealed class CreatureTransformationTests
     [InlineData(false)]
     public async Task Hatch_and_level_up_evolution_commit_or_rollback_core_details_and_clock_on_the_same_sqlite_uid(bool commit)
     {
+        await TestGameplay.RunAsync(async () =>
+        {
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
             $"dfo-creature-transform-{Guid.NewGuid():N}.db");
         try
         {
-            CharacterDatabaseSchema.Ensure(new SqliteConnectionStringBuilder { DataSource = path }.ToString());
-            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            CharacterDatabaseSchema.Ensure(SqliteTestPools.ConnectionString(path));
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -173,7 +188,7 @@ public sealed class CreatureTransformationTests
             }
 
             await runtime.AdvanceAsync(Session, default);
-            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();
                 await using var command = connection.CreateCommand();
@@ -199,9 +214,10 @@ public sealed class CreatureTransformationTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             File.Delete(path);
         }
+        });
     }
 
     private static byte[] Core(int template, int uid)
@@ -374,6 +390,53 @@ public sealed class CreatureTransformationTests
 
     private sealed class FakeSessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => session;
         public bool ReleaseExact(SelectedSessionIdentity session) => true;
         public SelectedSessionIdentity? Find(AccountId accountId) => Session;

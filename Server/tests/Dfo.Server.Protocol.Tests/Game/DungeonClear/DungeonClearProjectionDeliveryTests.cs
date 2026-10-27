@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.EplpRechallenge;
 using Dfo.Server.Protocol.Game.QuestProgress;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 
@@ -27,51 +28,60 @@ public sealed class DungeonClearProjectionDeliveryTests
     [Fact]
     public async Task Cycle_clear_invites_the_native_client_to_submit_after_clear_and_shop()
     {
-        var world = Build([Leader, Helper], [Leader, Helper], cycle: true);
-        var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build([Leader, Helper], [Leader, Helper], cycle: true);
+            var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
 
-        await world.Projection.DeliverAsync(Leader, change, default);
+            await world.Projection.DeliverAsync(Leader, change, default);
 
-        foreach (var session in new[] { Leader, Helper })
-            Assert.Equal(new uint[] { 0x001F, 0x0117, 0x0105 },
-                world.Sender.For(session.ConnectionId).Select(message => (uint)message.MessageType));
+            foreach (var session in new[] { Leader, Helper })
+                Assert.Equal(new uint[] { 0x001F, 0x0117, 0x0105 },
+                    world.Sender.For(session.ConnectionId).Select(message => (uint)message.MessageType));
+        });
     }
 
     [Fact]
     public async Task Ready_cycle_resynchronizes_all_accepted_tasks_before_the_native_check()
     {
-        var queries = new Queries([new(new(0, 14836, 0), []), new(new(1, 1234, 7), [])]);
-        var world = Build([Leader], [Leader], cycle: true, queries);
-        var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var queries = new Queries([new(new(0, 14836, 0), []), new(new(1, 1234, 7), [])]);
+            var world = Build([Leader], [Leader], cycle: true, queries);
+            var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
 
-        await world.Projection.DeliverAsync(Leader, change, default);
+            await world.Projection.DeliverAsync(Leader, change, default);
 
-        var frames = world.Sender.For(Leader.ConnectionId);
-        Assert.Equal(new uint[] { 0x001F, 0x0117, (uint)ServerMessageType.GameStateSynchronization, 0x0105 },
-            frames.Select(x => (uint)x.MessageType));
-        var progress = Assert.IsType<AcceptedQuestProgressMessage>(frames[2]);
-        Assert.Equal(new[] { (14836, 0u), (1234, 7u) },
-            progress.Quests.Select(x => ((int)x.QuestId, x.TriggerValue)));
+            var frames = world.Sender.For(Leader.ConnectionId);
+            Assert.Equal(new uint[] { 0x001F, 0x0117, (uint)ServerMessageType.GameStateSynchronization, 0x0105 },
+                frames.Select(x => (uint)x.MessageType));
+            var progress = Assert.IsType<AcceptedQuestProgressMessage>(frames[2]);
+            Assert.Equal(new[] { (14836, 0u), (1234, 7u) },
+                progress.Quests.Select(x => ((int)x.QuestId, x.TriggerValue)));
+        });
     }
 
     [Fact]
     public async Task Progress_that_finishes_after_clear_offers_a_second_native_check_after_the_new_snapshot()
     {
-        var queries = new Queries([new(new(0, 14836, 1), [])]);
-        var world = Build([Leader], [Leader], cycle: true, queries);
-        var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
-        await world.Projection.DeliverAsync(Leader, change, default);
-        Assert.Equal(new uint[] { 0x001F, 0x0117, 0x0105 },
-            world.Sender.For(Leader.ConnectionId).Select(x => (uint)x.MessageType));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var queries = new Queries([new(new(0, 14836, 1), [])]);
+            var world = Build([Leader], [Leader], cycle: true, queries);
+            var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+            await world.Projection.DeliverAsync(Leader, change, default);
+            Assert.Equal(new uint[] { 0x001F, 0x0117, 0x0105 },
+                world.Sender.For(Leader.ConnectionId).Select(x => (uint)x.MessageType));
 
-        queries.Accepted = [new(new(0, 14836, 0), [])];
-        var handler = new QuestProgressViewChangedHandler(queries, new Sessions([Leader]), world.Runs);
-        var frames = await handler.ComposeAsync(new(Leader.CharacterId, Leader.ConnectionId),
-            new(Leader.CharacterId), default);
+            queries.Accepted = [new(new(0, 14836, 0), [])];
+            var handler = new QuestProgressViewChangedHandler(queries, new Sessions([Leader]), world.Runs);
+            var frames = await handler.ComposeAsync(new(Leader.CharacterId, Leader.ConnectionId),
+                new(Leader.CharacterId), default);
 
-        Assert.Equal(new uint[] { (uint)ServerMessageType.GameStateSynchronization, 0x0105 },
-            frames.Select(x => (uint)x.MessageType));
-        Assert.Equal(0u, Assert.Single(Assert.IsType<AcceptedQuestProgressMessage>(frames[0]).Quests).TriggerValue);
+            Assert.Equal(new uint[] { (uint)ServerMessageType.GameStateSynchronization, 0x0105 },
+                frames.Select(x => (uint)x.MessageType));
+            Assert.Equal(0u, Assert.Single(Assert.IsType<AcceptedQuestProgressMessage>(frames[0]).Quests).TriggerValue);
+        });
     }
 
     [Theory]
@@ -82,62 +92,74 @@ public sealed class DungeonClearProjectionDeliveryTests
     public async Task Progress_outside_a_ready_bound_cycle_clear_does_not_request_submission(
         bool cycle, bool cleared, int questId, int trigger)
     {
-        var queries = new Queries([new(new(0, questId, trigger), [])]);
-        var world = Build([Leader], [Leader], cycle, queries);
-        if (cleared) world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion);
-        var handler = new QuestProgressViewChangedHandler(queries, new Sessions([Leader]), world.Runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var queries = new Queries([new(new(0, questId, trigger), [])]);
+            var world = Build([Leader], [Leader], cycle, queries);
+            if (cleared) world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion);
+            var handler = new QuestProgressViewChangedHandler(queries, new Sessions([Leader]), world.Runs);
 
-        var frames = await handler.ComposeAsync(new(Leader.CharacterId, Leader.ConnectionId),
-            new(Leader.CharacterId), default);
+            var frames = await handler.ComposeAsync(new(Leader.CharacterId, Leader.ConnectionId),
+                new(Leader.CharacterId), default);
 
-        Assert.IsType<AcceptedQuestProgressMessage>(Assert.Single(frames));
+            Assert.IsType<AcceptedQuestProgressMessage>(Assert.Single(frames));
+        });
     }
 
     [Fact]
     public async Task Leaving_while_the_accepted_snapshot_is_read_suppresses_the_old_clear()
     {
-        var queries = new Queries([new(new(0, 14836, 0), [])]);
-        var world = Build([Leader], [Leader], cycle: true, queries);
-        var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
-        queries.BeforeRead = () => world.Runs.End(Leader.CharacterId, world.Run.RunId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var queries = new Queries([new(new(0, 14836, 0), [])]);
+            var world = Build([Leader], [Leader], cycle: true, queries);
+            var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+            queries.BeforeRead = () => world.Runs.End(Leader.CharacterId, world.Run.RunId);
 
-        Assert.Equal(0, await world.Projection.DeliverAsync(Leader, change, default));
-        Assert.Empty(world.Sender.For(Leader.ConnectionId));
+            Assert.Equal(0, await world.Projection.DeliverAsync(Leader, change, default));
+            Assert.Empty(world.Sender.For(Leader.ConnectionId));
+        });
     }
 
     [Fact]
     public async Task Progress_read_cannot_carry_an_old_run_snapshot_into_town()
     {
-        var queries = new Queries([new(new(0, 14836, 0), [])]);
-        var world = Build([Leader], [Leader], cycle: true, queries);
-        world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion);
-        queries.BeforeRead = () => world.Runs.End(Leader.CharacterId, world.Run.RunId);
-        var handler = new QuestProgressViewChangedHandler(queries, new Sessions([Leader]), world.Runs);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var queries = new Queries([new(new(0, 14836, 0), [])]);
+            var world = Build([Leader], [Leader], cycle: true, queries);
+            world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion);
+            queries.BeforeRead = () => world.Runs.End(Leader.CharacterId, world.Run.RunId);
+            var handler = new QuestProgressViewChangedHandler(queries, new Sessions([Leader]), world.Runs);
 
-        var frames = await handler.ComposeAsync(new(Leader.CharacterId, Leader.ConnectionId),
-            new(Leader.CharacterId), default);
+            var frames = await handler.ComposeAsync(new(Leader.CharacterId, Leader.ConnectionId),
+                new(Leader.CharacterId), default);
 
-        Assert.Empty(frames);
+            Assert.Empty(frames);
+        });
     }
 
     [Fact]
     public async Task Clear_change_reaches_every_current_frozen_participant_in_order()
     {
-        var world = Build([Leader, Helper], [Leader, Helper]);
-        var change = world.Runs.TryOpenClear(
-            Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build([Leader, Helper], [Leader, Helper]);
+            var change = world.Runs.TryOpenClear(
+                Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
 
-        var delivered = await world.Projection.DeliverAsync(Leader, change, default);
+            var delivered = await world.Projection.DeliverAsync(Leader, change, default);
 
-        Assert.Equal(2, delivered);
-        Assert.Collection(
-            world.Sender.For(Leader.ConnectionId),
-            message => Assert.IsType<EnableClearDungeonNotification>(message),
-            message => Assert.IsType<SecretShopNpcNotification>(message));
-        Assert.Collection(
-            world.Sender.For(Helper.ConnectionId),
-            message => Assert.IsType<EnableClearDungeonNotification>(message),
-            message => Assert.IsType<SecretShopNpcNotification>(message));
+            Assert.Equal(2, delivered);
+            Assert.Collection(
+                world.Sender.For(Leader.ConnectionId),
+                message => Assert.IsType<EnableClearDungeonNotification>(message),
+                message => Assert.IsType<SecretShopNpcNotification>(message));
+            Assert.Collection(
+                world.Sender.For(Helper.ConnectionId),
+                message => Assert.IsType<EnableClearDungeonNotification>(message),
+                message => Assert.IsType<SecretShopNpcNotification>(message));
+        });
     }
 
     [Theory]
@@ -145,15 +167,18 @@ public sealed class DungeonClearProjectionDeliveryTests
     [InlineData(true)]
     public async Task Participant_who_left_the_run_is_not_notified(bool cycle)
     {
-        var world = Build([Leader, Helper], [Leader, Helper], cycle);
-        Assert.True(world.Runs.End(Helper.CharacterId, world.Run.RunId));
-        var change = world.Runs.TryOpenClear(
-            Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build([Leader, Helper], [Leader, Helper], cycle);
+            Assert.True(world.Runs.End(Helper.CharacterId, world.Run.RunId));
+            var change = world.Runs.TryOpenClear(
+                Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
 
-        var delivered = await world.Projection.DeliverAsync(Leader, change, default);
+            var delivered = await world.Projection.DeliverAsync(Leader, change, default);
 
-        Assert.Equal(1, delivered);
-        Assert.Empty(world.Sender.For(Helper.ConnectionId));
+            Assert.Equal(1, delivered);
+            Assert.Empty(world.Sender.For(Helper.ConnectionId));
+        });
     }
 
     [Theory]
@@ -161,20 +186,23 @@ public sealed class DungeonClearProjectionDeliveryTests
     [InlineData(true)]
     public async Task Replacement_connection_cannot_receive_the_old_runs_clear(bool cycle)
     {
-        var replacement = Helper with
+        await TestGameplay.RunAsync(async () =>
         {
-            ConnectionId = new NetworkConnectionId("replacement"),
-            ConnectionGeneration = 2,
-        };
-        var world = Build([Leader, Helper], [Leader, replacement], cycle);
-        var change = world.Runs.TryOpenClear(
-            Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+            var replacement = Helper with
+            {
+                ConnectionId = new NetworkConnectionId("replacement"),
+                ConnectionGeneration = 2,
+            };
+            var world = Build([Leader, Helper], [Leader, replacement], cycle);
+            var change = world.Runs.TryOpenClear(
+                Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
 
-        var delivered = await world.Projection.DeliverAsync(Leader, change, default);
+            var delivered = await world.Projection.DeliverAsync(Leader, change, default);
 
-        Assert.Equal(1, delivered);
-        Assert.Empty(world.Sender.For(Helper.ConnectionId));
-        Assert.Empty(world.Sender.For(replacement.ConnectionId));
+            Assert.Equal(1, delivered);
+            Assert.Empty(world.Sender.For(Helper.ConnectionId));
+            Assert.Empty(world.Sender.For(replacement.ConnectionId));
+        });
     }
 
     private static TestWorld Build(
@@ -196,7 +224,7 @@ public sealed class DungeonClearProjectionDeliveryTests
         registry.Register(run.RunId, frozen);
         var sender = new RecordingSender();
         return new TestWorld(
-            new DungeonClearProjectionDelivery(new Sessions(current), runs, registry, sender, quests: queries),
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(new Sessions(current), runs, registry, sender, queries),
             runs,
             run,
             sender);
@@ -222,7 +250,7 @@ public sealed class DungeonClearProjectionDeliveryTests
             10010);
 
     private sealed record TestWorld(
-        DungeonClearProjectionDelivery Projection,
+        DungeonClearProjectionDriver Projection,
         DungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender);
@@ -246,6 +274,53 @@ public sealed class DungeonClearProjectionDeliveryTests
     private sealed class Sessions(IReadOnlyList<SelectedSessionIdentity> sessions)
         : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
             sessions.SingleOrDefault(value => value.ConnectionId == connectionId);
         public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
@@ -260,39 +335,25 @@ public sealed class DungeonClearProjectionDeliveryTests
             throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// What was registered for each connection, read from the outbox of a real registration adapter; every call goes
+    /// to the real protocol sender over it (TASK-25). A CMD or NOTI outside an explicit delivery fails where it is
+    /// registered, as the old double refused one.
+    /// </summary>
     private sealed class RecordingSender : IGameMessageSender
     {
-        private readonly Dictionary<NetworkConnectionId, List<IGameServerMessage>> sent = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public RecordingSender() => outbound.RefuseOutsideExplicit();
 
         public IReadOnlyList<IGameServerMessage> For(NetworkConnectionId connectionId) =>
-            sent.TryGetValue(connectionId, out var frames) ? frames : [];
+            [.. outbound.MessagesFor(connectionId).Cast<IGameServerMessage>()];
 
-        public ValueTask SendCmdAsync(
-            NetworkConnectionId connectionId,
-            IGameCmdMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendNotiAsync(
-            NetworkConnectionId connectionId,
-            IGameNotiMessage message,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask SendExplicitAsync(
-            NetworkConnectionId requiredDirectConnectionId,
-            GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Add(requiredDirectConnectionId, delivery.RequiredDirectMessages);
-            foreach (var target in delivery.BestEffortTargets)
-                Add(target.ConnectionId, target.OrderedMessages);
-            return ValueTask.CompletedTask;
-        }
-
-        private void Add(
-            NetworkConnectionId connectionId,
-            IReadOnlyList<IGameServerMessage> frames)
-        {
-            if (!sent.TryGetValue(connectionId, out var received))
-                sent[connectionId] = received = [];
-            received.AddRange(frames);
-        }
+        public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
+            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 }

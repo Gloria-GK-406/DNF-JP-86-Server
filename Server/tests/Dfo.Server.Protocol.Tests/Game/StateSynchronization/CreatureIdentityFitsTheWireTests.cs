@@ -10,6 +10,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 
@@ -186,10 +187,13 @@ public sealed class CreatureIdentityFitsTheWireTests
     private static async Task<TResult> InUseCaseAsync<TResult>(
         DomainTransactionScope scope, Func<CancellationToken, ValueTask<TResult>> work)
     {
-        await using var lease = scope.Begin();
-        var result = await work(CancellationToken.None);
-        await lease.CommitAsync(CancellationToken.None);
-        return result;
+        return await TestGameplay.RunAsync(async () =>
+        {
+            await using var lease = scope.Begin();
+            var result = await work(CancellationToken.None);
+            await lease.CommitAsync(CancellationToken.None);
+            return result;
+        });
     }
 
     private static async Task WithADatabaseAsync(

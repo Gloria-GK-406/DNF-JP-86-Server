@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
@@ -10,5 +11,5 @@ public interface ICharacterSkillLearningDomainService
     ValueTask<int?> SwitchAsync(SelectedSessionIdentity session, int expectedCurrent, int target, CancellationToken cancellationToken);
     // The caller holds the online-user and account execution gates and an ambient transaction.
     ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session, int pageIndex,
-        IReadOnlyList<CharacterSkillLearningChange> changes, byte mode, CancellationToken cancellationToken);
+        IReadOnlyList<CharacterSkillLearningChange> changes, byte mode, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

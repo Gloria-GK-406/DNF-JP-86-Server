@@ -14,6 +14,8 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Dispatching;
 namespace Dfo.Server.Protocol.Game.CompoundItem;
 
 public sealed record CompoundItemRequest(GameMessageMetadata Metadata, int Source, byte SourceMode, ushort Count,
@@ -63,51 +65,8 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
         return OnePayload(0x0019, stream.ToArray());
     }
 }
-public sealed record CompoundItemCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session,
-    BusinessSlot Drawing, int Count) : ICommand<RecipeCraftReceipt>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
-{ public AccountId AccountId => Session.AccountId; }
-public sealed class CompoundItemCommandHandler(IRecipeCraftDomainService recipes, TimeProvider clock)
-    : ICommandHandler<CompoundItemCommand, RecipeCraftReceipt>
+public sealed class CompoundItemHandler(ICommandBus commands) : ClientMessageHandler<CompoundItemRequest>, IProtocolCommandMessageHandler<GameCompoundItemCommand>
 {
-    public ValueTask<RecipeCraftReceipt> HandleAsync(CommandExecutionContext context, CompoundItemCommand command,
-        CancellationToken ct) => recipes.CraftAsync(command.Session, command.Drawing, command.Count, clock.GetUtcNow(), ct);
-}
-public sealed class CompoundItemHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
-    ILogger<CompoundItemHandler> logger) : ClientMessageHandler<CompoundItemRequest>
-{
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CompoundItemRequest request, CancellationToken ct)
-    {
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null) { await Reject(0x11); return; }
-        if (!request.Valid || request.SourceMode != 0
-            || request.Count is < 1 or > 1000 || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
-            || online is null) { await Reject(0x11); return; }
-        RecipeCraftReceipt receipt;
-        try
-        {
-            receipt = await commands.SendAsync(new CompoundItemCommand(online.OnlineUserId, session,
-                OpeningWireSlots.FromMain(request.Source), request.Count), ct).ConfigureAwait(false);
-        }
-        catch (OpeningRejectedException failure) when (!Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
-        {
-            var error = OpeningPayloads.Error(failure.Reason);
-            logger.LogInformation("Compound rejected: {Reason} {Detail}", failure.Reason, failure.Message);
-            await Reject(error); return;
-        }
-        catch (Exception failure) when ((failure is not OperationCanceledException) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogError(failure, "Compound transaction failed for {Character}", session.CharacterId);
-            await Reject(0x11); return;
-        }
-        logger.LogInformation("Compound committed character={Character} drawingSlot={Slot} count={Count}", session.CharacterId, request.Source, request.Count);
-        await Publish(receipt, true);
-        ValueTask Reject(byte error) => sender.SendCmdAsync(context.Connection.ConnectionId, new CompoundItemResponse(null, error), ct);
-        async ValueTask Publish(RecipeCraftReceipt result, bool acknowledge)
-        {
-            // First delivery preserves the existing acknowledgement and committed inventory notifications.
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-                new OpeningCompleted(result.Inventory, acknowledge ? [new CompoundItemResponse(result)] : []), ct).ConfigureAwait(false);
-        }
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, CompoundItemRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameCompoundItemCommand(context, message), ct).ConfigureAwait(false);
 }

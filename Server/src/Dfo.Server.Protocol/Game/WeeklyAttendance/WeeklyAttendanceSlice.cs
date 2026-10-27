@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -89,34 +90,25 @@ internal sealed class WeeklyAttendanceResponseEncoder : GameCmdMessageEncoder<We
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeeklyAttendanceResponse message)
     { var bytes=new byte[4];BinaryPrimitives.WriteUInt32LittleEndian(bytes,message.Result);return OnePayload(0x0441,bytes); }
 }
-public sealed record ClaimWeeklyAttendanceCommand(SelectedSessionIdentity Session) : ICommand<AttendanceClaimResult>,IAccountCommand,ISelectedSessionCommand
-{ public Dfo.Server.Data.Accounts.AccountId AccountId=>Session.AccountId; }
-public sealed class ClaimWeeklyAttendanceCommandHandler(IWeeklyAttendanceDomainService attendance,TimeProvider clock) : ICommandHandler<ClaimWeeklyAttendanceCommand,AttendanceClaimResult>
-{ public ValueTask<AttendanceClaimResult> HandleAsync(CommandExecutionContext c,ClaimWeeklyAttendanceCommand q,CancellationToken ct)=>attendance.ClaimAsync(q.AccountId,q.Session.CharacterId,clock.GetUtcNow(),ct); }
 public sealed record AttendanceCompleted(SelectedSessionIdentity Session,bool Succeeded) : INotification<AttendanceCompleted>;
 public sealed class AttendanceCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<AttendanceCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,AttendanceCompleted notice,CancellationToken ct)
         => ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(recipient.CharacterId==notice.Session.CharacterId
-            && sessions.FindByCharacter(recipient.CharacterId)==notice.Session ? [new WeeklyAttendanceResponse(notice.Succeeded ? 0u : 1u)] : []);
+            && sessions.IsInWorld(notice.Session) ? [new WeeklyAttendanceResponse(notice.Succeeded ? 0u : 1u)] : []);
 }
-public sealed class WeeklyAttendanceHandler(ISelectedSessionDomainService sessions,ICommandBus commands,IEventService notices) : ClientMessageHandler<WeeklyAttendanceRequest>
+public sealed class WeeklyAttendanceHandler(ICommandBus commands) : ClientMessageHandler<WeeklyAttendanceRequest>, IProtocolCommandMessageHandler<GameWeeklyAttendanceCommand>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,WeeklyAttendanceRequest message,CancellationToken ct)
-    {
-        if (sessions.FindByConnection(context.Connection.ConnectionId) is not { } session) return;
-        var result=await commands.SendAsync(new ClaimWeeklyAttendanceCommand(session),ct);
-        await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new AttendanceCompleted(session,result.Succeeded),ct);
-        await notices.ProjectAsync(new NotificationAudience.TheseSessions([session]),new EventsChanged(),ct);
-    }
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeeklyAttendanceRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameWeeklyAttendanceCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection,
-    Dfo.Server.Abstractions.Characters.ICharacterDomainService? characters = null,
-    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService? quests = null) : INotificationHandler<EventsChanged>
+    Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
+    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService quests) : INotificationHandler<EventsChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
-        if (sessions.FindByCharacter(recipient.CharacterId) is not { } session || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var state=await projection.ReadNowAsync(session,ct);
         List<IServerNetworkMessage> messages = [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
@@ -125,13 +117,13 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
             .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(joust) : []];
         if (notice.RefreshQuestOffers)
         {
-            var progress = await (characters ?? throw new InvalidOperationException("Character queries are unavailable."))
+            var progress = await characters
                 .Get(session.CharacterId).ProgressAsync(ct).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Character progression is unavailable.");
-            var offers = await (quests ?? throw new InvalidOperationException("Quest queries are unavailable."))
+            var offers = await quests
                 .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             messages.Add(new AvailableQuestListMessage(progress.Level, offers));
         }
-        return sessions.FindByCharacter(recipient.CharacterId) == session ? messages : [];
+        return sessions.IsInWorld(session) ? messages : [];
     }
 }

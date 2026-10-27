@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Hosting;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
@@ -46,17 +48,20 @@ public static class HttpApiApplicationExtensions
                 : ApiResponses.Error(
                     StatusCodes.Status503ServiceUnavailable,
                     "service_unavailable",
-                    "服务暂不可用，请稍后重试。"));
+                    "服务暂不可用，请稍后重试。"))
+            .WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：就绪标志"));
+        // Hashing runs off the executor first (RQ-007), so these two enqueue their CMD themselves.
         endpoints.MapPost(RegisterPath, RegisterAsync)
-            .WithMetadata(CredentialEndpointMetadata.Instance);
+            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Register));
         endpoints.MapPost(LoginPath, LoginAsync)
-            .WithMetadata(CredentialEndpointMetadata.Instance);
+            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Login));
     }
 
     private static async Task<IResult> RegisterAsync(
         HttpContext context,
         HttpApiReadiness readiness,
-        ICommandBus commands)
+        ICommandBus commands,
+        ILauncherCredentialReader credentials)
     {
         if (!readiness.IsReady)
         {
@@ -75,9 +80,21 @@ public static class HttpApiApplicationExtensions
                 "请求字段无效。");
         }
 
-        var result = await commands.SendAsync(
-            new RegisterAccountCommand(request.LoginId!, request.Password!),
-            context.RequestAborted).ConfigureAwait(false);
+        var prepared = await credentials.PrepareRegistrationAsync(
+            request.LoginId!, request.Password!, context.RequestAborted).ConfigureAwait(false);
+        if (prepared.Prepared is not { } registration)
+        {
+            return ApiResponses.Error(
+                StatusCodes.Status400BadRequest,
+                "invalid_request",
+                "请求字段无效。",
+                prepared.FieldErrors);
+        }
+
+        var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
+            new HttpRouteCommand(HttpRouteOperation.Register, new HttpRouteInput.Registration(registration))).ConfigureAwait(false);
+        if (reply.Error is { } registrationFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(registrationFailure);
+        var result = (RegistrationResult)reply.Value!;
         return result.Status switch
         {
             AuthenticationStatus.Success => Results.Json(
@@ -101,6 +118,7 @@ public static class HttpApiApplicationExtensions
         HttpContext context,
         HttpApiReadiness readiness,
         ICommandBus commands,
+        ILauncherCredentialReader credentials,
         IPublicEndpointSource endpoints,
         IGameServerReadiness game)
     {
@@ -121,9 +139,7 @@ public static class HttpApiApplicationExtensions
                 "请求字段无效。");
         }
 
-        var result = await commands.SendAsync(
-            new AuthenticateAndIssueTicketCommand(request.LoginId!, request.Password!),
-            context.RequestAborted).ConfigureAwait(false);
+        var result = await AuthenticateAsync(context, commands, credentials, request).ConfigureAwait(false);
         return result.Status switch
         {
             AuthenticationStatus.Success => Results.Json(new LoginResponse(
@@ -143,6 +159,32 @@ public static class HttpApiApplicationExtensions
             _ => throw new InvalidOperationException(
                 "The authentication command returned an unsupported status."),
         };
+    }
+
+    /// <summary>
+    /// Verifies off the executor, then issues in the CMD. A record that changed in between (a concurrent
+    /// legacy migration or rehash) is verified once more against the new record, as the single write
+    /// transaction used to do; changed again, it is refused like a wrong password.
+    /// </summary>
+    private static async Task<AuthenticationResult> AuthenticateAsync(
+        HttpContext context,
+        ICommandBus commands,
+        ILauncherCredentialReader credentials,
+        LauncherCredentialsRequest request)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var verified = await credentials.VerifyLoginAsync(
+                request.LoginId!, request.Password!, context.RequestAborted).ConfigureAwait(false);
+            if (verified.Login is not { } login)
+                return new AuthenticationResult(verified.Status, FieldErrors: verified.FieldErrors);
+            var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
+                new HttpRouteCommand(HttpRouteOperation.Login, new HttpRouteInput.Authentication(login))).ConfigureAwait(false);
+            if (reply.Error is { } loginFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(loginFailure);
+            var result = (AuthenticationResult)reply.Value!;
+            if (result.Status != AuthenticationStatus.CredentialChanged) return result;
+            if (attempt == 1) return new AuthenticationResult(AuthenticationStatus.InvalidCredentials);
+        }
     }
 
     private static async ValueTask<LauncherCredentialsRequest?> ReadCredentialsAsync(
@@ -210,9 +252,11 @@ internal sealed class HttpApiExceptionMiddleware(
         {
             throw;
         }
-        catch (Exception) when (!context.Response.HasStarted)
+        catch (Exception error) when (!context.Response.HasStarted)
         {
-            logger.LogError(
+            // A CMD's own failure was logged by the executor with its chain (F-30).
+            logger.Log(
+                GameplayJob.EndedAJob(error) ? LogLevel.Debug : LogLevel.Error,
                 "HTTP API request failed with code {ErrorCode}; TraceId={TraceId}.",
                 "internal_error",
                 context.TraceIdentifier);

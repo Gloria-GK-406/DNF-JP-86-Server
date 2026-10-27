@@ -9,18 +9,16 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class ExperienceBonusDomainService(
     ISelectedSessionDomainService sessions,
-    ISelectedSessionRuntimeDirectory runtimeSessions,
     IPremiumServiceDomainService premiums,
-    IChannelEntryPolicy channels,
+    IChannelEntryDomainService channels,
     IExperienceRuleService experienceRules,
     TimeProvider clock,
-    ISpiritPotionDomainService spiritPotions) : IExperienceBonusDomainService
+    IOnlineCharacterRuntimeDomainService onlineCharacters) : IExperienceBonusDomainService
 {
     public async ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
         ExperienceOccasion occasion, CancellationToken cancellationToken)
     {
-        var session = sessions.FindByCharacter(occasion.Character);
-        if (session is null || session.AccountId != occasion.Account || !runtimeSessions.IsPublishedExact(session))
+        if (!sessions.TryGetInWorld(occasion.Character, out var session) || session.AccountId != occasion.Account)
             return [];
 
         var account = premiums.For(occasion.Account);
@@ -29,7 +27,7 @@ internal sealed class ExperienceBonusDomainService(
         var blackDiamondRate = occasion.Event == ExperienceEvent.DungeonClear
             ? await account.GetBlackDiamondExperienceBonusRateAsync(cancellationToken).ConfigureAwait(false) : 0;
         var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken).ConfigureAwait(false);
-        if (sessions.FindByCharacter(occasion.Character) != session || !runtimeSessions.IsPublishedExact(session))
+        if (!sessions.IsInWorld(session))
             return [];
 
         var found = experienceRules.ModifiersFor(occasion.Event, currentPremiums,
@@ -39,7 +37,7 @@ internal sealed class ExperienceBonusDomainService(
         if (blackDiamondRate > 0)
             found.Add(new("black diamond", blackDiamondRate, ExperienceBonusKind.BlackDiamond));
         // 70Reference: the timed EXP potion contributes to clear settlement, not ordinary kills.
-        var potionRate = spiritPotions.GetBonusRate(occasion.Character);
+        var potionRate = onlineCharacters.SpiritPotionBonusRateOf(occasion.Character);
         if (occasion.Event == ExperienceEvent.DungeonClear && potionRate > 0)
             found.Add(new("spirit potion", potionRate, ExperienceBonusKind.SpiritPotion));
         return found;

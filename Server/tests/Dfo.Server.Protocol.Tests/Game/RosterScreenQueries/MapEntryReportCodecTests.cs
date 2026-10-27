@@ -7,6 +7,7 @@ namespace Dfo.Server.Protocol.Tests.Game.RosterScreenQueries;
 /// <summary>
 /// The remaining map-entry reports, each pinned by the body the client actually sent on 2026-08-17.
 /// </summary>
+[Trait("Category", "Unit")]
 public sealed class MapEntryReportCodecTests
 {
     private static byte[] Hex(string value) => Convert.FromHexString(value);

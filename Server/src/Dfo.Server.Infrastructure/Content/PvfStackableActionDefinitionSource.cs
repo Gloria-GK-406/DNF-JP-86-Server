@@ -7,7 +7,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider provider)
-    : IStackableActionDefinitionSource
+    : IStackableActionDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -23,6 +23,26 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
     private readonly Dictionary<int, StackableActionDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
 
+    public string Name => "stackable-action-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            PathsIndex(archive);
+            return ValueTask.FromResult(paths.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
+    private void PathsIndex(Dfo.Pvf.PvfArchive archive)
+    {
+        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
+                .ToDictionary(e => e.Id, e => "stackable/" + e.RelativePath);
+    }
+
     public ValueTask<StackableActionDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -30,8 +50,7 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         {
             if (cache.TryGetValue(itemId, out var found)) return ValueTask.FromResult(found);
             var archive = provider.Archive;
-            paths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-                .ToDictionary(e => e.Id, e => "stackable/" + e.RelativePath);
+            PathsIndex(archive);
             found = paths.TryGetValue(itemId, out var path) ? Read(archive, path) : null;
             cache[itemId] = found;
             return ValueTask.FromResult(found);

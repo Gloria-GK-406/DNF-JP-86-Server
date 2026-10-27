@@ -6,8 +6,7 @@ namespace Dfo.Server.Application.Notifications;
 public sealed record NotificationHandlerRegistration(
     Type NotificationType,
     Type HandlerType,
-    Type ComposerType,
-    int RetryLimit);
+    Type ComposerType);
 
 /// <summary>An assembly whose notification types must all have a handler.</summary>
 /// <remarks>

@@ -28,9 +28,14 @@ public sealed record ExplicitMessageDelivery(
     IReadOnlyList<IServerNetworkMessage> RequiredDirectMessages,
     IReadOnlyList<ExplicitMessageTarget> BestEffortTargets);
 
+/// <summary>
+/// Registers outbound messages in the running gameplay job's outbox (RQ-030): they are encoded here and
+/// delivered after the job, never during it. A send therefore never reports a transport failure; a
+/// connection that fails to take its frames is closed by the sender (RQ-036).
+/// </summary>
 public interface INetworkMessageSender
 {
-    /// <summary>Validates and encodes the whole ordered group before sending to the exact captured transport.</summary>
+    /// <summary>Validates and encodes the whole ordered group before registering it for the exact captured connection.</summary>
     ValueTask SendBatchAsync(NetworkConnectionContext expectedConnection,
         IReadOnlyList<IServerNetworkMessage> messages, CancellationToken cancellationToken) =>
         ValueTask.FromException(new NotSupportedException("This sender does not support prepared typed batches."));
@@ -46,11 +51,21 @@ public interface INetworkMessageSender
         CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// The connection currently registered under an ID, exactly as it was registered (RQ-035): an entry
+/// registered against it never reaches a connection that later reuses the ID.
+/// </summary>
+public interface INetworkConnectionContexts
+{
+    bool TryGet(NetworkConnectionId connectionId, out NetworkConnectionContext? connection);
+}
+
+/// <summary>Closes connections from a gameplay job: the close is carried out after everything registered before it.</summary>
 public interface INetworkConnectionCloser
 {
     /// <summary>
-    /// Requests transport closure and returns once that request has been scheduled, not when the
-    /// connection's close callbacks have completed.
+    /// Registers the close in the running job's outbox and returns; the connection is closed once the
+    /// job's earlier entries for it are delivered, and its close callbacks run later.
     /// </summary>
     ValueTask RequestCloseExactAsync(NetworkConnectionContext expected, CancellationToken cancellationToken);
 
@@ -59,9 +74,14 @@ public interface INetworkConnectionCloser
         CancellationToken cancellationToken);
 }
 
-public interface INetworkConnectionObserver
+/// <summary>
+/// What the transport calls when a connection is established or lost (RQ-012): every
+/// registered lifecycle handler runs, in registration order, as one lifecycle CMD.
+/// Returns once that CMD has run (not delivered), like <see cref="INetworkMessageDispatcher"/>.
+/// </summary>
+public interface INetworkConnectionLifecycleDispatcher
 {
-    ValueTask ConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
+    ValueTask DispatchConnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
 
-    ValueTask DisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
+    ValueTask DispatchDisconnectedAsync(NetworkConnectionContext connection, CancellationToken cancellationToken);
 }

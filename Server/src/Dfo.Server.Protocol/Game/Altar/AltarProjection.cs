@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -27,9 +26,8 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, AltarStateChanged notification, CancellationToken ct)
     {
         var action = notification.Action; var state = action.State;
-        var session = sessions.FindByCharacter(recipient.CharacterId);
         var run = runs.Find(recipient.CharacterId);
-        if (session is null || session.ConnectionId != recipient.ConnectionId
+        if (!sessions.TryGetInWorld(recipient.CharacterId, out var session) || session.ConnectionId != recipient.ConnectionId
             || recipient.ExpectedSession is { } expected && session != expected
             || run?.RunId != state.RunId || run.RoomVersion != state.RoomVersion
             || altars.Find(state.RunId)?.Generation != state.Generation) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
@@ -64,64 +62,4 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
         }
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }
-}
-
-/// <summary>Projects committed altar changes, with the shared instance lock held by its caller.</summary>
-public sealed class AltarProjectionDelivery(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
-    ISelectedSessionDomainService sessions, DungeonRunDeliveryRegistry registry, ICommandBus commands,
-    IEventService events, TimeProvider clock, AltarWakeSignal wake, SelectedSessionSafety safety, ILogger<AltarProjectionDelivery> logger)
-{
-    public void Wake() => wake.Wake();
-    internal IReadOnlyList<SelectedSessionIdentity> Participants(DungeonRunId runId) => registry.Find(runId)
-        .Where(x => sessions.FindByCharacter(x.CharacterId) == x && runs.Find(x.CharacterId)?.RunId == runId).ToArray();
-
-    internal async ValueTask<AltarActionResult?> ExecuteAsync(SelectedSessionIdentity requester,
-        DungeonRunId runId, AltarOperation operation, byte difficulty, CancellationToken ct)
-    {
-        var run = runs.Find(requester.CharacterId); var state = altars.Find(runId);
-        if (run?.RunId != runId || state is null) return null;
-        var cohort = Participants(runId);
-        if (!cohort.Contains(requester)) return null;
-        var result = await commands.SendAsync(new AltarActionCommand(requester, cohort, runId, run.RoomVersion,
-            state.Generation, clock.GetUtcNow(), operation, difficulty), ct).ConfigureAwait(false);
-        return result.Action;
-    }
-    internal async ValueTask ProjectAsync(AltarActionResult? action, CancellationToken ct)
-    {
-        if (action is null) return;
-        var recipients = Participants(action.State.RunId);
-        if (recipients.Count > 0)
-        {
-            try
-            {
-                var result = await events.ProjectAsync(new NotificationAudience.TheseSessions(recipients),
-                    new AltarStateChanged(action, clock.GetUtcNow()), ct).ConfigureAwait(false);
-                if (result.Attempts.Any(x => x.Outcome == NotificationOutcome.Failed))
-                    throw new InvalidOperationException("A committed altar transition could not be projected.");
-            }
-            catch (Exception error) when (!ct.IsCancellationRequested)
-            {
-                var uncertain = new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
-                    Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
-                    "Altar state committed but client publication failed.", error);
-                foreach (var recipient in recipients)
-                    await safety.BlockAsync(new(recipient, null), uncertain, nameof(AltarProjectionDelivery)).ConfigureAwait(false);
-                throw uncertain;
-            }
-        }
-        if (action.RoundStarted || action.Spawns.Count > 0 || action.DifficultyPrompt || action.ShowRanking || action.ShowRewards || action.Awards.Count > 0)
-            logger.LogInformation("Altar transition run={RunId} room={RoomVersion} round={Round} status={Status} waveActors={Actors} generation={Generation}",
-                action.State.RunId, action.State.RoomVersion, action.State.CompletedRounds, action.State.Status, action.Spawns.Count, action.State.Generation);
-        wake.Wake();
-    }
-    internal async ValueTask<bool> FailAsync(DungeonRunId runId, CancellationToken ct)
-    {
-        if (altars.Find(runId) is null) return false;
-        var requester = Participants(runId).FirstOrDefault();
-        if (requester is null) return true;
-        await ProjectAsync(await ExecuteAsync(requester, runId, AltarOperation.Fail, 0, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
-        return true;
-    }
-    internal async ValueTask SettleBeforeExitAsync(SelectedSessionIdentity requester, DungeonRunId runId, CancellationToken ct) =>
-        await ProjectAsync(await ExecuteAsync(requester, runId, AltarOperation.SettleBeforeExit, 0, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
 }

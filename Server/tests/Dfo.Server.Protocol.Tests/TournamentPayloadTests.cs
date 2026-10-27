@@ -6,6 +6,7 @@ using Dfo.Server.Protocol.Game.Tournament;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class TournamentPayloadTests
 {
     // A21 D56690 reads four bracket groups, then four actor groups. These offsets come

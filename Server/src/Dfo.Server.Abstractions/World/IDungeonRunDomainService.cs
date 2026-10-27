@@ -455,6 +455,9 @@ public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 /// </remarks>
 public interface IDungeonRunDomainService
 {
+    ValueTask<DungeonSettlementRules> SettlementRulesForAsync(Dfo.Server.Data.Accounts.AccountId account, CharacterId character,
+        DungeonRunState run, CancellationToken token) => throw new NotSupportedException("Settlement rules are unavailable.");
+
     IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
 
     ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>

@@ -9,6 +9,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game.MarriageHousing;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests;
 
@@ -17,19 +18,25 @@ public sealed class MarriageHousingCodecTests
     [Fact]
     public async Task Successful_upgrade_notifies_the_spouse_once_and_never_duplicates_the_actor_ack()
     {
-        var services = new ServiceCollection();
-        new Dfo.Server.Application.ApplicationModule().ConfigureServices(services, new ConfigurationBuilder().Build());
-        using var provider = services.BuildServiceProvider();
-        var sessions = provider.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
-        var actor = SelectedSessionIdentity.Create(new(1), new(71), new("ring-actor"), 1, 10011);
-        var peer = SelectedSessionIdentity.Create(new(2), new(72), new("ring-peer"), 1, 10011);
-        sessions.Select(actor);
-        var handler = new HousingChangedHandler(sessions);
-        var change = new HousingChanged(actor, new(HousingAction.UpgradeRing), new(0) { RingLevel = 1 });
-        Assert.Empty(await handler.ComposeAsync(new(actor.CharacterId, actor.ConnectionId, actor), change, default));
-        var message = Assert.IsType<HousingRingMessage>(Assert.Single(await handler.ComposeAsync(new(peer.CharacterId, peer.ConnectionId, peer), change, default)));
-        var frame = Assert.Single(new HousingRingEncoder().Encode(message));
-        Assert.Equal(0x03D1, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))); Assert.Equal(1, frame[15]);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var services = new ServiceCollection();
+            new Dfo.Server.Application.ApplicationModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+            using var provider = services.BuildServiceProvider();
+            var sessions = provider.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>();
+            var actor = SelectedSessionIdentity.Create(new(1), new(71), new("ring-actor"), 1, 10011);
+            var peer = SelectedSessionIdentity.Create(new(2), new(72), new("ring-peer"), 1, 10011);
+            TestGameplay.Run(provider, () =>
+            {
+                sessions.Select(actor);
+            });
+            var handler = new HousingChangedHandler(sessions);
+            var change = new HousingChanged(actor, new(HousingAction.UpgradeRing), new(0) { RingLevel = 1 });
+            Assert.Empty(await handler.ComposeAsync(new(actor.CharacterId, actor.ConnectionId, actor), change, default));
+            var message = Assert.IsType<HousingRingMessage>(Assert.Single(await handler.ComposeAsync(new(peer.CharacterId, peer.ConnectionId, peer), change, default)));
+            var frame = Assert.Single(new HousingRingEncoder().Encode(message));
+            Assert.Equal(0x03D1, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))); Assert.Equal(1, frame[15]);
+        });
     }
 
     [Fact]

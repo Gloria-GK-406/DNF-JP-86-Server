@@ -7,6 +7,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Tests.World;
 
+[Trait("Category", "Unit")]
 public sealed class WorldDropRuleServiceTests
 {
     private static WorldDropEntry Item(int id, int weight) => new(id, weight, DropRarity.Uncommon, DropItemKind.Stackable, 0);

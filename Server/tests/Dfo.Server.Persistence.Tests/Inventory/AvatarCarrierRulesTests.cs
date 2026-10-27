@@ -14,6 +14,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Dfo.Server.Persistence.Tests.Support;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Persistence.Tests.Inventory;
 
@@ -192,6 +193,8 @@ public sealed class AvatarCarrierRulesTests
     private static async Task<CharacterInventoryEntryStorageRecord> TheLoadAnswersAsync(
         AvatarDetailRow handed)
     {
+        return await TestGameplay.RunAsync(async () =>
+        {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-avatar-facts-{Guid.NewGuid():N}.db");
         try
         {
@@ -244,6 +247,7 @@ public sealed class AvatarCarrierRulesTests
                 // A file the runtime still holds is left for the temp directory to reap.
             }
         }
+        });
     }
 
     private sealed class EveryTemplateAnAvatar : IItemPlacementDefinitionSource

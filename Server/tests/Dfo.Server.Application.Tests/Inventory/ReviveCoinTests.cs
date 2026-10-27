@@ -52,7 +52,7 @@ public sealed class ReviveCoinTests
         (await f.Host.Services.GetRequiredService<ICharacterContainerDomainService>().FindContainer(
             f.Host.Session.CharacterId, InventoryContainerType.Main)!.GetAsync(1, default))?.Count ?? 0;
     private static Task<DailyReviveCoinResult> Claim(CeraShopFixture f) => f.Host.Services.GetRequiredService<ICommandBus>()
-        .SendAsync(new ClaimDailyReviveCoinCommand(f.Host.OnlineUser, f.Host.Session)).AsTask();
+        .SendAsync(new GameDailyReviveCoinCommand(new(f.Host.Connection), new(GameMessageMetadata.Empty))).AsTask();
 
     [Fact]
     public async Task Free_claim_is_once_per_character_period_even_after_the_coin_is_spent()
@@ -132,7 +132,7 @@ public sealed class ReviveCoinTests
         await f.Host.Seed(69, 42, 2);
         f.Host.Sql("CREATE TRIGGER reject_coin BEFORE INSERT ON item_slots WHEN NEW.slot_index=1 AND NEW.list_type=0 BEGIN SELECT RAISE(ABORT,'coin failed'); END");
         await Assert.ThrowsAsync<SqliteException>(() => f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new UseStackableCommand(f.Host.Session, new(BusinessInventorySpace.Consumable, 4), 42)).AsTask());
+            WholeUse.Command(f.Host.Services, f.Host.Session, new(BusinessInventorySpace.Consumable, 4), 42)).AsTask());
         Assert.Equal(2, f.Host.Count(42));
         Assert.Equal(0, (await Balance(f)));
     }
@@ -145,7 +145,7 @@ public sealed class ReviveCoinTests
         await f.Host.Seed(69, 42, 2);
         var before = (await Balance(f));
         var result = await f.Host.Services.GetRequiredService<ICommandBus>().SendAsync(
-            new UseStackableCommand(f.Host.Session, new(BusinessInventorySpace.Consumable, 4), 42));
+            WholeUse.Command(f.Host.Services, f.Host.Session, new(BusinessInventorySpace.Consumable, 4), 42));
         Assert.Equal(ItemUseStatus.Used, result.Status);
         Assert.Equal(1, f.Host.Count(42));
         Assert.Equal(before + 1, (await Balance(f)));

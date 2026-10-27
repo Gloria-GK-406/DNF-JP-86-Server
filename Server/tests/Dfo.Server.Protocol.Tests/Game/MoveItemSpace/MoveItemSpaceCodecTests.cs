@@ -13,6 +13,7 @@ namespace Dfo.Server.Protocol.Tests.Game.MoveItemSpace;
 /// the last frame in that capture: the client waits for the acknowledgement before it will accept
 /// another drag.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class MoveItemSpaceCodecTests
 {
     private static readonly byte[] ObservedBody =

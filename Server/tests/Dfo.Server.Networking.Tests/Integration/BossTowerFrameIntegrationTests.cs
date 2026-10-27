@@ -25,6 +25,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TouchSocketSessionClient = TouchSocket.Sockets.ITcpSessionClient;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Networking.Tests.Integration;
 
@@ -35,7 +36,7 @@ public sealed class BossTowerFrameIntegrationTests
     {
         var channelPort = AvailablePort(); var gamePort = AvailablePort();
         while (gamePort == channelPort) gamePort = AvailablePort();
-        var builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder(["--hostBuilder:reloadConfigOnChange=false"]);
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Networking:Enabled"] = "true", ["Networking:ChannelPort"] = channelPort.ToString(),
@@ -47,6 +48,7 @@ public sealed class BossTowerFrameIntegrationTests
         builder.Services.AddSingleton<IChannelScriptSource>(new NoChannelScript());
         builder.Services.AddSingleton(ChannelEntryOptions.Legacy);
         new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new TestCredentials.FixtureReadiness());
         new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
         new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
         var tower = new Tower();
@@ -66,15 +68,31 @@ public sealed class BossTowerFrameIntegrationTests
             var online = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             while (!online.TryGetByConnection(connection, out _)) await Task.Delay(10, timeout.Token);
             var commands = host.Services.GetRequiredService<ICommandBus>();
-            await commands.SendAsync(new RegisterAccountCommand("bosswire", "test password"), timeout.Token);
-            var issued = await commands.SendAsync(new AuthenticateAndIssueTicketCommand("bosswire", "test password"), timeout.Token);
-            Assert.True(online.TryGetByConnection(connection, out var anonymous));
-            var redeemed = await commands.SendAsync(new RedeemGameLoginCommand(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!), timeout.Token);
-            Assert.True(redeemed.Succeeded);
-            var authenticated = online.GetRequired(anonymous.OnlineUserId);
-            var session = SelectedSessionIdentity.Create(redeemed.AccountId!.Value, new CharacterId(2), connection, authenticated.Generation, gamePort);
-            host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
-            host.Services.GetRequiredService<IActiveCharacterDomainService>().Publish(session);
+            await TestCredentials.RegisterAsync(host.Services, "bosswire", "test password", timeout.Token);
+            var issued = await TestCredentials.LoginAsync(host.Services, "bosswire", "test password", timeout.Token);
+            var anonymous = TestGameplay.Run(host.Services, () =>
+            {
+                Assert.True(online.TryGetByConnection(connection, out var anonymous));
+                return anonymous;
+            });
+            var redeemed = await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var transaction = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                var account = await host.Services.GetRequiredService<Dfo.Server.Abstractions.Authentication.IGameLoginAuthenticationDomainService>()
+                    .AuthenticateSessionAsync(anonymous!.OnlineUserId, issued.MId!, issued.Ticket!, timeout.Token);
+                await transaction.CommitAsync(timeout.Token);
+                return account;
+            });
+            Assert.NotNull(redeemed);
+            var authenticated = TestGameplay.Run(host.Services, () =>
+                online.GetRequired(anonymous!.OnlineUserId)
+            );
+            var session = SelectedSessionIdentity.Create(redeemed.Value, new CharacterId(2), connection, authenticated.Generation, gamePort);
+            TestGameplay.Run(host.Services, () =>
+            {
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
+                host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(session);
+            });
             tower.Seed(session);
 
             // A21 tower next-stage marker: success is the dedicated map push, with no ordinary CMD ACK.
@@ -109,8 +127,7 @@ public sealed class BossTowerFrameIntegrationTests
         finally { await host.StopAsync(CancellationToken.None); }
     }
 
-    private static int AvailablePort()
-    { var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port; }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
     private static byte[] ClientFrame(ushort type, byte[] body, ushort sequence)
     {
         var result = new byte[14 + body.Length]; result[0] = 1;
@@ -142,16 +159,16 @@ public sealed class BossTowerFrameIntegrationTests
         { Current = Current! with { Room = Current.Room with { Phase = TowerRoomPhase.Ready } }; return Result(); }
         public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken ct)
         { Current = Current! with { Room = Current.Room with { Phase = TowerRoomPhase.Fighting } }; return Result(); }
-        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Kills++; var member = Current!.Members[0];
             Current = Current with { Completion = new(TowerEndReason.Completed, 8, 8, true, DateTimeOffset.UtcNow,
                 new([new(member.Session.CharacterId, 123, 0, []) { Session = member.Session, Candidates = [new(-1, 0)] }])) };
             return ValueTask.FromResult(new BossTowerActionResult(true, Current) { SettlementCreated = true });
         }
-        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         { var previous = Current; Current = null; return ValueTask.FromResult(new BossTowerActionResult(true, previous! with { Members = [] })); }
-        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct) => Result();
         public ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken ct) => ValueTask.FromResult(false);

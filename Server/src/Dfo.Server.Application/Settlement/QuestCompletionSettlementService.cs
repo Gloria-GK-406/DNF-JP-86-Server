@@ -15,19 +15,22 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
     IMirrorAradQuestDomainService mirror, Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService? southern = null) : IQuestCompletionSettlementDomainService
 {
     public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
-        ushort selection, ushort count, DateTimeOffset at, CancellationToken ct, SelectedSessionIdentity? session = null)
+        ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null)
     {
-        var context = new EffectExecutionContext(account, character, at, session);
+        footprint.DemandEffects(new(account, character, session));
+        var context = new EffectExecutionContext(account, character, at, footprint, session);
         var definition = await definitions.FindAsync(quest, ct).ConfigureAwait(false);
         if (definition?.Grade == QuestGrade.Crack)
         {
-            var prepared = await mirror.PrepareCompletionAsync(account, character, quest, selection, count, at, session, ct).ConfigureAwait(false);
+            var prepared = await mirror.PrepareCompletionAsync(account, character, quest, selection, count, at, session, footprint, ct).ConfigureAwait(false);
             if (!prepared.Prepared) return new(false, quest, null, null, null, null, null) { MirrorCompletion = true };
             var applied = new ApplyEffectsResult([]);
             if (!prepared.AlreadyClaimed)
             {
                 applied = await apply.ApplyAsync(context, prepared.Effects, ct).ConfigureAwait(false);
+                footprint.DemandEffects(context.Owner);
                 await events.DirectAsync(prepared.QuotaChange ?? throw new InvalidOperationException("Missing mirror quota decision."), ct).ConfigureAwait(false);
+                footprint.DemandEffects(context.Owner);
                 await mirror.CommitCompletionAsync(account, character, prepared, ct).ConfigureAwait(false);
             }
             return new(true, quest, prepared.Objective, prepared.Award, applied,
@@ -35,13 +38,15 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
         }
         if (quest == Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId && count != 1)
             return new(false, quest, null, null, null, null, null);
-        var ordinary = await completion.PrepareAsync(account, character, quest, selection, count, at, ct, session).ConfigureAwait(false);
+        var ordinary = await completion.PrepareAsync(account, character, quest, selection, count, at, footprint, ct, session).ConfigureAwait(false);
         if (!ordinary.Prepared) return new(false, quest, null, null, null, ordinary.Projection, null);
         var plan = ordinary.Plan ?? throw new InvalidOperationException("Missing prepared quest plan.");
+        footprint.DemandEffects(context.Owner);
         if (quest == Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId
             && (southern is null || !await southern.TryCompleteAsync(character, ct).ConfigureAwait(false)))
             return new(false, quest, null, null, null, ordinary.Projection, null);
         var result = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
+        footprint.DemandEffects(context.Owner);
         await events.EnqueueAsync(new QuestCompleted(character, quest), ct).ConfigureAwait(false);
         var projection = plan.Projection is null ? null : await mirror.MergeAsync(character, plan.Projection, ct).ConfigureAwait(false);
         return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType) { Awakening = plan.Awakening };

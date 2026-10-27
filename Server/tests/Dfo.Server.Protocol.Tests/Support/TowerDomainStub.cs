@@ -26,10 +26,10 @@ internal sealed class TowerDomainStub(params SelectedSessionIdentity[] members) 
         SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> NextLevelAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<TowerActionResult> DieAsync(TowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<TowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
     public ValueTask<TowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
         SelectedSessionIdentity leader, CancellationToken cancellationToken) =>
         throw new NotSupportedException();

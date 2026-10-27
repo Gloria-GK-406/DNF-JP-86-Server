@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
@@ -16,6 +17,7 @@ using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
 
@@ -165,23 +167,27 @@ public sealed class CharacterSkillLearningTests
     [Fact]
     public async Task Stale_or_unpublished_sessions_and_unsupported_mode_or_absent_presence_cannot_learn()
     {
-        await using var fixture = new LearningFixture();
-        await fixture.SeedAsync();
-        var sessions = fixture.Services.GetRequiredService<ISelectedSessionDomainService>();
-        sessions.Select(fixture.Session with { ConnectionGeneration = fixture.Session.ConnectionGeneration + 1 });
-        Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
-        sessions.Select(fixture.Session);
-        var runtime = fixture.Services.GetRequiredService<ISelectedSessionRuntimeDirectory>();
-        Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario,
-            (await fixture.LearnAsync([new(1, 0, 1)], mode: 1)).Rejection);
-        fixture.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(
-            fixture.Session.CharacterId,
-            fixture.Session.TownAreaLease(),
-            TownAreaDepartureReason.SessionEnded);
-        Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
-        runtime.RemoveExact(fixture.Session);
-        Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
-        AssertBaseline(fixture);
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture();
+            await fixture.SeedAsync();
+            var sessions = fixture.Services.GetRequiredService<ISelectedSessionDomainService>();
+            // A generation that is not the current selection is refused.
+            Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)],
+                session: fixture.Session with { ConnectionGeneration = fixture.Session.ConnectionGeneration + 1 })).Rejection);
+            Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario,
+                (await fixture.LearnAsync([new(1, 0, 1)], mode: 1)).Rejection);
+            fixture.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(
+                fixture.Session.CharacterId,
+                fixture.Session.TownAreaLease(),
+                TownAreaDepartureReason.SessionEnded);
+            Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
+            // Selected but no longer in the world.
+            sessions.ReleaseExact(fixture.Session);
+            sessions.Select(fixture.Session);
+            Assert.Equal(CharacterSkillLearningRejection.NoSession, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
+            AssertBaseline(fixture);
+        });
     }
 
     [Theory]
@@ -224,9 +230,9 @@ public sealed class CharacterSkillLearningTests
     {
         await using var fixture = new LearningFixture();
         await fixture.SeedAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Services
-            .GetRequiredService<ICharacterSkillLearningDomainService>()
-            .LearnAsync(fixture.Session, 0, [new(1, 0, 1)], 0, default).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(fixture.Services, async () =>
+            await TestEffectFootprints.Run(fixture.Session, cap => fixture.Services.GetRequiredService<ICharacterSkillLearningDomainService>()
+                .LearnAsync(fixture.Session, 0, [new(1, 0, 1)], 0, cap, default))));
         AssertBaseline(fixture);
     }
 
@@ -306,34 +312,37 @@ public sealed class CharacterSkillLearningTests
     [SkippableFact]
     public async Task Real_guardian_archive_initial_skills_support_learning_one_to_three_and_reloading()
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
-        await using var fixture = new LearningFixture(useArchive: true);
-        await fixture.SeedAsync();
-        var initial = await fixture.Services.GetRequiredService<ICharacterCreationRuleService>().StartingStateAsync(12, default);
-        Assert.Equal(1, initial.Skills.Single(skill => skill.SkillId == 1).Level);
-        fixture.Sql("DELETE FROM character_skills WHERE character_id=71; UPDATE characters SET bonus_sp=0,bonus_tp=0 WHERE character_id=71");
-        await using (var transaction = fixture.Scope.Begin())
+        await TestGameplay.RunAsync(async () =>
         {
-            var table = fixture.Services.GetRequiredService<ICharacterSkillTable>();
-            foreach (var page in new[] { 0, 1 })
-                foreach (var skill in initial.Skills)
-                    await table.InsertAsync(new(71), page, skill.Slot, (int)skill.SkillId, skill.Level, default);
-            await transaction.CommitAsync(default);
-        }
-        var before = (await fixture.State.ReadAsync(new(71), default))!;
-        var oldLedger = fixture.Rules.GetLedger(before.Career, before.Level, before.Pages, before.PointBasis);
-        Assert.True(oldLedger.IsComplete);
-        var result = await fixture.LearnAsync([new(1, 0, 2)]);
-        Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
-        Assert.Equal(3, Assert.Single(result.Receipt!.Skills).Level);
-        Assert.True(result.Receipt.Ledger.IsComplete);
-        var skillRule = fixture.Rules.Get(12, 1)!;
-        Assert.Equal(oldLedger.For(new(0)).Sp - (skillRule.GetSP(3) - skillRule.GetSP(1)), result.Receipt.Ledger.For(new(0)).Sp);
-        await using var independent = new LearningFixture(fixture.Path, useArchive: true);
-        var reloaded = (await independent.State.ReadAsync(new(71), default))!;
-        Assert.Equal(3, reloaded.Pages[0].Skills.Single(skill => skill.SkillId == 1).Level);
-        Assert.Equal(result.Receipt.Ledger.For(new(0)).Sp,
-            independent.Rules.GetLedger(reloaded.Career, reloaded.Level, reloaded.Pages, reloaded.PointBasis).For(new(0)).Sp);
+            Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+            await using var fixture = new LearningFixture(useArchive: true);
+            await fixture.SeedAsync();
+            var initial = await fixture.Services.GetRequiredService<ICharacterCreationRuleService>().StartingStateAsync(12, default);
+            Assert.Equal(1, initial.Skills.Single(skill => skill.SkillId == 1).Level);
+            fixture.Sql("DELETE FROM character_skills WHERE character_id=71; UPDATE characters SET bonus_sp=0,bonus_tp=0 WHERE character_id=71");
+            await using (var transaction = fixture.Scope.Begin())
+            {
+                var table = fixture.Services.GetRequiredService<ICharacterSkillTable>();
+                foreach (var page in new[] { 0, 1 })
+                    foreach (var skill in initial.Skills)
+                        await table.InsertAsync(new(71), page, skill.Slot, (int)skill.SkillId, skill.Level, default);
+                await transaction.CommitAsync(default);
+            }
+            var before = (await fixture.State.ReadAsync(new(71), default))!;
+            var oldLedger = fixture.Rules.GetLedger(before.Career, before.Level, before.Pages, before.PointBasis);
+            Assert.True(oldLedger.IsComplete);
+            var result = await fixture.LearnAsync([new(1, 0, 2)]);
+            Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
+            Assert.Equal(3, Assert.Single(result.Receipt!.Skills).Level);
+            Assert.True(result.Receipt.Ledger.IsComplete);
+            var skillRule = fixture.Rules.Get(12, 1)!;
+            Assert.Equal(oldLedger.For(new(0)).Sp - (skillRule.GetSP(3) - skillRule.GetSP(1)), result.Receipt.Ledger.For(new(0)).Sp);
+            await using var independent = new LearningFixture(fixture.Path, useArchive: true);
+            var reloaded = (await independent.State.ReadAsync(new(71), default))!;
+            Assert.Equal(3, reloaded.Pages[0].Skills.Single(skill => skill.SkillId == 1).Level);
+            Assert.Equal(result.Receipt.Ledger.For(new(0)).Sp,
+                independent.Rules.GetLedger(reloaded.Career, reloaded.Level, reloaded.Pages, reloaded.PointBasis).For(new(0)).Sp);
+        });
     }
 
     private static void AssertBaseline(LearningFixture fixture)
@@ -386,29 +395,53 @@ internal sealed class LearningFixture : IAsyncDisposable
             INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
             VALUES(71,'pve',0,7,1,2,X'0908'),(71,'pve',1,15,1,1,X'07'),(72,'pve',0,7,1,8,X'06');
             """);
-        var registry = Services.GetRequiredService<OnlineStateRegistry>();
-        var connection = new NetworkConnectionContext(new("learning-test"), NetworkEndpointKind.Game, 10011);
-        var user = registry.RegisterConnection(connection).OnlineUserId;
-        registry.Authenticate(user, new(1));
-        Session = SelectedSessionIdentity.Create(new(1), new(71), connection.ConnectionId,
-            registry.GetRequiredUser(user).Generation, 10011);
-        registry.Publish(Session);
-        Services.GetRequiredService<ISelectedSessionDomainService>().Select(Session);
-        Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
-            Session.CharacterId,
-            Session.TownAreaLease(),
-            new TownAreaKey(1, 0, 0),
-            new CharacterPositionState(0, 0, 0, 0, 0),
-            true));
-        Services.GetRequiredService<ISelectedSessionRuntimeDirectory>().Publish(Session, false);
+        TestGameplay.Run(Services, () =>
+        {
+            var registry = Services.GetRequiredService<OnlineStateRegistry>();
+            var connection = new NetworkConnectionContext(new("learning-test"), NetworkEndpointKind.Game, 10011);
+            var user = registry.RegisterConnection(connection).OnlineUserId;
+            registry.Authenticate(user, new(1));
+            Session = SelectedSessionIdentity.Create(new(1), new(71), connection.ConnectionId,
+                registry.GetRequiredUser(user).Generation, 10011);
+            var sessions = Services.GetRequiredService<ISelectedSessionDomainService>();
+            sessions.Select(Session);
+            sessions.EnterWorld(Session);
+            Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
+                Session.CharacterId,
+                Session.TownAreaLease(),
+                new TownAreaKey(1, 0, 0),
+                new CharacterPositionState(0, 0, 0, 0, 0),
+                true));
+        });
     }
 
-    private sealed class MinimalCurrentView(ISelectedSessionRuntimeDirectory published)
+    /// <summary>
+    /// Another account's character in the world the way selecting a character puts it there: its
+    /// game connection registered and authenticated, then selected and entered.
+    /// </summary>
+    public SelectedSessionIdentity EnterWorld(int account, int character, string connectionId, int listenerPort = 10011)
+    {
+        return TestGameplay.Run(Services, () =>
+        {
+            var registry = Services.GetRequiredService<OnlineStateRegistry>();
+            var connection = new NetworkConnectionContext(new(connectionId), NetworkEndpointKind.Game, listenerPort);
+            var user = registry.RegisterConnection(connection).OnlineUserId;
+            registry.Authenticate(user, new(account));
+            var session = SelectedSessionIdentity.Create(new(account), new(character), connection.ConnectionId,
+                registry.GetRequiredUser(user).Generation, listenerPort);
+            var sessions = Services.GetRequiredService<ISelectedSessionDomainService>();
+            sessions.Select(session);
+            sessions.EnterWorld(session);
+            return session;
+        });
+    }
+
+    private sealed class MinimalCurrentView(ISelectedSessionDomainService sessions)
         : ISelectedCharacterCurrentViewDomainService
     {
         public ValueTask<SelectCharacterResult?> TryLoadAsync(
             SelectedSessionIdentity session, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<SelectCharacterResult?>(published.IsPublishedExact(session)
+            ValueTask.FromResult<SelectCharacterResult?>(sessions.IsInWorld(session)
                 ? new SelectCharacterResult(
                     null!, null!, null!, null!, null!,
                     new GameWorldEntryState(DateTimeOffset.UnixEpoch, null!,
@@ -418,11 +451,13 @@ internal sealed class LearningFixture : IAsyncDisposable
     public async Task<CharacterSkillLearningResult> LearnAsync(IReadOnlyList<CharacterSkillLearningChange> changes,
         byte page = 0, byte mode = 0, SelectedSessionIdentity? session = null)
     {
-        await using var transaction = Scope.Begin();
-        var result = await Services.GetRequiredService<ICharacterSkillLearningDomainService>()
-            .LearnAsync(session ?? Session, page, changes, mode, default);
-        await transaction.CommitAsync(default);
-        return result;
+        return await TestGameplay.RunAsync(Services, async () =>
+        {
+            await using var transaction = Scope.Begin();
+            var result = await TestEffectFootprints.Run(session ?? Session, cap => Services.GetRequiredService<ICharacterSkillLearningDomainService>().LearnAsync(session ?? Session, page, changes, mode, cap, default));
+            await transaction.CommitAsync(default);
+            return result;
+        });
     }
     public int Scalar(string sql)
     {

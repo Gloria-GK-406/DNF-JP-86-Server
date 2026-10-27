@@ -62,65 +62,64 @@ internal sealed class LevelUpTicketEncoder : GameCmdMessageEncoder<LevelUpTicket
         OnePayload(GameProtocol.LevelUpTicketType, LevelUpTicketPayloadCodec.Encode(message));
 }
 
-public sealed record UseLevelUpTicketCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, int SourceSlot)
-    : ICommand<LevelUpTicketResult>, IRequestSettlementCommand, IOnlineUserCommand, IAccountCommand
+public sealed record GameLevelUpTicketCommand(NetworkDispatchContext Dispatch,LevelUpTicketRequest Input):IProtocolCommand<bool>
 {
-    public Dfo.Server.Data.Accounts.AccountId AccountId => Session.AccountId;
+    public IClientNetworkMessage Message=>Input;
+    public ProtocolFrameMetadata Frame=>new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-public sealed class UseLevelUpTicketCommandHandler(ILevelUpTicketDomainService tickets, TimeProvider clock)
-    : ICommandHandler<UseLevelUpTicketCommand, LevelUpTicketResult>
-{
-    public ValueTask<LevelUpTicketResult> HandleAsync(CommandExecutionContext context,
-        UseLevelUpTicketCommand command, CancellationToken ct) =>
-        tickets.UseAsync(command.Session, OpeningWireSlots.FromMain(command.SourceSlot), clock.GetUtcNow(), ct);
-}
-
-public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    ICommandBus commands, IEventService notifications, IGameMessageSender sender,
+public sealed class GameLevelUpTicketCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
+    ILevelUpTicketDomainService tickets, TimeProvider clock, ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
-    ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<LevelUpTicketHandler> logger,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null)
-    : ClientMessageHandler<LevelUpTicketRequest>
+    ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<GameLevelUpTicketCommandHandler> logger,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
+    : ICommandHandler<GameLevelUpTicketCommand,bool>
 {
-    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, LevelUpTicketRequest message, CancellationToken ct)
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameLevelUpTicketCommand command, CancellationToken ct)
     {
+        var request=context.Request ?? throw new InvalidOperationException("Level ticket requires its explicit request.");
+        var dispatch=command.Dispatch;
+        var message=command.Input;
         if (!message.Complete || message.Reserved != 0 || message.SourceSlot < 0)
         {
-            await RefuseAsync(context, message, 1, ct).ConfigureAwait(false);
-            return;
+            await RefuseAsync(dispatch, message, 1, ct).ConfigureAwait(false);
+            return true;
         }
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        var session = sessions.FindByConnection(dispatch.Connection.ConnectionId);
         if (session is null
-            || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online) || online is null)
+            || !onlineUsers.TryGetByConnection(dispatch.Connection.ConnectionId, out var online) || online is null)
         {
-            await RefuseAsync(context, message, 1, ct).ConfigureAwait(false);
-            return;
+            await RefuseAsync(dispatch, message, 1, ct).ConfigureAwait(false);
+            return true;
         }
         LevelUpTicketResult result;
-        try
+        if(request is CommandRequestContext.ProtocolEffectRejected) { await RefuseAsync(dispatch,message,1,ct).ConfigureAwait(false); return true; }
+        if(request is not CommandRequestContext.ProtocolEffectSelected selected || selected.Recipient.Session != session)
+            throw new InvalidOperationException("Level ticket requires its originally selected actor.");
+        var outcome=await units.WriteResultAsync(context,new("LevelUpTicket",[selected.Recipient],CommandWorkUnitKind.MainSettlement),async (unit,token) =>
         {
-            result = await commands.SendAsync(new UseLevelUpTicketCommand(online.OnlineUserId, session, message.SourceSlot), ct)
-                .ConfigureAwait(false);
-        }
-        catch (OpeningRejectedException failure) when (!TransactionOutcomeUncertainException.Contains(failure))
+            var footprint=unit.Footprint;
+            try { return new ActionOutcome(await tickets.UseAsync(session,OpeningWireSlots.FromMain(message.SourceSlot),clock.GetUtcNow(),footprint,token).ConfigureAwait(false),null); }
+            catch(Exception failure) when(failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
+            { unit.RequireRollback(failure); return new ActionOutcome(null,failure); }
+        },ct).ConfigureAwait(false);
+        Exception? error=outcome switch {
+            CommandWriteResult<ActionOutcome>.Returned {Value:{Failure:{} failure}} => failure,
+            CommandWriteResult<ActionOutcome>.CommitRolledBack rollback => rollback.Cause,
+            _=>null,
+        };
+        if(error is not null)
         {
-            var code = failure.Reason switch
+            byte code;
+            if(error is OpeningRejectedException rejected)
             {
-                OpeningRejection.WrongItem or OpeningRejection.MissingMaterial => (byte)0x11,
-                OpeningRejection.ItemUnusable => (byte)0x16,
-                OpeningRejection.UnsupportedContent => (byte)0x17,
-                _ => (byte)1,
-            };
-            logger.LogInformation("Level-up ticket refused character={CharacterId} slot={Slot}: {Reason}", session.CharacterId, message.SourceSlot, failure.Message);
-            await RefuseAsync(context, message, code, ct).ConfigureAwait(false);
-            return;
+                code=rejected.Reason switch { OpeningRejection.WrongItem or OpeningRejection.MissingMaterial=>0x11,OpeningRejection.ItemUnusable=>0x16,OpeningRejection.UnsupportedContent=>0x17,_=>(byte)1 };
+                logger.LogInformation("Level-up ticket refused character={CharacterId} slot={Slot}: {Reason}",session.CharacterId,message.SourceSlot,error.Message);
+            }
+            else { code=0x63; logger.LogError(error,"Level-up ticket transaction failed character={CharacterId}",session.CharacterId); }
+            await RefuseAsync(dispatch,message,code,ct).ConfigureAwait(false); return true;
         }
-        catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
-        {
-            logger.LogError(failure, "Level-up ticket transaction failed character={CharacterId}", session.CharacterId);
-            await RefuseAsync(context, message, 0x63, ct).ConfigureAwait(false);
-            return;
-        }
+        result=outcome is CommandWriteResult<ActionOutcome>.Returned {Value:{Result:{} value}} ? value
+            : throw new InvalidOperationException("Level ticket returned no action outcome.");
         var following = new List<IServerNetworkMessage>
         {
             new ExperienceNotification(result.Progress.Level, result.Progress.Experience, result.Points,
@@ -153,8 +152,16 @@ public sealed class LevelUpTicketHandler(ISelectedSessionDomainService sessions,
             session.CharacterId, message.SourceSlot, result.Progress.Level, result.Progress.Experience, result.CompletedQuestIds.Length);
         await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new OpeningCompleted(result.Inventory, [new LevelUpTicketResponse(message.SourceSlot)], FollowingMessages: following), ct).ConfigureAwait(false);
+        return true;
     }
+    private sealed record ActionOutcome(LevelUpTicketResult? Result,Exception? Failure);
 
-    private ValueTask RefuseAsync(NetworkDispatchContext context, LevelUpTicketRequest request, byte error, CancellationToken ct) =>
-        sender.SendCmdAsync(context.Connection.ConnectionId, new LevelUpTicketResponse(request.SourceSlot, error), ct);
+    private ValueTask RefuseAsync(NetworkDispatchContext dispatch, LevelUpTicketRequest request, byte error, CancellationToken ct) =>
+        outbox.RegisterCmdAsync(dispatch.Connection.ConnectionId, new LevelUpTicketResponse(request.SourceSlot, error), ct);
+}
+
+public sealed class LevelUpTicketHandler(ICommandBus commands):ClientMessageHandler<LevelUpTicketRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameLevelUpTicketCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,LevelUpTicketRequest message,CancellationToken ct)=>
+        _ = await commands.SendAsync(new GameLevelUpTicketCommand(context,message),ct).ConfigureAwait(false);
 }

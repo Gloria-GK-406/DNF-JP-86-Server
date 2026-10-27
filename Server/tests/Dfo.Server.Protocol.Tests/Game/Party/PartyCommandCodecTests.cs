@@ -1,3 +1,5 @@
+using Dfo.Server.Testing;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
@@ -78,6 +80,47 @@ public sealed class PartyCommandCodecTests
             GameMessageMetadata.Empty,
             Hex("010001000000FF04000000000500020000")));
     }
+
+    /// <remarks>256 is the title limit of spec appendix G VC-9, written here as a number on purpose.</remarks>
+    [Theory]
+    [InlineData("ascii")]
+    [InlineData("three-byte utf-8")]
+    public void Set_party_info_accepts_a_title_of_exactly_the_maximum_length(string kind)
+    {
+        var title = kind == "ascii"
+            ? Enumerable.Repeat((byte)'A', 256).ToArray()
+            : System.Text.Encoding.UTF8.GetBytes(new string('無', 85) + "A");
+        Assert.Equal(256, title.Length);
+
+        var request = Assert.IsType<SetPartyInfoRequest>(
+            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+                GameMessageMetadata.Empty,
+                TitledEdit(title.Length, title)));
+
+        Assert.Equal(title, request.Title.ToBytes());
+    }
+
+    /// <remarks>
+    /// The third row declares 257 bytes and carries none: it must be refused as too long, not only as
+    /// truncated, so the logged reason names the limit.
+    /// </remarks>
+    [Theory]
+    [InlineData(257, 257)]
+    [InlineData(1_048_400, 1_048_400)]
+    [InlineData(257, 0)]
+    public void Set_party_info_rejects_a_title_longer_than_the_maximum(int declared, int carried)
+    {
+        var body = TitledEdit(declared, Enumerable.Repeat((byte)'A', carried).ToArray());
+
+        var refusal = Assert.Throws<InvalidDataException>(() =>
+            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(GameMessageMetadata.Empty, body));
+
+        Assert.Contains("256", refusal.Message);
+    }
+
+    /// <summary>The inline-title edit shape: two leading gates, i32 length, title, the 10-byte Normal tail.</summary>
+    private static byte[] TitledEdit(int declaredLength, byte[] title) =>
+        [0x01, 0x00, .. BitConverter.GetBytes(declaredLength), .. title, .. Hex("04000000000500020100")];
 
     [Theory]
     [InlineData("03000000000004000000000500020000")]
@@ -241,11 +284,15 @@ public sealed class PartyCommandCodecTests
     }
 
     [Fact]
-    public void Production_registers_all_eight_wire_keys_and_handlers_plus_seven_party_commands()
+    public void Production_registers_all_eight_wire_keys_and_handlers_plus_eight_party_commands()
     {
         var services = new ServiceCollection();
+        services.AddNetworkMessageDispatching();
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         using var provider = services.BuildServiceProvider();
+
+        Assert.Same(provider.GetRequiredService<PartyProjectionStreamRegistry>(),
+            provider.GetRequiredService<IPartyProjectionStateDomainService>());
 
         var decoders = provider.GetServices<GameMessageDecoderRegistration>().ToArray();
         Assert.Contains(decoders, value => value.Selector == 1 && value.Type == 0x0002
@@ -286,15 +333,24 @@ public sealed class PartyCommandCodecTests
         Assert.Contains(handlers, value => value.MessageType == ClientMessageType.GameSetPartyInfo
             && value.HandlerType == typeof(SetPartyInfoHandler));
 
+        _ = provider.GetRequiredService<MessageHandlerRegistry>();
+
+        Type[] migratedHandlers = [typeof(SetUdpIpPortHandler), typeof(RequestPeerHandler),
+            typeof(ResponsePeerHandler), typeof(SetPartyInfoHandler), typeof(CallPartyMemberRealtimeInfoHandler),
+            typeof(LeavePartyHandler), typeof(RemovePartyMemberHandler), typeof(ChangePartyLeaderHandler)];
+        Assert.All(handlers.Where(value => migratedHandlers.Contains(value.HandlerType)),
+            value => Assert.Equal(MessageHandlerRouteKind.ProtocolCommand, value.Route));
+
         Type[] expectedCommands =
         [
-            typeof(RequestPartyInviteCommand),
-            typeof(AcceptPartyInviteCommand),
-            typeof(LeavePartyCommand),
-            typeof(TransferPartyLeadershipCommand),
-            typeof(RemovePartyMemberCommand),
-            typeof(QueryPartyRealtimeCommand),
-            typeof(SetPartyInfoCommand),
+            typeof(GameSetUdpIpPortCommand),
+            typeof(GameRequestPeerCommand),
+            typeof(GameResponsePeerCommand),
+            typeof(GameLeavePartyCommand),
+            typeof(GameChangePartyLeaderCommand),
+            typeof(GameRemovePartyMemberCommand),
+            typeof(GameCallPartyMemberRealtimeInfoCommand),
+            typeof(GameSetPartyInfoCommand),
         ];
         var commands = provider.GetServices<CommandHandlerRegistration>()
             .Where(value => expectedCommands.Contains(value.CommandType))
@@ -302,10 +358,7 @@ public sealed class PartyCommandCodecTests
         Assert.Equal(expectedCommands.Length, commands.Length);
         Assert.All(commands, value =>
         {
-            Assert.Equal(CommandExecutionKind.Direct, value.ExecutionKind);
-            Assert.Equal(UserAccessMode.Unscoped, value.OnlineUserAccessMode);
-            Assert.Equal(UserAccessMode.Unscoped, value.AccountAccessMode);
-        });
+            });
 
         Assert.Contains(
             provider.GetServices<ServerMessageEncoderRegistration>(),

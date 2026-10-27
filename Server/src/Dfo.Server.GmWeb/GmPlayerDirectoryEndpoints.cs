@@ -1,3 +1,4 @@
+using Dfo.Server.HttpApi;
 using System.Globalization;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
@@ -14,35 +15,18 @@ internal static class GmPlayerDirectoryEndpoints
 {
     internal static void Map(RouteGroupBuilder group)
     {
-        group.MapGet("/api/gm/v1/overview", (ICommandBus commands, HttpContext context) => Safe(context, async () =>
-            Results.Ok(await commands.SendAsync(new QueryGmOverviewCommand(), context.RequestAborted))))
-            .WithMetadata(new GmRequiredPermission(GmPermission.QueryPlayers));
-        group.MapGet("/api/gm/v1/accounts", (ICommandBus commands, HttpContext context) => Safe(context, async () =>
-            TryFilter(context.Request.Query, false, out var filter)
-                ? Results.Ok(await commands.SendAsync(new QueryGmAccountsCommand(filter!), context.RequestAborted)) : Error(400, "查询参数无效。")))
-            .WithMetadata(new GmRequiredPermission(GmPermission.QueryPlayers));
-        group.MapGet("/api/gm/v1/characters", (ICommandBus commands, HttpContext context) => Safe(context, async () =>
-            TryFilter(context.Request.Query, true, out var filter)
-                ? Results.Ok(await commands.SendAsync(new QueryGmCharactersCommand(filter!), context.RequestAborted)) : Error(400, "查询参数无效。")))
-            .WithMetadata(new GmRequiredPermission(GmPermission.QueryPlayers));
-        group.MapGet("/api/gm/v1/accounts/{accountId}", (string accountId, ICommandBus commands, HttpContext context) => Safe(context, async () =>
-        {
-            if (!Id(accountId, out var id)) return Error(400, "账号 ID 无效。");
-            var result = await commands.SendAsync(new FindGmAccountCommand(id), context.RequestAborted);
-            return result.Value is null ? Error(404, "账号不存在。") : Results.Ok(result.Value);
-        })).WithMetadata(new GmRequiredPermission(GmPermission.QueryPlayers));
-        group.MapGet("/api/gm/v1/characters/{characterId}", (string characterId, ICommandBus commands, HttpContext context) => Safe(context, async () =>
-        {
-            if (!Id(characterId, out var id)) return Error(400, "角色 ID 无效。");
-            var result = await commands.SendAsync(new FindGmCharacterCommand(id), context.RequestAborted);
-            if (result.Value is null) return Error(404, "角色不存在。");
-            var value = result.Value.Character;
-            return Results.Ok(new { value.CharacterId, value.AccountId, value.LoginName, value.Name, value.NameDecodeStatus,
-                value.NameBytesHex, value.Job, value.GrowType, value.Level, value.IsDeleted, value.IsOnline,
-                value.Channel, value.Position, value.SampledAt, result.Value.Balances });
-        })).WithMetadata(new GmRequiredPermission(GmPermission.QueryPlayers));
+        var permission = new GmRequiredPermission(GmPermission.QueryPlayers);
+        Map("/overview", HttpRouteOperation.Overview, () => new HttpRouteInput.Empty());
+        Map("/accounts", HttpRouteOperation.Accounts, (HttpContext c) => Players(c, false));
+        Map("/characters", HttpRouteOperation.Characters, (HttpContext c) => Players(c, true));
+        Map("/accounts/{accountId}", HttpRouteOperation.Account, (string accountId) => Player(accountId, "账号"));
+        Map("/characters/{characterId}", HttpRouteOperation.Character, (string characterId) => Player(characterId, "角色"));
+        void Map(string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, "GET", "/api/gm/v1" + path, operation, parser, permission);
     }
-
+    private static HttpRouteInput Players(HttpContext c, bool characters) => TryFilter(c.Request.Query, characters, out var filter)
+        ? new HttpRouteInput.Players(filter!) : throw new HttpRouteInputException(400, "查询参数无效。");
+    private static HttpRouteInput Player(string value, string kind) => Id(value, out var id)
+        ? new HttpRouteInput.Player(id) : throw new HttpRouteInputException(400, kind + " ID 无效。");
     private static async Task<IResult> Safe(HttpContext context, Func<Task<IResult>> action)
     {
         try { return await action(); }

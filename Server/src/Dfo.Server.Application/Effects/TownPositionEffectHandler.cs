@@ -7,27 +7,30 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Effects;
 
-internal sealed class TownPositionEffectHandler(ICharacterPositionDomainService positions,
+internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainService onlineCharacters,
     ISelectedSessionPositionPersistence persistence, ISelectedSessionDomainService sessions,
     IDomainTransactionAccessor transactions, ITownAreaDomainService areas) : EffectHandler<MoveToTownEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, MoveToTownEffect effect, CancellationToken ct)
     {
-        if (context.Session is not { } session || sessions.Find(session.AccountId) != session
-            || positions.Find(context.CharacterId) != effect.Expected
+        if (context.Session is not { } session || !sessions.IsInWorld(session)
+            || onlineCharacters.PositionOf(context.CharacterId) != effect.Expected
             || areas.Find(context.CharacterId) is not { } member || !session.Owns(member) || member.Area != effect.SourceArea)
             throw new InvalidOperationException("Town movement target no longer satisfies its plan.");
         return ValueTask.CompletedTask;
     }
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, MoveToTownEffect effect, CancellationToken ct)
     {
+        context.Footprint.DemandEffects(context.Owner);
         await ValidateAsync(context, effect, ct).ConfigureAwait(false);
+        context.Footprint.DemandEffects(context.Owner);
         if (effect.PersistsPosition)
             await persistence.PersistAsync(context.AccountId, context.CharacterId, effect.Destination, ct).ConfigureAwait(false);
-        transactions.Current!.Enlist(new object(), () => new Commit(positions, sessions, areas, context, effect));
+        context.Footprint.DemandEffects(context.Owner);
+        transactions.Current!.Enlist(new object(), () => new Commit(onlineCharacters, sessions, areas, context, effect));
         return new TownPositionChange(effect.Expected, effect.Destination);
     }
-    private sealed class Commit(ICharacterPositionDomainService positions, ISelectedSessionDomainService sessions, ITownAreaDomainService areas,
+    private sealed class Commit(IOnlineCharacterRuntimeDomainService onlineCharacters, ISelectedSessionDomainService sessions, ITownAreaDomainService areas,
         EffectExecutionContext context, MoveToTownEffect effect) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
@@ -35,13 +38,13 @@ internal sealed class TownPositionEffectHandler(ICharacterPositionDomainService 
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask CommitAsync(CancellationToken ct)
         {
-            if (sessions.Find(context.AccountId) == context.Session)
+            if (context.Session!.AccountId == context.AccountId && sessions.IsInWorld(context.Session!))
             {
                 areas.TransferExact(context.CharacterId, context.Session!.TownAreaLease(),
                     new(effect.ChannelId, effect.Destination.TownId, effect.Destination.AreaId), effect.Destination, false);
-                positions.CrossInto(context.Session!, effect.Destination.TownId, effect.Destination.AreaId,
+                onlineCharacters.CrossInto(context.Session!, effect.Destination.TownId, effect.Destination.AreaId,
                     effect.Destination.X, effect.Destination.Y);
-                positions.StepTo(context.Session!, effect.Destination.X, effect.Destination.Y, effect.Destination.Direction);
+                onlineCharacters.StepTo(context.Session!, effect.Destination.X, effect.Destination.Y, effect.Destination.Direction);
             }
             return ValueTask.CompletedTask;
         }

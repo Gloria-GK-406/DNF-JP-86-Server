@@ -89,7 +89,7 @@ public sealed class ItemRefusalCodeTests
             if (status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged or ItemMoveStatus.MirrorRemoved)
                 continue;
 
-            var code = MoveItemSpaceHandler.ErrorCodeFor(status);
+            var code = GameMoveItemSpaceCommandHandler.ErrorCodeFor(status);
             Assert.True(
                 code == MoveItemSpaceResponse.Silent || MoveCodesTheClientDraws.Contains(code),
                 $"{status} answers with {code}, which the client neither draws nor ignores.");
@@ -109,14 +109,14 @@ public sealed class ItemRefusalCodeTests
             if (verdict is ItemUsability.Allowed)
                 continue;
 
-            var status = UseStackableCommandHandler.StatusFor(verdict);
+            var status = GameUseStackableCommandHandler.StatusFor(verdict);
             Assert.NotEqual(ItemUseStatus.Used, status);
         }
 
         // Each refusal keeps its own identity rather than collapsing onto one status.
         var refusals = Enum.GetValues<ItemUsability>()
             .Where(verdict => verdict is not ItemUsability.Allowed)
-            .Select(UseStackableCommandHandler.StatusFor)
+            .Select(GameUseStackableCommandHandler.StatusFor)
             .ToArray();
         Assert.Equal(refusals.Length, refusals.Distinct().Count());
     }
@@ -136,9 +136,9 @@ public sealed class ItemRefusalCodeTests
                 continue;
 
             if (status == ItemMoveStatus.ContainerFull)
-                Assert.Equal(NoFreeSpace, MoveItemSpaceHandler.ErrorCodeFor(status));
+                Assert.Equal(NoFreeSpace, GameMoveItemSpaceCommandHandler.ErrorCodeFor(status));
             else
-                Assert.NotEqual(NoFreeSpace, MoveItemSpaceHandler.ErrorCodeFor(status));
+                Assert.NotEqual(NoFreeSpace, GameMoveItemSpaceCommandHandler.ErrorCodeFor(status));
         }
     }
 
@@ -153,11 +153,11 @@ public sealed class ItemRefusalCodeTests
         Assert.Equal(8, UseStackableHandler.ErrorCodeFor(ItemUseStatus.JobMismatch));
         Assert.Equal(14, UseStackableHandler.ErrorCodeFor(ItemUseStatus.LevelTooLow));
         Assert.Equal(23, UseStackableHandler.ErrorCodeFor(ItemUseStatus.NotAUsableItem));
-        Assert.Equal(17, MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.MergeExceedsStackLimit));
-        Assert.Equal(23, MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.ItemCannotOccupySlot));
+        Assert.Equal(17, GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.MergeExceedsStackLimit));
+        Assert.Equal(23, GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.ItemCannotOccupySlot));
         Assert.Equal(
-            23, MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.DisplacedCannotOccupySlot));
-        Assert.Equal(23, MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.PartialSwapNotAllowed));
+            23, GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.DisplacedCannotOccupySlot));
+        Assert.Equal(23, GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.PartialSwapNotAllowed));
     }
 
     /// <remarks>
@@ -193,12 +193,12 @@ public sealed class ItemRefusalCodeTests
             UseStackableHandler.ErrorCodeFor(ItemUseStatus.CharacterStateUnavailable));
         Assert.Equal(
             MoveItemSpaceResponse.Silent,
-            MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.NoSession));
+            GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.NoSession));
         Assert.Equal(
             MoveItemSpaceResponse.Silent,
-            MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.NoBoundContainer));
+            GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.NoBoundContainer));
         Assert.Equal(
             MoveItemSpaceResponse.Silent,
-            MoveItemSpaceHandler.ErrorCodeFor(ItemMoveStatus.BothSlotsEmpty));
+            GameMoveItemSpaceCommandHandler.ErrorCodeFor(ItemMoveStatus.BothSlotsEmpty));
     }
 }

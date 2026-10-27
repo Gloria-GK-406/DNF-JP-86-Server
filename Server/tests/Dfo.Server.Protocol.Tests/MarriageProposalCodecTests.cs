@@ -1,12 +1,14 @@
+using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.MarriageProposal;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Marriage;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class MarriageProposalCodecTests
 {
     [Fact]
@@ -29,7 +31,8 @@ public sealed class MarriageProposalCodecTests
         foreach (var size in new[] { 0, 4, 17, 19, 32 }) Assert.Throws<InvalidDataException>(() => new WeddingLovePointDecoder().Decode(GameMessageMetadata.Empty, new byte[size]));
         Assert.Equal(Convert.FromHexString("01FEFFFFFF"), Assert.Single(new WeddingLovePointAckEncoder().Encode(new WeddingLovePointAck(-2)))[15..]);
         Assert.Equal(Convert.FromHexString("0800000011000000"), Assert.Single(new WeddingLovePointNotificationEncoder().Encode(new WeddingLovePointNotification(8, 17)))[15..]);
-        Assert.IsAssignableFrom<Dfo.Server.Application.Commands.IRequestSettlementCommand>(new WeddingLovePointCommand(SelectedSessionIdentity.Create(new(1), new(8), new("test"), 1, 10011), new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 16), [new(1), new(2)]));
+        Assert.IsAssignableFrom<Dfo.Server.Abstractions.Networking.IEffectSettlementRequest>(request);
+        Assert.Equal(ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.MarriageLovePoints, request.MinimumReplayNeeds);
     }
 
     [Fact]
@@ -144,30 +147,5 @@ public sealed class MarriageProposalCodecTests
     {
         var body = WeddingProposalPayload.Cmd(-151, 72, 1);
         Assert.Equal(Convert.FromHexString("0169FFFFFF48000000010000"), body);
-    }
-    [Fact]
-    public async Task Two_party_delivery_is_ordered_through_peer_notification_and_command_can_borrow_fences()
-    {
-        var gate = new SelectedSessionTransitionGate();
-        var a = SelectedSessionIdentity.Create(new(1), new(71), new("first"), 1, 10011);
-        var b = SelectedSessionIdentity.Create(new(2), new(72), new("second"), 1, 10011);
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var order = new List<string>();
-        var first = WeddingProposalExecution.RunAsync(gate, a, b, async () =>
-        {
-            await using var own = await gate.BorrowOrAcquireSharedAsync(a.AccountId, default);
-            await using var peer = await gate.BorrowOrAcquireSharedAsync(b.AccountId, default);
-            order.Add("first-ACK"); entered.SetResult();
-            await finish.Task;
-            order.Add("first-NOTI");
-        }, default).AsTask();
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
-        var second = WeddingProposalExecution.RunAsync(gate, b, a, () =>
-        { order.Add("second-ACK+NOTI"); return ValueTask.CompletedTask; }, default).AsTask();
-        Assert.False(second.IsCompleted);
-        finish.SetResult();
-        await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(3));
-        Assert.Equal(["first-ACK", "first-NOTI", "second-ACK+NOTI"], order);
     }
 }

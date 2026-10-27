@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Indexes MAP ownership and connection metadata, without selecting any runtime map.</summary>
-internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider) : IDungeonMapDefinitionSource
+internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider) : IDungeonMapDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<IReadOnlyList<int>> Dungeon = PvfField.Int32List("[dungeon]", optional: true);
     private static readonly PvfField<string> Type = PvfField.String("[type]", optional: true);
@@ -16,6 +16,14 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
     private readonly Dictionary<int, DungeonMapDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
     private IReadOnlyDictionary<int, IReadOnlyList<int>>? byDungeon;
+
+    public string Name => "dungeon-map-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate) return ValueTask.FromResult(Paths().Count);
+    }
 
     public ValueTask<DungeonMapDefinition?> GetAsync(int mapId, CancellationToken cancellationToken)
     {

@@ -1,0 +1,1 @@
+保护结果：同logical有限精确CLR族启动可用且未知派生不能执行。现实回归：旧MessageType唯一约束阻断Housing，改成AssignableFrom又会错放第三派生。现有单shape/编译无法区分；新增真实启动和dispatcher/wholebus入口加计数无业务oracle，原实际SQL/重放测试保留。正例应在旧pair唯一之前真正失败；缺using/驱动/编译错误不算RED。后续mutation以未知派生不能到handler/queue的守卫为oracle，避免被bus第二层拒绝掩盖。

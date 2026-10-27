@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Effects;
@@ -14,6 +16,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Data.Accounts;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -26,12 +29,13 @@ public sealed class CommonExperienceEffectTests
     {
         using var shop = new ShopFixture(s =>
         {
+            s.AddFixtureCommand<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(FixtureUnitKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
             s.AddSingleton<IExperienceCalculationDomainService>(new Calculation { Earned = earned });
         });
-        var command = new GrantClearExperienceCommand(new(999), new(1), 144, new(3, 0, 1, 80, 10));
+        var command = new ClearExperienceAlgorithmInput(new(999), new(1), 144, new(3, 0, 1, 80, 10));
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await shop.Services.GetRequiredService<ICommandBus>().SendAsync(command));
+            await new QuestTestCommands(shop).SendAsync(command));
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
@@ -41,10 +45,10 @@ public sealed class CommonExperienceEffectTests
         var calculation = new Calculation();
         var trace = new EffectTrace();
         using var shop = Shop(calculation, trace);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         var clear = await bus.SendAsync(Clear(shop.Session));
-        var kill = await bus.SendAsync(new GrantKillExperienceCommand(new(1), new(1), new(13099, 5, MonsterRank.Ordinary), 144, 0, 1, Session: shop.Session));
-        var canonical = await bus.SendAsync(Kill(shop.Session));
+        var kill = await KillDomainAsync(shop, experienceOnly: true);
+        var canonical = await KillDomainAsync(shop);
         Assert.Equal(3, trace.Results.Count);
         Assert.Same(clear.Award, trace.Results[0]);
         Assert.Same(kill.Award, trace.Results[1]);
@@ -68,7 +72,7 @@ public sealed class CommonExperienceEffectTests
         var wrong = otherCharacter ? shop.Session with { CharacterId = new(2) }
             : shop.Session with { ConnectionGeneration = shop.Session.ConnectionGeneration + 1 };
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(wrong)));
+            await new QuestTestCommands(shop).SendAsync(Clear(wrong)));
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
@@ -81,13 +85,13 @@ public sealed class CommonExperienceEffectTests
             KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy", [144, -1, 13099, HuntEnemyTargetTypes.Monster, 1]) };
         using var shop = Shop(new Calculation(), trace, s => s.AddSingleton<IQuestContentRuleService>(quests));
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,1); CREATE TRIGGER fail_quest BEFORE UPDATE ON character_active_quests BEGIN SELECT RAISE(ABORT,'quest flush failed'); END");
-        await Assert.ThrowsAsync<SqliteException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Kill(shop.Session)));
+        await Assert.ThrowsAsync<SqliteException>(async () => await KillDomainAsync(shop));
         Assert.Single(trace.Results);
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Equal(1, shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=1"));
         Assert.Null(shop.Services.GetRequiredService<IDomainTransactionAccessor>().Current);
         shop.Sql("DROP TRIGGER fail_quest");
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Kill(shop.Session));
+        var result = await KillDomainAsync(shop);
         Assert.Equal(30u, result.Award!.Total);
         Assert.Equal(0, shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=1"));
     }
@@ -97,12 +101,12 @@ public sealed class CommonExperienceEffectTests
     {
         var trace = new EffectTrace { Prepare = _ => throw new IOException("late prepare") };
         using var shop = Shop(new Calculation(), trace);
-        await Assert.ThrowsAsync<IOException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        await Assert.ThrowsAsync<IOException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.Single(trace.Results);
         Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Null(shop.Services.GetRequiredService<IDomainTransactionAccessor>().Current);
         trace.Prepare = null;
-        Assert.Equal(30u, (await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session))).Award!.Total);
+        Assert.Equal(30u, (await new QuestTestCommands(shop).SendAsync(Clear(shop.Session))).Award!.Total);
     }
 
     [Theory]
@@ -119,13 +123,13 @@ public sealed class CommonExperienceEffectTests
             if (fail) throw new IOException("prepare refused");
         }};
         var calculation = new Calculation();
-        using var shop = Shop(calculation, trace);
+        using var shop = Shop(calculation, trace, RegisterQueuedKill);
         shop.Sql("UPDATE characters SET level=1,exp=90 WHERE character_id=1");
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         var first = bus.SendAsync(Clear(shop.Session)).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         trace.Prepare = null;
-        var second = bus.SendAsync(Kill(shop.Session)).AsTask();
+        var second = bus.SendAsync(new QueuedKillDomainCommand(shop.Session)).AsTask();
         try
         {
             await Task.Delay(100);
@@ -140,6 +144,8 @@ public sealed class CommonExperienceEffectTests
         var result = await second.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(fail ? (byte)1 : (byte)2, calculation.Calls[1].Level);
         Assert.Equal(fail ? 120u : 150u, result.Award!.Total);
+        Assert.IsType<ClearExperienceContext>(calculation.Calls[0].Source);
+        Assert.IsType<KillExperienceContext>(calculation.Calls[1].Source);
         Assert.All(calculation.Calls, call => Assert.True(call.InTransaction));
         Assert.Equal((int)result.Award.Total, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Null(shop.Services.GetRequiredService<IDomainTransactionAccessor>().Current);
@@ -151,7 +157,7 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace { Commit = _ => throw new IOException("nonfallible publication") };
         var calculation = new Calculation();
         using var shop = Shop(calculation, trace);
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        var bus = new QuestTestCommands(shop);
         await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await bus.SendAsync(Clear(shop.Session)));
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         trace.Commit = null;
@@ -169,81 +175,52 @@ public sealed class CommonExperienceEffectTests
         var calculation = new Calculation();
         var trace = new EffectTrace { Prepare = async ct => { entered.TrySetResult(); await release.Task.WaitAsync(ct); },
             Commit = _ => throw new IOException("nonfallible") };
-        using var shop = Shop(calculation, trace, services => services.AddSingleton<ICommandPipelineBehavior<ApplyMonsterKillResult>>(admitted));
-        var bus = shop.Services.GetRequiredService<ICommandBus>();
+        using var shop = Shop(calculation, trace, services => { RegisterQueuedKill(services); services.AddSingleton(admitted); });
+        var bus = new QuestTestCommands(shop);
         var first = bus.SendAsync(Clear(shop.Session)).AsTask();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        var second = bus.SendAsync(Kill(shop.Session)).AsTask();
-        await admitted.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var second = bus.SendAsync(new QueuedKillDomainCommand(shop.Session)).AsTask();
+        // The second CMD is queued behind the first on the executor, so it is not admitted before the first settles.
+        Assert.False(admitted.Entered.Task.IsCompleted);
         Assert.False(second.IsCompleted);
         release.TrySetResult();
         await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(() => first);
         await Assert.ThrowsAsync<InvalidOperationException>(() => second);
+        Assert.False(admitted.Entered.Task.IsCompleted);
         Assert.Single(calculation.Calls);
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         var safety = shop.Services.GetRequiredService<SelectedSessionSafety>();
-        Assert.True(safety.IsBlocked(shop.Session));
+        Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced == true);
         Assert.True(safety.IsBlocked(shop.Connection));
         Assert.False(safety.IsBlocked(shop.Connection with { }));
+        Assert.Null(shop.Services.GetRequiredService<IDomainTransactionAccessor>().Current);
     }
 
     [Fact]
-    public async Task Publication_fence_is_synchronous_even_when_discard_waits_for_lifecycle_exclusive()
+    public async Task Publication_fence_is_synchronous_and_the_next_command_cannot_settle()
+    {
+        using var shop=Shop(new Calculation(),new EffectTrace());
+        var safety=shop.Services.GetRequiredService<SelectedSessionSafety>();
+        await TestGameplay.RunAsync(shop.Services,async()=>{
+            var failure=safety.PublicationFailedAsync(safety.Capture(shop.Session,null),new IOException("claim lost"),"test").AsTask();
+            Assert.True(shop.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().StandingOf(shop.Session)?.Fenced==true);
+            Assert.True(safety.IsBlocked(shop.Connection));
+            Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure,(await failure.WaitAsync(TimeSpan.FromSeconds(5))).Reason);
+        });
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>new QuestTestCommands(shop).SendAsync(Clear(shop.Session)).AsTask());
+    }
+
+    [Fact]
+    public async Task Effect_award_settles_inside_its_clearing_cmd()
     {
         using var shop = Shop(new Calculation(), new EffectTrace());
-        var safety = shop.Services.GetRequiredService<SelectedSessionSafety>();
-        var recipient = safety.Capture(shop.Session);
-        var lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var owner = Task.Run(async () =>
-        {
-            await using var lease = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
-            held.TrySetResult(); await release.Task;
-        });
-        await held.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        var failure = safety.PublicationFailedAsync(recipient, new IOException("claim lost"), "test").AsTask();
-        try
-        {
-            Assert.False(failure.IsCompleted);
-            Assert.True(safety.IsBlocked(shop.Session));
-            Assert.True(safety.IsBlocked(shop.Connection));
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
-        }
-        finally { release.TrySetResult(); }
-        await owner.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure, (await failure.WaitAsync(TimeSpan.FromSeconds(5))).Reason);
-    }
-
-    [Fact]
-    public async Task Effect_uow_borrows_outer_exclusive_and_keeps_teardown_waiting_until_settlement()
-    {
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var trace = new EffectTrace { Prepare = async ct => { entered.TrySetResult(); await release.Task.WaitAsync(ct); } };
-        using var shop = Shop(new Calculation(), trace);
-        var lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        var first = Task.Run(async () =>
-        {
-            await using var outer = await lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default);
-            return await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session));
-        });
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        var teardown = lifecycle.AcquireAsync(shop.Session.AccountId, UserAccessMode.Exclusive, default).AsTask();
-        try { Assert.False(teardown.IsCompleted); Assert.Equal(0, shop.Scalar("SELECT exp FROM characters WHERE character_id=1")); }
-        finally { release.TrySetResult(); }
+        var first = new QuestTestCommands(shop).SendAsync(Clear(shop.Session)).AsTask();
         Assert.Equal(30u, (await first.WaitAsync(TimeSpan.FromSeconds(5))).Award!.Total);
-        await using var done = await teardown.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(30, shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
     }
 
-    private sealed class AdmissionProbe : ICommandPipelineBehavior<ApplyMonsterKillResult>
-    {
-        public int Order => 56;
-        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public ValueTask<ApplyMonsterKillResult> ExecuteAsync(CommandExecutionContext context, ICommand command,
-            CommandExecutionDelegate<ApplyMonsterKillResult> next, CancellationToken ct) { Entered.TrySetResult(); return next(); }
-    }
+    private sealed class AdmissionProbe
+    { public TaskCompletionSource Entered {get;} = new(TaskCreationOptions.RunContinuationsAsynchronously); }
 
     [Fact]
     public async Task Finish_quest_propagates_exact_session_into_actual_effect_context()
@@ -251,44 +228,23 @@ public sealed class CommonExperienceEffectTests
         var trace = new EffectTrace();
         using var shop = Shop(new Calculation(), trace, services => services.AddSingleton<IQuestContentRuleService>(new OrdinaryQuestEffectTests.Rules()));
         shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,0)");
-        var result = await shop.Services.GetRequiredService<ICommandBus>().SendAsync(new Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestCommand(
+        var result = await new QuestTestCommands(shop).SendAsync(new Dfo.Server.Application.Tests.Support.QuestFinishTestInput(
             new(1),new(1),2001,ushort.MaxValue,1,0,shop.Session));
         Assert.True(result.Finished);
         Assert.Equal(shop.Session, Assert.Single(trace.Contexts).Session);
     }
 
     [Fact]
-    public void All_selected_session_commands_have_their_declared_read_or_transactional_registration()
-    {
-        string[] readOnly = ["QueryJoustStateCommand","QueryJoustHistoryCommand","QueryTitleBookCommand"];
-        string[] direct = ["ActivateClientHotkeyProfileCommand", "LeaveDungeonCommand"];
-        string[] expected = ["ReadRentalRefreshCommand","RentEquipmentCommand","ChargeRentPointCommand","EnterBossTowerCommand","LoadBossTowerCommand","StartBossTowerCommand","KillBossTowerActorCommand","AdvanceBossTowerCommand","DieInBossTowerCommand","LeaveBossTowerCommand","SynchronizeBossTowerLeaderCommand","SelectBossTowerResultCommand","PickupBossTowerItemCommand","ReleaseBossTowerSelectionCommand","AltarActionCommand","AltarDeathBatchCommand","BeginTournamentRewardsCommand","SelectTournamentRewardCommand","EliminateTournamentCommand","ProcessMonsterDeathCommand","EquipCarriedTitleReplacingMirrorCommand","ClaimWeeklyAttendanceCommand","UseStackableCommand","UseEntryAllowanceCommand","IncreaseStatusCommand","RenameCreatureCommand","UseFatiguePotionCommand","UseLevelUpTicketCommand","QuestClearCouponCommand","LearnSkillCommand","FinishQuestCommand",
-            "GrantKillExperienceCommand","ApplyMonsterKillCommand","GrantClearExperienceCommand","AvatarCompoundCommand","ResetItemQualityCommand","ResetRandomOptionCommand","ReinforceItemCommand","EnchantByBeadCommand","MagicSealCommand","OutworldCommand",
-            "ForgingCommand","MarriageCeremonyCommand", "MarriageProposalCommand","NpcDisjointItemCommand","PortableDisjointItemCommand","CompoundItemCommand","EpicCraftCommand","ItemSocketCommand","PackageOpeningCommand","AvatarPackageOpeningCommand",
-            "CapsuleCommand","CollectionBoxCommand","HousingCommand","HousingBuyItemCommand","CompleteWeddingCleanupCommand","EnterMarriageChurchCommand","PrepareMarriageChurchCommand","SharedEffectCommand","WeddingCommentCommand", "WeddingGiftCommand","WeddingLetterCommand","WeddingLovePointCommand",
-            "MagicBoxSingleOpeningCommand","MagicBoxBatchOpeningCommand","LotteryOpeningCommand","VendingMachineCommand","TeleportCommand","WarehouseCommand","JoustBetCommand","StoreTitleCommand","WithdrawTitleCommand","SetTitleAppearanceCommand","ReconcileAchievementCommand","SaveCharacterOptionCommand","SaveClientSettingsCommand"];
-        var actual = typeof(GrantClearExperienceCommand).Assembly.GetTypes().Where(x => !x.IsAbstract && typeof(ISelectedSessionCommand).IsAssignableFrom(x)).ToArray();
-        Assert.Equal(expected.Concat(["EnterDungeonCommand"]).Concat(readOnly).Concat(direct).Order(),actual.Select(x => x.Name).Order());
-        using var shop = Shop(new Calculation(),new EffectTrace());
-        var registry = shop.Services.GetRequiredService<CommandHandlerRegistry>();
-        Assert.All(actual, type => Assert.Equal(readOnly.Contains(type.Name)?CommandExecutionKind.ReadOnly:direct.Contains(type.Name)?CommandExecutionKind.Direct:CommandExecutionKind.Transactional,
-            registry.GetRegistration(type).ExecutionKind));
-        Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 45);
-        Assert.Contains(shop.Services.GetServices<ICommandPipelineBehavior<ClearExperienceResult>>(),x => x.Order == 58);
-    }
-
-    [Fact]
-    public async Task Logger_failure_does_not_replace_unknown_cause_and_exact_close_callback_waits_for_lease_release()
+    public async Task Logger_failure_does_not_replace_unknown_cause_and_the_exact_connection_is_closed_and_blocked()
     {
         var closer = new CallbackCloser();
         var trace = new EffectTrace { Commit = _ => throw new IOException("durable publication") };
         using var shop = Shop(new Calculation(),trace,services =>
         {
-            services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>(closer);
+            closer.Use(services);
             services.AddSingleton<Microsoft.Extensions.Logging.ILogger<SelectedSessionSafety>>(new ThrowingLogger());
         });
-        closer.Lifecycle = shop.Services.GetRequiredService<Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate>();
-        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        var error = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.IsType<IOException>(error.InnerException);
         await closer.Callback.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Same(shop.Connection,closer.Expected);
@@ -301,21 +257,30 @@ public sealed class CommonExperienceEffectTests
         public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel level) => true;
         public void Log<TState>(Microsoft.Extensions.Logging.LogLevel level,Microsoft.Extensions.Logging.EventId id,TState state,Exception? error,Func<TState,Exception?,string> formatter) => throw new IOException("logger");
     }
+    /// <summary>
+    /// The fixture's real closer (TASK-25): an exact close is registered in the outbox, and the callback runs at that
+    /// registration point with the context the close was registered for. An ID-only close stays forbidden here.
+    /// </summary>
     private sealed class CallbackCloser : Dfo.Server.Abstractions.Networking.INetworkConnectionCloser
     {
-        public Dfo.Server.Application.OnlineUsers.SelectedSessionTransitionGate Lifecycle = null!;
+        private RecordedOutbound? outbound;
         public Dfo.Server.Data.Networking.NetworkConnectionContext? Expected;
         public TaskCompletionSource Callback { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public ValueTask RequestCloseAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,CancellationToken ct) => throw new InvalidOperationException("ID-only close is forbidden here.");
-        public ValueTask RequestCloseExactAsync(Dfo.Server.Data.Networking.NetworkConnectionContext expected,CancellationToken ct)
-        {
-            Assert.Equal(CancellationToken.None,ct); Expected = expected;
-            _ = Task.Run(async () =>
+        private RecordedOutbound Outbound => outbound ?? throw new InvalidOperationException("The fixture has not been built.");
+        public void Use(IServiceCollection services) =>
+            services.AddSingleton<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>(provider =>
             {
-                await using var lease = await Lifecycle.AcquireAsync(new(1),UserAccessMode.Exclusive,default);
-                Callback.TrySetResult();
+                outbound = provider.GetRequiredService<RecordedOutbound>();
+                return this;
             });
-            return ValueTask.CompletedTask;
+        public ValueTask RequestCloseAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,CancellationToken ct) => throw new InvalidOperationException("ID-only close is forbidden here.");
+        public async ValueTask RequestCloseExactAsync(Dfo.Server.Data.Networking.NetworkConnectionContext expected,CancellationToken ct)
+        {
+            // The close is only requested here; teardown is a later lifecycle CMD (see the test body).
+            Assert.Equal(CancellationToken.None,ct);
+            await Outbound.Closer.RequestCloseExactAsync(expected, ct);
+            Expected = Outbound.Entries.LastOrDefault(entry => entry.IsClose && entry.Connection.ConnectionId == expected.ConnectionId)?.Connection;
+            Callback.TrySetResult();
         }
     }
 
@@ -330,21 +295,58 @@ public sealed class CommonExperienceEffectTests
             Rollback = wrapped ? null : _ => throw new IOException("rollback participant") };
         var calculation = new Calculation();
         using var shop = Shop(calculation,trace);
-        var error = await Assert.ThrowsAnyAsync<Exception>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        var error = await Assert.ThrowsAnyAsync<Exception>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.True(TransactionOutcomeUncertainException.Contains(error));
         Assert.Equal(0,shop.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         trace.Prepare = null; trace.Rollback = null;
-        await Assert.ThrowsAsync<InvalidOperationException>(async () => await shop.Services.GetRequiredService<ICommandBus>().SendAsync(Clear(shop.Session)));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await new QuestTestCommands(shop).SendAsync(Clear(shop.Session)));
         Assert.Single(calculation.Calls);
     }
 
-    private static GrantClearExperienceCommand Clear(SelectedSessionIdentity? session) =>
-        new(new(1), new(1), 144, new(3, 0, 1, 80, 10), session);
-    private static ApplyMonsterKillCommand Kill(SelectedSessionIdentity? session) =>
-        new(new(1), new(1), new(13099, 5, MonsterRank.Ordinary), 144, 0, 1, Session: session);
-    private static ShopFixture Shop(Calculation calculation, EffectTrace trace, Action<IServiceCollection>? configure = null) =>
-        new(s =>
+    // Test-only registration preserves the original cross-TResult bus/FIFO regression. It
+    // executes the real reward domain inside the bus's explicit transaction and the fixture's explicit footprint;
+    // it neither retains a production fine command nor bypasses admission with a domain driver.
+    private sealed record QueuedKillDomainCommand(SelectedSessionIdentity Session) : ICommand<QueuedKillResult>,IDomainFixtureParticipants {public IReadOnlyList<SelectedSessionIdentity> Participants=>[Session];}
+    private sealed record QueuedKillResult(ExperienceAward? Award);
+    private sealed class QueuedKillDomainCommandHandler(IMonsterKillRewardsDomainService rewards,SelectedSessionSafety safety,AdmissionProbe admission)
+        : ICommandHandler<QueuedKillDomainCommand, QueuedKillResult>
+    {
+        public async ValueTask<QueuedKillResult> HandleAsync(CommandExecutionContext context, QueuedKillDomainCommand command, CancellationToken ct)
         {
+            safety.DemandCurrent(command.Session);admission.Entered.TrySetResult();
+            var session=command.Session;using var footprint=new TestEffectFootprints.Lease(session);
+            var result=await rewards.ApplyAsync(session,session.AccountId,session.CharacterId,
+                new(13099,5,MonsterRank.Ordinary,true,false),144,0,1,1,default,false,null,null,null,null,
+                footprint,ct);
+            return new(result.Award);
+        }
+    }
+    private static void RegisterQueuedKill(IServiceCollection services)
+    {
+        Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton<AdmissionProbe>(services);
+        services.AddFixtureCommand<QueuedKillDomainCommand,QueuedKillResult,QueuedKillDomainCommandHandler>(FixtureUnitKind.Transactional);
+    }
+
+    private static ClearExperienceAlgorithmInput Clear(SelectedSessionIdentity? session) =>
+        new(new(1), new(1), 144, new(3, 0, 1, 80, 10), session);
+    private static Task<MonsterRewardResult> KillDomainAsync(ShopFixture shop, bool experienceOnly=false) =>
+        TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var tx=shop.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            MonsterRewardResult result;
+            if(experienceOnly)
+            {
+                var award=await TestEffectFootprints.Run(shop.Session,cap=>shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>().Get(new(1)).AddExpAsync(
+                    new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill,new(1),new(1),144),5,MonsterRank.Ordinary,0,1,1),shop.Clock.GetUtcNow(),shop.Session,cap,default));
+                result=new(award,[]);
+            }
+            else result=await TestEffectFootprints.Run(new EffectFootprintOwner(shop.Session.AccountId,shop.Session.CharacterId,shop.Session), cap => MonsterRewardDomainDriver.ApplyAsync(shop.Services.GetRequiredService<IMonsterKillRewardsDomainService>(), new(new(1),new(1),new(13099,5,MonsterRank.Ordinary),144,0,1,Session:shop.Session), cap, default));
+            await tx.CommitAsync(default);return result;
+        });
+    private static ShopFixture Shop(Calculation calculation, EffectTrace trace, Action<IServiceCollection>? configure = null) =>
+        new(true,s =>
+        {
+            s.AddFixtureCommand<ClearExperienceAlgorithmInput, ClearExperienceResult, ClearExperienceAlgorithmDriver>(FixtureUnitKind.Transactional);
             s.AddSingleton<IExperienceRuleService>(new FixedProgression());
             s.AddSingleton<IDungeonDifficultyRuleService>(new Dfo.Server.Application.Tests.Support.TestDungeonDifficultyRules());
             s.AddSingleton<IExperienceCalculationDomainService>(sp => { calculation.Transactions = sp.GetRequiredService<IDomainTransactionAccessor>(); return calculation; });
@@ -401,4 +403,7 @@ public sealed class CommonExperienceEffectTests
         public ValueTask CommitAsync(CancellationToken ct) => commit?.Invoke(ct) ?? ValueTask.CompletedTask;
         public ValueTask RollbackAsync(CancellationToken ct) => rollback?.Invoke(ct) ?? ValueTask.CompletedTask;
     }
+    private static bool Migrated(string name) => name is "AltarActionCommand" or "SelectTournamentRewardCommand" or "EliminateTournamentCommand" or "CompleteWeddingCleanupCommand" || name is "MarriageCeremonyCommand" or "MarriageProposalCommand" or "CapsuleCommand" or "HousingCommand" or "EnterMarriageChurchCommand" or "PrepareMarriageChurchCommand" or "WeddingCommentCommand" or "WeddingGiftCommand" or "WeddingLetterCommand" or "WeddingLovePointCommand" || name is "QuestClearCouponCommand" or "UseEntryAllowanceCommand" or "UseFatiguePotionCommand" || name == "FinishQuestCommand" && QuestTestCommands.Modern || name is "LearnSkillCommand" or "IncreaseStatusCommand" or "UseLevelUpTicketCommand"
+        && typeof(Dfo.Server.Protocol.ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.LearnSkill.GameLearnSkillCommand") is not null;
+
 }

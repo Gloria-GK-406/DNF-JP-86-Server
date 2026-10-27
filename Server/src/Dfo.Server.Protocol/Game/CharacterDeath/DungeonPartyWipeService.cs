@@ -1,141 +1,49 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.TownProjection;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.CharacterDeath;
-
-public sealed record EndPartyWipeCommand(DungeonRunId RunId, DateTimeOffset Now) : ICommand<EndPartyWipeResult>;
-public sealed record EndPartyWipeResult(DungeonRunState? Ended);
-public sealed class EndPartyWipeCommandHandler(IDungeonRunDomainService runs)
-    : ICommandHandler<EndPartyWipeCommand, EndPartyWipeResult>
+public sealed class DungeonPartyWipeService(ICommandBus commands, TimeProvider clock, ILogger<DungeonPartyWipeService> logger)
+    : TypedGameplayTimerSource(commands, logger)
 {
-    public async ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
-        EndPartyWipeCommand command, CancellationToken cancellationToken) =>
-        new(await runs.TryEndPartyWipeAsync(command.RunId, command.Now).ConfigureAwait(false));
-}
+    protected override string SourceName => "timer:DungeonPartyWipeService";
+    protected override bool SerializeRounds => true;
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
+    {
+        var due = await SubmitAsync(new MaintainDungeonReturnsCommand(), root, SourceName, token).ConfigureAwait(false);
+        foreach (var command in due) await ReturnRunAsync(command, root, token).ConfigureAwait(false);
+    }
+    internal ValueTask ReturnAsync(DungeonRunId runId, CancellationToken token, bool cleared = false) =>
+        ReturnRunAsync(new(runId, cleared), GameplayCallChain.NewRoot(GameplayCallSource.Timer), token);
 
-public sealed record EndClearReturnCommand(DungeonRunId RunId, DateTimeOffset Now) : ICommand<EndPartyWipeResult>;
-public sealed class EndClearReturnCommandHandler(IDungeonRunDomainService runs)
-    : ICommandHandler<EndClearReturnCommand, EndPartyWipeResult>
-{
-    public async ValueTask<EndPartyWipeResult> HandleAsync(CommandExecutionContext context,
-        EndClearReturnCommand command, CancellationToken cancellationToken) =>
-        new(await runs.TryEndClearReturnAsync(command.RunId, command.Now).ConfigureAwait(false));
-}
-
-/// <summary>Observes shared life state, then returns only the exact generations admitted to an expired run.</summary>
-public sealed class DungeonPartyWipeService(
-    IDungeonRunDomainService runs,
-    ISelectedSessionDomainService sessions,
-    ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterPositionDomainService positions,
-    DungeonRunDeliveryRegistry registry,
-    DungeonProjectionGate projectionGate,
-    SelectedSessionTransitionGate transitionGate,
-    DungeonCardPresentationCoordinator cards,
-    TownAreaProjectionDelivery towns,
-    ICommandBus commands,
-    TimeProvider clock,
-    ILogger<DungeonPartyWipeService> logger,
-    Dfo.Server.Protocol.Game.Tournament.TournamentProjectionDelivery? tournaments = null,
-    Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery? altars = null) : BackgroundService
-{
+    private async ValueTask ReturnRunAsync(ReturnDungeonRunCommand command, GameplayCallChain root, CancellationToken token)
+    {
+        System.Collections.Immutable.ImmutableArray<SelectedSessionIdentity> recipients;
+        try { recipients = await SubmitAsync(command, root.Child(root.Source), "timer:dungeon-return-run", token).ConfigureAwait(false); }
+        catch (Exception error) when (GameplayJob.EndedAJob(error))
+        {
+            logger.LogWarning("Dungeon return failed run={RunId}; continuing with the next captured run", command.RunId);
+            return;
+        }
+        // Ending the run commits the return obligation. Drain waits for all accepted recipient jobs,
+        // including when the producer's stop token was cancelled after the end command completed.
+        foreach (var session in recipients)
+            await ItemAsync(new ProjectDungeonReturnCommand(session, command.RunId, command.Cleared), root,
+                "timer:dungeon-return-member", CancellationToken.None).ConfigureAwait(false);
+    }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250), clock);
-        try
-        {
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-            {
-                foreach (var runId in runs.FindExpiredClearReturns(clock.GetUtcNow()))
-                {
-                    try { await ReturnAsync(runId, stoppingToken, cleared: true).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception) { logger.LogError(exception, "Clear timeout return failed run={RunId}", runId); }
-                }
-                foreach (var runId in runs.FindExpiredPartyWipes(clock.GetUtcNow()))
-                {
-                    try { await ReturnAsync(runId, stoppingToken).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
-                    catch (Exception exception) { logger.LogError(exception, "Party wipe return failed run={RunId}", runId); }
-                }
-            }
-        }
+        try { while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false)) await HostedAsync(stoppingToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
-    }
-
-    internal async ValueTask ReturnAsync(DungeonRunId runId, CancellationToken cancellationToken, bool cleared = false)
-    {
-        await using var projection = await projectionGate.AcquireAsync(
-            runId, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        var frozen = registry.Find(runId);
-        var leases = new List<IAsyncDisposable>();
-        try
-        {
-            // The same ordering as entry: instance, then accounts in stable order.
-            foreach (var account in frozen.Select(x => x.AccountId).Distinct().OrderBy(x => x.Value))
-                leases.Add(await transitionGate.AcquireAsync(account, UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false));
-            if (!cleared && runs.Find(runId)?.Layout.Altar is not null)
-            {
-                await (altars ?? throw new InvalidOperationException("Altar projection is unavailable."))
-                    .FailAsync(runId, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            if (!cleared && runs.Find(runId)?.Layout.Tournament is not null)
-            {
-                await (tournaments ?? throw new InvalidOperationException("Tournament projection is unavailable."))
-                    .EliminateAsync(runId, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            var entries = new List<TownAreaEntry>();
-            foreach (var session in frozen)
-            {
-                if (sessions.FindByCharacter(session.CharacterId) != session
-                    || sessions.FindByConnection(session.ConnectionId) != session
-                    || runs.Find(session.CharacterId)?.RunId != runId)
-                    continue;
-                var view = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
-                var position = positions.Find(session.CharacterId);
-                if (view is null || position is null)
-                    throw new InvalidOperationException($"Cannot prepare party wipe return for {session.CharacterId}.");
-                entries.Add(new TownAreaEntry(session, view, position));
-            }
-            var result = cleared
-                ? await commands.SendAsync(new EndClearReturnCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false)
-                : await commands.SendAsync(new EndPartyWipeCommand(runId, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
-            if (result.Ended is not { } ended) return;
-            foreach (var session in frozen)
-            {
-                cards.Cancel(session.CharacterId, runId);
-                registry.RemoveParticipant(runId, session.CharacterId);
-            }
-            // Keep the party intact. Automatic failure ends the instance, not party membership.
-            // No unsolicited 002A/007B ACK: the existing town projection provides 0003/0017/0018.
-            foreach (var entry in entries.Where(x => ended.Participants.Any(p => p.CharacterId == x.Session.CharacterId)))
-            {
-                try
-                {
-                    await towns.EnterAsync([entry], cancellationToken).ConfigureAwait(false);
-                    logger.LogInformation("Dungeon returned character={CharacterId} run={RunId} reason={Reason}", entry.Session.CharacterId, runId, cleared ? "clear-timeout" : "party-wipe");
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-                catch (Exception exception)
-                {
-                    logger.LogError(exception, "Party wipe town projection failed character={CharacterId} run={RunId}", entry.Session.CharacterId, runId);
-                }
-            }
-        }
-        finally
-        {
-            for (var index = leases.Count - 1; index >= 0; index--)
-                await leases[index].DisposeAsync().ConfigureAwait(false);
-        }
     }
 }

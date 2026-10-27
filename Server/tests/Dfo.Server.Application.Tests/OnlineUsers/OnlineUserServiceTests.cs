@@ -1,9 +1,9 @@
+
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
@@ -21,152 +21,130 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Protocol.Game.InitialConnection;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.OnlineUsers;
 
 public sealed class UserServiceTests
 {
     [Fact]
-    public async Task DisconnectWaitingForLifecycleKeepsItsCapturedSessionAndDoesNotCleanReplacement()
-    {
-        var account = new AccountId(109);
-        var users = CreateService(account);
-        var onlineGate = new OnlineUserExecutionGate();
-        var lifecycle = new SelectedSessionTransitionGate();
-        var sessions = new SelectedSessionDomainService();
-        var cleanup = new ClearingCleanup(users);
-        var connection = new NetworkConnectionContext(new("Game:replace-waiting"), NetworkEndpointKind.Game, 10011);
-        var online = users.RegisterConnection(connection);
-        await users.AuthenticateForTestAsync(online.OnlineUserId);
-        var original = SelectedSessionIdentity.Create(account, new(1009), connection.ConnectionId,
-            users.GetRequired(online.OnlineUserId).Generation, 10011);
-        sessions.Select(original);
-        users.Publish(original);
-        var observer = new OnlineUserConnectionObserver(users, onlineGate, lifecycle, sessions, cleanup,
-            new StubChannelEntryPolicy(), new StubServerConfigService(), new RecordingInitialSender(),
-            new RecordingCleanupDelivery(), TimeProvider.System);
-        var blocker = await lifecycle.AcquireAsync(account, UserAccessMode.Exclusive, default);
-        var disconnect = observer.DisconnectedAsync(connection, default).AsTask();
-        Assert.False(disconnect.IsCompleted);
-        var replacement = SelectedSessionIdentity.Create(account, new(1010), connection.ConnectionId,
-            users.GetRequired(online.OnlineUserId).Generation, 10011);
-        sessions.Select(replacement);
-        users.Publish(replacement);
-        await blocker.DisposeAsync();
-        await disconnect.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Null(cleanup.Cleaned);
-        Assert.Equal(replacement, sessions.Find(account));
-        Assert.True(users.TryGetByConnection(connection.ConnectionId, out _));
-        Assert.Equal(0, lifecycle.TrackedEntryCount);
-        Assert.Equal(0, onlineGate.TrackedEntryCount);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task TeardownWaitingForLifecycleDoesNotTakeOnlineOwnershipInReverse(bool returnToSelection)
-    {
-        var accountId = new AccountId(108);
-        var users = CreateService(accountId);
-        var onlineGate = new OnlineUserExecutionGate();
-        var lifecycle = new SelectedSessionTransitionGate();
-        var selected = new SelectedSessionDomainService();
-        var connection = new NetworkConnectionContext(new("Game:lock-order"), NetworkEndpointKind.Game, 10011);
-        var online = users.RegisterConnection(connection);
-        await users.AuthenticateForTestAsync(online.OnlineUserId);
-        var authenticated = users.GetRequired(online.OnlineUserId);
-        selected.Select(SelectedSessionIdentity.Create(accountId, new(1008), connection.ConnectionId,
-            authenticated.Generation, 10011));
-        var blocker = await lifecycle.AcquireAsync(accountId, UserAccessMode.Shared, default);
-        using var cancel = new CancellationTokenSource();
-        Task teardown;
-        if (returnToSelection)
-        {
-            // Only the real acquisition boundary is exercised; command/delivery is unreachable
-            // while the lifecycle barrier is held and the waiter is cancelled in finally.
-            var handler = new Dfo.Server.Protocol.Game.ReturnToSelection.ReturnToSelectionHandler(
-                users, onlineGate, lifecycle, null!, null!, null!);
-            teardown = handler.HandleAsync(new(connection),
-                new Dfo.Server.Protocol.Game.ReturnToSelection.ReturnToSelectionRequest(GameMessageMetadata.Empty),
-                cancel.Token).AsTask();
-        }
-        else
-        {
-            var observer = new OnlineUserConnectionObserver(users, onlineGate, lifecycle, selected,
-                new NoopCleanup(), new StubChannelEntryPolicy(), new StubServerConfigService(),
-                new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
-            teardown = observer.DisconnectedAsync(connection, cancel.Token).AsTask();
-        }
-        var commandOnline = onlineGate.AcquireAsync(online.OnlineUserId, UserAccessMode.Exclusive, cancel.Token);
-        try
-        {
-            Assert.False(teardown.IsCompleted);
-            // The lifecycle owner can now take online ownership and finish. The previous reverse
-            // order left teardown holding online while waiting for this owner's lifecycle lease.
-            Assert.True(commandOnline.IsCompletedSuccessfully);
-            await (await commandOnline).DisposeAsync();
-        }
-        finally
-        {
-            cancel.Cancel();
-            await blocker.DisposeAsync();
-            try { await teardown.WaitAsync(TimeSpan.FromSeconds(5)); }
-            catch (OperationCanceledException) { }
-            if (!commandOnline.IsCompletedSuccessfully)
-            {
-                try { await (await commandOnline).DisposeAsync(); }
-                catch (OperationCanceledException) { }
-            }
-        }
-        Assert.Equal(0, lifecycle.TrackedEntryCount);
-        Assert.Equal(0, onlineGate.TrackedEntryCount);
-    }
-
-    [Fact]
     public async Task Udp_endpoint_belongs_to_the_game_session_not_its_selected_character()
     {
-        var service = CreateService(new AccountId(700));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var service = CreateService(new AccountId(700));
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:endpoint-owner"), NetworkEndpointKind.Game, 10011);
+            var connected = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(connected.OnlineUserId);
+            var authenticated = service.GetRequired(connected.OnlineUserId);
+            var endpoint = Endpoint(30_976);
+
+            Assert.True(service.TryObserve(authenticated.SessionIdentity, endpoint));
+            Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+
+            var selected = SelectedSessionIdentity.Create(
+                new AccountId(700),
+                new CharacterId(77),
+                connection.ConnectionId,
+                authenticated.Generation,
+                connection.ListenerPort);
+            service.Publish(selected);
+            Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+
+            Assert.True(service.ClearExact(selected));
+            Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+        });
+    }
+
+    /// <remarks>
+    /// Protocol rejection removes the online identity at once and leaves the selection for the
+    /// disconnect to clean up. Between the two the selection reads as revoked; after the cleanup
+    /// nothing of it is left, neither the selection nor the online character's record.
+    /// </remarks>
+    [Fact]
+    public async Task A_rejected_connection_is_cleaned_up_by_its_disconnect_and_leaves_nothing()
+    {
+        var accountId = new AccountId(702);
+        var service = CreateService(accountId);
         var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:endpoint-owner"), NetworkEndpointKind.Game, 10011);
-        var connected = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(connected.OnlineUserId);
-        var authenticated = service.GetRequired(connected.OnlineUserId);
-        var endpoint = Endpoint(30_976);
+            new NetworkConnectionId("Game:rejected"), NetworkEndpointKind.Game, 10011);
+        var session = await TestGameplay.RunAsync(async () =>
+        {
+            var online = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(online.OnlineUserId);
+            var session = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(78), connection.ConnectionId,
+                service.GetRequired(online.OnlineUserId).Generation, connection.ListenerPort);
+            service.Publish(session);
+            return session;
+        });
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        TestGameplay.Run(() =>
+        {
+            runtime.Begin(session, new CharacterPositionState(1, 0, 10, 20, 0), 100);
+        });
+        var cleanup = new SelectedSessionCleanupService(
+            service.Sessions, new Dfo.Server.Application.Inventory.CharacterContainerDomainService(),
+            new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
+            [new KeptPositions()], runtime, new StubChannelEntryPolicy(),
+            new Dfo.Server.Application.Parties.PartyService(
+                new StubPartyMemberStatusDomainService(),
+                new Dfo.Server.Application.Parties.PartyModeRuleService(),
+                TimeProvider.System,
+                EmptyPartyMemberSessionEndpointSource.Instance),
+            new Dfo.Server.Application.World.DungeonRunDomainService(), []);
 
-        Assert.True(service.TryObserve(authenticated.SessionIdentity, endpoint));
-        Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+        TestGameplay.Run(() =>
+        {
+            Assert.True(service.TryDisconnectConnection(connection.ConnectionId));
 
-        var selected = SelectedSessionIdentity.Create(
-            new AccountId(700),
-            new CharacterId(77),
-            connection.ConnectionId,
-            authenticated.Generation,
-            connection.ListenerPort);
-        service.Publish(selected);
-        Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+            Assert.True(service.Sessions.StandingOf(session)!.ConnectionRevoked);
+            Assert.Equal(session, service.Sessions.FindByConnection(connection.ConnectionId));
+        });
 
-        Assert.True(service.ClearExact(selected));
-        Assert.Equal(endpoint, service.Find(authenticated.SessionIdentity));
+        var observer = CreateObserver(
+            service, service.Sessions, cleanup, new RecordingInitialSender(), TimeProvider.System);
+        await TestGameplay.RunAsync(async () =>
+        {
+        await observer.DisconnectedAsync(connection, CancellationToken.None);
+        });
+
+        TestGameplay.Run(() =>
+        {
+            Assert.Null(service.Sessions.Find(accountId));
+            Assert.Null(service.Sessions.StandingOf(session));
+            Assert.Null(runtime.PositionOf(session.CharacterId));
+        });
+    }
+
+    private sealed class KeptPositions : ISelectedSessionPositionPersistence
+    {
+        public ValueTask PersistAsync(AccountId accountId, CharacterId characterId,
+            CharacterPositionState position, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
     [Fact]
     public async Task Disconnect_removes_only_the_exact_game_sessions_udp_endpoint()
     {
-        var service = CreateService(new AccountId(701));
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:reused-endpoint"), NetworkEndpointKind.Game, 10011);
-        var oldConnected = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(oldConnected.OnlineUserId);
-        var oldSession = service.GetRequired(oldConnected.OnlineUserId).SessionIdentity;
-        Assert.True(service.TryObserve(oldSession, Endpoint(30_976)));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var service = CreateService(new AccountId(701));
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:reused-endpoint"), NetworkEndpointKind.Game, 10011);
+            var oldConnected = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(oldConnected.OnlineUserId);
+            var oldSession = service.GetRequired(oldConnected.OnlineUserId).SessionIdentity;
+            Assert.True(service.TryObserve(oldSession, Endpoint(30_976)));
 
-        Assert.True(service.TryDisconnectConnection(connection.ConnectionId));
-        var replacement = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(replacement.OnlineUserId);
+            Assert.True(service.TryDisconnectConnection(connection.ConnectionId));
+            var replacement = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(replacement.OnlineUserId);
 
-        Assert.Null(service.Find(oldSession));
-        Assert.False(service.TryObserve(oldSession, Endpoint(36_624)));
-        Assert.Null(service.Find(service.GetRequired(replacement.OnlineUserId).SessionIdentity));
+            Assert.Null(service.Find(oldSession));
+            Assert.False(service.TryObserve(oldSession, Endpoint(36_624)));
+            Assert.Null(service.Find(service.GetRequired(replacement.OnlineUserId).SessionIdentity));
+        });
     }
 
     [Fact]
@@ -182,7 +160,10 @@ public sealed class UserServiceTests
             service, new EmptySelectedSessions(), new NoopCleanup(), sender,
             new FixedTimeProvider(preparedAt));
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.ConnectedAsync(connection, CancellationToken.None);
+        });
 
         var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
         Assert.Equal(11, sent.ChannelId);
@@ -201,9 +182,15 @@ public sealed class UserServiceTests
             service, new EmptySelectedSessions(), new NoopCleanup(), sender,
             TimeProvider.System);
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.ConnectedAsync(connection, CancellationToken.None);
+        });
 
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        TestGameplay.Run(() =>
+        {
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        });
         Assert.Empty(sender.Messages);
     }
 
@@ -218,9 +205,13 @@ public sealed class UserServiceTests
             new RecordingInitialSender(fail: true), TimeProvider.System);
 
         await Assert.ThrowsAsync<IOException>(async () =>
-            await observer.ConnectedAsync(connection, CancellationToken.None));
+            await TestGameplay.RunAsync(async () =>
+            await observer.ConnectedAsync(connection, CancellationToken.None)));
 
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        TestGameplay.Run(() =>
+        {
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        });
     }
 
     [Fact]
@@ -235,7 +226,10 @@ public sealed class UserServiceTests
             TimeProvider.System,
             new FixedChannelEntryPolicy(StubChannelEntryPolicy.RestrictedChannel));
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.ConnectedAsync(connection, CancellationToken.None);
+        });
 
         var sent = Assert.IsType<GameInitialConnectionNotice>(Assert.Single(sender.Messages));
         Assert.Equal(100, sent.ChannelId);
@@ -255,245 +249,238 @@ public sealed class UserServiceTests
                 new ChannelEntryIdentity(0, connection.ListenerPort, ChannelEntryKind.General)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await observer.ConnectedAsync(connection, CancellationToken.None));
+            await TestGameplay.RunAsync(async () =>
+            await observer.ConnectedAsync(connection, CancellationToken.None)));
 
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        TestGameplay.Run(() =>
+        {
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        });
         Assert.Empty(sender.Messages);
     }
 
     [Fact]
     public void RegisterConnection_CreatesOneAnonymousUserResolvableByConnection()
     {
-        var service = CreateService();
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:17"),
-            NetworkEndpointKind.Game,
-            10011);
+        TestGameplay.Run(() =>
+        {
+            var service = CreateService();
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:17"),
+                NetworkEndpointKind.Game,
+                10011);
 
-        var registered = service.RegisterConnection(connection);
+            var registered = service.RegisterConnection(connection);
 
-        var snapshot = service.GetRequired(registered.OnlineUserId);
-        Assert.Equal(registered, snapshot);
-        Assert.Equal(OnlineUserState.Connected, snapshot.State);
-        Assert.Null(snapshot.AccountId);
-        Assert.Equal(1, snapshot.Generation);
-        Assert.True(service.TryGetByConnection(connection.ConnectionId, out var byConnection));
-        Assert.Equal(snapshot, byConnection);
+            var snapshot = service.GetRequired(registered.OnlineUserId);
+            Assert.Equal(registered, snapshot);
+            Assert.Equal(OnlineUserState.Connected, snapshot.State);
+            Assert.Null(snapshot.AccountId);
+            Assert.Equal(1, snapshot.Generation);
+            Assert.True(service.TryGetByConnection(connection.ConnectionId, out var byConnection));
+            Assert.Equal(snapshot, byConnection);
+        });
     }
 
     [Fact]
     public async Task Login_BindsAccountAndAdvancesGeneration()
     {
-        var service = CreateService(new AccountId(42));
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:18"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var service = CreateService(new AccountId(42));
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:18"),
+                NetworkEndpointKind.Game,
+                10011);
+            var registered = service.RegisterConnection(connection);
 
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var authenticated = service.GetRequired(registered.OnlineUserId);
 
-        Assert.Equal(OnlineUserState.Authenticated, authenticated.State);
-        Assert.Equal(new AccountId(42), authenticated.AccountId);
-        Assert.Equal(registered.Generation + 1, authenticated.Generation);
+            Assert.Equal(OnlineUserState.Authenticated, authenticated.State);
+            Assert.Equal(new AccountId(42), authenticated.AccountId);
+            Assert.Equal(registered.Generation + 1, authenticated.Generation);
+        });
     }
 
     [Fact]
     public async Task TryDisconnect_RejectsStaleGenerationAndPreservesCurrentUser()
     {
-        var service = CreateService(new AccountId(99));
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:19"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var service = CreateService(new AccountId(99));
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:19"),
+                NetworkEndpointKind.Game,
+                10011);
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var authenticated = service.GetRequired(registered.OnlineUserId);
 
-        Assert.False(service.TryDisconnect(
-            registered.OnlineUserId,
-            connection.ConnectionId,
-            registered.Generation));
-        Assert.Equal(authenticated, service.GetRequired(registered.OnlineUserId));
+            Assert.False(service.TryDisconnect(
+                registered.OnlineUserId,
+                connection.ConnectionId,
+                registered.Generation));
+            Assert.Equal(authenticated, service.GetRequired(registered.OnlineUserId));
 
-        Assert.True(service.TryDisconnect(
-            authenticated.OnlineUserId,
-            connection.ConnectionId,
-            authenticated.Generation));
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
-        Assert.Throws<KeyNotFoundException>(() => service.GetRequired(authenticated.OnlineUserId));
+            Assert.True(service.TryDisconnect(
+                authenticated.OnlineUserId,
+                connection.ConnectionId,
+                authenticated.Generation));
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+            Assert.Throws<KeyNotFoundException>(() => service.GetRequired(authenticated.OnlineUserId));
+        });
     }
 
     [Fact]
     public async Task PublishActiveCharacter_UpdatesSnapshotAndActiveStateTogether()
     {
-        var accountId = new AccountId(101);
-        var service = CreateService(accountId);
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:21"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
-        var session = SelectedSessionIdentity.Create(
-            accountId, new CharacterId(1001), connection.ConnectionId,
-            authenticated.Generation, 10011);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var accountId = new AccountId(101);
+            var service = CreateService(accountId);
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:21"),
+                NetworkEndpointKind.Game,
+                10011);
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var authenticated = service.GetRequired(registered.OnlineUserId);
+            var session = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(1001), connection.ConnectionId,
+                authenticated.Generation, 10011);
 
-        service.Publish(session);
+            service.Publish(session);
 
-        var snapshot = service.GetRequired(registered.OnlineUserId);
-        Assert.Equal(session.CharacterId, snapshot.CurrentCharacterId);
-        Assert.Equal(OnlineUserState.CharacterActive, snapshot.State);
+            var snapshot = service.GetRequired(registered.OnlineUserId);
+            Assert.Equal(session.CharacterId, snapshot.CurrentCharacterId);
+            Assert.Equal(OnlineUserState.CharacterActive, snapshot.State);
 
-        // Binding advanced the online user's generation, so the replacing session owns the
-        // generation the first publication left behind.
-        var replacement = SelectedSessionIdentity.Create(
-            accountId, new CharacterId(1004), connection.ConnectionId,
-            snapshot.Generation, 10011);
-        service.Publish(replacement);
+            // Binding advanced the online user's generation, so the replacing session owns the
+            // generation the first publication left behind.
+            var replacement = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(1004), connection.ConnectionId,
+                snapshot.Generation, 10011);
+            service.Publish(replacement);
 
-        var replacedSnapshot = service.GetRequired(registered.OnlineUserId);
-        Assert.Equal(replacement.CharacterId, replacedSnapshot.CurrentCharacterId);
-        Assert.Equal(OnlineUserState.CharacterActive, replacedSnapshot.State);
-        // The account's active entry moved with it: only the exact replacing session clears.
-        Assert.False(service.ClearExact(session));
-        Assert.True(service.ClearExact(replacement));
+            var replacedSnapshot = service.GetRequired(registered.OnlineUserId);
+            Assert.Equal(replacement.CharacterId, replacedSnapshot.CurrentCharacterId);
+            Assert.Equal(OnlineUserState.CharacterActive, replacedSnapshot.State);
+            // The account's active entry moved with it: only the exact replacing session clears.
+            Assert.False(service.ClearExact(session));
+            Assert.True(service.ClearExact(replacement));
+        });
     }
 
     [Fact]
     public async Task Disconnect_OnlyAcceptedOwnerRemovalClearsActiveCharacter()
     {
-        var accountId = new AccountId(102);
-        var service = CreateService(accountId);
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:22"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
-        var session = SelectedSessionIdentity.Create(
-            accountId, new CharacterId(1002), connection.ConnectionId,
-            authenticated.Generation, 10011);
-        service.Publish(session);
-        var active = service.GetRequired(registered.OnlineUserId);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var accountId = new AccountId(102);
+            var service = CreateService(accountId);
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:22"),
+                NetworkEndpointKind.Game,
+                10011);
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var authenticated = service.GetRequired(registered.OnlineUserId);
+            var session = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(1002), connection.ConnectionId,
+                authenticated.Generation, 10011);
+            service.Publish(session);
+            var active = service.GetRequired(registered.OnlineUserId);
 
-        Assert.False(service.TryDisconnect(
-            active.OnlineUserId,
-            connection.ConnectionId,
-            authenticated.Generation));
-        Assert.Equal(
-            session.CharacterId,
-            service.GetRequired(active.OnlineUserId).CurrentCharacterId);
+            Assert.False(service.TryDisconnect(
+                active.OnlineUserId,
+                connection.ConnectionId,
+                authenticated.Generation));
+            Assert.Equal(
+                session.CharacterId,
+                service.GetRequired(active.OnlineUserId).CurrentCharacterId);
 
-        Assert.True(service.TryDisconnect(
-            active.OnlineUserId,
-            connection.ConnectionId,
-            active.Generation));
-        // The account holds no active entry any more: a clear naming the exact session that was
-        // published is refused, and the online user it was bound to is gone with it.
-        Assert.False(service.ClearExact(session));
-        Assert.Throws<KeyNotFoundException>(() => service.GetRequired(active.OnlineUserId));
+            Assert.True(service.TryDisconnect(
+                active.OnlineUserId,
+                connection.ConnectionId,
+                active.Generation));
+            // The session no longer counts as active: its connection is revoked, and the online user it
+            // was bound to is gone. The selection itself stays until the session's teardown releases it.
+            Assert.False(service.Sessions.IsInWorld(session));
+            Assert.True(service.Sessions.StandingOf(session)!.ConnectionRevoked);
+            Assert.Throws<KeyNotFoundException>(() => service.GetRequired(active.OnlineUserId));
+        });
     }
 
     [Fact]
     public async Task ExactActiveClearRejectsStaleSelectedGeneration()
     {
-        var accountId = new AccountId(104);
-        var service = CreateService(accountId);
-        var firstConnection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:old"), NetworkEndpointKind.Game, 10011);
-        var first = service.RegisterConnection(firstConnection);
-        await service.AuthenticateForTestAsync(first.OnlineUserId);
-        var firstAuthenticated = service.GetRequired(first.OnlineUserId);
-        var firstSession = SelectedSessionIdentity.Create(accountId, new CharacterId(1101),
-            firstConnection.ConnectionId, firstAuthenticated.Generation, 10011);
-        service.Publish(firstSession);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var accountId = new AccountId(104);
+            var service = CreateService(accountId);
+            var firstConnection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:old"), NetworkEndpointKind.Game, 10011);
+            var first = service.RegisterConnection(firstConnection);
+            await service.AuthenticateForTestAsync(first.OnlineUserId);
+            var firstAuthenticated = service.GetRequired(first.OnlineUserId);
+            var firstSession = SelectedSessionIdentity.Create(accountId, new CharacterId(1101),
+                firstConnection.ConnectionId, firstAuthenticated.Generation, 10011);
+            service.Publish(firstSession);
 
-        var secondConnection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:new"), NetworkEndpointKind.Game, 10011);
-        var second = service.RegisterConnection(secondConnection);
-        await service.AuthenticateForTestAsync(second.OnlineUserId);
-        var secondAuthenticated = service.GetRequired(second.OnlineUserId);
-        var replacement = SelectedSessionIdentity.Create(accountId, new CharacterId(1102),
-            secondConnection.ConnectionId, secondAuthenticated.Generation, 10011);
-        service.Publish(replacement);
+            var secondConnection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:new"), NetworkEndpointKind.Game, 10011);
+            var second = service.RegisterConnection(secondConnection);
+            await service.AuthenticateForTestAsync(second.OnlineUserId);
+            var secondAuthenticated = service.GetRequired(second.OnlineUserId);
+            var replacement = SelectedSessionIdentity.Create(accountId, new CharacterId(1102),
+                secondConnection.ConnectionId, secondAuthenticated.Generation, 10011);
+            service.Publish(replacement);
 
-        Assert.False(service.ClearExact(firstSession));
-        Assert.Equal(
-            replacement.CharacterId,
-            service.GetRequired(second.OnlineUserId).CurrentCharacterId);
-        Assert.True(service.ClearExact(replacement));
-        var afterClear = service.GetRequired(second.OnlineUserId);
-        Assert.Null(afterClear.CurrentCharacterId);
-        Assert.Equal(OnlineUserState.Authenticated, afterClear.State);
+            Assert.False(service.ClearExact(firstSession));
+            Assert.Equal(
+                replacement.CharacterId,
+                service.GetRequired(second.OnlineUserId).CurrentCharacterId);
+            Assert.True(service.ClearExact(replacement));
+            var afterClear = service.GetRequired(second.OnlineUserId);
+            Assert.Null(afterClear.CurrentCharacterId);
+            Assert.Equal(OnlineUserState.Authenticated, afterClear.State);
+        });
     }
 
     [Fact]
     public async Task CharacterEntry_MissingSlotPreservesPreviouslyPublishedCharacter()
     {
-        var accountId = new AccountId(103);
-        var service = CreateService(accountId);
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:23"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
-        var previous = SelectedSessionIdentity.Create(
-            accountId, new CharacterId(1003), connection.ConnectionId,
-            authenticated.Generation, 10011);
-        service.Publish(previous);
-        var snapshotBeforeFailure = service.GetRequired(registered.OnlineUserId);
-        var entry = EntryServices.Create(
-            new MissingCharacterDomainService(),
-            new NotReachedInventoryEntryService(),
-            new NotReachedCharacterEntryStateDomainService(),
-            new NotReachedAccountEntryStateDomainService(),
-            service);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var accountId = new AccountId(103);
+            var service = CreateService(accountId);
+            var connection = new NetworkConnectionContext(
+                new NetworkConnectionId("Game:23"),
+                NetworkEndpointKind.Game,
+                10011);
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var authenticated = service.GetRequired(registered.OnlineUserId);
+            var previous = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(1003), connection.ConnectionId,
+                authenticated.Generation, 10011);
+            service.Publish(previous);
+            var snapshotBeforeFailure = service.GetRequired(registered.OnlineUserId);
+            var entry = EntryServices.Create(
+                new MissingCharacterDomainService(),
+                new NotReachedInventoryEntryService(),
+                new NotReachedCharacterEntryStateDomainService(),
+                new NotReachedAccountEntryStateDomainService());
 
-        await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
-            await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
+            await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
+                await entry.EnterAsync(accountId, 5, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None));
 
-        Assert.Equal(
-            previous.CharacterId,
-            service.GetRequired(registered.OnlineUserId).CurrentCharacterId);
-        Assert.Equal(snapshotBeforeFailure, service.GetRequired(registered.OnlineUserId));
-    }
-
-    [Fact]
-    public async Task DisconnectObservedBeforeAuthentication_DoesNotRemoveNewerGeneration()
-    {
-        var service = CreateService(new AccountId(100));
-        var gate = new OnlineUserExecutionGate();
-        var observer = new OnlineUserConnectionObserver(
-            service, gate, new SelectedSessionTransitionGate(),
-            new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
-        var connection = new NetworkConnectionContext(
-            new NetworkConnectionId("Game:20"),
-            NetworkEndpointKind.Game,
-            10011);
-        var registered = service.RegisterConnection(connection);
-        await using var identityTransition = await gate.AcquireAsync(
-            registered.OnlineUserId,
-            UserAccessMode.Exclusive,
-            CancellationToken.None);
-
-        var disconnect = observer.DisconnectedAsync(connection, CancellationToken.None).AsTask();
-        await Task.Yield();
-        Assert.False(disconnect.IsCompleted);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
-        await identityTransition.DisposeAsync();
-        await disconnect;
-
-        Assert.Equal(authenticated, service.GetRequired(registered.OnlineUserId));
-        Assert.True(service.TryGetByConnection(connection.ConnectionId, out var current));
-        Assert.Equal(authenticated, current);
+            Assert.Equal(
+                previous.CharacterId,
+                service.GetRequired(registered.OnlineUserId).CurrentCharacterId);
+            Assert.Equal(snapshotBeforeFailure, service.GetRequired(registered.OnlineUserId));
+        });
     }
 
     [Fact]
@@ -501,27 +488,34 @@ public sealed class UserServiceTests
     {
         var accountId = new AccountId(104);
         var service = CreateService(accountId);
-        var gate = new OnlineUserExecutionGate();
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var cleanup = new ClearingCleanup(service);
         var observer = new OnlineUserConnectionObserver(
-            service, gate, new SelectedSessionTransitionGate(), sessions, cleanup,
-            new StubChannelEntryPolicy(), new StubServerConfigService(),
-            new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
+            service,sessions,new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(cleanup),            new StubChannelEntryPolicy(),new StubServerConfigService(),            new LifecycleTestOutbox(new RecordingInitialSender()),new RecordingCleanupDelivery(),TimeProvider.System,clientSettings: EmptyConnectionProfiles());
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:24"), NetworkEndpointKind.Game, 10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var beforeBind = service.GetRequired(registered.OnlineUserId);
-        var selected = SelectedSessionIdentity.Create(
-            accountId, new CharacterId(1004), connection.ConnectionId, beforeBind.Generation, 10011);
-        sessions.Select(selected);
-        service.Publish(selected);
+        var selected = await TestGameplay.RunAsync(async () =>
+        {
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var beforeBind = service.GetRequired(registered.OnlineUserId);
+            var selected = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(1004), connection.ConnectionId, beforeBind.Generation, 10011);
+            sessions.Select(selected);
+            service.Publish(selected);
+            return selected;
+        });
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None);
+        });
 
-        Assert.Equal(selected, cleanup.Cleaned);
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        TestGameplay.Run(() =>
+        {
+            Assert.Equal(selected, cleanup.Cleaned);
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        });
     }
 
     [Fact]
@@ -529,16 +523,20 @@ public sealed class UserServiceTests
     {
         var accountId = new AccountId(106);
         var service = CreateService(accountId);
-        var sessions = new SelectedSessionDomainService();
+        var sessions = Dfo.Server.Testing.TestSessions.Directory();
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:cleanup-failure"), NetworkEndpointKind.Game, 10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        var authenticated = service.GetRequired(registered.OnlineUserId);
-        var selected = SelectedSessionIdentity.Create(
-            accountId, new CharacterId(1006), connection.ConnectionId,
-            authenticated.Generation, 10011);
-        sessions.Select(selected);
+        var selected = await TestGameplay.RunAsync(async () =>
+        {
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+            var authenticated = service.GetRequired(registered.OnlineUserId);
+            var selected = SelectedSessionIdentity.Create(
+                accountId, new CharacterId(1006), connection.ConnectionId,
+                authenticated.Generation, 10011);
+            sessions.Select(selected);
+            return selected;
+        });
         var peer = SelectedSessionIdentity.Create(
             new AccountId(107),
             new CharacterId(1007),
@@ -558,7 +556,10 @@ public sealed class UserServiceTests
             service, sessions, new FailingCleanup(plan), sender, TimeProvider.System,
             cleanupDelivery: cleanupDelivery);
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None);
+        });
 
         // Both halves are still handed over after a failed cleanup, which is what this case has
         // always been about. The peer half keeps the exact session sampled by cleanup so a later
@@ -572,29 +573,36 @@ public sealed class UserServiceTests
         Assert.Equal(
             SelectedSessionCleanupNoticeKind.TownDeparture,
             Assert.Single(delivered.PeerNotices).Kind);
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        TestGameplay.Run(() =>
+        {
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        });
     }
 
     [Fact]
-    public async Task DisconnectWithoutSelectedSession_DoesNotWaitForAccountLifecycleGate()
+    public async Task DisconnectWithoutSelectedSession_CompletesAndRemovesTheOnlineUser()
     {
         var service = CreateService(new AccountId(105));
-        var lifecycleGate = new SelectedSessionTransitionGate();
         var observer = new OnlineUserConnectionObserver(
-            service, new OnlineUserExecutionGate(), lifecycleGate,
-            new EmptySelectedSessions(), new NoopCleanup(), new StubChannelEntryPolicy(),
-            new StubServerConfigService(), new RecordingInitialSender(), new RecordingCleanupDelivery(), TimeProvider.System);
+            service,            new EmptySelectedSessions(),new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(new NoopCleanup()),new StubChannelEntryPolicy(),            new StubServerConfigService(),new LifecycleTestOutbox(new RecordingInitialSender()),new RecordingCleanupDelivery(),TimeProvider.System,clientSettings: EmptyConnectionProfiles());
         var connection = new NetworkConnectionContext(
             new NetworkConnectionId("Game:25"), NetworkEndpointKind.Game, 10011);
-        var registered = service.RegisterConnection(connection);
-        await service.AuthenticateForTestAsync(registered.OnlineUserId);
-        await using var blocker = await lifecycleGate.AcquireAsync(
-            new AccountId(105), UserAccessMode.Exclusive, CancellationToken.None);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var registered = service.RegisterConnection(connection);
+            await service.AuthenticateForTestAsync(registered.OnlineUserId);
+        });
 
+        await TestGameplay.RunAsync(async () =>
+        {
         await observer.DisconnectedAsync(connection, CancellationToken.None).AsTask()
             .WaitAsync(TimeSpan.FromSeconds(2));
+        });
 
-        Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        TestGameplay.Run(() =>
+        {
+            Assert.False(service.TryGetByConnection(connection.ConnectionId, out _));
+        });
     }
 
     private static UserDomainServices CreateService(AccountId accountId = default)
@@ -611,25 +619,30 @@ public sealed class UserServiceTests
         Port: port,
         Mtu: 1472);
 
+    // These connection fixtures never activate a profile. Forgetting one is valid even when
+    // none was activated; every other client-settings operation remains an unexpected call.
+    private static IClientSettingsDomainService EmptyConnectionProfiles() =>
+        ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<IClientSettingsDomainService>(),
+            (method, args) => method.Name == nameof(IClientSettingsDomainService.ForgetConnection)
+                ? (true, null) : (false, null));
+
     private static OnlineUserConnectionObserver CreateObserver(
         IOnlineUserDomainService service,
         ISelectedSessionDomainService sessions,
         ISelectedSessionCleanupDomainService cleanup,
         IGameMessageSender sender,
         TimeProvider timeProvider,
-        IChannelEntryPolicy? channelPolicy = null,
+        IChannelEntryDomainService? channelPolicy = null,
         RecordingCleanupDelivery? cleanupDelivery = null) =>
         new(
             service,
-            new OnlineUserExecutionGate(),
-            new SelectedSessionTransitionGate(),
             sessions,
-            cleanup,
+            new Dfo.Server.Application.Commands.CommandSelectedSessionCleanup(cleanup),
             channelPolicy ?? new StubChannelEntryPolicy(),
             new StubServerConfigService(),
-            sender,
+            new LifecycleTestOutbox(sender),
             cleanupDelivery ?? new RecordingCleanupDelivery(),
-            timeProvider);
+            timeProvider, clientSettings: EmptyConnectionProfiles());
 
     /// <summary>Records the cleanup plan instead of turning it into frames.</summary>
     /// <remarks>
@@ -649,8 +662,11 @@ public sealed class UserServiceTests
         }
     }
 
-    private sealed class FixedChannelEntryPolicy(ChannelEntryIdentity channel) : IChannelEntryPolicy
+    private sealed class FixedChannelEntryPolicy(ChannelEntryIdentity channel) : IChannelEntryDomainService
     {
+        public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int listenerPort,CancellationToken ct) =>
+            ValueTask.FromException<Dfo.Server.Data.Channel.ChannelLoginEntry>(new NotSupportedException("This channel-identity fixture does not supply login deployment facts."));
+
         public ValueTask<ChannelEntryIdentity> ResolveAsync(
             int listenerPort,
             CancellationToken cancellationToken) =>
@@ -661,11 +677,32 @@ public sealed class UserServiceTests
             int characterLevel) => null;
     }
 
-    private sealed class RecordingInitialSender(
-        Action? beforeSend = null,
-        bool fail = false) : IGameMessageSender
+    /// <summary>
+    /// What a real registration adapter registered, read from its outbox; every call goes to the real protocol sender
+    /// over it (TASK-25). <c>beforeSend</c> runs at the registration point; <c>fail</c> makes the notice fail to encode
+    /// there, with the exception the old double threw; a CMD or an explicit delivery fails there as the old double
+    /// refused one.
+    /// </summary>
+    private sealed class RecordingInitialSender : IGameMessageSender
     {
-        public List<IGameServerMessage> Messages { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+        private readonly Action? beforeSend;
+
+        public RecordingInitialSender(
+            Action? beforeSend = null,
+            bool fail = false)
+        {
+            this.beforeSend = beforeSend;
+            outbound.RefuseExplicit(() => new InvalidOperationException(
+                "The initial notice path does not use explicit-recipient delivery."));
+            outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage,
+                () => new InvalidOperationException("Initial connection sends a NOTI message."));
+            if (fail)
+                outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameNotiMessage,
+                    () => new IOException("initial notice failed"));
+        }
+
+        public List<IGameServerMessage> Messages => [.. outbound.MessagesAs<IGameServerMessage>()];
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
@@ -673,24 +710,20 @@ public sealed class UserServiceTests
             CancellationToken cancellationToken)
         {
             beforeSend?.Invoke();
-            if (fail)
-                return ValueTask.FromException(new IOException("initial notice failed"));
-            Messages.Add(message);
-            return ValueTask.CompletedTask;
+            return outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
         }
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException("Initial connection sends a NOTI message.");
+            outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken) =>
-            throw new InvalidOperationException(
-                "The initial notice path does not use explicit-recipient delivery.");
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
@@ -701,6 +734,53 @@ public sealed class UserServiceTests
 
     private sealed class EmptySelectedSessions : ISelectedSessionDomainService
     {
+        // Test double: the current selection counts as being in the world, and
+        // remembers which sessions were fenced.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<
+            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
+        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+            && testDoubleFences.TryAdd(session, true) | true;
+        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
+                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
+                : null;
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
+                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
+            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
+            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Characters.CharacterId characterId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            ushort wireUserId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
+            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
+        {
+            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
+            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
+            return session is not null;
+        }
+
         public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
         public bool ReleaseExact(SelectedSessionIdentity session) => false;
         public SelectedSessionIdentity? Find(AccountId accountId) => null;
@@ -713,7 +793,7 @@ public sealed class UserServiceTests
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
-            CancellationToken cancellationToken) =>
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
     }
 
@@ -722,43 +802,46 @@ public sealed class UserServiceTests
     {
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
-            CancellationToken cancellationToken) =>
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             ValueTask.FromException<SelectedSessionCleanupNotificationPlan>(
                 new SelectedSessionCleanupFailure(plan, [new IOException("cleanup failed")]));
     }
 
+    /// <summary>
+    /// The explicit deliveries a real registration adapter registered, read from its outbox; every call goes to the
+    /// real protocol sender over it (TASK-25).
+    /// </summary>
     private sealed class RecordingExplicitSender : IGameMessageSender
     {
-        public List<(NetworkConnectionId ConnectionId, GameExplicitMessageDelivery Delivery)> Deliveries
-            { get; } = [];
+        private readonly RecordedOutbound outbound = new();
+
+        public List<(NetworkConnectionId ConnectionId, GameExplicitMessageDelivery Delivery)> Deliveries =>
+            [.. outbound.Explicits.Zip(outbound.GameExplicits, (call, delivery) => (call.Direct, delivery))];
 
         public ValueTask SendCmdAsync(
             NetworkConnectionId connectionId,
             IGameCmdMessage message,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken) => outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendNotiAsync(
             NetworkConnectionId connectionId,
             IGameNotiMessage message,
-            CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            CancellationToken cancellationToken) => outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
 
         public ValueTask SendExplicitAsync(
             NetworkConnectionId requiredDirectConnectionId,
             GameExplicitMessageDelivery delivery,
-            CancellationToken cancellationToken)
-        {
-            Deliveries.Add((requiredDirectConnectionId, delivery));
-            return ValueTask.CompletedTask;
-        }
+            CancellationToken cancellationToken) =>
+            outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }
 
-    private sealed class ClearingCleanup(IActiveCharacterDomainService active) : ISelectedSessionCleanupDomainService
+    private sealed class ClearingCleanup(UserDomainServices active) : ISelectedSessionCleanupDomainService
     {
         public SelectedSessionIdentity? Cleaned { get; private set; }
 
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
-            CancellationToken cancellationToken)
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {
             Cleaned = session;
             Assert.True(active.ClearExact(session));

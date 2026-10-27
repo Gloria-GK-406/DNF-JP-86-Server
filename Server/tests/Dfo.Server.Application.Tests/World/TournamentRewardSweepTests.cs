@@ -7,6 +7,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Tournament;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
 
@@ -55,8 +56,11 @@ public sealed class TournamentRewardSweepTests
         var candidate = tournament.State;
         if (replaceCanonicalRun)
         {
-            Assert.True(shop.Services.GetRequiredService<IDungeonRunDomainService>().End(shop.Session.CharacterId, run));
-            Assert.NotEqual(run, Enter(shop));
+            TestGameplay.Run(shop.Services, () =>
+            {
+                Assert.True(shop.Services.GetRequiredService<IDungeonRunDomainService>().End(shop.Session.CharacterId, run));
+                Assert.NotEqual(run, Enter(shop));
+            });
         }
         else tournament.State = tournament.State with { RunId = DungeonRunId.New() };
 
@@ -109,13 +113,10 @@ public sealed class TournamentRewardSweepTests
 
     private static async ValueTask Sweep(ShopFixture shop, TournamentDungeonState candidate)
     {
-        // Protocol's internals are visible only to Protocol.Tests. Invoke the actual worker
-        // method instead of widening its production API or copying its dispatch algorithm.
-        var method = typeof(TournamentRewardSweepService).GetMethod(
-            "SweepAsync", BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.NotNull(method);
-        var worker = shop.Services.GetRequiredService<TournamentRewardSweepService>();
-        await Assert.IsType<ValueTask>(method.Invoke(worker, [candidate, CancellationToken.None]));
+        await shop.Services.GetRequiredService<Dfo.Server.Application.Commands.ICommandBus>().SendInternalAsync(
+            new SweepTournamentCandidateCommand(candidate), new(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer),
+                "timer:TournamentRewardSweepService", Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly), default);
     }
 
     private sealed class TournamentRewards : ITournamentDungeonDomainService

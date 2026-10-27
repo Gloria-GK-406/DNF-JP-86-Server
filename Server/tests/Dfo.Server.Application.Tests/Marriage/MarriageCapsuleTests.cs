@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -7,6 +8,7 @@ using Dfo.Server.Application.Marriage;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Marriage;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
 
 namespace Dfo.Server.Application.Tests.Marriage;
@@ -26,8 +28,11 @@ public sealed partial class MarriageHousingTests
         var scope=new Dfo.Server.Data.Parties.PartyDirectoryScope(1,2,0);
         var first=new Dfo.Server.Data.Parties.PartyCharacterSnapshot(f.Session.AccountId,f.Session.CharacterId,1,scope);
         var second=new Dfo.Server.Data.Parties.PartyCharacterSnapshot(w.Peer.AccountId,w.Peer.CharacterId,2,scope);
-        Assert.True(parties.RequestInvite(first,second,new(0,0,0,0)).Succeeded);
-        Assert.True(parties.AcceptInvite(second,first).Succeeded);
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.True(parties.RequestInvite(first,second,new(0,0,0,0)).Succeeded);
+            Assert.True(parties.AcceptInvite(second,first).Succeeded);
+        });
         var delivery=f.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>();
         var containers=f.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>();
         async ValueTask<int> Tickets(Dfo.Server.Data.Characters.CharacterId c) => (await containers.GetContainer(c,Dfo.Server.Data.Inventory.InventoryContainerType.Main).GetAllAsync(default)).Where(x=>x.ItemId==10002609).Sum(x=>x.Snapshot.Count);
@@ -62,20 +67,20 @@ public sealed partial class MarriageHousingTests
         var relation = (await f.Services.GetRequiredService<IMarriageRelations>().ForSessionAsync(f.Session, default))!;
         var accounts = new[] { f.Session.AccountId, w.Peer.AccountId }.OrderBy(x => x.Value).ToArray();
         async ValueTask<MarriageCapsuleResult> ActCaps(MarriageCapsuleAction a, bool commit = true) =>
-            await InTx(f, () => service.CapsuleAsync(f.Session, a, accounts, default), commit);
+            await InTx(f, () => TestEffectFootprints.Run(f.Session, footprint => service.CapsuleAsync(f.Session, a, accounts, footprint, default)), commit);
         Assert.Equal(-4, (await ActCaps(MarriageCapsuleAction.Make)).Status);
         f.Sql($"INSERT INTO marriage_capsules VALUES('{relation.Id:N}',71,10,0,0)");
         Assert.Equal(0, (await ActCaps(MarriageCapsuleAction.Make, false)).Status);
         Assert.Equal(new(10, 0, 0), (await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State);
         Assert.Equal(0, (await ActCaps(MarriageCapsuleAction.Make)).Status);
         Assert.Equal(new(0, 1, 0), (await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State);
-        Assert.Equal(-1, (await InTx(f, () => service.CapsuleAsync(f.Session, MarriageCapsuleAction.Give, [f.Session.AccountId], default))).Status);
+        Assert.Equal(-1, (await InTx(f, () => TestEffectFootprints.Run(f.Session, footprint => service.CapsuleAsync(f.Session, MarriageCapsuleAction.Give, [f.Session.AccountId], footprint, default)))).Status);
         Assert.Equal(0, (await ActCaps(MarriageCapsuleAction.Give)).Status);
         Assert.Equal(-4, (await ActCaps(MarriageCapsuleAction.Give)).Status);
         Assert.True((await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).AwaitingPartner);
         Assert.Equal((byte)1, (await query.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Pending);
         var room = await Read(w); Enter(w, w.Peer, room.Instance);
-        var take = await InTx(f, () => service.CapsuleAsync(w.Peer, MarriageCapsuleAction.Take, accounts, default));
+        var take = await InTx(f, () => TestEffectFootprints.Run(w.Peer, footprint => service.CapsuleAsync(w.Peer, MarriageCapsuleAction.Take, accounts, footprint, default)));
         Assert.Equal(0, take.Status); Assert.Single(take.Items); Assert.Equal(10002910, take.Items[0].Snapshot.ItemId);
         Assert.Equal((byte)0, (await query.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Pending);
         Assert.False((await query.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).AwaitingPartner);
@@ -87,45 +92,51 @@ public sealed partial class MarriageHousingTests
     [Fact]
     public async Task Capsule_clear_progress_is_recommended_boss_only_personal_capped_and_deduplicated_per_run()
     {
-        await using var w = await MarriedAsync(); var f = w.F;
-        var subscriber = ActivatorUtilities.CreateInstance<CapsuleClearSubscriber>(f.Services, new CapsuleDungeon());
-        var q = f.Services.GetRequiredService<IMarriageCapsuleQueryDomainService>();
-        var run = DungeonRunId.New();
-        DungeonMapCleared Clear(DungeonRunId id, bool boss = true, int dungeon = 3541) => new(id, dungeon, 0, new(0,0), 1, 1,
-            w.Clock.Now, [new(f.Session.AccountId, f.Session.CharacterId, 0, true)]) { IsBossRoom = boss };
-        async ValueTask Send(DungeonMapCleared c, bool commit = true)
-        { await using var tx = f.Scope.Begin(); await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), w.Clock.Now, Guid.Empty, c), default); if (commit) await tx.CommitAsync(default); }
-        await Send(Clear(run, false)); Assert.Equal(0, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
-        await Send(Clear(run), false); Assert.Equal(0, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
-        await Send(Clear(run)); await Send(Clear(run)); Assert.Equal(2, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
-        for (var i=0;i<6;i++) await Send(Clear(DungeonRunId.New()));
-        Assert.Equal(10, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
-        var saturatedRun = DungeonRunId.New(); await Send(Clear(saturatedRun));
-        var accounts = new[] { f.Session.AccountId,w.Peer.AccountId }.OrderBy(x=>x.Value).ToArray();
-        Assert.Equal(0,(await InTx(f,()=>f.Services.GetRequiredService<IMarriageCapsuleDomainService>().CapsuleAsync(f.Session,MarriageCapsuleAction.Make,accounts,default))).Status);
-        await Send(Clear(saturatedRun)); Assert.Equal(0,(await q.ReadAsync(f.Session.AccountId,f.Session.CharacterId,default)).State.Energy);
-        Assert.Equal(0, (await q.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Energy);
-        Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 29));
-        Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 86));
-        Assert.True(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 85));
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var w = await MarriedAsync(); var f = w.F;
+            var subscriber = ActivatorUtilities.CreateInstance<CapsuleClearSubscriber>(f.Services, new CapsuleDungeon());
+            var q = f.Services.GetRequiredService<IMarriageCapsuleQueryDomainService>();
+            var run = DungeonRunId.New();
+            DungeonMapCleared Clear(DungeonRunId id, bool boss = true, int dungeon = 3541) => new(id, dungeon, 0, new(0,0), 1, 1,
+                w.Clock.Now, [new(f.Session.AccountId, f.Session.CharacterId, 0, true)]) { IsBossRoom = boss };
+            async ValueTask Send(DungeonMapCleared c, bool commit = true)
+            { await using var tx = f.Scope.Begin(); await subscriber.HandleAsync(new(Guid.NewGuid(), Guid.NewGuid(), w.Clock.Now, Guid.Empty, c), default); if (commit) await tx.CommitAsync(default); }
+            await Send(Clear(run, false)); Assert.Equal(0, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
+            await Send(Clear(run), false); Assert.Equal(0, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
+            await Send(Clear(run)); await Send(Clear(run)); Assert.Equal(2, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
+            for (var i=0;i<6;i++) await Send(Clear(DungeonRunId.New()));
+            Assert.Equal(10, (await q.ReadAsync(f.Session.AccountId, f.Session.CharacterId, default)).State.Energy);
+            var saturatedRun = DungeonRunId.New(); await Send(Clear(saturatedRun));
+            var accounts = new[] { f.Session.AccountId,w.Peer.AccountId }.OrderBy(x=>x.Value).ToArray();
+            Assert.Equal(0,(await InTx(f,()=>TestEffectFootprints.Run(f.Session, footprint => f.Services.GetRequiredService<IMarriageCapsuleDomainService>().CapsuleAsync(f.Session, MarriageCapsuleAction.Make, accounts, footprint, default)))).Status);
+            await Send(Clear(saturatedRun)); Assert.Equal(0,(await q.ReadAsync(f.Session.AccountId,f.Session.CharacterId,default)).State.Energy);
+            Assert.Equal(0, (await q.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Energy);
+            Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 29));
+            Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 86));
+            Assert.True(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 85));
+        });
     }
     [Fact]
     public async Task Couple_dungeon_requires_the_exact_married_pair_and_refuses_other_modes_before_admission()
     {
-        await using var w = await MarriedAsync(); var f = w.F;
-        var rule = f.Services.GetRequiredService<CoupleDungeonRule>();
-        var context = new DungeonEntryContext(3541, new((Dfo.Server.Data.World.DungeonDifficulty)2, [], []), 0, 0,
-            [new(f.Session.AccountId,f.Session.CharacterId,0,true), new(w.Peer.AccountId,w.Peer.CharacterId,1,false)]);
-        Assert.True(await rule.EligibleAsync(context, default));
-        Assert.True(await rule.EligibleAsync(context with { Facts=context.Facts with { Intent=DungeonEntryIntent.Directed(3541) } }, default));
-        foreach (var invalid in new[] { context with { PracticeMode=1 },context with {RequestMode=1},context with {Participants=[context.Participants[0]]},
-            context with {Participants=[context.Participants[0],context.Participants[1] with {CharacterId=new(999)}]},
-            context with {Participants=[context.Participants[0],context.Participants[1] with {AccountId=new(999)}]} })
+        await TestGameplay.RunAsync(async () =>
         {
-            Assert.False(await rule.EligibleAsync(invalid, default));
-            await using var tx = f.Scope.Begin();
-            var refused = await f.Services.GetRequiredService<IDungeonAdmissionDomainService>().PrepareAsync(invalid, new(), default);
-            Assert.Null(refused.Batch); Assert.Equal(DungeonEntryFailure.MissingPrerequisite, refused.Refusal!.Failure);
-        }
+            await using var w = await MarriedAsync(); var f = w.F;
+            var rule = f.Services.GetRequiredService<CoupleDungeonRule>();
+            var context = new DungeonEntryContext(3541, new((Dfo.Server.Data.World.DungeonDifficulty)2, [], []), 0, 0,
+                [new(f.Session.AccountId,f.Session.CharacterId,0,true), new(w.Peer.AccountId,w.Peer.CharacterId,1,false)]);
+            Assert.True(await rule.EligibleAsync(context, default));
+            Assert.True(await rule.EligibleAsync(context with { Facts=context.Facts with { Intent=DungeonEntryIntent.Directed(3541) } }, default));
+            foreach (var invalid in new[] { context with { PracticeMode=1 },context with {RequestMode=1},context with {Participants=[context.Participants[0]]},
+                context with {Participants=[context.Participants[0],context.Participants[1] with {CharacterId=new(999)}]},
+                context with {Participants=[context.Participants[0],context.Participants[1] with {AccountId=new(999)}]} })
+            {
+                Assert.False(await rule.EligibleAsync(invalid, default));
+                await using var tx = f.Scope.Begin();
+                var refused = await f.Services.GetRequiredService<IDungeonAdmissionDomainService>().PrepareAsync(invalid, new(), default);
+                Assert.Null(refused.Batch); Assert.Equal(DungeonEntryFailure.MissingPrerequisite, refused.Refusal!.Failure);
+            }
+        });
     }
 }

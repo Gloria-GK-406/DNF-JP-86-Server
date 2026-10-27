@@ -48,8 +48,9 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         return new(QuestAdvanceVerdict.NotEvaluable, new(trigger));
     }
     public async ValueTask<MirrorQuestCompletionPreparation> PrepareCompletionAsync(AccountId account, CharacterId character, ushort quest,
-        ushort selection, ushort count, DateTimeOffset at, SelectedSessionIdentity? session, CancellationToken ct)
+        ushort selection, ushort count, DateTimeOffset at, SelectedSessionIdentity? session, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
+        footprint.DemandEffects(new(account, character, session));
         MirrorQuestCompletionPreparation Refused() => new(false, quest, null, null, [], null, null, null, null);
         if (count != 1 || selection != ushort.MaxValue) return Refused();
         var run = Authorized(account, character, quest);
@@ -66,7 +67,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         var quota = await quotas.ReadMirrorAsync(character, day, ct).ConfigureAwait(false);
         var effects = await rules.RewardEffectsAsync(progress.Level, quota, ct).ConfigureAwait(false);
         if (effects is null) return Refused();
-        var context = new EffectExecutionContext(account, character, at, session);
+        var context = new EffectExecutionContext(account, character, at, footprint, session);
         var inventory = await preview.PreviewAsync(context, effects.Value, ct).ConfigureAwait(false);
         if (inventory.Rejection != InventoryEffectRejection.None || inventory.RewardEntries > byte.MaxValue) return Refused();
         var daily = rules.Catalog.DailyReward;

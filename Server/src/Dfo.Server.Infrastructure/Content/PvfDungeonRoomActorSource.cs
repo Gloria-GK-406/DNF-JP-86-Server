@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 /// <summary>Caches complete MAP declarations and adapts unconditional rows for room generation.</summary>
-internal sealed class PvfDungeonRoomActorSource(PvfArchiveProvider provider) : IDungeonRoomActorSource
+internal sealed class PvfDungeonRoomActorSource(PvfArchiveProvider provider) : IDungeonRoomActorSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lock gate = new();
     private readonly Dictionary<int, DungeonMapActorDeclarations> declarations = [];
@@ -65,6 +65,15 @@ internal sealed class PvfDungeonRoomActorSource(PvfArchiveProvider provider) : I
             Declaration = row,
             IsHostile = !row.IsDummy && row.Faction == DungeonActorFaction.Monster,
         };
+    }
+
+    public string Name => "dungeon-room-actor-index";
+
+    /// <remarks>The list files the actor readers resolve ids through; the per-map reads stay keyed.</remarks>
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate) return ValueTask.FromResult(new[] { "map", "aicharacter", "passiveobject" }.Sum(folder => Paths(folder).Count));
     }
 
     private IReadOnlyDictionary<int, string> Paths(string folder)

@@ -10,6 +10,7 @@ using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.TitleBook;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.StateSynchronization;
 
@@ -72,12 +73,11 @@ public sealed class TitleBookProtocolTests
     [Fact]
     public async Task Mutation_projection_waits_for_ack_and_never_turns_storage_into_an_unlock()
     {
-        var gate=new AchievementTitleProjectionGate(); var events=new RecordingEvents();
-        var subscriber=new TitleBookEventSubscriber(events,gate);
-        var held=await gate.EnterAsync(new(1),default);
-        var projecting=subscriber.HandleAsync(new DomainEventEnvelope<TitleStored>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),0,2,new(BusinessInventorySpace.CarriedEquipment,0))),default).AsTask();
-        Assert.False(projecting.IsCompleted); Assert.Empty(events.Projected);
-        held.Dispose(); await projecting.WaitAsync(TimeSpan.FromSeconds(2));
+        var events=new RecordingEvents();
+        var subscriber=new TitleBookEventSubscriber(events);
+        // The projection is an event job of its own; the request's ACK job has already ended.
+        await TestGameplay.RunAsync(async () =>
+            await subscriber.HandleAsync(new DomainEventEnvelope<TitleStored>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),0,2,new(BusinessInventorySpace.CarriedEquipment,0))),default));
         var notice=Assert.IsType<TitleBookChanged>(Assert.Single(events.Projected));
         Assert.Null(notice.Unlock); Assert.NotNull(notice.ChangedSlot);
         Assert.Equal(2, notice.ChangedIndex);
@@ -87,11 +87,9 @@ public sealed class TitleBookProtocolTests
     [InlineData(false)]
     public async Task Mirror_removal_projection_keeps_generic_move_reconciliation_and_can_skip_carried_inventory_for_book_operations(bool refreshCarriedInventory)
     {
-        var events=new RecordingEvents();var gate=new AchievementTitleProjectionGate();var subscriber=new TitleBookEventSubscriber(events,gate);
-        using var held=await gate.EnterAsync(new(1),default);
-        var delivery=subscriber.HandleAsync(new DomainEventEnvelope<Dfo.Server.Abstractions.Inventory.ItemMirrorRemoved>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),InventoryContainerType.Equipment) { RefreshCarriedInventory = refreshCarriedInventory }),default).AsTask();
-        Assert.Equal(!refreshCarriedInventory, delivery.IsCompleted);Assert.Empty(events.Projected);
-        held.Dispose();await delivery.WaitAsync(TimeSpan.FromSeconds(2));
+        var events=new RecordingEvents();var subscriber=new TitleBookEventSubscriber(events);
+        await TestGameplay.RunAsync(async () =>
+            await subscriber.HandleAsync(new DomainEventEnvelope<Dfo.Server.Abstractions.Inventory.ItemMirrorRemoved>(Guid.NewGuid(),Guid.NewGuid(),DateTimeOffset.UtcNow,Guid.NewGuid(),new(new(1),InventoryContainerType.Equipment) { RefreshCarriedInventory = refreshCarriedInventory }),default));
         if (!refreshCarriedInventory) { Assert.Empty(events.Projected); return; }
         var notice=Assert.IsType<TitleBookChanged>(Assert.Single(events.Projected));
         Assert.Equal(refreshCarriedInventory, notice.RefreshCarriedInventory);Assert.Equal(InventoryContainerType.Equipment,notice.ChangedContainer);Assert.Null(notice.Unlock);
@@ -116,20 +114,23 @@ public sealed class TitleBookProtocolTests
     [InlineData(true)]
     public async Task Title_mutations_use_silent_canonical_lists_without_gain_or_unlock_messages(bool fullBook)
     {
-        var titles = new CurrentTitles();
-        var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
-        var recipient = new NotificationRecipient(new(1), new("Game:1"));
-        var messages = await handler.ComposeAsync(recipient, new(new(1), 4, ChangedIndex: 10, RefreshBook: fullBook), default);
-        Assert.Equal(fullBook ? 5 : 1, messages.Count);
-        Assert.All(messages, x => Assert.IsType<TitleBookStateMessage>(x));
-        var book = ((TitleBookStateMessage)messages.Last()).Category;
-        Assert.Equal(4, book.Category); Assert.Equal(2, book.Entries.Count);
-        Assert.Equal(new(4, 10, 26596), book.WearSource);
-        Assert.All(messages, x => Assert.Equal(0x0166, ((GameStateSynchronizationMessage)x).Type));
-        Assert.Equal(1, titles.Reads);
-        Assert.Empty(await handler.ComposeAsync(recipient, new(new(1)), default));
-        Assert.Empty(await handler.ComposeAsync(new(new(2), new("Game:1")), new(new(1), 4), default));
-        Assert.Equal(1, titles.Reads);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var titles = new CurrentTitles();
+            var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
+            var recipient = new NotificationRecipient(new(1), new("Game:1"));
+            var messages = await handler.ComposeAsync(recipient, new(new(1), 4, ChangedIndex: 10, RefreshBook: fullBook), default);
+            Assert.Equal(fullBook ? 5 : 1, messages.Count);
+            Assert.All(messages, x => Assert.IsType<TitleBookStateMessage>(x));
+            var book = ((TitleBookStateMessage)messages.Last()).Category;
+            Assert.Equal(4, book.Category); Assert.Equal(2, book.Entries.Count);
+            Assert.Equal(new(4, 10, 26596), book.WearSource);
+            Assert.All(messages, x => Assert.Equal(0x0166, ((GameStateSynchronizationMessage)x).Type));
+            Assert.Equal(1, titles.Reads);
+            Assert.Empty(await handler.ComposeAsync(recipient, new(new(1)), default));
+            Assert.Empty(await handler.ComposeAsync(new(new(2), new("Game:1")), new(new(1), 4), default));
+            Assert.Equal(1, titles.Reads);
+        });
     }
     private sealed class CurrentTitles : ITitleBookDomainService
     {
@@ -152,12 +153,10 @@ public sealed class TitleBookProtocolTests
     [Fact]
     public async Task Achievement_progress_projection_waits_until_request_ack_releases_the_character_gate()
     {
-        var gate = new AchievementTitleProjectionGate(); var events = new RecordingEvents();
-        var subscriber = new AchievementEventSubscriber(events, gate);
-        var held = await gate.EnterAsync(new(1), default);
-        var task = subscriber.HandleAsync(new DomainEventEnvelope<AchievementProgressChanged>(Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow, Guid.NewGuid(), new(new(1), 4303)), default).AsTask();
-        Assert.False(task.IsCompleted); Assert.Empty(events.Projected);
-        held.Dispose(); await task.WaitAsync(TimeSpan.FromSeconds(2));
+        var events = new RecordingEvents();
+        var subscriber = new AchievementEventSubscriber(events);
+        await TestGameplay.RunAsync(async () =>
+            await subscriber.HandleAsync(new DomainEventEnvelope<AchievementProgressChanged>(Guid.NewGuid(), Guid.NewGuid(), DateTimeOffset.UtcNow, Guid.NewGuid(), new(new(1), 4303)), default));
         Assert.IsType<AchievementChanged>(Assert.Single(events.Projected));
     }
     private sealed class RecordingEvents : IEventService

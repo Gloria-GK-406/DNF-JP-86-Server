@@ -45,8 +45,7 @@ internal sealed class SaoTowerRefreshHandler(ISaoTowerDomainService sao, ISelect
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
         SaoTowerRefresh notification, CancellationToken ct)
     {
-        var session = sessions.FindByConnection(recipient.ConnectionId);
-        if (session is null || session.CharacterId != recipient.CharacterId
+        if (!sessions.TryGetInWorld(recipient.ConnectionId, out var session) || session.CharacterId != recipient.CharacterId
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var reward = notification.Rewards.SingleOrDefault(x => x.CharacterId == session.CharacterId);
         if (reward is null) return [];
@@ -67,6 +66,6 @@ internal sealed class SaoTowerRefreshHandler(ISaoTowerDomainService sao, ISelect
         }
         if (runs.Find(session.CharacterId)?.RunId.Value != currentRun)
             result.RemoveAll(x => x is SaoCurrentFloorNotification);
-        return sessions.FindByConnection(recipient.ConnectionId) == session ? result : [];
+        return sessions.IsInWorld(session) ? result : [];
     }
 }

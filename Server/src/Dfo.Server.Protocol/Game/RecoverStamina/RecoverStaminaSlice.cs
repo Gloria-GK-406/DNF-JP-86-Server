@@ -10,7 +10,6 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.OnlineUsers;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
@@ -54,42 +53,106 @@ internal sealed class RecoverStaminaEncoder : GameCmdMessageEncoder<RecoverStami
     }
 }
 
-public sealed record RecoverStaminaCommand(OnlineUserId OnlineUserId, SelectedSessionIdentity Session, ushort Mode)
-    : ICommand<RecoverStaminaResult>, IOnlineUserCommand, IAccountCommand
-{
-    public AccountId AccountId => Session.AccountId;
-}
-
 public sealed record RecoverStaminaResult(byte ErrorCode, int Gold = 0, int Cost = 0)
 {
     public AccountEntitlementEntryState? Entitlements { get; init; }
     public IReadOnlyList<CharacterPremiumUsageSlotState> Usage { get; init; } = [];
 }
 
-public sealed class RecoverStaminaCommandHandler(
+public sealed record StaminaRecovered(SelectedSessionIdentity Session, int Gold, DateTimeOffset PreparedAt,
+    AccountEntitlementEntryState? Entitlements = null, IReadOnlyList<CharacterPremiumUsageSlotState>? Usage = null)
+    : INotification<StaminaRecovered>;
+
+public sealed class StaminaRecoveredHandler(ISelectedSessionDomainService sessions)
+    : INotificationHandler<StaminaRecovered>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
+        StaminaRecovered notification, CancellationToken cancellationToken) =>
+        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+            recipient.CharacterId == notification.Session.CharacterId
+            && recipient.ConnectionId == notification.Session.ConnectionId
+            && sessions.IsInWorld(notification.Session)
+                ? notification.Entitlements is { } entitlements
+                    ? [new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold),
+                        new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt)]
+                    : [GameInventoryDelivery.CarriedGoldNotification(notification.Gold, notification.PreparedAt),
+                        new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold)]
+                : []);
+}
+
+public sealed record GameRecoverStaminaCommand(NetworkDispatchContext Dispatch, RecoverStaminaRequest Input)
+    : IProtocolCommand<RecoverStaminaResult>
+{
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
+}
+
+public sealed class GameRecoverStaminaCommandHandler(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     IDungeonRunDomainService runs, IWeaknessDomainService weakness, ICharacterDomainService characters,
     IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
-    IIllusionTowerDomainService? towers = null)
-    : ICommandHandler<RecoverStaminaCommand, RecoverStaminaResult>
+    ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
+    TimeProvider clock, ILogger<GameRecoverStaminaCommandHandler> logger,
+    IIllusionTowerDomainService towers)
+    : ICommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult>
 {
     public async ValueTask<RecoverStaminaResult> HandleAsync(CommandExecutionContext context,
-        RecoverStaminaCommand command, CancellationToken cancellationToken)
+        GameRecoverStaminaCommand command, CancellationToken ct)
     {
-        var session = command.Session;
+        var connection = command.Dispatch.Connection.ConnectionId;
+        var session = sessions.FindByConnection(connection);
+        if (session is null || !sessions.IsInWorld(session)) return new(4);
+        RecoverStaminaResult result;
+        if (!onlineUsers.TryGetByConnection(connection, out var online) || online is null)
+            result = new(4);
+        else
+        {
+            var outcome = await units.WriteResultAsync(context, new("RecoverStamina", []), async (unit, token) =>
+            {
+                try { return await RecoverAsync(session, online.OnlineUserId, command.Input.Mode, token).ConfigureAwait(false); }
+                catch (Exception failure) when (failure is not OperationCanceledException
+                    && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
+                {
+                    unit.RequireRollback(failure);
+                    return Failed(failure, session);
+                }
+            }, ct).ConfigureAwait(false);
+            result = outcome switch
+            {
+                CommandWriteResult<RecoverStaminaResult>.Returned returned => returned.Value,
+                CommandWriteResult<RecoverStaminaResult>.CommitRolledBack rollback => Failed(rollback.Cause, session),
+                _ => throw new InvalidOperationException("Weakness recovery returned no action outcome."),
+            };
+        }
+        logger.LogInformation("Weakness recovery character={CharacterId} mode={Mode} error={Error} cost={Cost} gold={Gold}",
+            session.CharacterId, command.Input.Mode, result.ErrorCode, result.Cost, result.Gold);
+        if (result.ErrorCode != 0)
+            await outbox.RegisterCmdAsync(connection, new RecoverStaminaResponse(result.ErrorCode), ct).ConfigureAwait(false);
+        else
+            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+                new StaminaRecovered(session, result.Gold, clock.GetUtcNow(), result.Entitlements, result.Usage), ct).ConfigureAwait(false);
+        return result;
+    }
+
+    private RecoverStaminaResult Failed(Exception failure, SelectedSessionIdentity session)
+    {
+        logger.LogWarning(failure, "Weakness recovery failed character={CharacterId}", session.CharacterId);
+        return new(4);
+    }
+
+    private async ValueTask<RecoverStaminaResult> RecoverAsync(SelectedSessionIdentity session,
+        OnlineUserId onlineUser, ushort mode, CancellationToken cancellationToken)
+    {
         // The requested payment mode does not establish entitlement.
-        if (command.Mode > 1 || sessions.FindByConnection(session.ConnectionId) != session
-            || sessions.FindByCharacter(session.CharacterId) != session
+        if (mode > 1 || !sessions.IsInWorld(session)
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online is not { State: OnlineUserState.CharacterActive }
-            || online.OnlineUserId != command.OnlineUserId || online.AccountId != session.AccountId
-            || online.CurrentCharacterId != session.CharacterId || runs.Find(session.CharacterId) is not null
+            || online?.OnlineUserId != onlineUser || runs.Find(session.CharacterId) is not null
             || towers?.IsInTower(session.CharacterId) == true)
             return new(4);
 
         var state = weakness.For(session.CharacterId);
         if (state.Value == 100) return new(18);
-        if (command.Mode == 1)
+        if (mode == 1)
         {
             if (!await premiumUsage.TryUseFreeWeaknessRecoveryAsync(session.AccountId, session.CharacterId,
                     cancellationToken).ConfigureAwait(false)) return new(4);
@@ -105,70 +168,15 @@ public sealed class RecoverStaminaCommandHandler(
             .ConfigureAwait(false);
         if (gold is null) return new(22);
         // Recover enlists an infallible memory commit; database failure leaves weakness intact.
-        // The global recovery command shares the transaction execution gate with this command.
         state.Recover();
         return new(0, gold.Value, cost);
     }
 }
 
-public sealed record StaminaRecovered(SelectedSessionIdentity Session, int Gold, DateTimeOffset PreparedAt,
-    AccountEntitlementEntryState? Entitlements = null, IReadOnlyList<CharacterPremiumUsageSlotState>? Usage = null)
-    : INotification<StaminaRecovered>;
-
-public sealed class StaminaRecoveredHandler(ISelectedSessionDomainService sessions)
-    : INotificationHandler<StaminaRecovered>
-{
-    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
-        StaminaRecovered notification, CancellationToken cancellationToken) =>
-        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
-            recipient.CharacterId == notification.Session.CharacterId
-            && recipient.ConnectionId == notification.Session.ConnectionId
-            && sessions.FindByCharacter(notification.Session.CharacterId) == notification.Session
-                ? notification.Entitlements is { } entitlements
-                    ? [new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold),
-                        new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt)]
-                    : [GameInventoryDelivery.CarriedGoldNotification(notification.Gold, notification.PreparedAt),
-                        new WeaknessProjectionNotification(100), new RecoverStaminaResponse(Gold: notification.Gold)]
-                : []);
-}
-
-public sealed class RecoverStaminaHandler(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    SelectedSessionTransitionGate transitions, ICommandBus commands, IEventService notifications,
-    IGameMessageSender sender, TimeProvider clock, ILogger<RecoverStaminaHandler> logger)
-    : ClientMessageHandler<RecoverStaminaRequest>
+public sealed class RecoverStaminaHandler(ICommandBus commands)
+    : ClientMessageHandler<RecoverStaminaRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameRecoverStaminaCommand>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context,
-        RecoverStaminaRequest message, CancellationToken cancellationToken)
-    {
-        var connection = context.Connection.ConnectionId;
-        var session = sessions.FindByConnection(connection);
-        if (session is null) return;
-        await using var transition = await transitions.AcquireAsync(session.AccountId,
-            UserAccessMode.Exclusive, cancellationToken).ConfigureAwait(false);
-        if (sessions.FindByConnection(connection) != session
-            || sessions.FindByCharacter(session.CharacterId) != session) return;
-        RecoverStaminaResult result;
-        try
-        {
-            result = onlineUsers.TryGetByConnection(connection, out var online) && online is not null
-                ? await commands.SendAsync(new RecoverStaminaCommand(online.OnlineUserId, session, message.Mode),
-                    cancellationToken).ConfigureAwait(false)
-                : new(4);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception exception)
-        {
-            logger.LogWarning(exception, "Weakness recovery failed character={CharacterId}", session.CharacterId);
-            result = new(4);
-        }
-        logger.LogInformation("Weakness recovery character={CharacterId} mode={Mode} error={Error} cost={Cost} gold={Gold}",
-            session.CharacterId, message.Mode, result.ErrorCode, result.Cost, result.Gold);
-        if (result.ErrorCode != 0)
-            await sender.SendCmdAsync(connection, new RecoverStaminaResponse(result.ErrorCode), cancellationToken)
-                .ConfigureAwait(false);
-        else
-            await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
-                new StaminaRecovered(session, result.Gold, clock.GetUtcNow(), result.Entitlements, result.Usage), cancellationToken).ConfigureAwait(false);
-    }
+        RecoverStaminaRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameRecoverStaminaCommand(context, message), ct).ConfigureAwait(false);
 }

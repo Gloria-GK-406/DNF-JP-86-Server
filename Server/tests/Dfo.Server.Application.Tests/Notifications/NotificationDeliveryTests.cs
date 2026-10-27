@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
@@ -28,6 +27,34 @@ public sealed class NotificationDeliveryTests
     private static readonly CharacterId Second = new(7002);
     private static readonly CharacterId Third = new(7003);
 
+    [Fact]
+    public async Task An_accepted_notification_returns_before_the_publishing_job_submits_or_sends_it()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        var recipient = world.SessionOf(First);
+        world.Compose = _ => [new TownBellMessage("one"), new TownBellMessage("two")];
+        var observed = false;
+
+        var delivery = await world.PublishToObservedAsync([recipient], result =>
+        {
+            observed = true;
+            Assert.Equal(First, Assert.Single(result.Attempts).CharacterId);
+            Assert.Equal(NotificationOutcome.Registered, Assert.Single(result.Attempts).Outcome);
+            Assert.Empty(world.Sender.Registered);
+            Assert.Empty(world.Sender.Sent);
+        });
+
+        Assert.True(observed);
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
+        var batch = Assert.Single(world.Sender.Registered);
+        Assert.Equal(recipient.ConnectionId, batch.Connection.ConnectionId);
+        Assert.Equal(["one", "two"], batch.Messages.Select(NotificationWorld.Label));
+        Assert.Equal(
+            [(recipient.ConnectionId, "one"), (recipient.ConnectionId, "two")],
+            world.Sender.Sent.Select(sent => (sent.ConnectionId, NotificationWorld.Label(sent.Message))));
+    }
+
     /// <summary>Two people, two different frames, because the handler is asked about each.</summary>
     [Fact]
     public async Task Each_recipient_is_told_what_the_handler_made_for_them()
@@ -45,13 +72,15 @@ public sealed class NotificationDeliveryTests
             ],
             world.Sender.Sent.Select(sent => (sent.ConnectionId, NotificationWorld.Label(sent.Message))));
         Assert.All(delivery.Attempts, attempt =>
-            Assert.Equal(NotificationOutcome.Delivered, attempt.Outcome));
+            Assert.Equal(NotificationOutcome.Registered, attempt.Outcome));
     }
 
     /// <summary>One failed delivery does not cost the people behind it theirs.</summary>
     /// <remarks>
     /// This is the property the whole shape exists for. Before there was one place doing this,
     /// every hand-written fan-out had to remember it, and each of them remembered differently.
+    /// The delivery itself now happens in the outbound sender after the publishing job: everyone
+    /// is registered, the connection that fails is closed (RQ-036), and the others still get theirs.
     /// </remarks>
     [Fact]
     public async Task A_recipient_whose_delivery_fails_does_not_stop_the_others()
@@ -64,11 +93,12 @@ public sealed class NotificationDeliveryTests
 
         var delivery = await world.PublishToAsync([First, Second, Third]);
 
-        Assert.Equal([First, Third], delivery.With(NotificationOutcome.Delivered));
-        Assert.Equal([Second], delivery.With(NotificationOutcome.Failed));
+        Assert.Equal([First, Second, Third], delivery.With(NotificationOutcome.Registered));
         Assert.Equal(
             [world.ConnectionOf(First), world.ConnectionOf(Third)],
             world.Sender.Sent.Select(sent => sent.ConnectionId));
+        Assert.True(world.Sender.IsClosed(world.ConnectionOf(Second)));
+        Assert.False(world.Sender.IsClosed(world.ConnectionOf(Third)));
     }
 
     /// <summary>
@@ -88,12 +118,17 @@ public sealed class NotificationDeliveryTests
         world.Play(First);
         world.Play(Second);
         world.Play(Third);
-        world.Sender.FailFor(world.ConnectionOf(Third));
-        world.Sender.OnSend = _ => world.Leave(Second);
+        world.Compose = recipient => [new TownBellMessage(recipient.CharacterId == Third
+            ? "unencodable for the third"
+            : $"for-{recipient.CharacterId.Value}")];
+        world.Composing = recipient =>
+        {
+            if (recipient.CharacterId == First) world.Leave(Second);
+        };
 
         var delivery = await world.PublishToAsync([First, Second, Third]);
 
-        Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
         Assert.Equal([Second], delivery.With(NotificationOutcome.Gone));
         Assert.Equal([Third], delivery.With(NotificationOutcome.Failed));
     }
@@ -130,81 +165,9 @@ public sealed class NotificationDeliveryTests
         var delivery = await world.PublishToAsync([First, Second]);
 
         Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
-        Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
-    }
-
-    /// <summary>A recipient who takes too long is a failure, and the rest still go out.</summary>
-    /// <remarks>
-    /// Delivery is sequential, so a recipient who never answers would otherwise hold the audience.
-    /// The deadline is the same number for every notification, deliberately: the worst case should
-    /// not depend on which notification happened to be in flight. What it bounds is what this code
-    /// enforces on the token it hands the transport -- see NotificationDeliveryOptions for where
-    /// that stops.
-    /// </remarks>
-    [Fact]
-    public async Task A_recipient_who_runs_out_of_time_is_a_failure()
-    {
-        var world = new NotificationWorld(timeout: TimeSpan.FromMilliseconds(50));
-        world.Play(First);
-        world.Play(Second);
-        world.Sender.StallFor(world.ConnectionOf(First));
-
-        var delivery = await world.PublishToAsync([First, Second]);
-
-        Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
-        Assert.Equal([Second], delivery.With(NotificationOutcome.Delivered));
-    }
-
-    /// <summary>The deadline a stalled recipient runs into is the configured one.</summary>
-    /// <remarks>
-    /// The case above passes under any finite deadline, so on its own it does not say the
-    /// configured value is the one being applied -- a hard-coded number would satisfy it just as
-    /// well. This one stalls everybody and reads the clock.
-    /// <para>
-    /// The upper bound is the half that does the work, and what it decides is one thing: that the
-    /// production default is not what ran. Two recipients at the default two seconds is four, so a
-    /// bound of five would have proved nothing. What it does not decide is every hard-coded value
-    /// -- one in the neighbourhood of a hundred milliseconds a recipient would sit inside this
-    /// window too, and no clock reading here would separate it from the real thing.
-    /// </para>
-    /// <para>
-    /// Headroom, measured rather than guessed, and widened once after it was measured wrong. Two
-    /// fifty-millisecond deadlines first came in at 197-315 ms across four parallel full-suite
-    /// runs, and a one-second bound looked like three times the worst of them. It was not: a later
-    /// run took 1045 ms and turned this red at 4.5% over. So the bound is two and a half seconds
-    /// now, which still sits below what the production default would cost here -- two recipients
-    /// at two seconds each is four -- and that is the only thing this half has to decide.
-    /// </para>
-    /// <para>
-    /// What widening it cost, said plainly: a hard-coded value anywhere in roughly 50 ms to 1.25 s
-    /// per recipient now passes here, where the window used to stop at 500 ms. And the corridor is
-    /// narrow -- the measured ceiling on this machine is about a second, the bound is 2.5, and the
-    /// value it has to exclude lands at 4. There is no room for a third widening. If this goes red
-    /// again at a plausible number, the answer is not a bigger bound; it is to stop reading the
-    /// wall clock and assert the deadline some other way.
-    /// </para>
-    /// </remarks>
-    [Fact]
-    public async Task The_deadline_a_stalled_recipient_runs_into_is_the_configured_one()
-    {
-        var world = new NotificationWorld(timeout: TimeSpan.FromMilliseconds(50));
-        world.Play(First);
-        world.Play(Second);
-        world.Sender.StallFor(world.ConnectionOf(First));
-        world.Sender.StallFor(world.ConnectionOf(Second));
-
-        var started = Stopwatch.GetTimestamp();
-        var delivery = await world.PublishToAsync([First, Second]);
-        var elapsed = Stopwatch.GetElapsedTime(started);
-
-        Assert.Equal([First, Second], delivery.With(NotificationOutcome.Failed));
-        Assert.True(
-            elapsed >= TimeSpan.FromMilliseconds(100),
-            $"Two 50ms deadlines took {elapsed.TotalMilliseconds:F0}ms, so they were not applied.");
-        Assert.True(
-            elapsed < TimeSpan.FromSeconds(2.5),
-            $"Two 50ms deadlines took {elapsed.TotalMilliseconds:F0}ms, so some other value was "
-                + "applied -- the production default of two seconds would land near four.");
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Registered));
+        Assert.Equal([world.ConnectionOf(Second)], world.Sender.Registered.Select(entry => entry.Connection.ConnectionId));
+        Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
     }
 
     /// <summary>The caller calling it off is not a recipient failing.</summary>
@@ -219,16 +182,16 @@ public sealed class NotificationDeliveryTests
         world.Play(First);
         world.Play(Second);
         using var cancellation = new CancellationTokenSource();
-        world.Sender.OnSend = _ => cancellation.Cancel();
+        world.Composing = _ => cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => world.PublishToAsync([First, Second], cancellation.Token).AsTask());
 
-        // The first recipient's send is what cancelled it, and no send was started for the second:
-        // swallowing the cancellation would have carried on and called them failed. Nothing
-        // reaches Sent, because that send was itself cancelled before it recorded anything.
-        Assert.Equal([world.ConnectionOf(First)], world.Sender.Attempted);
-        Assert.Empty(world.Sender.Sent);
+        // The first recipient's composition is what cancelled it, and the second was never asked:
+        // swallowing the cancellation would have carried on and called them failed. Nothing is
+        // registered, because the first was called off before his entry was.
+        Assert.Equal([First], world.Composed);
+        Assert.Empty(world.Sender.Registered);
     }
 
     /// <summary>Coming back on a new connection is being gone, not being failed.</summary>
@@ -249,7 +212,10 @@ public sealed class NotificationDeliveryTests
         var world = new NotificationWorld();
         world.Play(First);
         world.Play(Second);
-        world.Sender.OnSend = _ => world.Reconnect(Second);
+        world.Composing = recipient =>
+        {
+            if (recipient.CharacterId == First) world.Reconnect(Second);
+        };
 
         var delivery = await world.PublishToAsync([First, Second]);
 
@@ -266,8 +232,10 @@ public sealed class NotificationDeliveryTests
         world.Play(Second);
         var first = world.SessionOf(First);
         var second = world.SessionOf(Second);
-        world.Sender.OnSend = _ =>
-            world.ReplaceKeepingConnection(Second, listenerPort: 10012);
+        world.Composing = recipient =>
+        {
+            if (recipient.CharacterId == First) world.ReplaceKeepingConnection(Second, listenerPort: 10012);
+        };
 
         var delivery = await world.PublishToExactAsync([first, second]);
 
@@ -295,11 +263,14 @@ public sealed class NotificationDeliveryTests
         var world = new NotificationWorld();
         world.Play(First);
         world.Play(Second);
-        world.Sender.OnSend = _ => world.Sessions.ThrowFor(Second);
+        world.Composing = recipient =>
+        {
+            if (recipient.CharacterId == First) world.Sessions.ThrowFor(Second);
+        };
 
         var delivery = await world.PublishToAsync([First, Second]);
 
-        Assert.Equal([First], delivery.With(NotificationOutcome.Delivered));
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
         Assert.Equal([Second], delivery.With(NotificationOutcome.Failed));
         Assert.Equal([world.ConnectionOf(First)], world.Sender.Sent.Select(sent => sent.ConnectionId));
     }
@@ -308,87 +279,141 @@ public sealed class NotificationDeliveryTests
     /// <remarks>
     /// The summary carries the same fact, and in production nobody reads it: no publish site looks
     /// at what comes back. So the summary is for callers who want it, and this is for the evening
-    /// somebody asks why a frame never arrived.
+    /// somebody asks why a frame never arrived. What can fail in the publish is composing it
+    /// (AC-011): the recipient's entries are dropped, his connection stays open, the publish goes on.
     /// </remarks>
     [Fact]
     public async Task A_failed_delivery_is_said_out_loud()
     {
         var world = new NotificationWorld();
         world.Play(First);
-        world.Sender.FailFor(world.ConnectionOf(First));
+        world.Compose = _ => throw new IOException("nothing to say");
 
-        await world.PublishToAsync([First]);
+        var delivery = await world.PublishToAsync([First]);
 
         var entry = Assert.Single(
             world.Log.Entries,
             value => value.Message.Contains($"{First.Value}", StringComparison.Ordinal));
         Assert.Equal(LogLevel.Warning, entry.Level);
         Assert.IsType<IOException>(entry.Error);
+        Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
+        Assert.Empty(world.Sender.Registered);
+        Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
     }
 
-    /// <summary>Running out of time is told apart from failing, in what is said.</summary>
+    /// <summary>
+    /// A message that cannot be encoded fails its recipient where it is registered, on the publishing
+    /// job, with none of that recipient's messages registered (F-102); the others are registered as usual.
+    /// </summary>
     [Fact]
-    public async Task A_recipient_who_ran_out_of_time_is_named_as_that_and_not_as_an_error()
+    public async Task A_recipient_whose_message_cannot_be_encoded_fails_and_the_others_are_registered()
     {
-        var world = new NotificationWorld(timeout: TimeSpan.FromMilliseconds(50));
+        var world = new NotificationWorld();
         world.Play(First);
-        world.Sender.StallFor(world.ConnectionOf(First));
+        world.Play(Second);
+        world.Compose = recipient => recipient.CharacterId == First
+            ? [new TownBellMessage("first part"), new TownBellMessage("unencodable second part")]
+            : [new TownBellMessage($"for-{recipient.CharacterId.Value}")];
 
-        await world.PublishToAsync([First]);
+        var delivery = await world.PublishToAsync([First, Second]);
 
-        var entry = Assert.Single(
-            world.Log.Entries,
-            value => value.Message.Contains("ran out of", StringComparison.Ordinal));
-        Assert.Equal(LogLevel.Warning, entry.Level);
-        Assert.Null(entry.Error);
+        Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Registered));
+        Assert.Equal(
+            [(world.ConnectionOf(Second), $"for-{Second.Value}")],
+            world.Sender.Registered.SelectMany(entry => entry.Messages.Select(message =>
+                (entry.Connection.ConnectionId, NotificationWorld.Label(message)))));
+        var warning = Assert.Single(world.Log.Entries, value => value.Level == LogLevel.Warning);
+        Assert.IsType<InvalidDataException>(warning.Error);
+        Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
     }
 
-    /// <summary>A real failure after the deadline is still a failure, not a timeout.</summary>
-    /// <remarks>
-    /// Matching on the clock alone would file this as running out of time and lose the exception
-    /// with it: the deadline has genuinely passed by then. What says which one happened is the
-    /// kind of thing that was thrown, and a handler that ignores the token throws something real.
-    /// </remarks>
+    /// <summary>
+    /// RQ-031(d), F-102: a recipient's messages are one batch, so the last of several failing to encode loses that
+    /// recipient all of them, not just the tail; the others are registered as usual.
+    /// </summary>
     [Fact]
-    public async Task Something_thrown_after_the_deadline_is_still_reported_as_what_it_was()
+    public async Task A_recipient_whose_last_message_cannot_be_encoded_registers_none_of_its_messages()
     {
-        var world = new NotificationWorld(timeout: TimeSpan.FromMilliseconds(30));
+        var world = new NotificationWorld();
         world.Play(First);
-        world.Compose = recipient =>
-        {
-            Thread.Sleep(80);
-            throw new InvalidOperationException("nothing to say after all");
-        };
+        world.Play(Second);
+        world.Compose = recipient => recipient.CharacterId == First
+            ? [new TownBellMessage("first part"), new TownBellMessage("second part"), new TownBellMessage("unencodable last part")]
+            : [new TownBellMessage($"for-{recipient.CharacterId.Value}")];
 
-        await world.PublishToAsync([First]);
+        var delivery = await world.PublishToAsync([First, Second]);
 
-        var entry = Assert.Single(
-            world.Log.Entries,
-            value => value.Message.Contains($"{First.Value}", StringComparison.Ordinal));
-        Assert.IsType<InvalidOperationException>(entry.Error);
+        Assert.Equal([First], delivery.With(NotificationOutcome.Failed));
+        Assert.Equal([Second], delivery.With(NotificationOutcome.Registered));
+        Assert.DoesNotContain(world.Sender.Registered, entry => entry.Connection.ConnectionId == world.ConnectionOf(First));
+        Assert.Equal(
+            [(world.ConnectionOf(Second), $"for-{Second.Value}")],
+            world.Sender.Registered.SelectMany(entry => entry.Messages.Select(message =>
+                (entry.Connection.ConnectionId, NotificationWorld.Label(message)))));
+        var warning = Assert.Single(world.Log.Entries, value => value.Level == LogLevel.Warning);
+        Assert.IsType<InvalidDataException>(warning.Error);
+        Assert.False(world.Sender.IsClosed(world.ConnectionOf(First)));
     }
 
-    /// <summary>Being cancelled is not the same as running out of time.</summary>
-    /// <remarks>
-    /// The other half of the condition that tells the two apart. A handler can throw a
-    /// cancellation of its own while the deadline still has room -- and that is a failure with a
-    /// reason, not a recipient who was too slow. Matching on the exception alone would file it as
-    /// the latter and say the deadline elapsed when it had not.
-    /// </remarks>
+    /// <summary>
+    /// F-102: a recipient with several messages is looked up once and registered as one batch for that one context,
+    /// in the composed order.
+    /// </summary>
     [Fact]
-    public async Task A_cancellation_raised_before_the_deadline_is_a_failure_with_a_reason()
+    public async Task A_recipient_with_several_messages_is_resolved_once_and_registered_as_one_batch()
     {
-        var world = new NotificationWorld(timeout: TimeSpan.FromSeconds(30));
+        var world = new NotificationWorld();
         world.Play(First);
-        world.Compose = recipient => throw new OperationCanceledException("the handler gave up");
+        world.Compose = _ => [new TownBellMessage("one"), new TownBellMessage("two"), new TownBellMessage("three")];
 
-        await world.PublishToAsync([First]);
+        var delivery = await world.PublishToAsync([First]);
 
-        var entry = Assert.Single(
-            world.Log.Entries,
-            value => value.Message.Contains($"{First.Value}", StringComparison.Ordinal));
-        Assert.IsType<OperationCanceledException>(entry.Error);
-        Assert.DoesNotContain("ran out of", entry.Message, StringComparison.Ordinal);
+        Assert.Equal([First], delivery.With(NotificationOutcome.Registered));
+        var batch = Assert.Single(world.Sender.Registered);
+        Assert.Equal(world.ConnectionOf(First), batch.Connection.ConnectionId);
+        Assert.Equal(["one", "two", "three"], batch.Messages.Select(NotificationWorld.Label));
+        Assert.Equal([world.ConnectionOf(First)], world.Connections.Lookups);
+    }
+
+    /// <summary>A recipient whose composition failed is not asked again, now or by a later publish (VC-5).</summary>
+    [Fact]
+    public async Task A_recipient_whose_composition_failed_is_never_composed_again()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        world.Play(Second);
+        world.Compose = recipient => recipient.CharacterId == First
+            ? throw new InvalidOperationException("nothing to say")
+            : [new TownBellMessage($"for-{recipient.CharacterId.Value}")];
+
+        var first = await world.PublishToAsync([First, Second]);
+        var second = await world.PublishToAsync([Second]);
+
+        Assert.Equal([First], first.With(NotificationOutcome.Failed));
+        Assert.Equal([Second], second.With(NotificationOutcome.Registered));
+        Assert.Equal([First, Second, Second], world.Composed);
+        Assert.Equal(
+            [world.ConnectionOf(Second), world.ConnectionOf(Second)],
+            world.Sender.Registered.Select(entry => entry.Connection.ConnectionId));
+    }
+
+    /// <summary>RQ-061, the outbox half, for projections, and its counterexample (RQ-072): off the executor nothing is composed.</summary>
+    [Fact]
+    public async Task A_projection_off_the_executor_is_a_program_error_reported_as_evidence()
+    {
+        var world = new NotificationWorld();
+        world.Play(First);
+        var seen = Execution.ViolationCapture.Attach();
+
+        var error = await Assert.ThrowsAsync<Dfo.Server.Abstractions.Execution.GameplayOffExecutorException>(
+            () => world.ProjectHereAsync([First]).AsTask());
+
+        Assert.Contains("GameplayOutbox.Register", error.Message, StringComparison.Ordinal);
+        var violation = Assert.Single(seen);
+        Assert.Equal(Dfo.Server.Abstractions.Execution.GameplayWriteAssertion.OffExecutorKind, violation.Kind);
+        Assert.Empty(world.Composed);
+        Assert.Empty(world.Sender.Registered);
     }
 
     /// <summary>The summary answers for every recipient the audience resolved to.</summary>

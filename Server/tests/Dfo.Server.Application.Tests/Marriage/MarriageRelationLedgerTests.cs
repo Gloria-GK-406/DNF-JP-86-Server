@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
@@ -13,6 +14,7 @@ using Dfo.Server.Protocol.Game.MarriageProposal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using static Dfo.Server.Application.Tests.Marriage.MarriageHarness;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -116,9 +118,9 @@ public sealed class MarriageRelationLedgerTests
         Assert.True((await InTx(f, () => Couple(f).RespondReservationAsync(peer, f.Session, 2, default))).Succeeded);
         await Expect(MarriageStage.Engaged, null);
 
-        var bus = f.Services.GetRequiredService<ICommandBus>();
+        var bus = DomainCommandFixture.Bus(f.Services);
         var cancelled = await Request();
-        var accepted = await bus.SendAsync(new MarriageCeremonyCommand(peer, f.Session, 0, 0, 0));
+        var accepted = await bus.SendAsync(new CeremonyTestCommand(peer, f.Session, 0, 0, 0));
         Assert.Equal(2, accepted.Admissions.Count);
         await Expect(MarriageStage.Preparing, cancelled);
         Assert.Equal(1, WeddingRows(f, id, 0));
@@ -129,7 +131,7 @@ public sealed class MarriageRelationLedgerTests
 
         f.Sql("UPDATE character_stats SET carried_gold=500000 WHERE character_id=71");
         var completed = await Request();
-        var second = await bus.SendAsync(new MarriageCeremonyCommand(peer, f.Session, 0, 0, 0));
+        var second = await bus.SendAsync(new CeremonyTestCommand(peer, f.Session, 0, 0, 0));
         await Expect(MarriageStage.Preparing, completed);
         Assert.Equal(1, WeddingRows(f, id, 0));
         var room = second.Admissions[0].Church.Room;
@@ -164,10 +166,10 @@ public sealed class MarriageRelationLedgerTests
         });
         var f = w.F; var peer = w.Peer;
         var containers = f.Services.GetRequiredService<ICharacterContainerDomainService>();
-        containers.Register(f.Session.CharacterId, new PersistentItemContainer(
+        TestGameplay.Run(f.Services, () => containers.Register(f.Session.CharacterId, new PersistentItemContainer(
             ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Main), new(InventoryContainerType.Main, 0),
             f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),
-            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>()));
+            f.Services.GetRequiredService<IItemPlacementRuleService>(), f.Services.GetRequiredService<IItemSlotRuleService>())));
         await InTx(f, async () =>
         {
             await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(f.Session.AccountId, f.Session.CharacterId,
@@ -181,7 +183,7 @@ public sealed class MarriageRelationLedgerTests
         w.Clock.Now = room.ReadyUntil;
         await InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default));
 
-        var used = await InTx(f, () => Couple(f).UseLovePointAsync(f.Session, coupon, [f.Session.AccountId, peer.AccountId], default));
+        var used = await InTx(f, () => TestEffectFootprints.Run(f.Session, cap => Couple(f).UseLovePointAsync(f.Session, coupon, [f.Session.AccountId, peer.AccountId], cap, default)));
         Assert.Equal(0, used.Status); Assert.Equal(1, used.Points);
         Assert.Equal(0, (await RelationAsync(f, ceremony.RelationId)).LovePoints);
         Assert.Equal(1, await Ledger(f).PointsAsync(ceremony.RelationId, f.Session.CharacterId, default));

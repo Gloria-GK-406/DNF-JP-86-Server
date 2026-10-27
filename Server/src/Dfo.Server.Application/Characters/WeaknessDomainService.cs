@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ internal sealed class WeaknessDomainService(
 
     public async ValueTask<IReadOnlyList<CharacterId>> RetryPendingWeakness(CancellationToken cancellationToken)
     {
+        GameplayWriteAssertion.Writing(nameof(WeaknessDomainService) + "." + nameof(RetryPendingWeakness));
         KeyValuePair<CharacterId, PendingPenalty>[] snapshot;
         lock (gate) snapshot = pending.ToArray();
         List<CharacterId> changed = [];
@@ -62,6 +64,7 @@ internal sealed class WeaknessDomainService(
 
     public IReadOnlyList<CharacterId> AdvanceRecovery()
     {
+        GameplayWriteAssertion.Writing(nameof(WeaknessDomainService) + "." + nameof(AdvanceRecovery));
         lock (gate)
         {
             var changed = new List<CharacterId>();
@@ -102,6 +105,7 @@ internal sealed class WeaknessDomainService(
 
         public async ValueTask SetWeakness()
         {
+            GameplayWriteAssertion.Writing(nameof(Weakness) + "." + nameof(SetWeakness));
             var penalty = new PendingPenalty();
             lock (owner.gate) owner.pending[id] = penalty;
             await owner.TryApplyAsync(id, penalty, CancellationToken.None).ConfigureAwait(false);
@@ -119,6 +123,7 @@ internal sealed class WeaknessDomainService(
 
         public void Recover()
         {
+            GameplayWriteAssertion.Writing(nameof(Weakness) + "." + nameof(Recover));
             if (owner.transactionSource?.Current is { } transaction)
             {
                 transaction.Enlist(owner, () => new RecoveryCommit(owner)).Characters.Add(id);
@@ -126,8 +131,16 @@ internal sealed class WeaknessDomainService(
             }
             lock (owner.gate) { owner.entries.Remove(id); owner.pending.Remove(id); }
         }
-        public void PauseRecovery() => SetRecovery(false);
-        public void ResumeRecovery() => SetRecovery(true);
+        public void PauseRecovery()
+        {
+            GameplayWriteAssertion.Writing(nameof(Weakness) + "." + nameof(PauseRecovery));
+            SetRecovery(false);
+        }
+        public void ResumeRecovery()
+        {
+            GameplayWriteAssertion.Writing(nameof(Weakness) + "." + nameof(ResumeRecovery));
+            SetRecovery(true);
+        }
         private void SetRecovery(bool enabled)
         {
             lock (owner.gate)

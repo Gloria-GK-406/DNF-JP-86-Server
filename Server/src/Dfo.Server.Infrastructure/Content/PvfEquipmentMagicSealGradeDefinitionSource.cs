@@ -6,12 +6,30 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEquipmentMagicSealGradeDefinitionSource(PvfArchiveProvider provider,
-    IEquipmentMagicSealContentSource equipment) : IEquipmentMagicSealGradeDefinitionSource
+    IEquipmentMagicSealContentSource equipment) : IEquipmentMagicSealGradeDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static readonly PvfField<IReadOnlyList<int>> Grades = PvfField.Int32List("[postfix grade modification]");
     private static readonly PvfField<IReadOnlyList<int>> Exclusions = PvfField.Int32List("[unable to modify postfix grade]");
     private readonly Lock gate = new();
     private FrozenDictionary<int, EquipmentMagicSealGradeDefinition>? definitions;
+
+    public string Name => "equipment-magic-seal-grades";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            DefinitionsIndex();
+            return ValueTask.FromResult(definitions.Count);
+        }
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(definitions))]
+    private void DefinitionsIndex()
+    {
+        definitions ??= Read();
+    }
 
     public async ValueTask<EquipmentMagicSealGradeDefinition?> FindAsync(int equipmentId, CancellationToken ct)
     {
@@ -20,7 +38,7 @@ internal sealed class PvfEquipmentMagicSealGradeDefinitionSource(PvfArchiveProvi
         ct.ThrowIfCancellationRequested();
         lock (gate)
         {
-            definitions ??= Read();
+            DefinitionsIndex();
             return definitions.GetValueOrDefault(item.Rarity);
         }
     }

@@ -148,7 +148,7 @@ public sealed class MarriageArchitectureTests
         public void Dispose()
         {
             Provider.Dispose();
-            SqliteConnection.ClearAllPools();
+            SqliteTestPools.ClearOwned(path);
             File.Delete(path);
         }
     }

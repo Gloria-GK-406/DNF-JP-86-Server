@@ -5,4 +5,7 @@
     <ProjectReference Include="..\Dfo.Server.Networking\Dfo.Server.Networking.csproj" />
     <ProjectReference Include="..\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dfo.Server.Host.Tests" />
+  </ItemGroup>
 </Project>

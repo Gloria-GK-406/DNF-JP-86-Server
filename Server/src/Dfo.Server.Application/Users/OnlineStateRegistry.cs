@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Execution;
+using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -8,23 +10,22 @@ using Dfo.Server.Abstractions.Transactions;
 namespace Dfo.Server.Application.Users;
 
 /// <summary>
-/// The connected users, the account each has authenticated as, and the session each account has
-/// active — one state, one lock.
+/// Who each connection is: the connected users, the account each has authenticated as, the session
+/// each account has selected and how far it has got -- one state, one lock.
 /// </summary>
 /// <remarks>
-/// The three collections are separate readings of one invariant rather than three independent
-/// tables: an account has at most one active character, and that character's session belongs to a
-/// live connection. Several operations only preserve it while they update more than one collection
-/// together — disconnecting removes the connection and the account's active session, and
-/// publishing reads the online user before writing the active entry. Giving each responsibility
-/// its own lock would open a window in which an account is bound to a connection that is already
-/// gone, so the responsibilities are separated into their own service types while the state they
-/// share stays behind this single lock.
+/// These are readings of one identity rather than independent tables: an account has at most one
+/// selected session, a session enters the world only through a live connection authenticated as
+/// its account, and the character a connection is playing is the in-world session it owns. Each
+/// used to be kept by its own service behind its own lock, and every caller that wanted to know
+/// whether a session still counted asked three of them and compared the answers. Keeping one
+/// record per selection here leaves nothing to compare: what a connection is playing, whether a
+/// session has entered the world, whether it is fenced, and whether its connection has been
+/// revoked under it are all read off the same record in the same moment.
 /// <para>
-/// Which character an account is playing is answered from the online user's own snapshot, where
-/// publishing binds it. This table used to keep a second copy of the character's whole standing
-/// plus a character-to-account reverse index; both were written on every publication and read by
-/// nothing outside the access seam that has since been retired.
+/// A revoked connection is removed at once so it can do nothing more, while its selection stays
+/// until the session's teardown releases what it holds elsewhere. That is a stage of the session,
+/// not a disagreement between stores: <see cref="StandingOf"/> reports it.
 /// </para>
 /// </remarks>
 internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transactions)
@@ -32,11 +33,12 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
     private readonly object sync = new();
     private readonly Dictionary<OnlineUserId, OnlineUser> byId = [];
     private readonly Dictionary<NetworkConnectionId, OnlineUserId> byConnection = [];
-    private readonly Dictionary<AccountId, ActiveCharacterRegistration> activeByAccount = [];
+    private readonly Dictionary<AccountId, Selection> selections = [];
     private readonly Dictionary<GameSessionIdentity, SessionEndpoint> endpoints = [];
 
     public void PrepareAuthentication(OnlineUserId onlineUserId, AccountId accountId)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(PrepareAuthentication));
         var transaction = transactions.Current
             ?? throw new InvalidOperationException(
                 "Online authentication requires an active domain transaction.");
@@ -48,6 +50,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public void Authenticate(OnlineUserId onlineUserId, AccountId accountId)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(Authenticate));
         lock (sync)
         {
             GetRequiredAggregate(onlineUserId).Authenticate(accountId);
@@ -56,18 +59,19 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
     public OnlineUserSnapshot RegisterConnection(NetworkConnectionContext connection)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(RegisterConnection));
         ArgumentNullException.ThrowIfNull(connection);
         lock (sync)
         {
             if (byConnection.TryGetValue(connection.ConnectionId, out var existingId))
             {
-                return byId[existingId].Snapshot;
+                return SnapshotOf(byId[existingId]);
             }
 
             var onlineUser = new OnlineUser(OnlineUserId.New(), connection);
             byId.Add(onlineUser.Id, onlineUser);
             byConnection.Add(connection.ConnectionId, onlineUser.Id);
-            return onlineUser.Snapshot;
+            return SnapshotOf(onlineUser);
         }
     }
 
@@ -76,6 +80,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         NetworkConnectionId connectionId,
         long expectedGeneration)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(TryDisconnect));
         lock (sync)
         {
             if (!byId.TryGetValue(onlineUserId, out var onlineUser)
@@ -87,64 +92,19 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
                 return false;
             }
 
-            if (onlineUser.AccountId is { } accountId
-                && activeByAccount.TryGetValue(accountId, out var active)
-                && active.OnlineUserId == onlineUserId)
-            {
-                RemoveActive(accountId);
-            }
-
-            endpoints.Remove(onlineUser.Snapshot.SessionIdentity);
-            byConnection.Remove(connectionId);
-            byId.Remove(onlineUserId);
+            Remove(onlineUser);
             return true;
-        }
-    }
-
-    public void Publish(SelectedSessionIdentity session)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        lock (sync)
-        {
-            var owner = byId.Values.SingleOrDefault(value =>
-                value.AccountId == session.AccountId
-                && value.Connection.ConnectionId == session.ConnectionId
-                && value.Generation == session.ConnectionGeneration)
-                ?? throw new InvalidOperationException("Selected connection generation is no longer current.");
-            owner.BindCharacter(session.CharacterId);
-            // Binding increments the online snapshot generation, while selected-session
-            // ownership remains the immutable generation validated before publication.
-            SetActive(session.AccountId, new ActiveCharacterRegistration(owner.Id, session));
-        }
-    }
-
-    public bool ClearExact(SelectedSessionIdentity session)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        lock (sync)
-        {
-            if (!activeByAccount.TryGetValue(session.AccountId, out var active)
-                || active.Session != session)
-                return false;
-            if (byId.TryGetValue(active.OnlineUserId, out var owner)
-                && owner.Connection.ConnectionId == session.ConnectionId)
-                owner.UnbindCharacter(session.CharacterId);
-            return RemoveActive(session.AccountId);
         }
     }
 
     public bool TryDisconnectConnection(NetworkConnectionId connectionId)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(TryDisconnectConnection));
         lock (sync)
         {
             if (!byConnection.TryGetValue(connectionId, out var id)
                 || !byId.TryGetValue(id, out var user)) return false;
-            if (user.AccountId is { } accountId
-                && activeByAccount.TryGetValue(accountId, out var active)
-                && active.OnlineUserId == id) RemoveActive(accountId);
-            endpoints.Remove(user.Snapshot.SessionIdentity);
-            byConnection.Remove(connectionId);
-            byId.Remove(id);
+            Remove(user);
             return true;
         }
     }
@@ -153,7 +113,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
     {
         lock (sync)
         {
-            return GetRequiredAggregate(onlineUserId).Snapshot;
+            return SnapshotOf(GetRequiredAggregate(onlineUserId));
         }
     }
 
@@ -165,18 +125,6 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
                 .Select(user => user.AccountId!.Value).Distinct().ToArray();
     }
 
-    public bool IsActiveExact(SelectedSessionIdentity session)
-    {
-        lock (sync)
-            return activeByAccount.TryGetValue(session.AccountId, out var active)
-                && active.Session == session
-                && byId.TryGetValue(active.OnlineUserId, out var user)
-                && user.Connection.ConnectionId == session.ConnectionId
-                && user.Connection.EndpointKind == NetworkEndpointKind.Game
-                && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
-                && byConnection.TryGetValue(session.ConnectionId, out var owner) && owner == active.OnlineUserId;
-    }
-
     public bool TryGetByConnection(
         NetworkConnectionId connectionId,
         out OnlineUserSnapshot? onlineUser)
@@ -186,7 +134,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
             if (byConnection.TryGetValue(connectionId, out var onlineUserId)
                 && byId.TryGetValue(onlineUserId, out var aggregate))
             {
-                onlineUser = aggregate.Snapshot;
+                onlineUser = SnapshotOf(aggregate);
                 return true;
             }
 
@@ -195,8 +143,155 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         }
     }
 
+    public SelectedSessionIdentity? Select(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(Select));
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync)
+        {
+            if (selections.Values.Any(value => value.Session.AccountId != session.AccountId
+                    && (value.Session.CharacterId == session.CharacterId
+                        || value.Session.WireUserId == session.WireUserId)))
+            {
+                throw new InvalidOperationException(
+                    $"Character/wire identity {session.CharacterId}/{session.WireUserId} is already current.");
+            }
+            selections.TryGetValue(session.AccountId, out var displaced);
+            // Selecting the session that is already selected changes nothing, its stage included.
+            if (displaced?.Session != session)
+                selections[session.AccountId] = new Selection(session);
+            return displaced?.Session;
+        }
+    }
+
+    public void EnterWorld(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(EnterWorld));
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync)
+        {
+            var selection = FindExact(session)
+                ?? throw new InvalidOperationException("Cannot enter the world with a replaced selection.");
+            var owner = byId.Values.SingleOrDefault(value =>
+                value.AccountId == session.AccountId
+                && value.Connection.ConnectionId == session.ConnectionId
+                && value.Generation == session.ConnectionGeneration)
+                ?? throw new InvalidOperationException("Selected connection generation is no longer current.");
+            selection.EnterWorld(owner.Id);
+            // Entering advances the online user's generation, while the session keeps the
+            // generation it was selected under.
+            owner.Advance();
+        }
+    }
+
+    public bool Fence(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(Fence));
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync)
+        {
+            if (FindExact(session) is not { } selection) return false;
+            selection.Fence();
+            return true;
+        }
+    }
+
+    public bool ReleaseExact(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(ReleaseExact));
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync)
+        {
+            if (FindExact(session) is not { } selection) return false;
+            if (selection.Phase == SelectedSessionPhase.InWorld
+                && selection.Owner is { } ownerId
+                && byId.TryGetValue(ownerId, out var owner)
+                && owner.Connection.ConnectionId == session.ConnectionId)
+                owner.Advance();
+            return selections.Remove(session.AccountId);
+        }
+    }
+
+    public SelectedSessionIdentity? Find(AccountId accountId)
+    {
+        lock (sync) return selections.GetValueOrDefault(accountId)?.Session;
+    }
+
+    public SelectedSessionIdentity? FindByCharacter(CharacterId characterId)
+    {
+        lock (sync)
+            return selections.Values.SingleOrDefault(value => value.Session.CharacterId == characterId)?.Session;
+    }
+
+    public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId)
+    {
+        lock (sync)
+            return selections.Values.SingleOrDefault(value => value.Session.WireUserId == wireUserId)?.Session;
+    }
+
+    public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId)
+    {
+        lock (sync)
+            return selections.Values.SingleOrDefault(value => value.Session.ConnectionId == connectionId)?.Session;
+    }
+
+    public IReadOnlyList<SelectedSessionIdentity> SnapshotSelections()
+    {
+        lock (sync) return selections.Values.Select(value => value.Session).ToArray();
+    }
+
+    public SelectedSessionStanding? StandingOf(SelectedSessionIdentity session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync)
+            return FindExact(session) is { } selection
+                ? new SelectedSessionStanding(selection.Phase, selection.Fenced, IsRevoked(selection))
+                : null;
+    }
+
+    public bool IsSelected(SelectedSessionIdentity session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync) return FindExact(session) is { } selection && !IsRevoked(selection);
+    }
+
+    public bool IsInWorld(SelectedSessionIdentity session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        lock (sync) return FindExact(session) is { } selection && InWorld(selection);
+    }
+
+    public bool TryGetInWorld(CharacterId characterId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        TryGetInWorld(value => value.CharacterId == characterId, out session);
+
+    public bool TryGetInWorld(ushort wireUserId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        TryGetInWorld(value => value.WireUserId == wireUserId, out session);
+
+    public bool TryGetInWorld(NetworkConnectionId connectionId, [NotNullWhen(true)] out SelectedSessionIdentity? session) =>
+        TryGetInWorld(value => value.ConnectionId == connectionId, out session);
+
+    private bool TryGetInWorld(Func<SelectedSessionIdentity, bool> key, [NotNullWhen(true)] out SelectedSessionIdentity? session)
+    {
+        lock (sync)
+        {
+            var selection = selections.Values.SingleOrDefault(value => key(value.Session));
+            session = selection is not null && InWorld(selection) ? selection.Session : null;
+            return session is not null;
+        }
+    }
+
+    /// <summary>In the world, and still owned by the game connection it entered on.</summary>
+    private bool InWorld(Selection selection) =>
+        selection is { Phase: SelectedSessionPhase.InWorld, Owner: { } ownerId }
+        && byId.TryGetValue(ownerId, out var user)
+        && user.Connection.ConnectionId == selection.Session.ConnectionId
+        && user.Connection.EndpointKind == NetworkEndpointKind.Game
+        && user.AccountId == selection.Session.AccountId
+        && byConnection.TryGetValue(selection.Session.ConnectionId, out var owner) && owner == ownerId;
+
     public bool TryObserveEndpoint(GameSessionIdentity session, SessionEndpoint endpoint)
     {
+        GameplayWriteAssertion.Writing(nameof(OnlineStateRegistry) + "." + nameof(TryObserveEndpoint));
         ArgumentNullException.ThrowIfNull(endpoint);
         if (!endpoint.IsValid)
             return false;
@@ -233,10 +328,46 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         }
     }
 
-    private void SetActive(AccountId accountId, ActiveCharacterRegistration registration) =>
-        activeByAccount[accountId] = registration;
+    private void Remove(OnlineUser user)
+    {
+        // The selection stays: its teardown still has to release what it holds elsewhere, and
+        // from now on it reads as revoked.
+        endpoints.Remove(SnapshotOf(user).SessionIdentity);
+        byConnection.Remove(user.Connection.ConnectionId);
+        byId.Remove(user.Id);
+    }
 
-    private bool RemoveActive(AccountId accountId) => activeByAccount.Remove(accountId);
+    private Selection? FindExact(SelectedSessionIdentity session) =>
+        selections.TryGetValue(session.AccountId, out var selection) && selection.Session == session
+            ? selection
+            : null;
+
+    private bool IsRevoked(Selection selection) =>
+        !byConnection.TryGetValue(selection.Session.ConnectionId, out var userId)
+        || !byId.TryGetValue(userId, out var user)
+        || user.AccountId != selection.Session.AccountId
+        || (selection.Owner is { } owner && owner != userId);
+
+    /// <summary>The character this online user is playing: the in-world selection it owns.</summary>
+    private CharacterId? BoundCharacter(OnlineUser user) =>
+        user.AccountId is { } accountId
+        && selections.TryGetValue(accountId, out var selection)
+        && selection.Phase == SelectedSessionPhase.InWorld
+        && selection.Owner == user.Id
+            ? selection.Session.CharacterId
+            : null;
+
+    private OnlineUserSnapshot SnapshotOf(OnlineUser user)
+    {
+        var character = BoundCharacter(user);
+        return new OnlineUserSnapshot(
+            user.Id,
+            user.Connection,
+            user.AccountId,
+            character,
+            character is not null ? OnlineUserState.CharacterActive : user.State,
+            user.Generation);
+    }
 
     private OnlineUser GetRequiredAggregate(OnlineUserId onlineUserId) =>
         byId.TryGetValue(onlineUserId, out var onlineUser)
@@ -273,7 +404,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
             {
                 if (!owner.byId.TryGetValue(onlineUserId, out var user)
                     || user.AccountId is not null
-                    || user.CurrentCharacterId is not null
+                    || owner.BoundCharacter(user) is not null
                     || user.State != OnlineUserState.Connected
                     || !owner.byConnection.TryGetValue(
                         user.Connection.ConnectionId,
@@ -300,7 +431,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
                     && user.Connection.ConnectionId == connectionId
                     && user.Generation == this.preparedGeneration
                     && user.AccountId is null
-                    && user.CurrentCharacterId is null
+                    && owner.BoundCharacter(user) is null
                     && user.State == OnlineUserState.Connected
                     && owner.byConnection.TryGetValue(connectionId, out var connectedId)
                     && connectedId == onlineUserId)
@@ -320,17 +451,30 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
         }
     }
 
-    /// <summary>
-    /// Which character an account is playing, and under which session.
-    /// </summary>
+    /// <summary>The session an account has selected, and how far it has got.</summary>
     /// <remarks>
-    /// The identity, not the character.s standing. The readers want the id, to answer which account
-    /// a character is on and to release the binding when the session ends; a character.s standing
-    /// is read from the session.s own runtime state.
+    /// The identity, not the character's standing: what the character is doing is the online
+    /// character runtime's business.
     /// </remarks>
-    private sealed record ActiveCharacterRegistration(
-        OnlineUserId OnlineUserId,
-        SelectedSessionIdentity? Session);
+    private sealed class Selection(SelectedSessionIdentity session)
+    {
+        public SelectedSessionIdentity Session { get; } = session;
+
+        public SelectedSessionPhase Phase { get; private set; } = SelectedSessionPhase.Selected;
+
+        /// <summary>The online user the session entered the world through.</summary>
+        public OnlineUserId? Owner { get; private set; }
+
+        public bool Fenced { get; private set; }
+
+        public void EnterWorld(OnlineUserId owner)
+        {
+            Phase = SelectedSessionPhase.InWorld;
+            Owner = owner;
+        }
+
+        public void Fence() => Fenced = true;
+    }
 
     private sealed class OnlineUser(OnlineUserId id, NetworkConnectionContext connection)
     {
@@ -340,19 +484,10 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
 
         public AccountId? AccountId { get; private set; }
 
-        public CharacterId? CurrentCharacterId { get; private set; }
-
+        /// <summary>Connected or authenticated; whether a character is active is read off the selection.</summary>
         public OnlineUserState State { get; private set; } = OnlineUserState.Connected;
 
         public long Generation { get; private set; } = 1;
-
-        public OnlineUserSnapshot Snapshot => new(
-            Id,
-            Connection,
-            AccountId,
-            CurrentCharacterId,
-            State,
-            Generation);
 
         public void Authenticate(AccountId accountId)
         {
@@ -372,30 +507,7 @@ internal sealed class OnlineStateRegistry(IDomainTransactionAccessor transaction
             Generation++;
         }
 
-        public void UnbindCharacter(CharacterId expected)
-        {
-            if (CurrentCharacterId != expected) return;
-            CurrentCharacterId = null;
-            State = AccountId is null ? OnlineUserState.Connected : OnlineUserState.Authenticated;
-            Generation = checked(Generation + 1);
-        }
-
-        public void BindCharacter(CharacterId characterId)
-        {
-            if (AccountId is null)
-            {
-                throw new InvalidOperationException(
-                    $"Online user '{Id}' must authenticate before selecting a character.");
-            }
-
-            if (CurrentCharacterId == characterId)
-            {
-                return;
-            }
-
-            CurrentCharacterId = characterId;
-            State = OnlineUserState.CharacterActive;
-            Generation++;
-        }
+        /// <summary>A character entered or left the world through this user.</summary>
+        public void Advance() => Generation = checked(Generation + 1);
     }
 }

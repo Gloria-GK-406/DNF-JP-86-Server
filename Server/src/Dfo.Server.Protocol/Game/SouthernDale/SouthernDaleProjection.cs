@@ -32,8 +32,7 @@ internal sealed class SouthernInventoryRefreshHandler(ISelectedSessionDomainServ
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, SouthernInventoryRefresh notification, CancellationToken ct)
     {
-        var session = sessions.FindByConnection(recipient.ConnectionId);
-        if (session is null || session.CharacterId != recipient.CharacterId
+        if (!sessions.TryGetInWorld(recipient.ConnectionId, out var session) || session.CharacterId != recipient.CharacterId
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var messages = new List<IServerNetworkMessage>();
         if (!notification.Slots.IsEmpty)
@@ -51,6 +50,6 @@ internal sealed class SouthernInventoryRefreshHandler(ISelectedSessionDomainServ
             messages.Add(new AvailableQuestListMessage(progress.Level,
                 await quests.ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false)));
         }
-        return sessions.FindByConnection(recipient.ConnectionId) == session ? messages : [];
+        return sessions.IsInWorld(session) ? messages : [];
     }
 }
