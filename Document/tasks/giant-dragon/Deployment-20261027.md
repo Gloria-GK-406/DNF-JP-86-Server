@@ -26,7 +26,7 @@
 
 本次客户端与服务端PVF均为：
 `01F1BE685D46647961DF65207A36304777DB20EF5A3D03C68EFAA92F8B0C5189`。
-服务端指向本次私有运行根的 `Script-giant-dragon-active.pvf`；客户端装入同一份恢复包。没有修改protocol2等其他客户端目录。候选最初构建缺少GM静态文件，已补入当前服务原有wwwroot；GM首页及其JS/CSS均返回200。
+服务端指向本次私有运行根的 `Script-giant-dragon-active.pvf`；客户端装入同一份恢复包。protocol2目录仅在后续连接排查中将Launcher.ini的旧25080地址备份并改为18080，未替换该目录PVF；恢复入口验收仍使用本页protocol测试目录。候选最初构建缺少GM静态文件，已补入当前服务原有wwwroot；GM首页及其JS/CSS均返回200。
 
 马戏团独立探针PID40848使用另一份库和默认端口；本次未停止、改写或复用。
 
