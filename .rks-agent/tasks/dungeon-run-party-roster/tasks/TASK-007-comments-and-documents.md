@@ -33,3 +33,7 @@
   - `dotnet build Server/86JP.Server.slnx`：0 错误、0 警告。
   - `grep -rn -i 'frozen participant' Server/src`：无结果。
   - 副本成员规则只在 `ReactiveDungeonCellRuntime.md` 维护，`StoryPartyDungeon` 以链接引用。
+
+## 更正（补救提交）
+
+上面 Checks 中“`grep -rn -i 'frozen participant' Server/src`：无结果”不实：当时的检查漏看了 `IDungeonVisitDomainService.cs:117` 的 “for all frozen participants”。补救提交已改为 “for the whole entering party”，复查同一 grep 确实无结果，构建 0 错误 0 警告。

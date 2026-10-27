@@ -114,7 +114,7 @@ public interface IDungeonVisitDomainService
             : DungeonEntryAttempt.Accepted(entry);
     }
 
-    /// <summary>Resolves one layout and atomically begins one run for all frozen participants.</summary>
+    /// <summary>Resolves one layout and atomically begins one run for the whole entering party.</summary>
     async ValueTask<DungeonPartyEntry?> EnterPartyAsync(
         IReadOnlyList<DungeonRunParticipant> participants,
         int dungeonId,
