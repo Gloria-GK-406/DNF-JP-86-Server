@@ -28,7 +28,7 @@ public sealed partial class ItemDeliveryTests
         {
             Skip.IfNot(Dfo.Server.Application.Tests.World.ContentArchive.Available,
                 Dfo.Server.Application.Tests.World.ContentArchive.SkipReason);
-            using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(new Content()));
+            using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(new Content()), useArchive: true);
             if (overflow) await f.SeedCore(9, StackableItemCore.Create(1, 9002, 123));
             var receipt = await Grant(f, new ItemDeliveryGrant(28269, 1));
             Assert.Equal((ushort)48, overflow ? Assert.Single(receipt.MailedItems).Durability

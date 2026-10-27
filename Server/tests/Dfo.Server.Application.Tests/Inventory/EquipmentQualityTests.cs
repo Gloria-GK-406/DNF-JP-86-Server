@@ -283,7 +283,7 @@ public sealed class EquipmentQualityTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         await f.SeedCore(9, Equipment with { ItemId = 450004 }); await f.Seed(65, 15, 1);
         var receipt = (await Roll(f, 450004)).Receipt;
         Assert.NotNull(receipt); Assert.Equal(0, f.Count(15));
@@ -294,7 +294,7 @@ public sealed class EquipmentQualityTests
     public async Task Real_pvf_standard_and_liberated_boxes_are_resolved_and_random_seeds_are_not_fixed()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
-        using var f = new ShopFixture(); var definitions = f.Services.GetRequiredService<IEquipmentQualityDefinitionSource>();
+        using var f = new ShopFixture(useArchive: true); var definitions = f.Services.GetRequiredService<IEquipmentQualityDefinitionSource>();
         foreach (var id in new[] { 15, 897 })
         { var box = await definitions.FindAsync(id, default); Assert.NotNull(box); Assert.False(box.Highest); }
         var rule = f.Services.GetRequiredService<IEquipmentQualityRuleService>();

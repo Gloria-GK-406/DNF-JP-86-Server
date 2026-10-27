@@ -196,7 +196,7 @@ public sealed class AvatarCompoundProtocolCommandFlowTests(ITestOutputHelper out
         Assert.Equal(before, await Assets(f)); Assert.Empty(f.Sender.Messages); Assert.Empty(f.Sender.Batches); Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection)); Assert.Single(f.Sender.Outbound.Closes);
     }
 
-    private static ShopFixture Fixture(Trace trace, int rate = 10000) => AvatarCompoundTests.Fixture(new() { Rate = rate }, s => Configure(s, trace));
+    private static ShopFixture Fixture(Trace trace, int rate = 10000) => AvatarCompoundTests.Fixture(new() { Rate = rate }, s => Configure(s, trace), archive: false);
     private static AvatarCompoundRequest Input(ushort sequence = 7, ushort ability = 0) => new(new(1, 0x63, 0, sequence), 65, 0, 39086, 1, 39087, 39088, ability, 0, 0);
     private sealed record AssetState(string Items, string Slots, int FirstUid, int SecondUid, int BoxUid, int Gold, int Events, int Deliveries, string Cooldowns, string Effects);
     private static Task<AssetState> Assets(ShopFixture f) => TestGameplay.RunAsync(f.Services, async () => new AssetState(

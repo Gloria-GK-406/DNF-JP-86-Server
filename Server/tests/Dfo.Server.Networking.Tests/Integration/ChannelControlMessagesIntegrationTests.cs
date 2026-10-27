@@ -228,14 +228,7 @@ public sealed class ChannelControlMessagesIntegrationTests
         return Encoding.ASCII.GetString(terminator < 0 ? bytes : bytes[..terminator]);
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {

@@ -38,12 +38,22 @@ public sealed class AvatarCompoundTests
                 _ => null,
             });
     }
-    internal static ShopFixture Fixture(Content? content = null, Action<IServiceCollection>? configure = null)
+    internal static ShopFixture Fixture(Content? content = null, Action<IServiceCollection>? configure = null, bool archive = true)
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
+        if (archive) Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         var f = new ShopFixture(s =>
         {
-            s.AddSingleton<IItemPlacementDefinitionSource>(sp => new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>()));
+            if (archive)
+            {
+                Dfo.Server.Application.Tests.Support.ShopFixtureContent.RegisterArchive(s);
+                s.AddSingleton<IItemPlacementDefinitionSource>(sp => new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>()));
+            }
+            else
+            {
+                s.AddSingleton<IItemPlacementDefinitionSource, CompoundPlacement>();
+                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((21,
+                    new(true, 0, 0, 1, ItemJobRestriction.Any, ItemPlaceRestriction.Anywhere))));
+            }
             if (content is not null) s.AddSingleton<IAvatarCompoundDefinitionSource>(content);
             configure?.Invoke(s);
         });
@@ -54,6 +64,18 @@ public sealed class AvatarCompoundTests
                 f.Services.GetRequiredService<IDomainTransactionAccessor>(), f.Services.GetRequiredService<IItemPlacementRuleService>(),
                 f.Services.GetRequiredService<IItemSlotRuleService>())));
         return f;
+    }
+    // Wire/transaction tests declare only the two source avatars, two possible outputs and
+    // material they exercise. Archive characterization keeps the real placement source above.
+    private sealed class CompoundPlacement : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int id, CancellationToken ct) =>
+            ValueTask.FromResult<ItemPlacement?>(id switch
+            {
+                39086 or 39087 or 39088 or 42601 => new(8, 1, new(BusinessInventorySpace.Avatar, 0, 209)) { WorldClass = ItemWorldClass.Avatar },
+                21 => new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55)),
+                _ => null,
+            });
     }
     internal static async Task Seed(ShopFixture f, int box = 21, int count = 2)
     {

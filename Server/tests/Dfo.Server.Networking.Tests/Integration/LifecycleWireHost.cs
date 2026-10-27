@@ -218,11 +218,7 @@ internal sealed class LifecycleWireHost : IAsyncDisposable
         return found!.Value;
     }
 
-    private static int Port()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
+    private static int Port() => TestTcpPorts.Allocate();
 }
 
 internal sealed record LifecycleEvent(

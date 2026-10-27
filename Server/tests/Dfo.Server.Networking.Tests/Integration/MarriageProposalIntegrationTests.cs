@@ -79,9 +79,5 @@ public sealed class MarriageProposalIntegrationTests
         var frame = new byte[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(3)))];
         header.CopyTo(frame, 0); await stream.ReadExactlyAsync(frame.AsMemory(header.Length), ct); return frame;
     }
-    private static int Port()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
+    private static int Port() => TestTcpPorts.Allocate();
 }

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -15,6 +14,9 @@ using Dfo.Server.Infrastructure;
 using Dfo.Server.Persistence;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,37 +39,72 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
         bool realContent = false, Func<IHttpApiFeature, IHttpApiFeature>? wrapFeature = null)
     {
         directory ??= NewDirectory();
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = listenerPort ?? ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
-        var url = $"{(https ? "https" : "http")}://127.0.0.1:{port}";
-        var config = new ConfigurationManager();
-        config.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["Database:Path"] = Path.Combine(directory, "test.db"), ["GmWeb:Enabled"] = "true", ["GmWeb:ListenUrl"] = url,
-            ["GmWeb:Bootstrap:LoginName"] = administrator, ["GmWeb:Bootstrap:Password"] = password, ["GmWeb:Bootstrap:Permissions"] = permissions,
-            ["LauncherAuth:Enabled"] = "false", ["Networking:Enabled"] = "false", ["Game:EndpointHost"] = "127.0.0.1",
-            ["GameLogin:ConnectionPort"] = "10128", ["GameLogin:EndpointPortA"] = "17200", ["GameLogin:EndpointPortB"] = "17201",
-            // Startup content warmup is exercised by S1 (W1), the characterization hosts and the packaged-process tests.
-            ["ContentWarmup:Enabled"] = "false",
-        });
-        if (configuration is not null) config.AddInMemoryCollection(configuration);
-        var logs = new GmLogCapture(); var feature = new GmWebModule(config);
-        var builder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().ConfigureLogging(logging => logging.AddProvider(logs))
-            .ConfigureAppConfiguration((_, sources) => { sources.Sources.Clear(); sources.AddConfiguration(config); })
-            .AddServerModules(new InfrastructureModule(), new PersistenceModule(), new ApplicationModule()).ConfigureGameServer()
-            .ConfigureServices(services => { if (!realContent) GmMailTestContent.Register(services); if (clock is not null) services.AddSingleton(clock); if (fault is not null) services.AddSingleton<IGmAuditDomainService>(provider => new GmFaultAudit(provider.GetRequiredService<IGmAdministrationPersistence>(), fault)); configureServices?.Invoke(services); });
+        // Keep the ephemeral port listening until Kestrel takes the same socket.
+        // Binding alone still permits competing binds on Linux before Listen.
+        var listener = listenerPort is null
+            ? SocketTransportOptions.CreateDefaultBoundListenSocket(new IPEndPoint(IPAddress.Loopback, 0))
+            : null;
         X509Certificate2? certificate = null;
-        if (https)
+        IHost? host = null;
+        try
         {
-            using var rsa = RSA.Create(2048); var request = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            using var generated = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddDays(1));
-            certificate = X509CertificateLoader.LoadPkcs12(generated.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable);
-            builder.ConfigureWebHost(web => web.ConfigureKestrel(server => server.ConfigureHttpsDefaults(tls => tls.ServerCertificate = certificate)));
+            listener?.Listen(new SocketTransportOptions().Backlog);
+            var port = listenerPort ?? ((IPEndPoint)listener!.LocalEndPoint!).Port;
+            var url = $"{(https ? "https" : "http")}://127.0.0.1:{port}";
+            var config = new ConfigurationManager();
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Database:Path"] = Path.Combine(directory, "test.db"), ["GmWeb:Enabled"] = "true", ["GmWeb:ListenUrl"] = url,
+                ["GmWeb:Bootstrap:LoginName"] = administrator, ["GmWeb:Bootstrap:Password"] = password, ["GmWeb:Bootstrap:Permissions"] = permissions,
+                ["LauncherAuth:Enabled"] = "false", ["Networking:Enabled"] = "false", ["Game:EndpointHost"] = "127.0.0.1",
+                ["GameLogin:ConnectionPort"] = "10128", ["GameLogin:EndpointPortA"] = "17200", ["GameLogin:EndpointPortB"] = "17201",
+                // Startup content warmup is exercised by S1 (W1), the characterization hosts and the packaged-process tests.
+                ["ContentWarmup:Enabled"] = "false",
+            });
+            if (configuration is not null) config.AddInMemoryCollection(configuration);
+            var logs = new GmLogCapture(); var feature = new GmWebModule(config);
+            var builder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().ConfigureLogging(logging => logging.AddProvider(logs))
+                .ConfigureAppConfiguration((_, sources) => { sources.Sources.Clear(); sources.AddConfiguration(config); })
+                .AddServerModules(new InfrastructureModule(), new PersistenceModule(), new ApplicationModule()).ConfigureGameServer()
+                .ConfigureServices(services => { if (!realContent) GmMailTestContent.Register(services); if (clock is not null) services.AddSingleton(clock); if (fault is not null) services.AddSingleton<IGmAuditDomainService>(provider => new GmFaultAudit(provider.GetRequiredService<IGmAdministrationPersistence>(), fault)); configureServices?.Invoke(services); });
+            var listenerUsed = false;
+            if (listener is not null)
+            {
+                builder.ConfigureServices(services => services.Configure<SocketTransportOptions>(options =>
+                {
+                    var createSocket = options.CreateBoundListenSocket;
+                    options.CreateBoundListenSocket = endpoint =>
+                    {
+                        if (!endpoint.Equals(listener.LocalEndPoint)) return createSocket(endpoint);
+                        listenerUsed = true;
+                        return listener;
+                    };
+                }));
+            }
+            if (https)
+            {
+                using var rsa = RSA.Create(2048); var request = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                using var generated = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddDays(1));
+                certificate = X509CertificateLoader.LoadPkcs12(generated.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable);
+                builder.ConfigureWebHost(web => web.ConfigureKestrel(server => server.ConfigureHttpsDefaults(tls => tls.ServerCertificate = certificate)));
+            }
+            builder.ConfigureHttpApi(config, wrapFeature is null ? remoteConnection ? new RemoteFeature(feature) : feature : wrapFeature(feature));
+            host = builder.Build(); await host.StartAsync();
+            if (!listenerUsed) listener?.Dispose();
+            var address = host.Services.GetRequiredService<IServer>().Features
+                .Get<IServerAddressesFeature>()!.Addresses.Select(value => new Uri(value))
+                .Single(value => value.Port == feature.ListenUrl!.Port);
+            var handler = new HttpClientHandler { CookieContainer = cookies ?? new CookieContainer() };
+            if (https) handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+            return new(host, new HttpClient(handler) { BaseAddress = address }, directory, logs, certificate);
         }
-        builder.ConfigureHttpApi(config, wrapFeature is null ? remoteConnection ? new RemoteFeature(feature) : feature : wrapFeature(feature));
-        var host = builder.Build(); await host.StartAsync();
-        var handler = new HttpClientHandler { CookieContainer = cookies ?? new CookieContainer() };
-        if (https) handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
-        return new(host, new HttpClient(handler) { BaseAddress = new Uri(url) }, directory, logs, certificate);
+        catch
+        {
+            host?.Dispose();
+            listener?.Dispose();
+            certificate?.Dispose();
+            throw;
+        }
     }
     internal async Task<string> CsrfAsync() => (await Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/auth/csrf")).GetProperty("token").GetString()!;
     internal Task<HttpResponseMessage> LoginAsync(string csrf, string loginName = "operator", string password = Password) => PostAsync("/api/gm/v1/auth/login", csrf, new { loginName, password });

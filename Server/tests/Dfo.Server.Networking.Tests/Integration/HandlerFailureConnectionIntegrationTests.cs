@@ -228,9 +228,5 @@ public sealed class HandlerFailureConnectionIntegrationTests
         header.CopyTo(frame, 0); await stream.ReadExactlyAsync(frame.AsMemory(header.Length), ct); return frame;
     }
 
-    private static int Port()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
+    private static int Port() => TestTcpPorts.Allocate();
 }

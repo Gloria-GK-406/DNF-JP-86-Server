@@ -28,8 +28,11 @@ public sealed partial class MarriageHousingTests
         var scope=new Dfo.Server.Data.Parties.PartyDirectoryScope(1,2,0);
         var first=new Dfo.Server.Data.Parties.PartyCharacterSnapshot(f.Session.AccountId,f.Session.CharacterId,1,scope);
         var second=new Dfo.Server.Data.Parties.PartyCharacterSnapshot(w.Peer.AccountId,w.Peer.CharacterId,2,scope);
-        Assert.True(parties.RequestInvite(first,second,new(0,0,0,0)).Succeeded);
-        Assert.True(parties.AcceptInvite(second,first).Succeeded);
+        TestGameplay.Run(f.Services, () =>
+        {
+            Assert.True(parties.RequestInvite(first,second,new(0,0,0,0)).Succeeded);
+            Assert.True(parties.AcceptInvite(second,first).Succeeded);
+        });
         var delivery=f.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>();
         var containers=f.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>();
         async ValueTask<int> Tickets(Dfo.Server.Data.Characters.CharacterId c) => (await containers.GetContainer(c,Dfo.Server.Data.Inventory.InventoryContainerType.Main).GetAllAsync(default)).Where(x=>x.ItemId==10002609).Sum(x=>x.Snapshot.Count);

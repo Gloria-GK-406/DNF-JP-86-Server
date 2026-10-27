@@ -19,7 +19,7 @@ public sealed class ForgingFrameIntegrationTests
     [Fact]
     public async Task Raw_A21_forging_frame_reaches_handler_and_rejects_without_session()
     {
-        var logs = new CaptureLoggerProvider();
+        var logs = new TestTcpStartupLog();
         var channelPort = GetAvailablePort();
         var gamePort = GetAvailablePort();
         while (gamePort == channelPort) gamePort = GetAvailablePort();
@@ -46,6 +46,7 @@ public sealed class ForgingFrameIntegrationTests
         using var host = TestInfrastructure.Build(builder);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await host.StartAsync(timeout.Token);
+        TestTcpStartup.AssertReady(host.Services, logs, gamePort);
         using var client = new TcpClient();
         await client.ConnectAsync(IPAddress.Loopback, gamePort, timeout.Token);
         var stream = client.GetStream();
@@ -84,44 +85,6 @@ public sealed class ForgingFrameIntegrationTests
         return frame;
     }
 
-    private static int GetAvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int GetAvailablePort() => TestTcpPorts.Allocate();
 
-    private sealed class CaptureLoggerProvider : ILoggerProvider
-    {
-        private readonly object gate = new();
-        private readonly List<string> messages = [];
-
-        public ILogger CreateLogger(string categoryName) => new CaptureLogger(this);
-        public void Dispose() { }
-
-        public async Task WaitForAsync(string expected, CancellationToken ct)
-        {
-            while (true)
-            {
-                lock (gate)
-                    if (messages.Any(message => message.Contains(expected,
-                        StringComparison.Ordinal))) return;
-                await Task.Delay(10, ct);
-            }
-        }
-
-        private sealed class CaptureLogger(CaptureLoggerProvider owner) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-            public bool IsEnabled(LogLevel logLevel) => true;
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
-                Exception? exception, Func<TState, Exception?, string> formatter)
-            {
-                lock (owner.gate)
-                    owner.messages.Add(formatter(state, exception));
-            }
-        }
-    }
 }

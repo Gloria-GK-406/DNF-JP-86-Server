@@ -143,7 +143,7 @@ public sealed class DungeonBuffUsageTests
     [Dfo.Server.Testing.PvfFact]
     public void A21_archive_declares_ten_buff_uses()
     {
-        using var shop = new ShopFixture();
+        using var shop = new ShopFixture(useArchive: true);
         Assert.Equal(10, shop.Services.GetRequiredService<IPremiumServiceRuleService>().DungeonBuffDailyLimit);
     }
 

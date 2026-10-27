@@ -543,6 +543,7 @@ internal sealed class CeraShopFixture : IDisposable
         {
             if (useArchive)
             {
+                ShopFixtureContent.RegisterArchive(services);
                 services.AddSingleton<ICeraShopDefinitionSource, PvfCeraShopDefinitionSource>();
                 services.AddSingleton<IDungeonExperienceProgressionPolicySource, PvfDungeonExperienceProgressionPolicySource>();
                 services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();

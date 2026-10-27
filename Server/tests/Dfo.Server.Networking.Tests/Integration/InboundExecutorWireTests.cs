@@ -508,9 +508,5 @@ public sealed class InboundExecutorWireTests(ITestOutputHelper output)
         while (!condition()) await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
     }
 
-    private static int Port()
-    {
-        using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        return ((IPEndPoint)listener.LocalEndpoint).Port;
-    }
+    private static int Port() => TestTcpPorts.Allocate();
 }

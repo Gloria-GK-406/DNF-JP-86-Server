@@ -227,14 +227,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
         while (!condition()) await Task.Delay(10, token);
     }
 
-    private static int AvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
 
     private sealed class TowerRules : IIllusionTowerRuleService
     {

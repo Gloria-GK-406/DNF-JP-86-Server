@@ -722,7 +722,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             using var f = Fixture(new Rules { ActorType = 5, FloorCount = 2, Probabilities = [0, 0, 100] }, rewards: true,
-                configure: services => services.AddSingleton<IItemPlacementDefinitionSource, TowerQuestPlacementContent>());
+                configure: services => services.AddSingleton<IItemPlacementDefinitionSource, TowerQuestPlacementContent>(), useArchive: true);
             await f.Seed(65, 4183, 1);
             f.Sql("INSERT INTO character_active_quests VALUES(1,0,950,10);");
             var tower = Tower(f);
@@ -751,7 +751,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             async Task<int> KillWith(int held, bool active, bool fillPage)
             {
                 using var f = Fixture(new Rules { ActorType = 5, FloorCount = 2, Probabilities = [0, 0, 100] }, rewards: true,
-                    configure: services => services.AddSingleton<IItemPlacementDefinitionSource, TowerQuestPlacementContent>());
+                    configure: services => services.AddSingleton<IItemPlacementDefinitionSource, TowerQuestPlacementContent>(), useArchive: true);
                 await f.Seed(65, 4183, 1);
                 if (held > 0) await f.Seed(177, 10089420, held, 4);
                 if (fillPage)
@@ -784,7 +784,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             using var f = Fixture(new Rules { ActorType = 5, FloorCount = 2, Probabilities = [0, 0, 100] }, rewards: true,
-                configure: services => services.AddSingleton<IItemPlacementDefinitionSource, TowerQuestPlacementContent>());
+                configure: services => services.AddSingleton<IItemPlacementDefinitionSource, TowerQuestPlacementContent>(), useArchive: true);
             await f.Seed(65, 4183, 1);
             f.Sql("INSERT INTO character_active_quests VALUES(1,0,950,10);");
             var tower = Tower(f);
@@ -1316,7 +1316,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         public bool ClearExact(SelectedSessionIdentity session) => values.Remove(session);
     }
 
-    private static ShopFixture Fixture(Rules? rules = null, OrdinaryLayouts? layouts = null, bool rewards = false, Action<IServiceCollection>? configure = null)
+    private static ShopFixture Fixture(Rules? rules = null, OrdinaryLayouts? layouts = null, bool rewards = false, Action<IServiceCollection>? configure = null, bool useArchive = false)
     {
         var f = new ShopFixture(s =>
         {
@@ -1333,7 +1333,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => new DungeonRunDomainService(p.GetRequiredService<IDomainTransactionAccessor>()));
             configure?.Invoke(s);
-        });
+        }, useArchive: useArchive);
         f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");
         return f;
     }
@@ -1634,7 +1634,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             {
                 s.AddSingleton<IIllusionTowerRuleService, IllusionTowerRuleService>();
                 s.AddSingleton<IItemPlacementDefinitionSource, Dfo.Server.Infrastructure.Content.PvfItemPlacementDefinitionSource>();
-            });
+            }, useArchive: true);
             await f.Seed(65, 4183, 2); await f.SeedShared(3033, 90);
             var tower = Tower(f);
             var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11000)).Run!;

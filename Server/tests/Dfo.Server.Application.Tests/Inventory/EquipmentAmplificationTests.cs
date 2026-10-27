@@ -24,7 +24,7 @@ public sealed class EquipmentAmplificationTests
         {
             s.AddSingleton<IEquipmentDefinitionSource>(new Content("weapon", 45));
             s.AddSingleton<IEquipmentReinforcementRollSource>(new Roll(99999));
-        });
+        }, useArchive: true);
         await Seed(f, Piece()); f.Sql("UPDATE character_stats SET carried_gold=1000000 WHERE character_id=1");
         await Send(f, 7);
         var ack = Assert.Single(f.Sender.Messages.OfType<ReinforceItemResponse>());

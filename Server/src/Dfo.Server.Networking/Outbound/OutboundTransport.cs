@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.IO.Pipelines;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Data.Networking;
@@ -114,7 +115,27 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
         public async ValueTask CloseAsync()
         {
             GameplayNetworkWaitAssertion.Touching("OutboundConnection.CloseAsync");
-            await session.CloseAsync("outbound close", CancellationToken.None).ConfigureAwait(false);
+            Exception? closeFailure = null;
+            try
+            {
+                if (session is not IOrderedTcpSessionClose ordered)
+                    throw new InvalidOperationException("Ordered close requires the production DrainingTcpService session.");
+                using var physicalClose = new CancellationTokenSource(OutboundLimits.DeliveryTimeout);
+                await ordered.CloseSocketAfterFlushAsync(physicalClose.Token).ConfigureAwait(false);
+            }
+            catch (Exception error) { closeFailure = error; }
+            try
+            {
+                using var cleanup = new CancellationTokenSource(OutboundLimits.DeliveryTimeout);
+                var result = await session.CloseAsync("outbound close", cleanup.Token).WaitAsync(cleanup.Token).ConfigureAwait(false);
+                if (!result.IsSuccess)
+                    throw new IOException($"The socket closed but session cleanup failed: {result.Message}");
+            }
+            catch (Exception cleanup) when (closeFailure is not null)
+            {
+                throw new AggregateException("Ordered socket close and session cleanup both failed.", closeFailure, cleanup);
+            }
+            if (closeFailure is not null) ExceptionDispatchInfo.Throw(closeFailure);
         }
     }
 }

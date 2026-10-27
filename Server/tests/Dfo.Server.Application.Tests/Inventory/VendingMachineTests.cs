@@ -22,7 +22,7 @@ public sealed class VendingMachineTests
         f.Host.Services.GetRequiredService<IVendingMachineDefinitionSource>().Initialize();
         return f;
     }
-    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => Fixture(configure: configure);
+    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => ProtocolOpeningFixture.Create(configure);
     [PvfTheory]
     [InlineData(false)] [InlineData(true)]
     public async Task Real_wire_missing_payment_and_full_bag_preserve_assets_and_native_refusal_codes(bool full)

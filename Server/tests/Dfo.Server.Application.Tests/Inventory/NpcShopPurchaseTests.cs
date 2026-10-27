@@ -364,13 +364,13 @@ internal sealed class ShopFixture : IDisposable
     }
 
 
-    public ShopFixture(bool questProtocol, Action<IServiceCollection>? configure = null) : this(services =>
+    public ShopFixture(bool questProtocol, Action<IServiceCollection>? configure = null, bool useArchive = false) : this(services =>
     {
         if (questProtocol) services.AddSingleton<ISelectedCharacterCurrentViewDomainService, Dfo.Server.Application.Tests.Support.QuestTestCommands.PublishedView>();
         configure?.Invoke(services);
-    }) { }
+    }, useArchive) { }
 
-    public ShopFixture(Action<IServiceCollection>? configure = null)
+    public ShopFixture(Action<IServiceCollection>? configure = null, bool useArchive = false)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             { ["Database:Path"] = Path.Combine(directory, "shop.db") }).Build();
@@ -379,6 +379,8 @@ internal sealed class ShopFixture : IDisposable
         new PersistenceModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
+        Dfo.Server.Application.Tests.Support.ShopFixtureContent.Register(services);
+        if (useArchive) Dfo.Server.Application.Tests.Support.ShopFixtureContent.RegisterArchive(services);
         services.AddSingleton<INpcShopDefinitionSource>(Content);
         services.AddSingleton<IItemPlacementDefinitionSource>(Content);
         services.AddSingleton<ICharacterSkillPointDomainService>(new SkillPoints());

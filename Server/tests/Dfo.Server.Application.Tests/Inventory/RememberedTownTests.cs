@@ -18,7 +18,7 @@ public sealed class RememberedTownTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            using var shop = new ShopFixture();
+            using var shop = new ShopFixture(useArchive: true);
             var saved = new CharacterPositionState(town, 2, 123, 456, 3);
             await shop.Services.GetRequiredService<ISelectedSessionPositionPersistence>()
                 .PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, saved, default);
@@ -47,7 +47,7 @@ public sealed class RememberedTownTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            using var shop = new ShopFixture();
+            using var shop = new ShopFixture(useArchive: true);
             var persistence = shop.Services.GetRequiredService<ISelectedSessionPositionPersistence>();
             var placement = shop.Services.GetRequiredService<IEntryPlacementRuleService>();
             Assert.True(await placement.CanRememberInnAsync(11, default));

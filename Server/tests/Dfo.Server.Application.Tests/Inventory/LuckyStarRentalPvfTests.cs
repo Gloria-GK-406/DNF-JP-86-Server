@@ -17,7 +17,7 @@ public sealed class LuckyStarRentalPvfTests
         await TestGameplay.RunAsync(async () =>
         {
             Skip.IfNot(World.ContentArchive.Available,World.ContentArchive.SkipReason);
-            using var f=new ShopFixture(s=>s.AddSingleton<IItemPlacementDefinitionSource,PvfItemPlacementDefinitionSource>());
+            using var f=new ShopFixture(s=>s.AddSingleton<IItemPlacementDefinitionSource,PvfItemPlacementDefinitionSource>(), useArchive: true);
             f.SetLevel(85);f.Sql("UPDATE characters SET job=0; UPDATE accounts SET lucky_star=400;");
             var content=f.Services.GetRequiredService<ILuckyStarRentalContentSource>();
             var catalog=content.Load();
@@ -51,7 +51,7 @@ public sealed class LuckyStarRentalPvfTests
         await TestGameplay.RunAsync(async () =>
         {
             Skip.IfNot(World.ContentArchive.Available,World.ContentArchive.SkipReason);
-            using var f=new ShopFixture(s=>s.AddSingleton<IItemPlacementDefinitionSource,PvfItemPlacementDefinitionSource>());
+            using var f=new ShopFixture(s=>s.AddSingleton<IItemPlacementDefinitionSource,PvfItemPlacementDefinitionSource>(), useArchive: true);
             f.SetLevel(70);f.Sql("UPDATE characters SET job=0; UPDATE accounts SET lucky_star=100;");
             var scope=(DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
             var rentals=f.Services.GetRequiredService<IEquipmentRentalDomainService>();

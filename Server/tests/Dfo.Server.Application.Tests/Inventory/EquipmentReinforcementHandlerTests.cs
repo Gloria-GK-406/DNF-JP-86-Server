@@ -29,7 +29,7 @@ public sealed class EquipmentReinforcementHandlerTests
                 new Dfo.Server.Infrastructure.Content.PvfEquipmentReinforcementDefinitionSource(provider));
             services.AddSingleton<IEquipmentDefinitionSource>(new TicketEquipment());
             services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
-        });
+        }, useArchive: true);
         var original = Piece() with { Attribute = 0xA3, Durability = 0,
             AmplifyType = amplification ? (byte)4 : (byte)0, AmplifyValue = amplification ? (ushort)5 : (ushort)0 };
         await shop.SeedCore(9, original);

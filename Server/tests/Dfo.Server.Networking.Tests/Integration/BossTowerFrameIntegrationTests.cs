@@ -127,8 +127,7 @@ public sealed class BossTowerFrameIntegrationTests
         finally { await host.StopAsync(CancellationToken.None); }
     }
 
-    private static int AvailablePort()
-    { var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(); var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port; }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
     private static byte[] ClientFrame(ushort type, byte[] body, ushort sequence)
     {
         var result = new byte[14 + body.Length]; result[0] = 1;

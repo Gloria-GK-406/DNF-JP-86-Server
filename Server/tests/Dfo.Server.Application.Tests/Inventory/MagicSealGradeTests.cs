@@ -183,7 +183,7 @@ public sealed class MagicSealGradeTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         var original = Original with { ItemId = 101010339 };
         await f.SeedCore(9, original); await f.Seed(65, 15, 1);
         var result = await Roll(f, 0); var receipt = result.Receipt;
@@ -200,7 +200,7 @@ public sealed class MagicSealGradeTests
     public async Task Real_pvf_uses_reset_weights_exclusions_and_quality_bytes_instead_of_stat_endpoints()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
-        using var f = new ShopFixture(); var source = f.Services.GetRequiredService<IEquipmentMagicSealGradeDefinitionSource>();
+        using var f = new ShopFixture(useArchive: true); var source = f.Services.GetRequiredService<IEquipmentMagicSealGradeDefinitionSource>();
         var definition = await source.FindAsync(101010339, default); Assert.NotNull(definition);
         Assert.Equal(new MagicSealGradeBand[] { new(0, 14, 330), new(14, 37, 520), new(37, 47, 100), new(47, 56, 50) }, definition.Bands);
         Assert.Contains((byte)180, definition.UnmodifiableOptions); Assert.Contains((byte)15, definition.KnownOptions);

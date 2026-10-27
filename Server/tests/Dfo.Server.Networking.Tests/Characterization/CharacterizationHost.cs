@@ -97,6 +97,8 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         };
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
         IHost? built = null;
+        CharacterizationHost? started = null;
+        var startupLogs = new TestTcpStartupLog();
         try
         {
             built = new HostBuilder()
@@ -104,6 +106,7 @@ internal sealed class CharacterizationHost : IAsyncDisposable
                 .ConfigureAppConfiguration(sources => sources.AddConfiguration(configuration))
                 // DFO_CHARACTERIZATION_DEBUG=1 adds the sender's per-frame "S->C" debug lines.
                 .ConfigureLogging(logging => logging
+                    .AddProvider(startupLogs)
                     .AddSimpleConsole(console => console.SingleLine = true)
                     .SetMinimumLevel(LogLevel.Warning)
                     .AddFilter("Dfo.Server.Networking", Environment.GetEnvironmentVariable("DFO_CHARACTERIZATION_DEBUG") == "1"
@@ -124,12 +127,14 @@ internal sealed class CharacterizationHost : IAsyncDisposable
                 })
                 .Build();
             await built.StartAsync(cancellationToken);
-            var started = new CharacterizationHost(built, directory, gamePort, httpPort);
+            TestTcpStartup.AssertReady(built.Services, startupLogs, gamePort, httpPort);
+            started = new CharacterizationHost(built, directory, gamePort, httpPort);
             await started.WaitForLauncherAsync(cancellationToken);
             return started;
         }
         catch
         {
+            started?.http.Dispose();
             built?.Dispose();
             DeleteDirectory(directory);
             throw;
@@ -232,20 +237,7 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         }
     }
 
-    private static int[] AvailablePorts(int count)
-    {
-        var ports = new List<int>(count);
-        while (ports.Count < count)
-        {
-            var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            if (!ports.Contains(port)) ports.Add(port);
-        }
-
-        return [.. ports];
-    }
+    private static int[] AvailablePorts(int count) => TestTcpPorts.Allocate(count);
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {

@@ -71,9 +71,5 @@ public sealed class PackageOpeningIntegrationTests
         var frame = new byte[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(3)))];
         header.CopyTo(frame, 0); await stream.ReadExactlyAsync(frame.AsMemory(header.Length), ct); return frame;
     }
-    private static int AvailablePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port;
-    }
+    private static int AvailablePort() => TestTcpPorts.Allocate();
 }

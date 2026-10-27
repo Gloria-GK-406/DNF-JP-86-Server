@@ -25,7 +25,7 @@ public sealed class LotteryOpeningTests
         shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync().GetAwaiter().GetResult();
         return shop;
     }
-    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => Fixture(configure: configure);
+    internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => ProtocolOpeningFixture.Create(configure);
     private static Task<LotteryOpeningResult> Command(CeraShopFixture shop, ushort mode = 0, int slot = 65) =>
         OpeningDomainTestDriver.Lottery(shop.Host, shop.Host.Session, slot, mode);
 

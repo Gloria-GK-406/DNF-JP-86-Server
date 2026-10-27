@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.IO.Pipelines;
 using System.Net.Sockets;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
@@ -132,8 +133,8 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
 
     /// <summary>
     /// The batch is larger than the socket buffers, so part of it is still in the kernel when the close
-    /// runs. TouchSocket closes with Shutdown(Both) then Close(0); this pins that the tail still arrives
-    /// (measured on macOS; Linux and Windows are for T-006 to confirm).
+    /// runs. Ordered close must preserve that kernel queue and FIN, including on Linux where
+    /// TouchSocket's Close(0) otherwise resets the connection and discards the tail.
     /// </summary>
     [Fact]
     public async Task A_slow_reader_with_a_small_window_gets_a_large_batch_in_full_before_the_fin()
@@ -155,6 +156,50 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
             Assert.Equal(large, bytes);
             Assert.True(endedByFin, "the connection ended by reset, not by FIN");
             Assert.Equal(OutboundOutcome.Closed, server.Observer.OutcomeOf(entries[1]));
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Ordered_close_sends_fin_without_waiting_for_a_blocked_receive_callback_or_peer_fin(bool unreadInput)
+    {
+        await using var server = await RealOutboundServer.StartAsync(confirmFlush: true, pauseReceive: true);
+        await using var sender = server.Sender(OutboundSendOptions.Default);
+        var (client, context) = await server.ConnectAsync(receiveBufferSize: unreadInput ? 4096 : null);
+        using (client)
+        {
+            var gate = server.BlockReceive(context);
+            await client.GetStream().WriteAsync(new byte[] { 1 });
+            await gate.Entered.Task.WaitAsync(Patience);
+            try
+            {
+                if (unreadInput)
+                {
+                    var physical = server.PhysicalSocket(context);
+                    physical.ReceiveBufferSize = 4096;
+                    await client.GetStream().WriteAsync(new byte[64 * 1024]).AsTask().WaitAsync(Patience);
+                    await WaitUntilAsync(() => physical.Available > 0);
+                    Assert.True(physical.Available > 0, "The regression requires unread bytes in the kernel, not only in TouchSocket's pipe.");
+                }
+                var frame = Frame(7, unreadInput ? 900 * 1024 : 48 * 1024);
+                var close = OutboundEntry.Close(context);
+                sender.Submit([Batch(context, frame), close]);
+                var (bytes, endedByFin) = await ReadToEndAsync(client).WaitAsync(Patience);
+                Assert.True(frame.Length == bytes.Length,
+                    $"unreadInput={unreadInput}: read {bytes.Length}/{frame.Length} bytes, FIN={endedByFin}");
+                Assert.Equal(frame, bytes);
+                Assert.True(endedByFin, $"unreadInput={unreadInput}: a complete {bytes.Length}-byte batch was followed by reset instead of FIN");
+                // The peer is still open, and the callback cannot finish until the finally below.
+                await server.Observer.WaitForAsync(2, OutboundLimits.DeliveryTimeout + TimeSpan.FromSeconds(5));
+                Assert.Equal(OutboundOutcome.Closed, server.Observer.OutcomeOf(close));
+                Assert.False(gate.Exited.Task.IsCompleted);
+            }
+            finally
+            {
+                gate.Release.TrySetResult();
+                await gate.Exited.Task.WaitAsync(Patience);
+            }
         }
     }
 
@@ -492,6 +537,10 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
 
         public ITcpSessionClient Session(NetworkConnectionContext context) => registry.Get(context.ConnectionId).Session;
 
+        public Socket PhysicalSocket(NetworkConnectionContext context) =>
+            (Socket)PhysicalTransport(Session(context)).GetType().GetField("m_socket",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(PhysicalTransport(Session(context)))!;
+
         public static ITransport PhysicalTransport(ITcpSessionClient session) =>
             (ITransport)typeof(TcpSessionClientBase).GetProperty("Transport",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(session)!;
@@ -506,7 +555,7 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
 
         public RecordingObserver Observer { get; } = new();
 
-        public static async Task<RealOutboundServer> StartAsync(bool confirmFlush)
+        public static async Task<RealOutboundServer> StartAsync(bool confirmFlush, bool pauseReceive = false)
         {
             var services = new ServiceCollection();
             services.AddServerMessageEncoder<BlobMessage, BlobEncoder>(NetworkEndpointKind.Game);
@@ -540,8 +589,13 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
                 return EasyTask.CompletedTask;
             };
             var config = new TouchSocketConfig().SetListenIPHosts(new IPHost(IPAddress.Loopback, port));
-            if (confirmFlush)
-                OutboundTransportOptions.ConfigureSendPipe(config);
+            if (confirmFlush || pauseReceive)
+                config.SetTransportOption(option =>
+                {
+                    if (confirmFlush) option.SendPipeOptions = OutboundTransportOptions.CreateSendPipeOptions();
+                    if (pauseReceive) option.ReceivePipeOptions = new PipeOptions(
+                        pauseWriterThreshold: 1, resumeWriterThreshold: 1, useSynchronizationContext: false);
+                });
             await service.SetupAsync(config);
             await service.StartAsync();
             return server;
@@ -573,18 +627,6 @@ public sealed class OutboundRealSocketTests(ITestOutputHelper output)
             await provider.DisposeAsync();
         }
 
-        private static int GetAvailablePort()
-        {
-            var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            try
-            {
-                return ((IPEndPoint)listener.LocalEndpoint).Port;
-            }
-            finally
-            {
-                listener.Stop();
-            }
-        }
+        private static int GetAvailablePort() => TestTcpPorts.Allocate();
     }
 }

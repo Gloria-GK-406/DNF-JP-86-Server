@@ -244,7 +244,7 @@ public sealed class EquipmentSocketTests
     public async Task Real_pvf_defines_eligible_parts_drills_and_colours_without_opening_weapons()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
-        using var f = new ShopFixture(); var source = f.Services.GetRequiredService<IItemSocketDefinitionSource>();
+        using var f = new ShopFixture(useArchive: true); var source = f.Services.GetRequiredService<IItemSocketDefinitionSource>();
         Assert.Equal(new ushort[] { 4, 4 }, (await source.TargetAsync(10018, default))!.OpenTypes);
         Assert.Null(await source.TargetAsync(27001, default));
         Assert.False((await source.DrillAsync(2749124, default))!.Avatar); Assert.True((await source.DrillAsync(7421, default))!.Avatar);
@@ -270,7 +270,7 @@ public sealed class EquipmentSocketTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())));
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         if (avatar) TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<ICharacterContainerDomainService>().Register(f.Session.CharacterId,
             new PersistentItemContainer(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Avatar), new(InventoryContainerType.Avatar, 0),
                 f.Services.GetRequiredService<IItemDomainStore>(), f.Services.GetRequiredService<IDomainTransactionAccessor>(),

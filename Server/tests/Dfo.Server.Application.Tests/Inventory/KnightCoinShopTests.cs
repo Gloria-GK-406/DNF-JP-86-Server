@@ -23,7 +23,7 @@ public sealed class KnightCoinShopTests
             services.AddSingleton<INpcShopDefinitionSource,PvfNpcShopDefinitionSource>();
             services.RemoveAll<IItemPlacementDefinitionSource>();
             services.AddSingleton<IItemPlacementDefinitionSource,PvfItemPlacementDefinitionSource>();
-        });
+        }, useArchive: true);
         var purchase=await shop.Command(itemId,2);
         Assert.Equal(NpcShopRejection.None,purchase.Rejection);Assert.NotNull(purchase.Receipt);
         Assert.Equal(80000,shop.Gold);Assert.Equal(2,shop.Count(itemId));

@@ -249,7 +249,7 @@ public sealed class IllusionTowerPublicFlowTests
         services.AddSingleton<ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
         if (gateSweepFind)
             DecorateTowerForSweepRace(services);
-    });
+    }, useArchive: true);
 
     private static void DecorateTowerForSweepRace(IServiceCollection services)
     {

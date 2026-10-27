@@ -81,6 +81,19 @@ busy／取消／排空，不预读世界、不传业务 callback。整轮扫描�
 关闭请求已登记、尚未执行时，若传输先关闭，disconnect 仍可能继承登记的关闭链（F-131），
 该链证明登记因果，不保证最后触发物理关闭的唯一原因。
 
+有序关闭在 flush 已确认的帧之后取得 transport 的唯一关闭权，取消管道等待并执行 `Shutdown(Both)`，
+等待原接收／发送任务退出后，才在关闭阶段丢弃 socket 剩余本地入站缓冲，最后执行默认 socket
+`Close()`，让 TCP 保留已接受的发送尾部。整个物理关闭阶段有独立的两秒期限；超时仍释放 socket 并
+保留错误。不等待对端 FIN，也不把本地关闭后的 EOF 说成对端已完成或任意持续输入都能无损关闭。
+随后调用框架会话关闭完成生命周期清理，该阶段也独立受 `OutboundLimits.DeliveryTimeout` 限制，
+均发生在发送端独立循环中。连接回调等待物理阶段结束才继续清理和回池；物理阶段不等待该回调。
+TouchSocket 4.3.1 的 transport 固定调用 `Socket.Close(0)`，在 Linux 上属于 abortive close；其公开
+会话 API 没有 graceful close 或 socket 入口。生产会话以精确 `UnsafeAccessor` 读取
+`TcpTransport.m_socket`，并调用 `BaseTransport.TryBeginClose`、`SignalClose`、
+`WaitForTransportClosedAsync`，避免原 reader 与关闭阶段争抢入站数据、框架提前执行 abortive close。
+这是固定版本的兼容接缝，升级依赖时必须重验真实小接收窗口的大帧＋FIN、内核未读数据且接收管道
+背压时的完整帧、阻塞回调的关闭期限与快速重连；不得在成员不匹配时静默回退到 abortive close。
+
 ## 登录实例：MId／Ticket 到 GameLoginCommand
 
 真实入口为 [GameLoginHandler](../Server/src/Dfo.Server.Protocol/Game/Login/GameLoginHandler.cs)、
