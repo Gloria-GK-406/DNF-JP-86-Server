@@ -154,6 +154,7 @@ public sealed record DungeonDefinition(
     public bool IsSpiciesDungeon { get; init; }
     public int? PartyLimit { get; init; }
     public bool ProhibitsPractice { get; init; }
+    public LinkedDungeonDefinition? LinkedDungeon { get; init; }
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>

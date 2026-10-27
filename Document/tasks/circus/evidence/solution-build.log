@@ -1,0 +1,44 @@
+  正在确定要还原的项目…
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Utilities\Dfo.Server.Utilities.csproj (用时 93 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.HttpApi\Dfo.Server.HttpApi.csproj (用时 58 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.GmWeb\Dfo.Server.GmWeb.csproj (用时 105 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj (用时 148 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Networking\Dfo.Server.Networking.csproj (用时 187 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj (用时 187 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Host\Dfo.Server.Host.csproj (用时 140 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Pvf.Tests\Dfo.Pvf.Tests.csproj (用时 195 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\Dfo.Server.Networking.Tests.csproj (用时 151 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Host.Tests\Dfo.Server.Host.Tests.csproj (用时 200 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.HttpApi.Tests\Dfo.Server.HttpApi.Tests.csproj (用时 196 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.GameServer\Dfo.Server.GameServer.csproj (用时 189 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\Dfo.Server.Protocol.Tests.csproj (用时 198 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Persistence.Tests\Dfo.Server.Persistence.Tests.csproj (用时 209 毫秒)。
+  已还原 C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\Dfo.Server.Application.Tests.csproj (用时 212 毫秒)。
+  6 个项目(共 21 个)是最新的，无法还原。
+  Dfo.Pvf -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Application -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Networking -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Networking\bin\Debug\net10.0\Dfo.Server.Networking.dll
+  Dfo.Server.Protocol -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Protocol\bin\Debug\net10.0\Dfo.Server.Protocol.dll
+  Dfo.Server.GameServer -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.GameServer\bin\Debug\net10.0\Dfo.Server.GameServer.dll
+  Dfo.Server.HttpApi -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.HttpApi\bin\Debug\net10.0\Dfo.Server.HttpApi.dll
+  Dfo.Server.GmWeb -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.GmWeb\bin\Debug\net10.0\Dfo.Server.GmWeb.dll
+  Dfo.Server.Persistence -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Persistence\bin\Debug\net10.0\Dfo.Server.Persistence.dll
+  Dfo.Server.Host -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Host\bin\Debug\net10.0\Dfo.Server.Host.dll
+  Dfo.Server.Utilities -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Utilities\bin\Debug\net10.0\Dfo.Server.Utilities.dll
+  Dfo.Pvf.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll
+  Dfo.Server.Application.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll
+  Dfo.Server.Host.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll
+  Dfo.Server.HttpApi.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll
+  Dfo.Server.Infrastructure.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll
+  Dfo.Server.Networking.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll
+  Dfo.Server.Persistence.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll
+  Dfo.Server.Protocol.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:42.35

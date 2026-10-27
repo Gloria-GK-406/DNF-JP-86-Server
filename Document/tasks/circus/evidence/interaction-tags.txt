@@ -1,0 +1,3 @@
+worldmap/ui/common/action/exercisebutton.act	on click
+worldmap/ui/common/action/expandbutton.act	on click
+worldmap/ui/common/action/hellpartybutton.act	on click

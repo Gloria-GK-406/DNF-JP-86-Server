@@ -1,0 +1,3 @@
+{"mode": "server70", "memory_budget": "384 MiB; mmap, max 40 matches per needle, disassembly only explicit ranges"}
+{"path": "E:\\Project\\DNF\\Research\\1995chen-dnf\\other\\\u7b49\u7ea7\u8865\u4e01\\70\\df_game_r", "size": 36360954, "sha256": "cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7"}
+{"patterns": ["circus", "pierrot", "linked", "linkdungeon"], "matching_symbols": 0, "limitation": "absence of named symbols is not proof of absence of equivalent behavior"}

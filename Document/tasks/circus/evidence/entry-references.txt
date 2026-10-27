@@ -1,0 +1,7 @@
+npc/chn_circus_man.npc	circus
+npc/chn_circus_tent.npc	circus
+npc/chn_circus_tent1.npc	circus
+town/underfoot.twn	circus
+worldmap/chn_zombie.wdm	circus
+worldmap/circus.wdm	circus | 4103 | 4114
+worldmap/golden_road.wdm	4103

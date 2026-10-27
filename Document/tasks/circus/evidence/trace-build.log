@@ -1,0 +1,28 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.26200.
+-- Configuring done (0.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Gloria/.codex/worktrees/fbd8/DNF-JP-86-Server/artifacts/circus-client-trace/build
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  a21_runtime_fix_trace.c
+    正在创建库 C:/Users/Gloria/.codex/worktrees/fbd8/DNF-JP-86-Server/artifacts/circus-client-trace/build/Release/0050_A21RuntimeFix.lib 和对象 C:/Users/Gloria/.codex/worktrees/fbd8/DNF-JP-86-Server/artifacts/circus-client-trace/build/Release/0050_A21RuntimeFix.exp
+  circus_trace.vcxproj -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\artifacts\circus-client-trace\build\Release\0050_A21RuntimeFix.dll
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  trace_harness.vcxproj -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\artifacts\circus-client-trace\build\Release\trace_harness.exe
+A21RuntimeFix: task-private circus trace enabled; no LOGIN/USERINFO bodies recorded
+A21RuntimeFix: cipher passthrough, socket staging and CThread::Create installed
+synthetic harness passed; no game client was executed
+{
+  "source": "E:\\Project\\DNF\\DNF-JP-86-ClientHack\\ClientHack\\plugins\\0050_a21_runtime_fix\\a21_runtime_fix.c",
+  "source_sha256": "2138f1e00a5442f3c73fad173f91265eda4fe83adcdd154879590bb327221fd8",
+  "generated_sha256": "1d4c0500c9971b0d2177f4bc38e158dd343c5be773609de184910057cea475be",
+  "dll": "C:\\Users\\Gloria\\.codex\\worktrees\\fbd8\\DNF-JP-86-Server\\artifacts\\circus-client-trace\\build\\Release\\0050_A21RuntimeFix.dll",
+  "dll_sha256": "3bdb1f30e238c308ab3d7abd37fe1325f98677039f7f187f63fb81dede642a9e",
+  "deployed": false,
+  "client_verified": false,
+  "synthetic_harness_passed": true,
+  "log": "circus-native-trace.jsonl",
+  "configuration": "[A21CircusTrace] Enabled=1",
+  "limits": "No LOGIN/USERINFO capture; inbound selector is unknown; apply rows are hook observations"
+}
