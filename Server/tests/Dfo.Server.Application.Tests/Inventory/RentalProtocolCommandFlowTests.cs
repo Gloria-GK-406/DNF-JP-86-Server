@@ -1,3 +1,10 @@
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Tests.World;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using System.Buffers.Binary;
 using System.Collections;
@@ -18,6 +25,37 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class RentalProtocolCommandFlowTests(ITestOutputHelper output)
 {
+    [PvfFact]
+    public async Task Renewing_an_equipped_rental_refreshes_nearby_players_without_leaking_the_private_panel()
+    {
+        using var owner = Create(configure: services => services.AddSingleton<Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService, EntryFailureProbe.CompleteView>());
+        var f = owner.Host;
+        await Send(f, false);
+        var peer = await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var session = await TowerSourceMembers.AddAsync(f, 3, 2, 1, 4000);
+            var position = new Dfo.Server.Data.Characters.CharacterPositionState(0, 0, 10, 20, 0);
+            f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(), new(1, 0, 0), position, true));
+            await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
+            var store = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Services.GetRequiredService<IDomainTransactionAccessor>().Current!);
+            var item = Assert.Single(await store.GetAllAsync(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Main), default), item => item.ItemId == 401000037);
+            await store.PutAsync(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Equipment), 3,
+                await store.TakeAsync(item, null, default), default);
+            await tx.CommitAsync(default);
+            return session;
+        });
+        f.Sender.Outbound.Clear(); f.Clock.Advance(TimeSpan.FromHours(1));
+        await Send(f, false, 8);
+        var peerMessages = f.Sender.Outbound.MessagesFor(peer.ConnectionId);
+        Assert.Contains(peerMessages, m => m.GetType().Name == "CurrentUserStateMessage");
+        Assert.DoesNotContain(peerMessages, m => m.GetType().Name is "RentEquipmentResponse" or "RentalPanelMessage" or "InventoryFullSnapshotMessage");
+        Assert.Equal(94, await Stars(f));
+        Assert.Equal(1, f.Count(401000037));
+        Assert.Single(f.Sender.Outbound.MessagesFor(f.Connection.ConnectionId), m => m is Dfo.Server.Protocol.Game.Rental.RentEquipmentResponse);
+        Assert.Empty(f.Sender.Outbound.Closes);
+    }
+
     [Dfo.Server.Testing.PvfTheory] [InlineData(false)] [InlineData(true)]
     public async Task Actual_decoder_sqlite_encoder_and_sender_keep_assets_and_frame_order(bool charge)
     {

@@ -315,11 +315,12 @@ public abstract class CommandRequestContext
         private readonly Func<bool> authority;
         internal ProtocolEffectSelected(NetworkDispatchContext dispatch, IClientNetworkMessage message,
             ProtocolFrameMetadata metadata, Func<bool> authority, ExplicitEffectRequest state)
-        { Dispatch = dispatch; Message = message; Metadata = metadata; this.authority = authority; State = state; state.Request = this; }
+        { Dispatch = dispatch; Message = message; Metadata = metadata; this.authority = authority; State = state; }
         public NetworkDispatchContext Dispatch { get; }
         public IClientNetworkMessage Message { get; }
         public ProtocolFrameMetadata Metadata { get; }
         public SelectedSessionRecipient Recipient => State.Recipient;
+        public Guid OperationId => State.Entry.OperationId;
         internal ExplicitEffectRequest State { get; }
         protected override void DemandAuthority()
         {

@@ -218,19 +218,17 @@ public sealed class ProtocolModule : IServerModule
         services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
         services.AddGameMessageSending();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink, ReplayStateProjectionDelivery>();
-        services.TryAddSingleton<CharacterSelectionDelivery>();
         services.TryAddSingleton<DungeonRunDeliveryRegistry>();
         services.TryAddSingleton<DungeonPartyRecipients>();
         services.AddTypedGameplayTimer<DungeonPartyWipeService>();
-        services.AddInternalCommandHandler<MaintainDungeonReturnsCommand, bool, TowerReturnCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.AddInternalCommandHandler<ReturnDungeonRunCommand, bool, TowerReturnCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+        services.AddInternalCommandHandler<MaintainDungeonReturnsCommand, System.Collections.Immutable.ImmutableArray<ReturnDungeonRunCommand>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<ProjectDungeonReturnCommand, bool, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<ReturnDungeonRunCommand, System.Collections.Immutable.ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>, TowerReturnCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddProtocolCommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult, GameRecoverStaminaCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRecoverStamina, typeof(RecoverStaminaRequest)));
         services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>();
-        services.TryAddSingleton<FatigueProjectionDelivery>();
         services.AddTypedGameplayTimer<FatigueDailyRefreshService>();
         services.AddGameNotiMessageEncoder<FatigueNotification, FatigueEncoder>();
-        services.TryAddSingleton<WeaknessProjectionDelivery>();
         services.TryAddSingleton<WeaknessRecoveryService>(provider => new(provider.GetRequiredService<ICommandBus>(),
             provider.GetRequiredService<Dfo.Server.Abstractions.Characters.IWeaknessDomainService>().RecoveryInterval,
             provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WeaknessRecoveryService>>()));
@@ -251,7 +249,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddInternalCommandHandler<RefreshFatigueSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshPremiumSessionCommand, bool, SelectedSessionRefreshCommandHandler>(TimerReadOnlyCancellationCapability.PremiumSnapshot);
         services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(TimerReadOnlyCancellationCapability.ItemUsageSnapshot);
-        services.AddSingleton<UsageQuotaProjectionDelivery>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>();
         services.TryAddScoped<ClientAppearanceVisibilityProjection>();
         services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>();
@@ -281,10 +278,8 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
         services.TryAddSingleton<IAltarSchedulerWakeSignal>(p => p.GetRequiredService<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>());
-        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.Altar.MaintainAltarCommand, Dfo.Server.Protocol.Game.Altar.AltarNextDeadline, Dfo.Server.Protocol.Game.Altar.AltarTimerCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.Altar.AdvanceAltarDeadlineCommand, bool, Dfo.Server.Protocol.Game.Altar.AltarTimerCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
+        services.AddIsolatedWorldMaintenanceCommands();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
@@ -313,7 +308,6 @@ public sealed class ProtocolModule : IServerModule
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.GameCapsuleCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.GameCapsuleCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameMarriageCapsule, typeof(Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRequest)));
-        services.TryAddSingleton<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingProjection>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
         services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceWeddingTickCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
@@ -470,9 +464,7 @@ public sealed class ProtocolModule : IServerModule
             Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateEncoder>();
         services.AddNotificationHandler<DungeonRoomMechanismsNotification,
             Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>();
-        services.TryAddSingleton<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismProjectionDelivery>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismMaintenanceService>();
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.RoomMechanisms.MaintainRoomMechanismsCommand, Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNextDeadline, Dfo.Server.Protocol.Game.RoomMechanisms.MaintainRoomMechanismsCommandHandler>();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>();
         services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>();
@@ -747,11 +739,11 @@ public sealed class ProtocolModule : IServerModule
         // was given -- the claim and the row are one change, and a position marked taken whose
         // piece never arrived anywhere is the thing to avoid. The bag's own container refuses a
         // write with no boundary open, so this is what makes the arrival possible at all.
-        services.AddProtocolCommandHandler<GameLeavePartyCommand, bool, GamePartyMutationCommandHandler>(
+        services.AddProtocolCommandHandler<GameLeavePartyCommand, bool, GamePartyTransitionCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameLeaveParty, typeof(LeavePartyRequest)));
-        services.AddProtocolCommandHandler<GameRemovePartyMemberCommand, bool, GamePartyMutationCommandHandler>(
+        services.AddProtocolCommandHandler<GameRemovePartyMemberCommand, bool, GamePartyTransitionCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRemovePartyMember, typeof(RemovePartyMemberRequest)));
-        services.AddProtocolCommandHandler<GameChangePartyLeaderCommand, bool, GamePartyMutationCommandHandler>(
+        services.AddProtocolCommandHandler<GameChangePartyLeaderCommand, bool, GamePartyTransitionCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameChangePartyLeader, typeof(ChangePartyLeaderRequest)));
         services.AddProtocolCommandHandler<GameSetUdpIpPortCommand, bool, GameSetUdpIpPortCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSetUdpIpPort, typeof(SetUdpIpPortRequest)));
@@ -937,9 +929,9 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<SelectCardHandler, SelectCardRequest, GameSelectCardCommand>(ClientMessageType.GameSelectCard);
         services.AddInternalCommandHandler<DungeonCardLayoutCommand, bool, GameCardCommandHandler>();
         services.AddInternalCommandHandler<DungeonCardAutoFlipCommand, bool, GameCardCommandHandler>();
-        services.AddProtocolCommandHandler<GameEplpCommand, bool, GameDungeonExitCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEplpCommand, typeof(EplpCommandRequest)));
+        services.AddProtocolCommandHandler<GameEplpCommand, bool, GamePartyTransitionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEplpCommand, typeof(EplpCommandRequest)));
         services.RegisterProtocolMessageHandler<EplpCommandHandler, EplpCommandRequest, GameEplpCommand>(ClientMessageType.GameEplpCommand);
-        services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, GameDungeonExitCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
+        services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, GamePartyTransitionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
         services.RegisterProtocolMessageHandler<GiveUpGameHandler, GiveUpGameRequest, GameGiveUpGameCommand>(ClientMessageType.GameGiveUpGame);
         services.AddProtocolCommandHandler<GameBackToVillageCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameBackToVillage, typeof(BackToVillageRequest)));
         services.RegisterProtocolMessageHandler<BackToVillageHandler, BackToVillageRequest, GameBackToVillageCommand>(ClientMessageType.GameBackToVillage);

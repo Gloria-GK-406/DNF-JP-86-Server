@@ -35,7 +35,7 @@ internal sealed class DomainEventWakeups(DomainEventRegistry registry)
 internal sealed class DomainEventDispatcher(DomainEventRegistry registry, IServiceProvider services,
     DomainTransactionScope transactions, DomainEventWakeups wakeups, DomainEventInstance instance,
     TimeProvider clock, DomainEventDispatchOptions options, ILogger<DomainEventDispatcher> logger,
-    Dfo.Server.Application.Commands.ICommandBus commands, DomainEventCallChains chains)
+    Dfo.Server.Application.Commands.ICommandBus commands, DomainEventCallChains chains, FailedDomainEventAttempts failures)
 {
     private readonly DomainEventDispatchOptions options = Validated(options);
     private static DomainEventDispatchOptions Validated(DomainEventDispatchOptions options) { options.Validate(); return options; }
@@ -61,11 +61,21 @@ internal sealed class DomainEventDispatcher(DomainEventRegistry registry, IServi
         foreach (var delivery in due)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (failures.Find(delivery) is { } previous)
+            {
+                if (previous.Failure.FinalFailure is { } final)
+                {
+                    await SettleFailureAsync(previous, final, cancellationToken).ConfigureAwait(false);
+                    processed++;
+                }
+                continue;
+            }
             bool consumed;
+            var attempt = new ConsumeDomainEventCommand(delivery);
             try
             {
                 var chain = ChainOf(delivery);
-                consumed = await commands.SendInternalAsync(new ConsumeDomainEventCommand(delivery),
+                consumed = await commands.SendInternalAsync(attempt,
                     new(chain.Source, chain, CommandTypeOf(delivery), Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly),
                     cancellationToken).ConfigureAwait(false);
             }
@@ -73,10 +83,28 @@ internal sealed class DomainEventDispatcher(DomainEventRegistry registry, IServi
             {
                 consumed = await SettleAsync(delivery, refused, cancellationToken).ConfigureAwait(false);
             }
+            catch (OperationCanceledException error) when (attempt.Failure.WasCleanlyCancelled(error))
+            {
+                failures.Settled(attempt);
+                throw;
+            }
+            catch (Exception error) when (GameplayJob.EndedAJob(error) && attempt.Failure.Observed)
+            {
+                failures.Finalize(attempt, error);
+                cancellationToken.ThrowIfCancellationRequested();
+                // The failed request is already closed; only this new command may record its retry or quarantine.
+                await SettleFailureAsync(attempt, error, cancellationToken).ConfigureAwait(false);
+                consumed = true;
+            }
             if (consumed) processed++;
         }
         return processed;
     }
+
+    private ValueTask<bool> SettleFailureAsync(ConsumeDomainEventCommand attempt, Exception error, CancellationToken token) =>
+        commands.SendInternalAsync(new SettleFailedDomainEventCommand(attempt, error),
+            new(GameplayCallSource.Event, GameplayCallChain.NewRoot(GameplayCallSource.Event),
+                CommandTypeOf(attempt.Delivery) + "/failure-settlement", Dfo.Server.Application.Commands.InternalCommandCancellation.BodyOnly), token);
 
     private bool IsLocal(PendingDomainEventDelivery delivery) => delivery.Event.OriginInstanceId == instance.Id;
 

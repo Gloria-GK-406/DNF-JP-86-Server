@@ -24,6 +24,7 @@ public sealed class CommandWorkUnit
     internal CommandWorkUnit(IDomainTransaction transaction, CommandRequestContext request, IEffectFootprintRecorder? footprint = null, DomainTransactionLease? selfLease = null)
     { this.transaction = transaction; this.request = request; this.footprint = footprint; this.selfLease = selfLease; request.AttachUnit(this); }
     internal bool IsInAction { get; private set; }
+    internal bool IsConfirmedRollback => transaction is DomainTransaction { Completion: DomainTransactionCompletion.ConfirmedRollback };
     internal bool TransactionIsOpen => transaction is DomainTransaction { Completion: DomainTransactionCompletion.Open };
     internal void BeginAction() => IsInAction = true;
     private readonly List<Task> cleanups = [];

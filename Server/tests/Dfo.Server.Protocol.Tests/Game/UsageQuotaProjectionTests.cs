@@ -313,8 +313,6 @@ public sealed class UsageQuotaProjectionTests
                 Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationHandler<UsageQuotaViewChanged, QuotaProbeHandler>(services);
             });
             Outbound.Connect(Sessions.Current!.ConnectionId);
-            var delivery = new UsageQuotaProjectionDelivery(
-                Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services));
             var queue = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
                 .GetRequiredService<Dfo.Server.Abstractions.Execution.IGameplayQueue>(Outbound.Services);
             var clock = new Clock();

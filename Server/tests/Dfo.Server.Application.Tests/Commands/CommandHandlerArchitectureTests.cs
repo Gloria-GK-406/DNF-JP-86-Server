@@ -149,7 +149,7 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Protocol.Game.CardReward.DungeonCardPresentationCoordinator))]
     [InlineData(typeof(IPretendAltarSchedulerWakeSignal))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.Altar.AltarWakeSignal))]
-    [InlineData(typeof(Dfo.Server.Protocol.Game.Altar.AltarProjectionDelivery))]
+    [InlineData(typeof(Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
 

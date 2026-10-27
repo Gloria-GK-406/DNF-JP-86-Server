@@ -13,6 +13,7 @@ internal enum EffectOperationState { Pending, Committed, ConfirmedRollback, Reje
 internal sealed class EffectOperationEntry(SelectedSessionIdentity session, long ordinal,
     byte selector, ushort type, ushort sequence, string hash, int length)
 {
+    public Guid OperationId { get; } = Guid.NewGuid();
     public SelectedSessionIdentity Session { get; } = session;
     public long Ordinal { get; } = ordinal;
     public byte Selector { get; } = selector;

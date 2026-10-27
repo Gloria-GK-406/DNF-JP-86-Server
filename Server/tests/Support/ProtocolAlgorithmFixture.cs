@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.World;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
@@ -36,10 +37,8 @@ internal static class ProtocolAlgorithmFixture
         var values = supplied.OfType<object>().ToList();
         foreach (var value in supplied)
         {
-            if (value is Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionDelivery weakness)
-            { values.Add(Field<IWeaknessDomainService>(weakness)); values.Add(true); }
             if (value is IGameMessageSender sender) values.Add(new Outbox(sender));
-            if (value is IEventService events) values.Add(new LegacyCommandProjections(events));
+            if (value is IEventService events) values.Add(new global::Dfo.Server.Testing.TestCommandProjections(events));
             if (value is ISelectedSessionDomainService sessions && !values.Any(candidate => candidate is IOnlineUserQueryDomainService))
                 values.Add(new Users(sessions));
             if (value is INetworkConnectionCloser closer) values.Add(new Closures(closer));
@@ -72,7 +71,7 @@ internal static class ProtocolAlgorithmFixture
     internal static Dfo.Server.Abstractions.World.IDimensionDungeonDomainService NoDimension(Dfo.Server.Abstractions.World.IDungeonVisitDomainService visits) =>
         Create<Dfo.Server.Application.World.DimensionDungeonDomainService>(visits, new NoDimensionRules());
     internal static T Default<T>() => (T)Default(typeof(T));
-    internal static IOnlineUserQueryDomainService QueryFor(ISelectedSessionDomainService sessions) => new Users(sessions);
+    internal static IOnlineUserQueryDomainService QueryFor(ISelectedSessionDomainService sessions, Func<NetworkConnectionId, NetworkConnectionContext>? physical = null) => new Users(sessions, physical);
     internal static object Default(Type type)
     {
         if (type == typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions)) return new Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions(false, 0, 0);
@@ -221,7 +220,7 @@ internal static class ProtocolAlgorithmFixture
     }
     internal sealed class Closures(INetworkConnectionCloser closer) : ICommandConnectionClosures
     {
-        public ValueTask RequestCloseAsync(NetworkConnectionContext context, CancellationToken token) => closer.RequestCloseAsync(context.ConnectionId, token);
+        public ValueTask RequestCloseAsync(NetworkConnectionContext context, CancellationToken token) => closer.RequestCloseExactAsync(context, token);
         public ValueTask ResolveAndRequestCloseAsync(NetworkConnectionId id, CancellationToken token) => closer.RequestCloseAsync(id, token);
     }
     // Fixtures with no epic-piece catalog must still distinguish ordinary items from pieces.
@@ -234,15 +233,22 @@ internal static class ProtocolAlgorithmFixture
         public ValueTask<EpicPieceBalance?> TrySpendPiecesAsync(Dfo.Server.Data.Accounts.AccountId account, int id, int count, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask InitializeAsync(CancellationToken ct) => throw new NotSupportedException();
     }
-    private sealed class Users(ISelectedSessionDomainService sessions) : IOnlineUserQueryDomainService
+    private sealed class Users(ISelectedSessionDomainService sessions, Func<NetworkConnectionId, NetworkConnectionContext>? physical = null) : IOnlineUserQueryDomainService
     {
-        public OnlineUserSnapshot GetRequired(OnlineUserId id) => throw new NotSupportedException();
+        // Pure component worlds still need stable physical identity throughout one connection generation.
+        private readonly Dictionary<(NetworkConnectionId Id, long Generation), OnlineUserSnapshot> users = [];
+        public OnlineUserSnapshot GetRequired(OnlineUserId id) => users.Values.Single(user => user.OnlineUserId == id);
         public bool TryGetByConnection(NetworkConnectionId id, out OnlineUserSnapshot? user)
         {
             var session = sessions.FindByConnection(id);
-            user = session is null ? null : new(OnlineUserId.New(), new(id, NetworkEndpointKind.Game, 10011), session.AccountId,
-                session.CharacterId, OnlineUserState.CharacterActive, session.ConnectionGeneration);
-            return user is not null;
+            if (session is null) { user = null; return false; }
+            var key = (id, session.ConnectionGeneration);
+            if (!users.TryGetValue(key, out var existing))
+                existing = new(OnlineUserId.New(), physical?.Invoke(id) ?? new(id, NetworkEndpointKind.Game, session.ListenerPort), session.AccountId,
+                    session.CharacterId, OnlineUserState.CharacterActive, session.ConnectionGeneration);
+            user = existing with { AccountId = session.AccountId, CurrentCharacterId = session.CharacterId };
+            users[key] = user;
+            return true;
         }
     }
     private sealed class Ordering : IOutboundOrdering
@@ -276,4 +282,11 @@ internal static class ProtocolAlgorithmFixture
             public void RecordRentalState(SelectedSessionIdentity owner) => DemandActive(owner);
         }
     }
+}
+
+// Component fixtures adapt a controlled event service; production consumes ICommandProjections directly.
+internal sealed class TestCommandProjections(IEventService events) : ICommandProjections
+{
+    public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
+        where T : class, INotification<T> => events.ProjectAsync(audience, notification, cancellationToken);
 }

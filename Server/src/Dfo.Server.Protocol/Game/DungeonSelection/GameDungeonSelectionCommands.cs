@@ -140,12 +140,12 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private async ValueTask<bool> SelectionLeaveBossAsync(CommandExecutionContext execution,
         NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
     {
-        if (bossTowers is null) return false;
         if (TowerProtocol.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var run = session is null ? null : bossTowers.Find(session);
         if (session is null || run is null) return false;
         if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run)) return true;
+        closeTargets.Capture(sessions, onlineUsers, run.Members.Select(member => member.Session));
         var action = await LeaveBossPartyTowerAsync(execution, BossTowerActionProjection.BossTowerContext(run, session),
             run.Members.Select(member => member.Session).ToArray(), token).ConfigureAwait(false);
         if (action.Changed)
@@ -156,12 +156,12 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private async ValueTask<bool> SelectionLeaveIllusionAsync(CommandExecutionContext execution,
         NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
     {
-        if (illusionTowers is null) return false;
         if (TowerProtocol.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var run = session is null ? null : illusionTowers.Find(session);
         if (session is null || run is null) return false;
         if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, run)) return true;
+        closeTargets.Capture(sessions, onlineUsers, run.Members.Select(member => member.Session));
         var action = await LeaveIllusionPartyTowerAsync(execution, IllusionTowerActionProjection.IllusionTowerContext(run, session),
             run.Members.Select(member => member.Session).ToArray(), token).ConfigureAwait(false);
         if (action.Changed)

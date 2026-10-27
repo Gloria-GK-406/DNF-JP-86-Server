@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
@@ -292,7 +293,9 @@ public sealed class WeaknessGoldRecoveryTests
         using var shop = new ShopFixture();
         var state = await Weaken(shop);
         Assert.Equal(56530, await state.RecoveryGoldCost());
-        await Dfo.Server.Application.Tests.Support.TimerDomainTestDriver.RecoverAsync(shop.Services);
+        await shop.Services.GetRequiredService<ICommandBus>().SendInternalAsync(new RecoverWeaknessTickCommand(),
+            new(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), "timer:WeaknessRecoveryService"));
+        Assert.Equal(19, Assert.Single(shop.Sender.Messages.OfType<WeaknessProjectionNotification>()).Value);
         Assert.Equal(19, state.Value);
         Assert.Equal(50877, await state.RecoveryGoldCost());
         await Recover(shop);

@@ -49,6 +49,8 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
     }
 
+    internal IServiceProvider Services => host.Services;
+
     public int GamePort { get; }
 
     public string DatabasePath => Path.Combine(directory, "characterization.db");

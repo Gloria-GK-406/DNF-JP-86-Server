@@ -12,17 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Weakness;
 
-public sealed class WeaknessProjectionDelivery(
-    IWeaknessDomainService weakness, ISelectedSessionDomainService sessions, IGameMessageSender sender)
-{
-    public async ValueTask SendCurrentAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
-    {
-        if (!sessions.IsInWorld(session)) return;
-        await sender.SendNotiAsync(session.ConnectionId,
-            new WeaknessProjectionNotification(weakness.For(session.CharacterId).Value),
-            cancellationToken).ConfigureAwait(false);
-    }
-}
+
 
 public sealed record RecoverWeaknessTickCommand : ICommand<bool>;
 public sealed class RecoverWeaknessTickCommandHandler(IWeaknessDomainService weakness, ISelectedSessionDomainService sessions,

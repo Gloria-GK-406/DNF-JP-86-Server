@@ -1,38 +1,22 @@
-using Dfo.Server.Application.DomainEvents;
-using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.World;
-internal sealed class RoomMechanismMaintenanceDomainService(IDungeonRunDomainService runs, IDungeonRoomMechanismRuleService rules, IEventService events, ILogger<RoomMechanismMaintenanceDomainService> logger, TimeProvider clock)
+internal sealed class RoomMechanismMaintenanceDomainService(IDungeonRunDomainService runs, IDungeonRoomMechanismRuleService rules, IEventService events, ILogger<RoomMechanismMaintenanceDomainService> logger)
     : IRoomMechanismMaintenanceDomainService
 {
     private readonly Dictionary<(DungeonRunId, long), DungeonRoomMechanismState[]> delivered = [];
-    public async ValueTask<DateTimeOffset?> AdvanceAndProjectAsync(DateTimeOffset now, CancellationToken token)
+    public async ValueTask ProjectAsync(DungeonRoomMechanismView view, CancellationToken token)
     {
-        GameplayWriteAssertion.Writing(nameof(RoomMechanismMaintenanceDomainService) + ".AdvanceAndProjectAsync");
-        var scan = Advance(now); var next = scan.Next;
-        foreach (var view in scan.Views)
-        {
-            if (!NeedsProjection(view)) continue;
-            try
-            {
-                await events.DirectAsync(new DungeonRoomMechanismsChanged(view), token).ConfigureAwait(false);
-                MarkProjected(view);
-                logger.LogInformation("Room mechanism state run={RunId} roomVersion={RoomVersion} states={States}", view.RunId, view.RoomVersion,
-                    string.Join(',', view.States.Select(state => $"{state.Definition.Kind}:{state.Stage}:{state.Outcome}")));
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception error) when (error is not OperationCanceledException && !DomainEventScopeCleanupException.Contains(error) && !TransactionOutcomeUncertainException.Contains(error))
-            {
-                GameplayJob.DemandHealthy();
-                logger.LogWarning(error, "Room mechanism projection failed run={RunId}", view.RunId);
-                var retry = clock.GetUtcNow().AddSeconds(1);
-                if (next is null || retry < next) next = retry;
-            }
-        }
-        return next;
+        GameplayWriteAssertion.Writing(nameof(RoomMechanismMaintenanceDomainService) + ".ProjectAsync");
+        var current = runs.Find(view.RunId);
+        if (current is null || current.RoomVersion != view.RoomVersion || current.CurrentCell != view.Cell
+            || !current.CurrentCellState.Mechanisms.SequenceEqual(view.States) || !NeedsProjection(view)) return;
+        await events.DirectAsync(new DungeonRoomMechanismsChanged(view), token).ConfigureAwait(false);
+        MarkProjected(view);
+        logger.LogInformation("Room mechanism state run={RunId} roomVersion={RoomVersion} states={States}", view.RunId, view.RoomVersion,
+            string.Join(',', view.States.Select(state => $"{state.Definition.Kind}:{state.Stage}:{state.Outcome}")));
     }
     public RoomMechanismMaintenanceScan Advance(DateTimeOffset now)
     {

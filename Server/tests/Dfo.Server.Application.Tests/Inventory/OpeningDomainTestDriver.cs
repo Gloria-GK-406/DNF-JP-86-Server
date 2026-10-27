@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
+// These current-owner guards validate isolated fixture setup; production admission is covered by the wire flow tests.
 internal static class OpeningDomainTestDriver
 {
     // Four exact, pure conversion signatures from the production slice. No capability or state is reflected.

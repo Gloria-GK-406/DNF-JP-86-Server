@@ -259,14 +259,12 @@ internal static class IllusionTowerActionProjection
     internal static TowerActionContext IllusionTowerContext(IllusionTowerSnapshot run, SelectedSessionIdentity session) =>
         new(session, run.RunId, run.Room.Version);
 
-    internal static async ValueTask IllusionTowerCloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers, SelectedSessionIdentity session)
+    internal static async ValueTask IllusionTowerCloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, ExactSessionClosure targets, SelectedSessionIdentity session)
     {
-        if (!sessions.IsInWorld(session))
-            return;
-        await ExactSessionClosure.RequestAsync(onlineUsers, closures, session).ConfigureAwait(false);
+        await targets.RequestAsync(sessions, closures, session).ConfigureAwait(false);
     }
 
-    internal static async ValueTask IllusionTowerCloseProjectionFailuresAsync(ISelectedSessionDomainService sessions, ILogger logger, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers, 
+    internal static async ValueTask IllusionTowerCloseProjectionFailuresAsync(ISelectedSessionDomainService sessions, ILogger logger, ICommandConnectionClosures closures, ExactSessionClosure targets,
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures, Guid runId)
     {
         foreach (var (session, error) in failures.DistinctBy(value => value.Session))
@@ -274,7 +272,7 @@ internal static class IllusionTowerActionProjection
             logger.LogWarning(error,
                 "Illusion tower post-commit projection failed for exact session {ConnectionId} in run {RunId}",
                 session.ConnectionId, runId);
-            await IllusionTowerActionProjection.IllusionTowerCloseQuietlyAsync(sessions, closures, onlineUsers, session).ConfigureAwait(false);
+            await IllusionTowerActionProjection.IllusionTowerCloseQuietlyAsync(sessions, closures, targets, session).ConfigureAwait(false);
         }
     }
 }

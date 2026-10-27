@@ -25,8 +25,6 @@ public sealed class GameWeddingLovePointCommandHandler(ISelectedSessionDomainSer
 private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext c, WeddingLovePointRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        var profile = actor is null ? null : (await marriage.SnapshotAsync(actor.AccountId, actor.CharacterId, ct).ConfigureAwait(false)).Partner;
-        var peer = profile is null ? null : sessions.FindByCharacter(new(profile.CharacterId));
         var result = new MarriageLovePointResult(-1);
         if (actor is not null && execution.Request is not CommandRequestContext.ProtocolEffectRejected && m.Slot <= ushort.MaxValue)
         {

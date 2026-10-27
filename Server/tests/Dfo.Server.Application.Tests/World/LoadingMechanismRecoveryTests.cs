@@ -44,13 +44,9 @@ public sealed partial class BossTowerDomainServiceTests
             var type = typeof(FinishLoadingHandler).Assembly.GetType("Dfo.Server.Protocol.Game.GameMapLoadingCommandHandler");
             async Task Invoke()
             {
-                if (type is null)
-                    await f.Services.GetRequiredService<RoomMechanismProjectionDelivery>().SendCurrentAsync(f.Session, run, default);
-                else
-                {
-                    var handler = ActivatorUtilities.CreateInstance(f.Services, type);
-                    await (ValueTask)type.GetMethod("LoadingMechanismsAsync", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(handler, [f.Session, run, CancellationToken.None])!;
-                }
+                Assert.NotNull(type);
+                var handler = ActivatorUtilities.CreateInstance(f.Services, type);
+                await (ValueTask)type.GetMethod("LoadingMechanismsAsync", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(handler, [f.Session, run, CancellationToken.None])!;
             }
             if (mode == "failed")
             { var error = await Assert.ThrowsAsync<IOException>(Invoke); Assert.Equal("Room mechanism projection failed; the current snapshot will be retried.", error.Message); }

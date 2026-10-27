@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
+// These current-owner guards validate isolated fixture setup; production admission is covered by the wire flow tests.
 internal static class EquipmentQualityDomainTestDriver
 {
     public static Task<EquipmentQualityResult> Reset(ShopFixture host, SelectedSessionIdentity owner, BusinessSlot target, int expectedId, BusinessSlot material) =>

@@ -350,6 +350,29 @@ public sealed class EffectOperationReplayTests
     }
 
     [Fact]
+    public async Task Operation_identity_survives_confirmed_rollback_and_committed_replay_but_changes_for_new_operations()
+    {
+        using var f = Fixture();
+        var ledger = f.Services.GetRequiredService<EffectOperationLedger>();
+        var stream = new Stream();
+        await TestGameplay.RunAsync(f.Services, () =>
+        {
+            var first = Assert.IsType<EffectAdmission.Selected>(ledger.Admit(f.Connection, stream.Request(1)));
+            Assert.NotEqual(Guid.Empty, first.Entry.OperationId);
+            first.Entry.State = EffectOperationState.ConfirmedRollback;
+            var retry = Assert.IsType<EffectAdmission.Selected>(ledger.Admit(f.Connection, stream.Request(1)));
+            Assert.Same(first.Entry, retry.Entry);
+            Assert.Equal(first.Entry.OperationId, retry.Entry.OperationId);
+            retry.Entry.State = EffectOperationState.Committed;
+            var replay = Assert.IsType<EffectAdmission.Replay>(ledger.Admit(f.Connection, stream.Request(1)));
+            Assert.Equal(first.Entry.OperationId, replay.Entry.OperationId);
+            var next = Assert.IsType<EffectAdmission.Selected>(ledger.Admit(f.Connection, stream.Request(2)));
+            Assert.NotEqual(first.Entry.OperationId, next.Entry.OperationId);
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
     public async Task A_recipient_replaced_after_capture_is_rejected_before_the_ordinal_is_consumed()
     {
         using var f = Fixture();

@@ -35,6 +35,19 @@ public sealed class EquipmentQualityProtocolCommandFlowTests(ITestOutputHelper o
     private const string ActionDdl = "CREATE TRIGGER quality_fault BEFORE UPDATE ON items BEGIN SELECT RAISE(ABORT,'quality action SQL failure'); END;";
 
     [Theory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Replacing_the_admitted_actor_before_the_whole_never_rerolls_or_consumes(bool grade)
+    {
+        var trace = new Trace(); using var f = Fixture(grade, trace); await Seed(f, grade);
+        var before = Assets(f); trace.Before = () => TestSessions.ReselectOnSameConnection(f.Services.GetRequiredService<ISelectedSessionDomainService>(), f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(), f.Session);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => EffectRequestTransport.Send(f, Input(grade)).AsTask());
+        Assert.Empty(trace.Attempts); Assert.Empty(f.Sender.Messages);
+        Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
+        Assert.Equal(before, Assets(f));
+        Assert.Same(f.Connection, Assert.Single(f.Sender.Outbound.Entries, e => e.IsClose).Connection);
+    }
+
+    [Theory]
     [InlineData(false, false)] [InlineData(false, true)]
     [InlineData(true, false)] [InlineData(true, true)]
     public async Task Actual_action_SQL_and_native_Commit_keep_failure_ack_cause_assets_and_original_entry_retry(bool grade, bool nativeCommit)

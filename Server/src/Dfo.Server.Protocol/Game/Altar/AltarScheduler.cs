@@ -27,7 +27,10 @@ public sealed class AltarWakeSignal(TimeProvider clock) : IAltarSchedulerWakeSig
 }
 public sealed record MaintainAltarCommand : ICommand<AltarNextDeadline>;
 public sealed record AdvanceAltarDeadlineCommand(AltarDeadline Deadline) : ICommand<bool>;
-public sealed record AltarNextDeadline(DateTimeOffset? At);
+public sealed record AltarNextDeadline(DateTimeOffset? At)
+{
+    public IReadOnlyList<AltarDeadline> Due { get; init; } = [];
+}
 public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
     Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
     Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService registry,
@@ -36,15 +39,14 @@ public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, 
     IAltarSchedulerWakeSignal wake, TimeProvider clock, ILogger<AltarTimerCommandHandler> logger)
     : ICommandHandler<MaintainAltarCommand, AltarNextDeadline>, ICommandHandler<AdvanceAltarDeadlineCommand, bool>
 {
-    public async ValueTask<AltarNextDeadline> HandleAsync(CommandExecutionContext context, MaintainAltarCommand command, CancellationToken token)
+    public ValueTask<AltarNextDeadline> HandleAsync(CommandExecutionContext context, MaintainAltarCommand command, CancellationToken token)
     {
         var now = clock.GetUtcNow();
-        foreach (var due in altars.Pending().Where(x => x.At <= now))
-            await AdvanceAsync(context, due, token).ConfigureAwait(false);
+        var due = altars.Pending().Where(x => x.At <= now).ToArray();
         var pending = altars.Pending();
         var next = pending.Count == 0 ? (DateTimeOffset?)null : pending.Min(x => x.At);
         if (next is {} expired && expired <= clock.GetUtcNow()) next = clock.GetUtcNow().AddMilliseconds(100);
-        return new(next);
+        return ValueTask.FromResult(new AltarNextDeadline(next) { Due = due });
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceAltarDeadlineCommand command, CancellationToken token)
     { await AdvanceAsync(context, command.Deadline, token).ConfigureAwait(false); return true; }
@@ -70,13 +72,18 @@ public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, 
     }
 
 }
-public sealed class AltarScheduler(ICommandBus commands, AltarWakeSignal wake, ILogger<AltarScheduler> logger)
+public sealed class AltarScheduler(ICommandBus commands, AltarWakeSignal wake, ILogger<AltarScheduler> logger, TimeProvider clock)
     : TypedGameplayTimerSource(commands, logger)
 {
     private DateTimeOffset? next;
     protected override string SourceName => "timer:AltarScheduler";
-    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token) =>
+    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
+    {
+        var scan = await SubmitAsync(new MaintainAltarCommand(), root, SourceName, token).ConfigureAwait(false);
+        foreach (var due in scan.Due)
+            await ItemAsync(new AdvanceAltarDeadlineCommand(due), root, SourceName + "/deadline", token).ConfigureAwait(false);
         next = (await SubmitAsync(new MaintainAltarCommand(), root, SourceName, token).ConfigureAwait(false)).At;
+    }
     internal async ValueTask AdvanceAsync(AltarDeadline due, CancellationToken token) =>
         _ = await SubmitAsync(new AdvanceAltarDeadlineCommand(due), GameplayCallChain.NewRoot(GameplayCallSource.Timer), SourceName, token).ConfigureAwait(false);
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -85,7 +92,8 @@ public sealed class AltarScheduler(ICommandBus commands, AltarWakeSignal wake, I
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                next = null;
+                // A failed scan or item cleanup must not turn a live scheduler into an infinite wait.
+                next = clock.GetUtcNow().AddSeconds(1);
                 await HostedAsync(stoppingToken).ConfigureAwait(false);
                 await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
             }

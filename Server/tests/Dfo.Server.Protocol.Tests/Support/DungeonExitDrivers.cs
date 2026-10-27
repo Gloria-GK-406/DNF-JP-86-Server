@@ -32,24 +32,24 @@ internal class DungeonExitDriver(ISelectedSessionDomainService selected, ISelect
     BossTowerPartyDriver? bossParties = null, IllusionTowerPartyDriver? towerParties = null,
     IBossTowerDomainService? boss = null, Func<BossTowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
 {
-    private GameDungeonExitCommandHandler? handler;
-    private GameDungeonExitCommandHandler Handler => handler ??= Build();
-    private GameDungeonExitCommandHandler Build()
+    private GamePartyTransitionCommandHandler? handler;
+    private GamePartyTransitionCommandHandler Handler => handler ??= Build();
+    private GamePartyTransitionCommandHandler Build()
     {
         var supplied = new List<object>();
         if (bossParties is not null) supplied.AddRange(bossParties.Dependencies);
         if (towerParties is not null) supplied.AddRange(towerParties.Dependencies);
         if (town is not null) supplied.AddRange(ProtocolAlgorithmFixture.TownDependencies(town));
         supplied.AddRange(new object?[] { selected, views, positions, runs, registry, parties, areas, cards, intents, ordering,
-            sender, logger is null ? null : new TestLogger<GameDungeonExitCommandHandler>(logger) }.OfType<object>());
+            sender, logger is null ? null : new TestLogger<GamePartyTransitionCommandHandler>(logger) }.OfType<object>());
         if (partyNotifications is not null)
-            supplied.Add(new LegacyCommandProjections(ProtocolAlgorithmFixture.Field<IEventService>(partyNotifications)));
+            supplied.Add(ProtocolAlgorithmFixture.Field<ICommandProjections>(partyNotifications));
         if (boss is not null)
             supplied.Add(choose is null ? boss : ProtocolAlgorithmFixture.Decorate(boss, (method, args) =>
                 method.Name == nameof(IBossTowerDomainService.SelectResultAsync)
                     ? (true, choose((BossTowerActionContext)args[0]!, (byte)args[1]!, (CancellationToken)args[2]!))
                     : (false, null)));
-        return ProtocolAlgorithmFixture.Create<GameDungeonExitCommandHandler>(supplied.ToArray());
+        return ProtocolAlgorithmFixture.Create<GamePartyTransitionCommandHandler>(supplied.ToArray());
     }
     public async ValueTask HandleAsync(NetworkDispatchContext dispatch, EplpCommandRequest message, CancellationToken ct)
     {
@@ -87,5 +87,5 @@ internal sealed record LeaveDungeonAlgorithmResult(IReadOnlyList<CharacterId> En
 internal sealed class LeaveDungeonAlgorithmHandler(IDungeonRunDomainService runs) : ICommandHandler<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult>
 {
     public async ValueTask<LeaveDungeonAlgorithmResult> HandleAsync(CommandExecutionContext context, LeaveDungeonAlgorithmCommand command, CancellationToken ct) =>
-        new(await GameDungeonExitCommandHandler.EndOrdinaryRunCoreAsync(runs, command.Sessions, command.RunId, ct));
+        new(await GamePartyTransitionCommandHandler.EndOrdinaryRunCoreAsync(runs, command.Sessions, command.RunId, ct));
 }

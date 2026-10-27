@@ -22,7 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.World;
 
-public sealed class CardSettlementLifecycleTests
+public sealed partial class CardSettlementLifecycleTests
 {
     internal static bool Whole => typeof(SetPlayResultHandler).Assembly.GetType("Dfo.Server.Protocol.Game.DungeonClear.GameSetPlayResultCommand") is not null;
 

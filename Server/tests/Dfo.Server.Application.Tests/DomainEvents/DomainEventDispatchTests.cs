@@ -606,6 +606,10 @@ public sealed partial class DomainEventDispatchTests
         public ValueTask<bool> HasCompletedCoalescingKeyAsync(Guid batch, string s, string key, CancellationToken ct) => inner.HasCompletedCoalescingKeyAsync(batch, s, key, ct);
         public ValueTask CompleteAsync(Guid id, string s, DateTimeOffset now, string reason, CancellationToken ct)
         { probe.Persisted.Enqueue(Probe.Here("Complete", s)); return inner.CompleteAsync(id, s, now, reason, ct); }
+        public ValueTask<bool> QuarantineAsync(Guid id, string s, int expected, string error, CancellationToken ct) =>
+            inner.QuarantineAsync(id, s, expected, error, ct);
+        public ValueTask<bool> TryFailAsync(Guid id, string s, int expected, DateTimeOffset next, string error, bool terminal, CancellationToken ct)
+        { probe.Persisted.Enqueue(Probe.Here("TryFail", s)); return inner.TryFailAsync(id, s, expected, next, error, terminal, ct); }
         public ValueTask FailAsync(Guid id, string s, DateTimeOffset next, string error, bool terminal, CancellationToken ct)
         {
             probe.Persisted.Enqueue(Probe.Here("Fail", s));

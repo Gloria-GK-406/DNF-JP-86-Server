@@ -128,6 +128,25 @@ public sealed class ConnectionCallbackBoundaryTests
         Assert.IsType<InvalidOperationException>(error);
     }
 
+    [Fact]
+    public async Task A_failed_close_callback_surfaces_cleanup_failure_but_releases_transport_drain_and_is_not_replayed()
+    {
+        var connections = new TouchSocketConnectionRegistry();
+        var lifecycle = new RecordingLifecycle { FailFor = "Game:failed-callback" };
+        var plugin = Plugin(connections, lifecycle);
+        var session = Session("failed-callback");
+        connections.Add(session, NetworkEndpointKind.Game);
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            plugin.OnTcpClosed(session, new ClosedEventArgs("test")));
+        Assert.Equal("teardown failed", failure.Message);
+        Assert.False(connections.TryGet(new("Game:failed-callback"), out _));
+        await Drain(connections, lifecycle).DrainAsync(CancellationToken.None).AsTask().WaitAsync(Patience);
+        await plugin.OnTcpClosed(session, new ClosedEventArgs("late duplicate")).WaitAsync(Patience);
+        Assert.Single(lifecycle.Seen);
+        Assert.Equal(0, lifecycle.Completed);
+    }
+
     private static GameNetworkPlugin Plugin(TouchSocketConnectionRegistry connections, INetworkConnectionLifecycleDispatcher lifecycle)
     {
         var services = new ServiceCollection().BuildServiceProvider();

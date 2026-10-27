@@ -63,7 +63,9 @@ internal sealed partial class TowerReturnCommandHandler :
     ICommandHandler<ProjectIllusionTowerDepartureCommand, bool>,
     ICommandHandler<CaptureIllusionTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>>,
     ICommandHandler<ReturnIllusionTowerRunCommand, bool>,
-    ICommandHandler<MaintainDungeonReturnsCommand, bool>, ICommandHandler<ReturnDungeonRunCommand, bool>
+    ICommandHandler<MaintainDungeonReturnsCommand, ImmutableArray<ReturnDungeonRunCommand>>,
+    ICommandHandler<ReturnDungeonRunCommand, ImmutableArray<SelectedSessionIdentity>>,
+    ICommandHandler<ProjectDungeonReturnCommand, bool>
 {
     private readonly ISelectedSessionDomainService sessions;
     private readonly ITownAreaDomainService townAreas;

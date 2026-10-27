@@ -430,7 +430,7 @@ public sealed class PartyNotificationTests
 
         public async Task<PartyExactNotificationDeliveryResult> PublishAsync() =>
             await PartyExactNotificationDelivery.PublishWithRetryAsync(
-                Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<IEventService>(Outbound.Services),
+                Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<ICommandProjections>(Outbound.Services),
                 [Failing, Other], new PartyProbeChanged(1), CancellationToken.None);
 
         public ValueTask DisposeAsync() => Outbound.DisposeAsync();

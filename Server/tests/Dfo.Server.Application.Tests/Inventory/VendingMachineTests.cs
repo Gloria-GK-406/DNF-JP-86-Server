@@ -23,6 +23,28 @@ public sealed class VendingMachineTests
         return f;
     }
     internal static CeraShopFixture ProtocolFixture(Action<IServiceCollection> configure) => Fixture(configure: configure);
+    [PvfTheory]
+    [InlineData(false)] [InlineData(true)]
+    public async Task Real_wire_missing_payment_and_full_bag_preserve_assets_and_native_refusal_codes(bool full)
+    {
+        using var f = Fixture();
+        if (full)
+        {
+            await f.Host.Seed(121, 7454, 2);
+            for (var i = 65; i <= 120; i++) await f.Host.Seed(i, 201, 1);
+            for (var i = 3; i <= 8; i++) await f.Host.Seed(i, 201, 1);
+        }
+        else await f.Host.Seed(121, 201, 1);
+        var items = f.Host.Scalar("SELECT count(*) FROM items");
+        var gold = f.Host.Gold;
+        await Network(f, 7);
+        Assert.Equal(new byte[] { 0, full ? (byte)1 : (byte)22 }, Assert.Single(f.Host.Sender.Outbound.Frames)[15..]);
+        Assert.Equal(items, f.Host.Scalar("SELECT count(*) FROM items"));
+        Assert.Equal(gold, f.Host.Gold); Assert.Equal(full ? 2 : 0, f.Host.Count(7454));
+        Assert.Equal(0, f.Host.Scalar("SELECT count(*) FROM mailbox_messages"));
+        Assert.Empty(f.Host.Sender.Outbound.Closes);
+    }
+
     private static Task<VendingMachineResult> Use(CeraShopFixture f, int slot=121, int machine=1) =>
         OpeningDomainTestDriver.Vending(f.Host, f.Host.Session, machine, 1, slot);
 
@@ -93,7 +115,7 @@ public sealed class VendingMachineTests
         f.Host.Sql("DROP TRIGGER reject_vending_reward"); await Use(f); Assert.Equal(1,f.Host.Count(7454));
     }
     [Dfo.Server.Testing.PvfFact]
-    public async Task Invalid_machine_wrong_slot_and_stale_session_do_not_consume()
+    public async Task Invalid_machine_and_wrong_slot_refuse_and_the_domain_fixture_requires_a_current_owner()
     {
         using var f=Fixture(); await f.Host.Seed(121,7454,2);
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f,machine:999));
@@ -102,7 +124,7 @@ public sealed class VendingMachineTests
         {
             f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Host.Session);
         });
-        // Stale admission stops before the domain handler opens its UoW.
+        // The isolated domain fixture validates its owner before invoking the domain; wire admission is tested separately.
         await Assert.ThrowsAsync<InvalidOperationException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));
     }
     [Dfo.Server.Testing.PvfTheory]

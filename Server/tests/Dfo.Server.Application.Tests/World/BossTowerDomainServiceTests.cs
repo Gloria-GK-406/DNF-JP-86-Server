@@ -24,6 +24,29 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed partial class BossTowerDomainServiceTests
 {
     [Fact]
+    public async Task Actual_scheduled_ticket_refill_commits_one_grant_and_one_event_per_game_day()
+    {
+        using var f = Fixture(configure: services => services.AddSingleton<IEntryLifecycleContentSource, TicketRefillContent>());
+        f.SetLevel(65);
+        await Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "boss-tower.ticket-refill.online");
+        Assert.Equal(1, f.Count(2749110));
+        Assert.Equal(1, f.Scalar("SELECT count(*) FROM domain_events WHERE event_type='boss-tower.ticket-refilled'"));
+        await Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "boss-tower.ticket-refill.online");
+        Assert.Equal(1, f.Count(2749110));
+        Assert.Equal(1, f.Scalar("SELECT count(*) FROM domain_events WHERE event_type='boss-tower.ticket-refilled'"));
+        f.Clock.Advance(TimeSpan.FromDays(1));
+        await Scheduling.TestScheduledTasks.RunActualAsync(f.Services, "boss-tower.ticket-refill.online");
+        Assert.Equal(2, f.Count(2749110));
+        Assert.Equal(2, f.Scalar("SELECT count(*) FROM domain_events WHERE event_type='boss-tower.ticket-refilled'"));
+    }
+    private sealed class TicketRefillContent : IEntryLifecycleContentSource
+    {
+        public ValueTask<IReadOnlyList<DailyRefillRule>> GetDailyRefillRulesAsync(DateTimeOffset at, CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<DailyRefillRule>>([new(2749110, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add,
+                1000, 2, new(BusinessInventorySpace.Consumable, 0, 56))]);
+    }
+
+    [Fact]
     public async Task Autoloot_is_in_the_receiving_members_inventory_projection_and_never_repaid()
     {
         await TestGameplay.RunAsync(async () =>

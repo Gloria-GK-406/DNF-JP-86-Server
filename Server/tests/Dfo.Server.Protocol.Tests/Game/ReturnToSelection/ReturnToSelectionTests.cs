@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Application.Commands;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Accounts;
@@ -36,11 +40,28 @@ public sealed class ReturnToSelectionTests
         new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         using var provider = services.BuildServiceProvider();
         var sender = new EncodedSender(provider);
-        var delivery = new CharacterSelectionDelivery(sender, new NoCleanupNotices());
-        var roster = new AccountCharacterRoster(new AccountId(1), 24, []);
-
-        await TestGameplay.RunAsync(async () => await delivery.SendAsync(new("return"), new ReturnToSelectionResponse(), roster, knight,
-            CancellationToken.None));
+        var sessions = TestSessions.Directory(out var state);
+        var session = sessions.InWorld(state, new AccountId(1), new CharacterId(1), "return");
+        var roster = new AccountCharacterRoster(session.AccountId, 24,
+            knight ? [new CharacterSummary(session.CharacterId, 0, new byte[20], 12, 0, 1, 0, [])] : []);
+        var characters = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),
+            (method, _) => method.Name == nameof(ICharacterDomainService.GetAccountRosterWithAppearanceAsync)
+                ? (true, (object)ValueTask.FromResult(roster)) : (false, null));
+        var cleanup = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICommandSelectedSessionCleanup>(),
+            (method, _) => method.Name == nameof(ICommandSelectedSessionCleanup.CleanupAsync)
+                ? (true, (object)ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session))) : (false, null));
+        var handler = ProtocolAlgorithmFixture.Create<GameReturnToSelectionCommandHandler>(sessions, characters, cleanup, sender);
+        var input = new ReturnToSelectionRequest(GameMessageMetadata.Empty);
+        var dispatch = new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var request = new CommandRequestContext.ProtocolNonEffect(dispatch, input, new ProtocolFrameMetadata.Game(input.Metadata), () => true);
+            try
+            {
+                await handler.HandleAsync(new(Guid.NewGuid(), typeof(GameReturnToSelectionCommand), handler.GetType()) { Request = request }, new(dispatch, input), default);
+            }
+            finally { await request.DrainOperationsAsync(); request.Close(); }
+        });
 
         Assert.Equal(knight ? new ushort[] { 0x0245, 7, 2, 0x0289 } : [7, 2, 0x0289],
             sender.Frames.Select(frame => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))));
@@ -56,12 +77,6 @@ public sealed class ReturnToSelectionTests
         Assert.Equal(0, sender.Frames[offset + 1][7]);
         Assert.Equal(2, sender.Frames[offset + 1][15]);
         Assert.Equal(0, sender.Frames[offset + 2][0]);
-    }
-
-    private sealed class NoCleanupNotices : ICleanupNotificationDelivery
-    {
-        public ValueTask DeliverAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) =>
-            ValueTask.CompletedTask;
     }
 
     /// <summary>

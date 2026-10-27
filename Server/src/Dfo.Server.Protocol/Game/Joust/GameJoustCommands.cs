@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Events;
@@ -62,8 +61,6 @@ public sealed class GameJoustBetCommandHandler(ISelectedSessionDomainService ses
     : ICommandHandler<GameJoustBetCommand, bool>
 {
     private sealed record BetOutcome(JoustBetResult? Result);
-    private sealed class PhysicalIdentity { public string Id { get; } = Guid.NewGuid().ToString("N"); }
-    private static readonly ConditionalWeakTable<NetworkConnectionContext, PhysicalIdentity> Identities = new();
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameJoustBetCommand command, CancellationToken ct)
     {
         GameplayWriteAssertion.Writing(nameof(GameJoustBetCommandHandler) + "." + nameof(HandleAsync));
@@ -83,7 +80,7 @@ public sealed class GameJoustBetCommandHandler(ISelectedSessionDomainService ses
         try { slot = mapping.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlotIndex)); }
         catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
         { await Refuse().ConfigureAwait(false); return false; }
-        var requestId = $"joust:{Identities.GetOrCreateValue(dispatch.Connection).Id}:{session.ConnectionGeneration}:{message.Metadata.InboundOrdinal}";
+        var requestId = $"joust:{selected.OperationId:N}";
         var outcome = await units.WriteResultAsync(execution, new("JoustBet", [selected.Recipient], CommandWorkUnitKind.MainSettlement),
             async (unit, token) =>
             {

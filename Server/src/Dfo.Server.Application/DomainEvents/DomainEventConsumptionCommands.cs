@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -11,17 +12,62 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.DomainEvents;
 
-internal sealed record ConsumeDomainEventCommand(PendingDomainEventDelivery Delivery) : ICommand<bool>;
+internal sealed record ConsumeDomainEventCommand(PendingDomainEventDelivery Delivery) : ICommand<bool>
+{
+    internal DomainEventConsumptionFailure Failure { get; } = new();
+}
+internal sealed class DomainEventConsumptionFailure
+{
+    private Exception? cause;
+    private CommandWorkUnit? unit;
+    private ProducerCancellationObservation? cancellation;
+    internal bool Observed => cause is not null;
+    private Exception? finalFailure;
+    internal Exception? FinalFailure { get => Volatile.Read(ref finalFailure); set => Volatile.Write(ref finalFailure, value); }
+    internal void Observe(Exception error, CommandWorkUnit? attemptedUnit, ProducerCancellationObservation? producerCancellation)
+    { cause = error; unit = attemptedUnit; cancellation = producerCancellation; }
+    internal bool WasCleanlyCancelled(OperationCanceledException error) => ReferenceEquals(cause, error)
+        && cancellation?.State == ProducerCancellationState.Marshalled;
+    internal bool CanRetry(Exception finalFailure) => ReferenceEquals(cause, finalFailure)
+        && finalFailure is not OperationCanceledException && unit?.IsConfirmedRollback == true && !DomainEventScopeCleanupException.Contains(finalFailure)
+        && !TransactionOutcomeUncertainException.Contains(finalFailure);
+}
+internal sealed class FailedDomainEventAttempts
+{
+    // Installed on the executor before a failed attempt unwinds: queued duplicates cannot invoke it,
+    // and a failed settlement must be retried before business consumption resumes in this process.
+    private readonly ConcurrentDictionary<(Guid Event, string Subscriber), ConsumeDomainEventCommand> pending = new();
+    private static (Guid, string) Key(PendingDomainEventDelivery delivery) => (delivery.Event.EventId, delivery.SubscriberId);
+    internal ConsumeDomainEventCommand? Find(PendingDomainEventDelivery delivery) => pending.GetValueOrDefault(Key(delivery));
+    internal void Observe(ConsumeDomainEventCommand command, Exception error, CommandWorkUnit? unit, CommandExecutionContext context)
+    {
+        command.Failure.Observe(error, unit, context.Request?.ProducerCancellation);
+        pending.TryAdd(Key(command.Delivery), command);
+    }
+    internal void Finalize(ConsumeDomainEventCommand command, Exception error)
+    {
+        if (ReferenceEquals(Find(command.Delivery), command)) command.Failure.FinalFailure = error;
+    }
+    internal void Settled(ConsumeDomainEventCommand command) =>
+        pending.TryRemove(new KeyValuePair<(Guid, string), ConsumeDomainEventCommand>(Key(command.Delivery), command));
+}
+internal sealed record SettleFailedDomainEventCommand(ConsumeDomainEventCommand Attempt, Exception Failure) : ICommand<bool>;
 internal sealed record SettleDepthExceededDomainEventCommand(PendingDomainEventDelivery Delivery, GameplayCallChain Refused, string RefusedCommand) : ICommand<string>;
 public interface ICommandDomainEventConsumption
 {
-    internal ValueTask<bool> ConsumeAsync(CommandExecutionContext context, PendingDomainEventDelivery delivery, CancellationToken token);
+    internal ValueTask<bool> ConsumeAsync(CommandExecutionContext context, ConsumeDomainEventCommand command, CancellationToken token);
+    internal ValueTask<bool> SettleFailureAsync(CommandExecutionContext context, SettleFailedDomainEventCommand command, CancellationToken token);
     internal ValueTask<string> SettleAsync(CommandExecutionContext context, SettleDepthExceededDomainEventCommand command, CancellationToken token);
 }
 internal sealed class ConsumeDomainEventCommandHandler(ICommandDomainEventConsumption events) : ICommandHandler<ConsumeDomainEventCommand, bool>
 {
     public ValueTask<bool> HandleAsync(CommandExecutionContext context, ConsumeDomainEventCommand command, CancellationToken token) =>
-        events.ConsumeAsync(context, command.Delivery, token);
+        events.ConsumeAsync(context, command, token);
+}
+internal sealed class SettleFailedDomainEventCommandHandler(ICommandDomainEventConsumption events) : ICommandHandler<SettleFailedDomainEventCommand, bool>
+{
+    public ValueTask<bool> HandleAsync(CommandExecutionContext context, SettleFailedDomainEventCommand command, CancellationToken token) =>
+        events.SettleFailureAsync(context, command, token);
 }
 internal sealed class SettleDepthExceededDomainEventCommandHandler(ICommandDomainEventConsumption events) : ICommandHandler<SettleDepthExceededDomainEventCommand, string>
 {
@@ -31,7 +77,7 @@ internal sealed class SettleDepthExceededDomainEventCommandHandler(ICommandDomai
 internal sealed class CommandDomainEventConsumption(DomainEventRegistry registry, IDomainEventPersistence persistence,
     IServiceScopeFactory scopes, ICommandWorkUnits units, DomainEventInstance instance, TimeProvider clock,
     DomainEventDispatchOptions options, ILogger<DomainEventDispatcher> logger, DomainEventCallChains chains,
-    GameplayDepthGuard guard, GameplayOutboxes outboxes) : ICommandDomainEventConsumption
+    GameplayDepthGuard guard, GameplayOutboxes outboxes, FailedDomainEventAttempts failures) : ICommandDomainEventConsumption
 {
     private sealed record Attempt(bool Claimed, bool Invoke = false, Exception? Failure = null);
     private static void Demand(CommandExecutionContext context, Type command)
@@ -48,9 +94,11 @@ internal sealed class CommandDomainEventConsumption(DomainEventRegistry registry
     {
         if (outbox.UnhandledRequiredEncodingFailureSince(start) is { } error) ExceptionDispatchInfo.Throw(error);
     }
-    public async ValueTask<bool> ConsumeAsync(CommandExecutionContext context, PendingDomainEventDelivery delivery, CancellationToken ct)
+    public async ValueTask<bool> ConsumeAsync(CommandExecutionContext context, ConsumeDomainEventCommand command, CancellationToken ct)
     {
         Demand(context, typeof(ConsumeDomainEventCommand));
+        var delivery = command.Delivery;
+        if (failures.Find(delivery) is not null) return false;
         DomainSubscriberRegistration subscriber;
         object envelope;
         try
@@ -66,12 +114,14 @@ internal sealed class CommandDomainEventConsumption(DomainEventRegistry registry
             return true;
         }
         return subscriber.Policy == DomainEventDeliveryPolicy.Reliable
-            ? await ReliableAsync(context, delivery, subscriber, envelope, ct).ConfigureAwait(false)
+            ? await ReliableAsync(context, command, subscriber, envelope, ct).ConfigureAwait(false)
             : await LiveOnlyAsync(context, delivery, subscriber, envelope, ct).ConfigureAwait(false);
     }
-    private async ValueTask<bool> ReliableAsync(CommandExecutionContext context, PendingDomainEventDelivery delivery,
+    private async ValueTask<bool> ReliableAsync(CommandExecutionContext context, ConsumeDomainEventCommand command,
         DomainSubscriberRegistration subscriber, object envelope, CancellationToken ct)
     {
+        var delivery = command.Delivery;
+        CommandWorkUnit? attemptedUnit = null;
         AsyncServiceScope? scope = null;
         var outbox = outboxes.Current;
         var encodingStart = outbox.RequiredEncodingFailurePosition;
@@ -80,6 +130,7 @@ internal sealed class CommandDomainEventConsumption(DomainEventRegistry registry
         {
             write = await units.WriteResultAsync(context, new("event.reliable", []), async (unit, token) =>
             {
+                attemptedUnit = unit;
                 try
                 {
                     if (!await persistence.TryBeginAsync(delivery.Event.EventId, delivery.SubscriberId, clock.GetUtcNow(), token).ConfigureAwait(false))
@@ -104,12 +155,21 @@ internal sealed class CommandDomainEventConsumption(DomainEventRegistry registry
         }
         catch (Exception error)
         {
-            if (scope is { } failedScope)
-            { scope = null; await DomainEventScopeCleanupException.DisposeAsync(failedScope, error).ConfigureAwait(false); }
+            try
+            {
+                if (scope is { } failedScope)
+                { scope = null; await DomainEventScopeCleanupException.DisposeAsync(failedScope, error).ConfigureAwait(false); }
+            }
+            catch (Exception cleanup) { failures.Observe(command, cleanup, null, context); throw; }
+            failures.Observe(command, error, attemptedUnit, context);
             throw;
         }
         if (scope is { } ownedScope)
-        { scope = null; await DomainEventScopeCleanupException.DisposeAsync(ownedScope, write is CommandWriteResult<Attempt>.CommitRolledBack rollback ? rollback.Cause : null).ConfigureAwait(false); }
+        {
+            scope = null;
+            try { await DomainEventScopeCleanupException.DisposeAsync(ownedScope, write is CommandWriteResult<Attempt>.CommitRolledBack rollback ? rollback.Cause : null).ConfigureAwait(false); }
+            catch (Exception cleanup) { failures.Observe(command, cleanup, null, context); throw; }
+        }
         context.DemandRequest();
         var failure = write is CommandWriteResult<Attempt>.CommitRolledBack rejected ? rejected.Cause
             : ((CommandWriteResult<Attempt>.Returned)write).Value.Failure;
@@ -177,6 +237,30 @@ internal sealed class CommandDomainEventConsumption(DomainEventRegistry registry
             return true;
         }, ct).ConfigureAwait(false);
         if (terminal) Forget(delivery);
+    }
+    public async ValueTask<bool> SettleFailureAsync(CommandExecutionContext context, SettleFailedDomainEventCommand command, CancellationToken ct)
+    {
+        Demand(context, typeof(SettleFailedDomainEventCommand));
+        var delivery = command.Attempt.Delivery;
+        if (!ReferenceEquals(failures.Find(delivery), command.Attempt)) return false;
+        if (!ReferenceEquals(command.Attempt.Failure.FinalFailure, command.Failure) || !GameplayJob.EndedAJob(command.Failure))
+            throw new InvalidOperationException("Only a completed failed event attempt can be settled.");
+        var quarantine = !command.Attempt.Failure.CanRetry(command.Failure);
+        var terminal = quarantine || delivery.AttemptCount + 1 >= options.MaximumAttempts;
+        var delay = TimeSpan.FromTicks((long)Math.Min(options.MaximumRetryDelay.Ticks,
+            options.RetryDelay.Ticks * Math.Pow(2, Math.Min(delivery.AttemptCount, 30))));
+        var description = command.Failure.ToString();
+        var detail = description[..Math.Min(description.Length, 4000)];
+        var settled = await units.WriteAsync(context, new("event.failed-job-settlement", []), (_, token) => quarantine
+            ? persistence.QuarantineAsync(delivery.Event.EventId, delivery.SubscriberId, delivery.AttemptCount, detail, token)
+            : persistence.TryFailAsync(delivery.Event.EventId, delivery.SubscriberId, delivery.AttemptCount,
+                clock.GetUtcNow() + delay, detail, terminal, token), ct).ConfigureAwait(false);
+        failures.Settled(command.Attempt);
+        if (settled)
+            logger.LogWarning("Failed event job {EventId} subscriber {SubscriberId} settled; terminal={Terminal}",
+                delivery.Event.EventId, delivery.SubscriberId, terminal);
+        if (terminal) Forget(delivery);
+        return settled;
     }
     public async ValueTask<string> SettleAsync(CommandExecutionContext context, SettleDepthExceededDomainEventCommand command, CancellationToken ct)
     {

@@ -83,12 +83,6 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
     }
 }
 
-/// <summary>Read and send through EventService without reentering CommandBus or its transaction gate.</summary>
-public sealed class UsageQuotaProjectionDelivery(IEventService events)
-{
-    public ValueTask<NotificationDelivery> SendAsync(SelectedSessionIdentity session, UsageQuotaFamily family,
-        CancellationToken cancellationToken) => events.ProjectAsync(new NotificationAudience.TheseSessions([session]),
-            new UsageQuotaViewChanged(session.CharacterId, family), cancellationToken);
-}
+
 
 // Mirror's original quota resets at local midnight, independently of the 06:00 item/premium period.

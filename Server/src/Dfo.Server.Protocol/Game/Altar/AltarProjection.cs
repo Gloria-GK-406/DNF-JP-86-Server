@@ -63,30 +63,3 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);
     }
 }
-
-/// <summary>Projects committed altar changes, with the shared instance lock held by its caller.</summary>
-public sealed class AltarProjectionDelivery(IDungeonRunDomainService runs,
-    ISelectedSessionDomainService sessions, DungeonRunDeliveryRegistry registry,
-    IEventService events, TimeProvider clock, AltarWakeSignal wake, SelectedSessionSafety safety, ILogger<AltarProjectionDelivery> logger)
-{
-    public void Wake() => wake.Wake();
-    internal IReadOnlyList<SelectedSessionIdentity> Participants(DungeonRunId runId) => AltarTransitionProjection.Participants(runs, sessions, registry, runId);
-
-    internal async ValueTask ProjectAsync(AltarActionResult? action, CancellationToken ct)
-    {
-        if (action is null) return;
-        var recipients = Participants(action.State.RunId);
-        try
-        {
-            await AltarTransitionProjection.ProjectAsync(new LegacyCommandProjections(events), action, recipients,
-                clock, wake, logger, ct).ConfigureAwait(false);
-        }
-        catch (Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException uncertain) when (!ct.IsCancellationRequested)
-        {
-            foreach (var recipient in recipients)
-                await safety.BlockAsync(new(recipient, null), uncertain, nameof(AltarProjectionDelivery)).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-}

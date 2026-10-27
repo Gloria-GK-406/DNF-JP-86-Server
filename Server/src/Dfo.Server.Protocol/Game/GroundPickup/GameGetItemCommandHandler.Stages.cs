@@ -49,15 +49,6 @@ using Dfo.Server.Protocol.Game.Party;
 
 internal sealed partial class GameGetItemCommandHandler
 {
-    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session)
-    {
-        NetworkConnectionContext? connection = null;
-        if (onlineUsers.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null)
-        {
-            if (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId)
-                throw new InvalidOperationException("The tower participant connection no longer owns the captured character.");
-            connection = user.Connection;
-        }
-        return new(session, connection);
-    }
+    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session) =>
+        GameParticipantCapture.Capture(onlineUsers, session);
 }

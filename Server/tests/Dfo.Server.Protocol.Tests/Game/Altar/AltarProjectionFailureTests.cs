@@ -1,4 +1,9 @@
+using System.Reflection;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Application.Users;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
@@ -34,7 +39,7 @@ public sealed class AltarProjectionFailureTests
         await using var world = new AltarWorld();
         world.Outbound.Transport.Fail(world.Second.ConnectionId);
 
-        await world.Outbound.RunFromAsync(world.First.ConnectionId, () => world.ProjectAsync());
+        await world.ProjectAsync();
         await world.Outbound.SettledAsync();
 
         Assert.Contains(world.Outbound.Messages(world.Second.ConnectionId), message => message is XoProjected);
@@ -56,7 +61,7 @@ public sealed class AltarProjectionFailureTests
         await using var world = new AltarWorld(failing: new CharacterId(9002));
 
         await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(() =>
-            world.Outbound.RunFromAsync(world.First.ConnectionId, () => world.ProjectAsync()));
+            world.ProjectAsync());
         await world.Outbound.SettledAsync();
 
         Assert.True(world.Sessions.StandingOf(world.First)!.Fenced);
@@ -76,6 +81,7 @@ public sealed class AltarProjectionFailureTests
         private readonly DungeonRunDomainService runs = new();
         private readonly DungeonRunDeliveryRegistry registry = new();
         private DungeonRunId runId;
+        private readonly IAltarDungeonDomainService altars = DispatchProxy.Create<IAltarDungeonDomainService, AltarProbe>();
 
         public AltarWorld(CharacterId? failing = null)
         {
@@ -83,15 +89,26 @@ public sealed class AltarProjectionFailureTests
             Sessions = directory;
             First = directory.InWorld(state, new AccountId(9001), new CharacterId(9001), "altar-1");
             Second = directory.InWorld(state, new AccountId(9002), new CharacterId(9002), "altar-2");
+            var users = new OnlineUserDomainService(state);
             Outbound = new XoDelivery(configure: services =>
             {
                 services.AddSingleton<ISelectedSessionDomainService>(directory);
+                services.AddSingleton<IOnlineUserQueryDomainService>(users);
+                services.AddSingleton<IDungeonRunDomainService>(runs);
+                services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
+                services.AddSingleton(altars);
+                services.AddSingleton<TimeProvider>(TimeProvider.System);
+                services.AddSingleton<IAltarSchedulerWakeSignal>(new AltarWakeSignal(TimeProvider.System));
+                services.AddInternalCommandHandler<AdvanceAltarDeadlineCommand, bool, AltarTimerCommandHandler>();
                 services.AddSingleton(new AltarProbeRule(failing));
                 services.AddEventDispatching();
                 services.AddNotificationDispatching();
                 services.AddNotificationHandler<AltarStateChanged, AltarProbeHandler>();
             });
-            Outbound.Connect(First, Second);
+            Assert.True(users.TryGetByConnection(First.ConnectionId, out var firstUser));
+            Assert.True(users.TryGetByConnection(Second.ConnectionId, out var secondUser));
+            Outbound.Connect(firstUser!.Connection);
+            Outbound.Connect(secondUser!.Connection);
         }
 
         public XoDelivery Outbound { get; }
@@ -105,6 +122,8 @@ public sealed class AltarProjectionFailureTests
         /// <summary>Prepares the run and projects one committed transition, inside the running job.</summary>
         public async Task ProjectAsync()
         {
+            await Outbound.RunAsync(() =>
+            {
             runId = runs.PreparePartyEntry(
                 [
                     new DungeonRunParticipant(First.AccountId, First.CharacterId, Slot: 0, IsLeader: true),
@@ -116,16 +135,17 @@ public sealed class AltarProjectionFailureTests
                 DungeonRunId.New(),
                 DateTimeOffset.UtcNow).Run.RunId;
             registry.Register(runId, [First, Second]);
-            var delivery = new AltarProjectionDelivery(
-                runs, Sessions, registry, Outbound.Services.GetRequiredService<IEventService>(),
-                TimeProvider.System, new AltarWakeSignal(TimeProvider.System),
-                new SelectedSessionSafety(Outbound.Services, NullLogger<SelectedSessionSafety>.Instance),
-                NullLogger<AltarProjectionDelivery>.Instance);
             var state = new AltarDungeonState(runId,
                 new AltarDungeonDefinition(Layout.DungeonId, AltarDungeonKind.Endless, 1, 1, 1, 0, [],
                     new(0, 0, 0, 0, [], [], [], [], ""), 3),
-                [], DateTimeOffset.UtcNow, 1, Layout.StartRoomMapId);
-            await delivery.ProjectAsync(new AltarActionResult(state), CancellationToken.None);
+                [], DateTimeOffset.UtcNow, runs.Find(runId)!.RoomVersion, Layout.StartRoomMapId);
+            ((AltarProbe)(object)altars).State = state;
+            return Task.CompletedTask;
+            });
+            await Outbound.Services.GetRequiredService<ICommandBus>().SendInternalAsync(
+                new AdvanceAltarDeadlineCommand(new(runId, runs.Find(runId)!.RoomVersion, 0, DateTimeOffset.UtcNow)),
+                new(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
+                    Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "timer:AltarScheduler/deadline"));
         }
 
         public ValueTask DisposeAsync() => Outbound.DisposeAsync();
@@ -133,6 +153,17 @@ public sealed class AltarProjectionFailureTests
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0), 8153, 7,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153) });
+    }
+
+    public class AltarProbe : DispatchProxy
+    {
+        internal AltarDungeonState? State;
+        protected override object? Invoke(MethodInfo? method, object?[]? args) => method?.Name switch
+        {
+            nameof(IAltarDungeonDomainService.Find) => State,
+            nameof(IAltarDungeonDomainService.AdvanceAsync) => ValueTask.FromResult<AltarActionResult?>(new(State!)),
+            _ => throw new NotSupportedException(method?.Name),
+        };
     }
 
     private sealed record AltarProbeRule(CharacterId? Failing);

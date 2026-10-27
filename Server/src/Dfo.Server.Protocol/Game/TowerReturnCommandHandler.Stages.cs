@@ -49,11 +49,14 @@ using Dfo.Server.Protocol.Game.Party;
 
 internal partial class TowerReturnCommandHandler
 {
+    private readonly ExactSessionClosure closeTargets = new();
+
     internal async ValueTask ProjectBossTowerPartyDepartureAsync(CommandExecutionContext execution, BossTowerActionResult action,
         SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token)
     {
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session).Append(returning).OfType<SelectedSessionIdentity>());
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var participants = captured.Members.Select(member => member.Session)
             .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
@@ -82,7 +85,7 @@ internal partial class TowerReturnCommandHandler
             var entries = await BossTowerActionProjection.BossTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, false).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
     internal async ValueTask ProjectIllusionTowerPartyDepartureAsync(CommandExecutionContext execution, TowerActionResult action,
@@ -90,6 +93,7 @@ internal partial class TowerReturnCommandHandler
     {
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session).Append(returning).OfType<SelectedSessionIdentity>());
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var participants = captured.Members.Select(member => member.Session)
             .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
@@ -112,7 +116,7 @@ internal partial class TowerReturnCommandHandler
             var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.DungeonId == 11000).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
     internal async ValueTask<bool> ReturnBossTowerRunAsync(CommandExecutionContext execution, ReturnBossTowerRunCommand command, CancellationToken token)
@@ -121,6 +125,7 @@ internal partial class TowerReturnCommandHandler
         if (expected is null || expected.RunId != command.Context.RunId || expected.Room.Version != command.Context.RoomVersion
             || !(expected.Completion is { Settled: true } && expected.ReturnDueAt is { } due && due <= command.CapturedAt
                 || expected.Completion is null && expected.Room.Phase == TowerRoomPhase.Loading && expected.LoadDueAt <= command.CapturedAt)) return false;
+        closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
         var frozen = BossTowerActionProjection.BossTowerExactMembers(sessions, bossTowers, expected);
         if (frozen.Count == 0) return false;
         var owners = BossTowerActionProjection.BossTowerMembers(expected);
@@ -129,7 +134,7 @@ internal partial class TowerReturnCommandHandler
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var entries = await BossTowerActionProjection.BossTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, frozen, null, failures, CancellationToken.None, false).ConfigureAwait(false);
         await ReturnTownIsolatedAsync(entries, failures, CancellationToken.None).ConfigureAwait(false);
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, expected.RunId).ConfigureAwait(false);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
 
@@ -138,6 +143,7 @@ internal partial class TowerReturnCommandHandler
         var expected = illusionTowers.Find(command.Context.Session);
         if (expected is null || expected.RunId != command.Context.RunId || expected.Room.Version != command.Context.RoomVersion
             || expected.ReturnDueAt is not { } due || due > command.CapturedAt) return false;
+        closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
         var frozen = IllusionTowerActionProjection.IllusionTowerExactMembers(sessions, illusionTowers, expected);
         if (frozen.Count == 0) return false;
         var owners = expected.Members.Select(member => member.Session).ToArray();
@@ -148,21 +154,12 @@ internal partial class TowerReturnCommandHandler
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, frozen, response, failures, token, expected.DungeonId == 11000).ConfigureAwait(false);
         await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, expected.RunId).ConfigureAwait(false);
+        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
 
-    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session)
-    {
-        NetworkConnectionContext? connection = null;
-        if (onlineUsers.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null)
-        {
-            if (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId)
-                throw new InvalidOperationException("The tower participant connection no longer owns the captured character.");
-            connection = user.Connection;
-        }
-        return new(session, connection);
-    }
+    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session) =>
+        GameParticipantCapture.Capture(onlineUsers, session);
 
     private SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
         SelectedSessionIdentity reporter) => participants.Select(session => session == reporter

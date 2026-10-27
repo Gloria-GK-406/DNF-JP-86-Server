@@ -112,7 +112,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         byte weaknessValue = 19,
         long roomVersion = 0,
         bool mirror = false,
-        UsageQuotaProjectionDelivery? quotaProjection = null)
+        TestCommandProjections? quotaProjection = null)
     {
         var participant = new DungeonRunParticipant(
             Current.AccountId, Current.CharacterId, Slot: 0, IsLeader: true);
@@ -148,7 +148,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             sessions,
             runs,
             registry,
-            new WeaknessProjectionDelivery(new WeaknessState(weaknessValue), sessions, sender), quotaProjection);
+            new WeaknessState(weaknessValue), sender, quotaProjection);
         return new TestWorld(delivery, sessions, runs, runs, sender);
     }
 

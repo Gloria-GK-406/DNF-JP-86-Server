@@ -73,9 +73,8 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     private async ValueTask<(IReadOnlyList<StoredTitleBookItem> Rows, ItemIdentity? EquippedSource)> ReadClientProjectionAsync(CharacterId character, CancellationToken ct)
     {
         var rows = await titlePersistence.ReadTitlesAsync(character, ct);
-        var worn = await new AmbientStoreAccess(transactions).ReadAsync(items,
-            session => session.GetAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, ct));
-        return (rows, worn?.Snapshot.IsMirror == true ? worn.Snapshot.MirrorSourceUid : null);
+        var source = await titlePersistence.ReadWearSourceAsync(character, ct);
+        return (rows, source);
     }
     private async ValueTask<IReadOnlySet<int>> GetUnlockedAchievementIdsAsync(CharacterId character, CancellationToken ct)
     {

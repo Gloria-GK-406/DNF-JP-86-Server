@@ -41,7 +41,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 towers, new EntryCommands(towers, requester, member), sessions, new EntryParties(roster), views,
                 new SameState(), null!, null!, new Intents(), outbound.Game,
                 TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game), TimeProvider.System, outbound.Closer,
-                NullLogger<BossTowerProjectionDriver>.Instance, ordering: outbound.Ordering);
+                NullLogger<BossTowerProjectionDriver>.Instance, ordering: outbound.Ordering, onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context));
 
             Assert.True(await delivery.EnterAsync(
                 requester.ConnectionId, requester, roster, DungeonEntryIntent.Interactive, () => { }, CancellationToken.None));
@@ -130,7 +130,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.BossLegacy(
                 towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(null!, sessions, views, null!, null!, outbound.Game, null!),
-                TimeProvider.System, outbound.Closer, NullLogger<BossTowerProjectionDriver>.Instance);
+                TimeProvider.System, outbound.Closer, NullLogger<BossTowerProjectionDriver>.Instance, onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context));
             await delivery.ProjectCommittedDepartureAsync(towers.Leave(leaving), returning: null, response: null, CancellationToken.None);
         });
         await outbound.SettledAsync();
@@ -152,7 +152,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             towers, new EntryCommands(towers, requester, member), sessions, new EntryParties(roster), views,
             new SameState(), null!, null!, new Intents(), outbound.Game,
             TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game), TimeProvider.System, outbound.Closer,
-            NullLogger<BossTowerProjectionDriver>.Instance, ordering: outbound.Ordering);
+            NullLogger<BossTowerProjectionDriver>.Instance, ordering: outbound.Ordering, onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context));
         return await delivery.EnterAsync(
             requester.ConnectionId, requester, roster, DungeonEntryIntent.Interactive, () => { }, CancellationToken.None);
     }

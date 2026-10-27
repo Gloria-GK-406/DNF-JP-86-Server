@@ -201,10 +201,10 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 |---|---|---|
 | 身份（槽位、名字、职业、成长型） | 角色实例 `ICharacter.IdentityAsync` | 道具可用性判定（`PlayingCharacter.CanUseAsync`）。实例从 `characters` 行现读，不再向会话要 |
 | 坐标 | `IOnlineCharacterRuntimeDomainService`（与血蓝、冷却、灵药同一条运行时记录） | 城镇投影、选图、离开副本、两塔、婚礼、传送道具、GM 运行时查询、拆除时落库；持有自己会话的调用方按会话精确读取 |
-| 任务 | 既有的任务簿实例 `ICharacterQuestLogDomainService` | 进本时收集迷宫筛选用的 facts（`DungeonEntrySlice.cs:477-483`） |
+| 任务 | 既有的任务簿实例 `ICharacterQuestLogDomainService` | 进本时经 `GameSelectDungeonCommandHandler` 收集迷宫筛选用的 facts |
 | 设置（热键、选项位图、可见位） | `ICharacterSettingsDomainService` | **零个。刻意的，见下。** |
 | 暗骑连招页 | `IDarkKnightComboDomainStore` + `IDarkKnightComboBook` | **零个。刻意的，见下。** |
-| 疲劳 | `ICharacterFatigueDomainService` | 进本处报告消耗（`DungeonEntrySlice.cs:509-511`）。**接缝不记账，见下。** |
+| 疲劳 | `ICharacterFatigueDomainService` | 由 `DungeonVisitDomainService` 在入场和首次进入新房间时记账。 |
 
 会话是否已发布（进入世界）是在线身份上选中会话记录的阶段，用 `ISelectedSessionDomainService.IsInWorld`
 精确查询（见下文「会话还有没有效」）；是否落库位置不存储，拆除时由会话频道（`!IsTransient`）推导。
@@ -708,7 +708,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
    原文写：目标列写成 `Avatar`(=1) 而非 `Equipment`(=3) 时请求会被拒为 `ListNotServed`、
    记录读作 `item 0 …->N`。装扮栏接进 `MoveItemSpace` 之后**不再有这一行拒绝**——
    但**不是因为它改走了 `PutOnAsync`**。`PutOnAsync` 的入口条件是**目标列 == 3**
-   （`MoveItemSpaceSlice.cs` 的 `HandleAsync`）；目标列 == 1 走的是 `CarryAcrossAsync`，
+   （`GameMoveItemSpaceCommandHandler` 的 `HandleAsync`）；目标列 == 1 走的是 `CarryAcrossAsync`，
    **一件时装会被真的搬进装扮栏，`Moved`，没有任何拒绝行**
    （判据 `A_costume_moves_from_the_bag_back_into_the_avatar_list`）。
    非时装或越界槽则得 `ItemCannotOccupySlot`，**那一行带模板号**。
@@ -783,8 +783,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
   EXIT 与 Channel Connect 均由协议 CMD 登记纯协议响应，不修改领域状态。
   ScriptVersion、Script、Info 三个命令曾直接读基础设施内容源，现已改为经
   `IChannelDirectoryDomainService` → `IChannelContentRuleService` 取得，目录与脚本同一个所有者。
-- 登录失败目前**无法编码**（sender 对失败体直接抛异常），失败以服务器内部
-  异常形态存在，客户端看不到错误。
+- 登录拒绝目前不编码失败体：协议 CMD 记录具名 Warning 并关闭精确来源连接，客户端看不到错误码。
 - **修改协议 handler 前检查具体行为覆盖。** 历史的“48 个 handler、19 个无测试”清单已失效；
   `GetItemHandler`、`MoveMapHandler`、`GiveUpGameHandler` 等已有测试。
   类名搜索只能定位候选测试，不能证明覆盖充分。重点检查当前事实读取、事务结果、
@@ -869,7 +868,7 @@ item 413560000 from list 1 slot 1 to list 3 slot 1
 | `*Query` / `*Reader` | 只读投影/查询 | 只读，不改世界状态 |
 | `*Decoder` / `*Encoder` / `*Sender` / `*Dispatcher` / `*Handler` / `*Observer` / `*Closer` | 传输与协议 | 各自后缀已表明 |
 | `*Module` | 组合根接线 | `IServerModule`，只注册不执行业务 |
-| `IGameplayQueue`（按名字认，不按后缀） | 入队点 | 把一个作业交给执行器，作业执行完返回的任务才完成。只由生产者调用；在执行器上调用并等待即自我等待，以程序错误失败。命令处理器注入不了它：注入面判据按后缀判定，它不在放行之列 |
+| `IGameplayQueue`（按名字认，不按后缀） | 执行器机制 | 由 `CommandBus` 等机制将 typed CMD 变成作业；生产者经总线提交，不注入 CMD handler。在执行器上调用并等待即自我等待，以程序错误失败 |
 
 判断一个进程内容器属于哪一边，看**接口说的是领域动作还是容器动作**，而不是看它内部有没有用字典。会话、在场、摆摊、PvP 大厅四处都在内存里保存运行态，但它们对外只回答领域问题（谁在这个区域、这个角色有没有摊开着、哪些房间已公告），所以它们是领域服务；字典是实现细节。反过来，一个对外暴露「取出来、改一改、塞回去」的类型不会因为改个名字就变成领域服务。
 

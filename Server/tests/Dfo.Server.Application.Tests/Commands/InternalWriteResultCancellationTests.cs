@@ -50,7 +50,7 @@ public sealed class InternalWriteResultCancellationTests
             .Where(x => x.InternalActionCancellation == InternalActionCancellationCapability.ConfirmedRollbackWriteResult).ToArray();
         Assert.All(owners, x => Assert.Equal(CommandRouteKind.Internal, x.Route));
         Assert.Equal(new[] { "AdvanceAltarDeadlineCommand", "AdvanceCreatureTickCommand", "AdvanceWeddingTickCommand", "ConsumeDomainEventCommand",
-            "MaintainAltarCommand", "MaintainDungeonReturnsCommand", "ReturnDungeonRunCommand", "ScheduledGameplayTaskCommand",
+            "MaintainAltarCommand", "ReturnDungeonRunCommand", "ScheduledGameplayTaskCommand",
             "SweepTournamentCandidateCommand", "SweepTournamentRewardsCommand" }, owners.Select(x => x.CommandType.Name).Order());
     }
     private sealed record Probe : ICommand<bool>;

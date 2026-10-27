@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
+// These current-owner guards validate isolated fixture setup; production admission is covered by the wire flow tests.
 internal static class AvatarCompoundDomainTestDriver
 {
     public static Task<AvatarCompoundResult> Compound(ShopFixture host, SelectedSessionIdentity owner, AvatarCompoundInput input) =>

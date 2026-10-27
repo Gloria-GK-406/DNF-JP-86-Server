@@ -30,6 +30,17 @@ public sealed class AvatarCompoundProtocolCommandFlowTests(ITestOutputHelper out
     private const string ActionDdl = "CREATE TRIGGER compound_fault BEFORE DELETE ON item_slots BEGIN SELECT RAISE(ABORT,'compound action SQL failure'); END;";
     private const string NativeDdl = "CREATE TABLE compound_parent(id INTEGER PRIMARY KEY); CREATE TABLE compound_child(id INTEGER REFERENCES compound_parent(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER compound_fault AFTER INSERT ON items WHEN NEW.avatar_expire_date IS NOT NULL BEGIN INSERT INTO compound_child VALUES(404); END;";
 
+    [Fact]
+    public async Task Replacing_the_admitted_actor_before_the_whole_preserves_both_avatars_and_material()
+    {
+        var trace = new Trace(); using var f = Fixture(trace); await AvatarCompoundTests.Seed(f);
+        var before = await Assets(f); trace.Before = () => TestSessions.ReselectOnSameConnection(f.Services.GetRequiredService<ISelectedSessionDomainService>(), f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(), f.Session);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => EffectRequestTransport.Send(f, Input()).AsTask());
+        Assert.Empty(trace.Attempts); Assert.Empty(f.Sender.Messages);
+        Assert.Equal(before, await Assets(f));
+        Assert.Same(f.Connection, Assert.Single(f.Sender.Outbound.Entries, e => e.IsClose).Connection);
+    }
+
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public async Task Old_and_new_compound_wire_keep_action_SQL_or_native_Commit_failure_ack_and_original_entry_retry(bool nativeCommit)

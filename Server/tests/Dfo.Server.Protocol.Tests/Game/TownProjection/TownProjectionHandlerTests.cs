@@ -261,7 +261,7 @@ public sealed class TownProjectionHandlerTests
             var previous = ((ITownAreaDomainService)presence).Find(Identity.CharacterId)!;
             var moved = positions.CrossInto(Identity, CrossedTownId, CrossedAreaId, CrossedX, CrossedY);
             await TownMovementProjection.TownTransferAsync(
-                sessions, presence, new LegacyCommandProjections(notifications), partyProjection,
+                sessions, presence, new global::Dfo.Server.Testing.TestCommandProjections(notifications), partyProjection,
                 currentViews, Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
                 new Dfo.Server.Testing.ProtocolAlgorithmFixture.Outbox(sender),
                 Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(),

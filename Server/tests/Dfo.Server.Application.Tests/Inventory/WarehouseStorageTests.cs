@@ -81,7 +81,7 @@ public sealed class WarehouseStorageTests
     }
 
     [Fact]
-    public async Task Gold_transfer_is_exact_bounded_and_rejects_stale_sessions()
+    public async Task Gold_transfer_is_exact_bounded_and_the_domain_fixture_requires_a_current_owner()
     {
         using var host = Fixture();
         host.Sql($"UPDATE characters SET level=60,exp={host.ExperienceForLevel(60)}; UPDATE character_stats SET carried_gold=20000000; INSERT INTO account_cargo_state(account_id,selection_key,value32) VALUES(1,1,9999999);");

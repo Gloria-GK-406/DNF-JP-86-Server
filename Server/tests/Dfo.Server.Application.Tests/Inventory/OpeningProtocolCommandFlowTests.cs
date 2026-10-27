@@ -46,6 +46,20 @@ public sealed class OpeningProtocolCommandFlowTests(ITestOutputHelper output)
         + "WHEN NEW.slot_index<>80 AND NEW.slot_index<>120 BEGIN SELECT RAISE(ABORT,'opening reward action SQL failure'); END;";
 
     [Theory]
+    [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
+    public async Task Replacing_the_admitted_actor_before_the_whole_never_opens_or_consumes(int protocol)
+    {
+        var trace = new Trace(); using var opening = new OpeningFixture(services => Configure(services, trace)); var f = opening.Host;
+        var source = protocol == 1 ? 1002 : protocol >= 2 ? 1000 : 1001;
+        await f.Seed(80, source, 2); if (protocol >= 2) await f.Seed(120, 2000, 2);
+        var before = Assets(f); trace.Before = () => TestSessions.ReselectOnSameConnection(f.Services.GetRequiredService<ISelectedSessionDomainService>(), f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(), f.Session);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => EffectRequestTransport.Send(f, Input(protocol)).AsTask());
+        Assert.Empty(trace.Attempts); Assert.Empty(f.Sender.Messages);
+        Assert.Equal(before, Assets(f));
+        Assert.Same(f.Connection, Assert.Single(f.Sender.Outbound.Entries, e => e.IsClose).Connection);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Real_action_SQL_and_native_Commit_failures_keep_the_protocol_rollback_ack_and_same_entry_retry(bool nativeCommit)

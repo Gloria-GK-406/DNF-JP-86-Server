@@ -35,9 +35,9 @@ using Xunit.Abstractions;
 namespace Dfo.Server.Application.Tests.Achievements;
 
 // Registered decoder/dispatcher, actual title/achievement/attendance domains and SQLite,
-// production registration/encoders. Content inputs and physical transport are controlled; QueryRows
-// substitutes the broken readonly title projection only for protocol gates, and EventView keeps the
-// actual attendance read while omitting other events. The Host suite exercises the full event projection.
+// production registration/encoders. Content inputs and physical transport are controlled.
+// The title query uses its actual read-only persistence path. EventView keeps the actual attendance
+// read while omitting other events; the Host suite exercises the full event projection.
 public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
 {
     private static readonly string[] Fine = ["StoreTitleCommand", "WithdrawTitleCommand", "EquipCarriedTitleReplacingMirrorCommand", "QueryTitleBookCommand", "SetTitleAppearanceCommand", "ReconcileAchievementCommand", "ClaimWeeklyAttendanceCommand"];
@@ -195,13 +195,26 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task Production_title_query_keeps_the_existing_readonly_lifecycle_rejection_without_frames()
+    public async Task Production_title_query_reads_real_titles_without_mutation_or_closing_the_connection()
     {
-        var trace = new Trace { ActualQuery = true }; using var f = await Create(3, trace);
-        var failure = Assert.IsType<InvalidOperationException>(await Record.ExceptionAsync(() => Send(f, 3).AsTask()));
-        Assert.Equal("A read-only query cannot enlist a writable state participant.", failure.Message);
-        Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, Assert.Single(trace.Transactions).Completion);
-        Assert.Empty(f.Sender.Outbound.Frames); Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection)); Declaration(f, trace, 3);
+        await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
+        var trace = new Trace(); using var f = await Create(3, trace, delivery);
+        var physical = delivery.Add(f.Connection);
+        var before = Assets(f);
+        await Send(f, 3);
+        await delivery.Settled();
+        Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(trace.Transactions).Completion);
+        Assert.Equal(before, Assets(f));
+        var frames = Split(physical.Sends).ToArray();
+        Assert.Equal(ExpectedFrames(3), frames.Select(Type));
+        Assert.All(frames, x => {
+            Assert.Equal((byte)1, x[15]);
+            Assert.Equal((ushort)3, BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(16)));
+        });
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(frames[4].AsSpan(22)));
+        Assert.Equal(0, physical.CloseCalls);
+        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        Declaration(f, trace, 3);
     }
 
     [Fact]
@@ -300,7 +313,7 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
     }
     private static IEnumerable<byte[]> Split(IEnumerable<byte[]> sends) { foreach (var bytes in sends) for (var at = 0; at < bytes.Length;) { var n = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(at + 3)); yield return bytes[at..(at + n)]; at += n; } }
 
-    public sealed class Trace { internal bool Armed, SqlFault, ActualQuery, ResultMapping, DomainReturned; internal Exception? Inject, Failure, ScopeFailure, MappingFailure; internal Action? AfterDomain, AfterUnit; internal ItemSnapshot? Original; internal SelectedSessionIdentity? Target; internal List<DomainTransaction> Transactions = []; internal List<SelectedSessionIdentity> Discarded = []; internal List<(bool, CommandWorkUnitDeclaration)> Units = []; }
+    public sealed class Trace { internal bool Armed, SqlFault, ResultMapping, DomainReturned; internal Exception? Inject, Failure, ScopeFailure, MappingFailure; internal Action? AfterDomain, AfterUnit; internal ItemSnapshot? Original; internal SelectedSessionIdentity? Target; internal List<DomainTransaction> Transactions = []; internal List<SelectedSessionIdentity> Discarded = []; internal List<(bool, CommandWorkUnitDeclaration)> Units = []; }
     public class DomainProbe : DispatchProxy {
         internal object Actual = null!; internal IServiceProvider Services = null!; internal Trace Trace = null!; internal string Method = "";
         protected override object? Invoke(MethodInfo? method, object?[]? args) => method!.Name != Method || !Trace.Armed ? Call(method, args) : typeof(DomainProbe).GetMethod(nameof(Observe), BindingFlags.NonPublic | BindingFlags.Instance)!.MakeGenericMethod(method.ReturnType.GenericTypeArguments[0]).Invoke(this, [method, args]);
@@ -309,18 +322,10 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
             Trace.Transactions.Add((DomainTransaction)Services.GetRequiredService<IDomainTransactionAccessor>().Current!);
             try {
                 if (Trace.Inject is { } cause) throw cause;
-                var result = Method == "GetAsync" && !Trace.ActualQuery
-                    ? (T)(object)await QueryRows((CharacterId)args[0]!) : await (ValueTask<T>)Call(method, args)!;
+                var result = await (ValueTask<T>)Call(method, args)!;
                 if (Trace.SqlFault) await Services.GetRequiredService<SqliteDatabase>().ExecuteAsync("INSERT INTO task53_fault VALUES(404)", _ => { }, default);
                 Trace.DomainReturned = true; Trace.AfterDomain?.Invoke(); return result;
             } catch (Exception failure) { Trace.Failure = failure; throw; }
-        }
-        private async ValueTask<IReadOnlyList<CharacterTitleBookCategoryState>> QueryRows(CharacterId character) {
-            // Read-only projection seam: production GetAsync currently enlists a writable lifecycle participant.
-            // This alternate reader tests protocol listener/current/participant gates, not that broken domain path.
-            var rows = await Services.GetRequiredService<ITitleBookPersistence>().ReadTitlesAsync(character, default);
-            return Enumerable.Range(0, 5).Select(c => new CharacterTitleBookCategoryState((byte)c, 0, 0,
-                rows.Where(x => x.Category == c).Select(x => new CharacterTitleBookEntryState((ushort)x.Index, x.Item.ItemId, x.Item.InstanceValue, x.Item.Attribute, x.Item.Durability, x.Item.SealFlag, x.Item.EnchantCardId, x.Item.EnchantUpgradeCount, x.Item.AmplifyType, x.Item.AmplifyValue)).ToArray())).ToArray();
         }
         internal static void Add<T>(IServiceCollection s, Trace trace, string method) where T : class { var d = s.Last(x => x.ServiceType == typeof(T)); s.AddSingleton<T>(p => { var proxy = Create<T, DomainProbe>(); var spy = (DomainProbe)(object)proxy; spy.Actual = TitleProtocolCommandFlowTests.Actual(d, p); spy.Services = p; spy.Trace = trace; spy.Method = method; return proxy; }); }
     }

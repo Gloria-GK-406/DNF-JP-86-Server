@@ -45,12 +45,31 @@ using System.Collections.Immutable;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
-internal static class ExactSessionClosure
+/// <summary>Physical recipients captured before this command starts asynchronous tower work.</summary>
+internal sealed class ExactSessionClosure
 {
-    internal static ValueTask RequestAsync(IOnlineUserQueryDomainService users, ICommandConnectionClosures closures,
-        SelectedSessionIdentity session) => users.TryGetByConnection(session.ConnectionId, out var user)
-        && user is not null && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId
-        ? closures.RequestCloseAsync(user.Connection, CancellationToken.None) : ValueTask.CompletedTask;
+    private readonly Dictionary<SelectedSessionIdentity, NetworkConnectionContext?> targets = [];
+
+    internal void Capture(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
+        IEnumerable<SelectedSessionIdentity> recipients)
+    {
+        foreach (var session in recipients.Distinct())
+        {
+            if (targets.ContainsKey(session)) continue;
+            NetworkConnectionContext? physical = null;
+            if (sessions.IsInWorld(session)
+                && users.TryGetByConnection(session.ConnectionId, out var user) && user is not null
+                && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId)
+                physical = user.Connection;
+            // A failed initial capture is final too: later projections must not bind a replacement.
+            targets.Add(session, physical);
+        }
+    }
+
+    internal ValueTask RequestAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, SelectedSessionIdentity session) =>
+        sessions.IsInWorld(session) && targets.TryGetValue(session, out var physical) && physical is not null
+            ? closures.RequestCloseAsync(physical, CancellationToken.None) : ValueTask.CompletedTask;
+
 }
 internal static class TownWeaknessProjection
 {

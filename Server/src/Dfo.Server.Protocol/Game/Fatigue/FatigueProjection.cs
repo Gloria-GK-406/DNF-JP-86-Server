@@ -29,13 +29,3 @@ internal sealed class FatigueEncoder : GameNotiMessageEncoder<FatigueNotificatio
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(FatigueNotification message) =>
         OnePayload(0x0024, Body(message.Balance));
 }
-public sealed class FatigueProjectionDelivery(ICharacterFatigueDomainService fatigue,
-    ISelectedSessionDomainService sessions, IGameMessageSender sender)
-{
-    public async ValueTask SendAsync(SelectedSessionIdentity session, CancellationToken token)
-    {
-        var balance = await fatigue.BalanceOfAsync(session.CharacterId, token).ConfigureAwait(false);
-        if (!sessions.IsInWorld(session)) return;
-        await sender.SendNotiAsync(session.ConnectionId, new FatigueNotification(balance), token).ConfigureAwait(false);
-    }
-}

@@ -122,7 +122,7 @@ public sealed class MagicSealGradeTests
     }
 
     [Fact]
-    public async Task Quickslot_material_is_consumed_and_stale_session_cannot_reroll()
+    public async Task Quickslot_material_is_consumed_and_the_domain_fixture_rejects_an_old_owner()
     {
         using var f = Fixture(); await Seed(f); await f.Seed(3, 4000, 1);
         var owner = f.Session;

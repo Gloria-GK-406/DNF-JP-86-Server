@@ -283,7 +283,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
             {
                 main = (request as CommandRequestContext.ProtocolEffectSelected)?.State
                     ?? throw new InvalidOperationException("Main requires a selected effect request.");
-                footprint = main.BeginMain(participants, readOnly);
+                footprint = main.BeginMain(request, participants, readOnly);
             }
             request.BeginUnit(); began = true;
             var transaction = lease = transactions.Begin(readOnly);

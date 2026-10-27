@@ -49,11 +49,14 @@ using Dfo.Server.Protocol.Game.Party;
 
 internal sealed partial class GameDungeonSelectionCommandHandler
 {
+    private readonly ExactSessionClosure closeTargets = new();
+
     internal async ValueTask ProjectBossTowerPartyDepartureAsync(CommandExecutionContext execution, BossTowerActionResult action,
         SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token)
     {
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session).Append(returning).OfType<SelectedSessionIdentity>());
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var participants = captured.Members.Select(member => member.Session)
             .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
@@ -82,7 +85,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             var entries = await BossTowerActionProjection.BossTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, false).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
     internal async ValueTask ProjectIllusionTowerPartyDepartureAsync(CommandExecutionContext execution, TowerActionResult action,
@@ -90,6 +93,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
     {
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session).Append(returning).OfType<SelectedSessionIdentity>());
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var participants = captured.Members.Select(member => member.Session)
             .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
@@ -112,20 +116,11 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.DungeonId == 11000).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
-    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session)
-    {
-        NetworkConnectionContext? connection = null;
-        if (onlineUsers.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null)
-        {
-            if (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId)
-                throw new InvalidOperationException("The tower participant connection no longer owns the captured character.");
-            connection = user.Connection;
-        }
-        return new(session, connection);
-    }
+    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session) =>
+        GameParticipantCapture.Capture(onlineUsers, session);
 
     private SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
         SelectedSessionIdentity reporter) => participants.Select(session => session == reporter

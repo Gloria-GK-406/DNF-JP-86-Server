@@ -238,7 +238,7 @@ public sealed class EquipmentQualityTests
         Assert.Single(results, x => x.Receipt is not null); Assert.Equal(0, f.Count(4000));
     }
     [Fact]
-    public async Task Stale_session_cannot_reroll_or_consume()
+    public async Task Domain_fixture_rejects_an_old_owner_before_running_the_reroll()
     {
         using var f = Fixture(); await Seed(f); var owner = f.Session; f.Select(2);
         await Assert.ThrowsAnyAsync<Exception>(async () => await Roll(f, owner: owner));

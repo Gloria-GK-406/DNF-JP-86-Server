@@ -41,7 +41,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 new StubParties((Leader, snapshot), (Member, snapshot)),
                 MovedPresence(),
                 new FixedSelectedSessions(),
-                bus,
+                new global::Dfo.Server.Testing.TestCommandProjections(bus),
                 new PartyProjectionStreamRegistry());
 
             await delivery.RefreshMovedPartyAsync(
@@ -87,7 +87,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 parties,
                 Presence(),
                 new FixedSelectedSessions(),
-                bus,
+                new global::Dfo.Server.Testing.TestCommandProjections(bus),
                 new PartyProjectionStreamRegistry());
 
             await delivery.RefreshObservedPartiesAsync(
@@ -116,7 +116,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 new StubParties((Leader, Snapshot(revision: 3))),
                 Presence(),
                 new FixedSelectedSessions(),
-                currentBus,
+                new global::Dfo.Server.Testing.TestCommandProjections(currentBus),
                 streams);
 
             await current.RefreshObservedPartiesAsync(
@@ -130,7 +130,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 new StubParties((Leader, Snapshot(revision: 3))),
                 Presence(),
                 new FixedSelectedSessions(),
-                staleBus,
+                new global::Dfo.Server.Testing.TestCommandProjections(staleBus),
                 streams);
 
             await stale.RefreshObservedPartiesAsync(
@@ -151,7 +151,7 @@ public sealed class PartyTownProjectionDeliveryTests
                 new StubParties((Leader, snapshot)),
                 Presence(),
                 new FixedSelectedSessions(),
-                bus,
+                new global::Dfo.Server.Testing.TestCommandProjections(bus),
                 new PartyProjectionStreamRegistry());
 
             await delivery.RefreshObservedPartiesAsync(
@@ -185,7 +185,7 @@ public sealed class PartyTownProjectionDeliveryTests
             bus.Publications.Clear();
 
             var town = new PartyTownProjectionDelivery(
-                new MutableParties(Member, newSnapshot), presence, sessions, bus, streams);
+                new MutableParties(Member, newSnapshot), presence, sessions, new TestCommandProjections(bus), streams);
             await town.RefreshMovedPartyAsync(Member, Character(Member).DirectoryScope,
                 CancellationToken.None);
             await mutation.DeliverAsync(

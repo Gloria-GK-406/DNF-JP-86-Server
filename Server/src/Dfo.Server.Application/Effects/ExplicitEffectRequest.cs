@@ -10,22 +10,23 @@ namespace Dfo.Server.Application.Effects;
 internal sealed class ExplicitEffectRequest(EffectOperationEntry entry, SelectedSessionRecipient recipient,
     ReplayProjectionNeeds minimum, SelectedSessionSafety safety, bool replay = false)
 {
-    internal CommandRequestContext Request { private get; set; } = null!;
     internal EffectOperationEntry Entry { get; } = entry;
     internal SelectedSessionRecipient Recipient { get; } = recipient;
     internal bool IsReplay { get; } = replay;
     private readonly EffectFootprintProjection projection = new(minimum);
     private bool mainClaimed, mainActive, transactionStarted, frozen, settled, replayCommitted;
     internal void DemandRecipient() => safety.DemandCurrent(Recipient);
-    internal IEffectFootprintRecorder BeginMain(IReadOnlyList<SelectedSessionRecipient> participants, bool readOnly)
+    internal IEffectFootprintRecorder BeginMain(CommandRequestContext request, IReadOnlyList<SelectedSessionRecipient> participants, bool readOnly)
     {
+        if (request is not CommandRequestContext.ProtocolEffectSelected selected || !ReferenceEquals(selected.State, this))
+            throw new InvalidOperationException("The Main footprint requires its owning explicit request.");
         if (readOnly || IsReplay || mainClaimed)
             throw new InvalidOperationException("An effect request allows exactly one writable Main settlement.");
         mainClaimed = true;
         if (!participants.Any(p => p.Session == Recipient.Session && ReferenceEquals(p.Connection, Recipient.Connection)))
             throw new InvalidOperationException("The Main participants omit the effect reporter.");
         mainActive = true;
-        return new ExplicitEffectFootprint(this);
+        return new ExplicitEffectFootprint(this, request);
     }
     internal void TransactionStarted() => transactionStarted = true;
     internal void Freeze()
@@ -64,30 +65,30 @@ internal sealed class ExplicitEffectRequest(EffectOperationEntry entry, Selected
             }))
             throw new InvalidOperationException("The registration exit requires its exact committed effect stage and connection.");
     }
-    private void Demand(SelectedSessionIdentity owner)
+    private void Demand(CommandRequestContext request, SelectedSessionIdentity owner)
     {
-        Request.DemandCurrent();
+        request.DemandCurrent();
         if (!mainActive || !transactionStarted || frozen || owner != Recipient.Session)
-            Reject("The footprint requires the live owner and Main transaction.");
+            Reject(request, "The footprint requires the live owner and Main transaction.");
     }
-    private void Reject(string message)
+    private static void Reject(CommandRequestContext request, string message)
     {
         var error = new InvalidOperationException(message);
-        Request.Failed(error);
+        request.Failed(error);
         throw error;
     }
-    private sealed class ExplicitEffectFootprint(ExplicitEffectRequest state) : IEffectFootprintRecorder
+    private sealed class ExplicitEffectFootprint(ExplicitEffectRequest state, CommandRequestContext request) : IEffectFootprintRecorder
     {
         public void DemandEffects(EffectFootprintOwner owner)
         {
             ArgumentNullException.ThrowIfNull(owner);
-            state.Demand(owner.Session ?? throw new InvalidOperationException("The footprint requires its selected owner."));
+            state.Demand(request, owner.Session ?? throw new InvalidOperationException("The footprint requires its selected owner."));
             if (owner.AccountId != state.Recipient.Session.AccountId || owner.CharacterId != state.Recipient.Session.CharacterId)
-                state.Reject("The footprint owner differs from its selected session.");
+                Reject(request, "The footprint owner differs from its selected session.");
         }
         public void RecordEffects(EffectFootprintOwner owner, IReadOnlyList<AppliedEffect> applied)
         { ArgumentNullException.ThrowIfNull(applied); DemandEffects(owner); state.projection.RecordEffects(applied); }
-        public void DemandActive(SelectedSessionIdentity owner) { ArgumentNullException.ThrowIfNull(owner); state.Demand(owner); }
+        public void DemandActive(SelectedSessionIdentity owner) { ArgumentNullException.ThrowIfNull(owner); state.Demand(request, owner); }
         public void RecordInventorySlots(SelectedSessionIdentity owner, IReadOnlyList<BusinessSlot> slots)
         { ArgumentNullException.ThrowIfNull(slots); DemandActive(owner); state.projection.Needs |= ReplayProjectionNeeds.Inventory; foreach (var slot in slots) state.projection.Slots.Add(slot); }
         public void RecordRentalState(SelectedSessionIdentity owner)

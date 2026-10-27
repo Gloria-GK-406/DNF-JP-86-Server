@@ -139,7 +139,7 @@ public sealed class GameMailboxCommandHandler(ISelectedSessionDomainService sess
         void DemandCurrent()
         {
             if (!ReferenceEquals(((CommandRequestContext.ProtocolNonEffect)context.Request!).Dispatch.Connection, command.Dispatch.Connection)
-                || sessions.FindByConnection(connection) != session || !sessions.IsInWorld(session)
+                || !sessions.IsInWorld(session)
                 || !users.TryGetByConnection(connection, out var current) || current?.OnlineUserId != user.OnlineUserId
                 || !ReferenceEquals(current.Connection, command.Dispatch.Connection))
                 throw new MailException(MailFailure.NotOwned, "Stale mail session.");

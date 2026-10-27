@@ -118,6 +118,20 @@ public sealed class ExplicitEffectExecutionTests
         Assert.All(witness.Caps, cap => Assert.Throws<InvalidOperationException>(() => cap.RecordEffects(Owner(f), [])));
     }
 
+    [Fact]
+    public async Task Main_footprint_requires_its_own_explicit_request()
+    {
+        using var f = Fixture(new Witness(), new Replay());
+        await TestGameplay.RunAsync(f.Services, () =>
+        {
+            var owner = new EffectFixtureContext(f);
+            var foreign = new EffectFixtureContext(f);
+            Assert.Throws<InvalidOperationException>(() => owner.State.BeginMain(foreign.Request, [new(f.Session, f.Connection)], false));
+            owner.State.BeginMain(owner.Request, [new(f.Session, f.Connection)], false);
+            return Task.CompletedTask;
+        });
+    }
+
     [Theory]
     [InlineData("owner")]
     [InlineData("transaction")]
@@ -131,7 +145,7 @@ public sealed class ExplicitEffectExecutionTests
         await TestGameplay.RunAsync(f.Services, async () =>
         {
             var explicitRequest = new EffectFixtureContext(f);
-            var cap = explicitRequest.State.BeginMain([new(f.Session, f.Connection)], false);
+            var cap = explicitRequest.State.BeginMain(explicitRequest.Request, [new(f.Session, f.Connection)], false);
             await using var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin();
             if (invalid != "transaction") explicitRequest.State.TransactionStarted();
             if (invalid == "frozen") explicitRequest.State.Freeze();
@@ -320,7 +334,7 @@ public sealed class ExplicitEffectExecutionTests
             {
                 var owner = new EffectFixtureContext(f);
                 var entry = owner.Entry;
-                var cap = owner.State.BeginMain([new(f.Session,f.Connection)],false);
+                var cap = owner.State.BeginMain(owner.Request, [new(f.Session,f.Connection)],false);
                 owner.State.TransactionStarted();
                 cap.RecordEffects(Owner(f), [new(item.Effect, item.Change)]);
                 owner.State.Freeze();

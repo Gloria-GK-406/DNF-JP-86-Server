@@ -40,6 +40,17 @@ internal sealed class SqliteAchievementPersistence(SqliteDatabase database) : IA
     public ValueTask<IReadOnlyList<(int Category, int Index)>> ReadUnlockedSlotsAsync(CharacterId character, CancellationToken ct) =>
         database.ReadAllAsync("SELECT category,slot_index FROM title_book_unlocks WHERE character_id=@cid",
             p => p.AddWithValue("@cid", character.Value), r => (r.GetInt32(0), r.GetInt32(1)), ct);
+    public async ValueTask<ItemIdentity?> ReadWearSourceAsync(CharacterId character, CancellationToken ct)
+    {
+        var source = await database.ReadFirstAsync(
+            "SELECT i.mirror_source_uid FROM item_slots s JOIN items i ON i.item_uid=s.core_uid "
+            + "WHERE s.owner_scope='character' AND s.owner_id=@cid AND s.list_type=3 AND s.slot_index=13 "
+            + "AND i.is_mirror=1 AND i.mirror_source_uid IS NOT NULL",
+            p => p.AddWithValue("@cid", character.Value),
+            r => new WearSource(new ItemIdentity(checked((int)r.GetInt64(0)))), ct);
+        return source?.Identity;
+    }
+    private sealed record WearSource(ItemIdentity? Identity);
     public ValueTask<IReadOnlyList<StoredTitleBookItem>> ReadTitlesAsync(CharacterId character, CancellationToken ct) =>
         database.ReadAllAsync("SELECT s.list_type,s.slot_index,i.item_uid,i.item_core FROM item_slots s JOIN items i ON i.item_uid=s.core_uid WHERE s.owner_scope='character' AND s.owner_id=@cid AND s.list_type BETWEEN 19 AND 23 ORDER BY s.list_type,s.slot_index",
             p => p.AddWithValue("@cid", character.Value), r => new StoredTitleBookItem(r.GetInt32(0)-19,r.GetInt32(1),

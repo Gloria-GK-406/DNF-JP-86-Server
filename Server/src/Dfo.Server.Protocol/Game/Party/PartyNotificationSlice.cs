@@ -602,7 +602,7 @@ internal sealed class PartyNotificationRecipientResolver(PartyNotificationRecipi
 }
 
 public sealed class PartyNotificationDelivery(
-    IEventService notifications,
+    ICommandProjections notifications,
     PartyProjectionStreamRegistry streams,
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService townAreas,
@@ -622,11 +622,11 @@ public sealed class PartyNotificationDelivery(
         PartyNotificationPlan plan,
         PartyNotificationRecipientPlan recipients,
         CancellationToken cancellationToken) =>
-        PartyNotificationStages.DeliverPartyNotificationsAsync(new LegacyCommandProjections(notifications), streams, parties, ordering, plan, recipients, cancellationToken);
+        PartyNotificationStages.DeliverPartyNotificationsAsync(notifications, streams, parties, ordering, plan, recipients, cancellationToken);
 
     public ValueTask DeliverRealtimeAsync(
         SelectedSessionIdentity requester,
         PartySnapshot snapshot,
         CancellationToken cancellationToken) =>
-        PartyNotificationStages.DeliverPartyRealtimeAsync(new LegacyCommandProjections(notifications), streams, requester, snapshot, cancellationToken);
+        PartyNotificationStages.DeliverPartyRealtimeAsync(notifications, streams, requester, snapshot, cancellationToken);
 }

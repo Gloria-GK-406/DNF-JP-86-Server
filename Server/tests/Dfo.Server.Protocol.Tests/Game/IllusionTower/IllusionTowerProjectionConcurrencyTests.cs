@@ -359,8 +359,10 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             member => member.CharacterId == third.CharacterId);
     }
 
-    [Fact]
-    public async Task Projection_failure_does_not_close_a_replacement_selected_session()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Projection_failure_does_not_close_a_replacement_selected_session(bool samePhysicalConnection)
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -368,7 +370,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var second = Session(2);
             var replacement = second with
             {
-                ConnectionId = new NetworkConnectionId("tower-2-replacement"),
+                ConnectionId = samePhysicalConnection ? second.ConnectionId : new NetworkConnectionId("tower-2-replacement"),
                 ConnectionGeneration = 2,
             };
             var sessions = new Sessions(first, second);
@@ -542,7 +544,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
                 new SameState(), null!, null!, new Intents(), outbound.Game,
                 Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
                 TimeProvider.System, outbound.Closer,
-                NullLogger<IllusionTowerProjectionDriver>.Instance, ordering: outbound.Ordering);
+                NullLogger<IllusionTowerProjectionDriver>.Instance, ordering: outbound.Ordering, onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context));
 
             Assert.True(await delivery.EnterAsync(
                 requester.ConnectionId, requester, roster, Dfo.Server.Abstractions.World.DungeonEntryIntent.Interactive,
@@ -632,7 +634,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var delivery = Dfo.Server.Protocol.Tests.Game.DungeonEntry.TowerProjectionTestFactory.IllusionLegacy(
                 towers, new Commands(), sessions, null!, views, null!, null!, null!, new Intents(), outbound.Game,
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(null!, sessions, views, null!, null!, outbound.Game, null!),
-                TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDriver>.Instance);
+                TimeProvider.System, outbound.Closer, NullLogger<IllusionTowerProjectionDriver>.Instance, onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context));
             await delivery.ProjectCommittedDepartureAsync(towers.Leave(leaving), returning: null, response: null, CancellationToken.None);
         });
         await outbound.SettledAsync();
@@ -656,7 +658,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             new SameState(), null!, null!, new Intents(), outbound.Game,
             Dfo.Server.Protocol.Tests.Game.TownProjection.TownAreaProjectionTestFactory.Create(sessions, views, outbound.Game),
             TimeProvider.System, outbound.Closer,
-            NullLogger<IllusionTowerProjectionDriver>.Instance, ordering: outbound.Ordering);
+            NullLogger<IllusionTowerProjectionDriver>.Instance, ordering: outbound.Ordering, onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context));
         return await delivery.EnterAsync(
             requester.ConnectionId, requester, roster, Dfo.Server.Abstractions.World.DungeonEntryIntent.Interactive, () => { }, CancellationToken.None);
     }

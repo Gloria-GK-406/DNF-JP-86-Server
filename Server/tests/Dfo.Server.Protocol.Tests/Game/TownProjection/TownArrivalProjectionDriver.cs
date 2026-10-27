@@ -24,6 +24,6 @@ internal sealed class TownArrivalProjectionDriver(TownAreaProjectionDelivery del
             ProtocolAlgorithmFixture.Field<ISelectedCharacterCurrentViewDomainService>(delivery),
             ProtocolAlgorithmFixture.Field<IGameCommandOutbox>(delivery),
             ProtocolAlgorithmFixture.Field<IWeaknessDomainService>(delivery), false,
-            new LegacyCommandProjections(ProtocolAlgorithmFixture.Field<IEventService>(delivery)),
+            ProtocolAlgorithmFixture.Field<ICommandProjections>(delivery),
             ProtocolAlgorithmFixture.Field<IPartyTownProjectionDelivery>(delivery), entries, token);
 }

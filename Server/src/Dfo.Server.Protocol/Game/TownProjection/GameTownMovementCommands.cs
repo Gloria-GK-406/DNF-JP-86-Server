@@ -253,7 +253,12 @@ internal sealed partial class GameTownMovementCommandHandler :
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetUserPositionCommand command, CancellationToken token)
     {
         var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
-        if (session is null || !sessions.IsInWorld(session) || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)) return false;
+        if (session is null || !sessions.IsInWorld(session) || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member))
+        {
+            logger.LogDebug("Set user position {ConnectionId}: no published session, ignoring ({X},{Y})",
+                command.Dispatch.Connection.ConnectionId, command.Input.X, command.Input.Y);
+            return false;
+        }
         var input = command.Input;
         var moved = onlineCharacters.StepTo(session, input.X, input.Y, input.Direction);
         return await TownMovementProjection.TownMoveAsync(sessions, townAreas, projections, outbox, command.Dispatch.Connection.ConnectionId, session, moved, input.Trailer, token).ConfigureAwait(false);

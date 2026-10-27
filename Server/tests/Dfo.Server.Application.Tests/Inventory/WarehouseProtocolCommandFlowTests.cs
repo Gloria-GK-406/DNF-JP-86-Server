@@ -36,6 +36,18 @@ public sealed class WarehouseProtocolCommandFlowTests(ITestOutputHelper output)
         ? "CREATE TABLE warehouse_parent(id INTEGER PRIMARY KEY); CREATE TABLE warehouse_child(id INTEGER REFERENCES warehouse_parent(id) DEFERRABLE INITIALLY DEFERRED); CREATE TRIGGER warehouse_fault AFTER UPDATE OF " + (main ? "list_param16 ON character_container_state WHEN NEW.list_type=0" : "value32 ON account_cargo_state") + " BEGIN INSERT INTO warehouse_child VALUES(404); END;"
         : "CREATE TRIGGER warehouse_fault BEFORE UPDATE OF " + (main ? "list_param16 ON character_container_state WHEN NEW.list_type=0" : "value32 ON account_cargo_state") + " BEGIN SELECT RAISE(ABORT,'warehouse action SQL failure'); END;";
 
+    [Fact]
+    public async Task Replacing_the_admitted_actor_before_the_whole_never_transfers_gold()
+    {
+        var trace = new Trace(); using var f = Fixture(trace); await Seed(f, false);
+        trace.Before = () => TestSessions.ReselectOnSameConnection(f.Services.GetRequiredService<ISelectedSessionDomainService>(), f.Services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>(), f.Session);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => EffectRequestTransport.Send(f, Input()).AsTask());
+        Assert.Empty(trace.Attempts); Assert.Empty(f.Sender.Messages);
+        Assert.Equal(0, CargoGold(f));
+        Assert.Equal(100000, f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
+        Assert.Same(f.Connection, Assert.Single(f.Sender.Outbound.Entries, e => e.IsClose).Connection);
+    }
+
     [Theory]
     [InlineData(false, false)] [InlineData(false, true)] [InlineData(true, false)] [InlineData(true, true)]
     public async Task Old_and_new_wire_keep_actual_action_SQL_or_native_Commit_assets_ack_silence_and_original_entry_retry(bool main, bool native)

@@ -414,7 +414,7 @@ public sealed class FinishQuestHandlerTests
             var registry = generations ?? new DungeonRunDeliveryRegistry();
             var input = new FinishQuestRequest(GameMessageMetadata.Empty,QuestId,rewardSelection,completionCount);
             await QuestProjectionDriver.Finish(
-                [sessions,current,characters,new QuestProjectionDriver.Bus(bus),sender,offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,new WeaknessProjectionDelivery(weakness,sessions,sender),registry,towers,null],
+                [sessions,current,characters,new QuestProjectionDriver.Bus(bus),sender,offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,weakness,registry,towers,null],
                 [sessions,current,characters,new QuestProjectionDriver.Units(()=>bus.SendAsync(new QuestFinishProjectionInput(session.AccountId,session.CharacterId,QuestId,rewardSelection,completionCount,checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),session))),new SkillGrowthDirectDriver.Outbox(sender),offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,weakness,registry,null,null,towers,null],
                 new(new NetworkConnectionContext(new("one"),NetworkEndpointKind.Game,10010)),input,session);
 

@@ -87,7 +87,13 @@ internal sealed partial class GameMapLoadingCommandHandler :
         var id = command.Dispatch.Connection.ConnectionId;
         if (await CompleteBossLoadingAsync(execution, id, command.Input.Metadata, token).ConfigureAwait(false)) return true;
         if (await CompleteIllusionLoadingAsync(execution, id, command.Input.Metadata, token).ConfigureAwait(false)) return true;
-        return await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
+        var completed = await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
+        if (!completed)
+            logger.LogWarning("Finish loading {ConnectionId}: stale or missing selected-session generation", id);
+        else
+            logger.LogInformation("Finish loading {ConnectionId}: releasing the current map ({First},{Second})",
+                id, command.Input.First, command.Input.Second);
+        return completed;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMoveMapCommand command, CancellationToken token)
     {

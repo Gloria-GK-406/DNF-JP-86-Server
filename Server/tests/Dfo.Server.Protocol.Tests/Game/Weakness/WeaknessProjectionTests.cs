@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Commands;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Sessions;
@@ -26,7 +27,7 @@ public sealed class WeaknessProjectionTests
     }
 
     [Fact]
-    public async Task Projection_uses_current_value_and_refuses_replaced_session()
+    public async Task Recovery_tick_uses_current_value_and_routes_only_to_the_current_session()
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -34,15 +35,22 @@ public sealed class WeaknessProjectionTests
             var sessions = new Sessions(session);
             var state = new State { Value = 10 };
             var sender = new Sender();
-            var delivery = new WeaknessProjectionDelivery(state, sessions, sender);
-            await delivery.SendCurrentAsync(session, default);
+            var handler = ProtocolAlgorithmFixture.Create<RecoverWeaknessTickCommandHandler>(state, sessions, sender);
+            async ValueTask Tick()
+            {
+                var request = new CommandRequestContext.TrustedInternal(new(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
+                    Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "test:weakness"));
+                try { await handler.HandleAsync(new(Guid.NewGuid(), typeof(RecoverWeaknessTickCommand), handler.GetType()) { Request = request }, new(), default); }
+                finally { await request.DrainOperationsAsync(); request.Close(); }
+            }
+            await Tick();
             state.Value = 19;
-            await delivery.SendCurrentAsync(session, default);
+            await Tick();
             sessions.Current = session with { ConnectionId = new("new"), ConnectionGeneration = 2 };
-            await delivery.SendCurrentAsync(session, default);
             state.Value = 28;
-            await delivery.SendCurrentAsync(sessions.Current, default);
+            await Tick();
             Assert.Equal(new byte[] { 10, 19, 28 }, sender.Sent.Select(item => item.Value));
+            Assert.Equal(new[] { session.ConnectionId, session.ConnectionId, sessions.Current.ConnectionId }, sender.Recipients);
         });
     }
 
@@ -52,7 +60,7 @@ public sealed class WeaknessProjectionTests
         public ValueTask<int> RecoveryGoldCost(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public IWeakness For(CharacterId id) => this;
         public TimeSpan RecoveryInterval => TimeSpan.FromMinutes(1);
-        public IReadOnlyList<CharacterId> AdvanceRecovery() => [];
+        public IReadOnlyList<CharacterId> AdvanceRecovery() => [new(1)];
         public ValueTask SetWeakness() => throw new NotSupportedException();
         public void Recover() => Value = 100;
         public void PauseRecovery() { }
@@ -130,11 +138,12 @@ public sealed class WeaknessProjectionTests
             outbound.RefuseExplicit();
             outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage, () => new NotSupportedException());
         }
+        public List<NetworkConnectionId> Recipients { get; } = [];
         public List<WeaknessProjectionNotification> Sent => [.. outbound.Messages.Select(message => Assert.IsType<WeaknessProjectionNotification>(message))];
         public ValueTask SendCmdAsync(NetworkConnectionId connectionId, IGameCmdMessage message, CancellationToken cancellationToken) =>
             outbound.Game.SendCmdAsync(connectionId, message, cancellationToken);
-        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken) =>
-            outbound.Game.SendNotiAsync(connectionId, message, cancellationToken);
+        public ValueTask SendNotiAsync(NetworkConnectionId connectionId, IGameNotiMessage message, CancellationToken cancellationToken)
+        { Recipients.Add(connectionId); return outbound.Game.SendNotiAsync(connectionId, message, cancellationToken); }
         public ValueTask SendExplicitAsync(NetworkConnectionId requiredDirectConnectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken) =>
             outbound.Game.SendExplicitAsync(requiredDirectConnectionId, delivery, cancellationToken);
     }

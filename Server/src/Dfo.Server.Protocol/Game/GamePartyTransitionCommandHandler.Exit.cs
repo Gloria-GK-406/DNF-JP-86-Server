@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -6,9 +7,9 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.TownProjection;
 
-namespace Dfo.Server.Protocol.Game.DungeonClear;
+namespace Dfo.Server.Protocol.Game;
 
-internal sealed partial class GameDungeonExitCommandHandler
+internal sealed partial class GamePartyTransitionCommandHandler
 {
     private async ValueTask<IReadOnlyList<CharacterId>> EndOrdinaryRunAsync(
         IReadOnlyList<SelectedSessionIdentity> members, DungeonRunId runId, CancellationToken token)
@@ -50,6 +51,7 @@ internal sealed partial class GameDungeonExitCommandHandler
     {
         var expected = bossTowers.Find(session);
         if (expected is null) return false;
+        closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
         if (TowerProtocol.IsStale(metadata)) return true;
         if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, expected)) return true;
         if (state == 2)
@@ -69,7 +71,7 @@ internal sealed partial class GameDungeonExitCommandHandler
             var entries = await BossTowerActionProjection.BossTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, frozen, null, failures, CancellationToken.None, false).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, CancellationToken.None).ConfigureAwait(false);
         }
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, expected.RunId).ConfigureAwait(false);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, expected.RunId).ConfigureAwait(false);
         return true;
     }
 
@@ -79,6 +81,7 @@ internal sealed partial class GameDungeonExitCommandHandler
         if (TowerProtocol.IsStale(metadata)) return true;
         var expected = illusionTowers.Find(session);
         if (expected is null) return false;
+        closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
         if (state != EplpCommandHandler.LeaveState) return true;
         if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, expected)) return true;
         var action = await workUnits.WriteAsync(execution, new("select-illusion-tower-return", []),
@@ -90,7 +93,7 @@ internal sealed partial class GameDungeonExitCommandHandler
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception error) { failure = error; }
         }
-        if (failure is not null) await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, [(session, failure)], expected.RunId).ConfigureAwait(false);
+        if (failure is not null) await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, [(session, failure)], expected.RunId).ConfigureAwait(false);
         return true;
     }
     private ValueTask<Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult> SelectBossResultAsync(CommandExecutionContext execution,

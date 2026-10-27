@@ -870,7 +870,8 @@ public sealed class PartySelectDungeonHandlerTests
             entryProjection: outbound is null ? null : new EntryProjectionOptions(
                 CurrentCharacterStub.Domain(), state, sessions, new RuntimeCurrentView(runtime), runs, registry,
                 intents, visits, fatigue, game, closing, townProjection,
-                NullLogger<EntryProjectionOptions>.Instance, ordering: outbound.Ordering));
+                NullLogger<EntryProjectionOptions>.Instance, ordering: outbound.Ordering,
+                onlineUsers: ProtocolAlgorithmFixture.QueryFor(sessions, outbound.Context)));
         return new TestWorld(
             handler, visits, intents, registry, runs, fatigue, sender, closer, areas);
     }

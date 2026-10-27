@@ -49,10 +49,19 @@ public sealed class TownAreaProjectionDeliveryTests
                 ((ITownAreaDomainService)areas).Enter(Member(actor, new(11, 2, area), 100));
             }
             var sender = new RecordingSender(); var notifications = new RecordingNotificationBus();
-            var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, views, notifications, new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
-            var wedding = new MarriageWeddingProjection(sessions, views, positions, areas, delivery, sender);
-            await wedding.PositionAsync(new(bride, new(2, 12, 670, 330, 5)), default);
-            await wedding.PositionAsync(new(groom, new(2, 12, 685, 360, 5)), default);
+            var handler = ProtocolAlgorithmFixture.Create<GameMarriageCommandHandler>(sessions, views, positions, areas,
+                SharedTownMovementDomainService.Instance, notifications, sender);
+            var origin = new InternalCommandOrigin(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
+                Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "test:wedding-standing");
+            var request = new CommandRequestContext.TrustedInternal(origin);
+            var context = new CommandExecutionContext(Guid.NewGuid(), typeof(AdvanceWeddingTickCommand), handler.GetType()) { Request = request };
+            var stage = typeof(GameMarriageCommandHandler).GetMethod("WeddingPositionAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            try
+            {
+                await (ValueTask)stage.Invoke(handler, [context, new MarriageWeddingStanding(bride, new(2, 12, 670, 330, 5)), CancellationToken.None])!;
+                await (ValueTask)stage.Invoke(handler, [context, new MarriageWeddingStanding(groom, new(2, 12, 685, 360, 5)), CancellationToken.None])!;
+            }
+            finally { await request.DrainOperationsAsync(); request.Close(); }
             var received = sender.Deliveries.SelectMany(sent =>
                 sent.Delivery.RequiredDirectMessages.Select(message => (sent.ConnectionId, Message: message))
                     .Concat(sent.Delivery.BestEffortTargets.SelectMany(target => target.OrderedMessages.Select(message => (target.ConnectionId, Message: message)))))
@@ -94,7 +103,6 @@ public sealed class TownAreaProjectionDeliveryTests
                 ((ITownAreaDomainService)areas).Enter(Member(actor, new(11, 2, 12), 100));
             }
             var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, views, new RecordingNotificationBus(), new NoopPartyProjection(), outbound.Game, SharedTownMovementDomainService.Instance);
-            var wedding = new MarriageWeddingProjection(sessions, views, positions, areas, delivery, outbound.Game);
             var room = new MarriageChurchRoom(7, Guid.NewGuid(), 11, 2, 12, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddMinutes(5));
             var church = new MarriageChurchSnapshot(room, groom.CharacterId, [1], [2], new(2, 12, 670, 330));
             var ceremony = new MarriageCeremony(room.CeremonyId, Guid.NewGuid(), bride, groom, 1, 0,
@@ -105,7 +113,7 @@ public sealed class TownAreaProjectionDeliveryTests
                 Standing = [new MarriageWeddingStanding(bride, new(2, 12, 670, 330, 5)), new MarriageWeddingStanding(groom, new(2, 12, 685, 360, 5))],
             };
             // Projection oracle with controlled committed transition; production timer/bus tests own lifecycle/FIFO.
-            var handler = new GameMarriageCommandHandler(sessions,new OneWedding(ceremony.Id),ProtocolAlgorithmFixture.Default<IMarriageCoupleDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageVenueDomainService>(),ProtocolAlgorithmFixture.Default<IQuestOfferRefreshDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),views,                positions,areas,SharedTownMovementDomainService.Instance,ProtocolAlgorithmFixture.Default<IPartyService>(),new PartyProjectionStreamRegistry(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(sessions),                new WeddingTransitionUnits(transition),new LegacyCommandProjections(new RecordingNotificationBus()),                new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(outbound.Game),TimeProvider.System,                NullLogger<GameMarriageCommandHandler>.Instance,ordering: outbound.Ordering,housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),housingSessions: ProtocolAlgorithmFixture.Default<IMarriageHousingSessionDomainService>());
+            var handler = new GameMarriageCommandHandler(sessions,new OneWedding(ceremony.Id),ProtocolAlgorithmFixture.Default<IMarriageCoupleDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageVenueDomainService>(),ProtocolAlgorithmFixture.Default<IQuestOfferRefreshDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),views,                positions,areas,SharedTownMovementDomainService.Instance,ProtocolAlgorithmFixture.Default<IPartyService>(),new PartyProjectionStreamRegistry(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(sessions),                new WeddingTransitionUnits(transition),new global::Dfo.Server.Testing.TestCommandProjections(new RecordingNotificationBus()),                new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(outbound.Game),TimeProvider.System,                NullLogger<GameMarriageCommandHandler>.Instance,ordering: outbound.Ordering,housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),housingSessions: ProtocolAlgorithmFixture.Default<IMarriageHousingSessionDomainService>());
             var origin = new InternalCommandOrigin(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
                 Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "test:wedding");
             var request = new CommandRequestContext.TrustedInternal(origin);

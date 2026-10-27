@@ -43,17 +43,20 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
-namespace Dfo.Server.Protocol.Game.Party;
+namespace Dfo.Server.Protocol.Game;
 
 using Dfo.Server.Protocol.Game.Party;
 
-internal sealed partial class GamePartyMutationCommandHandler
+internal sealed partial class GamePartyTransitionCommandHandler
 {
-    private async ValueTask ProjectBossTowerPartyDepartureAsync(CommandExecutionContext execution, BossTowerActionResult action,
+    private readonly ExactSessionClosure closeTargets = new();
+
+    internal async ValueTask ProjectBossTowerPartyDepartureAsync(CommandExecutionContext execution, BossTowerActionResult action,
         SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token)
     {
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session).Append(returning).OfType<SelectedSessionIdentity>());
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var participants = captured.Members.Select(member => member.Session)
             .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
@@ -82,14 +85,15 @@ internal sealed partial class GamePartyMutationCommandHandler
             var entries = await BossTowerActionProjection.BossTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, false).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
-    private async ValueTask ProjectBossTowerPartyHostAsync(
+    internal async ValueTask ProjectBossTowerPartyHostAsync(
         BossTowerSnapshot captured, CancellationToken token)
     {
         if (captured.Members.IsEmpty)
             return;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session));
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var current = BossTowerActionProjection.BossTowerCurrentRun(sessions, bossTowers, captured);
         if (current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
@@ -97,14 +101,15 @@ internal sealed partial class GamePartyMutationCommandHandler
             failures.AddRange(await BossTowerActionProjection.BossTowerSendToExactAsync(sessions, bossTowers, outbox, 
                 current, [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
         }
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
-    private async ValueTask ProjectIllusionTowerPartyDepartureAsync(CommandExecutionContext execution, TowerActionResult action,
+    internal async ValueTask ProjectIllusionTowerPartyDepartureAsync(CommandExecutionContext execution, TowerActionResult action,
         SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token)
     {
         if (!action.Changed || action.Run is null) return;
         var captured = action.Run;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session).Append(returning).OfType<SelectedSessionIdentity>());
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var participants = captured.Members.Select(member => member.Session)
             .Append(returning).OfType<SelectedSessionIdentity>().Distinct().ToArray();
@@ -127,14 +132,15 @@ internal sealed partial class GamePartyMutationCommandHandler
             var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.DungeonId == 11000).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
-    private async ValueTask ProjectIllusionTowerPartyHostAsync(
+    internal async ValueTask ProjectIllusionTowerPartyHostAsync(
         IllusionTowerSnapshot captured, CancellationToken token)
     {
         if (captured.Members.IsEmpty)
             return;
+        closeTargets.Capture(sessions, onlineUsers, captured.Members.Select(member => member.Session));
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var current = IllusionTowerActionProjection.IllusionTowerCurrentRun(sessions, illusionTowers, captured);
         if (current?.Members.SingleOrDefault(member => member.IsLeader) is { } leader)
@@ -142,17 +148,17 @@ internal sealed partial class GamePartyMutationCommandHandler
             failures.AddRange(await IllusionTowerActionProjection.IllusionTowerSendToExactAsync(sessions, illusionTowers, outbox, 
                 current, [new UdpHostNotification(leader.Slot)], token).ConfigureAwait(false));
         }
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, onlineUsers, failures, captured.RunId).ConfigureAwait(false);
+        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
     }
 
-    private ValueTask ProjectPartyAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients,
+    internal ValueTask ProjectPartyAsync(PartyNotificationPlan plan, PartyNotificationRecipientPlan recipients,
         CancellationToken token) => PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering, plan, recipients, token);
 
-    private ValueTask<PartyOperationResult> MutatePartyAsync(PartyChange change,
+    internal ValueTask<PartyOperationResult> MutatePartyAsync(PartyChange change,
         SelectedSessionIdentity caller, SelectedSessionIdentity? target, CancellationToken token) =>
-        MutatePartyStateAsync(parties!, dungeonRuns, change, caller.CharacterId, target?.CharacterId, token);
+        MutatePartyStateAsync(parties!, runs, change, caller.CharacterId, target?.CharacterId, token);
 
-    private static async ValueTask<PartyOperationResult> MutatePartyStateAsync(Dfo.Server.Abstractions.Parties.IPartyService parties,
+    internal static async ValueTask<PartyOperationResult> MutatePartyStateAsync(Dfo.Server.Abstractions.Parties.IPartyService parties,
         IDungeonRunDomainService runs, PartyChange change, Dfo.Server.Data.Characters.CharacterId caller,
         Dfo.Server.Data.Characters.CharacterId? target, CancellationToken token)
     {
@@ -171,49 +177,40 @@ internal sealed partial class GamePartyMutationCommandHandler
         return result;
     }
 
-    private SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session)
-    {
-        NetworkConnectionContext? connection = null;
-        if (onlineUsers.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null)
-        {
-            if (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId)
-                throw new InvalidOperationException("The tower participant connection no longer owns the captured character.");
-            connection = user.Connection;
-        }
-        return new(session, connection);
-    }
+    internal SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session) =>
+        GameParticipantCapture.Capture(onlineUsers, session);
 
-    private SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
+    internal SelectedSessionRecipient[] ProtectedParticipants(IReadOnlyList<SelectedSessionIdentity> participants,
         SelectedSessionIdentity reporter) => participants.Select(session => session == reporter
             ? CaptureParticipant(session) : new SelectedSessionRecipient(session, null)).ToArray();
 
-    private ValueTask<BossTowerActionResult> LeaveBossPartyTowerAsync(CommandExecutionContext execution,
+    internal ValueTask<BossTowerActionResult> LeaveBossPartyTowerAsync(CommandExecutionContext execution,
         BossTowerActionContext context, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-leave-boss-tower", ProtectedParticipants(participants, context.Session),
                 Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: participants),
             (unit, ct) => bossTowers.LeaveAsync(context, false, unit.Footprint, ct), token);
 
-    private ValueTask<TowerActionResult> LeaveIllusionPartyTowerAsync(CommandExecutionContext execution,
+    internal ValueTask<TowerActionResult> LeaveIllusionPartyTowerAsync(CommandExecutionContext execution,
         TowerActionContext context, IReadOnlyList<SelectedSessionIdentity> owners, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-leave-illusion-tower", [], Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: owners),
             (unit, ct) => illusionTowers.LeaveAsync(context, false, unit.Footprint, ct), token);
 
-    private ValueTask<BossTowerActionResult> SynchronizeBossTowerPartyTowerAsync(CommandExecutionContext execution,
+    internal ValueTask<BossTowerActionResult> SynchronizeBossTowerPartyTowerAsync(CommandExecutionContext execution,
         BossTowerActionContext context, SelectedSessionIdentity leader, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-synchronize-boss-leader", ProtectedParticipants(participants, context.Session)),
             (_, ct) => bossTowers.SynchronizeLeaderAsync(context, leader, ct), token);
 
-    private ValueTask<TowerActionResult> SynchronizeIllusionTowerPartyTowerAsync(CommandExecutionContext execution,
+    internal ValueTask<TowerActionResult> SynchronizeIllusionTowerPartyTowerAsync(CommandExecutionContext execution,
         TowerActionContext context, SelectedSessionIdentity leader, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-synchronize-illusion-leader", []),
             (_, ct) => illusionTowers.SynchronizeLeaderAsync(context, leader, ct), token);
 
-    private ValueTask<BossTowerActionResult> StartBossPartyTowerAsync(CommandExecutionContext execution,
+    internal ValueTask<BossTowerActionResult> StartBossPartyTowerAsync(CommandExecutionContext execution,
         BossTowerSnapshot run, SelectedSessionIdentity leader, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-start-boss-tower", ProtectedParticipants(run.Members.Select(member => member.Session).ToArray(), leader)),
             (_, ct) => bossTowers.StartAsync(BossTowerActionProjection.BossTowerContext(run, leader), ct), token);
 
-    private async ValueTask<IllusionTowerPartyAttempt> CoordinateIllusionTowerPartyAsync(
+    internal async ValueTask<IllusionTowerPartyAttempt> CoordinateIllusionTowerPartyAsync(
         CommandExecutionContext execution, PartyChange change,
         SelectedSessionIdentity caller,
         byte? targetSlot,
@@ -230,6 +227,10 @@ internal sealed partial class GamePartyMutationCommandHandler
         if (!IllusionTowerExactSessions(caller, observed))
             return IllusionTowerRejected(null, PartyFailureReason.CallerNotCurrent);
 
+        closeTargets.Capture(sessions, onlineUsers, observed.Party.Members
+            .Select(member => sessions.FindByCharacter(member.CharacterId))
+            .Concat(observed.Runs[0].Members.Select(member => member.Session))
+            .Append(caller).Append(observed.Target).OfType<SelectedSessionIdentity>());
         var validation = IllusionTowerValidate(change, caller, observed, allowVirtual);
         if (validation is not null)
             return IllusionTowerRejected(observed.Target, validation.Value);
@@ -453,13 +454,11 @@ internal sealed partial class GamePartyMutationCommandHandler
             && current.Room.Version == state.Runs[0].Room.Version);
     }
 
-    private async ValueTask IllusionTowerCloseExactAsync(IEnumerable<SelectedSessionIdentity> affected)
+    internal async ValueTask IllusionTowerCloseExactAsync(IEnumerable<SelectedSessionIdentity> affected)
     {
         foreach (var session in affected.Distinct())
         {
-            if (!sessions.IsInWorld(session))
-                continue;
-            await ExactSessionClosure.RequestAsync(onlineUsers, closures, session).ConfigureAwait(false);
+            await closeTargets.RequestAsync(sessions, closures, session).ConfigureAwait(false);
         }
     }
 
@@ -473,14 +472,14 @@ internal sealed partial class GamePartyMutationCommandHandler
         SelectedSessionIdentity? target, PartyFailureReason reason) =>
         new(true, PartyOperationResult.Reject(reason), target);
 
-    private ValueTask<int> TownEnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) =>
+    internal ValueTask<int> TownEnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) =>
         TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, currentViews, outbox,
             weaknessState, projectWeakness, projections,
             new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), entries, token);
 
-    private ValueTask<int> ReturnTownAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) => TownEnterAsync(entries, token);
+    internal ValueTask<int> ReturnTownAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) => TownEnterAsync(entries, token);
 
-    private async ValueTask ReturnTownIsolatedAsync(IReadOnlyList<TownAreaEntry> entries,
+    internal async ValueTask ReturnTownIsolatedAsync(IReadOnlyList<TownAreaEntry> entries,
         List<(SelectedSessionIdentity, Exception)> failures, CancellationToken token)
     {
         if (entries.Count == 0) return;
@@ -492,7 +491,7 @@ internal sealed partial class GamePartyMutationCommandHandler
         }
     }
 
-    private async ValueTask<BossTowerPartyAttempt> CoordinateBossTowerPartyAsync(
+    internal async ValueTask<BossTowerPartyAttempt> CoordinateBossTowerPartyAsync(
         CommandExecutionContext execution, PartyChange change,
         SelectedSessionIdentity caller,
         byte? targetSlot,
@@ -509,6 +508,10 @@ internal sealed partial class GamePartyMutationCommandHandler
         if (!BossTowerExactSessions(caller, observed))
             return BossTowerRejected(null, PartyFailureReason.CallerNotCurrent);
 
+        closeTargets.Capture(sessions, onlineUsers, observed.Party.Members
+            .Select(member => sessions.FindByCharacter(member.CharacterId))
+            .Concat(observed.Runs[0].Members.Select(member => member.Session))
+            .Append(caller).Append(observed.Target).OfType<SelectedSessionIdentity>());
         var validation = BossTowerValidate(change, caller, observed, allowVirtual);
         if (validation is not null)
             return BossTowerRejected(observed.Target, validation.Value);
@@ -732,13 +735,11 @@ internal sealed partial class GamePartyMutationCommandHandler
             && current.Room.Version == state.Runs[0].Room.Version);
     }
 
-    private async ValueTask BossTowerCloseExactAsync(IEnumerable<SelectedSessionIdentity> affected)
+    internal async ValueTask BossTowerCloseExactAsync(IEnumerable<SelectedSessionIdentity> affected)
     {
         foreach (var session in affected.Distinct())
         {
-            if (!sessions.IsInWorld(session))
-                continue;
-            await ExactSessionClosure.RequestAsync(onlineUsers, closures, session).ConfigureAwait(false);
+            await closeTargets.RequestAsync(sessions, closures, session).ConfigureAwait(false);
         }
     }
 
@@ -751,7 +752,6 @@ internal sealed partial class GamePartyMutationCommandHandler
     private static BossTowerPartyAttempt BossTowerRejected(
         SelectedSessionIdentity? target, PartyFailureReason reason) =>
         new(true, PartyOperationResult.Reject(reason), target);
-
     private async ValueTask<bool> HandleMutationAsync(CommandExecutionContext execution, NetworkDispatchContext dispatch,
         GameMessageMetadata metadata, PartyChange change, byte? targetSlot, CancellationToken token)
     {
@@ -761,9 +761,9 @@ internal sealed partial class GamePartyMutationCommandHandler
         var caller = sessions.FindByConnection(dispatch.Connection.ConnectionId);
         if (caller is null) return false;
 
-        var boss = bossTowers is null ? new BossTowerPartyAttempt(false, PartyOperationResult.Success()) : await CoordinateBossTowerPartyAsync(execution, change, caller, targetSlot, false, null, token).ConfigureAwait(false);
+        var boss = await CoordinateBossTowerPartyAsync(execution, change, caller, targetSlot, false, null, token).ConfigureAwait(false);
         if (boss.Handled) return boss.Result.Succeeded;
-        var illusion = illusionTowers is null ? new IllusionTowerPartyAttempt(false, PartyOperationResult.Success()) : await CoordinateIllusionTowerPartyAsync(execution, change, caller, targetSlot, false, null, token).ConfigureAwait(false);
+        var illusion = await CoordinateIllusionTowerPartyAsync(execution, change, caller, targetSlot, false, null, token).ConfigureAwait(false);
         if (illusion.Handled)
         {
             if (change == PartyChange.Remove && !illusion.Result.Succeeded)
@@ -786,7 +786,7 @@ internal sealed partial class GamePartyMutationCommandHandler
             }
         }
         var departing = change == PartyChange.Leave ? caller : change == PartyChange.Remove ? target : null;
-        var departingRun = departing is null ? null : dungeonRuns.Find(departing.CharacterId);
+        var departingRun = departing is null ? null : runs.Find(departing.CharacterId);
         var runtime = change == PartyChange.Remove && departingRun is not null
             ? await currentViews.TryLoadAsync(target!, token).ConfigureAwait(false) : null;
         var position = change == PartyChange.Remove && departingRun is not null ? onlineCharacters.PositionOf(target!) : null;
@@ -801,8 +801,8 @@ internal sealed partial class GamePartyMutationCommandHandler
         }
         else
         {
-            if (departingRun is not null && dungeonRuns.Find(departing!.CharacterId) is null)
-                departureSink.ParticipantDeparted(departingRun.RunId, departing!.CharacterId);
+            if (departingRun is not null && runs.Find(departing!.CharacterId) is null)
+                registry.ParticipantDeparted(departingRun.RunId, departing!.CharacterId);
             await ProjectPartyAsync(result.Notifications, recipients, token).ConfigureAwait(false);
             if (change == PartyChange.Remove && departingRun is not null && runtime is not null && position is not null && sessions.IsInWorld(target!))
                 await ReturnTownAsync([new TownAreaEntry(target!, runtime, position)], token).ConfigureAwait(false);

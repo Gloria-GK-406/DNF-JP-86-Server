@@ -34,10 +34,10 @@ internal abstract class TowerAlgorithmDriver
     protected readonly IIllusionTowerDomainService illusionTowers;
     protected readonly ILogger logger;
     protected readonly ITowerAlgorithmMutations? mutations;
-    protected readonly GameDungeonExitCommandHandler exit;
+    protected readonly GamePartyTransitionCommandHandler exit;
     protected readonly TowerReturnCommandHandler returns;
     internal readonly object[] Dependencies;
-    protected CommandExecutionContext Execution => new(Guid.NewGuid(), typeof(GameGiveUpGameCommand), typeof(GameDungeonExitCommandHandler))
+    protected CommandExecutionContext Execution => new(Guid.NewGuid(), typeof(GameGiveUpGameCommand), typeof(GamePartyTransitionCommandHandler))
     { Request = new CommandRequestContext.TrustedInternal(new(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
         Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "component: tower")) };
     protected TowerAlgorithmDriver(ISelectedSessionDomainService sessions, IGameMessageSender sender,
@@ -46,12 +46,13 @@ internal abstract class TowerAlgorithmDriver
         ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService positions,
         IBossTowerDomainService? boss = null, IIllusionTowerDomainService? illusion = null,
         ITowerAlgorithmMutations? mutations = null, IPartyService? parties = null, ITownAreaDomainService? areas = null,
-        IDungeonRunDomainService? runs = null, TowerAlgorithmDriver? projectionSource = null, PartyNotificationDelivery? notifications = null)
+        IDungeonRunDomainService? runs = null, TowerAlgorithmDriver? projectionSource = null, PartyNotificationDelivery? notifications = null,
+        IOnlineUserQueryDomainService? onlineUsers = null)
     {
         this.sessions = sessions; this.logger = logger; this.mutations = mutations;
         var supplied = (projectionSource?.Dependencies ?? (town is null ? [] : ProtocolAlgorithmFixture.TownDependencies(town))).ToList();
-        supplied.AddRange(new object?[] { sessions, sender, clock, closer, views, state, characters, positions, parties, areas, runs }.OfType<object>());
-        if (notifications is not null) supplied.Add(ProtocolAlgorithmFixture.Field<Dfo.Server.Abstractions.DomainEvents.IEventService>(notifications));
+        supplied.AddRange(new object?[] { sessions, sender, clock, closer, views, state, characters, positions, parties, areas, runs, onlineUsers }.OfType<object>());
+        if (notifications is not null) supplied.Add(ProtocolAlgorithmFixture.Field<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>(notifications));
         bossTowers = boss is null ? (IBossTowerDomainService)ProtocolAlgorithmFixture.Default(typeof(IBossTowerDomainService))
             : mutations is null ? boss : ProtocolAlgorithmFixture.Decorate(boss, (method, args) => method.Name switch
             {
@@ -69,7 +70,7 @@ internal abstract class TowerAlgorithmDriver
             });
         supplied.Add(bossTowers); supplied.Add(illusionTowers);
         Dependencies = ProtocolAlgorithmFixture.Complete(supplied.ToArray());
-        exit = ProtocolAlgorithmFixture.Create<GameDungeonExitCommandHandler>(Dependencies);
+        exit = ProtocolAlgorithmFixture.Create<GamePartyTransitionCommandHandler>(Dependencies);
         returns = ProtocolAlgorithmFixture.Create<TowerReturnCommandHandler>(Dependencies);
     }
 }
@@ -77,8 +78,9 @@ internal abstract class TowerAlgorithmDriver
 internal sealed class BossTowerProjectionDriver(IBossTowerDomainService towers, ITowerAlgorithmMutations? mutations,
     ISelectedSessionDomainService selected, ISelectedCharacterCurrentViewDomainService views,
     ICharacterStateProjectionDomainService state, ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService positions,
-    IGameMessageSender sender, TownAreaProjectionDelivery town, TimeProvider clock, INetworkConnectionCloser closer, ILogger logger)
-    : TowerAlgorithmDriver(selected, sender, town, clock, closer, logger, views, state, characters, positions, boss: towers, mutations: mutations)
+    IGameMessageSender sender, TownAreaProjectionDelivery town, TimeProvider clock, INetworkConnectionCloser closer, ILogger logger,
+    IOnlineUserQueryDomainService? onlineUsers = null)
+    : TowerAlgorithmDriver(selected, sender, town, clock, closer, logger, views, state, characters, positions, boss: towers, mutations: mutations, onlineUsers: onlineUsers)
 {
     public bool HasRun(SelectedSessionIdentity session) => bossTowers.Find(session) is not null;
     public ValueTask ProjectCommittedDepartureAsync(BossTowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.ProjectBossTowerPartyDepartureAsync(Execution, action, returning, response, token);
@@ -88,8 +90,10 @@ internal sealed class BossTowerProjectionDriver(IBossTowerDomainService towers, 
     {
         var run = bossTowers.Find(context.Session);
         if (run is null || run.RunId != context.RunId || run.Room.Version != context.RoomVersion || run.Completion is not { Settled: true, Receipt: not null }) return;
+        var closeTargets = new ExactSessionClosure();
+        closeTargets.Capture(sessions, (IOnlineUserQueryDomainService)Dependencies.Last(value => value is IOnlineUserQueryDomainService), run.Members.Select(member => member.Session));
         var failures = await BossTowerActionProjection.BossTowerProjectActionAsync(sessions, (ICharacterDomainService)Dependencies.LastOrDefault(value => value is ICharacterDomainService)!, bossTowers, Dependencies.OfType<TimeProvider>().Last(), (IGameCommandOutbox)Dependencies.LastOrDefault(value => value is IGameCommandOutbox)!, new(false, run) { SettlementCreated = true }, null, token);
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, (IOnlineUserQueryDomainService)Dependencies.LastOrDefault(value => value is IOnlineUserQueryDomainService)!, failures, run.RunId);
+        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, closeTargets, failures, run.RunId);
     }
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId id, GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {
@@ -125,8 +129,9 @@ internal sealed class BossTowerPartyDriver(IBossTowerDomainService towers, IPart
 internal sealed class IllusionTowerProjectionDriver(IIllusionTowerDomainService towers, ITowerAlgorithmMutations? mutations,
     ISelectedSessionDomainService selected, ISelectedCharacterCurrentViewDomainService views,
     ICharacterStateProjectionDomainService state, ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService positions,
-    IGameMessageSender sender, TownAreaProjectionDelivery town, TimeProvider clock, INetworkConnectionCloser closer, ILogger logger)
-    : TowerAlgorithmDriver(selected, sender, town, clock, closer, logger, views, state, characters, positions, illusion: towers, mutations: mutations)
+    IGameMessageSender sender, TownAreaProjectionDelivery town, TimeProvider clock, INetworkConnectionCloser closer, ILogger logger,
+    IOnlineUserQueryDomainService? onlineUsers = null)
+    : TowerAlgorithmDriver(selected, sender, town, clock, closer, logger, views, state, characters, positions, illusion: towers, mutations: mutations, onlineUsers: onlineUsers)
 {
     public bool HasRun(SelectedSessionIdentity session) => illusionTowers.Find(session) is not null;
     public ValueTask ProjectCommittedDepartureAsync(TowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.ProjectIllusionTowerPartyDepartureAsync(Execution, action, returning, response, token);
@@ -136,8 +141,10 @@ internal sealed class IllusionTowerProjectionDriver(IIllusionTowerDomainService 
     {
         var run = illusionTowers.Find(context.Session);
         if (run is null || run.RunId != context.RunId || run.Room.Version != context.RoomVersion || run.Completion is not { Settled: true, Receipt: not null }) return;
+        var closeTargets = new ExactSessionClosure();
+        closeTargets.Capture(sessions, (IOnlineUserQueryDomainService)Dependencies.Last(value => value is IOnlineUserQueryDomainService), run.Members.Select(member => member.Session));
         var failures = await IllusionTowerActionProjection.IllusionTowerProjectActionAsync(sessions, (ICharacterDomainService)Dependencies.LastOrDefault(value => value is ICharacterDomainService)!, illusionTowers, Dependencies.OfType<TimeProvider>().Last(), (IGameCommandOutbox)Dependencies.LastOrDefault(value => value is IGameCommandOutbox)!, new(false, run) { SettlementCreated = true }, null, token);
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, (IOnlineUserQueryDomainService)Dependencies.LastOrDefault(value => value is IOnlineUserQueryDomainService)!, failures, run.RunId);
+        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, closeTargets, failures, run.RunId);
     }
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId id, GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {

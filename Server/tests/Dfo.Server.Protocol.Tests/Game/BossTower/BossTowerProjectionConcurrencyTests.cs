@@ -366,8 +366,10 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             member => member.CharacterId == third.CharacterId);
     }
 
-    [Fact]
-    public async Task Projection_failure_does_not_close_a_replacement_selected_session()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Projection_failure_does_not_close_a_replacement_selected_session(bool samePhysicalConnection)
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -375,7 +377,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var second = Session(2);
             var replacement = second with
             {
-                ConnectionId = new NetworkConnectionId("tower-2-replacement"),
+                ConnectionId = samePhysicalConnection ? second.ConnectionId : new NetworkConnectionId("tower-2-replacement"),
                 ConnectionGeneration = 2,
             };
             var sessions = new Sessions(first, second);

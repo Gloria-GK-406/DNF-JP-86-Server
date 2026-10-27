@@ -446,7 +446,7 @@ public sealed class GameplayWriteEntryTableTests
         ["SelectedSessionRefreshDomainService.Previous(SelectedSessionRefreshTopic, SelectedSessionIdentity)"] = R,
         ["SelectedSessionRefreshDomainService.NeedsRefresh(SelectedSessionRefreshTopic, SelectedSessionIdentity, SelectedSessionRefreshState)"] = R,
         ["SelectedSessionRefreshDomainService.MarkRegistered(SelectedSessionRefreshTopic, DateTimeOffset, SelectedSessionIdentity, SelectedSessionRefreshState)"] = W,
-        ["RoomMechanismMaintenanceDomainService.AdvanceAndProjectAsync(DateTimeOffset, CancellationToken)"] = W,
+        ["RoomMechanismMaintenanceDomainService.ProjectAsync(DungeonRoomMechanismView, CancellationToken)"] = W,
         ["RoomMechanismMaintenanceDomainService.Advance(DateTimeOffset)"] = W,
         ["RoomMechanismMaintenanceDomainService.NeedsProjection(DungeonRoomMechanismView)"] = R,
         ["RoomMechanismMaintenanceDomainService.MarkProjected(DungeonRoomMechanismView)"] = W,

@@ -60,12 +60,10 @@ public sealed record GameSelectCharacterCommand(NetworkDispatchContext Dispatch,
 }
 internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandler<GameSelectCharacterCommand, bool>
 {
-    private readonly ISelectedSessionDomainService sessions;
     private readonly ITownAreaDomainService townAreas;
     private readonly ICommandProjections projections;
     private readonly IPartyProjectionStateDomainService projectionState;
     private readonly ILogger logger;
-    private readonly IMarriageHousingQueryDomainService housing;
     private readonly TimeProvider clock;
     private readonly IPartyService parties;
 
@@ -89,7 +87,6 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly LotteryCounterExperimentOptions lotteryCounterExperiment;
     private readonly IWeaknessDomainService weaknessState;
     private readonly IItemUsageDomainService itemUsage;
-    private readonly IUsageQuotaSnapshotDomainService quotaSnapshots;
     private readonly IClientSettingsDomainService clientSettings;
     private readonly ISaoTowerDomainService sao;
     private readonly ITauKingdomDomainService tau;
@@ -107,19 +104,19 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         ITownAreaDomainService townAreas, ILogger<GameSelectCharacterCommandHandler> logger,
         SelectCharacterDeliveryOptions delivery, TimeProvider clock, LotteryCounterExperimentOptions lotteryCounterExperiment,
         IWeaknessDomainService weaknessState, IItemUsageDomainService itemUsage,
-        IUsageQuotaSnapshotDomainService quotaSnapshots, IClientSettingsDomainService clientSettings,
+        IClientSettingsDomainService clientSettings,
         ISaoTowerDomainService sao, ITauKingdomDomainService tau,
         ISouthernDaleDomainService southern, IBossTowerTicketDomainService bossTickets,
-        IOutboundOrdering ordering, IMarriageHousingQueryDomainService housing)
+        IOutboundOrdering ordering)
 
     {
-        this.sessions = selectedSessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.housing = housing; this.clock = clock; this.parties = parties;
+        this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
         this.users=users; this.channels=channels; this.stateMessages=stateMessages; this.selectedSessions=selectedSessions;
         this.outbox=outbox; this.closures=closures; this.cleanup=cleanup; this.units=units; this.preparation=preparation;
         this.inventoryEntry=inventoryEntry; this.sessionEntry=sessionEntry; this.questEntry=questEntry; this.petEntry=petEntry;
         this.expiredItems=expiredItems; this.puppets=puppets; this.housingEntry=housingEntry; this.delivery=delivery;
         this.lotteryCounterExperiment=lotteryCounterExperiment; this.weaknessState=weaknessState; this.itemUsage=itemUsage;
-        this.quotaSnapshots=quotaSnapshots; this.clientSettings=clientSettings; this.sao=sao; this.tau=tau;
+        this.clientSettings=clientSettings; this.sao=sao; this.tau=tau;
         this.southern=southern; this.bossTickets=bossTickets; this.ordering=ordering;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
@@ -267,6 +264,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
                 }
             }
         }
+
+        if (failure is not null)
+            logger.LogWarning("Character selection failed account={AccountId} roster={RosterIndex} connection={ConnectionId} cause={Cause}",
+                accountId, message.RosterIndex, context.Connection.ConnectionId, failure.SourceException.GetType().Name);
 
         // After the workflow and its compensation have finished: closing runs the connection's own cleanup.
         foreach (var connectionId in pendingCloses.Distinct())

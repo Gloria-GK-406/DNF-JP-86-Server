@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
@@ -42,7 +43,7 @@ internal static class TowerProjectionTestFactory
     INetworkConnectionCloser connections,
     ILogger<BossTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null) => new(towers,commands as ITowerAlgorithmMutations,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger);
+    IOutboundOrdering? ordering = null, IOnlineUserQueryDomainService? onlineUsers = null) => new(towers,commands as ITowerAlgorithmMutations,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger,onlineUsers);
     internal static BossEntry Boss(
     IBossTowerDomainService towers,
     ICommandBus commands,
@@ -59,8 +60,8 @@ internal static class TowerProjectionTestFactory
     INetworkConnectionCloser connections,
     ILogger<BossTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null) => new(new EntryHandlerDriver(characters,currentState,sessions,currentViews,parties,null!,new DungeonRunDeliveryRegistry(),entryIntents,null!,null!,null!,sender,connections,townProjection,commands,
-        null,towers,ordering:ordering,housing:housing));
+    IOutboundOrdering? ordering = null, IOnlineUserQueryDomainService? onlineUsers = null) => new(new EntryHandlerDriver(characters,currentState,sessions,currentViews,parties,null!,new DungeonRunDeliveryRegistry(),entryIntents,null!,null!,null!,sender,connections,townProjection,commands,
+        null,towers,ordering:ordering,housing:housing,onlineUsers:onlineUsers));
     internal sealed class BossEntry(EntryHandlerDriver handler)
     {
         public ValueTask<bool> EnterAsync(NetworkConnectionId id,SelectedSessionIdentity requester,PartySnapshot roster,DungeonEntryIntent intent,Action restore,CancellationToken token, byte requestMode=0, byte difficulty=0, byte practiceMode=0) => handler.EnterBoss(id,requester,roster,intent,restore,token,requestMode,difficulty,practiceMode);
@@ -81,7 +82,7 @@ internal static class TowerProjectionTestFactory
     INetworkConnectionCloser connections,
     ILogger<IllusionTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null) => new(towers,commands as ITowerAlgorithmMutations,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger);
+    IOutboundOrdering? ordering = null, IOnlineUserQueryDomainService? onlineUsers = null) => new(towers,commands as ITowerAlgorithmMutations,sessions,currentViews,currentState,characters,onlineCharacters,sender,townProjection,clock,connections,logger,onlineUsers);
     internal static IllusionEntry Illusion(
     IIllusionTowerDomainService towers,
     ICommandBus commands,
@@ -98,8 +99,8 @@ internal static class TowerProjectionTestFactory
     INetworkConnectionCloser connections,
     ILogger<IllusionTowerProjectionDriver> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
-    IOutboundOrdering? ordering = null) => new(new EntryHandlerDriver(characters,currentState,sessions,currentViews,parties,null!,new DungeonRunDeliveryRegistry(),entryIntents,null!,null!,null!,sender,connections,townProjection,commands,
-        towers,null,ordering:ordering,housing:housing));
+    IOutboundOrdering? ordering = null, IOnlineUserQueryDomainService? onlineUsers = null) => new(new EntryHandlerDriver(characters,currentState,sessions,currentViews,parties,null!,new DungeonRunDeliveryRegistry(),entryIntents,null!,null!,null!,sender,connections,townProjection,commands,
+        towers,null,ordering:ordering,housing:housing,onlineUsers:onlineUsers));
     internal sealed class IllusionEntry(EntryHandlerDriver handler)
     {
         public ValueTask<bool> EnterAsync(NetworkConnectionId id,SelectedSessionIdentity requester,PartySnapshot roster,DungeonEntryIntent intent,Action restore,CancellationToken token, int dungeonId=11001) => handler.EnterIllusion(id,requester,roster,intent,restore,token,dungeonId);

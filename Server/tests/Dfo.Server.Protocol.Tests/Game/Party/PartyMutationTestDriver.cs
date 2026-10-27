@@ -17,15 +17,15 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 
 internal static class PartyMutationTestDriver
 {
-    internal static GamePartyMutationCommandHandler Handler(ISelectedSessionDomainService sessions, IPartyService parties,
+    internal static GamePartyTransitionCommandHandler Handler(ISelectedSessionDomainService sessions, IPartyService parties,
         ITownAreaDomainService? town = null, IEventService? events = null, PartyProjectionStreamRegistry? streams = null,
         IGameMessageSender? sender = null, IDungeonRunDomainService? runs = null) =>
-        ProtocolAlgorithmFixture.Create<GamePartyMutationCommandHandler>(sessions, parties, town, events,
+        ProtocolAlgorithmFixture.Create<GamePartyTransitionCommandHandler>(sessions, parties, town, events,
             streams ?? new PartyProjectionStreamRegistry(), sender, runs);
 
-    internal static ICommandBus Bus(GamePartyMutationCommandHandler handler, Action<ICommand>? observe = null) => new Driver(handler, observe);
+    internal static ICommandBus Bus(GamePartyTransitionCommandHandler handler, Action<ICommand>? observe = null) => new Driver(handler, observe);
 
-    private sealed class Driver(GamePartyMutationCommandHandler handler, Action<ICommand>? observe) : ICommandBus
+    private sealed class Driver(GamePartyTransitionCommandHandler handler, Action<ICommand>? observe) : ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
             ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));

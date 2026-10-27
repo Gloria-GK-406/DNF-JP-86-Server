@@ -142,13 +142,14 @@ public sealed class NameTagPurchaseTests
     public async Task Purchase_refresh_reaches_nearby_players_but_private_purchase_ack_stays_with_buyer()
     {
         using var shop = Synthetic();
+        SelectedSessionIdentity peer = null!;
         await TestGameplay.RunAsync(shop.Host.Services, () =>
         {
             var registry = shop.Host.Services.GetRequiredService<OnlineStateRegistry>();
             var connection = new NetworkConnectionContext(new("name-tag-peer"), NetworkEndpointKind.Game, 10011);
             var user = registry.RegisterConnection(connection);
             registry.Authenticate(user.OnlineUserId, new(2));
-            var peer = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId,
+            peer = SelectedSessionIdentity.Create(new(2), new(3), connection.ConnectionId,
                 registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
             registry.Select(peer);
             registry.EnterWorld(peer);
@@ -158,6 +159,14 @@ public sealed class NameTagPurchaseTests
             return Task.CompletedTask;
         });
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(First)));
+        var peerMessages = shop.Host.Sender.Outbound.MessagesFor(peer.ConnectionId);
+        Assert.Single(peerMessages, m => m.GetType().Name == "CurrentUserStateMessage");
+        Assert.DoesNotContain(peerMessages, m => m.GetType().Name is "CeraShopPurchaseResponse" or "CeraBalanceUpdateMessage" or "ExtendedUserStateMessage");
+        var buyerMessages = shop.Host.Sender.Outbound.MessagesFor(shop.Host.Session.ConnectionId);
+        Assert.Single(buyerMessages, m => m.GetType().Name == "CeraShopPurchaseResponse");
+        Assert.Single(buyerMessages, m => m.GetType().Name == "CeraBalanceUpdateMessage");
+        Assert.Equal(99400, shop.Cera);
+        Assert.Equal(100330501, (await Tags(shop).ReadEffectiveAsync(shop.Host.Session.AccountId, shop.Host.Session.CharacterId, default)).ItemId);
         Assert.Equal(2, shop.Host.Sender.Messages.Count(m => m.GetType().Name == "CurrentUserStateMessage"));
         Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "ExtendedUserStateMessage");
         Assert.Single(shop.Host.Sender.Messages, m => m.GetType().Name == "CeraShopPurchaseResponse");

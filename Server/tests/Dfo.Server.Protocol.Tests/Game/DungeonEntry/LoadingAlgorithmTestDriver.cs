@@ -53,14 +53,12 @@ internal sealed class DungeonLoadingAlgorithmDriver : ILoadingAlgorithm
     private readonly GameMapLoadingCommandHandler command;
     private readonly ReleaseOutbox outbox;
     public DungeonLoadingAlgorithmDriver(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
-        DungeonRunDeliveryRegistry registry, WeaknessProjectionDelivery weaknessProjection,
-        UsageQuotaProjectionDelivery? quotaProjection = null)
+        DungeonRunDeliveryRegistry registry, IWeaknessDomainService weakness, IGameMessageSender sender,
+        ICommandProjections? quotaProjection = null)
     {
-        outbox = new ReleaseOutbox(ProtocolAlgorithmFixture.Field<IGameMessageSender>(weaknessProjection));
+        outbox = new ReleaseOutbox(sender);
         command = ProtocolAlgorithmFixture.Create<GameMapLoadingCommandHandler>(sessions, runs, registry, outbox,
-            ProtocolAlgorithmFixture.Field<IWeaknessDomainService>(weaknessProjection),
-            quotaProjection is null ? ProtocolAlgorithmFixture.Default<ICommandProjections>()
-                : new LegacyCommandProjections(ProtocolAlgorithmFixture.Field<IEventService>(quotaProjection)));
+            weakness, quotaProjection ?? ProtocolAlgorithmFixture.Default<ICommandProjections>());
     }
     public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, Func<CancellationToken, ValueTask> release, CancellationToken token)
     {

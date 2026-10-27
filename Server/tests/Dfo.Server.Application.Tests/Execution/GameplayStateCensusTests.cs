@@ -26,7 +26,7 @@ namespace Dfo.Server.Application.Tests.Execution;
 /// per-job object that is no singleton and no field of one); (2) a readonly field of a
 /// mutable collection, an array, <see cref="AsyncLocal{T}"/> or <see cref="ThreadLocal{T}"/>; (3) a readonly field
 /// of a class from the two assemblies that is itself (1) to (3) and is neither a registered singleton (that one is
-/// counted under its own name) nor classified on its own (a component such as <c>CoalescingGameplaySource</c>,
+/// counted under its own name) nor classified on its own (a component such as <c>TypedGameplayTimerSource</c>,
 /// which is then a holder itself); (4) a handle: a type from the two assemblies that is (1) to (3) and that a
 /// public or internal member of a listed write entry returns; (5) a static field that is not readonly, or is
 /// readonly and (2), on any type of the two assemblies. Not state: readonly fields of interfaces, <c>Frozen*</c>,
@@ -118,6 +118,8 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
             "call-chain metadata: the CMD that asked for a close, per connection context (TASK-29 section 3 item 9)"),
         [typeof(Dfo.Server.Application.DomainEvents.DomainEventCallChains)] = new(Category.E1, ProducerRow,
             "call-chain metadata: the CMD that published an event delivery (TASK-29 section 3 item 9)"),
+        [typeof(Dfo.Server.Application.DomainEvents.FailedDomainEventAttempts)] = new(Category.E1, ProducerRow,
+            "failed event attempt and settlement scheduling metadata; prevents duplicate queued consumption, owns no gameplay world state"),
         [typeof(Dfo.Server.Application.DomainEvents.DomainEventWakeups)] = new(Category.E1, ProducerRow,
             "the event group loops' wake-up channels, one per group"),
         [typeof(Dfo.Server.Application.DomainEvents.DomainEventRegistry)] = new(Category.E1, StartupRow,
@@ -155,6 +157,8 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
     /// <summary>Write entries that hold no state of their own: they work on state their callers pass in, or their owner's.</summary>
     internal static readonly IReadOnlyDictionary<Type, string> StatelessEntries = new Dictionary<Type, string>
     {
+        [typeof(Dfo.Server.Protocol.Game.Joust.GameJoustBetCommandHandler)] =
+            "writes through domain services and the request-owned EffectOperationEntry; has no static operation-id table or mutable state of its own",
         [typeof(AltarDungeonEngine)] = "named by appendix F; works on the AltarStateStore each caller passes in, which is a write entry of its own",
         [GameplayWriteEntryTableTests.WeaknessHandle] =
             "the handle WeaknessDomainService.For hands out; it writes its owner's entries and pending penalties, the owner being a write entry",

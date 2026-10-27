@@ -261,14 +261,12 @@ internal static class BossTowerActionProjection
     internal static BossTowerActionContext BossTowerContext(BossTowerSnapshot run, SelectedSessionIdentity session) =>
         new(session, run.RunId, run.Room.Version);
 
-    internal static async ValueTask BossTowerCloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers, SelectedSessionIdentity session)
+    internal static async ValueTask BossTowerCloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, ExactSessionClosure targets, SelectedSessionIdentity session)
     {
-        if (!sessions.IsInWorld(session))
-            return;
-        await ExactSessionClosure.RequestAsync(onlineUsers, closures, session).ConfigureAwait(false);
+        await targets.RequestAsync(sessions, closures, session).ConfigureAwait(false);
     }
 
-    internal static async ValueTask BossTowerCloseProjectionFailuresAsync(ISelectedSessionDomainService sessions, ILogger logger, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers, 
+    internal static async ValueTask BossTowerCloseProjectionFailuresAsync(ISelectedSessionDomainService sessions, ILogger logger, ICommandConnectionClosures closures, ExactSessionClosure targets,
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures, Guid runId)
     {
         foreach (var (session, error) in failures.DistinctBy(value => value.Session))
@@ -276,7 +274,7 @@ internal static class BossTowerActionProjection
             logger.LogWarning(error,
                 "Boss tower post-commit projection failed for exact session {ConnectionId} in run {RunId}",
                 session.ConnectionId, runId);
-            await BossTowerActionProjection.BossTowerCloseQuietlyAsync(sessions, closures, onlineUsers, session).ConfigureAwait(false);
+            await BossTowerActionProjection.BossTowerCloseQuietlyAsync(sessions, closures, targets, session).ConfigureAwait(false);
         }
     }
 }
