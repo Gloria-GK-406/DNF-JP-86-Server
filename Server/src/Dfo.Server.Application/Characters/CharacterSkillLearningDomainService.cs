@@ -171,7 +171,7 @@ internal sealed class CharacterSkillLearningDomainService(
             if (bag is null) continue;
             var found = (await bag.GetAllAsync(cancellationToken))
                 .Where(item => item.IsPile && item.ItemId == resetRules.ConsumableItemId && item.Count > 0
-                    && (item.Snapshot.ExpireTime is 0 or int.MaxValue || item.Snapshot.ExpireTime > at.ToUnixTimeSeconds()))
+                    && !item.Snapshot.Lifetime.IsExpired(at))
                 .OrderBy(item => item.SlotIndex).FirstOrDefault();
             if (found is not null) { water = (new(space, found.SlotIndex), found); break; }
         }

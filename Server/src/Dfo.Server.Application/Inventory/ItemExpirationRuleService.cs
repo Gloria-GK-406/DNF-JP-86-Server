@@ -14,14 +14,12 @@ internal sealed class ItemExpirationRuleService(IDailyResetRuleService reset) : 
     public ItemSnapshot Prepare(ItemSnapshot item, ItemLifetimeDefinition lifetime, DateTimeOffset at)
     {
         if (!lifetime.IsLimited || item.IsMirror) return item;
-        var existing = item.LegacyKind == 8 ? item.AvatarDetail?.ExpireDate ?? 0 : item.ExpireTime;
-        if (existing != 0) return item;
+        if (!item.Lifetime.IsPermanent) return item;
         long deadline = long.MaxValue;
         if (lifetime.AbsoluteExpiration > 0) deadline = lifetime.AbsoluteExpiration;
         if (lifetime.Days > 0) deadline = Math.Min(deadline, checked(at.ToUnixTimeSeconds() + (long)lifetime.Days * 86400));
         if (lifetime.DailyDelete) deadline = Math.Min(deadline, reset.PeriodStart(at).AddDays(1).ToUnixTimeSeconds());
-        // int.MaxValue is the permanent sentinel; a bounded lifetime must never become permanent.
-        var expires = checked((int)Math.Clamp(deadline, 1, int.MaxValue - 1L));
+        var expires = checked((int)Math.Clamp(deadline, 1, int.MaxValue));
         return item.LegacyKind == 8
             ? item with { AvatarDetail = (item.AvatarDetail ?? new(0, 0, new byte[30], 0, 0, 0)) with { ExpireDate = expires } }
             : item with { ExpireTime = expires };

@@ -32,7 +32,7 @@ internal sealed partial class HousingOperations
         var wallet = await wallets.ReadAsync(actor.AccountId, ct).ConfigureAwait(false);
         if (skill is null || wallet is null) return (NpcShopRejection.NoSession, null);
         var template = furniture ? await TemplateAsync(itemId, ct).ConfigureAwait(false) : null;
-        if (template is not null && (!template.IsPile || template.ExpireTime != 0 || template.ItemUid is not null)) return (NpcShopRejection.UnsupportedItem, null);
+        if (template is not null && (!template.IsPile || !template.Lifetime.IsPermanent || template.ItemUid is not null)) return (NpcShopRejection.UnsupportedItem, null);
         return (NpcShopRejection.None, new(itemId, count, (int)pointCost, (int)goldCost, gold, skill.Page0Sp,
             checked((int)wallet.Cera), changed, template is null ? null : template with { Count = count }));
     }

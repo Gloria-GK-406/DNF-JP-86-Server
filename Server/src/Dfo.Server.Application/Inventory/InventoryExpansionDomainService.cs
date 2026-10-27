@@ -34,7 +34,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
         var bound = slots.Find(session.CharacterId, slot);
         var item = bound is null ? null : await bound.Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
         if (item is not { IsPile: true, Count: > 0 } || item.Snapshot.EquipmentLockId != 0
-            || item.Snapshot.ExpireTime > 0 && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds())
+            || item.Snapshot.Lifetime.IsExpired(at))
             return new(InventoryExpansionRejection.InvalidRequest);
         var grant = await rules.ItemAsync(item.ItemId, ct).ConfigureAwait(false);
         if (grant is null || grant.Kind != kind) return new(InventoryExpansionRejection.InvalidRequest);
@@ -74,7 +74,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
                 foreach (var item in (await bag.GetAllAsync(ct).ConfigureAwait(false)).OrderBy(i => i.SlotIndex))
                 {
                     if (item.ItemId != next.MaterialId || !item.IsPile || item.Count <= 0 || item.Snapshot.EquipmentLockId != 0
-                        || item.Snapshot.ExpireTime > 0 && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds()) continue;
+                        || item.Snapshot.Lifetime.IsExpired(at)) continue;
                     var take = Math.Min(remaining, item.Count);
                     if (take > 0) costs.Add((bag, item, take));
                     remaining -= take;

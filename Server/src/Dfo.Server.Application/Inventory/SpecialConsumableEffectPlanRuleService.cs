@@ -113,7 +113,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
             || f.Card is not { Snapshot: { LegacyKind: 7 }, ItemId: 25, IsPile: true, Count: > 0 }
             || f.Worn is not { Snapshot: { LegacyKind: 5 } } || f.Current is null
             || f.Worn.ItemUid?.Value != f.Current.ItemUid || f.Worn.ItemId != f.Current.ItemTemplateId
-            || Expired(f.Card.Snapshot.ExpireTime, f.At) || Expired(f.Worn.Snapshot.ExpireTime, f.At)
+            || f.Card.Snapshot.Lifetime.IsExpired(f.At) || f.Worn.Snapshot.Lifetime.IsExpired(f.At)
             || f.Name.IsDefault || f.Name.Length > 12 || f.Name.Any(x => x is 0 or < 0x20 or 0x7F)) return [];
         return [new ConsumeFromContainerEffect(f.Source, 25, 1, f.Card.Snapshot.EquipmentLockId),
             new RenamePetEffect(f.Current.ItemUid, f.Current.ItemTemplateId, f.Name)];
@@ -129,6 +129,5 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
             result.Add(new StartItemCooldownEffect(uses.CooldownKeyFor(item.ItemId, rule), TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
         return result.ToImmutable();
     }
-    private static bool Expired(int value, DateTimeOffset at) => value is > 0 and < int.MaxValue && value <= at.ToUnixTimeSeconds();
     private static OpeningRejectedException Reject(string message) => new(OpeningRejection.ItemUnusable, message);
 }

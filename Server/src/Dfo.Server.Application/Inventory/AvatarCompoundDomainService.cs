@@ -48,7 +48,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
         if (!Permanent(a.Snapshot) || !Permanent(b.Snapshot)) return new(AvatarCompoundRejection.UnsupportedLifetime);
         if (HasJewels(a.Snapshot) || HasJewels(b.Snapshot)) return new(AvatarCompoundRejection.UnsupportedContent);
         if (box is not { IsPile: true, Count: > 0 } || box.Snapshot.IsMirror
-            || box.Snapshot.ExpireTime is > 0 and < int.MaxValue && box.Snapshot.ExpireTime <= now.ToUnixTimeSeconds())
+            || box.Snapshot.Lifetime.IsExpired(now))
             return new(AvatarCompoundRejection.MissingMaterial);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
@@ -95,8 +95,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
         return new(AvatarCompoundRejection.None, new(session, deductions, outputs.ToImmutable(), plan.RareRate, now));
     }
     private static bool Locked(ItemSnapshot item) => item.SortLockFlag != 0 || item.EquipmentLockId != 0 || item.TradeRestriction != 0;
-    private static bool Permanent(ItemSnapshot item) => item.ExpireTime is 0 or int.MaxValue
-        && item.AvatarDetail is { ExpireDate: 0 or int.MaxValue, DeleteDate: 0 };
+    private static bool Permanent(ItemSnapshot item) => item.Lifetime.IsPermanent && item.AvatarDetail is { DeleteDate: 0 };
     private static bool HasJewels(ItemSnapshot item) => item.EmblemId1 != 0 || item.EmblemId2 != 0
         || item.AvatarDetail!.JewelSocket.Any(x => x != 0);
 }

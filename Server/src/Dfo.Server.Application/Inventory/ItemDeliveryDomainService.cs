@@ -63,9 +63,9 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
                     if (grant.Instance is not null || template.LegacyKind == 8)
                         throw new InvalidDataException("A delivery deadline only applies to new non-avatar grants.");
                     var deadline = checked((int)options.ExpiresAt.ToUnixTimeSeconds());
-                    if (deadline <= 0 || deadline == int.MaxValue) throw new InvalidDataException("Invalid delivery deadline.");
-                    template = template with { ExpireTime = template.ExpireTime is > 0 and < int.MaxValue
-                        ? Math.Min(template.ExpireTime, deadline) : deadline };
+                    if (deadline <= 0) throw new InvalidDataException("Invalid delivery deadline.");
+                    template = template with { ExpireTime = template.Lifetime.IsPermanent
+                        ? deadline : Math.Min(template.Lifetime.Deadline, deadline) };
                 }
                 if (grant.Instance is not null && grant.Durability is { } changed && changed != template.Durability)
                     throw new InvalidDataException("An existing reward instance cannot be rewritten during delivery.");

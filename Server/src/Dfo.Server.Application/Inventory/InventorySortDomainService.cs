@@ -87,5 +87,5 @@ internal sealed class InventorySortDomainService(
         return comparison != 0 ? comparison : left.SlotIndex.CompareTo(right.SlotIndex);
     }
     private static int Rank(int rarity) => rarity switch { 4 => 6, 6 => 5, 3 => 4, 5 => 3, _ => rarity };
-    private static int Expiration(ItemReference item) => item.Snapshot.ExpireTime > 0 ? item.Snapshot.ExpireTime : int.MaxValue;
+    private static long Expiration(ItemReference item) => item.Snapshot.Lifetime is { IsPermanent: false } lifetime ? lifetime.Deadline : long.MaxValue;
 }

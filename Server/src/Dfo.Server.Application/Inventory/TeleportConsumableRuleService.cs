@@ -27,7 +27,7 @@ internal sealed class TeleportConsumableRuleService(ITeleportConsumableDefinitio
         if (status != ItemUsability.Allowed) return new(status, []);
         if (!item.IsPile || item.Count < 1 || source.Space is not (BusinessInventorySpace.Consumable or BusinessInventorySpace.QuickSlot)
             || !rule.Use.IsConsumedOnUse || item.Snapshot.EquipmentLockId != 0
-            || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds())
+            || item.Snapshot.Lifetime.IsExpired(at))
             return new(ItemUsability.NotAUsableItem, []);
         if (!rule.Destination.TownIds.Contains(townId)
             || !await placement.CanEnterTownAsync(channel, townId, ct).ConfigureAwait(false))

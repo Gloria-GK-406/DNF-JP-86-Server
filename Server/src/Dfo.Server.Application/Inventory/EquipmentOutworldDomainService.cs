@@ -52,8 +52,7 @@ internal sealed class EquipmentOutworldDomainService(
             return new(EquipmentOutworldRejection.ItemUnavailable);
         if (target.Snapshot.ItemId != expectedTargetItemId)
             return new(EquipmentOutworldRejection.WrongItem);
-        if (target.Snapshot.ExpireTime > 0
-            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentOutworldRejection.ItemUnavailable);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentOutworldRejection.Locked);
@@ -62,8 +61,7 @@ internal sealed class EquipmentOutworldDomainService(
         if (material is not { IsPile: true, Count: > 0 }
             || material.ItemId != expectedMaterialItemId
             || material.Snapshot.EquipmentLockId != 0 || material.Snapshot.SortLockFlag != 0
-            || material.Snapshot.ExpireTime > 0
-                && material.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+            || material.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentOutworldRejection.MaterialUnavailable);
 
         var plan = await rules.OutworldAsync(target, action, materialSlot, material.ItemId, selectedOption, seeds.NextSeed(), ct)

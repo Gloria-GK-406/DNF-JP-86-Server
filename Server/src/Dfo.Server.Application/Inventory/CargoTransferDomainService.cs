@@ -79,7 +79,7 @@ internal sealed class CargoItemRuleService(ICargoItemDefinitionSource content) :
     {
         if (!ItemContainerAdmission.For(destination).Matches(item.Type)
             || !item.IsPile && item.Type is ItemTraits.Avatar or ItemTraits.Creature
-            || item.Snapshot.ExpireTime > 0 && item.Snapshot.ExpireTime <= now.ToUnixTimeSeconds()) return false;
+            || item.Snapshot.Lifetime.IsExpired(now)) return false;
         var definition = await content.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is null) return false;
         if (destination == BusinessInventorySpace.PersonalCargo)

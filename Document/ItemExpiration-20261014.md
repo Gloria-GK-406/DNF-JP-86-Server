@@ -13,7 +13,7 @@
 | `[daily delete item] 1` | 既有每日重置规则的下一个周期起点 |
 | 无期限 | 0，永久 |
 
-同一模板的多种缺省限制取最早截止时间。已经由其他用例明确准备的非零期限保持原值，包含永久哨兵；期限超过表示范围时封顶在 `int.MaxValue-1`，避免误变成 `int.MaxValue` 永久哨兵。装扮写既有 `AvatarDetail.ExpireDate`，普通物品写 `ExpireTime`。镜像不重新计算。非法日期、负天数或不支持的每日删除值拒绝解析，不能静默成为永久物品。
+同一模板的多种缺省限制取最早截止时间。已经由其他用例明确准备的非零期限保持原值；期限超过表示范围时封顶在 `int.MaxValue`。0 之外的值都是截止时刻，读法见 [物品期限](Avatar-Permanent-20260909.md)。装扮写既有 `AvatarDetail.ExpireDate`，普通物品写 `ExpireTime`。镜像不重新计算。非法日期、负天数或不支持的每日删除值拒绝解析，不能静默成为永久物品。
 
 `IItemLifecycleDomainService.PrepareNewAsync` 在堆叠判定前准备新物品，`CreateAsync` 再做保底。奖励投递、容器直接添加、商店规划及效果预检使用一致期限；开包准备补齐每日删除规则。已有 `ItemRecord` 的移动、邮件领取和分拆不调用新物品准备来续期。堆叠比较包括到期时间，不同期限不合并。
 

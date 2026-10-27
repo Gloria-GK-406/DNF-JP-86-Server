@@ -85,7 +85,7 @@ public sealed class CreatureNamingDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var store=new FakeCreatureStore(cardExpiry:int.MaxValue,wornExpiry:int.MaxValue);
+            var store=new FakeCreatureStore(cardExpiry:0,wornExpiry:0);
             await store.Card.UpdateAsync(store.Card.Item!, x => x with { EquipmentLockId=3 },default);
             var before=(await store.CurrentAsync(default))!;
             var clock=new AdvanceableTimeProvider(new DateTimeOffset(2050,1,1,0,0,0,TimeSpan.Zero));

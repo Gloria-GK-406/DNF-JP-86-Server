@@ -44,7 +44,7 @@ internal sealed class CollectionBoxDomainService(ICollectionBoxRuleService rules
             var (id, index) = CollectionBoxStorage.Decode(item.StorageSlotIndex);
             var definition = catalog.SingleOrDefault(x => x.BoxIndex == id);
             if (definition is null || !definition.Slots.Any(x => Index(definition, x) == index && x.ItemTemplateId == item.ItemId && x.ItemTemplateId > 0)
-                || item.Count != 1 || item.Snapshot.IsMirror || item.Snapshot.ExpireTime > 0)
+                || item.Count != 1 || item.Snapshot.IsMirror || !item.Snapshot.Lifetime.IsPermanent)
             {
                 diagnostics.Add($"Stored box {id} slot {index}: item {item.ItemId} conflicts with current content; original preserved.");
                 continue;
@@ -95,8 +95,8 @@ internal sealed class CollectionBoxDomainService(ICollectionBoxRuleService rules
                         throw new CollectionBoxRejectedException(CollectionBoxRejection.SourceUnavailable);
                     var item = await bound.Container.GetAsync(from.Index, ct).ConfigureAwait(false);
                     if (item is null || item.ItemId != itemId || item.Count < 1) throw new CollectionBoxRejectedException(CollectionBoxRejection.MissingItem);
-                    if (item.Snapshot is { IsMirror: true } or { ExpireTime: > 0 } or { SortLockFlag: not 0 } or { EquipmentLockId: not 0 }
-                        || item.Snapshot.AvatarDetail is not null || item.Snapshot.CreatureDetail is not null)
+                    if (item.Snapshot is { IsMirror: true } or { SortLockFlag: not 0 } or { EquipmentLockId: not 0 }
+                        || !item.Snapshot.Lifetime.IsPermanent || item.Snapshot.AvatarDetail is not null || item.Snapshot.CreatureDetail is not null)
                         throw new CollectionBoxRejectedException(CollectionBoxRejection.LockedOrTimed);
                     var original = await bound.Container.TakeAsync(item, 1, ct).ConfigureAwait(false);
                     await bound.Container.FlushAsync(ct).ConfigureAwait(false);

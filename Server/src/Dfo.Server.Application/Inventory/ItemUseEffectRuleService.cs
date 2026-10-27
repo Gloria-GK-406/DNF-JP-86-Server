@@ -23,7 +23,7 @@ internal sealed class ItemUseEffectRuleService(IItemUseJudgementService judgemen
         ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at)
     {
         if (rule is null || !rule.IsReadable || item.Count <= 0 || !item.IsPile || source.Index != item.SlotIndex
-            || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= at.ToUnixTimeSeconds()
+            || item.Snapshot.Lifetime.IsExpired(at)
             || source.Space == BusinessInventorySpace.CreatureConsumable && item.ItemId != 24)
             return new(ItemUsability.NotAUsableItem, []);
         if (character is null) return new(ItemUsability.CharacterStateUnavailable, []);

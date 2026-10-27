@@ -39,7 +39,7 @@ internal sealed class EquipmentResealDomainService(ISelectedSessionDomainService
         var changed = await instance!.ResealAsync(quote.NextCount, ct).ConfigureAwait(false);
         return new(EquipmentQualityRejection.None, new(session, targetSlot, materialSlot, changed.Snapshot, remaining, now)
             { Material = wax.Snapshot with { Count = remaining }, Operation = 1 });
-        bool Expired(ItemSnapshot item) => item.ExpireTime > 0 && item.ExpireTime <= now.ToUnixTimeSeconds();
+        bool Expired(ItemSnapshot item) => item.Lifetime.IsExpired(now);
         static bool Locked(ItemSnapshot item) => item.EquipmentLockId != 0 || item.SortLockFlag != 0;
     }
 }

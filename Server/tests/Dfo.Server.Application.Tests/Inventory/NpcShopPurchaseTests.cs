@@ -442,7 +442,7 @@ internal sealed class ShopFixture : IDisposable
         => await SeedCore(slot, StackableItemCore.Create(kind, item, count));
 
     public async Task SeedCore(int slot, InventoryItemCoreState core,
-        InventoryContainerType container = InventoryContainerType.Main)
+        InventoryContainerType container = InventoryContainerType.Main, int avatarExpireDate = 0)
     {
         await TestGameplay.RunAsync(provider, async () =>
         {
@@ -461,7 +461,7 @@ internal sealed class ShopFixture : IDisposable
                 return;
             }
             var snapshot = ItemSnapshot.FromCore(core, worldClass == ItemWorldClass.Interchangeable,
-                avatar: worldClass == ItemWorldClass.Avatar ? new(0, 0, new byte[30], 0, 0, 0) : null,
+                avatar: worldClass == ItemWorldClass.Avatar ? new(avatarExpireDate, 0, new byte[30], 0, 0, 0) : null,
                 creature: worldClass == ItemWorldClass.Creature ? new(100, 0, 0, 0, 0, 1, [], 0) : null);
             await session.PutAsync(id, slot, await session.CreateAsync(snapshot, default), default);
             await tx.CommitAsync(default);

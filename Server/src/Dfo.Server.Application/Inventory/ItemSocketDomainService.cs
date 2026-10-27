@@ -91,7 +91,6 @@ internal sealed class ItemSocketDomainService(ISelectedSessionDomainService sess
     }
     private static bool Locked(ItemSnapshot item) => item.EquipmentLockId != 0 || item.SortLockFlag != 0;
     private static bool Unavailable(ItemSnapshot item, DateTimeOffset now) => item.IsMirror
-        || item.ExpireTime > 0 && item.ExpireTime <= now.ToUnixTimeSeconds()
-        || item.AvatarDetail is { } avatar && (avatar.ExpireDate > 0 && avatar.ExpireDate <= now.ToUnixTimeSeconds()
-            || avatar.DeleteDate > 0 && avatar.DeleteDate <= now.ToUnixTimeSeconds());
+        || item.Lifetime.IsExpired(now)
+        || item.AvatarDetail is { } avatar && avatar.DeleteDate > 0 && avatar.DeleteDate <= now.ToUnixTimeSeconds();
 }

@@ -54,16 +54,14 @@ internal sealed class EquipmentForgingDomainService(
             return new(EquipmentForgingRejection.WrongItem);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentForgingRejection.Locked);
-        if (target.Snapshot.ExpireTime > 0
-            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentForgingRejection.Expired);
 
         var material = await materialBound.Container.GetAsync(materialBound.Slot.Index, ct)
             .ConfigureAwait(false);
         if (material is not { IsPile: true, Count: > 0 }
             || material.Snapshot.EquipmentLockId != 0 || material.Snapshot.SortLockFlag != 0
-            || material.Snapshot.ExpireTime > 0
-                && material.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+            || material.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentForgingRejection.MaterialUnavailable);
         var plan = await rules.ForgingAsync(target, materialSlot, material.ItemId, rolls.Next(), ct).ConfigureAwait(false);
         var decision = plan.Decision;

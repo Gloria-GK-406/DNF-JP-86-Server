@@ -112,7 +112,7 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
         if (!slot.Space.IsCarriedItemSpace()) return null;
         var bound = inventory.Find(actor.CharacterId, slot);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);
-        if (item is null || item.ItemId != itemId || !item.Snapshot.IsPile || item.Snapshot.ExpireTime != 0) return null;
+        if (item is null || item.ItemId != itemId || !item.Snapshot.IsPile || !item.Snapshot.Lifetime.IsPermanent) return null;
         footprint.RecordInventorySlots(actor, [slot]);
         await ItemContainerOperations.ConsumeAsync(bound!.Container, item, 1, lifecycle, ct).ConfigureAwait(false);
         return (slot, (await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false))?.Snapshot);

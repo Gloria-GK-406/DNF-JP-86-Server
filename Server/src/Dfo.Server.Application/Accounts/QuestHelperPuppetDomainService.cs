@@ -127,7 +127,7 @@ internal sealed class QuestHelperPuppetDomainService(
 
     private DateTimeOffset CorrectLegacyDeadline(int expiry, DateTimeOffset fallback)
     {
-        if (expiry is <= 0 or int.MaxValue) return days.PeriodStart(fallback).AddDays(1);
+        if (ItemLifetime.At(expiry).IsPermanent) return days.PeriodStart(fallback).AddDays(1);
         var date = DateTimeOffset.FromUnixTimeSeconds(expiry);
         if (days.PeriodStart(date) == date) return date;
         // The former [usable period] 1 path stored creation + 86400 seconds.

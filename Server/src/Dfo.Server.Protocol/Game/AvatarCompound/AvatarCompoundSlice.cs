@@ -76,7 +76,7 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
             if (slot.Space != InventoryContainerType.Avatar || detail.JewelSocket.Length != 30)
                 throw new InvalidDataException("Invalid compound output.");
             writer.Write(checked((ushort)slot.Index)); writer.Write(output.Item.ItemId);
-            writer.Write(AvatarLifetimeOnTheWire.RemainingSeconds(detail.ExpireDate, receipt.At));
+            writer.Write(ItemLifetime.At(detail.ExpireDate).RemainingSeconds(receipt.At));
             writer.Write((ushort)output.Item.Attribute);
             // This result record has a 30B destination; general inventory projection uses its own layout.
             writer.Write(30); writer.Write(detail.JewelSocket);

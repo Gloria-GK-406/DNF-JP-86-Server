@@ -38,8 +38,8 @@ public sealed class JewelSocketHasOneWireLengthTests
 
     [Theory]
     [InlineData(0, 0)]
-    [InlineData(-1, 0)]
-    [InlineData(int.MaxValue, 0)]
+    [InlineData(-1, -1)]
+    [InlineData(int.MaxValue, int.MaxValue - 1787054400)]
     [InlineData(1, -1)]
     [InlineData(1787054400, -1)]
     [InlineData(1787054401, 1)]

@@ -109,7 +109,8 @@ public sealed class AvatarCompoundProtocolCommandFlowTests(ITestOutputHelper out
     {
         var trace = new Trace(); using var f = Fixture(trace); await AvatarCompoundTests.Seed(f);
         if (reason == "material") await f.Seed(65, 21, 0);
-        if (reason is "locked" or "lifetime") await f.SeedCore(0, StackableItemCore.Create(8, 39086, 12345) with { EquipmentLockId = reason == "locked" ? (byte)1 : (byte)0, ExpireTime = reason == "lifetime" ? 123 : 0 }, InventoryContainerType.Avatar);
+        if (reason is "locked" or "lifetime") await f.SeedCore(0, StackableItemCore.Create(8, 39086, 12345) with { EquipmentLockId = reason == "locked" ? (byte)1 : (byte)0 }, InventoryContainerType.Avatar,
+            avatarExpireDate: reason == "lifetime" ? 123 : 0);
         var before = await Assets(f); await EffectRequestTransport.Send(f, Input(ability: reason == "ability" ? (ushort)99 : (ushort)0));
         Assert.Equal(before, await Assets(f)); Assert.Null(Assert.Single(trace.Results).Receipt); Assert.Single(trace.Attempts); Assert.Equal(EffectOperationState.Committed, Entry(f).State);
         Assert.True(Assert.IsType<CommandRequestContext.ProtocolEffectSelected>(trace.Contexts[0].Request).HasCommittedUnit); Assert.Empty(Entry(f).Projection!.TouchedSlots);

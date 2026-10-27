@@ -21,7 +21,7 @@ internal sealed class ItemLifecycleDomainService(IItemDomainStore store,
                 || snapshot.IsPile != (placement.WorldClass == ItemWorldClass.Interchangeable))
                 throw new InvalidDataException("Item snapshot does not match a known template.");
             if (expiration is not null) snapshot = expiration.Prepare(snapshot, placement.Lifetime, at ?? (clock ?? TimeProvider.System).GetUtcNow());
-            else if (placement.Lifetime.IsLimited && snapshot.ExpireTime == 0 && (snapshot.AvatarDetail?.ExpireDate ?? 0) == 0)
+            else if (placement.Lifetime.IsLimited && snapshot.Lifetime.IsPermanent)
                 throw new InvalidOperationException("Limited item creation requires expiration rules.");
         }
         return snapshot;

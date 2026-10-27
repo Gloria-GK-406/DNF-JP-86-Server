@@ -14,7 +14,7 @@ internal sealed class ItemSaleRuleService(IItemSaleDefinitionSource prices)
         if (item.Snapshot.EquipmentLockId != 0)
             return new(ItemSaleRejection.Locked);
         if ((!item.IsPile && !item.Type.HasFlag(ItemTraits.Equipment))
-            || item.Snapshot.ExpireTime != 0)
+            || !item.Snapshot.Lifetime.IsPermanent)
             return new(ItemSaleRejection.CannotSell);
         var definition = await prices.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is { CanSell: false })
