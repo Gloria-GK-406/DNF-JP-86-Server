@@ -16,7 +16,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
       ("belt", "belt", "waist avatar"), ("shoes", "shoes", "shoes avatar") ];
     private readonly Lock gate = new();
     private readonly Dictionary<byte, AvatarCompoundDefinition?> cache = [];
-    private Dictionary<int, string>? jobPaths;
+    private IReadOnlyDictionary<int, string>? jobPaths;
     private readonly Dictionary<int, AvatarCompoundItemDefinition?> itemCache = [];
 
     public string Name => "avatar-compound";
@@ -38,8 +38,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(jobPaths))]
     private void JobPathsIndex()
     {
-        jobPaths ??= PvfListFile.Read(provider.Archive, "etc/compoundavatar.etc")
-                .ToDictionary(x => x.Id, x => "etc/" + x.RelativePath);
+        jobPaths ??= PvfListFile.Paths(provider.Archive, "etc/compoundavatar.etc", prefix: "etc/");
     }
 
     public ValueTask<AvatarCompoundDefinition?> ForJobAsync(byte job, CancellationToken ct)

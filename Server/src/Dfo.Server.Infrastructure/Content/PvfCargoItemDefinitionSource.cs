@@ -11,7 +11,7 @@ internal sealed class PvfCargoItemDefinitionSource(PvfArchiveProvider provider) 
     private static readonly PvfField<IReadOnlyList<string>> Impossible = PvfField.Strings("[impossible contents]", optional: true);
     private readonly Lock gate = new();
     private readonly Dictionary<int, CargoItemDefinition?> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
 
     public string Name => "cargo-item-index";
 
@@ -29,10 +29,7 @@ internal sealed class PvfCargoItemDefinitionSource(PvfArchiveProvider provider) 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= new[] { "equipment", "stackable" }.SelectMany(category =>
-                PvfListFile.Read(archive, $"{category}/{category}.lst")
-                    .Select(entry => new KeyValuePair<int, string>(entry.Id, category + "/" + entry.RelativePath)))
-            .ToDictionary(entry => entry.Key, entry => entry.Value);
+        paths ??= new PvfItemPathView(archive);
     }
 
     public ValueTask<CargoItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)

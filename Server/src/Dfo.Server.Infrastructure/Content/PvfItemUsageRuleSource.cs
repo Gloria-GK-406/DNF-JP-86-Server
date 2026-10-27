@@ -31,8 +31,7 @@ internal sealed class PvfItemUsageRuleSource(PvfArchiveProvider provider) : IIte
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-                .ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+        paths ??= PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
     }
 
     public ValueTask<ItemUsageRule?> GetAsync(int itemId, CancellationToken token)

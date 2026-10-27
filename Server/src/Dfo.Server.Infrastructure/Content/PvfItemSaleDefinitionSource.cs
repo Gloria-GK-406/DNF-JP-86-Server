@@ -16,8 +16,8 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, ItemSaleDefinition?> cache = [];
-    private Dictionary<int, string>? equipment;
-    private Dictionary<int, string>? stackables;
+    private IReadOnlyDictionary<int, string>? equipment;
+    private IReadOnlyDictionary<int, string>? stackables;
 
     public string Name => "item-sale-index";
 
@@ -36,13 +36,13 @@ internal sealed class PvfItemSaleDefinitionSource(PvfArchiveProvider provider) :
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipment))]
     private void EquipmentIndex(Dfo.Pvf.PvfArchive archive)
     {
-        equipment ??= PvfListFile.Read(archive, "equipment/equipment.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+        equipment ??= PvfListFile.Paths(archive, "equipment/equipment.lst");
     }
 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
     private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
     {
-        stackables ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => x.RelativePath);
+        stackables ??= PvfListFile.Paths(archive, "stackable/stackable.lst");
     }
 
     public ValueTask<ItemSaleDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)

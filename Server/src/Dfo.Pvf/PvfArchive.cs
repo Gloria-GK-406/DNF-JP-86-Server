@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Text;
 using Dfo.Pvf.Chunks;
 using Dfo.Pvf.Codec;
@@ -22,7 +23,7 @@ namespace Dfo.Pvf;
 /// </para>
 /// <para>
 /// Instances are thread-safe for concurrent reads. Content is immutable, so the only shared
-/// mutable state is the chunk cache, which synchronises internally.
+/// mutable state is the chunk cache and lazy read-only list indexes, which synchronise internally.
 /// </para>
 /// </remarks>
 public sealed class PvfArchive : IDisposable
@@ -30,6 +31,7 @@ public sealed class PvfArchive : IDisposable
     private readonly PvfFileMap _map;
     private readonly FileIndex _files;
     private readonly ChunkStore _chunks;
+    private readonly ConcurrentDictionary<int, Lazy<PvfListIndex>> _lists = new();
     private bool _disposed;
 
     public int FileCount => _files.Count;
@@ -92,6 +94,14 @@ public sealed class PvfArchive : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _files.Find(archivePath);
+    }
+
+    /// <summary>Parses a list once per archive file, sharing rows and immutable lookup views.</summary>
+    public PvfListIndex ReadList(string archivePath)
+    {
+        var index = FindFile(archivePath);
+        if (index < 0) throw new InvalidOperationException($"The archive does not contain {archivePath}.");
+        return _lists.GetOrAdd(index, i => new Lazy<PvfListIndex>(() => new(this, i, archivePath))).Value;
     }
 
     /// <summary>Reads one file-table row.</summary>

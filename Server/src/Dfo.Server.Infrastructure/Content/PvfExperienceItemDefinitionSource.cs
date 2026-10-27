@@ -43,8 +43,7 @@ internal sealed class PvfExperienceItemDefinitionSource(
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, StackableListPath)
-                .ToDictionary(entry => entry.Id, entry => "stackable/" + entry.RelativePath);
+        paths ??= PvfListFile.Paths(archive, StackableListPath, prefix: "stackable/");
     }
 
     public ValueTask<ExperienceItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)

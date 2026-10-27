@@ -37,8 +37,8 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     private readonly Dictionary<int, EquipmentDisjointDefinition?> equipmentCache = [];
     private readonly Dictionary<int, EquipmentDestructionDefinition?> destructionCache = [];
     private readonly Dictionary<int, PortableDisjointMachineDefinition?> portableMachineCache = [];
-    private Dictionary<int, string>? equipmentPaths;
-    private Dictionary<int, string>? stackablePaths;
+    private IReadOnlyDictionary<int, string>? equipmentPaths;
+    private IReadOnlyDictionary<int, string>? stackablePaths;
     private IReadOnlyDictionary<int, int>? portableLevelLimits;
     private int? equipmentSaleRate;
     private bool tableRead;
@@ -63,15 +63,13 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentPaths))]
     private void EquipmentPathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        equipmentPaths ??= PvfListFile.Paths(archive, "equipment/equipment.lst");
     }
 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
     private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        stackablePaths ??= PvfListFile.Paths(archive, "stackable/stackable.lst");
     }
 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(portableLevelLimits))]

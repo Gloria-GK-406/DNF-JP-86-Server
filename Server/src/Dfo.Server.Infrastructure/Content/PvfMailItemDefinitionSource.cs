@@ -16,8 +16,8 @@ internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, MailItemDefinition?> cache = [];
-    private Dictionary<int, string>? equipmentPaths;
-    private Dictionary<int, string>? stackablePaths;
+    private IReadOnlyDictionary<int, string>? equipmentPaths;
+    private IReadOnlyDictionary<int, string>? stackablePaths;
 
     public string Name => "mail-item-index";
 
@@ -36,15 +36,13 @@ internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(equipmentPaths))]
     private void EquipmentPathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        equipmentPaths ??= PvfListFile.Read(archive, "equipment/equipment.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        equipmentPaths ??= PvfListFile.Paths(archive, "equipment/equipment.lst");
     }
 
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackablePaths))]
     private void StackablePathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        stackablePaths ??= PvfListFile.Read(archive, "stackable/stackable.lst")
-            .ToDictionary(entry => entry.Id, entry => entry.RelativePath);
+        stackablePaths ??= PvfListFile.Paths(archive, "stackable/stackable.lst");
     }
 
     public ValueTask<MailItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken)

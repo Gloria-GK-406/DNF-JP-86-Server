@@ -13,9 +13,9 @@ internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider
     private readonly Lock gate = new();
     private readonly Dictionary<int, HellDungeonDefinition?> cache = [];
     private Dictionary<int, Area>? areas;
-    private Dictionary<int, string>? dungeons;
-    private Dictionary<int, string>? maps;
-    private Dictionary<int, string>? aiCharacters;
+    private IReadOnlyDictionary<int, string>? dungeons;
+    private IReadOnlyDictionary<int, string>? maps;
+    private IReadOnlyDictionary<int, string>? aiCharacters;
     private HellPartyDefinition? party;
     private PvfArchive Archive => provider.Archive;
 
@@ -55,7 +55,7 @@ internal sealed class PvfHellDungeonDefinitionSource(PvfArchiveProvider provider
         lock (gate) return ValueTask.FromResult(party ??= ReadParty());
     }
 
-    private Dictionary<int, string> Paths(string directory) => PvfListFile.Read(Archive, $"{directory}/{directory}.lst")
+    private IReadOnlyDictionary<int, string> Paths(string directory) => PvfListFile.Read(Archive, $"{directory}/{directory}.lst")
         .GroupBy(x => x.Item1).ToDictionary(x => x.Key, x => x.First().Item2);
 
     private PvfDocument? Open(string path) => Archive.FindFile(path) < 0 ? null : PvfDocument.Open(Archive, path);

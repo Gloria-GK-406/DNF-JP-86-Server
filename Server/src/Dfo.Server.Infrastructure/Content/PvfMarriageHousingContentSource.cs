@@ -16,7 +16,7 @@ internal sealed class PvfMarriageHousingContentSource(PvfArchiveProvider provide
     private static MarriageHousingContent Read(PvfArchiveProvider provider)
     {
         var archive = provider.Archive;
-        var paths = PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+        var paths = PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
         var layout = PvfDocument.Open(archive, "decoration/coupleroomiteminfo.etc");
         var sold = PvfDocument.Open(archive, "itemshop/chn_mago.shp").Read(PvfField.Int32List("[item list]")).Where(x => x > 0).ToHashSet();
         var furniture = new Dictionary<int, HousingFurnitureRule>();

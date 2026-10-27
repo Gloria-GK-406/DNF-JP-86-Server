@@ -80,7 +80,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(stackables))]
     private void StackablesIndex(Dfo.Pvf.PvfArchive archive)
     {
-        stackables ??= PvfListFile.Read(archive, StackableListPath).ToDictionary(value => value.Id);
+        stackables ??= PvfListFile.EntriesById(archive, StackableListPath);
     }
 
     public ValueTask<ItemUseRule?> GetAsync(int itemId, CancellationToken cancellationToken)

@@ -12,7 +12,7 @@ internal sealed class PvfEquipmentQualityDefinitionSource(PvfArchiveProvider pro
     private static readonly PvfField<IReadOnlyList<string>> AllowedTypes = PvfField.Strings("[usable equip type]", optional: true);
     private readonly Lock gate = new();
     private readonly Dictionary<int, EquipmentQualityMaterialDefinition?> cache = [];
-    private Dictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? paths;
     public string Name => "equipment-quality-index";
 
     public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
@@ -29,7 +29,7 @@ internal sealed class PvfEquipmentQualityDefinitionSource(PvfArchiveProvider pro
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(paths))]
     private void PathsIndex(Dfo.Pvf.PvfArchive archive)
     {
-        paths ??= PvfListFile.Read(archive, "stackable/stackable.lst").ToDictionary(x => x.Id, x => "stackable/" + x.RelativePath);
+        paths ??= PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
     }
 
     public ValueTask<EquipmentQualityMaterialDefinition?> FindAsync(int itemId, CancellationToken ct)

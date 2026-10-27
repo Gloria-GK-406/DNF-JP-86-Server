@@ -89,10 +89,10 @@ internal sealed class PvfItemCatalogSource(PvfArchiveProvider provider,
     {
         if (paths is not null) return;
         var result = new Dictionary<int, (string, bool)>();
-        foreach (var row in PvfListFile.Read(provider.Archive, "stackable/stackable.lst"))
-            result.TryAdd(row.Id, ("stackable/" + row.RelativePath, false));
-        foreach (var row in PvfListFile.Read(provider.Archive, "equipment/equipment.lst"))
-            result.TryAdd(row.Id, ("equipment/" + row.RelativePath, true));
+        foreach (var row in PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", Dfo.Pvf.PvfListDuplicates.First, "stackable/"))
+            result.TryAdd(row.Key, (row.Value, false));
+        foreach (var row in PvfListFile.Paths(provider.Archive, "equipment/equipment.lst", Dfo.Pvf.PvfListDuplicates.First, "equipment/"))
+            result.TryAdd(row.Key, (row.Value, true));
         paths = result;
     }
 

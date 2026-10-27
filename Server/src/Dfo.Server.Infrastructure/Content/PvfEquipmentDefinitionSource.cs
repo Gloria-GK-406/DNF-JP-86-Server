@@ -22,7 +22,7 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
 
     private const string IndexPath = "equipment/equipment.lst";
     private readonly Lock gate = new();
-    private Dictionary<int, string>? equipmentPaths;
+    private IReadOnlyDictionary<int, string>? equipmentPaths;
     private readonly Dictionary<int, EquipmentDefinition> equipmentCache = [];
 
     public ValueTask<int> InitializeAsync(CancellationToken cancellationToken)
@@ -53,11 +53,11 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
         }
     }
 
-    private static Dictionary<int, string> ReadPaths(PvfArchive archive)
+    private static IReadOnlyDictionary<int, string> ReadPaths(PvfArchive archive)
     {
         var file = RequireScript(archive, null, IndexPath, "index");
         var reader = archive.OpenScript(file);
-        var paths = new Dictionary<int, string>();
+        var ids = new HashSet<int>();
         while (reader.Read(out var id))
         {
             if (id.Kind != PvfTokenKind.Int32 || id.Value <= 0)
@@ -68,12 +68,12 @@ internal sealed class PvfEquipmentDefinitionSource(PvfArchiveProvider provider) 
             if (string.IsNullOrWhiteSpace(relative) || relative.StartsWith('/')
                 || relative.Contains(':') || relative.Split('/').Any(part => part is ".." or "." or ""))
                 throw Invalid(id.Value, IndexPath, "index path", "invalid relative path");
-            if (!paths.TryAdd(id.Value, "equipment/" + relative))
+            if (!ids.Add(id.Value))
                 throw Invalid(id.Value, IndexPath, "index item id", "duplicate equipment id");
         }
-        if (paths.Count == 0)
+        if (ids.Count == 0)
             throw Invalid(null, IndexPath, "index", "equipment index is empty");
-        return paths;
+        return PvfListFile.Paths(archive, IndexPath, prefix: "equipment/");
     }
 
     private static EquipmentDefinition ReadEquipment(PvfArchive archive, int itemId, string path)

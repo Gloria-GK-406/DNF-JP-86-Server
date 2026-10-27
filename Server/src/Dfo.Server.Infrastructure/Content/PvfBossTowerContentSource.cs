@@ -30,7 +30,7 @@ internal sealed class PvfBossTowerContentSource(PvfArchiveProvider provider, IDu
         Require(dungeon.Read(PvfField.String("[dungeon type]")) == "tower of boss", admission.ArchivePath, "unexpected dungeon type");
         var count = dungeon.Read(PvfField.Int32("[tower random map indexes]", minimum: 1, maximum: 8));
         var stages = new List<BossTowerStageDefinition>();
-        var maps = PvfListFile.Read(archive, "map/map.lst").GroupBy(x => x.Id).ToDictionary(g => g.Key, g => "map/" + g.First().RelativePath);
+        var maps = PvfListFile.Paths(archive, "map/map.lst", Dfo.Pvf.PvfListDuplicates.First, prefix: "map/");
         foreach (var row in dungeon.ReadAll(PvfField.Int32List("[tower stage]")))
         {
             Require(row.Count >= 3 && row.Count % 2 == 1 && row[0] == stages.Count + 1, admission.ArchivePath, "invalid stage pool");

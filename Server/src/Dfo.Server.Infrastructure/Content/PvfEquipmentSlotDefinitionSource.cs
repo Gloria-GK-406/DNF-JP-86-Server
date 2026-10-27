@@ -58,9 +58,7 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
     {
         if (_paths is null)
         {
-            var paths = new Dictionary<int, string>();
-            foreach (var (id, relativePath) in PvfListFile.Read(archive, EquipmentListPath))
-                paths.TryAdd(id, relativePath);
+            var paths = PvfListFile.Paths(archive, EquipmentListPath, Dfo.Pvf.PvfListDuplicates.First);
             _paths = paths;
         }
     }
