@@ -1,0 +1,8 @@
+{"session": 1, "direction": "c2s", "selector": 1, "type": 15, "length": 18, "armed": true, "body_hex": "00000000", "sequence": 65, "utc": "2026-10-27T09:26:41.906918+00:00"}
+{"session": 1, "direction": "s2c", "selector": 1, "type": 15, "length": 16, "armed": true, "body_hex": "01", "sequence": null, "utc": "2026-10-27T09:26:41.966119+00:00"}
+{"session": 1, "direction": "c2s", "selector": 1, "type": 15, "length": 18, "armed": true, "body_hex": "00000000", "sequence": 70, "utc": "2026-10-27T09:26:49.904667+00:00"}
+{"session": 1, "direction": "s2c", "selector": 1, "type": 15, "length": 16, "armed": true, "body_hex": "01", "sequence": null, "utc": "2026-10-27T09:26:49.934928+00:00"}
+{"session": 1, "direction": "c2s", "selector": 1, "type": 16, "length": 29, "armed": true, "body_hex": "07100000000000ffff000000000000", "sequence": 74, "utc": "2026-10-27T09:26:51.470360+00:00"}
+{"session": 1, "direction": "s2c", "selector": 1, "type": 15, "length": 16, "armed": true, "body_hex": "01", "sequence": null, "utc": "2026-10-27T09:26:51.616285+00:00"}
+{"session": 1, "direction": "s2c", "selector": 0, "type": 28, "length": 47, "armed": true, "body_hex": "071000000000070000000000010000000000ffffffff00000000000000000000", "sequence": null, "utc": "2026-10-27T09:26:51.617286+00:00"}
+{"session": 1, "direction": "s2c", "selector": 0, "type": 29, "length": 38, "armed": true, "body_hex": "00000030e42358020001000000017263000000000000ff", "sequence": null, "utc": "2026-10-27T09:26:51.617286+00:00"}

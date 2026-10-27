@@ -1,0 +1,6 @@
+map/circus_tw/circus_tw.map	20060
+map/town/underfoot/underfoot_dt_or_icewall2.map	20057 | 20060
+map/town/underfoot/underfoot_event.map	20057
+map/villageattack/1_underfoot_dt_or_icewall_boss_2.map	20057
+map/villageattack/2_underfoot_dt_or_icewall_easy1.map	20060
+map/villageattack/2_underfoot_dt_or_icewall_easy2.map	20060

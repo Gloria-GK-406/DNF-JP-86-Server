@@ -1,0 +1,499 @@
+
+## monster/newmonsters/circus/circusmonkey/action/proc.act
+
+[TRIGGER]
+[ON SET ACTION]
+[DO BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[DIM]
+level
+[=]
+0
+[/DIM]
+[DIM]
+limitTime
+[=]
+[GET TIME]
+[/DIM]
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[IS IN AREA]
+[POS]
+210 470 0
+[RANGE]
+10 120 50
+[COORDINATE]
+ABSOLUTE
+[/IS IN AREA]
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[ME]
+5
+[DELAY DO BEHAVIOR]
+[ME]
+1 800
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+0
+[NOW]
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[IS IN AREA]
+[POS]
+890 470 0
+[RANGE]
+10 120 50
+[COORDINATE]
+ABSOLUTE
+[/IS IN AREA]
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[ME]
+5
+[DELAY DO BEHAVIOR]
+[ME]
+2 800
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+1
+[NOW]
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[IS IN AREA]
+[POS]
+1620 470 0
+[RANGE]
+10 120 50
+[COORDINATE]
+ABSOLUTE
+[/IS IN AREA]
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[ME]
+5
+[DELAY DO BEHAVIOR]
+[ME]
+3 800
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+2
+[NOW]
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[IS IN AREA]
+[POS]
+2460 470 0
+[RANGE]
+20 120 50
+[COORDINATE]
+ABSOLUTE
+[/IS IN AREA]
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[ME]
+5
+[DELAY DO BEHAVIOR]
+[ME]
+4 800
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+3
+[NOW]
+[/BEHAVIOR]
+[BEHAVIOR]
+[SAY SPEECH]
+离我远点！ 0 20
+[/BEHAVIOR]
+[TRIGGER]
+[IF]
+limitTime
+[<]
+[GET TIME]
+[-]
+90000
+[/IF]
+[DO BEHAVIOR]
+[ME]
+5
+[DELAY DO BEHAVIOR]
+[ME]
+6 800
+[DO BEHAVIOR]
+[ME]
+7
+[/TRIGGER]
+[BEHAVIOR]
+[DESTROY]
+[/BEHAVIOR]
+[BEHAVIOR]
+[TRIGGER]
+1
+[OFF]
+[TRIGGER]
+2
+[OFF]
+[TRIGGER]
+3
+[OFF]
+[TRIGGER]
+5
+[OFF]
+[/BEHAVIOR]
+
+## monster/newmonsters/circus/circusmonkey/action/movever2.act
+
+[MOTION]
+[BASE ANI]
+../Animation/Move.ani
+[SOUND]
+NORMALSILVER_JUGGLING 0 NORMALSILVER_ATK_02 3
+[/SOUND]
+[/MOTION]
+
+## monster/newmonsters/circus/circusmonkey/action/goalver2.act
+
+[MOTION]
+[BASE ANI]
+../Animation/makefun_full.ani
+[/MOTION]
+[TRIGGER]
+[LIMIT]
+1
+[FRAME]
+0 0
+[DO BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[SAY SPEECH]
+离我远点！ 0 20
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[FRAME]
+33 33
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+4
+[NOW]
+[/BEHAVIOR]
+
+## monster/newmonsters/circus/circusmonkey/action/escapever2.act
+
+[MOTION]
+[BASE ANI]
+../Animation/Move.ani
+[/MOTION]
+[TRIGGER]
+[ON SET ACTION]
+[DO BEHAVIOR]
+[ME]
+0
+[DELAY DO BEHAVIOR]
+[ME]
+1 800
+[/TRIGGER]
+[BEHAVIOR]
+[SET DIRECTION]
+[RIGHT]
+[REMOVE CATEGORY]
+[FIXTURE]
+[MOVE PATTERN]
+[TYPE]
+0
+[VELOCITY]
+200
+[POS]
+3000 480 0
+[/MOVE PATTERN]
+[/BEHAVIOR]
+[TRIGGER]
+[WHICH]
+[PASSIVE]
+[CHECKUP]
+[IS INDEX]
+54338
+[/IS INDEX]
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[CHECKUP OBJECT]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[DESTROY]
+[/BEHAVIOR]
+
+## monster/newmonsters/circus/jumpbarrel_cannon/ai/action.ai
+
+[ai pattern]
+[think]
+[void]
+is target in attack area() 150 150 150 150
+[true]
+[return]
+-1
+[false]
+[think]
+[void]
+is the skill in cooltime() 0
+[true]
+[think]
+[void]
+is the skill in cooltime() 1
+[true]
+[return]
+-1
+[false]
+[think]
+[void]
+is target in attack area() 300 300 300 300
+[true]
+[return]
+-1
+[false]
+[return]
+1
+[/think]
+[/think]
+[false]
+[return]
+0
+[/think]
+[/think]
+[/ai pattern]
+
+## monster/newmonsters/circus/jumpbarrel_monkey/ai/action.ai
+
+[ai pattern]
+[think]
+[void]
+is target in attack area() 200 200 200 200
+[true]
+[return]
+1
+[false]
+[think]
+[void]
+is the skill in cooltime() 0
+[true]
+[return]
+-1
+[false]
+[return]
+0
+[/think]
+[/think]
+[/ai pattern]
+
+## monster/newmonsters/circus/catch_pierrot_small/action/hide_reflect.act
+
+[MOTION]
+[BASE ANI]
+../animation/hide_reflect.ani
+[SUB ANI]
+../animation/hide_dust.ani 0 0
+[/SUB ANI]
+[/MOTION]
+
+## monster/newmonsters/circus/catch_pierrot_small/action/throw_reflect.act
+
+[MOTION]
+[BASE ANI]
+../animation/Throw_reflect.ani
+[SUB ANI]
+../animation/Throw_dodge_reflect.ani 0 0
+[/SUB ANI]
+[/MOTION]
+[TRIGGER]
+[FRAME]
+12 12
+[DO BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[CREATE PASSIVEOBJECT]
+[INDEX]
+54331
+[PARTICLE FILENAME]
+
+[LEVEL]
+50
+[POS]
+20 0 90
+[/CREATE PASSIVEOBJECT]
+[/BEHAVIOR]
+[TRIGGER]
+[FRAME]
+18 18
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+0
+[/BEHAVIOR]
+[TRIGGER]
+[ON DAMAGE]
+[WHICH]
+[LAST ATTACKER]
+[CHECKUP]
+[IS NOT INDEX]
+21012
+[/IS NOT INDEX]
+[IS NOT INDEX]
+48081
+[/IS NOT INDEX]
+[IS NOT INDEX]
+20029
+[/IS NOT INDEX]
+[IS NOT INDEX]
+24028
+[/IS NOT INDEX]
+[IS NOT INDEX]
+24025
+[/IS NOT INDEX]
+[IS NOT INDEX]
+24027
+[/IS NOT INDEX]
+[IS NOT INDEX]
+900
+[/IS NOT INDEX]
+[IS NOT INDEX]
+901
+[/IS NOT INDEX]
+[IS NOT INDEX]
+902
+[/IS NOT INDEX]
+[IS NOT INDEX]
+903
+[/IS NOT INDEX]
+[IS NOT INDEX]
+904
+[/IS NOT INDEX]
+[IS NOT INDEX]
+905
+[/IS NOT INDEX]
+[IS NOT INDEX]
+906
+[/IS NOT INDEX]
+[IS NOT INDEX]
+907
+[/IS NOT INDEX]
+[IS NOT INDEX]
+908
+[/IS NOT INDEX]
+[IS NOT INDEX]
+909
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60043
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60044
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60045
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60046
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60006
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60007
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60008
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60009
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60020
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60021
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60022
+[/IS NOT INDEX]
+[IS NOT INDEX]
+60023
+[/IS NOT INDEX]
+[IS NOT INDEX]
+48001
+[/IS NOT INDEX]
+[/CHECKUP]
+[CHECKED NO]
+[=>]
+1
+[DO BEHAVIOR]
+[SUMMON MASTER]
+2
+[DO BEHAVIOR]
+[LAST ATTACKER]
+2
+[/TRIGGER]
+[BEHAVIOR]
+[RESTORE]
+[HP]
+-10
+[%]
+[/BEHAVIOR]

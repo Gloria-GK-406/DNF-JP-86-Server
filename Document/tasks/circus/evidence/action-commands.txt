@@ -1,0 +1,5 @@
+monster/newmonsters/dimensiongate/blackearth/astaroth/action/uppercut.act	LINKED
+monster/newmonsters/dimensiongate/blackearth/ozma_summon_astaroth/action/uppercut.act	LINKED
+monster/newmonsters/dimensiongate_tutorial/blackearth/astaroth/action/uppercut.act	LINKED
+monster/newmonsters/dimensiongate_tutorial/blackearth/ozma_summon_astaroth/action/uppercut.act	LINKED
+monster/newmonsters/timegate/black_church/astaroth/action/uppercut.act	LINKED

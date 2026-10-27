@@ -381,7 +381,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
             designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []), entryMode)
         { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems,
             EventRequiredItems = eventRequiredItems, IsSpiciesDungeon = isSpicies, PartyLimit = partyLimit, ProhibitsPractice = prohibitsPractice,
-            HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable() };
+            HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable(),
+            LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath) };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

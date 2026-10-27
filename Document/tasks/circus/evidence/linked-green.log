@@ -1,0 +1,11 @@
+  Dfo.Pvf -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Pvf\bin\Debug\net10.0\Dfo.Pvf.dll
+  Dfo.Server.Data -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Data\bin\Debug\net10.0\Dfo.Server.Data.dll
+  Dfo.Server.Abstractions -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Abstractions\bin\Debug\net10.0\Dfo.Server.Abstractions.dll
+  Dfo.Server.Infrastructure -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Infrastructure\bin\Debug\net10.0\Dfo.Server.Infrastructure.dll
+  Dfo.Server.Application -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\src\Dfo.Server.Application\bin\Debug\net10.0\Dfo.Server.Application.dll
+  Dfo.Server.Infrastructure.Tests -> C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll
+C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: C:\Users\Gloria\.codex\worktrees\fbd8\DNF-JP-86-Server\Document\tasks\circus\verification\circus-linked-green.trx
+
+已通过! - 失败:     0，通过:     1，已跳过:     0，总计:     1，持续时间: 336 ms - Dfo.Server.Infrastructure.Tests.dll (net10.0)

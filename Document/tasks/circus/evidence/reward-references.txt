@@ -1,0 +1,4 @@
+etc/autorooting.etc	10006445 | 10006446
+etc/chn_dblogitem.etc	10006445 | 10006446
+etc/independent_drop.etc	64688 | 10006445 | 10006446
+etc/techimageindexfile2.etc	64688
