@@ -2,7 +2,7 @@
 
 `SelectCharacterResult` 是选角回复的一次性组包值，不是会话运行态。发布后，
 会话进入世界只是在线身份（`OnlineStateRegistry`）上选中会话记录的阶段变化
-（`ISelectedSessionDomainService.EnterWorld` / `IsInWorld`）；是否落库位置不存储，拆除时由频道推导。
+（`ISelectedSessionDomainService.EnterWorld` / `IsInWorld`）；是否落库位置不存储，拆除时由频道的 `!IsTransient` 推导。
 在线身份不保存角色、背包、任务、金币或装备耐久。
 
 运行期需要较完整的角色投影时，调用 `ISelectedCharacterCurrentViewDomainService.TryLoadAsync`：
@@ -16,10 +16,9 @@
 
 物品移动、修理及耐久消耗直接修改物品领域持久化状态。副本选择、进图、回城、
 查看角色和外观通知都重新取当前物品；不会把登录时的旧耐久再灌回客户端。
-入场物品租约的内存副本、脏标记、退场写回链路已从生产流程移除。
-旧的 `EntryInventoryLeaseSnapshot` 及配套持久化接口也已删除。
+不得增加入场物品副本、脏标记或退场整份回写链路。
 当前库存投影由入场读取链路组装，物品修改通过引用、取出记录与生命周期服务完成；
-见 [物品生命周期规格](tasks/item-container-lifecycle/spec.md)。
+见 [物品与容器](ItemContainers.md)。
 
 位置、队伍血量百分比、物品冷却与灵药加成由 `IOnlineCharacterRuntimeDomainService` 的同一条
 运行时记录持有，记录属于开始它的会话代数；旧连接的迟到写入与清理不能改到或移除新连接的记录。
@@ -31,9 +30,7 @@
 受限频道继续使用自身指定区域的临时落点，避免跨到不允许的城镇。
 落点由已有 `PlaceAtSpawnAsync` 和会话发布流程放置、持久化并投影，不增加额外位置同步。
 
-2026-10-07 的时空之门断线：Windows Application 事件 198442 记录选图请求 `CMD 0x000F`
-在读取当前角色状态时触发 `Town 12 declares no arrival gate`，选图回包尚未发送。
-这次拆分消除在线查询对登录到达门的依赖；深渊入场协议与掉落功能不属于本次修复。
+在线查询只读运行期位置，不能因城镇缺登录到达门而中断选图。
 
 自动构建、回归与实际 PVF 测试不替代 A21 实机验收；客户端选图、进图、组队及回城
 表现需要在部署后分别验证。

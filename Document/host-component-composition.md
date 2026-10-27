@@ -14,9 +14,9 @@ Host
 └── Application + Infrastructure + Persistence（共同服务图）
 ```
 
-HttpApi 由原 LauncherApi 更名，仍只引用 Abstractions、Application、Data；它不依赖 Networking/Protocol/Persistence。未来更新列表、公告等 HTTP 功能归该组件下各自的功能目录，本次没有增加这些业务。
+HttpApi 只引用 Abstractions、Application、Data，不依赖 Networking/Protocol/Persistence。HTTP 功能按主题组织于该组件。
 
-GameServer 装配已有网络/协议模块，不复制其源码，也不注册第二套公共服务。Host 不直接依赖 Networking/Protocol。共用登录会话、在线状态、CommandBus、事务入口及数据库，无 RPC 和第二个 IServiceProvider。登录会话后续改为在线持续有效、断线5分钟宽限，重登替换和进程重启失效，见 [登录会话](login-session-lifecycle.md)。
+GameServer 装配已有网络/协议模块，不复制其源码，也不注册第二套公共服务。Host 不直接依赖 Networking/Protocol。共用登录会话、在线状态、CommandBus、事务入口及数据库，无 RPC 和第二个 IServiceProvider。登录会话在线持续有效、断线5分钟宽限，重登替换和进程重启失效，见 [登录会话](login-session-lifecycle.md)。
 
 ## 配置与开关
 
@@ -42,10 +42,10 @@ GameServer 装配已有网络/协议模块，不复制其源码，也不注册�
 3. 启动 TCP/UDP、HTTP 监听。整个 Host 发出 ApplicationStarted 后，HTTP 标记 ready，游戏在网络启用条件下报告 ready。
 4. ApplicationStopping 立即撤销 ready，再由宿主统一停止各监听器与释放服务。
 
-PVF 缺失仍按历史行为允许启动、具体内容请求明确失败；存在但损坏的 PVF 或预热失败会使启动失败，不能提前接受游戏或 HTTP 请求。异步预热传递取消令牌，现有同步表初始化保持原接口。
+PVF 缺失允许启动、具体内容请求明确失败；存在但损坏的 PVF 或预热失败会使启动失败，不能提前接受游戏或 HTTP 请求。异步预热传递取消令牌，现有同步表初始化保持原接口。
 
 ## 构建与发布
 
 解决方案包含 GameServer、HttpApi 和 GmWeb。输出仍是一份 `Dfo.Server.Host`，标准候选打包先构建 GM 前端，再发布组件程序集、`wwwroot/gm`、appsettings、experience 和频道资源；Windows/Linux 自包含包流程不拆分。构建机需要 Node/npm，运行发布包无需 Node，流程见 [server-ci-release.md](server-ci-release.md)。
 
-这次是装配与生命周期重构，不改变客户端协议知识或赋予新的 ClientVerified 证据。Docker/真实客户端后续验收仍独立于自动化检查；未调整 HTTPS 凭证保护。
+组件构建与自动化检查不赋予 ClientVerified；容器部署与真实客户端验收需各自提供证据。
