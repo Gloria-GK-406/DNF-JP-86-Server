@@ -15,7 +15,8 @@
 | 70Reference | 本次70 ELF符号表未命中nateram/kurun/巨龙专用符号 | 不推断A21没有该功能，不搬用其他版本数值 |
 | UpstreamReference | ServerS4A21枚举含巨龙名称，检索Game/SelfTests未找到专用生命周期 | 未取得可用Git提交身份；03F4/03F5不能按上游枚举直接当本仓巨龙通知 |
 | CurrentImplementation | 复用普通迷宫、真实房间演员及物件、怪物掉落、任务、翻牌、退出、疲劳持久化和统一日切；增加入口编排与两项通用内容语义 | 自动建房不证明客户端机关或Boss阶段正常 |
-| WireCaptured / ClientVerified | 本次均无 | 不以自动测试、Content或参照代码替代 |
+| WireCaptured | 本次未取得原生客户端双向实帧 | 服务端合成TCP探测不能升级为原生WireCaptured |
+| ClientVerified | 2026-10-27用户确认登录、频道显示及频道进入 | 仅频道链路，不覆盖巨龙入口、战斗、机关和奖励 |
 
 ## 变体与本服规则
 
