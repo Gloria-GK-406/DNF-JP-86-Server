@@ -57,13 +57,13 @@ public sealed class PartyCommandHandlerTests
                 Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
-                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs, deliveries: deliveries))
                 .SendAsync(new GameLeavePartyCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty)));
 
             Assert.True(result);
             Assert.Null(runs.Find(Inviter.CharacterId));
             Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
-            Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
+            Assert.Equal([Invitee], deliveries.Find(run.RunId));
         });
     }
 
@@ -90,16 +90,19 @@ public sealed class PartyCommandHandlerTests
                  new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
                 layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(run.RunId, [Inviter, Invitee]);
             var context = DomainCommandFixture.Context(
                 Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
-                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs, deliveries: deliveries))
                 .SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
 
             Assert.True(result);
             Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
             Assert.Null(runs.Find(Invitee.CharacterId));
+            Assert.Equal([Inviter], deliveries.Find(run.RunId));
         });
     }
 
