@@ -12,19 +12,17 @@ namespace Dfo.Server.Protocol.Game;
 internal sealed partial class GamePartyTransitionCommandHandler
 {
     private async ValueTask<IReadOnlyList<CharacterId>> EndOrdinaryRunAsync(
-        IReadOnlyList<SelectedSessionIdentity> members, DungeonRunId runId, CancellationToken token)
+        DungeonRunId runId, CancellationToken token)
     {
-        return await EndOrdinaryRunCoreAsync(runs, members, runId, token).ConfigureAwait(false);
+        return await EndOrdinaryRunCoreAsync(runs, runId, token).ConfigureAwait(false);
     }
-    internal static async ValueTask<IReadOnlyList<CharacterId>> EndOrdinaryRunCoreAsync(IDungeonRunDomainService runs, IReadOnlyList<SelectedSessionIdentity> members, DungeonRunId runId, CancellationToken token)
+
+    /// <summary>The whole party leaves together: the run ends for every member at once.</summary>
+    internal static async ValueTask<IReadOnlyList<CharacterId>> EndOrdinaryRunCoreAsync(
+        IDungeonRunDomainService runs, DungeonRunId runId, CancellationToken token)
     {
-        var ended = new List<CharacterId>();
-        foreach (var member in members)
-        {
-            token.ThrowIfCancellationRequested();
-            if (await runs.EndAsync(member.CharacterId, runId).ConfigureAwait(false)) ended.Add(member.CharacterId);
-        }
-        return ended;
+        token.ThrowIfCancellationRequested();
+        return await runs.EndRunAsync(runId).ConfigureAwait(false);
     }
 
     private async ValueTask SettleAltarExitAsync(CommandExecutionContext execution,

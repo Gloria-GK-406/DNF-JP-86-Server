@@ -1233,6 +1233,14 @@ public sealed class PartySelectDungeonHandlerTests
             Ended.Add(characterId);
             return true;
         }
+        public ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId)
+        {
+            CharacterId[] members = [.. current.Where(entry => entry.Value.RunId == runId)
+                .OrderBy(entry => entry.Value.Participant?.Slot)
+                .Select(entry => entry.Key)];
+            Ended.AddRange(members);
+            return ValueTask.FromResult<IReadOnlyList<CharacterId>>(members);
+        }
     }
 
     private sealed class Fatigue : ICharacterFatigueDomainService

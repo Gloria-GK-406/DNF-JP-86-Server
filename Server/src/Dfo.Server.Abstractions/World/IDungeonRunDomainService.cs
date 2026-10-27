@@ -460,8 +460,24 @@ public interface IDungeonRunDomainService
 
     IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
 
+    /// <summary>
+    /// One character's departure from the named run: releases what the run holds for them, records
+    /// the departure, and applies failure weakness when the run was not cleared and its layout
+    /// applies it. The character must already have stopped being a member (left or been removed
+    /// from the party); while they are still a member beside others this is refused and returns
+    /// false. When they are, or were, the run's last member, the whole run ends with them.
+    /// </summary>
+    /// <returns>False when refused, or when the run is gone or the character already departed it.</returns>
     ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>
         ValueTask.FromResult(End(characterId, expectedRunId));
+
+    /// <summary>
+    /// Ends the named run for all its members at once, each departing as through
+    /// <see cref="EndAsync"/>, and removes the run. The party itself is left unchanged.
+    /// </summary>
+    /// <returns>The characters who departed, by slot; empty when the run is gone.</returns>
+    ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId) =>
+        throw new NotSupportedException("This dungeon-run service does not end whole runs.");
 
     ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now) =>
         ValueTask.FromResult(TryEndPartyWipe(runId, now));

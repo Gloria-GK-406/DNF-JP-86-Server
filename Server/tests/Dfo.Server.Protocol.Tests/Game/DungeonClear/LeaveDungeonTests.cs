@@ -747,6 +747,13 @@ public sealed class LeaveDungeonTests
             return hasRun;
         }
 
+        /// <summary>The fixture's run has the one identity as its only member.</summary>
+        public ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId) =>
+            ValueTask.FromResult<IReadOnlyList<CharacterId>>(
+                this.Find(Identity.CharacterId)?.RunId == runId && this.End(Identity.CharacterId)
+                    ? [Identity.CharacterId]
+                    : []);
+
         public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
             ? new DungeonRunState(
                 layoutChange is not null ? layoutChange(Layout)

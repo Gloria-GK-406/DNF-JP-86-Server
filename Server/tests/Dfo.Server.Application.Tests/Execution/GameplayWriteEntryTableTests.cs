@@ -164,6 +164,7 @@ public sealed class GameplayWriteEntryTableTests
         ["DungeonRunDomainService.End(CharacterId)"] = W,
         ["DungeonRunDomainService.End(CharacterId, DungeonRunId)"] = W,
         ["DungeonRunDomainService.EndAsync(CharacterId, DungeonRunId)"] = W,
+        ["DungeonRunDomainService.EndRunAsync(DungeonRunId)"] = W,
         ["DungeonRunDomainService.Find(CharacterId)"] = R,
         ["DungeonRunDomainService.Find(DungeonRunId)"] = R,
         ["DungeonRunDomainService.FindEntryChange(CharacterId)"] = R,

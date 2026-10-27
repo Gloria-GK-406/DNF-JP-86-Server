@@ -61,11 +61,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 new CharacterContainerDomainService(),
                 presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
                 new StubChannelEntryPolicy(),
-                new PartyService(
-                    new StubPartyMemberStatusDomainService(),
-                    new PartyModeRuleService(),
-                    TimeProvider.System,
-                    EmptyPartyMemberSessionEndpointSource.Instance),
+                TestParties.Of(runs),
                 runs,
                 [departure]);
             var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, cleanup);
