@@ -22,7 +22,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// is read back out of the archive every time the room is described -- without a record of what
 /// has gone, a player could walk out of a room and back in and be handed the box again.
 /// </remarks>
-public sealed class DungeonRunDomainServiceTests
+public sealed partial class DungeonRunDomainServiceTests
 {
     private static readonly CharacterId Character = new(1);
 
