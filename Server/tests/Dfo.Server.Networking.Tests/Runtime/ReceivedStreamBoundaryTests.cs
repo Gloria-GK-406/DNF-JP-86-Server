@@ -9,10 +9,8 @@ using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Dfo.Server.Networking.Tests.Runtime;
 
@@ -22,61 +20,6 @@ namespace Dfo.Server.Networking.Tests.Runtime;
 /// </summary>
 public sealed class ReceivedStreamBoundaryTests
 {
-    [Fact]
-    public async Task Opt_in_frame_trace_preserves_settlement_bytes_but_withholds_other_bodies_and_caps_size()
-    {
-        var connections = new TouchSocketConnectionRegistry();
-        var session = DispatchProxy.Create<ISession, Session>();
-        connections.Add(session, NetworkEndpointKind.Game);
-        using var services = new ServiceCollection().AddSingleton<GameDecoder>().BuildServiceProvider();
-        var logger = new TraceLogger();
-        ushort[] types = [0x0027, 0x002E, 0x0075, 0x0001];
-        var plugin = new GameNetworkPlugin(connections, null!, new RecordingDispatcher(),
-            new GameMessageDecoderRegistry(types.Select(type =>
-                new GameMessageDecoderRegistration(1, type, typeof(GameDecoder))), services), logger);
-        foreach (var type in types)
-        {
-            var frame = new GameClientFrameRequestInfo();
-            var header = new byte[GameClientFrameRequestInfo.HeaderLength];
-            header[0] = 1;
-            BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(1), type);
-            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(3), (uint)(header.Length + 600));
-            Assert.True(frame.OnParsingHeader(header));
-            Assert.True(frame.OnParsingBody(Enumerable.Repeat((byte)0xAB, 600).ToArray()));
-            await plugin.OnTcpReceived(session, Received(frame));
-        }
-        Assert.Equal(4, logger.Entries.Count);
-        foreach (var entry in logger.Entries.Take(3))
-        {
-            Assert.Contains("captured=512", entry);
-            Assert.Contains(string.Concat(Enumerable.Repeat("AB", 512)), entry);
-            Assert.DoesNotContain(string.Concat(Enumerable.Repeat("AB", 513)), entry);
-        }
-        Assert.Contains("type=0x0001", logger.Entries[3]);
-        Assert.Contains("withheld", logger.Entries[3]);
-        Assert.DoesNotContain("ABAB", logger.Entries[3]);
-        logger.Enabled = false;
-        var disabledFrame = new GameClientFrameRequestInfo();
-        var disabledHeader = new byte[GameClientFrameRequestInfo.HeaderLength];
-        disabledHeader[0] = 1;
-        BinaryPrimitives.WriteUInt16LittleEndian(disabledHeader.AsSpan(1), 0x002E);
-        BinaryPrimitives.WriteUInt32LittleEndian(disabledHeader.AsSpan(3), (uint)disabledHeader.Length);
-        Assert.True(disabledFrame.OnParsingHeader(disabledHeader));
-        Assert.True(disabledFrame.OnParsingBody([]));
-        await plugin.OnTcpReceived(session, Received(disabledFrame));
-        Assert.Equal(4, logger.Entries.Count);
-    }
-
-    private sealed class TraceLogger : ILogger<GameNetworkPlugin>
-    {
-        public bool Enabled { get; set; } = true;
-        public List<string> Entries { get; } = [];
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => Enabled && logLevel == LogLevel.Trace;
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-            Func<TState, Exception?, string> formatter) => Entries.Add(formatter(state, exception));
-    }
-
     [Fact]
     public async Task A_game_receive_callback_called_inside_a_job_dispatches_off_the_executor()
     {

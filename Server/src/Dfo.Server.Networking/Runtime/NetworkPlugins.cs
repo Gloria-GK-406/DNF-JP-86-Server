@@ -227,19 +227,6 @@ internal sealed class GameNetworkPlugin(
     private IClientNetworkMessage? Decode(GameClientFrameRequestInfo frame,
         NetworkConnectionId connectionId, long ordinal, bool fresh)
     {
-        if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Trace))
-        {
-            // Opt-in evidence for the ignored tails of combat/settlement reports. Other known
-            // protocols can carry login credentials; enabling Trace must not expose their bodies.
-            var captured = frame.Selector == 1 && frame.Type is 0x0027 or 0x002E or 0x0075
-                ? Math.Min(frame.Body.Length, 512) : 0;
-            logger.LogTrace(
-                "Game inbound {ConnectionId}: selector=0x{Selector:X2} type=0x{Type:X4} "
-                    + "seq={Sequence} ordinal={Ordinal} body({BodyLength}B) captured={Captured} hex={Body}",
-                connectionId, frame.Selector, frame.Type, frame.Sequence, ordinal, frame.Body.Length,
-                captured, captured == 0 ? "withheld" : Convert.ToHexString(frame.Body.Span[..captured]));
-        }
-
         var decoder = decoders.Find(frame.Selector, frame.Type);
         if (decoder is null)
         {

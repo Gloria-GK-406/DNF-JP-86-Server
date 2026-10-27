@@ -1,11 +1,11 @@
 # 巨龙验收部署（2026-10-27）
 
-2026-10-27 22:08（Asia/Shanghai）按用户授权切换受限采样模块，使用默认端口和原玩家库。此次部署用于核对客户端是否上报剩余材料数量，不表示计时奖励已实现或实机验收通过。
+普通巨龙本服计时奖励验收使用默认端口和原玩家库。当前EXE/PID/参数以私有运行根 `live-process.json` 为准；计时奖励候选的构建、隔离烟测、切换备份和实际模块身份以 `reward-deployment.json` 为准。成功记录缺失或Deployed不为true时，不能认定已切换新奖励。
 
 ## 当前验收入口
 
-- 玩法产物提交：`32ff430d30df437503d636ffe5c2b9481a09230c`，版本 `0.2.10`，分支 `codex/167-giant-dragon`。额外装入提交 `5a42063d` 对应的诊断Networking程序集（SHA-256 `50CC114E41F991D6D50846320D7C12153E64DD59026D3BBB78DF4A167DAD2551`）；Host版本字符串仍反映原玩法构建，不能据此漏记诊断模块。
-- 当前启动PID：`46900`。运行目录为本工作区 `artifacts/giant-dragon/live-20261027-204411/host`；实际EXE、完整启动参数、程序集版本及监听见该目录上级 `live-process.json`。本次日志为 `combat-trace-stdout.log`、`combat-trace-stderr.log`。
+- 功能分支为 `codex/167-giant-dragon`，同一巨龙功能版本保持 `0.2.10`；实际构建提交和程序集SHA读取 `reward-deployment.json`，不按旧Host版本字符串推断新增模块身份。
+- 运行目录为本工作区 `artifacts/giant-dragon/live-20261027-204411/host`。取证采样产物为原玩法32ff430d加5a42063d诊断Networking（SHA-256 `50CC114E41F991D6D50846320D7C12153E64DD59026D3BBB78DF4A167DAD2551`），对应原始日志 `combat-trace-stdout.log`、`combat-trace-stderr.log`。新奖励候选关闭逐包采样，保留 `Giant dragon time reward` 数量日志；当前日志名从进程清单对应Label读取。
 - 客户端：`E:\Project\DNF\DNFClient-A21-protocol\Dfo.Launcher.exe`。Launcher.ini已指向 `http://127.0.0.1:18080/`。同次备份根有双击入口 `启动巨龙实测.bat`。先退出旧游戏及启动器，再启动此入口并使用已有账号。
 - Channel TCP7001、Game TCP10011、Launcher HTTP18080、GM HTTP18081。GM入口为 [本地管理台](http://127.0.0.1:18081/gm)。`Channel:UseScriptCatalog=false`，单频道11，原生标识 `#ch.11`，已核对真实监听；UDP发现开启，实际端口12311/12312，绑定探测响应已验证。先验单人，多人实机仍待验收。
 - 原玩家库绝对路径：`E:\Project\DNF\DNF-JP-86-Server\Server\src\Dfo.Server.Host\bin\Release\net10.0\Data\dfo-server.db`。启动参数显式指定该路径，不是工作区空库或历史备份。
@@ -22,6 +22,7 @@
 4. `rollback/host-current`：原守护祭坛修复候选 `0.2.10+91df1c2f` 的完整运行产物、配置及GM静态资源。原运行位置亦未改写。备份期间原服务从诊断版PID32864更换为PID47584；已确认该任务结束本轮部署后，重新核实并仅停止PID47584。另存诊断版备份 `rollback/host`。
 5. `rollback/Script.pvf`、`rollback/Launcher.ini`：本次客户端修改前原件。原现役PVF SHA为 `3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B`。
 6. `trace-switch-20261027-220721/`：本次采样切换前的Networking DLL/PDB、配置与旧进程清单，以及 `player-before-stop.db`、停服后的 `player-at-switch.db`、启动后的 `player-after-start.db`。三个SQLite backup API快照完整性均ok；切换前后112表结构与双向EXCEPT数据对比一致，4账号、9角色、662物品、654物品槽。行数包含前一轮正常实测所得资产，不恢复早期658物品快照。
+7. 计时奖励切换会另建带时间戳的备份目录，保存当时完整Host、配置、进程清单和SQLite一致快照；具体路径和完整性结果写入 `reward-deployment.json`。玩家后续正常所得资产不恢复为较早快照。
 
 与研究D45源的31项巨龙原生输入逐项比对相同，记录在 `pvf-source-audit.json`。基于现役3822源生成恢复包，保留其他补丁。只更改原定4个文件，恢复16项任务，其他712006个文件条目保持不变；读取回验见资源旁JSON。
 

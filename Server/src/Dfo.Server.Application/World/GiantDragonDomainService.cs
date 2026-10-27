@@ -46,6 +46,7 @@ internal sealed class GiantDragonDomainService(IGiantDragonRuleService rules, ID
             DungeonLayout? layout;
             try { layout = await structures.ResolveAsync(context.DungeonId, facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
+            if (layout is not null) layout = layout with { GiantDragonTimeReward = entry.TimeReward };
             return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
                 : await visits.EnterGrantedPartyAsync(context.Participants, layout, facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);

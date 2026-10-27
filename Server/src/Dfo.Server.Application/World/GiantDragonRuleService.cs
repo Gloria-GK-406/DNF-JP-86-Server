@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class GiantDragonRuleService(IDungeonDefinitionSource dungeons, ITownDefinitionSource towns,
-    GiantDragonOptions options) : IGiantDragonRuleService
+    GiantDragonOptions options, IItemCatalogSource items) : IGiantDragonRuleService
 {
     public bool Supports(int id) => id is >= 3200 and <= 3202 or >= 3536 and <= 3540;
     public bool IsOpen(int id) => Supports(id) && options.Enabled && (id < 3536 || options.RestoredVariantsEnabled);
@@ -25,6 +25,36 @@ internal sealed class GiantDragonRuleService(IDungeonDefinitionSource dungeons, 
         // because completing that quest itself requires clearing 3538. WDM pairs alone
         // do not prove the client's historical quest-gate algorithm.
         int? quest = id switch { 3536 => 20720, 3537 => 20722, 3538 or 3539 => 20728, 3540 => 20727, _ => null };
-        return new(definition, townId, areaId, quest, id == 3538);
+        GiantDragonTimeRewardPlan? reward = null;
+        if (!restored)
+        {
+            var material = await items.FindAsync(3326, ct).ConfigureAwait(false);
+            if (material is not { ItemId: 3326, Category: "material", EquipmentType: null }
+                || !Enum.IsDefined((DropRarity)(material.Rarity ?? 0)))
+                throw new InvalidDataException("Giant dragon breath material is missing/incompatible.");
+            // User-approved local policy, not an inferred native integer award algorithm.
+            // See Document/tasks/giant-dragon/TimeAttackReward.md.
+            reward = new(new(3326, 1, (DropRarity)(material.Rarity ?? 0), DropItemKind.Stackable),
+                9, 3, TimeSpan.FromSeconds(100), TimeSpan.FromSeconds(45));
+        }
+        return new(definition, townId, areaId, quest, id == 3538) { TimeReward = reward };
+    }
+
+    public IReadOnlyList<RolledDrop> ResolveTimeReward(GiantDragonTimeRewardPlan plan, TimeSpan elapsed,
+        IReadOnlyList<RolledDrop> pending)
+    {
+        var count = GiantDragonTimeRewardRules.CountFor(plan, elapsed);
+        return pending.Where(drop => drop.ItemId != plan.Material.ItemId
+                || drop.OwnerCharacterId is not null || drop.Delivery != RolledDropDelivery.Ground)
+            .Concat(Enumerable.Repeat(plan.Material with { Count = 1 }, count)).ToArray();
+    }
+}
+
+internal static class GiantDragonTimeRewardRules
+{
+    internal static int CountFor(GiantDragonTimeRewardPlan plan, TimeSpan elapsed)
+    {
+        var lost = elapsed <= plan.GracePeriod ? 0 : (elapsed.Ticks - plan.GracePeriod.Ticks) / plan.StepPeriod.Ticks;
+        return (int)Math.Max(plan.MinimumCount, plan.MaximumCount - lost);
     }
 }

@@ -9,13 +9,22 @@ public sealed record GiantDragonOptions
 }
 
 public sealed record GiantDragonEntryRule(DungeonDefinition Dungeon, int TownId, int AreaId,
-    int? QuestId, bool AllowActiveQuest);
+    int? QuestId, bool AllowActiveQuest)
+{
+    public GiantDragonTimeRewardPlan? TimeReward { get; init; }
+}
+
+/// <summary>Immutable local reward policy and material metadata frozen by ordinary dragon admission.</summary>
+public sealed record GiantDragonTimeRewardPlan(RolledDrop Material, int MaximumCount, int MinimumCount,
+    TimeSpan GracePeriod, TimeSpan StepPeriod);
 
 public interface IGiantDragonRuleService
 {
     bool Supports(int dungeonId);
     bool IsOpen(int dungeonId);
     ValueTask<GiantDragonEntryRule> EntryAsync(int dungeonId, CancellationToken ct);
+    IReadOnlyList<RolledDrop> ResolveTimeReward(GiantDragonTimeRewardPlan plan, TimeSpan elapsed,
+        IReadOnlyList<RolledDrop> pending);
 }
 
 public interface IGiantDragonDomainService
