@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
@@ -124,6 +125,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
     public async Task Eplp_by_the_leader_ends_the_run_for_both_with_the_peer_decision_before_the_leader_ack()
     {
         using var run = await TwoMemberRun.EnterAsync();
+        var before = run.CaptureDepartureBaseline();
 
         await run.WireAsync(Side.Leader, Eplp, [1, 2]);
 
@@ -136,6 +138,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             ],
             run.Sequence());
         run.AssertEndedForBoth();
+        run.AssertEachMemberDeparted(before);
     }
 
     [Fact]
@@ -150,6 +153,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             intents.Record(run.Leader, DungeonEntryIntent.Interactive);
             intents.Record(run.Member, DungeonEntryIntent.Interactive);
         });
+        var before = run.CaptureDepartureBaseline();
 
         await run.WireAsync(Side.Leader, BackToVillage, []);
 
@@ -162,6 +166,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             ],
             run.Sequence());
         run.AssertEndedForBoth();
+        run.AssertEachMemberDeparted(before);
     }
 
     [Fact]
@@ -198,6 +203,9 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
     /// ordinary run, entered with <see cref="CharacterDeathProtocolLifecycleTests.Enter"/>: the run, the party and
     /// the delivery registration are real; neither character stands in a town area, as after a real entry.
     /// </summary>
+    /// <param name="LeaderWeakness">Before the exit, and what it must be afterwards.</param>
+    internal sealed record DepartureBaseline(long Departures, (byte Before, byte After) LeaderWeakness, (byte Before, byte After) MemberWeakness);
+
     internal sealed class TwoMemberRun : IDisposable
     {
         private TwoMemberRun(ShopFixture f, SelectedSessionIdentity member, NetworkConnectionContext memberConnection, DungeonRunId runId)
@@ -273,6 +281,49 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
         }
 
         /// <summary>The run is gone for both and the registry with it; the party is untouched.</summary>
+        /// <summary>Weakness before the exit, and whether ending the run now applies failure weakness.</summary>
+        public DepartureBaseline CaptureDepartureBaseline()
+        {
+            DepartureBaseline baseline = null!;
+            TestGameplay.Run(F.Services, () =>
+            {
+                var current = Assert.IsType<DungeonRunState>(F.Services.GetRequiredService<IDungeonRunDomainService>().Find(RunId));
+                var weakness = F.Services.GetRequiredService<IWeaknessDomainService>();
+                var rules = F.Services.GetRequiredService<IWeaknessRuleService>();
+                var failed = current.Layout.AppliesFailureWeakness && !current.CurrentCellState.ClearOpen;
+                // The failure penalty only reaches characters at or above the rule's minimum level.
+                (byte, byte) Expected(CharacterId character)
+                {
+                    var before = weakness.For(character).Value;
+                    var level = (byte)F.Scalar($"SELECT level FROM characters WHERE character_id={character.Value}");
+                    return (before, failed && rules.InitialValue(level) is { } penalty ? penalty : before);
+                }
+                baseline = new(F.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.participant-left'"),
+                    Expected(Leader.CharacterId), Expected(Member.CharacterId));
+                Assert.True(baseline.LeaderWeakness.Before != baseline.LeaderWeakness.After
+                    || baseline.MemberWeakness.Before != baseline.MemberWeakness.After,
+                    "At least one member must be exposed to the failure weakness for the assertion to mean anything.");
+            });
+            return baseline;
+        }
+
+        /// <summary>RQ-008 for an exit that ends every member through the per-member departure.</summary>
+        public void AssertEachMemberDeparted(DepartureBaseline before)
+        {
+            Assert.Equal(before.Departures + 2,
+                F.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.participant-left'"));
+            TestGameplay.Run(F.Services, () =>
+            {
+                var participation = F.Services.GetRequiredService<IDungeonParticipationDomainService>();
+                var weakness = F.Services.GetRequiredService<IWeaknessDomainService>();
+                foreach (var (character, expected) in new[] { (Leader.CharacterId, before.LeaderWeakness), (Member.CharacterId, before.MemberWeakness) })
+                {
+                    Assert.Null(participation.Find(character));
+                    Assert.Equal(expected.After, weakness.For(character).Value);
+                }
+            });
+        }
+
         public void AssertEndedForBoth()
         {
             Assert.Empty(F.Sender.Outbound.Closes);
