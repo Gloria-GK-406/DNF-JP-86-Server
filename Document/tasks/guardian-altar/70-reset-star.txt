@@ -1,0 +1,239 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x81333b2 _ZN12advancealtar25CharacAdvanceAltarManager9resetStarEP5CUserN15CMDPacketStruct13ResetStarType1TE (877 bytes)
+0x081333b2: push     ebp
+0x081333b3: mov      ebp, esp
+0x081333b5: sub      esp, 0x48
+0x081333b8: cmp      dword ptr [ebp + 0xc], 0
+0x081333bc: je       0x81333c7
+0x081333be: mov      eax, dword ptr [ebp + 8]
+0x081333c1: mov      eax, dword ptr [eax]
+0x081333c3: test     eax, eax
+0x081333c5: jne      0x81333d1
+0x081333c7: mov      eax, 2
+0x081333cc: jmp      0x813371d
+0x081333d1: cmp      dword ptr [ebp + 0x10], 0
+0x081333d5: jne      0x8133575
+0x081333db: call     0x80cc19b ; _Z14G_CDataManagerv
+0x081333e0: add      eax, 0x6334
+0x081333e5: mov      dword ptr [ebp - 0x10], eax
+0x081333e8: mov      eax, dword ptr [ebp + 8]
+0x081333eb: mov      eax, dword ptr [eax]
+0x081333ed: movzx    eax, word ptr [eax + 0x1a]
+0x081333f1: cwde
+0x081333f2: mov      dword ptr [ebp - 0x30], eax
+0x081333f5: lea      eax, [ebp - 0x34]
+0x081333f8: lea      edx, [ebp - 0x30]
+0x081333fb: mov      dword ptr [esp + 8], edx
+0x081333ff: mov      edx, dword ptr [ebp - 0x10]
+0x08133402: mov      dword ptr [esp + 4], edx
+0x08133406: mov      dword ptr [esp], eax
+0x08133409: call     0x813670c ; _ZNKSt3mapIiN12advancealtar18_StarRestFeeByGoldESt4lessIiESaISt4pairIKiS1_EEE4findERS5_
+0x0813340e: sub      esp, 4
+0x08133411: mov      dword ptr [ebp - 0xc], 0
+0x08133418: lea      eax, [ebp - 0x2c]
+0x0813341b: mov      edx, dword ptr [ebp - 0x10]
+0x0813341e: mov      dword ptr [esp + 4], edx
+0x08133422: mov      dword ptr [esp], eax
+0x08133425: call     0x8136738 ; _ZNKSt3mapIiN12advancealtar18_StarRestFeeByGoldESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x0813342a: sub      esp, 4
+0x0813342d: lea      eax, [ebp - 0x2c]
+0x08133430: mov      dword ptr [esp + 4], eax
+0x08133434: lea      eax, [ebp - 0x34]
+0x08133437: mov      dword ptr [esp], eax
+0x0813343a: call     0x813675e ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar18_StarRestFeeByGoldEEEeqERKS5_
+0x0813343f: test     al, al
+0x08133441: je       0x813345a
+0x08133443: call     0x80cc19b ; _Z14G_CDataManagerv
+0x08133448: add      eax, 0x631c
+0x0813344d: mov      dword ptr [esp], eax
+0x08133450: call     0x88a2bc0 ; _ZN12advancealtar25AdvanceAltarShopParameter22getMaxStarResetGoldFeeEv
+0x08133455: mov      dword ptr [ebp - 0xc], eax
+0x08133458: jmp      0x813346b
+0x0813345a: lea      eax, [ebp - 0x34]
+0x0813345d: mov      dword ptr [esp], eax
+0x08133460: call     0x8136772 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar18_StarRestFeeByGoldEEEptEv
+0x08133465: mov      eax, dword ptr [eax + 4]
+0x08133468: mov      dword ptr [ebp - 0xc], eax
+0x0813346b: mov      eax, dword ptr [ebp + 0xc]
+0x0813346e: mov      dword ptr [esp], eax
+0x08133471: call     0x80da27e ; _ZNK15CUserCharacInfo18getCurCharacInvenREv
+0x08133476: mov      dword ptr [esp], eax
+0x08133479: call     0x81347d6 ; _ZNK10CInventory9get_moneyEv
+0x0813347e: cmp      eax, dword ptr [ebp - 0xc]
+0x08133481: setl     al
+0x08133484: test     al, al
+0x08133486: je       0x8133492
+0x08133488: mov      eax, 3
+0x0813348d: jmp      0x813371d
+0x08133492: mov      eax, dword ptr [ebp + 0xc]
+0x08133495: mov      dword ptr [esp], eax
+0x08133498: call     0x80da28e ; _ZN15CUserCharacInfo18getCurCharacInvenWEv
+0x0813349d: mov      dword ptr [esp + 0xc], 1
+0x081334a5: mov      dword ptr [esp + 8], 0x32
+0x081334ad: mov      edx, dword ptr [ebp - 0xc]
+0x081334b0: mov      dword ptr [esp + 4], edx
+0x081334b4: mov      dword ptr [esp], eax
+0x081334b7: call     0x84ff54c ; _ZN10CInventory9use_moneyEi15eMoneySubReasonb
+0x081334bc: xor      eax, 1
+0x081334bf: test     al, al
+0x081334c1: je       0x81334cd
+0x081334c3: mov      eax, 3
+0x081334c8: jmp      0x813371d
+0x081334cd: mov      dword ptr [esp + 0xc], 0
+0x081334d5: mov      dword ptr [esp + 8], 0
+0x081334dd: mov      dword ptr [esp + 4], 1
+0x081334e5: mov      eax, dword ptr [ebp + 0xc]
+0x081334e8: mov      dword ptr [esp], eax
+0x081334eb: call     0x867c65a ; _ZN5CUser18SendUpdateItemListENS_11eSendTargetE14ENUM_ITEMSPACEi
+0x081334f0: mov      eax, dword ptr [ebp + 8]
+0x081334f3: mov      eax, dword ptr [eax]
+0x081334f5: movzx    edx, word ptr [eax + 0x1a]
+0x081334f9: add      edx, 1
+0x081334fc: mov      word ptr [eax + 0x1a], dx
+0x08133500: mov      eax, dword ptr [ebp + 8]
+0x08133503: mov      dword ptr [esp], eax
+0x08133506: call     0x8132f8e ; _ZN12advancealtar25CharacAdvanceAltarManager14setDefaultSlotEv
+0x0813350b: mov      dword ptr [esp + 4], 0
+0x08133513: mov      eax, dword ptr [ebp + 8]
+0x08133516: mov      dword ptr [esp], eax
+0x08133519: call     0x8132cb8 ; _ZN12advancealtar25CharacAdvanceAltarManager17setDefaultBuyItemENS_20AdvanceAltarShopType1TE
+0x0813351e: mov      dword ptr [esp + 4], 1
+0x08133526: mov      eax, dword ptr [ebp + 8]
+0x08133529: mov      dword ptr [esp], eax
+0x0813352c: call     0x8132cb8 ; _ZN12advancealtar25CharacAdvanceAltarManager17setDefaultBuyItemENS_20AdvanceAltarShopType1TE
+0x08133531: mov      dword ptr [esp + 4], 2
+0x08133539: mov      eax, dword ptr [ebp + 8]
+0x0813353c: mov      dword ptr [esp], eax
+0x0813353f: call     0x8132cb8 ; _ZN12advancealtar25CharacAdvanceAltarManager17setDefaultBuyItemENS_20AdvanceAltarShopType1TE
+0x08133544: mov      eax, dword ptr [ebp + 8]
+0x08133547: mov      eax, dword ptr [eax]
+0x08133549: lea      edx, [eax + 0x24]
+0x0813354c: lea      eax, [ebp - 0x28]
+0x0813354f: mov      dword ptr [esp + 4], edx
+0x08133553: mov      dword ptr [esp], eax
+0x08133556: call     0x8136780 ; _ZNSt3mapIiN12advancealtar6_StageESt4lessIiESaISt4pairIKiS1_EEE5beginEv
+0x0813355b: sub      esp, 4
+0x0813355e: lea      eax, [ebp - 0x28]
+0x08133561: mov      dword ptr [esp + 4], eax
+0x08133565: lea      eax, [ebp - 0x38]
+0x08133568: mov      dword ptr [esp], eax
+0x0813356b: call     0x8135e58 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEC1ERKSt17_Rb_tree_iteratorIS4_E
+0x08133570: jmp      0x8133642
+0x08133575: mov      eax, 2
+0x0813357a: jmp      0x813371d
+0x0813357f: lea      eax, [ebp - 0x38]
+0x08133582: mov      dword ptr [esp], eax
+0x08133585: call     0x8135f76 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEptEv
+0x0813358a: mov      eax, dword ptr [eax + 8]
+0x0813358d: cmp      eax, -1
+0x08133590: sete     al
+0x08133593: test     al, al
+0x08133595: jne      0x8133624
+0x0813359b: lea      eax, [ebp - 0x38]
+0x0813359e: mov      dword ptr [esp], eax
+0x081335a1: call     0x8135f76 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEptEv
+0x081335a6: mov      eax, dword ptr [eax + 4]
+0x081335a9: mov      dword ptr [esp + 0xc], 0
+0x081335b1: mov      dword ptr [esp + 8], eax
+0x081335b5: mov      dword ptr [esp + 4], 0
+0x081335bd: mov      eax, dword ptr [ebp + 8]
+0x081335c0: mov      dword ptr [esp], eax
+0x081335c3: call     0x8132d20 ; _ZN12advancealtar25CharacAdvanceAltarManager16setUnlockBuyItemENS_20AdvanceAltarShopType1TEiPSt6vectorINS_8_BuyItemESaIS4_EE
+0x081335c8: lea      eax, [ebp - 0x38]
+0x081335cb: mov      dword ptr [esp], eax
+0x081335ce: call     0x8135f76 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEptEv
+0x081335d3: mov      eax, dword ptr [eax + 4]
+0x081335d6: mov      dword ptr [esp + 0xc], 0
+0x081335de: mov      dword ptr [esp + 8], eax
+0x081335e2: mov      dword ptr [esp + 4], 1
+0x081335ea: mov      eax, dword ptr [ebp + 8]
+0x081335ed: mov      dword ptr [esp], eax
+0x081335f0: call     0x8132d20 ; _ZN12advancealtar25CharacAdvanceAltarManager16setUnlockBuyItemENS_20AdvanceAltarShopType1TEiPSt6vectorINS_8_BuyItemESaIS4_EE
+0x081335f5: lea      eax, [ebp - 0x38]
+0x081335f8: mov      dword ptr [esp], eax
+0x081335fb: call     0x8135f76 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEptEv
+0x08133600: mov      eax, dword ptr [eax + 4]
+0x08133603: mov      dword ptr [esp + 0xc], 0
+0x0813360b: mov      dword ptr [esp + 8], eax
+0x0813360f: mov      dword ptr [esp + 4], 2
+0x08133617: mov      eax, dword ptr [ebp + 8]
+0x0813361a: mov      dword ptr [esp], eax
+0x0813361d: call     0x8132d20 ; _ZN12advancealtar25CharacAdvanceAltarManager16setUnlockBuyItemENS_20AdvanceAltarShopType1TEiPSt6vectorINS_8_BuyItemESaIS4_EE
+0x08133622: jmp      0x8133625
+0x08133624: nop
+0x08133625: lea      eax, [ebp - 0x1c]
+0x08133628: mov      dword ptr [esp + 8], 0
+0x08133630: lea      edx, [ebp - 0x38]
+0x08133633: mov      dword ptr [esp + 4], edx
+0x08133637: mov      dword ptr [esp], eax
+0x0813363a: call     0x8135f38 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEppEi
+0x0813363f: sub      esp, 4
+0x08133642: mov      eax, dword ptr [ebp + 8]
+0x08133645: mov      eax, dword ptr [eax]
+0x08133647: lea      edx, [eax + 0x24]
+0x0813364a: lea      eax, [ebp - 0x20]
+0x0813364d: mov      dword ptr [esp + 4], edx
+0x08133651: mov      dword ptr [esp], eax
+0x08133654: call     0x8135e68 ; _ZNSt3mapIiN12advancealtar6_StageESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x08133659: sub      esp, 4
+0x0813365c: lea      eax, [ebp - 0x20]
+0x0813365f: mov      dword ptr [esp + 4], eax
+0x08133663: lea      eax, [ebp - 0x24]
+0x08133666: mov      dword ptr [esp], eax
+0x08133669: call     0x8135e58 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEC1ERKSt17_Rb_tree_iteratorIS4_E
+0x0813366e: lea      eax, [ebp - 0x24]
+0x08133671: mov      dword ptr [esp + 4], eax
+0x08133675: lea      eax, [ebp - 0x38]
+0x08133678: mov      dword ptr [esp], eax
+0x0813367b: call     0x8135f24 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEneERKS5_
+0x08133680: test     al, al
+0x08133682: jne      0x813357f
+0x08133688: mov      eax, dword ptr [ebp + 8]
+0x0813368b: mov      eax, dword ptr [eax]
+0x0813368d: mov      edx, dword ptr [eax + 0xc]
+0x08133690: mov      eax, dword ptr [ebp + 8]
+0x08133693: mov      eax, dword ptr [eax]
+0x08133695: mov      eax, dword ptr [eax + 0x10]
+0x08133698: add      edx, eax
+0x0813369a: mov      eax, dword ptr [ebp + 8]
+0x0813369d: mov      eax, dword ptr [eax]
+0x0813369f: mov      eax, dword ptr [eax + 0x14]
+0x081336a2: mov      ecx, edx
+0x081336a4: sub      ecx, eax
+0x081336a6: mov      eax, ecx
+0x081336a8: mov      dword ptr [ebp - 0x18], eax
+0x081336ab: mov      eax, dword ptr [ebp + 8]
+0x081336ae: mov      eax, dword ptr [eax]
+0x081336b0: mov      edx, dword ptr [ebp + 8]
+0x081336b3: mov      edx, dword ptr [edx]
+0x081336b5: mov      ecx, dword ptr [edx + 0xc]
+0x081336b8: mov      edx, dword ptr [ebp + 8]
+0x081336bb: mov      edx, dword ptr [edx]
+0x081336bd: mov      edx, dword ptr [edx + 0x10]
+0x081336c0: lea      edx, [ecx + edx]
+0x081336c3: mov      dword ptr [eax + 0x14], edx
+0x081336c6: mov      eax, dword ptr [ebp + 8]
+0x081336c9: mov      eax, dword ptr [eax]
+0x081336cb: mov      byte ptr [eax + 0xcc], 1
+0x081336d2: mov      dword ptr [ebp - 0x14], 2
+0x081336d9: mov      eax, dword ptr [ebp + 0x10]
+0x081336dc: cmp      eax, 1
+0x081336df: je       0x81336ea
+0x081336e1: mov      dword ptr [ebp - 0x14], 2
+0x081336e8: jmp      0x81336f1
+0x081336ea: mov      dword ptr [ebp - 0x14], 3
+0x081336f1: cmp      dword ptr [ebp - 0x18], 0
+0x081336f5: jle      0x8133718
+0x081336f7: mov      eax, dword ptr [ebp - 0x18]
+0x081336fa: mov      dword ptr [esp + 0xc], eax
+0x081336fe: mov      dword ptr [esp + 8], 0
+0x08133706: mov      eax, dword ptr [ebp - 0x14]
+0x08133709: mov      dword ptr [esp + 4], eax
+0x0813370d: mov      eax, dword ptr [ebp + 0xc]
+0x08133710: mov      dword ptr [esp], eax
+0x08133713: call     0x8133d56 ; _ZN12advancealtar10HistoryLog7starAddER5CUserNS_11AddStarType1TEii
+0x08133718: mov      eax, 0
+0x0813371d: leave
+0x0813371e: ret

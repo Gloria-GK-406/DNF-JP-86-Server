@@ -1,0 +1,446 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x81313b6 _ZN12advancealtar25CharacAdvanceAltarManager9decTicketEv (112 bytes)
+0x081313b6: push     ebp
+0x081313b7: mov      ebp, esp
+0x081313b9: sub      esp, 0x10
+0x081313bc: mov      eax, dword ptr [ebp + 8]
+0x081313bf: mov      eax, dword ptr [eax]
+0x081313c1: test     eax, eax
+0x081313c3: jne      0x81313cc
+0x081313c5: mov      eax, 0
+0x081313ca: jmp      0x8131424
+0x081313cc: mov      byte ptr [ebp - 1], 0
+0x081313d0: mov      eax, dword ptr [ebp + 8]
+0x081313d3: mov      eax, dword ptr [eax]
+0x081313d5: mov      eax, dword ptr [eax + 4]
+0x081313d8: test     eax, eax
+0x081313da: jle      0x81313f0
+0x081313dc: mov      eax, dword ptr [ebp + 8]
+0x081313df: mov      eax, dword ptr [eax]
+0x081313e1: mov      edx, dword ptr [eax + 4]
+0x081313e4: sub      edx, 1
+0x081313e7: mov      dword ptr [eax + 4], edx
+0x081313ea: mov      byte ptr [ebp - 1], 1
+0x081313ee: jmp      0x813140e
+0x081313f0: mov      eax, dword ptr [ebp + 8]
+0x081313f3: mov      eax, dword ptr [eax]
+0x081313f5: mov      eax, dword ptr [eax + 8]
+0x081313f8: test     eax, eax
+0x081313fa: jle      0x813140e
+0x081313fc: mov      eax, dword ptr [ebp + 8]
+0x081313ff: mov      eax, dword ptr [eax]
+0x08131401: mov      edx, dword ptr [eax + 8]
+0x08131404: sub      edx, 1
+0x08131407: mov      dword ptr [eax + 8], edx
+0x0813140a: mov      byte ptr [ebp - 1], 1
+0x0813140e: cmp      byte ptr [ebp - 1], 0
+0x08131412: je       0x8131420
+0x08131414: mov      eax, dword ptr [ebp + 8]
+0x08131417: mov      eax, dword ptr [eax]
+0x08131419: mov      byte ptr [eax + 0xcc], 1
+0x08131420: movzx    eax, byte ptr [ebp - 1]
+0x08131424: leave
+0x08131425: ret
+
+## 0x813159a _ZN12advancealtar25CharacAdvanceAltarManager16refillTicketFreeEv (124 bytes)
+0x0813159a: push     ebp
+0x0813159b: mov      ebp, esp
+0x0813159d: push     ebx
+0x0813159e: sub      esp, 0x24
+0x081315a1: mov      dword ptr [ebp - 0xc], 0
+0x081315a8: jmp      0x8131605
+0x081315aa: mov      eax, dword ptr [ebp - 0xc]
+0x081315ad: mov      edx, dword ptr [ebp + 8]
+0x081315b0: imul     eax, eax, 0xd0
+0x081315b6: lea      eax, [edx + eax]
+0x081315b9: add      eax, 4
+0x081315bc: mov      eax, dword ptr [eax]
+0x081315be: mov      dword ptr [esp], eax
+0x081315c1: call     0x8898ff0 ; _ZN12advancealtar16isValidRidableIdENS_9RidableId1TE
+0x081315c6: test     al, al
+0x081315c8: je       0x8131601
+0x081315ca: mov      ebx, dword ptr [ebp - 0xc]
+0x081315cd: call     0x80cc19b ; _Z14G_CDataManagerv
+0x081315d2: mov      eax, dword ptr [eax + 0x6364]
+0x081315d8: mov      ecx, dword ptr [ebp + 8]
+0x081315db: imul     edx, ebx, 0xd0
+0x081315e1: lea      edx, [ecx + edx]
+0x081315e4: add      edx, 8
+0x081315e7: mov      dword ptr [edx], eax
+0x081315e9: mov      eax, dword ptr [ebp - 0xc]
+0x081315ec: mov      edx, dword ptr [ebp + 8]
+0x081315ef: imul     eax, eax, 0xd0
+0x081315f5: lea      eax, [edx + eax]
+0x081315f8: add      eax, 0xc0
+0x081315fd: mov      byte ptr [eax + 0x10], 1
+0x08131601: add      dword ptr [ebp - 0xc], 1
+0x08131605: cmp      dword ptr [ebp - 0xc], 0
+0x08131609: setle    al
+0x0813160c: test     al, al
+0x0813160e: jne      0x81315aa
+0x08131610: add      esp, 0x24
+0x08131613: pop      ebx
+0x08131614: pop      ebp
+0x08131615: ret
+
+## 0x8134886 _ZNK12advancealtar9ProcStage17getStartStageTimeEv (14 bytes)
+0x08134886: push     ebp
+0x08134887: mov      ebp, esp
+0x08134889: mov      eax, dword ptr [ebp + 8]
+0x0813488c: mov      eax, dword ptr [eax + 0x8c]
+0x08134892: pop      ebp
+0x08134893: ret
+
+## 0x8141781 _ZN12advancealtar22putRidableInfoToPacketER11PacketGuardRKNS_16AdvanceAltarDataE (1259 bytes)
+0x08141781: push     ebp
+0x08141782: mov      ebp, esp
+0x08141784: sub      esp, 0x78
+0x08141787: mov      eax, dword ptr [ebp + 0xc]
+0x0814178a: mov      edx, eax
+0x0814178c: mov      eax, dword ptr [ebp + 8]
+0x0814178f: mov      dword ptr [esp + 8], 0x21
+0x08141797: mov      dword ptr [esp + 4], edx
+0x0814179b: mov      dword ptr [esp], eax
+0x0814179e: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x081417a3: mov      eax, dword ptr [ebp + 0xc]
+0x081417a6: add      eax, 0x24
+0x081417a9: mov      dword ptr [esp], eax
+0x081417ac: call     0x8142888 ; _ZNKSt3mapIiN12advancealtar6_StageESt4lessIiESaISt4pairIKiS1_EEE4sizeEv
+0x081417b1: mov      edx, eax
+0x081417b3: mov      eax, dword ptr [ebp + 8]
+0x081417b6: mov      dword ptr [esp + 4], edx
+0x081417ba: mov      dword ptr [esp], eax
+0x081417bd: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x081417c2: mov      eax, dword ptr [ebp + 0xc]
+0x081417c5: lea      edx, [eax + 0x24]
+0x081417c8: lea      eax, [ebp - 0x4c]
+0x081417cb: mov      dword ptr [esp + 4], edx
+0x081417cf: mov      dword ptr [esp], eax
+0x081417d2: call     0x8135ed8 ; _ZNKSt3mapIiN12advancealtar6_StageESt4lessIiESaISt4pairIKiS1_EEE5beginEv
+0x081417d7: sub      esp, 4
+0x081417da: jmp      0x8141820
+0x081417dc: lea      eax, [ebp - 0x4c]
+0x081417df: mov      dword ptr [esp], eax
+0x081417e2: call     0x8135f76 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEptEv
+0x081417e7: add      eax, 4
+0x081417ea: mov      edx, eax
+0x081417ec: mov      eax, dword ptr [ebp + 8]
+0x081417ef: mov      dword ptr [esp + 8], 8
+0x081417f7: mov      dword ptr [esp + 4], edx
+0x081417fb: mov      dword ptr [esp], eax
+0x081417fe: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08141803: lea      eax, [ebp - 0x44]
+0x08141806: mov      dword ptr [esp + 8], 0
+0x0814180e: lea      edx, [ebp - 0x4c]
+0x08141811: mov      dword ptr [esp + 4], edx
+0x08141815: mov      dword ptr [esp], eax
+0x08141818: call     0x8135f38 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEppEi
+0x0814181d: sub      esp, 4
+0x08141820: mov      eax, dword ptr [ebp + 0xc]
+0x08141823: lea      edx, [eax + 0x24]
+0x08141826: lea      eax, [ebp - 0x48]
+0x08141829: mov      dword ptr [esp + 4], edx
+0x0814182d: mov      dword ptr [esp], eax
+0x08141830: call     0x8135efe ; _ZNKSt3mapIiN12advancealtar6_StageESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x08141835: sub      esp, 4
+0x08141838: lea      eax, [ebp - 0x48]
+0x0814183b: mov      dword ptr [esp + 4], eax
+0x0814183f: lea      eax, [ebp - 0x4c]
+0x08141842: mov      dword ptr [esp], eax
+0x08141845: call     0x8135f24 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar6_StageEEEneERKS5_
+0x0814184a: test     al, al
+0x0814184c: jne      0x81417dc
+0x0814184e: mov      dword ptr [ebp - 0x10], 0
+0x08141855: mov      eax, dword ptr [ebp + 0xc]
+0x08141858: add      eax, 0x3c
+0x0814185b: mov      dword ptr [ebp - 0x10], eax
+0x0814185e: mov      eax, dword ptr [ebp - 0x10]
+0x08141861: mov      dword ptr [esp], eax
+0x08141864: call     0x8135ea2 ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE4sizeEv
+0x08141869: mov      edx, eax
+0x0814186b: mov      eax, dword ptr [ebp + 8]
+0x0814186e: mov      dword ptr [esp + 4], edx
+0x08141872: mov      dword ptr [esp], eax
+0x08141875: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x0814187a: lea      eax, [ebp - 0x50]
+0x0814187d: mov      edx, dword ptr [ebp - 0x10]
+0x08141880: mov      dword ptr [esp + 4], edx
+0x08141884: mov      dword ptr [esp], eax
+0x08141887: call     0x814289c ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE5beginEv
+0x0814188c: sub      esp, 4
+0x0814188f: jmp      0x81418d5
+0x08141891: lea      eax, [ebp - 0x50]
+0x08141894: mov      dword ptr [esp], eax
+0x08141897: call     0x81363b6 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEptEv
+0x0814189c: add      eax, 4
+0x0814189f: mov      edx, eax
+0x081418a1: mov      eax, dword ptr [ebp + 8]
+0x081418a4: mov      dword ptr [esp + 8], 0xc
+0x081418ac: mov      dword ptr [esp + 4], edx
+0x081418b0: mov      dword ptr [esp], eax
+0x081418b3: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x081418b8: lea      eax, [ebp - 0x3c]
+0x081418bb: mov      dword ptr [esp + 8], 0
+0x081418c3: lea      edx, [ebp - 0x50]
+0x081418c6: mov      dword ptr [esp + 4], edx
+0x081418ca: mov      dword ptr [esp], eax
+0x081418cd: call     0x81428c2 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEppEi
+0x081418d2: sub      esp, 4
+0x081418d5: lea      eax, [ebp - 0x40]
+0x081418d8: mov      edx, dword ptr [ebp - 0x10]
+0x081418db: mov      dword ptr [esp + 4], edx
+0x081418df: mov      dword ptr [esp], eax
+0x081418e2: call     0x8136188 ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x081418e7: sub      esp, 4
+0x081418ea: lea      eax, [ebp - 0x40]
+0x081418ed: mov      dword ptr [esp + 4], eax
+0x081418f1: lea      eax, [ebp - 0x50]
+0x081418f4: mov      dword ptr [esp], eax
+0x081418f7: call     0x81363a2 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEneERKS5_
+0x081418fc: test     al, al
+0x081418fe: jne      0x8141891
+0x08141900: mov      eax, dword ptr [ebp + 0xc]
+0x08141903: add      eax, 0x54
+0x08141906: mov      dword ptr [ebp - 0x10], eax
+0x08141909: mov      eax, dword ptr [ebp - 0x10]
+0x0814190c: mov      dword ptr [esp], eax
+0x0814190f: call     0x8135ea2 ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE4sizeEv
+0x08141914: mov      edx, eax
+0x08141916: mov      eax, dword ptr [ebp + 8]
+0x08141919: mov      dword ptr [esp + 4], edx
+0x0814191d: mov      dword ptr [esp], eax
+0x08141920: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x08141925: lea      eax, [ebp - 0x54]
+0x08141928: mov      edx, dword ptr [ebp - 0x10]
+0x0814192b: mov      dword ptr [esp + 4], edx
+0x0814192f: mov      dword ptr [esp], eax
+0x08141932: call     0x814289c ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE5beginEv
+0x08141937: sub      esp, 4
+0x0814193a: jmp      0x8141980
+0x0814193c: lea      eax, [ebp - 0x54]
+0x0814193f: mov      dword ptr [esp], eax
+0x08141942: call     0x81363b6 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEptEv
+0x08141947: add      eax, 4
+0x0814194a: mov      edx, eax
+0x0814194c: mov      eax, dword ptr [ebp + 8]
+0x0814194f: mov      dword ptr [esp + 8], 0xc
+0x08141957: mov      dword ptr [esp + 4], edx
+0x0814195b: mov      dword ptr [esp], eax
+0x0814195e: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08141963: lea      eax, [ebp - 0x34]
+0x08141966: mov      dword ptr [esp + 8], 0
+0x0814196e: lea      edx, [ebp - 0x54]
+0x08141971: mov      dword ptr [esp + 4], edx
+0x08141975: mov      dword ptr [esp], eax
+0x08141978: call     0x81428c2 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEppEi
+0x0814197d: sub      esp, 4
+0x08141980: lea      eax, [ebp - 0x38]
+0x08141983: mov      edx, dword ptr [ebp - 0x10]
+0x08141986: mov      dword ptr [esp + 4], edx
+0x0814198a: mov      dword ptr [esp], eax
+0x0814198d: call     0x8136188 ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x08141992: sub      esp, 4
+0x08141995: lea      eax, [ebp - 0x38]
+0x08141998: mov      dword ptr [esp + 4], eax
+0x0814199c: lea      eax, [ebp - 0x54]
+0x0814199f: mov      dword ptr [esp], eax
+0x081419a2: call     0x81363a2 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEneERKS5_
+0x081419a7: test     al, al
+0x081419a9: jne      0x814193c
+0x081419ab: mov      eax, dword ptr [ebp + 0xc]
+0x081419ae: add      eax, 0x6c
+0x081419b1: mov      dword ptr [ebp - 0x10], eax
+0x081419b4: mov      eax, dword ptr [ebp - 0x10]
+0x081419b7: mov      dword ptr [esp], eax
+0x081419ba: call     0x8135ea2 ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE4sizeEv
+0x081419bf: mov      edx, eax
+0x081419c1: mov      eax, dword ptr [ebp + 8]
+0x081419c4: mov      dword ptr [esp + 4], edx
+0x081419c8: mov      dword ptr [esp], eax
+0x081419cb: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x081419d0: lea      eax, [ebp - 0x58]
+0x081419d3: mov      edx, dword ptr [ebp - 0x10]
+0x081419d6: mov      dword ptr [esp + 4], edx
+0x081419da: mov      dword ptr [esp], eax
+0x081419dd: call     0x814289c ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE5beginEv
+0x081419e2: sub      esp, 4
+0x081419e5: jmp      0x8141a2b
+0x081419e7: lea      eax, [ebp - 0x58]
+0x081419ea: mov      dword ptr [esp], eax
+0x081419ed: call     0x81363b6 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEptEv
+0x081419f2: add      eax, 4
+0x081419f5: mov      edx, eax
+0x081419f7: mov      eax, dword ptr [ebp + 8]
+0x081419fa: mov      dword ptr [esp + 8], 0xc
+0x08141a02: mov      dword ptr [esp + 4], edx
+0x08141a06: mov      dword ptr [esp], eax
+0x08141a09: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08141a0e: lea      eax, [ebp - 0x2c]
+0x08141a11: mov      dword ptr [esp + 8], 0
+0x08141a19: lea      edx, [ebp - 0x58]
+0x08141a1c: mov      dword ptr [esp + 4], edx
+0x08141a20: mov      dword ptr [esp], eax
+0x08141a23: call     0x81428c2 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEppEi
+0x08141a28: sub      esp, 4
+0x08141a2b: lea      eax, [ebp - 0x30]
+0x08141a2e: mov      edx, dword ptr [ebp - 0x10]
+0x08141a31: mov      dword ptr [esp + 4], edx
+0x08141a35: mov      dword ptr [esp], eax
+0x08141a38: call     0x8136188 ; _ZNKSt3mapIiN12advancealtar8_BuyItemESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x08141a3d: sub      esp, 4
+0x08141a40: lea      eax, [ebp - 0x30]
+0x08141a43: mov      dword ptr [esp + 4], eax
+0x08141a47: lea      eax, [ebp - 0x58]
+0x08141a4a: mov      dword ptr [esp], eax
+0x08141a4d: call     0x81363a2 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar8_BuyItemEEEneERKS5_
+0x08141a52: test     al, al
+0x08141a54: jne      0x81419e7
+0x08141a56: mov      dword ptr [ebp - 0xc], 0
+0x08141a5d: mov      eax, dword ptr [ebp + 0xc]
+0x08141a60: add      eax, 0x84
+0x08141a65: mov      dword ptr [ebp - 0xc], eax
+0x08141a68: mov      eax, dword ptr [ebp - 0xc]
+0x08141a6b: mov      dword ptr [esp], eax
+0x08141a6e: call     0x8142900 ; _ZNKSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE4sizeEv
+0x08141a73: mov      edx, eax
+0x08141a75: mov      eax, dword ptr [ebp + 8]
+0x08141a78: mov      dword ptr [esp + 4], edx
+0x08141a7c: mov      dword ptr [esp], eax
+0x08141a7f: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x08141a84: lea      eax, [ebp - 0x5c]
+0x08141a87: mov      edx, dword ptr [ebp - 0xc]
+0x08141a8a: mov      dword ptr [esp + 4], edx
+0x08141a8e: mov      dword ptr [esp], eax
+0x08141a91: call     0x81362f6 ; _ZNKSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE5beginEv
+0x08141a96: sub      esp, 4
+0x08141a99: jmp      0x8141adf
+0x08141a9b: lea      eax, [ebp - 0x5c]
+0x08141a9e: mov      dword ptr [esp], eax
+0x08141aa1: call     0x8136394 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKhN12advancealtar5_SlotEEEptEv
+0x08141aa6: add      eax, 1
+0x08141aa9: mov      edx, eax
+0x08141aab: mov      eax, dword ptr [ebp + 8]
+0x08141aae: mov      dword ptr [esp + 8], 0xa
+0x08141ab6: mov      dword ptr [esp + 4], edx
+0x08141aba: mov      dword ptr [esp], eax
+0x08141abd: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08141ac2: lea      eax, [ebp - 0x24]
+0x08141ac5: mov      dword ptr [esp + 8], 0
+0x08141acd: lea      edx, [ebp - 0x5c]
+0x08141ad0: mov      dword ptr [esp + 4], edx
+0x08141ad4: mov      dword ptr [esp], eax
+0x08141ad7: call     0x8136356 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKhN12advancealtar5_SlotEEEppEi
+0x08141adc: sub      esp, 4
+0x08141adf: lea      eax, [ebp - 0x28]
+0x08141ae2: mov      edx, dword ptr [ebp - 0xc]
+0x08141ae5: mov      dword ptr [esp + 4], edx
+0x08141ae9: mov      dword ptr [esp], eax
+0x08141aec: call     0x813631c ; _ZNKSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE3endEv
+0x08141af1: sub      esp, 4
+0x08141af4: lea      eax, [ebp - 0x28]
+0x08141af7: mov      dword ptr [esp + 4], eax
+0x08141afb: lea      eax, [ebp - 0x5c]
+0x08141afe: mov      dword ptr [esp], eax
+0x08141b01: call     0x8136342 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKhN12advancealtar5_SlotEEEneERKS5_
+0x08141b06: test     al, al
+0x08141b08: jne      0x8141a9b
+0x08141b0a: mov      eax, dword ptr [ebp + 0xc]
+0x08141b0d: add      eax, 0x9c
+0x08141b12: mov      dword ptr [ebp - 0xc], eax
+0x08141b15: mov      eax, dword ptr [ebp - 0xc]
+0x08141b18: mov      dword ptr [esp], eax
+0x08141b1b: call     0x8142900 ; _ZNKSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE4sizeEv
+0x08141b20: mov      edx, eax
+0x08141b22: mov      eax, dword ptr [ebp + 8]
+0x08141b25: mov      dword ptr [esp + 4], edx
+0x08141b29: mov      dword ptr [esp], eax
+0x08141b2c: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x08141b31: lea      eax, [ebp - 0x60]
+0x08141b34: mov      edx, dword ptr [ebp - 0xc]
+0x08141b37: mov      dword ptr [esp + 4], edx
+0x08141b3b: mov      dword ptr [esp], eax
+0x08141b3e: call     0x81362f6 ; _ZNKSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE5beginEv
+0x08141b43: sub      esp, 4
+0x08141b46: jmp      0x8141b8c
+0x08141b48: lea      eax, [ebp - 0x60]
+0x08141b4b: mov      dword ptr [esp], eax
+0x08141b4e: call     0x8136394 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKhN12advancealtar5_SlotEEEptEv
+0x08141b53: add      eax, 1
+0x08141b56: mov      edx, eax
+0x08141b58: mov      eax, dword ptr [ebp + 8]
+0x08141b5b: mov      dword ptr [esp + 8], 0xa
+0x08141b63: mov      dword ptr [esp + 4], edx
+0x08141b67: mov      dword ptr [esp], eax
+0x08141b6a: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08141b6f: lea      eax, [ebp - 0x1c]
+0x08141b72: mov      dword ptr [esp + 8], 0
+0x08141b7a: lea      edx, [ebp - 0x60]
+0x08141b7d: mov      dword ptr [esp + 4], edx
+0x08141b81: mov      dword ptr [esp], eax
+0x08141b84: call     0x8136356 ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKhN12advancealtar5_SlotEEEppEi
+0x08141b89: sub      esp, 4
+0x08141b8c: lea      eax, [ebp - 0x20]
+0x08141b8f: mov      edx, dword ptr [ebp - 0xc]
+0x08141b92: mov      dword ptr [esp + 4], edx
+0x08141b96: mov      dword ptr [esp], eax
+0x08141b99: call     0x813631c ; _ZNKSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE3endEv
+0x08141b9e: sub      esp, 4
+0x08141ba1: lea      eax, [ebp - 0x20]
+0x08141ba4: mov      dword ptr [esp + 4], eax
+0x08141ba8: lea      eax, [ebp - 0x60]
+0x08141bab: mov      dword ptr [esp], eax
+0x08141bae: call     0x8136342 ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKhN12advancealtar5_SlotEEEneERKS5_
+0x08141bb3: test     al, al
+0x08141bb5: jne      0x8141b48
+0x08141bb7: mov      eax, dword ptr [ebp + 0xc]
+0x08141bba: add      eax, 0xb4
+0x08141bbf: mov      dword ptr [esp], eax
+0x08141bc2: call     0x81358fa ; _ZNKSt3mapIiN12advancealtar7_RewardESt4lessIiESaISt4pairIKiS1_EEE4sizeEv
+0x08141bc7: mov      edx, eax
+0x08141bc9: mov      eax, dword ptr [ebp + 8]
+0x08141bcc: mov      dword ptr [esp + 4], edx
+0x08141bd0: mov      dword ptr [esp], eax
+0x08141bd3: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x08141bd8: mov      eax, dword ptr [ebp + 0xc]
+0x08141bdb: lea      edx, [eax + 0xb4]
+0x08141be1: lea      eax, [ebp - 0x64]
+0x08141be4: mov      dword ptr [esp + 4], edx
+0x08141be8: mov      dword ptr [esp], eax
+0x08141beb: call     0x813590e ; _ZNKSt3mapIiN12advancealtar7_RewardESt4lessIiESaISt4pairIKiS1_EEE5beginEv
+0x08141bf0: sub      esp, 4
+0x08141bf3: jmp      0x8141c39
+0x08141bf5: lea      eax, [ebp - 0x64]
+0x08141bf8: mov      dword ptr [esp], eax
+0x08141bfb: call     0x81359ac ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar7_RewardEEEptEv
+0x08141c00: add      eax, 4
+0x08141c03: mov      edx, eax
+0x08141c05: mov      eax, dword ptr [ebp + 8]
+0x08141c08: mov      dword ptr [esp + 8], 5
+0x08141c10: mov      dword ptr [esp + 4], edx
+0x08141c14: mov      dword ptr [esp], eax
+0x08141c17: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08141c1c: lea      eax, [ebp - 0x14]
+0x08141c1f: mov      dword ptr [esp + 8], 0
+0x08141c27: lea      edx, [ebp - 0x64]
+0x08141c2a: mov      dword ptr [esp + 4], edx
+0x08141c2e: mov      dword ptr [esp], eax
+0x08141c31: call     0x813596e ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar7_RewardEEEppEi
+0x08141c36: sub      esp, 4
+0x08141c39: mov      eax, dword ptr [ebp + 0xc]
+0x08141c3c: lea      edx, [eax + 0xb4]
+0x08141c42: lea      eax, [ebp - 0x18]
+0x08141c45: mov      dword ptr [esp + 4], edx
+0x08141c49: mov      dword ptr [esp], eax
+0x08141c4c: call     0x8135934 ; _ZNKSt3mapIiN12advancealtar7_RewardESt4lessIiESaISt4pairIKiS1_EEE3endEv
+0x08141c51: sub      esp, 4
+0x08141c54: lea      eax, [ebp - 0x18]
+0x08141c57: mov      dword ptr [esp + 4], eax
+0x08141c5b: lea      eax, [ebp - 0x64]
+0x08141c5e: mov      dword ptr [esp], eax
+0x08141c61: call     0x813595a ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKiN12advancealtar7_RewardEEEneERKS5_
+0x08141c66: test     al, al
+0x08141c68: jne      0x8141bf5
+0x08141c6a: leave
+0x08141c6b: ret

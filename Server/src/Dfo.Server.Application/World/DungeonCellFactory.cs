@@ -28,6 +28,12 @@ internal sealed class DungeonCellFactory(
             .ToImmutableArray();
         var contents = await rooms.DescribeAsync(context, cancellationToken)
             .ConfigureAwait(false);
+        if (context.Layout.Guardian is { } guardian)
+            return new(context.Cell, context.MapId, contents.FirstActorSequence,
+                contents.Actors.Where(actor => guardian.Towers.ContainsKey(actor.Actor.Code)).Select((actor, index) => new DungeonCellActorState(
+                    checked((ushort)(contents.FirstActorSequence + index)), actor.Actor with
+                    { Code = guardian.Towers[actor.Actor.Code].ResourceId, Level = checked((byte)guardian.Towers[actor.Actor.Code].Level), IsHostile = false }, actor.IsAiCharacter,
+                    false, [], IsMonster: false)).ToArray(), []) { MechanismBlocksClear = true };
 
         var groundItems = new List<DungeonGroundItem>(contents.GroundDrops.Count);
         foreach (var ground in contents.GroundDrops)

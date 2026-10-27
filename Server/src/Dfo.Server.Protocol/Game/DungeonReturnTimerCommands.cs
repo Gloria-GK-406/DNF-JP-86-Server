@@ -52,6 +52,8 @@ internal sealed partial class TowerReturnCommandHandler
     private async ValueTask<ImmutableArray<SelectedSessionIdentity>> ReturnDungeonAsync(CommandExecutionContext context, DungeonRunId runId, bool cleared, CancellationToken token)
     {
         var frozen = wipeRegistry.Find(runId);
+        // Guardian altar owns its result screen and the 50-second return deadline.
+        if (wipeRuns.Find(runId)?.Layout.Guardian is not null) return [];
         if (!cleared && wipeRuns.Find(runId)?.Layout.Altar is not null)
         {
             if (wipeAltars.Find(runId) is null) return [];

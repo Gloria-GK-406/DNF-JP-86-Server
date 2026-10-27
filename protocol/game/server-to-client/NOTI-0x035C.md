@@ -1,4 +1,4 @@
-# NOTI `0x035C` `RECEIVE_CHAIN_LETTERS`
+# NOTI `0x035C` `ADVANCE_ALTAR_START_MAP`
 
 <!-- rks:machine:begin -->
 
@@ -52,5 +52,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21字段与实现
+
+ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation为本工作区代码及自动测试；没有WireCaptured或ClientVerified。
+
+头20B：stageType:i32（0普通、1生存）、round:i32、mapId:i32、totalDurationMs:i32、basisLevel:i32。随后u32 phaseCount + 每行12B（phaseIndex:i32、startOffsetMs:i32、phaseType:i32，0普通／1精英／2Boss）。**之后还有u32 initialActorCount及每行13B**：mapRecordIndex:i32、sequence:u16、resourceCode:u16、level:u8、rank:u8、unknown三字节当前0。完整长度`28+12P+13M`，机器区24+12P仅是下界。客户端`VA0115C4E5`以后的计数与记录读取补全尾部；生存round>1在`0115C3B6–0115C3FD`保留当前场景后返回，不重新Loading，初始actorCount为0。
+
+原始摘录：[client-map-response.txt](../../../Document/tasks/guardian-altar/client-map-response.txt)。当前encoder与对应强类型消息已注册，自动codec测试核对完整读取边界。发送顺序见[祭坛流程](../../patterns/flow-guardian-altar.md)。

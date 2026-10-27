@@ -131,6 +131,7 @@ public sealed record DungeonLayout(
     public DespairTowerEntryPlan? Despair { get; init; }
     public TournamentPlan? Tournament { get; init; }
     public AltarEntryPlan? Altar { get; init; }
+    public GuardianAltarAdmission? Guardian { get; init; }
     // 70 CParty::giveup_game exempts every nonzero blood-dungeon type from stamina penalties.
     public bool NoGiveupPenalty { get; init; }
     public bool AppliesFailureWeakness => Altar is null && !NoGiveupPenalty;

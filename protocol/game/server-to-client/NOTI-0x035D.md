@@ -1,4 +1,4 @@
-# NOTI `0x035D` `REVENUE_SANCTION`
+# NOTI `0x035D` `ADVANCE_ALTAR_SUMMON_MONSTER`
 
 <!-- rks:machine:begin -->
 
@@ -49,5 +49,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21字段与实现
+
+ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation为本工作区代码及自动测试；没有WireCaptured或ClientVerified。
+
+固定38B：sequence:u16；再36B SummonObject：id:i32、enemy:u8及3B padding、rank:i32（0/1/2）、monsterCode:i32、level:i16及2B padding、maximumLevel:i32、x/y/z:i32各。A21读取VA0114BCC0并交给01864750。字段语义结合70 _SummonObject。当前只投影敌方；0396成功的友方效果走客户端STK。
+
+原始摘录：[client-spawn-info.txt](../../../Document/tasks/guardian-altar/client-spawn-info.txt)。当前encoder与对应强类型消息已注册，自动codec测试核对完整读取边界。发送顺序见[祭坛流程](../../patterns/flow-guardian-altar.md)。

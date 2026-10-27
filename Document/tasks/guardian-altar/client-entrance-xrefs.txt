@@ -1,0 +1,6 @@
+Input: E:\Project\DNF\DNFClient-A21-debug\dumps\dnf-dump-20260922-194214-883-23144\DNF-memory-rva.bin
+SHA256: aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d
+candidate call 0xeb6470 -> 0x1335d40, nearby prologue 0xeb63b0
+candidate call 0x1337ff2 -> 0x11c2530, nearby prologue 0x1337ee0
+candidate call 0x1353201 -> 0x1335d40, nearby prologue 0x1352bc0
+candidate call 0x13aac8b -> 0x1335d40, nearby prologue 0x13aa930

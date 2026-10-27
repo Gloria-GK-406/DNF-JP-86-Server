@@ -1,0 +1,88 @@
+Input: E:\Project\DNF\DNFClient-A21-debug\dumps\dnf-dump-20260922-194214-883-23144\DNF-memory-rva.bin
+SHA256: aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d
+
+## RVA 0x10ac460; VA base 0x400000
+0x014ac460: cmp      dword ptr [eax + 4], esi
+0x014ac463: ja       0x14ac4ba
+0x014ac465: cmp      esi, dword ptr [eax + 8]
+0x014ac468: jae      0x14ac4ba
+0x014ac46a: mov      dword ptr [ebp - 0x64], ecx
+0x014ac46d: mov      eax, dword ptr [esi + 4]
+0x014ac470: push     -1
+0x014ac472: mov      dword ptr [ebp - 0x60], eax
+0x014ac475: mov      cl, byte ptr [esi + 8]
+0x014ac478: push     0
+0x014ac47a: lea      edx, [esi + 0xc]
+0x014ac47d: mov      byte ptr [ebp - 0x5c], cl
+0x014ac480: push     edx
+0x014ac481: lea      ecx, [ebp - 0x58]
+0x014ac484: call     0x424180
+0x014ac489: lea      eax, [esi + 0x2c]
+0x014ac48c: push     eax
+0x014ac48d: lea      ecx, [ebp - 0x38]
+0x014ac490: call     0x14ea890
+0x014ac495: add      esi, 0x40
+0x014ac498: push     esi
+0x014ac499: lea      ecx, [ebp - 0x24]
+0x014ac49c: call     0x146e900
+0x014ac4a1: push     0
+0x014ac4a3: lea      ecx, [ebp - 0xb8]
+0x014ac4a9: push     ecx
+0x014ac4aa: lea      ecx, [ebp - 0xa0]
+0x014ac4b0: call     0x133d5a0
+0x014ac4b5: jmp      0x14ac3e0
+0x014ac4ba: call     0x2c623e1
+0x014ac4bf: mov      ecx, dword ptr [ebp - 0x90]
+0x014ac4c5: mov      esi, dword ptr [ebp - 0x94]
+0x014ac4cb: cmp      ecx, dword ptr [esi + 8]
+0x014ac4ce: je       0x14ac589
+0x014ac4d4: mov      edx, dword ptr [edi]
+0x014ac4d6: mov      al, byte ptr [esi + 8]
+0x014ac4d9: mov      esi, dword ptr [esi + 4]
+0x014ac4dc: pxor     xmm0, xmm0
+0x014ac4e0: movq     qword ptr [ebp - 0x7c], xmm0
+0x014ac4e5: movq     qword ptr [ebp - 0x84], xmm0
+0x014ac4ed: mov      dword ptr [ebp - 0x7e], edx
+0x014ac4f0: mov      edx, 2
+0x014ac4f5: movq     qword ptr [ebp - 0x74], xmm0
+0x014ac4fa: mov      byte ptr [ebp - 0x75], al
+0x014ac4fd: mov      dword ptr [ebp - 0x79], edx
+0x014ac500: mov      dword ptr [ebp - 0x70], edx
+0x014ac503: mov      edx, dword ptr [ebp - 0x64]
+0x014ac506: mov      dword ptr [ebp - 0x6c], 0
+0x014ac50d: movzx    eax, al
+0x014ac510: mov      byte ptr [ebp - 0x68], 0
+0x014ac514: movq     qword ptr [ebp - 0x8c], xmm0
+0x014ac51c: mov      dword ptr [ebp - 0x74], esi
+0x014ac51f: mov      byte ptr [ebp - 0x6c], cl
+0x014ac522: mov      dword ptr [ebp - 0x6b], edx
+0x014ac525: cmp      byte ptr [eax + ebx + 0x1fc], 0
+0x014ac52d: jne      0x14ac589
+0x014ac52f: movzx    ecx, cl
+0x014ac532: cmp      byte ptr [ecx + ebx + 0x1fc], 0
+0x014ac53a: jne      0x14ac589
+0x014ac53c: push     0
+0x014ac53e: push     0x397
+0x014ac543: call     0x274ca50
+0x014ac548: mov      ecx, eax
+0x014ac54a: call     0x274d1e0
+0x014ac54f: lea      edx, [ebp - 0x8c]
+0x014ac555: push     0x25
+0x014ac557: push     edx
+0x014ac558: call     0x274ca50
+0x014ac55d: mov      ecx, eax
+0x014ac55f: call     0x274ced0
+0x014ac564: call     0x274e6d0
+0x014ac569: mov      ecx, dword ptr [0x3a5c9b8]
+0x014ac56f: push     0
+0x014ac571: call     0x23053c0
+0x014ac576: lea      ecx, [ebp - 0x64]
+0x014ac579: mov      dword ptr [ebp - 4], 0xffffffff
+0x014ac580: call     0x146eb10
+0x014ac585: mov      al, 1
+0x014ac587: jmp      0x14ac5a7
+0x014ac589: mov      ecx, dword ptr [0x3a5c9b8]
+0x014ac58f: push     0
+0x014ac591: call     0x23053c0
+0x014ac596: lea      ecx, [ebp - 0x64]
+0x014ac599: mov      dword ptr [ebp - 4], 0xffffffff

@@ -1,0 +1,297 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x81301e0 _ZN12advancealtar12StageControl11sendMapInfoEv (1046 bytes)
+0x081301e0: push     ebp
+0x081301e1: mov      ebp, esp
+0x081301e3: push     esi
+0x081301e4: push     ebx
+0x081301e5: sub      esp, 0x90
+0x081301eb: mov      eax, dword ptr [ebp + 8]
+0x081301ee: add      eax, 0x98
+0x081301f3: mov      dword ptr [esp], eax
+0x081301f6: call     0x8134814 ; _ZNK12advancealtar10CharacData7getUserEv
+0x081301fb: mov      dword ptr [ebp - 0x2c], eax
+0x081301fe: cmp      dword ptr [ebp - 0x2c], 0
+0x08130202: je       0x81305e5
+0x08130208: mov      eax, dword ptr [ebp + 8]
+0x0813020b: add      eax, 4
+0x0813020e: mov      dword ptr [esp], eax
+0x08130211: call     0x8134860 ; _ZNK12advancealtar9ProcStage6getMapEv
+0x08130216: mov      dword ptr [ebp - 0x28], eax
+0x08130219: cmp      dword ptr [ebp - 0x28], 0
+0x0813021d: je       0x81305e8
+0x08130223: lea      eax, [ebp - 0x58]
+0x08130226: mov      dword ptr [esp], eax
+0x08130229: call     0x81346fc ; _ZN16NOTIPacketStruct24_NotiAdvanceAltarMapInfoC2Ev
+0x0813022e: mov      eax, dword ptr [ebp + 8]
+0x08130231: add      eax, 4
+0x08130234: mov      dword ptr [esp], eax
+0x08130237: call     0x8134852 ; _ZNK12advancealtar9ProcStage11getTimeLineEv
+0x0813023c: mov      dword ptr [ebp - 0x24], eax
+0x0813023f: cmp      dword ptr [ebp - 0x24], 0
+0x08130243: je       0x81305eb
+0x08130249: mov      eax, dword ptr [ebp + 8]
+0x0813024c: add      eax, 4
+0x0813024f: mov      dword ptr [esp], eax
+0x08130252: call     0x812eb04 ; _ZNK12advancealtar9ProcStage12getStageTypeEv
+0x08130257: mov      dword ptr [ebp - 0x58], eax
+0x0813025a: mov      eax, dword ptr [ebp + 8]
+0x0813025d: add      eax, 4
+0x08130260: mov      dword ptr [esp], eax
+0x08130263: call     0x8134878 ; _ZNK12advancealtar9ProcStage25getCurrentSurvivalRoundNoEv
+0x08130268: mov      dword ptr [ebp - 0x54], eax
+0x0813026b: mov      eax, dword ptr [ebp - 0x28]
+0x0813026e: mov      dword ptr [esp], eax
+0x08130271: call     0x8134776 ; _ZNK4CMap9get_indexEv
+0x08130276: mov      dword ptr [ebp - 0x50], eax
+0x08130279: mov      eax, dword ptr [ebp - 0x24]
+0x0813027c: mov      eax, dword ptr [eax + 0xc]
+0x0813027f: mov      dword ptr [ebp - 0x4c], eax
+0x08130282: mov      eax, dword ptr [ebp + 8]
+0x08130285: add      eax, 4
+0x08130288: mov      dword ptr [esp], eax
+0x0813028b: call     0x8134894 ; _ZNK12advancealtar9ProcStage16getMapBasisLevelEv
+0x08130290: mov      dword ptr [ebp - 0x48], eax
+0x08130293: lea      eax, [ebp - 0x64]
+0x08130296: mov      dword ptr [esp], eax
+0x08130299: call     0x858dd4c ; _ZN11PacketGuardC2Ev
+0x0813029e: mov      dword ptr [esp + 8], 0x20a
+0x081302a6: mov      dword ptr [esp + 4], 0
+0x081302ae: lea      eax, [ebp - 0x64]
+0x081302b1: mov      dword ptr [esp], eax
+0x081302b4: call     0x80cb8fc ; _ZN18InterfacePacketBuf10put_headerEii
+0x081302b9: lea      eax, [ebp - 0x58]
+0x081302bc: mov      dword ptr [esp + 8], 0x14
+0x081302c4: mov      dword ptr [esp + 4], eax
+0x081302c8: lea      eax, [ebp - 0x64]
+0x081302cb: mov      dword ptr [esp], eax
+0x081302ce: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x081302d3: mov      eax, dword ptr [ebp - 0x24]
+0x081302d6: add      eax, 0x10
+0x081302d9: mov      dword ptr [esp], eax
+0x081302dc: call     0x8135ca4 ; _ZNKSt6vectorIN12advancealtar13_PhaseSummaryESaIS1_EE4sizeEv
+0x081302e1: mov      dword ptr [esp + 4], eax
+0x081302e5: lea      eax, [ebp - 0x64]
+0x081302e8: mov      dword ptr [esp], eax
+0x081302eb: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x081302f0: mov      eax, dword ptr [ebp - 0x24]
+0x081302f3: lea      edx, [eax + 0x10]
+0x081302f6: lea      eax, [ebp - 0x68]
+0x081302f9: mov      dword ptr [esp + 4], edx
+0x081302fd: mov      dword ptr [esp], eax
+0x08130300: call     0x8135cc6 ; _ZNKSt6vectorIN12advancealtar13_PhaseSummaryESaIS1_EE5beginEv
+0x08130305: sub      esp, 4
+0x08130308: mov      dword ptr [ebp - 0x20], 0
+0x0813030f: jmp      0x813035a
+0x08130311: lea      eax, [ebp - 0x68]
+0x08130314: mov      dword ptr [esp], eax
+0x08130317: call     0x8135d7e ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_PhaseSummaryESt6vectorIS2_SaIS2_EEEdeEv
+0x0813031c: mov      dword ptr [ebp - 0x1c], eax
+0x0813031f: mov      eax, dword ptr [ebp - 0x1c]
+0x08130322: mov      dword ptr [esp + 8], 0xc
+0x0813032a: mov      dword ptr [esp + 4], eax
+0x0813032e: lea      eax, [ebp - 0x64]
+0x08130331: mov      dword ptr [esp], eax
+0x08130334: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x08130339: lea      eax, [ebp - 0x40]
+0x0813033c: mov      dword ptr [esp + 8], 0
+0x08130344: lea      edx, [ebp - 0x68]
+0x08130347: mov      dword ptr [esp + 4], edx
+0x0813034b: mov      dword ptr [esp], eax
+0x0813034e: call     0x8135d4a ; _ZN9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_PhaseSummaryESt6vectorIS2_SaIS2_EEEppEi
+0x08130353: sub      esp, 4
+0x08130356: add      dword ptr [ebp - 0x20], 1
+0x0813035a: mov      eax, dword ptr [ebp - 0x24]
+0x0813035d: lea      edx, [eax + 0x10]
+0x08130360: lea      eax, [ebp - 0x44]
+0x08130363: mov      dword ptr [esp + 4], edx
+0x08130367: mov      dword ptr [esp], eax
+0x0813036a: call     0x8135cf2 ; _ZNKSt6vectorIN12advancealtar13_PhaseSummaryESaIS1_EE3endEv
+0x0813036f: sub      esp, 4
+0x08130372: lea      eax, [ebp - 0x44]
+0x08130375: mov      dword ptr [esp + 4], eax
+0x08130379: lea      eax, [ebp - 0x68]
+0x0813037c: mov      dword ptr [esp], eax
+0x0813037f: call     0x8135d1e ; _ZN9__gnu_cxxneIPKN12advancealtar13_PhaseSummaryESt6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T0_EESD_
+0x08130384: test     al, al
+0x08130386: jne      0x8130311
+0x08130388: mov      eax, dword ptr [ebp + 8]
+0x0813038b: add      eax, 4
+0x0813038e: mov      dword ptr [esp], eax
+0x08130391: call     0x812eb04 ; _ZNK12advancealtar9ProcStage12getStageTypeEv
+0x08130396: cmp      eax, 1
+0x08130399: jne      0x81303ad
+0x0813039b: mov      eax, dword ptr [ebp + 8]
+0x0813039e: add      eax, 4
+0x081303a1: mov      dword ptr [esp], eax
+0x081303a4: call     0x812f70c ; _ZNK12advancealtar9ProcStage24isSurvivalModeFirstRoundEv
+0x081303a9: test     al, al
+0x081303ab: je       0x81303b4
+0x081303ad: mov      eax, 1
+0x081303b2: jmp      0x81303b9
+0x081303b4: mov      eax, 0
+0x081303b9: test     al, al
+0x081303bb: je       0x8130570
+0x081303c1: lea      eax, [ebp - 0x3c]
+0x081303c4: mov      edx, dword ptr [ebp - 0x28]
+0x081303c7: mov      dword ptr [esp + 4], edx
+0x081303cb: mov      dword ptr [esp], eax
+0x081303ce: call     0x8134796 ; _ZNK4CMap16get_monster_listEv
+0x081303d3: sub      esp, 4
+0x081303d6: lea      eax, [ebp - 0x3c]
+0x081303d9: mov      dword ptr [ebp - 0x18], eax
+0x081303dc: mov      eax, dword ptr [ebp + 8]
+0x081303df: mov      dword ptr [esp], eax
+0x081303e2: call     0x81307a6 ; _ZNK12advancealtar12StageControl14getCenterCountEv
+0x081303e7: mov      dword ptr [ebp - 0x14], eax
+0x081303ea: mov      eax, dword ptr [ebp - 0x14]
+0x081303ed: mov      dword ptr [esp + 4], eax
+0x081303f1: lea      eax, [ebp - 0x64]
+0x081303f4: mov      dword ptr [esp], eax
+0x081303f7: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x081303fc: lea      eax, [ebp - 0x6c]
+0x081303ff: mov      edx, dword ptr [ebp - 0x18]
+0x08130402: mov      dword ptr [esp + 4], edx
+0x08130406: mov      dword ptr [esp], eax
+0x08130409: call     0x8135d88 ; _ZNKSt4listI11_mapMonsterSaIS0_EE5beginEv
+0x0813040e: sub      esp, 4
+0x08130411: jmp      0x813051d
+0x08130416: lea      eax, [ebp - 0x79]
+0x08130419: mov      dword ptr [esp], eax
+0x0813041c: call     0x813442e ; _ZN12advancealtar18_MapMonsterSummaryC2Ev
+0x08130421: lea      eax, [ebp - 0x6c]
+0x08130424: mov      dword ptr [esp], eax
+0x08130427: call     0x8135e1e ; _ZNKSt20_List_const_iteratorI11_mapMonsterEptEv
+0x0813042c: mov      eax, dword ptr [eax + 0x2c]
+0x0813042f: mov      dword ptr [ebp - 0x79], eax
+0x08130432: mov      word ptr [ebp - 0x75], 0
+0x08130438: mov      dword ptr [ebp - 0x80], 0
+0x0813043f: mov      dword ptr [ebp - 0x84], 0
+0x08130449: lea      eax, [ebp - 0x6c]
+0x0813044c: mov      dword ptr [esp], eax
+0x0813044f: call     0x8135e1e ; _ZNKSt20_List_const_iteratorI11_mapMonsterEptEv
+0x08130454: mov      eax, dword ptr [eax]
+0x08130456: mov      edx, dword ptr [ebp - 0x2c]
+0x08130459: lea      ecx, [edx + 0x8df60]
+0x0813045f: lea      edx, [ebp - 0x84]
+0x08130465: mov      dword ptr [esp + 0xc], edx
+0x08130469: lea      edx, [ebp - 0x80]
+0x0813046c: mov      dword ptr [esp + 8], edx
+0x08130470: mov      dword ptr [esp + 4], eax
+0x08130474: mov      dword ptr [esp], ecx
+0x08130477: call     0x81328ea ; _ZNK12advancealtar25CharacAdvanceAltarManager12getTowerInfoEiRiS1_
+0x0813047c: mov      byte ptr [ebp - 0xd], al
+0x0813047f: movzx    eax, byte ptr [ebp - 0xd]
+0x08130483: xor      eax, 1
+0x08130486: test     al, al
+0x08130488: jne      0x81304ff
+0x0813048a: mov      eax, dword ptr [ebp - 0x80]
+0x0813048d: mov      word ptr [ebp - 0x73], ax
+0x08130491: mov      eax, dword ptr [ebp - 0x84]
+0x08130497: mov      byte ptr [ebp - 0x71], al
+0x0813049a: lea      eax, [ebp - 0x6c]
+0x0813049d: mov      dword ptr [esp], eax
+0x081304a0: call     0x8135e1e ; _ZNKSt20_List_const_iteratorI11_mapMonsterEptEv
+0x081304a5: mov      eax, dword ptr [eax + 0x18]
+0x081304a8: mov      byte ptr [ebp - 0x70], al
+0x081304ab: lea      eax, [ebp - 0x6c]
+0x081304ae: mov      dword ptr [esp], eax
+0x081304b1: call     0x8135e1e ; _ZNKSt20_List_const_iteratorI11_mapMonsterEptEv
+0x081304b6: mov      eax, dword ptr [eax + 0x20]
+0x081304b9: mov      byte ptr [ebp - 0x6f], al
+0x081304bc: lea      eax, [ebp - 0x6c]
+0x081304bf: mov      dword ptr [esp], eax
+0x081304c2: call     0x8135e1e ; _ZNKSt20_List_const_iteratorI11_mapMonsterEptEv
+0x081304c7: movzx    eax, byte ptr [eax + 0x1c]
+0x081304cb: mov      byte ptr [ebp - 0x6e], al
+0x081304ce: mov      eax, dword ptr [ebp + 8]
+0x081304d1: lea      edx, [eax + 4]
+0x081304d4: lea      eax, [ebp - 0x79]
+0x081304d7: mov      dword ptr [esp + 4], eax
+0x081304db: mov      dword ptr [esp], edx
+0x081304de: call     0x812e16e ; _ZN12advancealtar9ProcStage20addCreatedMapMonsterERNS_18_MapMonsterSummaryE
+0x081304e3: lea      eax, [ebp - 0x79]
+0x081304e6: mov      dword ptr [esp + 8], 0xd
+0x081304ee: mov      dword ptr [esp + 4], eax
+0x081304f2: lea      eax, [ebp - 0x64]
+0x081304f5: mov      dword ptr [esp], eax
+0x081304f8: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x081304fd: jmp      0x8130500
+0x081304ff: nop
+0x08130500: lea      eax, [ebp - 0x30]
+0x08130503: mov      dword ptr [esp + 8], 0
+0x0813050b: lea      edx, [ebp - 0x6c]
+0x0813050e: mov      dword ptr [esp + 4], edx
+0x08130512: mov      dword ptr [esp], eax
+0x08130515: call     0x8135de6 ; _ZNSt20_List_const_iteratorI11_mapMonsterEppEi
+0x0813051a: sub      esp, 4
+0x0813051d: lea      eax, [ebp - 0x34]
+0x08130520: mov      edx, dword ptr [ebp - 0x18]
+0x08130523: mov      dword ptr [esp + 4], edx
+0x08130527: mov      dword ptr [esp], eax
+0x0813052a: call     0x8135dae ; _ZNKSt4listI11_mapMonsterSaIS0_EE3endEv
+0x0813052f: sub      esp, 4
+0x08130532: lea      eax, [ebp - 0x34]
+0x08130535: mov      dword ptr [esp + 4], eax
+0x08130539: lea      eax, [ebp - 0x6c]
+0x0813053c: mov      dword ptr [esp], eax
+0x0813053f: call     0x8135dd2 ; _ZNKSt20_List_const_iteratorI11_mapMonsterEneERKS1_
+0x08130544: test     al, al
+0x08130546: jne      0x8130416
+0x0813054c: jmp      0x8130563
+0x0813054e: mov      ebx, edx
+0x08130550: mov      esi, eax
+0x08130552: lea      eax, [ebp - 0x3c]
+0x08130555: mov      dword ptr [esp], eax
+0x08130558: call     0x8134782 ; _ZNSt4listI11_mapMonsterSaIS0_EED1Ev
+0x0813055d: mov      eax, esi
+0x0813055f: mov      edx, ebx
+0x08130561: jmp      0x81305bd
+0x08130563: lea      eax, [ebp - 0x3c]
+0x08130566: mov      dword ptr [esp], eax
+0x08130569: call     0x8134782 ; _ZNSt4listI11_mapMonsterSaIS0_EED1Ev
+0x0813056e: jmp      0x8130589
+0x08130570: mov      dword ptr [ebp - 0xc], 0
+0x08130577: mov      eax, dword ptr [ebp - 0xc]
+0x0813057a: mov      dword ptr [esp + 4], eax
+0x0813057e: lea      eax, [ebp - 0x64]
+0x08130581: mov      dword ptr [esp], eax
+0x08130584: call     0x80cb93c ; _ZN18InterfacePacketBuf7put_intEi
+0x08130589: mov      dword ptr [esp + 4], 1
+0x08130591: lea      eax, [ebp - 0x64]
+0x08130594: mov      dword ptr [esp], eax
+0x08130597: call     0x80cb958 ; _ZN18InterfacePacketBuf8finalizeEb
+0x0813059c: mov      eax, dword ptr [ebp + 8]
+0x0813059f: add      eax, 0x98
+0x081305a4: mov      dword ptr [esp], eax
+0x081305a7: call     0x8134814 ; _ZNK12advancealtar10CharacData7getUserEv
+0x081305ac: lea      edx, [ebp - 0x64]
+0x081305af: mov      dword ptr [esp + 4], edx
+0x081305b3: mov      dword ptr [esp], eax
+0x081305b6: call     0x86485ba ; _ZN5CUser4SendER11PacketGuard
+0x081305bb: jmp      0x81305d8
+0x081305bd: mov      ebx, edx
+0x081305bf: mov      esi, eax
+0x081305c1: lea      eax, [ebp - 0x64]
+0x081305c4: mov      dword ptr [esp], eax
+0x081305c7: call     0x858de80 ; _ZN11PacketGuardD1Ev
+0x081305cc: mov      eax, esi
+0x081305ce: mov      edx, ebx
+0x081305d0: mov      dword ptr [esp], eax
+0x081305d3: call     0x8ae3750 ; _Unwind_Resume
+0x081305d8: lea      eax, [ebp - 0x64]
+0x081305db: mov      dword ptr [esp], eax
+0x081305de: call     0x858de80 ; _ZN11PacketGuardD1Ev
+0x081305e3: jmp      0x81305ec
+0x081305e5: nop
+0x081305e6: jmp      0x81305ec
+0x081305e8: nop
+0x081305e9: jmp      0x81305ec
+0x081305eb: nop
+0x081305ec: lea      esp, [ebp - 8]
+0x081305ef: add      esp, 0
+0x081305f2: pop      ebx
+0x081305f3: pop      esi
+0x081305f4: pop      ebp
+0x081305f5: ret

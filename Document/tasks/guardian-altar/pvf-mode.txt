@@ -1,0 +1,57 @@
+=== etc/advancealtar/advancealtarmode.etc ===
+[ridable list]
+1 100 64610 2 123 61736
+[/ridable list]
+[level info]
+[monster index]
+64610
+[skill]
+0
+[action]
+1 Action/xAttack_lv1_00.act AttackInfo/xAttack_lv1_00.atk 2 Action/xAttack_lv2_00.act AttackInfo/xAttack_lv2_00.atk 3 Action/xAttack_lv3_00.act AttackInfo/xAttack_lv3_00.atk 4 Action/xAttack_lv4_00.act AttackInfo/xAttack_lv4_00.atk
+[/action]
+[skill]
+2
+[action]
+1 Action/Tongbae_Lv1.act  2 Action/Tongbae_Lv2.act  3 Action/Tongbae_Lv3.act  4 Action/Tongbae_Lv4.act
+[/action]
+[skill]
+3
+[action]
+1 Action/Hide_lv1.act  2 Action/Hide_lv2.act  3 Action/Hide_lv3.act  4 Action/Hide_lv4.act
+[/action]
+[skill]
+4
+[action]
+1 Action/Turnready_Lv1.act AttackInfo/Turn_Lv1.atk 2 Action/Turnready_Lv2.act AttackInfo/Turn_Lv2.atk 3 Action/Turnready_Lv3.act AttackInfo/Turn_Lv3.atk 4 Action/Turnready_Lv4.act AttackInfo/Turn_Lv4.atk
+[/action]
+[skill]
+5
+[action]
+1 Action/SpAttack_Lv1_01.act AttackInfo/SpAttack_Lv1_01.atk 2 Action/SpAttack_Lv2_01.act AttackInfo/SpAttack_Lv2_01.atk 3 Action/SpAttack_Lv3_01.act AttackInfo/SpAttack_Lv3_01.atk 4 Action/SpAttack_Lv4_01.act AttackInfo/SpAttack_Lv4_01.atk
+[/action]
+[skill]
+6
+[action]
+1 Action/Buff_lv1.act AttackInfo/Buff_Lv1.atk 2 Action/Buff_lv2.act AttackInfo/Buff_Lv2.atk 3 Action/Buff_lv3.act AttackInfo/Buff_Lv3.atk 4 Action/Buff_lv4.act AttackInfo/Buff_Lv4.atk
+[/action]
+[/monster index]
+[/level info]
+[level info]
+[monster index]
+61736
+[status id]
+100
+[skill]
+9
+[action]
+0 Action/SpAttack_punch1.act  1 Action/SpAttack_punch1.act  2 Action/SpAttack_punch1.act
+[/action]
+[/monster index]
+[/level info]
+[bgm]
+M_AD_ALTAR_NORMAL M_AD_ALTAR_HUGEWAVE M_AD_ALTAR_BOSS
+[/bgm]
+[sound effect]
+M_AD_ALTAR_NORMAL M_AD_ALTAR_HUGEWAVE M_AD_ALTAR_BOSS
+[/sound effect]

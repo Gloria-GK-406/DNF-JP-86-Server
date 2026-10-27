@@ -1,0 +1,248 @@
+=== etc/advancealtar/advancealtarachievementreward.etc ===
+[reward data]
+[type]
+1
+[stage difficulty]
+easy
+[stage clear count]
+4
+[icon image]
+2
+[reward item]
+normal 2749213 2 normal 2749211 8
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_01
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+2
+[stage difficulty]
+easy
+[stage clear count]
+8
+[icon image]
+2
+[reward item]
+normal 2749213 3 normal 2749211 10
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+3
+[stage difficulty]
+easy
+[stage clear count]
+12
+[icon image]
+2
+[reward item]
+normal 2749213 5 normal 2749211 12
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_03
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+4
+[stage difficulty]
+medium
+[stage clear count]
+4
+[icon image]
+2
+[reward item]
+normal 2749213 4 normal 2749211 12
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_04
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+5
+[stage difficulty]
+medium
+[stage clear count]
+8
+[icon image]
+2
+[reward item]
+normal 2749213 6 normal 2749211 14
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_05
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+6
+[stage difficulty]
+medium
+[stage clear count]
+12
+[icon image]
+5
+[reward item]
+normal 2749213 10 normal 2749211 16 normal 2749214 1
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_06
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+7
+[stage difficulty]
+hard
+[stage clear count]
+1
+[icon image]
+2
+[reward item]
+normal 2749213 5 normal 2749211 10
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_07
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+8
+[stage difficulty]
+hard
+[stage clear count]
+2
+[icon image]
+2
+[reward item]
+normal 2749213 6 normal 2749211 15
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_08
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+9
+[stage difficulty]
+hard
+[stage clear count]
+4
+[icon image]
+2
+[reward item]
+normal 2749213 7 normal 2749211 20
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_09
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+10
+[stage difficulty]
+hard
+[stage clear count]
+6
+[icon image]
+2
+[reward item]
+normal 2749213 8 normal 2749211 25
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_10
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+11
+[stage difficulty]
+hard
+[stage clear count]
+8
+[icon image]
+2
+[reward item]
+normal 2749213 9 normal 2749211 30
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_11
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+12
+[stage difficulty]
+hard
+[stage clear count]
+10
+[icon image]
+5
+[reward item]
+normal 2749213 10 normal 2749211 40 normal 2749214 1
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_12
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+13
+[stage difficulty]
+hard
+[stage clear count]
+12
+[icon image]
+4
+[reward item]
+normal 2749213 20 normal 2749211 100 normal 2749215 2 normal 2747020 1
+[/reward item]
+[reward title]
+chn_advaltar_achievement_msg_13
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]

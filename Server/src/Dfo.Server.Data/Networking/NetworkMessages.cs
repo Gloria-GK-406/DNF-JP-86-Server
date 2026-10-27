@@ -2,6 +2,15 @@ namespace Dfo.Server.Data.Networking;
 
 public enum ClientMessageType
 {
+    GameGuardianAltarOpen = 0x0001_0392,
+    GameGuardianAltarBuy = 0x0001_0393,
+    GameGuardianAltarSetSlot = 0x0001_0394,
+    GameGuardianAltarUpgradeEnergy = 0x0001_0395,
+    GameGuardianAltarSummon = 0x0001_0396,
+    GameGuardianAltarExchange = 0x0001_0397,
+    GameGuardianAltarPause = 0x0001_0398,
+    GameGuardianAltarAchievement = 0x0001_0399,
+    GameGuardianAltarReset = 0x0001_039A,
     GameRentEquipment = 0x0001_03CF,
     GameChargeRentPoint = 0x0001_03D0,
     GameCollectionBox = 0x0001_03E5,

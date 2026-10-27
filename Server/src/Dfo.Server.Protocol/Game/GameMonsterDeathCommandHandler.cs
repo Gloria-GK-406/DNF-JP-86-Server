@@ -73,6 +73,8 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly ICommandConnectionClosures closures;
     private readonly IInventorySlotProjectionDomainService slots;
     private readonly IAltarSchedulerWakeSignal altarWake;
+    private readonly IGuardianAltarDomainService guardian;
+    private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
     public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IMonsterDeathDomainService deaths, ICreatureRuntimeDomainService creatures, IQuestQueryDomainService quests,
@@ -82,13 +84,15 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         IDungeonParticipationDomainService participation,
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
         ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
-        TimeProvider clock, IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal altarWake, ILogger<GameMonsterDeathCommandHandler> logger )
+        TimeProvider clock, IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal altarWake, ILogger<GameMonsterDeathCommandHandler> logger,
+        IGuardianAltarDomainService guardian, IGuardianAltarSchedulerWakeSignal guardianWake)
 
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs; this.registry=registry; this.clearEvaluator=clearEvaluator; this.deaths=deaths;
         this.creatures=creatures; this.quests=quests; this.questLogs=questLogs; this.containers=containers;
         this.items=items; this.progress=progress; this.closures=closures; this.slots=slots; this.altarWake=altarWake;
+        this.guardian = guardian; this.guardianWake = guardianWake;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMonsterDeathCommand command, CancellationToken ct)
     { await RunAsync(execution, command.Dispatch, command.Input, command.Input.LabelProbe, ct).ConfigureAwait(false); return true; }
@@ -130,6 +134,15 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             logger.LogDebug("Monster death ignored connection={ConnectionId} actor={Actor} reason=NoRun", reporter.ConnectionId, message.ActorSequence);
             await outbox.RegisterExplicitAsync(reporter.ConnectionId,
                 new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
+            return;
+        }
+        if (run.Layout.Guardian is not null)
+        {
+            if (message.ObjectCode is null)
+                _ = await workUnits.WriteAsync(execution, new("guardian-altar.death", CaptureDeathRecipients([reporter], context, message.Metadata)),
+                    (_, token) => guardian.ReportDeathAsync(reporter, run.RunId, run.RoomVersion, message.ActorSequence, token), ct).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(reporter.ConnectionId, new([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
+            guardianWake.Wake();
             return;
         }
         var participants = (run.PartyMemberCount > 1

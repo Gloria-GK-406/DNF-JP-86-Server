@@ -80,6 +80,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IAltarDungeonDomainService altars;
     private readonly IAltarSchedulerWakeSignal wake;
     private readonly IOutboundOrdering ordering;
+    private readonly IGuardianAltarDomainService guardian;
     public GamePartyTransitionCommandHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
         IDungeonRunDomainService runs, IDungeonRunProjectionDomainService registry, IPartyService parties,
@@ -92,12 +93,13 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         ICommandConnectionClosures closures, IDungeonCardPresentationControl cardPresentation,
         IDungeonEntryIntentDomainService entryIntents, IAltarDungeonDomainService altars,
         IAltarSchedulerWakeSignal wake, IWeaknessDomainService weakness, TimeProvider clock,
-        ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering)
+        ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering, IGuardianAltarDomainService guardian)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.registry = registry; this.cardPresentation = cardPresentation;
         this.entryIntents = entryIntents; this.altars = altars; this.wake = wake; this.ordering = ordering;
+        this.guardian = guardian;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameEplpCommand command, CancellationToken ct)
     { await EplpAsync(execution, command.Dispatch, command.Input, ct).ConfigureAwait(false); return true; }
@@ -153,7 +155,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         }
 
         var isAltar = currentRun?.Layout.Altar is not null;
-        var leaving = message.State == EplpCommandHandler.LeaveState && (isAltar || message.Option <= 2);
+        var isGuardian = currentRun?.Layout.Guardian is not null;
+        var leaving = message.State == EplpCommandHandler.LeaveState && (isAltar || isGuardian || message.Option <= 2);
         if (message.State == EplpCommandHandler.LeaveState && currentRun is null && message.Option != 2)
         {
             logger.LogDebug("Eplp ignored after exit {ConnectionId}: state={State} option={Option} sequence={Sequence} ordinal={Ordinal}",
@@ -209,7 +212,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         {
             if (!sessions.IsInWorld(session)
                 || returning.Any(x => !sessions.IsInWorld(x.Session))
-                || (!isAltar && returning.Any(x => entryIntents.Find(x.Session) is not null)))
+                || (!(isAltar || isGuardian) && returning.Any(x => entryIntents.Find(x.Session) is not null)))
                 return;
             if (roster is not null && returning.Count != roster.Members.Length)
                 return;
@@ -222,6 +225,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         HashSet<CharacterId> endedCharacters = [];
         if (leaving)
         {
+            if (isGuardian)
+                _ = await workUnits.WriteAsync(execution, new("guardian-altar.exit", [CaptureParticipant(session)]),
+                    async (_, token) => new GuardianAltar.GuardianAltarMutation(Action: await guardian.AbandonAsync(session, token).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
             if (isAltar)
                 await SettleAltarExitAsync(execution, session, currentRun!.RunId, false, cancellationToken).ConfigureAwait(false);
 
@@ -246,7 +252,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
                     return;
                 // Native retry follows the exit with 000F(dungeonId). Retain the ordinary
                 // maze partition rather than treating that nonzero target as a story request.
-                if (message.Option == 0 && !isAltar
+                if (message.Option == 0 && !(isAltar || isGuardian)
                     && currentRun.Layout is { Purpose.Kind: DungeonRunPurposeKind.Ordinary,
                         EntryKind: DungeonEntryKind.Normal, Mirror: null, Sao: null, Despair: null,
                         Tournament: null })
@@ -362,6 +368,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         if (!sessions.IsInWorld(session))
             return;
         var currentRun = runs.Find(session.CharacterId);
+        if (currentRun?.Layout.Guardian is not null)
+            _ = await workUnits.WriteAsync(execution, new("guardian-altar.give-up", [CaptureParticipant(session)]),
+                async (_, token) => new GuardianAltar.GuardianAltarMutation(Action: await guardian.AbandonAsync(session, token).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
         if (currentRun?.Layout.Altar is not null)
             await SettleAltarExitAsync(execution, session, currentRun.RunId, true, cancellationToken).ConfigureAwait(false);
         if (currentRun is not null)

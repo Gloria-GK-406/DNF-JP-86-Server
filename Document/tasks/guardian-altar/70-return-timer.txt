@@ -1,0 +1,20 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\µÈ¼¶²¹¶¡\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x812f956 _ZN12advancealtar18Timer_StageControl28RegistTimerEPLPReturnVillageEi (76 bytes)
+0x0812f956: push     ebp
+0x0812f957: mov      ebp, esp
+0x0812f959: sub      esp, 0x28
+0x0812f95c: call     0x80f647c ; _Z12G_TimerQueuev
+0x0812f961: mov      dword ptr [esp + 0x1c], 0
+0x0812f969: mov      dword ptr [esp + 0x18], 0xaa
+0x0812f971: mov      dword ptr [esp + 0x10], 0xc350
+0x0812f979: mov      dword ptr [esp + 0x14], 0
+0x0812f981: mov      dword ptr [esp + 0xc], 0xaa
+0x0812f989: mov      edx, dword ptr [ebp + 8]
+0x0812f98c: mov      dword ptr [esp + 8], edx
+0x0812f990: mov      dword ptr [esp + 4], 8
+0x0812f998: mov      dword ptr [esp], eax
+0x0812f99b: call     0x8630e60 ; _ZN10TimerQueue23InsertTimerInMilisecondEN10TimerEntry8OBJ_TYPEEi13TIMER_MESSAGExij
+0x0812f9a0: leave
+0x0812f9a1: ret

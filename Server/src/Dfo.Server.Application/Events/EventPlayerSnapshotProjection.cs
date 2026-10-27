@@ -15,6 +15,7 @@ internal static class EventPlayerSnapshotProjection
             new(SealedTreasureRuleService.DungeonId, snapshot.Information.Any(e => e.EventId == SealedTreasureRuleService.ActivityId)),
             new(GoldSilverHornRuleService.DungeonId, snapshot.Information.Any(e => e.EventId == GoldSilverHornRuleService.ActivityId)),
             new(Dfo.Server.Application.World.BossTower.BossTowerRuleService.DungeonId, snapshot.Information.Any(e => e.EventId == Dfo.Server.Application.World.BossTower.BossTowerRuleService.ActivityId))],
+        ScheduledActivities = [new(4, 10, snapshot.Information.Any(e => e.EventId == GuardianAltarRuleService.ActivityId))],
         ScheduledQuests = [new(Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId,
             snapshot.Information.Any(e => e.EventId == SouthernDaleRuleService.ActivityId))]
     };

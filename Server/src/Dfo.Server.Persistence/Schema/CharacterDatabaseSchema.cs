@@ -340,6 +340,14 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS southern_dale_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,PRIMARY KEY(run_id,character_id));
         CREATE TABLE IF NOT EXISTS sao_first_clears(season TEXT NOT NULL,round INTEGER NOT NULL,floor INTEGER NOT NULL,run_id TEXT NOT NULL UNIQUE,PRIMARY KEY(season,round,floor));
         CREATE TABLE IF NOT EXISTS sao_first_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id),FOREIGN KEY(run_id) REFERENCES sao_first_clears(run_id));
+        CREATE TABLE IF NOT EXISTS character_guardian_altar (
+            character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
+            revision INTEGER NOT NULL CHECK(revision>=0),state_json TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS guardian_altar_settlements (
+            character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            run_id TEXT NOT NULL,round INTEGER NOT NULL CHECK(round>=0),PRIMARY KEY(character_id,run_id,round)
+        );
         CREATE TABLE IF NOT EXISTS character_despair_tower (
             character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
             highest_cleared_floor INTEGER NOT NULL CHECK(highest_cleared_floor BETWEEN 1 AND 100),

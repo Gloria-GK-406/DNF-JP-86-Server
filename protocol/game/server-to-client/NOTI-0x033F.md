@@ -80,6 +80,27 @@ ClientStatic / High：同版20260922 A21 dump SHA-256 `AAAE24216E0E260AFA5284457
 
 调查基线：当时未注册2329活动、未投影3505，用户确认入口不可见。CurrentImplementation：现已接入BossTowerEntranceEventDomainService受管2329默认常驻、EventPlayerSnapshotProjection输出3505开放/关闭，同一033F路径用于选角和在线更新；关闭服务端准入同步拒绝。实际显示与点击仍待用户验证。[完整补证及设计](../../../Document/LordTower-Design-20261019.md)。
 
+## 守护者祭坛通用调度
+
+ClientStatic / High，2026-10-27，A21镜像SHA256
+`AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，地址均为VA。
+当前常用客户端PVF SHA256 `573388731C394A71D5E75ED7DD215124B3D04383631D93116625ED353E06ACAB`
+在`etc/chn_schedule.etc`的`[common schedule]`声明类别4／内容10，未将3511–3523逐项列入地下城调度名单。
+
+`01192C4A/01192C53/01192C5C/01192C65`依次读四个u32；`01192C7D–01192D21`将
+`contentId,state,category,opaque`的内部结构交给`011C2670`，其输入线上顺序仍为
+`category,state,contentId,opaque`。通用调度处理`011C3370`在`011C368A/011C3693`和
+`011C379B/011C37A0`识别内容10／类别4，`011C385D`调用`013362D0`操作底栏同一`this+330`按钮。
+该按钮的点击路径`013531D5–01353201`及主菜单`013AAC69–013AAC8B`调用
+`startAdvanceAltar`并发送[CMD0392](../client-to-server/0x0392.md)。
+
+本工作区投影正文为四个u32 `4,1,10,0`（`04000000010000000A00000000000000`），关闭明确使用state0。
+客户端还有本地化feature flag影响显示分支，因此这只是原生入口的静态支持方案，
+尚未实机证明显隐或点击。不能用类别0／DGN3511替代这个通用调度身份，不能把70的活动119自动当作A21必发依赖。
+
+CurrentImplementation：受管活动119默认常驻；选角及在线活动变化均通过ScheduledActivityStateMessage投影4／10，0392准入读取同一活动状态。没有新增WireCaptured或ClientVerified。
+输入身份、只读地图扫描和原始反汇编见[任务证据](../../../Document/tasks/guardian-altar/README.md)。
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 

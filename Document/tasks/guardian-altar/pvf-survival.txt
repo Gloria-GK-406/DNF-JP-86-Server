@@ -1,0 +1,188 @@
+id 3523 -> AdvanceAltar/AdvanceAltar_survival_01.dgn
+=== dungeon/AdvanceAltar/AdvanceAltar_survival_01.dgn ===
+[cutscene image]
+Map/CutScene/AdvanceAltar.img 0
+[minimap image]
+Map/MiniMap/Act1.img
+[worldmap pattern info]
+1 1 WorldMap/SelectdungeonSlot/AdvanceAltar/AdvanceAltar_MapSlot01.img 11
+[minimum required level]
+1
+[basis level]
+1
+[champion]
+0 0 0 0 0
+[pathgate object]
+361 362 363 364 365 366 367 368 369 370
+[dungeon type]
+advance altar
+[advance altar type]
+survival
+[advance altar map]
+[/advance altar map]
+[advance altar clear reward]
+[/advance altar clear reward]
+[advance altar survival map]
+25129 25122 25124 25128 25123 25117 25130 25129 25119 25119 25130 25125 25118 25121 25124 25126 25129 25117 25127 25117 25122 25128 25130 25126 25118 25127 25118 25129 25118 25120 25120 25122 25123 25128 25125 25131 25124 25130 25123 25123 25125 25119 25117 25128 25123 25123 25118 25130 25122 25117 25117 25123 25127 25131 25122 25117 25124 25124 25127 25122 25117 25119 25120 25123 25118 25118 25128 25129 25123 25120 25128 25118 25118 25118 25122 25120 25124 25127 25129 25125 25119 25128 25127 25130 25119 25122 25127 25122 25124 25128 25127 25128 25125 25119 25117 25117 25127 25119 25129
+[/advance altar survival map]
+[advance altar survival clear reward]
+[type]
+[round]
+1 1
+[/round]
+[list]
+normal 2749211 2 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+2 3
+[/round]
+[list]
+normal 2749213 1 normal 2749211 3 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+4 6
+[/round]
+[list]
+normal 2749213 2 normal 2749211 3 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+7 9
+[/round]
+[list]
+normal 2749213 2 normal 2749211 5 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+10 12
+[/round]
+[list]
+normal 2749213 2 normal 2749211 6 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+13 15
+[/round]
+[list]
+normal 2749213 2 normal 2749211 7 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+16 18
+[/round]
+[list]
+normal 2749213 3 normal 2749211 8 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+19 21
+[/round]
+[list]
+normal 2749213 3 normal 2749211 9 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+22 24
+[/round]
+[list]
+normal 2749213 3 normal 2749211 9 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+25 27
+[/round]
+[list]
+normal 2749213 3 normal 2749211 10 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+28 30
+[/round]
+[list]
+normal 2749213 3 normal 2749211 12 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+31 33
+[/round]
+[list]
+normal 2749213 3 normal 2749211 13 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+34 36
+[/round]
+[list]
+normal 2749213 4 normal 2749211 14 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+37 39
+[/round]
+[list]
+normal 2749213 4 normal 2749211 15 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+40 42
+[/round]
+[list]
+normal 2749213 4 normal 2749211 16 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+43 45
+[/round]
+[list]
+normal 2749213 5 normal 2749211 17 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+46 48
+[/round]
+[list]
+normal 2749213 5 normal 2749211 18 normal 10006059 1
+[/list]
+[/type]
+[type]
+[round]
+49 99
+[/round]
+[list]
+normal 2749213 6 normal 2749211 19 normal 10006059 1
+[/list]
+[/type]
+[/advance altar survival clear reward]
+[maze info]
+[size]
+1 1
+[greed]
+BB
+[start map]
+0 0
+[/start map]
+[special passive object item]
+0 -1 2 1000 2000 1004 2000 1 -1 0
+[/special passive object item]
+[name]
+无限模式
+[explain]
+    忽然， 眼前出现了非常巨大又诡异的灵魂这到底是什么？看上去并不属于这世界

@@ -1,0 +1,383 @@
+=== map/advancealtar/stage_01.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/LeftTile.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/RightTile2_edge.til
+[/tile]
+[far sight scroll]
+56
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+74 2007 145 2067 318 2860 269 2868
+[dungeon start area]
+211 303 28 20
+[sound]
+BLOOD_RAIN_AMB BLOOD_THUNDER_AMB
+[/sound]
+[animation]
+Animation/StoneImage1.ani [middleback] 441 265 0 Animation/StoneImage0.ani [middleback] 1077 265 0 Animation/MagicCircle00.ani [bottom] 1694 273 0 Animation/MagicCircle01.ani [bottom] 1694 273 0 Animation/MagicCircle02.ani [bottom] 1694 273 0
+[/animation]
+[passive object]
+12639 113 260 0 12639 91 323 0 12671 20 280 0 12617 245 220 105 12610 759 220 105 90010 1110 238 0 90010 662 238 0 90010 215 238 0 90010 1233 318 0 90010 782 318 0 90010 335 318 0 90102 1303 249 0 90103 1423 329 0 90102 1383 249 0 90103 1503 329 0 90102 1463 249 0 90103 1583 329 0 90102 1543 249 0 90103 1663 329 0 90102 1623 249 0 90103 1743 329 0 90102 1703 249 0 90103 1823 329 0
+[/passive object]
+[monster]
+64632 1 0 450 270 0 1 1 [fixed] [normal] 64597 0 1 20 280 0 1 1 [fixed] [normal] 64663 0 1 1500 278 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal]
+[/monster specific AI]
+[monster team]
+0 0 100
+[/monster team]
+[center index]
+64597
+[/center index]
+[enemy center index]
+64663
+[/enemy center index]
+[time line]
+[Max Farm]
+150
+[phase]
+[wave farm]
+3
+[duration]
+5000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+12000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+3
+[duration]
+17000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+25000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+3
+[duration]
+30000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+35000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+40000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+45000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+50000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+3
+[duration]
+55000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+60000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+65000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+3
+[duration]
+70000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+3
+[duration]
+75000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+80000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+3
+[duration]
+85000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+90000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+95000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+100000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+105000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[phase]
+[wave farm]
+6
+[duration]
+110000
+[/duration]
+[type]
+last
+[/type]
+[action assign]
+1 -1 -1
+[/action assign]
+[altar level]
+1
+[/phase]
+[/time line]
+[summon start area]
+15 260 1 1
+[map name]
+PVP无名
+[camera edge exception]
+1
+[/camera edge exception]
+[camera edge recovery object]
+[monster] 64663 1
+[/camera edge recovery object]

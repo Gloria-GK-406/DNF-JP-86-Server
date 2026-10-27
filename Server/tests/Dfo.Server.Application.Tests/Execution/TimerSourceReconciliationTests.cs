@@ -29,6 +29,7 @@ public sealed class TimerSourceReconciliationTests
         { "ItemUsageDailyRefreshService", "timer:ItemUsageDailyRefreshService", GameplayCallSource.Timer },
         { "WeaknessRecoveryService", "timer:WeaknessRecoveryService", GameplayCallSource.Timer },
         { "CreatureClockService", "timer:CreatureClockService", GameplayCallSource.Timer },
+        { "GuardianAltarScheduler", "timer:GuardianAltarScheduler", GameplayCallSource.Timer },
         { "AltarScheduler", "timer:AltarScheduler", GameplayCallSource.Timer },
         { "MarriageWeddingScheduler", "timer:MarriageWeddingScheduler", GameplayCallSource.Timer },
         { "TournamentRewardSweepService", "timer:TournamentRewardSweepService", GameplayCallSource.Timer },

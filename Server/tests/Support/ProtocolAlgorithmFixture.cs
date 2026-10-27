@@ -56,6 +56,7 @@ internal static class ProtocolAlgorithmFixture
     }
     private static readonly HashSet<Type> EmptyWorldContracts =
     [
+        typeof(Dfo.Server.Abstractions.World.IGuardianAltarDomainService),
         typeof(Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService),
         typeof(Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService),
         typeof(Dfo.Server.Abstractions.World.IDungeonRunDomainService),

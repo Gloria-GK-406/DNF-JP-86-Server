@@ -52,3 +52,12 @@ CMD	HousingAck	0x0401	Game/MarriageHousing/HousingSlice.cs	encoder echoes the re
 CMD	HousingAck	0x0402	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
 CMD	HousingAck	0x0403	Game/MarriageHousing/HousingSlice.cs	encoder echoes the request opcode registered by the housing decoders
 CMD	AltarDifficultyResponse	0x013D	Game/Altar/AltarMessages.cs	state synchronization message overrides Type
+CMD	GuardianAltarActionResponse	0x0393	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x0394	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x0395	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x0396	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x0397	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x0398	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x0399	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarActionResponse	0x039A	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
+CMD	GuardianAltarOpenResponse	0x0392	Game/GuardianAltar/GuardianAltarMessages.cs	Fixed Type property is owned by the packed guardian open response
