@@ -7,6 +7,7 @@ using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Application.Tests.World;
 using Dfo.Server.Application.Transactions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,46 @@ namespace Dfo.Server.Application.Tests.Quests;
 
 public sealed class QuestMapClearTests
 {
+    [SkippableTheory]
+    [InlineData(1, true, false)]
+    [InlineData(2, false, false)]
+    [InlineData(2, true, true)]
+    public async Task Restored_giant_dragon_party_quest_uses_verified_boss_clear_and_distinct_members(
+        int members, bool boss, bool completes)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        await using var f = new LearningFixture(useArchive: true);
+        await f.SeedAsync();
+        f.Sql("INSERT INTO character_active_quests VALUES(71,0,20728,1)");
+        var clear = new DungeonMapCleared(DungeonRunId.New(), 3538, 0, new(2, 0), 25296, 1, DateTimeOffset.UtcNow,
+            [new(new(1), new(71), 0, true), new(new(members == 1 ? 1 : 2), new(members == 1 ? 71 : 72), 1, false)])
+            { IsBossRoom = boss };
+        var definition = await f.Services.GetRequiredService<IQuestContentRuleService>().FindAsync(20728, default);
+        Skip.If(definition is null, "Use task-restored PVF for native dragon quest tests.");
+        Assert.NotNull(definition);
+        Assert.Equal(5, definition.ObjectiveSubType);
+        Assert.Equal(new DungeonClearRequirement(3538, -1) { MinimumPartyMembers = 2 }, definition.DungeonClearRequirement);
+        Assert.Equal(completes, f.Services.GetRequiredService<IQuestMapClearRuleService>().Matches(definition, clear));
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            await using var tx = f.Scope.Begin();
+            var progress = f.Services.GetRequiredService<IQuestProgressDomainService>();
+            var client = await progress.ReportAsync(new(1), new(71), [new ClientQuestTriggerReport(20728, 0x10, false)], default);
+            Assert.Equal(QuestAdvanceVerdict.Unchanged, client.ClientResponse!.Verdict);
+            Assert.Equal(1u, client.ClientResponse.Trigger.PackedValue);
+            var scalar = await progress.ReportAsync(new(1), new(71), [new QuestDungeonCleared(3538, 0)], default);
+            Assert.Empty(scalar.Changes);
+            await tx.CommitAsync(default);
+        });
+        Assert.Equal(1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=20728"));
+        await Send(f, clear);
+        await Drain(f);
+        Assert.Equal(completes ? 0 : 1, f.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=20728"));
+        await Send(f, clear);
+        await Drain(f);
+        Assert.Equal(completes ? 1 : 0, f.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='quest.progress-changed'"));
+    }
+
     [Dfo.Server.Testing.PvfFact]
     public async Task Actual_awakening_quest_975_targets_the_map_of_death_tower_floor_30()
     {

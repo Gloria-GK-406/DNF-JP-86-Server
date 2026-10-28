@@ -1,0 +1,27 @@
+
+[grade] [achievement]
+[difficulty] E
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 82 99
+[pre required quest] 20723
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 6
+[int data] 3537 -1
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 3326 10 10002515 3
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 探查念气洞穴深处
+[depend message] 初步来看， 最近在圣地中发现的那股邪恶气息， 应该就是来自巨龙纳特拉了。
+如果不彻底消灭巨型烈焰傀儡， 我们就没有办法往更深处调查了。
+那就只好先消灭烈焰傀儡， 才能决定下一步的动作了。
+[condition message]     前往素喃郊外地区的『念气洞穴深处』， 消灭巨型烈焰傀儡。
+[solve message] 巨型烈焰傀儡竟然可以像机械一般重组再生？
+这……难道说巨龙纳特拉和天界还有一些关系？

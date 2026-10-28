@@ -70,6 +70,7 @@ internal static class ProtocolAlgorithmFixture
         typeof(Dfo.Server.Abstractions.World.ICoupleDungeonDomainService),
         typeof(Dfo.Server.Abstractions.World.ISealedTreasureDomainService),
         typeof(Dfo.Server.Abstractions.World.IGoldSilverHornDomainService),
+        typeof(Dfo.Server.Abstractions.World.IGiantDragonDomainService),
         typeof(Dfo.Server.Abstractions.World.IAltarDungeonDomainService),
         typeof(Dfo.Server.Abstractions.World.ITournamentDungeonDomainService),
         typeof(Dfo.Server.Abstractions.World.IDespairTowerDomainService),

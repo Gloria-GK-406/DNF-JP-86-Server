@@ -1,0 +1,24 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 84 99
+[pre required quest] 20731
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 0
+[int data] 3539 0 360
+[/int data]
+[reward type] [item]
+[reward int data] 3326 10
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] [限时]极限挑战 - 屠龙
+[depend message] 真想知道， 谁才是最强的冒险家。 快去挑战纳特拉来证明自己的实力吧！
+[condition message] 请在6分钟内通关『极 · 巨龙盘踞之地』。
+[solve message] 真了不起， 我也要继续修炼， 不能输给冒险家啊~

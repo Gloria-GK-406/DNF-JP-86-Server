@@ -1,0 +1,60 @@
+id 38119 -> Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25279_tranning_(4.0)boss.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25279_tranning_(4.0)boss.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3200
+[/dungeon]
+[type]
+[boss]
+[greed]
+EE EE
+[tile]
+Tile/dark_Tile00.til Tile/dark_Tile01.til Tile/dark_Tile02.til Tile/dark_Tile01_boss.til Tile/dark_Tile02_boss.til
+[/tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Step3_Mid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+90 225 803 702 0 0 0 0
+[sound]
+M_NEN_AREA_BOSS AMB_FOREST_04
+[/sound]
+[animation]
+Animation/dark_Bottom.ani [bottom] 55 228 0 Animation/Step3_Stone1.ani [bottom] 1120 336 0 Animation/Step3_Floor_glue1.ani [bottom] 488 351 0 Animation/Step3_Floor_glue3.ani [bottom] 559 227 0 Animation/Step3_Floor_glue4.ani [bottom] 143 351 0 Animation/Step3_Floor_glue5.ani [bottom] 106 290 0 Animation/Step3_Floor_glue5.ani [bottom] 224 332 0 Animation/Step3_Floor_glue5.ani [bottom] 201 302 0 Animation/Step3_Floor_glue5.ani [bottom] 353 307 0 Animation/Step3_Floor_glue5.ani [bottom] 106 290 0 Animation/Step3_Floor_glue5.ani [bottom] 382 261 0 Animation/Step3_Floor_glue5.ani [bottom] 669 298 0 Animation/Step3_Floor_glue5.ani [bottom] 606 238 0 Animation/Step3_Floor_glue5.ani [bottom] 600 204 0 Animation/Step3_Floor_glue5.ani [bottom] 693 319 0 Animation/Step3_Floor_glue5.ani [bottom] 715 346 0 Animation/Step3_Floor_glue2.ani [bottom] 812 350 0 Animation/Step3_Floor_glue2.ani [bottom] 149 164 0 Animation/Step3_Floor_glue2.ani [bottom] 421 197 0 Animation/Step3_Floor_glue5.ani [bottom] 171 158 0 Animation/Step3_Floor_glue5.ani [bottom] 247 156 0 Animation/Step3_Floor_glue5.ani [bottom] 208 147 0
+[/animation]
+[scroll animation]
+Animation/Step3_Stone2.ani [close] 1121 362 0 100
+[/scroll animation]
+[passive object]
+37132 79 217 0 37133 1107 201 0 52962 428 173 0 52962 500 328 0 52963 136 133 0 52964 406 130 0 52965 271 138 0 52966 448 367 0 52967 7 345 0 52968 919 349 0 52969 501 355 0 52969 381 154 0 52967 830 171 0 52969 438 158 0 52969 541 347 0 52969 -4 310 0 52998 1027 200 0 52979 250 255 0 37132 0 284 0 52894 514 363 0 52968 862 374 0
+[/passive object]
+[monster]
+69037 1 0 787 272 0 2 8 [fixed] [boss]
+[/monster]
+[monster specific AI]
+[normal]
+[/monster specific AI]
+[NPC]
+1000 [left] 0 0 0
+[/NPC]
+[event monster position]
+304 252 0 362 213 0 362 256 0 330 219 0
+[/event monster position]
+[map name]
+PVP无名

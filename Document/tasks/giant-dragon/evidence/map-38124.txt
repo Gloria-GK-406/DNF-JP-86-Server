@@ -1,0 +1,49 @@
+id 38124 -> Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38124_cave_(2.2)boss.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38124_cave_(2.2)boss.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3201
+[/dungeon]
+[type]
+[boss]
+[greed]
+EE EE
+[tile]
+Tile/Fire/Tile01_01.til Tile/Fire/Tile01_L.til Tile/Fire/Tile01_04.til Tile/Fire/Tile02.til Tile/Fire/Tile03.til Tile/Fire/Tile01.til Tile/Fire/Tile01_R.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Fire/Tile04_Ex_L)1.til 1 Tile/Fire/Tile04_Ex_L.til 2 Tile/Fire/Tile04_Ex.til 3 Tile/Fire/Tile04_Ex_R.til 4 Tile/Fire/Tile01_Ex.til 5 Tile/Fire/Tile02_Ex.til 6 Tile/Fire/Tile00_Ex.til 7 Tile/Fire/Tile03_Ex.til
+[/tile files]
+[tile map]
+0 1 2 2 2 2 3 4 4 5 6 7 5 4
+[/tile map]
+[/extended tile]
+[pathgate pos]
+66 374 504 995 2 1 0 0
+[sound]
+M_IN_CAVE_BOSS AMB_FIRE
+[/sound]
+[animation]
+Animation/boss_back_all.ani [middleback] 109 126 0 Animation/boss_back_all.ani [middleback] 875 126 0 Animation/Fire/tile_quake2.ani [bottom] 375 263 0 Animation/tile_quake4.ani [bottom] 489 477 0 Animation/boss_back_anime.ani [middleback] 557 126 0 Animation/Fire/fire_00.ani [middleback] 156 189 0 Animation/Fire/fire_00.ani [middleback] 586 173 0 Animation/tile_quake_boss0.ani [bottom] 240 315 0 Animation/tile_quake_boss1.ani [bottom] 984 415 0 Animation/Fire/tile_quake2.ani [bottom] 1281 322 0 Animation/tile_quake_boss0.ani [bottom] 1248 475 0 Animation/boss_back_anime.ani [middleback] 1323 126 0 Animation/Fire/fire_00.ani [middleback] 1143 168 0 Animation/Fire/fire_00.ani [middleback] 1572 162 0 Animation/Fire/tile_stone6.ani [normal] 1476 236 0 Animation/Fire/tile_quake2.ani [bottom] 237 460 0 Animation/tile_quake_boss0.ani [bottom] 789 473 0 Animation/Fire/tile_stone4.ani [normal] 388 89 0 Animation/Fire/tile_stone5.ani [normal] 284 92 0 Animation/Fire/tile_stone4.ani [normal] 288 167 0 Animation/Fire/tile_stone3.ani [normal] 306 198 0
+[/animation]
+[passive object]
+37124 1176 250 0 54229 1303 136 0 54229 119 669 0 11183 43 630 0 11183 616 625 0 54228 747 698 0 11183 186 630 0 11183 333 628 0 11183 493 625 0 11183 1471 618 0 11183 1188 621 0 11183 1337 617 0 11189 1428 367 0 18338 68 314 0 18337 7 422 0 18339 35 527 0 18340 36 221 0 18345 133 208 0 18340 1536 211 0 18339 1524 516 0 18346 1457 196 0 18346 1423 529 0 37125 902 579 0 37123 656 256 0 18346 205 204 0 18346 181 241 0 18346 135 287 0 18346 106 246 0 18339 14 248 0 11183 102 234 0 11183 66 286 0 52894 233 238 0
+[/passive object]
+[monster]
+69033 1 0 893 233 0 1 1 [fixed] [boss] 69027 1 0 522 395 0 1 1 [fixed] [normal] 69027 1 0 1282 400 0 1 1 [fixed] [normal] 69027 1 0 884 457 0 1 1 [fixed] [normal] 69027 1 0 885 370 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[NPC]
+1000 [left] -2 1 0
+[/NPC]
+[event monster position]
+657 401 0 715 362 0 715 405 0 683 368 0
+[/event monster position]
+[map name]
+PVP无名

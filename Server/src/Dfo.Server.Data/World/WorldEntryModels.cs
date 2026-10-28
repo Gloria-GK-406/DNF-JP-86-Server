@@ -46,6 +46,7 @@ public sealed record WorldContentSubject(
 {
     public IReadOnlyCollection<int> EligibleWeddingQuestIds { get; init; } = [];
     public bool SouthernDaleQuestAvailable { get; init; }
+    public bool GiantDragonCrystalExchangeAvailable { get; init; }
 }
 
 /// <summary>A quest this character may take right now.</summary>

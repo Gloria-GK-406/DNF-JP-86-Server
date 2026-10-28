@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../../../Server/src/Dfo.Pvf/Dfo.Pvf.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../../../Tool/GmIconPack/NpkIndex.cs" Link="NpkIndex.cs" />
+    <Compile Include="../../../../Tool/GmIconPack/ImgFile.cs" Link="ImgFile.cs" />
+    <Compile Include="../../../../Tool/GmIconPack/PngEncoder.cs" Link="PngEncoder.cs" />
+    <Compile Include="../../../../Tool/GmIconPack/Crc32.cs" Link="Crc32.cs" />
+  </ItemGroup>
+</Project>

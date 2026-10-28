@@ -174,8 +174,11 @@ public static class HuntEnemyTargetTypes
     public const int PassiveObject = 3;
 }
 
-/// <summary>One verified dungeon clear required by a subtype-6 clear objective.</summary>
-public sealed record DungeonClearRequirement(int DungeonId, int Difficulty);
+/// <summary>A verified dungeon clear, optionally requiring a minimum number of distinct participants.</summary>
+public sealed record DungeonClearRequirement(int DungeonId, int Difficulty)
+{
+    public int MinimumPartyMembers { get; init; } = 1;
+}
 
 /// <summary>Quest enemy types; distinct from independent-drop source codes.</summary>
 public enum QuestEnemyType { Monster = 1, APC = 2, PassiveObject = 3 }

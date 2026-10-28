@@ -87,7 +87,7 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 按 `IDailyResetRuleService` 的当前周期读取已用量；`SpendAsync`/`RefundAsync` 在命令事务内
 通过条件写入更新，退款不降低当日累计消耗。`DungeonVisitDomainService` 先检查
 `ConsumesFatigue`，由 `DungeonAdmissionDomainService` 检查需要疲劳的副本拒绝零剩余角色，
-Visit 在创建出生房时扣除 1 点；入场凭证不含疲劳费用，避免重复扣除。后续首次进入新房间扣 1 点，重访不扣；
+Visit 在创建出生房时默认扣除 1 点；声明 `[use fatigue only start dungeon]` 的副本按本局冻结值仅入场扣除，后续房间不扣。入场凭证不含疲劳费用，避免重复扣除。其他副本首次进入新房间扣 1 点，重访不扣；
 不消耗疲劳的副本跳过这两步。当前实现和自动测试不等同于 A21 实机验收。
 
 ## 客户端设置

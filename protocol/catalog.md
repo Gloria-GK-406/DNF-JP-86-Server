@@ -13,6 +13,15 @@ CurrentImplementation 仅新增关联内容读取，未接入天幕运行链路�
 强制模式已关闭，正常概率与一次性准入仍待正式实现；对象本身直接点击未单测。见 [马戏团流程](patterns/flow-circus.md) 和
 [任务状态](../Document/tasks/circus/README.md)。
 
+## 巨龙系列候选（待实机）
+
+CurrentImplementation：[0010](game/client-to-server/0x0010.md#巨龙候选路由) 增加巨龙领域路由，
+既有选图、地图与任务进度消息承载投影。ClientStatic / Confirmed：
+[001D](game/server-to-client/NOTI-0x001D.md#巨龙原生计时调用) 调用巨龙计时 manager，
+ACT读取其状态；未引入新opcode或升级实帧、实机证据。
+worldmap98及任务20720–20735为用户授权的本服资源恢复，见
+[规则与验证边界](../Document/tasks/giant-dragon/README.md)。
+
 ## 2026-10-20 循环任务客户端原生提交（核心流程已验收）
 
 ClientStatic / High：已定位 [NOTI0105](game/server-to-client/NOTI-0x0105.md) 驱动循环看板目标检查及 C2S CMD0022 的入口。CurrentImplementation：循环清场发送 ready 通知；已达标时先同步完整已接任务进度，异步进度随后达标时按 023F → 0105 再检查。结算仍由客户端提交请求驱动，不恢复服务端代办完成/取消。2026-10-20 部署 `70d8ba9f` 后，用户确认结果符合预期，本轮原生自动提交及成功看板记为 ClientVerified / Confirmed；body 09 的来源仍为参照实现，不升级为官方 WireCaptured，也不代表全部边界分支已验收。[实现与验收](../Document/CycleQuestNativeSubmit-20261020.md)。

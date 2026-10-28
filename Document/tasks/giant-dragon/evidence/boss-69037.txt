@@ -1,0 +1,150 @@
+id 69037 -> NewMonsters/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/DragonStoneStatue/DragonStoneStatue.mob
+=== monster/NewMonsters/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/DragonStoneStatue/DragonStoneStatue.mob ===
+[name]
+巨龙石像
+[face image]
+Monster/monsterFace.img 1031
+[die effect]
+0 3 1
+[width]
+250 120
+[category]
+[dragon] [fort armor] [fixture] [stay]
+[/category]
+[ambient sound]
+
+[attack sound]
+
+[appear sound]
+
+[damage sound]
+R_DRAGONSTONE_HIT
+[die sound]
+
+[ability category]
+[HP MAX] * 3100 [EQUIPMENT_PHYSICAL_ATTACK] * 100 [EQUIPMENT_PHYSICAL_DEFENSE] * 150 [EQUIPMENT_MAGICAL_ATTACK] * 100 [EQUIPMENT_MAGICAL_DEFENSE] * 150
+[/ability category]
+[level]
+84 84
+[fire resistance]
+200 200
+[water resistance]
+200 200
+[dark resistance]
+200 200
+[light resistance]
+200 200
+[slow resistance]
+1000 1000
+[freeze resistance]
+1000 1000
+[poison resistance]
+185 185
+[stun resistance]
+1000 1000
+[curse resistance]
+1000 1000
+[blind resistance]
+1000 1000
+[lightning resistance]
+200 200
+[stone resistance]
+1000 1000
+[sleep resistance]
+1000 1000
+[burn resistance]
+200 200
+[weapon break resistance]
+400 400
+[bleeding resistance]
+190 190
+[confuse resistance]
+1000 1000
+[hold resistance]
+200 200
+[HP regen speed]
+1300 1300
+[MP regen speed]
+1300 1300
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1300 1300
+[weight]
+250000 250000
+[stuckbonus on damage]
+0 0 0 0
+[waiting action]
+Action/Stay_S.act
+[attack action]
+Action/Basic_ATK.act Action/Quake.act Action/Pull.act Action/AttackDragonSummon.act Action/SuperArmour_Light.act Action/StoneCuter_Red.act Action/Quake_StoneCut_Red.act Action/FireExplosion_Red.act Action/Ego_Red.act Action/Attack_9.act Action/Attack_10.act Action/InComming.act Action/Attack_12.act
+[/attack action]
+[etc action]
+Action/Change_Act.act Action/Change_Red.act Action/Change_Blue.act Action/Change_Light.act Action/Change_Dark.act
+[/etc action]
+[last action]
+Action/Die.act
+[proc action]
+Action/Proc.act
+[attack info]
+ attackinfo/Earthquake.atk
+[/attack info]
+[etc attack info]
+
+[/etc attack info]
+[cooltime]
+17000 0 12000 12000 20000 20000 0 9000 8000 99999 99999 0 9000
+[/cooltime]
+[drop item offset]
+0 0
+[think term]
+2300
+[destination change term]
+1000
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[targeting bonus]
+50 75 90 0 95 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [stand] [dash] 0 0 0
+[keep range distance with target]
+0 0 0 0
+[intelligence]
+30 30 500
+[vision]
+1200
+[change direction by target]
+0
+[hp regen rate]
+0 0
+[level of difficulty]
+[normal]
+30 300
+[expert]
+40 100
+[master]
+50 0
+[king]
+70 0
+[slayer]
+0 0
+[/level of difficulty]
+[fix direction]
+[right]
+[is grabable]
+0

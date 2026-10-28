@@ -1,0 +1,26 @@
+
+[grade] [achievement]
+[difficulty] E
+[gold multiple] 170
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 82 99
+[pre required quest] 20722
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 6
+[int data] 3537 -1
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 3326 5 10002515 3
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 调查洞穴
+[depend message] 终于把魔法巨龙石像消灭了， 我们的调查行动可以继续进行了。
+[condition message]     通关素喃郊外地区的『念气洞穴深处』。
+[solve message] 巨型烈焰傀儡？
+这又一种什么样的生物……你有没有发现其他有用的信息？
+巨龙纳特拉的印记？ 这……事态比我想象中的还要严重啊……

@@ -184,6 +184,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.TryAddSingleton<IGiantDragonRuleService, GiantDragonRuleService>();
+        services.TryAddSingleton<IGiantDragonDomainService, GiantDragonDomainService>();
         services.TryAddSingleton<ISouthernDaleRuleService, SouthernDaleRuleService>();
         services.TryAddSingleton<ISealedTreasureRuleService, SealedTreasureRuleService>();
         services.TryAddSingleton<IGoldSilverHornRuleService, GoldSilverHornRuleService>();
@@ -279,6 +281,7 @@ public sealed class ApplicationModule : IServerModule
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
         services.TryAddSingleton<IQuestStateRuleService, QuestStateRuleService>();
+        services.TryAddSingleton<IGiantDragonCrystalExchangeDomainService, GiantDragonCrystalExchangeDomainService>();
         services.TryAddSingleton<IQuestAvailabilityRuleService, QuestAvailabilityRuleService>();
         services.TryAddSingleton<IQuestFactsDomainService, QuestFactsDomainService>();
         services.TryAddSingleton<IQuestQueryDomainService, QuestQueryDomainService>();
@@ -707,6 +710,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IReviveCoinQueryDomainService, ReviveCoinQueryDomainService>();
         services.TryAddSingleton<IReviveCoinDomainService, ReviveCoinDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.ReviveCoinClaimRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.GiantDragonCrystalExchangeRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IApplyEffectsDomainService, ApplyEffectsDomainService>();
         services.TryAddSingleton<IInventoryEffectPreflightDomainService, InventoryEffectPreflightDomainService>();

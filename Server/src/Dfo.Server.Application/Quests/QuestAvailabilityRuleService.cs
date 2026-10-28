@@ -71,6 +71,7 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
     private async ValueTask<bool> MeetsRequirementsAsync(QuestDefinition quest, WorldContentSubject subject,
         QuestJobRequirement job, IReadOnlyList<TrainingQuestAvailability> training, CreatureDefinition? creature,
         CancellationToken cancellationToken) => quest.IsExposedByNpc != false && quest.IsEventOnly != true
+        && (quest.QuestId != IGiantDragonCrystalExchangeDomainService.QuestId || subject.GiantDragonCrystalExchangeAvailable)
         && (quest.QuestId != Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId || subject.SouthernDaleQuestAvailable)
         && quest.ExpertJobRequirement is null
         && MatchesTargetCharacter(quest.TargetCharacterRestriction, job)

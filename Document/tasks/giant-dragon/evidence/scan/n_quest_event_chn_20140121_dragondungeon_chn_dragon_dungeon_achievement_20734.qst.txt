@@ -1,0 +1,24 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 84 99
+[pre required quest] 20728
+[/pre required quest]
+[type] [seeking]
+[sub type] -1
+[int data] 10002518 21
+[/int data]
+[reward type] [item]
+[reward int data] 100330570 1
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 灭龙者
+[depend message] 纳特拉已经无路可逃了！ 让它彻底消失吧！
+[condition message]     收集21个[巨龙的能量精华]交给阿斯卡。
+[solve message] 真是精粹的能量啊！ 谢谢你帮助我们解决了纳特拉这个大麻烦， 我以虚祖国国王的名义， 赠予你这个称号。

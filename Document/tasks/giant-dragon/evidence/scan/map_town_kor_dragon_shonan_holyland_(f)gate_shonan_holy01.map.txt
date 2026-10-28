@@ -1,0 +1,4 @@
+
+[import script] Common/(F)Gate_Seria.map
+[town movable area] 377 326 230 50 18 3 833 196 78 61 -2 -2
+[/town movable area]

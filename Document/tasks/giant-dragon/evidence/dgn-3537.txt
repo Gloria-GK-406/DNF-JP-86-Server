@@ -1,0 +1,55 @@
+id 3537 -> Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_02_in_cave.dgn
+=== dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_02_in_cave.dgn ===
+[background pos]
+80
+[name]
+双子巨人的背叛
+[explain]
+    纳特拉千方百计地希望收归月轮山守卫双子巨人为手下。 寒冰石巨人普鲁森对此嗤之以鼻， 但烈焰巨人莱斯早已投靠纳特拉， 并设计猎捕寒冰巨人普鲁森。 冒险家， 快去帮助寒冰石巨人！
+[entering title]
+Title/chn_Dragon_Dungeon_02.ani
+[cutscene image]
+Map/CutScene/CutScene_cn.img 7
+[minimap image]
+Map/MiniMap/Act3.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 15
+[difficulty level]
+1 1 1 1 1
+[limit party count]
+3
+[prohibit practice]
+1
+[minimum required level]
+82
+[basis level]
+85
+[experience increasing point]
+3
+[champion]
+6 12 18 24 26
+[pathgate object]
+54205 54209 -1 54206 54210 -1 -1 -1 -1 -1
+[maze info]
+[size]
+5 1
+[greed]
+BBFFFFFFEE
+[map specification]
+map 0 0 25280 map 1 0 25281 map 2 0 25282 map 3 0 25283 map 4 0 25284
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+4 0
+[/boss map]
+[special passive object item]
+0 -1 1 10002836 3200 1 -1 0
+[/special passive object item]
+[recommend equipment]
+0 2 0 2 0 3 12 3 12 6
+[/recommend equipment]
+[recommend party]
+> 1 > 2 > 2 > 3 > 3
+[/recommend party]

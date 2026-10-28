@@ -1,0 +1,33 @@
+{
+  "evidence": "ClientRuntime plus ClientStatic; material quantity quantization remains Unknown",
+  "clientExeSha256": "1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD",
+  "clientPvfSha256": "D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84",
+  "mappedImageSha256": "AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D",
+  "dungeonId": 3200,
+  "parametersAtDungeonBE8AndManager384": [7, 100000, 45000],
+  "snapshots": [
+    {"at": "2026-10-27T22:35:50.180708+08:00", "nativeElapsed": 12950, "timerFlags": 3, "clockBank": 0, "bytesRead": 351},
+    {"at": "2026-10-27T22:36:26.671928+08:00", "nativeElapsed": 49437, "timerFlags": 3, "clockBank": 0, "bytesRead": 351}
+  ],
+  "resolvedNativeStrings": {
+    "VA0315A350": "NateramTimeAttackUI::onEndDungeon",
+    "VA0315A3A0": "NateramTimeAttackUI::onEndDungeon() : %d",
+    "VA0315A560": "Interface2/SpecialDungeon/NateramWarden_UI.img"
+  },
+  "npk": {
+    "name": "sprite_interface2_specialdungeon.NPK",
+    "sha256": "5C5622BEEE4F129F798C2E9F12797351C1318CF75DB67E900F50BD75C47C1633",
+    "frames": [
+      {"index": 0, "width": 191, "height": 30, "meaning": "material icon, fixed numerals 3 through 9 and gauge background"},
+      {"index": 1, "width": 159, "height": 5, "meaning": "blue/cyan gauge layer"},
+      {"index": 2, "width": 160, "height": 7, "meaning": "green gauge layer"}
+    ],
+    "artStorage": "private deployment reward-research/hud; copyrighted image bytes are not committed"
+  },
+  "nativeGaugeFormula": {
+    "green": "clamp(1 - t / 100000, 0, 1)",
+    "blue": "clamp(1 - (t - 100000) / ((7 + 1) * 45000), 0, 1)",
+    "timeoutFlag391": "set when blue is <= 0; threshold 460000 in this timer coordinate",
+    "quantity": "No integer award calculation is present in the inspected gauge updater; do not equate clipped pixels to a server award count"
+  }
+}

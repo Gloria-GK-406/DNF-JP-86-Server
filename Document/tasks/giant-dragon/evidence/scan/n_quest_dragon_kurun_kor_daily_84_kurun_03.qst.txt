@@ -1,0 +1,28 @@
+
+[name] 进攻准备
+[depend message] 九龙让你把冰石交给他了吗？
+听说它可以减弱纳特拉的龙息威力。
+征战部队很多人遇到纳特拉的气息后就会晕倒， 所以很难接近巨龙。
+我觉得这些冰石一定可以帮上忙， 请帮忙收集一些冰石吧。
+[condition message]     前往月轮山地区， 保护寒冰石巨人普鲁森， 并收集[冰石]。
+[solve message] 一定可以发挥很大的力量。 冒险家[myname]， 再次谢谢你。
+[level] 84 99
+[type] [seeking]
+[job] [all]
+[sub type] -1
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 200
+[npc index] 333
+[complete npc index] 333
+[grow type] -1
+[int data] 10094793 1
+[/int data]
+[reward type] [item]
+[reward int data] 10094603 5
+[/reward int data]
+[pre required quest] 13707
+[/pre required quest]
+[dungeon info] 3201 -1
+[/dungeon info]

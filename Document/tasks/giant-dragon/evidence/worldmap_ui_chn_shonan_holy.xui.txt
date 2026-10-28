@@ -1,0 +1,1 @@
+=== worldmap/ui/chn_shonan_holy.xui ===

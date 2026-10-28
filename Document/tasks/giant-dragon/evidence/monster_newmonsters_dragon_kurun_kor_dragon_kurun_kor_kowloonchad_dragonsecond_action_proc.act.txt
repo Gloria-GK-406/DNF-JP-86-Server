@@ -1,0 +1,264 @@
+=== monster/newmonsters/dragon_kurun_kor/dragon_kurun_kor_kowloonchad/dragonsecond/action/proc.act ===
+[TRIGGER]
+[ON SET ACTION]
+[DO BEHAVIOR]
+[ME]
+0
+[DO BEHAVIOR]
+[ME]
+4
+[/TRIGGER]
+[BEHAVIOR]
+[DIM]
+MoveChangeTime
+[=]
+[GET TIME]
+[/DIM]
+[DIM]
+Pos
+[=]
+0
+[/DIM]
+[TRIGGER]
+0
+[OFF]
+[/BEHAVIOR]
+[TRIGGER]
+[IF]
+Pos
+[=]
+0
+[/IF]
+[IF]
+MoveChangeTime
+[+]
+15000
+[<=]
+[GET TIME]
+[/IF]
+[WHICH]
+[ME]
+[CHECKUP]
+[IS TARGET STATE]
+0
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+1
+[NOW]
+[DIM]
+MoveChangeTime
+[=]
+[GET TIME]
+[/DIM]
+[DIM]
+Pos
+[=]
+1
+[/DIM]
+[/BEHAVIOR]
+[TRIGGER]
+[IF]
+Pos
+[=]
+1
+[/IF]
+[IF]
+MoveChangeTime
+[+]
+15000
+[<=]
+[GET TIME]
+[/IF]
+[WHICH]
+[ME]
+[CHECKUP]
+[IS TARGET STATE]
+0
+[/CHECKUP]
+[CHECKED NO]
+[>]
+0
+[DO BEHAVIOR]
+[ME]
+2
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+0
+[NOW]
+[DIM]
+MoveChangeTime
+[=]
+[GET TIME]
+[/DIM]
+[DIM]
+Pos
+[=]
+0
+[/DIM]
+[/BEHAVIOR]
+[TRIGGER]
+[DO BEHAVIOR]
+[ME]
+3
+[/TRIGGER]
+[BEHAVIOR]
+[NAME HIDE ON]
+[SET DIRECTION]
+[RIGHT]
+[/BEHAVIOR]
+[BEHAVIOR]
+[DIM]
+ChangeAiTime
+[=]
+[GET TIME]
+[/DIM]
+[DIM]
+Ai
+[=]
+0
+[/DIM]
+[/BEHAVIOR]
+[TRIGGER]
+[IF]
+Ai
+[=]
+0
+[/IF]
+[IF]
+ChangeAiTime
+[+]
+50000
+[<=]
+[GET TIME]
+[/IF]
+[DO BEHAVIOR]
+[ME]
+5
+[/TRIGGER]
+[BEHAVIOR]
+[CHANGE AI]
+[NORMAL]
+2 Action_1.ai
+[CHANGE AI]
+[EXPERT]
+2 Action_1.ai
+[CHANGE AI]
+[MASTER]
+2 Action_1.ai
+[CHANGE AI]
+[KING]
+2 Action_1.ai
+[CHANGE AI]
+[SLAYER]
+2 Action_1.ai
+[DIM]
+ChangeAiTime
+[=]
+[GET TIME]
+[/DIM]
+[DIM]
+Ai
+[=]
+1
+[/DIM]
+[/BEHAVIOR]
+[TRIGGER]
+[IF]
+Ai
+[=]
+1
+[/IF]
+[IF]
+ChangeAiTime
+[+]
+50000
+[<=]
+[GET TIME]
+[/IF]
+[DO BEHAVIOR]
+[ME]
+6
+[/TRIGGER]
+[BEHAVIOR]
+[CHANGE AI]
+[NORMAL]
+2 Action.ai
+[CHANGE AI]
+[EXPERT]
+2 Action.ai
+[CHANGE AI]
+[MASTER]
+2 Action.ai
+[CHANGE AI]
+[KING]
+2 Action.ai
+[CHANGE AI]
+[SLAYER]
+2 Action.ai
+[DIM]
+ChangeAiTime
+[=]
+[GET TIME]
+[/DIM]
+[DIM]
+Ai
+[=]
+0
+[/DIM]
+[/BEHAVIOR]
+[TRIGGER]
+[WHICH]
+[ME]
+[CHECKUP]
+[HP]
+[<=]
+30
+[%]
+[/CHECKUP]
+[DO BEHAVIOR]
+[ME]
+7
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[ATTACK]
+6
+[NOW]
+[TRIGGER]
+6
+[OFF]
+[/BEHAVIOR]
+[TRIGGER]
+[LIMIT]
+1
+[IF]
+1
+[=]
+[GET NATERAM CURRENT TIME]
+[/IF]
+[DO BEHAVIOR]
+[ME]
+8
+[/TRIGGER]
+[BEHAVIOR]
+[APPENDAGE]
+0
+[equipment physical defense]
+[%]
+-50
+[equipment magical defense]
+[%]
+-50
+[/APPENDAGE]
+[/BEHAVIOR]

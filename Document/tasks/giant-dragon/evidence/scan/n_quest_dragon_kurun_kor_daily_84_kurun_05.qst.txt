@@ -1,0 +1,30 @@
+
+[name] 心眼的修行 (1/2)
+[depend message] 修行无止境……
+你现在为了达到更高的境界， 就需要不断的努力。
+你现在对付纳特拉明显还有些吃力， 但是现在是一个难得的时机。
+不要依靠其它的力量， 一定要注视对方的行动。
+一定不要示弱， 请抓住破绽并战胜一切吧！
+[condition message]     通关月轮山地区的『圣地 : 龙之魂』， 要求不使用特殊道具。
+[solve message] 这股力量不是语言能够描述的……
+希望你能够驾驭自己的力量。
+[level] 84 99
+[type] [condition under clear]
+[job] [all]
+[sub type] 13
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 200
+[npc index] 334
+[complete npc index] 334
+[grow type] -1
+[int data] 3202 -1 10094804 0
+[/int data]
+[reward type] [item]
+[reward int data] 10094603 5
+[/reward int data]
+[pre required quest] 13711
+[/pre required quest]
+[dungeon info] 3202 -1
+[/dungeon info]

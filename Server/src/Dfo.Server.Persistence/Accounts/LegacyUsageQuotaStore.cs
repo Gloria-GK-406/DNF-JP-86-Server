@@ -15,6 +15,12 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     {
         switch (key.Family)
         {
+            case UsageQuotaFamily.GiantDragonCrystalExchange:
+                return (await database.ReadAllAsync("""
+                    SELECT value FROM character_daily_counters WHERE character_id=@id
+                    AND counter_key='giant-dragon.quest.8557' AND period=@period
+                    """, p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@period", key.Name); },
+                    r => new UsageQuotaValue(r.GetInt32(0), null), ct).ConfigureAwait(false)).SingleOrDefault();
             case UsageQuotaFamily.ReviveCoin:
                 // Legacy claims used one key with an explicit period; retain only that day's claim.
                 return (await database.ReadAllAsync("""
@@ -57,6 +63,20 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         var (character, key, expected, value, owner) = write;
         switch (key.Family)
         {
+            case UsageQuotaFamily.GiantDragonCrystalExchange:
+                // Retain the fixed legacy key and its Unix-period field. A stale null claim
+                // may replace an older period, but cannot overwrite this period's winning claim.
+                return await database.ExecuteAsync("""
+                    INSERT INTO character_daily_counters(character_id,counter_key,period,value,last_consumed_at)
+                    SELECT @id,'giant-dragon.quest.8557',@period,@value,NULL
+                    WHERE @exists=0 OR EXISTS(SELECT 1 FROM character_daily_counters
+                        WHERE character_id=@id AND counter_key='giant-dragon.quest.8557'
+                        AND period=@period AND value=@old)
+                    ON CONFLICT(character_id,counter_key) DO UPDATE SET period=excluded.period,value=excluded.value,last_consumed_at=NULL
+                    WHERE (@exists=0 AND (period IS NULL OR period<>@period)) OR (@exists=1 AND period=@period AND value=@old)
+                    """, p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@period", key.Name);
+                        p.AddWithValue("@value", value.UsedCount); p.AddWithValue("@exists", expected is null ? 0 : 1);
+                        p.AddWithValue("@old", expected?.UsedCount ?? 0); }, ct).ConfigureAwait(false) == 1;
             case UsageQuotaFamily.ReviveCoin:
             case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:

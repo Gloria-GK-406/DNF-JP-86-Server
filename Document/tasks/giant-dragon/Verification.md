@@ -1,0 +1,87 @@
+---
+kind: rks-verification
+decision: manual_required
+---
+
+# 巨龙候选验证
+
+验证对象：`codex/167-giant-dragon` 相对变基目标 `50e22a91` 的本任务变更，沿用主干版本0.2.10且不修改VersionPrefix；实际资源及运行身份见 [部署记录](Deployment-20261027.md)，本服计时回归使用现役01F1资源。此记录仅支持“候选已实现并可进入用户测试协调”，不支持#167全部完成、全量测试全绿或A21已验收。
+
+## 收尾授权与验收边界
+
+2026-10-28用户明确表示“可以了，这次就不测了。现在我们完成收尾吧。先拉取主干，看看最新的开发规范。按规范完成后续合并流程”。据此免除恢复双阶段曲线后的本轮复测，授权变基、PR、Codex审核、CI与合并清理；并不据此制造额外ClientVerified事实。
+
+已确认普通3200入场、怪物和走门，临时近似曲线数量符合预期，以及任务面板可见8557。日志确认3201和3202有成功Boss结算；用户对3202第三房报告“小怪和石头都没了，等很久才开门”，原因未定，见 [第三房调查](Room38127.md)。恢复后的第二阶段曲线、8557实际扣料发票、翻牌重复发放保护和重登、多人、跨日、恢复五变体的完整实机验收仍未覆盖；20735没有新增服务端耗时校验。#167保留未完成范围，不用PR合并自动关闭整项。
+
+变基保留主干LinkedDungeon与成员所有权语义，合入EntryOnlyFatigue和计时掉落；测试使用主干TestParties辅助构造真实队伍。构建0警告/错误，巨龙、Visit、死亡与房间相关218项通过（`closeout-build.log`、`closeout-focused.log`）。变基阶段PR单元门1601通过，0失败/跳过（`closeout-final-unit.log`及closeout-final-unit TRX），包括显式标记的巨龙纯内存边界测试。完整Application为6167通过、3失败、0跳过（`closeout-application.log`）；最新主干50e22a91使用同一PVF的隔离副本复现相同三项失败（`closeout-baseline.log`，定向12项中9通过/3失败），新增失败差额为0。三项为两项既有DimensionDungeonTests的7100地图装配失败，以及AvatarCompoundTests.Rejections_leave_all_inputs_unchanged的expire参数失败；不宣称全量内容全绿。变基未替换正在运行的3ed2ea6f产物，不将新源码提交哈希当作现役版本。
+
+8557完成次数由既有QuestRewardRuleService唯一判定，清算编排仅在普通预备成功后认领日额度；删除重复判定后任务/巨龙90项与Application Unit780项通过（`review-quota.log`、`review-quota-unit.log`），0失败/跳过。
+
+当前入场计划同时拥有任务模式及定向迷宫策略，领域编排不再按3540单独定义策略。八图计划与任务状态真值、原准入和掉落/事务相关239项通过（`review-policy.log`），行为要求保持原样；最终全解决方案Unit门1614通过，0失败/跳过（`review-final-unit.log`及对应TRX），最终构建0警告/错误（`review-final-build.log`）。
+
+8557日额度经GiantDragonCrystalExchangeRecorded直接事实进入UsageQuotaDomainService，在同一业务事务内校验expected值并CAS写入；业务服务只解释资格和刷新周期，不直接读写counter table。保留固定旧键与Unix周期字段，无schema迁移，旧当日额度不失效。新增回归覆盖旧周期/空周期兼容、跨日、陈旧expected拒绝、只读/缺事务拒绝和回滚；配额可见效果沿既有任务链投影，不新增专用协议。最终构建0警告/错误，全部Unit1615项和配额/巨龙相关92项通过，0失败/跳过（`owner-final-build.log`、`owner-verified-unit.log`、`owner-verified-focused.log`）。完整Application复核6191通过、相同3项主干基线失败、0跳过（`owner-final-application.log`），新增失败差额0。
+
+## 自动验证
+
+完整stdout/stderr和TRX位于本工作区 `artifacts/giant-dragon/`，不随Git提交。测试使用临时库，未接触玩家库。
+
+| 检查 | 当前结果 | 证据 |
+|---|---|---|
+| 解决方案构建 | 成功，0警告/0错误 | `build-candidate.log` |
+| Application全量，最终恢复PVF | 6069通过、2失败、0跳过，共6071 | `application-candidate.log`，`tests/application-candidate.trx` |
+| Protocol全量，最终恢复PVF | 1798通过、0失败/跳过 | `protocol-restored-final.log`及同名TRX |
+| Infrastructure全量，最终恢复PVF | 974通过、0失败、2跳过，共976 | `infrastructure-candidate.log`及同名TRX；两跳过是配置档案时不适用的missing-archive用例 |
+| 原资源兼容聚焦 | 70通过、0失败、11跳过，共81 | `original-resource-compat.log` / TRX；恢复专属用例缺少town100/任务时明确跳过，普通路径继续测试 |
+| 内容恢复回读 | 4项修改、16任务登记正确，其他712006条目不变 | PVF旁JSON及工具readback；真实内容入口/任务测试 |
+| 隔离Host烟测 | 成功，bootstrap ready，仅3个TCP监听，EXE/PID一致，无UDP监听 | `smoke-20261027-154936/result.json`；PID10424，已在finally结束 |
+| 协议文档对账 | 失败18项，与精确基线输出相同 | `protocol-doc-sync.log`、`protocol-doc-sync-baseline.log`，逐行Compare-Object无差异 |
+| 差异空白检查 | `git diff --check`通过 | 本次最终检查 |
+
+Application失败完整身份：
+
+- `DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource`
+- `DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot`
+
+两项都是DGN7100 cell(1,0)缺少Left兼容MAP。以 `git archive 63fb3993 Server global.json` 导出精确基线，在原始D45档案复现相同两项失败，见 `baseline-dimension.log`、`tests/baseline-dimension.trx`；本任务没有修改异界地图。不能把它们说成已修复或将全量结果说成全绿。
+
+文档对账18项涉及已有收集箱wire override以及若干已注册协议未进catalog身份表。本任务未增decoder/encoder或wire identity。精确基线Server、protocol及catalog直接链接的原始Document文件对账得到相同输出；保留失败，不顺手改写其他功能记录。
+
+## 行为证据
+
+- 实际DGN3200–3202解析与生产入场路由、真实出生房演员、8疲劳、重复请求不再扣费；新房与回访不再扣费。疲劳持久化/事务回滚沿真实SQLite测试。
+- 原生恢复城镇gate链与世界图30保留，新增16项任务全部经过真实定义源读取；3536–3540各自任务门控、实际任务栏门票、所有声明房间创建、3540专用QuestLinked迷宫。
+- 全队中有人未解锁时，按该成员slot整队拒绝；人数/练习限制在消费前执行；真实门票扣取后建房失败，门票、疲劳及run一起回滚。
+- 20728真实内容两人目标：单人、重复同一角色、普通房清场均不完成；两名不同角色Boss清场完成。重复可靠投递只有一次进度变化通知。客户端计数返回Unchanged、裸通关事实不推进，随后可靠清图仍能完成。
+- TDD入口扣费及人数限制的初始失败分别为“期望8实际1”“4人/练习未拒绝”。任务用例最初失败先定位为列表未登记，完成资源恢复后核验真实目标；不把内容缺失误记为纯规则实现的RED。测试总数断言保留原3295项并另验新增16项。
+
+## 架构自查
+
+这是作者按 [架构漂移审核规范](../../ArchitectureReview.md)、架构/事务/状态/事件/准入专项进行的职责自查，不是独立审核或云agent通过结论。用户禁止本会话使用subagent，未派发审核。
+
+Protocol只增加既有请求的路由。巨龙领域服务读取会话/位置/任务owner并组合Admission→Structure→Visit；无连接扇出或消息编码。内容字段在Infrastructure解读、规则冻结到layout；通用疲劳和门票仍由既有owner写入。组队任务消费既有可靠清图事实，任务进度仍只有一份持久trigger，无平行通关表、缓存或独立每日计数。未新增数据库schema或跨层项目引用。
+
+计时奖励的数量常量和材料元数据读取均在巨龙规则服务；入场只冻结不可变策略。运行owner从既有入场时刻和死亡claim时刻传入事实，规则返回新的共享掉落列表，最终物品仍由既有Cell死亡提交编号/发布、原拾取链写背包。未增加另一个计时器、奖励余额、死亡集合或直接发包路径。临时采样的协议号白名单已退出Networking源码，传输实现恢复取证前基线。
+
+8557日限额采用周边南部溪谷每日任务的明确准入/清算接缝，新增专属任务quota owner，复用既有每日计数表与刷新规则；任务事实投影传递可接取结果，CMD不读取内容或计数表。限定8557且不改变其他Daily/SpecialDaily任务行为，不新增schema、每日任务完成镜像表或传输特判。计数、消耗、发放和任务完成都在已有清算事务中；完整回滚由真实SQLite测试核对。
+
+## 计时奖励与实机边界
+
+普通3200–3202已修正为10094602未精炼结晶，按用户重新确认的第二阶段规则计算；前100秒保持9个，此后每满45秒减1，145秒首次减为8，最高9、最低2。入场计划冻结策略，最终Boss死亡claim的服务端时间决定数量，同次死亡提交生成共享结晶，3326原生气息及其他掉落保留。8557已在本服登记为84级白鸣每日任务，10个结晶换1张490000338通行证，沿用既有任务/物品owner，不增加内容补丁或兑换服务。规则、外部来源及原生整数精度边界统一见 [TimeAttackReward.md](TimeAttackReward.md)。
+
+计时奖励基础版本自动回归：Application全量6097通过、2项相同7100基线失败；Protocol全量1798通过；撤掉临时逐包采样后网络接收回归12通过。日志在私有运行根 `reward-research/time-reward-*.log`。本轮六项真实三图/时长测试先观察到旧实现结晶数量为0的预期失败，见 `crystal-reward-red.log`；修正后相关回归见 `crystal-reward-green.log`，覆盖该版本计时边界、原气息逐项保留、空原结晶、多Boss最后一名、组队共享、个人及其他掉落、真实SQLite回滚重试及重复报告。8557使用真实内容与临时SQLite验证9个不足、10/12个准确扣10发1张、重复提交及同日重接拒绝。
+
+本轮完整Application回归6109通过、2项相同7100基线失败，见 `crystal-reward-application-full.log`；最终任务/巨龙/角色当前状态及重放等相关639通过、0失败/跳过，见 `crystal-reward-final-focused.log`。Protocol全量1798通过，最终角色投影验证日志为 `crystal-reward-protocol-final.log`。8557还覆盖20个材料不能批量交两次、下一刷新周期可重接，以及额度/扣料/发票/任务完成一起回滚后重试成功。没有对玩家库运行这些测试。
+
+当前第二阶段规则恢复验证：六项真实三图/时长测试先在近似曲线上全部失败（`second-phase-red.log`）；恢复后巨龙、8557兑换、死亡事务及房间掉落相关160项全部通过（`second-phase-green.log`），0失败、0跳过。覆盖100秒阶段切换、145秒首次减量、各45秒档位及最低2个，逐局确认气息仍为原生掉落。修改限于时间策略常量与对应回归；未修改第三房清房条件或任务生命周期。此前c0901cc9的159项近似曲线结果只对该提交有效。
+
+构建、隔离烟测及部署状态见私有运行根 `reward-deployment.json`；尚无成功记录时视为未就绪。用户已确认普通3200入图、怪物、走门及两次完成报告采样；2026-10-28针对c0901cc9反馈“数量符合预期了。这个没问题了”，据此仅确认该提交的3200近似曲线数量。用户随后确认可见条存在两个阶段，要求恢复第二阶段规则；旧近似曲线的数量验收不能覆盖恢复后的曲线。该反馈未分别确认翻牌不重复发放、重登保留及8557实际扣料发票，不能扩展为这些项目通过。用户已选择结束本轮测试并授权收尾；#167仍不满足整体完成条件，保持manual_required。
+
+## 未验证条件
+
+3202第三房新增实机问题：用户反馈清空后延迟较久才开门；已确认38127声明场外69760，原生ACT有封印石检查及60秒阶段退场，现行清房条件会等待该演员。尚缺逐演员死亡证据，不能判定本局延迟是否完全来自此阶段；调查与复现目标见 [第三房调查](Room38127.md)。当前不将3202整体标为实机通过。
+
+1. 尚无本轮原生客户端双向WireCaptured。用户已确认登录/频道、3200入图/怪物/走门、9→3提示条显示及c0901cc9的3200结晶数量，按有限范围ClientVerified记录；其他图入口、Boss机关、计时奖励、掉落与翻牌、退出/重登、多人和跨日仍必须按 [实机清单](Human-Test-List.md) 验证。
+2. 20735六分钟目标仍沿既有客户端计数，没有新增服务器耗时验证。配置控制准入，不承诺客户端按钮动态隐藏。
+3. 本次已核实实际数据库/PVF并完成授权切换，详见 [部署记录](Deployment-20261027.md)。基于现役3822源保留已有补丁，仅改4项；31项原生输入一致，81项聚焦回归通过，实际客户端/服务端使用同一01F1包。初始D45候选的自动结果仍仅适用于其身份。
+4. 本次已保留实际原产物/配置/PVF及在线、停服后SQLite backup API一致备份；备份副本兼容检查与实际启动后的112表对账均未发现数据变化。登录及频道链路接受不代表机关或奖励通过。
+5. 用户实机通过后才能创建PR，并仍需当前提交云agent明确通过和CI成功。当前未创建PR、未合并、未关闭issue。

@@ -1,0 +1,25 @@
+
+[entering title] Title/Kor_Shonan_holy.ani
+[dungeon what must be cleared] -1
+[cutscene image] Map/CutScene/chn_Shonan.img 0
+[area] 0 Town/kor_Dragon_shonan_holyland/38130_shonan_holy00.map
+[permission]
+[need level] 84
+[/permission] [dungeon gate] 30
+[/area]
+[area] 1 Town/kor_Dragon_shonan_holyland/Gate_shonan_holy01.map
+[permission]
+[need level] 84
+[/permission] [gate] 474 234
+[/area]
+[area] 2 Town/kor_Dragon_shonan_holyland/38132_shonan_holy02.map
+[permission]
+[need level] 84
+[/permission] [normal]
+[/area]
+[area] 3 Town/kor_Dragon_shonan_holyland/38133_shonan_holy03.map
+[permission]
+[need level] 84
+[/permission] [normal]
+[/area]
+[name] 月溪镇

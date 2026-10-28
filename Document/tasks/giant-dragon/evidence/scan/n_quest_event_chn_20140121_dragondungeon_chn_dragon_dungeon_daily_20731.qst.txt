@@ -1,0 +1,26 @@
+
+[grade] [daily]
+[difficulty] D
+[npc index] 20008
+[gold multiple] 200
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 84 99
+[pre required quest] 20728
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 5
+[int data] 3538 -1 2
+[/int data]
+[dungeon info] 3538 1
+[/dungeon info]
+[reward type] [item]
+[reward int data] 0 100 3326 30 10002515 1 10002518 1 10002519 1
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 协同 : 巨龙盘踞之地
+[depend message] 一想到被龙族破坏的天界， 我就为虚祖担心， 龙族可不是个好说话的种族。 绝不能让虚祖沦为第二个天界， 一定要彻底消灭巨龙纳特拉！
+[condition message]     组成2人以上的队伍通关素喃郊外地区的『巨龙盘踞之地』。
+[solve message] 冒险家， 你现在已经比巨龙还要强大了！ 希望你的这份荣耀可以为虚祖带来安宁。

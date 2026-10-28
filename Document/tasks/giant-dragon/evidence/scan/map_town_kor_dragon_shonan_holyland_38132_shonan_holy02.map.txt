@@ -1,0 +1,26 @@
+
+[player number] 2 8
+[pvp start area] 137 141 650 155 135 141 50 150 760 140 50 150
+[pvp practice start area] 133 141 50 150 759 139 50 150
+[type] [normal]
+[tile] Tile/new_chn_dragon_zone_tile_00.til Tile/new_chn_dragon_zone_tile_01.til Tile/new_chn_dragon_zone_tile_02.til Tile/new_chn_dragon_zone_tile_03.til
+[/tile]
+[far sight scroll] 70
+[middle sight scroll] 90
+[near sight scroll] 110
+[background animation]
+[ani info]
+[filename] Animation/far.ani
+[layer] [distantback]
+[order] [below]
+[/ani info]
+[/background animation]
+[town movable area] 7 139 20 160 18 3 865 139 40 160 11 1
+[/town movable area]
+[virtual movable area] 5 138 900 160
+[/virtual movable area]
+[sound] M_SHONAN_OUTSIDE AMB_FOREST_06
+[/sound]
+[animation] Animation/chn_dragon_zone_light_left.ani [normal] -235 -326 0 Animation/Gate_Right_open.ani [normal] 865 195 0
+[/animation]
+[map name] PVP无名

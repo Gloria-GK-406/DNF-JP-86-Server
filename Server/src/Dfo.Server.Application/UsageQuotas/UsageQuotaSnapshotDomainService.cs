@@ -20,6 +20,8 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
         var at = clock.GetUtcNow();
         return family switch
         {
+            // Quest list/completion projections already publish this claim's visible effects.
+            UsageQuotaFamily.GiantDragonCrystalExchange => new(at, [], null, [], null),
             UsageQuotaFamily.ReviveCoin => new(at, [], null, [], null, ReviveCoinClaimed:
                 await (reviveCoins ?? throw new InvalidOperationException("Revive coin quotas unavailable.")).ClaimedAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.GoldSilverHorn => new(at, [], null, [], null, GoldSilverHorn:

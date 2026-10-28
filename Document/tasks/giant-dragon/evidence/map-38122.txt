@@ -1,0 +1,76 @@
+id 38122 -> Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38122_cave_(1.0)normal.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38122_cave_(1.0)normal.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3201
+[/dungeon]
+[type]
+[normal]
+[greed]
+II II
+[tile]
+Tile/Ice/Tile01.til Tile/Ice/Tile01.til Tile/Ice/Tile01.til Tile/Ice/Tile01.til Tile/Ice/Tile01.til Tile/Ice/Tile01.til Tile/Ice/Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Ice/Tile01_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Ice/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Ice/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+-42 14 1590 281 -30 -108 405 418
+[sound]
+M_IN_CAVE AMB_SNOWCAVE_01
+[/sound]
+[animation]
+Animation/Ice/midle_black3.ani [closeback] -1 -118 0 Animation/Ice/midle_black0.ani [closeback] 406 -118 0 Animation/Ice/midle_black3.ani [closeback] 1050 -118 0 Animation/Ice/midle_black_srv0.ani [closeback] 1584 131 0 Animation/Ice/tile_quake4.ani [bottom] 1289 308 0 Animation/Ice/tile_quake3.ani [bottom] 1245 300 0 Animation/Ice/tile_stone7.ani [close] 1732 302 0 Animation/Ice/Ice_00.ani [close] -149 273 0 Animation/Ice/tile_stone5.ani [middleback] 1344 -15 0 Animation/Ice/tile_stone5.ani [middleback] 439 5 0 Animation/Ice/tile_stone5.ani [middleback] 263 -2 0 Animation/Ice/tile_stone6.ani [middleback] 150 142 0 Animation/Ice/tile_stone6.ani [middleback] 759 141 0 Animation/Ice/tile_stone6.ani [middleback] 1176 136 0 Animation/Ice/tile_stone6.ani [middleback] 915 131 0 Animation/Ice/Ice_00.ani [close] 280 274 0 Animation/Ice/Ice_00.ani [close] 1152 265 0 Animation/Ice/Ice_00.ani [close] 718 264 0 Animation/Ice/Ice_00.ani [middleback] 1062 -49 0 Animation/Ice/Ice_00.ani [middleback] 599 -61 0 Animation/Ice/Ice_00.ani [middleback] 136 -64 0 Animation/Ice/Ice_00.ani [middleback] -228 -67 0 Animation/Ice/crystal_stone3.ani [bottom] 494 192 0 Animation/Ice/crystal_stone4.ani [bottom] 1121 195 0 Animation/Ice/crystal_stone3.ani [bottom] 371 191 0 Animation/Ice/crystal_stone3.ani [bottom] 960 190 0 Animation/Ice/crystal_stone3.ani [bottom] 748 183 0
+[/animation]
+[passive object]
+18336 411 416 0 18347 170 385 0 18348 39 201 0 18349 1451 189 0 18350 229 185 0 18351 1487 189 0 18352 5 397 0 18353 1235 189 0 18354 128 203 0 18349 1539 188 0 18351 1509 190 0 18350 1423 188 0 18354 606 187 0
+[/passive object]
+[monster]
+69034 1 0 1222 206 0 1 1 [fixed] [normal] 69027 1 0 688 310 0 1 1 [fixed] [normal] 69036 1 0 183 282 0 1 1 [fixed] [normal] 69030 1 0 915 370 0 1 1 [fixed] [normal] 69032 1 0 839 283 0 1 1 [fixed] [normal] 69036 1 0 979 289 0 1 1 [fixed] [normal] 69027 1 0 108 285 0 1 1 [fixed] [normal] 69027 1 0 724 249 0 1 1 [fixed] [normal] 69030 1 0 956 228 0 1 1 [fixed] [normal] 69029 1 0 1114 299 0 1 1 [fixed] [normal] 69029 1 0 1364 304 0 1 1 [fixed] [normal]
+[/monster]
+[monster team]
+0 100 0 100 0 0 100 100 100 100 100
+[/monster team]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[special passive object]
+18382 1222 225 0 1 [item] 0 1 -1 -1 -1
+[/special passive object]
+[event monster position]
+620 297 0 678 258 0 678 301 0 646 264 0
+[/event monster position]
+[map name]
+PVP无名

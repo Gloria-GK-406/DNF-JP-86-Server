@@ -16,6 +16,12 @@ internal sealed class QuestMapClearRuleService : IQuestMapClearRuleService
         quest.ObjectiveTypeCode.Trim().Trim('[', ']').Equals("clear map", StringComparison.OrdinalIgnoreCase)
         && quest.ObjectiveArguments.Count is 1 or 2 && quest.ObjectiveArguments[0] > 0
             ? quest.ObjectiveArguments[0] : null;
+
+    public bool Matches(QuestDefinition quest, DungeonMapCleared clear) => TargetMapOf(quest) == clear.MapId
+        || quest.ObjectiveSubType == 5 && quest.DungeonClearRequirement is { } target
+            && clear.IsBossRoom && target.DungeonId == clear.DungeonId
+            && (target.Difficulty < 0 || target.Difficulty == (int)clear.Difficulty)
+            && clear.Participants.Select(x => x.CharacterId).Distinct().Count() >= target.MinimumPartyMembers;
 }
 
 internal sealed class QuestMapClearSubscriber(ICharacterQuestLogDomainService logs,
@@ -33,7 +39,7 @@ internal sealed class QuestMapClearSubscriber(ICharacterQuestLogDomainService lo
             {
                 if (carried.TriggerValue == 0) continue;
                 var quest = await content.FindAsync(carried.QuestId, ct).ConfigureAwait(false);
-                if (quest is null || quest.Grade == QuestGrade.Crack || rules.TargetMapOf(quest) != clear.MapId) continue;
+                if (quest is null || quest.Grade == QuestGrade.Crack || !rules.Matches(quest, clear)) continue;
                 if (await log.AcceptedAtAsync(carried, ct).ConfigureAwait(false) > clear.ClearedAt) continue;
                 changed |= await log.RecordProgressAsync(carried, 0, ct).ConfigureAwait(false);
             }

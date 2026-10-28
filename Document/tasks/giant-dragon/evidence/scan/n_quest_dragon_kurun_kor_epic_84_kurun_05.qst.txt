@@ -1,0 +1,30 @@
+
+[name] 消灭石巨人背叛者
+[depend message] 多亏了冒险家[myname]， 态势已有所好转。
+现在必须前往通向圣地的唯一入口。
+石巨人是月轮山最强大的守护者， 一直以来他们都在守卫着圣地。
+然而现在， 他们的首领烈焰石巨人莱斯已经成为了纳特拉的手下。
+不要以为它比纳特拉弱很多， 如果不是他铁了心投靠纳特拉， 圣地也不会这么轻易就被纳特拉占据。
+[condition message]     前往月轮山地区， 消灭烈焰石巨人莱斯。
+[solve message] 真是令人惊叹！
+我立刻将这个消息告诉国王。
+我替虚祖国向你表示诚挚的感谢。
+[level] 84 99
+[type] [hunt monster]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] W
+[gold multiple] 150
+[npc index] 333
+[complete npc index] 333
+[grow type] -1
+[int data] 3201 -1 69033 1
+[/int data]
+[reward type] [item]
+[reward int data] 3326 1
+[/reward int data]
+[pre required quest] 13701 13703
+[/pre required quest]
+[dungeon info] 3201 -1
+[/dungeon info]

@@ -1,0 +1,51 @@
+=== map/town/shonan/shonan_workshop.map ===
+[player number]
+2 8
+[pvp start area]
+653 328 504 129 137 266 82 197 1185 270 85 199
+[pvp practice start area]
+1413 230 89 217 0 0 0 0
+[type]
+[normal]
+[tile]
+Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til
+[/tile]
+[far sight scroll]
+50
+[middle sight scroll]
+90
+[background animation]
+[ani info]
+[filename]
+Animation/ShonanFar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/ShonanMid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[town movable area]
+574 127 103 21 11 0 54 208 30 135 18 2
+[/town movable area]
+[virtual movable area]
+64 208 1500 134 580 134 93 76
+[/virtual movable area]
+[sound]
+M_SHONAN AMB_TOWN_03
+[/sound]
+[animation]
+Animation/Shonan_sign01.ani [normal] 471 176 0 Animation/cherry_blossoms00.ani [bottom] -25 171 0 Animation/cherry_blossoms00.ani [bottom] 381 208 0 Animation/cherry_blossoms00.ani [bottom] 53 242 0 Animation/cherry_blossoms00.ani [bottom] 712 241 0 Animation/cherry_blossoms01.ani [bottom] 802 213 0 Animation/cherry_blossoms02.ani [bottom] 275 304 0 Animation/cherry_blossoms00.ani [bottom] 1373 281 0 Animation/cherry_blossoms00.ani [bottom] 212 334 0 Animation/cherry_blossoms00.ani [bottom] 907 352 0 Animation/cherry_blossoms01.ani [bottom] 1535 210 0 Animation/cherry_blossoms01.ani [bottom] 1045 269 0 Animation/cherry_blossoms01.ani [bottom] 495 190 0 Animation/cherry_blossoms02.ani [bottom] 1476 225 0 Animation/cherry_blossoms02.ani [bottom] 966 242 0 Animation/cherry_blossoms02.ani [bottom] 466 160 0 Animation/cherry_blossom_tree_back.ani [closeback] 27 129 0 Animation/cherry_blossom_tree_back.ani [closeback] 534 118 0 Animation/cherry_blossoms02.ani [closeback] 586 128 0 Animation/wall_low.ani [closeback] -51 146 0 Animation/wall_low.ani [closeback] 173 146 0 Animation/wall_low.ani [closeback] 397 146 0 Animation/wall_low.ani [closeback] 845 146 0 Animation/wall_low.ani [closeback] 1069 146 0 Animation/wall_low.ani [closeback] 1337 97 0 Animation/wall_low.ani [closeback] 1517 146 0 Animation/GateUp.ani [closeback] 626 146 0 Animation/GateUpLight.ani [closeback] 626 146 0 Animation/WooWagon.ani [closeback] 218 180 0 Animation/JunHouse.ani [closeback] 1115 147 0 Animation/cherry_blossom_tree.ani [closeback] 1551 202 0 Animation/fire_pot.ani [closeback] 847 137 0 Animation/Smelt_Equipment.ani [closeback] 1314 187 0 Animation/Smelt_Equipment_fire.ani [closeback] 1311 163 0 Animation/Gate_left_open.ani [normal] 32 256 0
+[/animation]
+[NPC]
+122 [right] 218 190 0 124 [right] 1233 198 0
+[/NPC]
+[map name]
+PVP无名

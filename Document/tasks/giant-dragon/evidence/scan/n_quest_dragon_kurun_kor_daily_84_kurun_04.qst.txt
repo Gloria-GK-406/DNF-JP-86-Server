@@ -1,0 +1,30 @@
+
+[name] 心眼的修行 (1/2)
+[depend message] 呵呵……你是说烈焰石巨人莱斯吗？
+虽然是一个非常厉害的神兽， 但是也不是没有办法对付。
+烈焰石巨人莱斯操控着火焰的气息， 石头可以与风和水对抗。
+不过你要想击败他， 只想找到他的弱点是不行的。
+不要执着于眼睛看到的东西， 一定要修炼出洞察对方的心眼。
+到那时， 即使能把所有一切烧尽的火焰， 也只不过是你身上的一根毛发……
+[condition message]     通关月轮山地区的『双子巨人的背叛』， 要求被击数低于20次。
+[solve message] 哈哈~我的眼睛已经看到了你的成功。
+[level] 84 99
+[type] [condition under clear]
+[job] [all]
+[sub type] 1
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 200
+[npc index] 334
+[complete npc index] 334
+[grow type] -1
+[int data] 3201 -1 20
+[/int data]
+[reward type] [item]
+[reward int data] 10094603 5
+[/reward int data]
+[pre required quest] 13707
+[/pre required quest]
+[dungeon info] 3201 -1
+[/dungeon info]

@@ -33,6 +33,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
     private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
     private readonly IDungeonRoomMechanismWakeSignal? mechanismWake;
+    private readonly IGiantDragonRuleService? giantDragons;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
     // A party holds at most one run. Who is in it is the party's answer, so there is no
@@ -57,7 +58,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
         IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
         ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null,
-        ILogger<DungeonRunDomainService>? logger = null, IDungeonSettlementRuleService? settlementRules = null)
+        ILogger<DungeonRunDomainService>? logger = null, IDungeonSettlementRuleService? settlementRules = null,
+        IGiantDragonRuleService? giantDragons = null)
     {
         this.settlementRules = settlementRules ?? new DungeonSettlementRuleService();
         this.logger = logger ?? NullLogger<DungeonRunDomainService>.Instance;
@@ -71,6 +73,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.mechanismRules = mechanismRules ?? new DungeonRoomMechanismRuleService();
         this.mechanismWake = mechanismWake;
         this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
+        this.giantDragons = giantDragons;
     }
 
     public DungeonEntryChange PreparePartyEntry(
@@ -816,10 +819,24 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             var cell = aggregate.Cells[claim.Actor.Cell];
             var killedActor = cell.FindActor(claim.Actor.Sequence);
             var autoKilled = this.SuppressedAfterDeath(aggregate, cell, claim);
+            IReadOnlyList<RolledDrop>? resolvedLoot = null;
+            if (aggregate.Layout.GiantDragonTimeReward is { } timeReward
+                && killedActor is { IsMonster: true, BlocksClear: true, Actor.IsBoss: true }
+                && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
+                && !cell.HasLivingBossExcept(claim.Actor.Sequence))
+            {
+                var elapsed = (claim.OccurredAt ?? this.clock.GetUtcNow()) - aggregate.StartedAt;
+                resolvedLoot = (this.giantDragons ?? throw new InvalidOperationException("Dragon reward rules unavailable."))
+                    .ResolveTimeReward(timeReward, elapsed, killedActor.PendingLoot);
+                this.logger.LogInformation("Giant dragon time reward run={RunId} dungeon={DungeonId} actor={Actor} elapsedMs={ElapsedMs} item={ItemId} sharedCount={Count}",
+                    aggregate.RunId, aggregate.Layout.DungeonId, claim.Actor.Sequence, elapsed.TotalMilliseconds,
+                    timeReward.Material.ItemId, resolvedLoot.Where(x => x.ItemId == timeReward.Material.ItemId
+                        && x.OwnerCharacterId is null && x.Delivery == RolledDropDelivery.Ground).Sum(x => x.Count));
+            }
             var added = cell.CommitActorDeath(
                 claim.Actor.Sequence,
                 rolled => rolled.OwnerCharacterId is not { } owner
-                    || aggregate.IsMember(owner));
+                    || aggregate.IsMember(owner), resolvedLoot);
             if (added is null)
                 return null;
             if (killedActor is { IsMonster: true })
@@ -2042,7 +2059,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(
             ushort sequence,
-            Func<RolledDrop, bool> mayMaterialize)
+            Func<RolledDrop, bool> mayMaterialize, IReadOnlyList<RolledDrop>? resolvedLoot = null)
         {
             if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
                 return null;
@@ -2051,7 +2068,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 && this.hellGroups.TryGetValue(groupId, out var group) && !group.IsSettled
                 && group.ActorSequences.All(member => member == sequence || this.actors[member].IsDead)
                     ? group : null;
-            var rewards = actor.PendingLoot.Concat(completedGroup is not null && actor.EligibleForHellGroupReward
+            var rewards = (resolvedLoot ?? actor.PendingLoot).Concat(completedGroup is not null && actor.EligibleForHellGroupReward
                 ? completedGroup.PendingLoot : []);
             var added = this.AppendGroundItems(rewards
                 .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)

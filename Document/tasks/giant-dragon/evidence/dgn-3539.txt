@@ -1,0 +1,60 @@
+id 3539 -> Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_time.dgn
+=== dungeon/Event/chn_Dragon_Dungeon/chn_Dragon_dungeon_03_time.dgn ===
+[background pos]
+80
+[name]
+极 · 巨龙盘踞之地
+[explain]
+    荣耀之地。 与这里最强的敌人一决胜负之后， 新的英雄便会诞生！    想要拥有强者的荣耀吗？ 快来挑战吧！
+[entering title]
+Title/chn_Dragon_Dungeon_03.ani
+[cutscene image]
+Map/CutScene/CutScene_cn.img 8
+[minimap image]
+Map/MiniMap/Act6.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 17
+[limit party count]
+3
+[prohibit practice]
+1
+[required item]
+10002519 1 1
+[/required item]
+[designate dungeon difficulty]
+2
+[recommended level]
+84 87
+[minimum required level]
+84
+[basis level]
+88
+[experience increasing point]
+3
+[champion]
+0 0 0 0 0
+[pathgate object]
+54207 54209 -1 54208 54210 -1 -1 -1 -1 -1
+[maze info]
+[size]
+3 1
+[greed]
+BBFFEE
+[map specification]
+map 0 0 25292 map 1 0 25293 map 2 0 25297
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+2 0
+[/boss map]
+[special passive object item]
+0 -1 1 10002838 2000 1 -1 1 10002902 2000 2 -1 0
+[/special passive object item]
+[recommend equipment]
+0 2 0 2 0 3 12 3 12 6
+[/recommend equipment]
+[recommend party]
+> 3 > 3 > 3 > 3 > 3
+[/recommend party]

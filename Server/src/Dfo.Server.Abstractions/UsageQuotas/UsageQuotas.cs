@@ -7,11 +7,14 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.UsageQuotas;
 
-public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower, AltarDungeon, TournamentDungeon, HerasDungeon, GoldSilverHorn, ReviveCoin }
+public enum UsageQuotaFamily { Consumable, Premium, MirrorDungeon, DimensionDungeon, DespairTower, AltarDungeon, TournamentDungeon, HerasDungeon, GoldSilverHorn, ReviveCoin, GiantDragonCrystalExchange }
 
 /// <summary>Storage identity, independent of limits and reset rules owned by each domain.</summary>
 public sealed record UsageQuotaKey(UsageQuotaFamily Family, string Name, DateOnly? Day = null)
 {
+    /// <summary>Retains the exact reset-period epoch used by the legacy fixed 8557 counter.</summary>
+    public static UsageQuotaKey GiantDragonCrystalExchange(DateTimeOffset period) => new(
+        UsageQuotaFamily.GiantDragonCrystalExchange, period.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture));
     public static UsageQuotaKey ReviveCoin(DateOnly period) => new(UsageQuotaFamily.ReviveCoin, "claim", period);
     public static UsageQuotaKey GoldSilverHorn(DateOnly period) => new(UsageQuotaFamily.GoldSilverHorn, "entries", period);
     public static UsageQuotaKey Heras(string counter, DateOnly period) => new(UsageQuotaFamily.HerasDungeon, counter, period);
@@ -81,3 +84,4 @@ public sealed record HerasQuotaRecorded(CharacterId CharacterId, DateOnly Period
 
 public sealed record GoldSilverHornEntryRecorded(CharacterId CharacterId, DateOnly Period, UsageQuotaValue? Expected, int Used) : IDomainEvent;
 public sealed record ReviveCoinClaimRecorded(CharacterId CharacterId, DateOnly Period, UsageQuotaValue? Expected) : IDomainEvent;
+public sealed record GiantDragonCrystalExchangeRecorded(CharacterId CharacterId, DateTimeOffset Period, UsageQuotaValue? Expected) : IDomainEvent;

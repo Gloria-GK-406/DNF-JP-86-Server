@@ -1,0 +1,61 @@
+=== map/town/shonan/shonan_gymnasium.map ===
+[player number]
+2 8
+[pvp start area]
+1078 345 562 96 454 325 74 112 1901 324 80 113
+[pvp practice start area]
+1413 230 89 217 1860 231 91 216
+[type]
+[normal]
+[tile]
+Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til Tile/ShonanTile.til
+[/tile]
+[far sight scroll]
+50
+[middle sight scroll]
+90
+[background animation]
+[ani info]
+[filename]
+Animation/ShonanFar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/ShonanMid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[town movable area]
+1257 119 222 31 11 2 767 348 96 23 11 1 2016 142 97 21 11 3 49 186 96 23 12 0
+[quest condition]
+2350
+[/quest condition]
+[/town movable area]
+[virtual movable area]
+34 219 2586 115 767 326 95 30 2015 158 99 64 1440 153 71 70 1267 137 214 90 1508 175 43 47 53 197 94 27
+[quest condition]
+2350
+[/quest condition]
+[/virtual movable area]
+[sound]
+M_SHONAN AMB_TOWN_03
+[/sound]
+[animation]
+Animation/GateDown.ani [close] 811 398 0 Animation/GateDownLight.ani [close] 811 398 0 Animation/waiting_room_flag.ani [normal] 1167 55 0 Animation/waiting_room_flag.ani [normal] 1633 55 0 Animation/cherry_blossom_tree.ani [normal] 24 175 0 Animation/cherry_blossom_tree.ani [normal] 865 175 0 Animation/Npc_Guard1.ani [normal] 1235 187 0 Animation/Npc_Guard2.ani [normal] 1136 187 0 Animation/Shonan_sign00.ani [normal] 774 189 0 Animation/Siran_chair.ani [normal] 400 201 0 Animation/cherry_blossoms00.ani [bottom] -25 171 0 Animation/cherry_blossoms00.ani [bottom] 381 208 0 Animation/cherry_blossoms01.ani [bottom] 802 213 0 Animation/cherry_blossoms02.ani [bottom] 644 214 0 Animation/cherry_blossoms02.ani [bottom] 990 217 0 Animation/cherry_blossoms02.ani [bottom] 1410 287 0 Animation/cherry_blossoms00.ani [bottom] 1367 323 0 Animation/cherry_blossoms00.ani [bottom] 952 358 0 Animation/cherry_blossoms01.ani [bottom] 205 255 0 Animation/cherry_blossoms02.ani [bottom] 1918 256 0 Animation/cherry_blossoms02.ani [bottom] 898 189 0 Animation/cherry_blossoms02.ani [bottom] 882 161 0 Animation/cherry_blossoms02.ani [bottom] 153 -22 0 Animation/cherry_blossoms02.ani [bottom] 157 -8 0 Animation/cherry_blossoms01.ani [bottom] 403 354 0 Animation/cherry_blossoms01.ani [bottom] 754 169 0 Animation/cherry_blossoms01.ani [bottom] 2322 190 0 Animation/cherry_blossoms01.ani [bottom] 1778 185 0 Animation/cherry_blossoms00.ani [bottom] -14 271 0 Animation/cherry_blossoms00.ani [bottom] 1977 347 0 Animation/cherry_blossoms02.ani [bottom] 0 202 0 Animation/cherry_blossoms02.ani [bottom] 70 247 0 Animation/cherry_blossoms02.ani [bottom] 1266 124 0 Animation/cherry_blossoms02.ani [bottom] 2268 250 0 Animation/cherry_blossoms02.ani [bottom] 2433 193 0 Animation/cherry_blossoms02.ani [bottom] 2115 189 0 Animation/cherry_blossoms01.ani [bottom] 53 188 0 Animation/cherry_blossoms01.ani [bottom] 551 218 0 Animation/cherry_blossoms01.ani [bottom] 2142 331 0 Animation/cherry_blossoms01.ani [bottom] 1861 218 0 Animation/cherry_blossoms00.ani [bottom] 126 358 0 Animation/cherry_blossoms00.ani [bottom] 2434 170 0 Animation/cherry_blossoms00.ani [bottom] 2092 360 0 Animation/cherry_blossoms00.ani [bottom] 2370 222 0 Animation/wall_high.ani [closeback] -76 147 0 Animation/wall_high.ani [closeback] 148 147 0 Animation/wall_high.ani [closeback] 372 147 0 Animation/wall_high.ani [closeback] 596 147 0 Animation/wall_high.ani [closeback] 820 147 0 Animation/wall_high.ani [closeback] 1780 147 0 Animation/wall_high.ani [closeback] 2004 147 0 Animation/wall_high.ani [closeback] 2228 147 0 Animation/wall_high.ani [closeback] 2452 147 0 Animation/wall_high.ani [closeback] 2676 147 0 Animation/waiting_room_gate.ani [closeback] 1382 151 0 Animation/SiranHouse.ani [closeback] 396 176 0 Animation/Seriagate.ani [closeback] 2060 184 0 ../SilverCrown/Animation/SeriaLight01.ani [normal] 2059 175 0 ../SilverCrown/Animation/SeriaLight00.ani [close] 2059 176 0 Animation/Aska_Palanquin.ani [normal] 992 174 0
+[/animation]
+[IGA animation]
+Animation/IGA_Shonan.ani [bottom] 600 172 0
+[/IGA animation]
+[NPC]
+125 [right] 1190 198 0 126 [right] 387 213 0 516 [left] 1731 182 0 517 [left] 1605 186 0
+[/NPC]
+[quest animation]
+Animation/timegate.ani [normal] 91 186 0 2350 1
+[/quest animation]

@@ -1,0 +1,34 @@
+Escaped NUL display; source path is encoded in this filename.
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<ROOT ScriptVer="1.0">
+
+    <TOOL ToolVer="1.0.0.1" />
+
+    <CONTROL>
+
+        <CNUIControlImage ID="STR:IDC_WORLDMAP_BACKGROUND" ImagePack="STR:WorldMap/chn_shonan_holy.img" Size="VECTOR:800, 600" imageIndex="NUM:0" />
+
+        <CNUIControlImage CommonAction="STR:Action/background_event.act" ID="STR:IDC_WORLDMAP_HELLPARTY_MODE_BACKGROUND" ImagePack="STR:Interface2/SelectDungeon/SelectDungeonHell/SelectDungeonHell.img" IsEnable="BOOL:false" IsVisible="BOOL:false" Size="VECTOR:800, 600" imageIndex="NUM:0" />
+
+        <CNUIControlImage CommonAction="STR:Action/background_event.act" ID="STR:IDC_WORLDMAP_EXERCISE_MODE_BACKGROUND" ImagePack="STR:Interface2/DungeonExercise/DungeonExercise.img" IsEnable="BOOL:false" IsVisible="BOOL:false" Size="VECTOR:800, 600" imageIndex="NUM:0" />
+
+        <CNUIControlImage CommonAction="STR:Action/background_event.act" ID="STR:IDC_WORLDMAP_EXPAND_DIMENSION_BACKGROUND" ImagePack="STR:Interface2/DungeonExercise/DungeonExercise.img" IsEnable="BOOL:false" IsVisible="BOOL:false" Size="VECTOR:800, 600" imageIndex="NUM:2" />
+
+        <CNUIControlWorldmapBalloonForRDAR CommonAction="STR:Action/worldmap_balloon.act" ID="STR:IDC_WORLDMAP_BUTTON1" IsVisible="BOOL:false" Pos="VECTOR:188, 216" Size="VECTOR:0, 0" balloonPatternIndex="NUM:15" dungeonIndex="NUM:3536" imagePack="STR:WorldMap/selectdungeon02.img" />
+
+        <CNUIControlWorldmapBalloonForRDAR CommonAction="STR:Action/worldmap_balloon.act" ID="STR:IDC_WORLDMAP_BUTTON2" IsVisible="BOOL:false" Pos="VECTOR:314, 255" Size="VECTOR:0, 0" balloonPatternIndex="NUM:3" dungeonIndex="NUM:3537" imagePack="STR:WorldMap/selectdungeon02.img" />
+
+        <CNUIControlWorldmapBalloonForRDAR CommonAction="STR:Action/worldmap_balloon.act" ID="STR:IDC_WORLDMAP_BUTTON3" IsVisible="BOOL:false" Pos="VECTOR:424, 380" Size="VECTOR:0, 0" balloonPatternIndex="NUM:3" dungeonIndex="NUM:3540" imagePack="STR:WorldMap/selectdungeon02.img" />
+
+        <CNUIControlWorldmapBalloonForRDAR CommonAction="STR:Action/worldmap_balloon.act" ID="STR:IDC_WORLDMAP_BUTTON4" IsVisible="BOOL:false" Pos="VECTOR:424, 380" Size="VECTOR:0, 0" balloonPatternIndex="NUM:3" dungeonIndex="NUM:3538" imagePack="STR:WorldMap/selectdungeon02.img" />
+
+        <CNUIControlWorldmapBalloonForRDAR CommonAction="STR:Action/worldmap_balloon.act" ID="STR:IDC_WORLDMAP_BUTTON5" IsVisible="BOOL:false" Pos="VECTOR:424, 380" Size="VECTOR:0, 0" balloonPatternIndex="NUM:16" dungeonIndex="NUM:3539" imagePack="STR:WorldMap/selectdungeon02.img" />
+
+        <CNUIControlWorldmapSwitchBoxForRDAR BaseImgIndex="NUM:91" ID="STR:IDC_WORLDMAP_SWITCHBOX" ImagePack="STR:WorldMap/selectdungeon02.img" IsVisible="BOOL:false" Pos="VECTOR:400, 100" Size="VECTOR:118, 27" UlltiImgIndex="NUM:24" dungeonDiffEasyImgIndex="NUM:96" dungeonDiffHardImgIndex="NUM:98" dungeonDiffMediumImgIndex="NUM:97" dungeonDiffUltimateImgIndex="NUM:99" dungeonDiffculty="NUM:4" nextButtonDisableImgIndex="NUM:10" nextButtonDownImgIndex="NUM:9" nextButtonImgIndex="NUM:7" nextButtonOverImgIndex="NUM:8" preButtonDisableImgIndex="NUM:6" preButtonDownImgIndex="NUM:5" preButtonImgIndex="NUM:3" preButtonOverImgIndex="NUM:4" />
+
+    </CONTROL>
+
+</ROOT>
+
+\0

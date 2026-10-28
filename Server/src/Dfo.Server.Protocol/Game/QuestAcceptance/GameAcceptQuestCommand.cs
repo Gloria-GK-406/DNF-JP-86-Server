@@ -48,7 +48,7 @@ public sealed class GameAcceptQuestCommandHandler(
     ICycleDungeonEntryDomainService cycles,
     IMirrorAradQuestDomainService mirror,
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
-    ISouthernDaleQuestDomainService southern)
+    ISouthernDaleQuestDomainService southern, IGiantDragonCrystalExchangeDomainService crystalExchange)
     : ICommandHandler<GameAcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(CommandExecutionContext execution, GameAcceptQuestCommand command, CancellationToken cancellationToken)
@@ -208,6 +208,9 @@ public sealed class GameAcceptQuestCommandHandler(
         if (command.QuestId == ISouthernDaleQuestDomainService.QuestId && (southern is null
             || !await southern.CanAcceptAsync(command.CharacterId, cancellationToken).ConfigureAwait(false)))
             return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
+        if (command.QuestId == IGiantDragonCrystalExchangeDomainService.QuestId
+            && !await crystalExchange.CanAcceptAsync(command.CharacterId, cancellationToken).ConfigureAwait(false))
+            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.AlreadyActive);
         var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
         if (!taken.Accepted)
             return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));

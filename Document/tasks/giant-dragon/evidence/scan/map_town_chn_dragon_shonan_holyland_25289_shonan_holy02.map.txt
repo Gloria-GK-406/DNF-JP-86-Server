@@ -1,0 +1,35 @@
+
+[player number] 2 8
+[pvp start area] 142 211 650 155 140 211 50 150 765 210 50 150
+[pvp practice start area] 138 211 50 150 764 209 50 150
+[type] [normal]
+[tile] Tile/ForestOver.til Tile/ForestOver.til Tile/ForestOver.til Tile/ForestOver.til
+[/tile]
+[far sight scroll] 70
+[middle sight scroll] 90
+[near sight scroll] 110
+[background animation]
+[ani info]
+[filename] Animation/far1.ani
+[layer] [distantback]
+[order] [below]
+[/ani info]
+[ani info]
+[filename] Animation/mid1.ani
+[layer] [middleback]
+[order] [below]
+[/ani info]
+[/background animation]
+[town movable area] 10 207 20 160 100 1 902 199 20 160 -1 -1
+[/town movable area]
+[virtual movable area] 10 208 900 160
+[/virtual movable area]
+[sound] M_SHONAN_OUTSIDE AMB_FOREST_06
+[/sound]
+[animation] Animation/chn_Tree0.ani [closeback] 261 120 0 Animation/chn_Tree1.ani [closeback] 404 136 0 Animation/chn_Tree0.ani [middleback] 132 109 0 Animation/chn_Tree4.ani [middleback] 538 132 0 Animation/chn_Tree1.ani [middleback] 8 145 0 Animation/chn_Tree1.ani [closeback] 680 138 0 Animation/chn_Tree0.ani [middleback] 817 97 0 Animation/chn_light_00_StoneWall.ani [normal] 830 377 0 Animation/chn_light_07_StonePillar00.ani [close] 17 367 0 Animation/chn_light_07_StonePillar00.ani [close] -23 347 0 Animation/chn_light_07_StonePillar00.ani [closeback] 18 127 0 Animation/chn_light_02_StoneBroken.ani [closeback] 58 133 0 Animation/chn_light_02_StoneBroken.ani [closeback] 776 128 0 Animation/chn_light_03_Stoneball.ani [closeback] 468 127 0 Animation/chn_light_02_StoneBroken.ani [closeback] 440 135 0 Animation/chn_light_03_Stoneball.ani [closeback] 464 145 0 Animation/chn_light_03_Stoneball.ani [closeback] 386 139 0 Animation/chn_light_03_Stoneball.ani [closeback] 417 144 0 Animation/chn_light_03_Stoneball.ani [closeback] 399 143 0 Animation/chn_light_05_StoneTower.ani [closeback] 732 123 0 Animation/chn_light_05_StoneTower.ani [closeback] 520 132 0 Animation/chn_light_07_StonePillar00.ani [close] 575 377 0 Animation/chn_bottom_tile_02.ani [bottom] 67 343 0 Animation/chn_bottom_tile_02.ani [bottom] 175 344 0 Animation/chn_bottom_tile_02.ani [bottom] 279 342 0 Animation/chn_bottom_tile_02.ani [bottom] 382 341 0 Animation/chn_bottom_tile_02.ani [bottom] 493 342 0 Animation/chn_bottom_tile_02.ani [bottom] 610 340 0 Animation/chn_bottom_tile_02.ani [bottom] 717 343 0 Animation/chn_bottom_tile_02.ani [bottom] 836 339 0 Animation/chn_bottom_tile_01.ani [bottom] 677 279 0 Animation/chn_bottom_tile_01.ani [bottom] 530 281 0 Animation/chn_bottom_tile_01.ani [bottom] 165 196 0 Animation/chn_bottom_tile_01.ani [bottom] 394 196 0 Animation/chn_bottom_tile_01.ani [bottom] 732 185 0 Animation/chn_bottom_tile_01.ani [bottom] 151 342 0 Animation/chn_bottom_tile_01.ani [bottom] 221 348 0 Animation/light_Bottom_1.ani [bottom] 112 272 0 Animation/light_Bottom_1.ani [bottom] 290 219 0 Animation/light_Bottom_1.ani [bottom] 436 304 0 Animation/light_Bottom_1.ani [bottom] 575 238 0 Animation/light_Bottom_1.ani [bottom] 436 262 0 Animation/light_Bottom_1.ani [bottom] 793 236 0 Animation/light_Bottom_1.ani [bottom] 782 284 0 Animation/light_Bottom_1.ani [bottom] 599 166 0 Animation/light_Bottom_1.ani [bottom] 863 257 0 Animation/chn_dragon_zone_light_left.ani [normal] -294 -269 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 206 114 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 621 120 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 246 -100 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 768 -146 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 88 -19 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 827 136 0 Animation/chn_dragon_zone_twinkle_B.ani [closeback] -25 85 0 Animation/chn_dragon_zone_twinkle_B.ani [close] 815 299 0 Animation/chn_dragon_zone_twinkle_B.ani [closeback] 232 100 0 Animation/chn_dragon_zone_twinkle_B.ani [middleback] 564 -166 0 Animation/chn_dragon_zone_twinkle_B.ani [middleback] 309 -163 0 Animation/chn_dragon_zone_twinkle_B.ani [middleback] 312 14 0 Animation/chn_dragon_zone_twinkle_B.ani [middleback] 424 4 0 Animation/Repair_Machine_Smoke.ani [normal] 619 200 0
+[/animation]
+[passive object] 243 336 147 0 243 184 138 0 243 481 137 0 244 496 137 0 244 716 124 0 244 615 128 0 243 564 137 0
+[/passive object]
+[NPC] 320 [left] 539 200 0
+[/NPC]
+[map name] PVP无名

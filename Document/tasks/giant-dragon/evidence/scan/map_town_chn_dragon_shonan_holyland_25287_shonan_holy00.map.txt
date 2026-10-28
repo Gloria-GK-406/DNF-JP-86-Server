@@ -1,0 +1,37 @@
+
+[player number] 2 8
+[pvp start area] 293 293 600 150 255 294 50 150 870 293 50 150
+[pvp practice start area] 254 295 50 150 869 291 50 150
+[type] [normal]
+[tile] Tile/chn_dragon_zone_tile_00.til Tile/chn_dragon_zone_tile_01.til Tile/chn_dragon_zone_tile_02.til Tile/chn_dragon_zone_tile_03.til Tile/chn_dragon_zone_tile_04.til Tile/chn_dragon_zone_tile_05.til
+[/tile]
+[extended tile]
+[tile files] 0 Tile/chn_dragon_zone_under_tile_00.til
+[/tile files]
+[tile map] 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll] 70
+[middle sight scroll] 90
+[near sight scroll] 110
+[background animation]
+[ani info]
+[filename] Animation/chn_dragon_zone_far.ani
+[layer] [distantback]
+[order] [below]
+[/ani info]
+[/background animation]
+[town movable area] 890 241 210 20 100 1 176 269 90 30 100 3
+[/town movable area]
+[virtual movable area] 47 288 1050 160 897 240 200 70 167 278 100 15
+[/virtual movable area]
+[pathgate pos] -24 -14 -41 -10 -35 -23 -38 2
+[sound] M_SHONAN_OUTSIDE AMB_FOREST_06
+[/sound]
+[animation] Animation/chn_bottom_tile_00.ani [bottom] 237 371 0 Animation/chn_bottom_tile_01.ani [bottom] 674 388 0 Animation/chn_Seriagate.ani [closeback] 215 212 0 Animation/SeriaLight01.ani [closeback] 209 274 0 Animation/SeriaLight00.ani [closeback] 209 273 0 Animation/chn_bottom_tile_01.ani [bottom] 776 458 0 Animation/chn_bottom_tile_01.ani [bottom] 981 400 0 Animation/chn_bottom_tile_01.ani [bottom] 1010 367 0 Animation/chn_bottom_tile_01.ani [bottom] 596 272 0 Animation/chn_bottom_tile_01.ani [bottom] 738 205 0 Animation/chn_bottom_tile_01.ani [bottom] 555 363 0 Animation/chn_bottom_tile_01.ani [bottom] 277 355 0 Animation/chn_bottom_tile_02.ani [bottom] 1034 394 0 Animation/chn_bottom_tile_02.ani [bottom] 972 436 0 Animation/chn_bottom_tile_02.ani [bottom] 855 427 0 Animation/chn_bottom_tile_02.ani [bottom] 733 468 0 Animation/chn_bottom_tile_02.ani [bottom] 841 463 0 Animation/chn_bottom_tile_02.ani [bottom] 383 446 0 Animation/chn_bottom_tile_02.ani [bottom] 499 471 0 Animation/chn_bottom_tile_02.ani [bottom] 598 464 0 Animation/chn_bottom_tile_02.ani [bottom] 681 459 0 Animation/chn_bottom_tile_02.ani [bottom] 115 472 0 Animation/chn_bottom_tile_02.ani [bottom] 47 468 0 Animation/chn_bottom_tile_02.ani [bottom] 217 466 0 Animation/chn_bottom_tile_02.ani [bottom] 324 471 0 Animation/chn_bottom_tile_01.ani [bottom] 56 382 0 Animation/chn_bottom_tile_01.ani [bottom] 109 430 0 Animation/chn_bottom_tile_01.ani [bottom] 400 316 0 Animation/chn_bottom_tile_01.ani [bottom] 667 285 0 Animation/chn_bottom_tile_01.ani [bottom] 462 315 0 Animation/chn_bottom_tile_01.ani [bottom] 1076 341 0 Animation/chn_bottom_tile_02.ani [bottom] 1067 439 0 Animation/chn_bottom_tile_02.ani [bottom] 63 297 0 Animation/chn_bottom_tile_02.ani [bottom] 35 332 0 Animation/chn_bottom_tile_02.ani [bottom] 24 366 0 Animation/chn_bottom_tile_02.ani [bottom] 18 404 0 Animation/chn_bottom_tile_02.ani [bottom] 57 457 0 Animation/chn_bottom_tile_00.ani [bottom] 491 480 0 Animation/chn_bottom_tile_00.ani [bottom] 553 285 0 Animation/chn_bottom_tile_00.ani [bottom] 953 445 0 Animation/chn_bottom_tile_00.ani [bottom] 946 482 0 Animation/chn_bottom_tile_01.ani [bottom] 644 292 0 Animation/chn_bottom_tile_01.ani [bottom] 471 445 0 Animation/chn_bottom_tile_01.ani [bottom] 489 463 0 Animation/chn_bottom_tile_01.ani [bottom] 620 454 0 Animation/chn_bottom_tile_01.ani [bottom] 115 355 0 Animation/chn_bottom_tile_01.ani [bottom] 334 450 0 Animation/chn_bottom_tile_01.ani [bottom] 231 441 0 Animation/chn_bottom_tile_01.ani [bottom] 133 456 0 Animation/chn_bottom_tile_01.ani [bottom] 131 344 0 Animation/chn_bottom_tile_01.ani [bottom] 681 255 0 Animation/chn_bottom_tile_01.ani [bottom] 827 375 0 Animation/chn_bottom_tile_00.ani [bottom] 660 459 0 Animation/chn_bottom_tile_00.ani [bottom] 945 426 0 Animation/chn_bottom_tile_00.ani [bottom] 817 465 0 Animation/chn_bottom_tile_00.ani [bottom] 428 493 0 Animation/chn_bottom_tile_00.ani [bottom] 457 493 0 Animation/chn_bottom_tile_00.ani [bottom] 449 503 0 Animation/chn_bottom_tile_00.ani [bottom] 315 301 0 Animation/chn_bottom_tile_00.ani [bottom] 565 487 0 Animation/chn_dragon_zone_light.ani [normal] 709 -265 0 Animation/chn_dragon_zone_river .ani [distantback] 0 -120 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 963 9 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 1067 -106 0 Animation/chn_dragon_zone_twinkle_B.ani [closeback] 1079 -52 0 Animation/chn_dragon_zone_twinkle_C.ani [closeback] 1031 64 0 Animation/chn_dragon_zone_twinkle_C.ani [closeback] 888 -136 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 1284 232 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 1168 -129 0 Animation/chn_dragon_zone_twinkle_B.ani [closeback] 968 -141 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 1013 -29 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 1039 19 0 Animation/chn_dragon_zone_twinkle_A.ani [closeback] 1121 -4 0 Animation/chn_dragon_zone_twinkle_C.ani [closeback] 991 -89 0 Animation/chn_dragon_zone_twinkle_C.ani [closeback] 1099 14 0 Animation/chn_dragon_zone_twinkle_A.ani [distantback] 409 170 0 Animation/chn_dragon_zone_twinkle_A.ani [distantback] 433 204 0
+[/animation]
+[passive object] 271 1191 406 0 271 1193 469 0 272 1285 405 0 272 1326 405 0 272 1288 469 0 272 1330 468 0 272 33 300 0 272 19 336 0 272 33 385 0 272 13 429 0 272 60 450 0 243 32 322 0 243 24 384 0 243 29 405 0 243 75 430 0 243 47 287 0 243 1202 397 0 243 1149 396 0 243 1108 452 0 243 1290 424 0
+[/passive object]
+[NPC] 20008 [right] 774 277 0 20009 [left] 1112 334 0
+[/NPC]
+[map name] PVP无名

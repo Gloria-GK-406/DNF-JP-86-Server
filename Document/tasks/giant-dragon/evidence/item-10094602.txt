@@ -1,0 +1,29 @@
+id 10094602 -> 10094602.stk
+=== stackable/10094602.stk ===
+[name]
+未精炼的念气结晶
+[explain]
+结晶里蕴含了不稳定的念气气息。
+[grade]
+1
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[stack limit]
+1000
+[price]
+0
+[icon]
+Item/stackable/material.img 552
+[field image]
+Item/FieldImage.img 24
+[stackable type]
+[material] 0
+[move wav]
+JEWEL_TOUCH

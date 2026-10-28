@@ -1,0 +1,66 @@
+id 3202 -> Event/Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad.dgn
+=== dungeon/Event/Dragon_Kurun_kor/Dragon_Kurun_kor_KowloonChad.dgn ===
+[background pos]
+80
+[name]
+圣地 : 龙之魂
+[explain]
+    这里是纳特拉的所在地。 他吸收圣地的念气并获得了天界的力量， 比以往更加强大了……冒险家， 一定浇灭巨龙贪婪的欲望！
+[cutscene image]
+Map/CutScene/dragon_cut.img 2
+[minimap image]
+Map/MiniMap/Act6.img
+[worldmap pattern info]
+0 0 WorldMap/SelectdungeonSlot/cn_dungeonslot.img 16
+[limit party count]
+3
+[prohibit practice]
+1
+[difficulty]
+1
+[minimum required level]
+84
+[basis level]
+87
+[experience increasing point]
+1.69
+[champion]
+0 0 0 0 0
+[pathgate object]
+18388 18390 -1 18389 18391 -1 -1 -1 -1 -1
+[maze info]
+[size]
+4 1
+[greed]
+BBFFFFEE
+[map specification]
+map 0 0 38125 map 1 0 38126 map 2 0 38127 map 3 0 38128
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 0
+[/boss map]
+[clear_party_buff_card]
+110 20 111 20 112 20 113 20 114 10 115 10
+[/clear_party_buff_card]
+[use fatigue only start dungeon]
+8
+[/use fatigue only start dungeon]
+[special passive object item]
+0 -1 1 10002838 3000 1 -1 1 10002902 3000 2 -1 0
+[/special passive object item]
+[enable apc stackable]
+0
+[nateram time attack info]
+7 45000 100000
+[/nateram time attack info]
+[gold drop prob]
+50
+[recommend equipment]
+0 3 0 3 0 3 0 0 0 0
+[/recommend equipment]
+[recommend party]
+> 1 > 1 > 1 > 1 > 1
+[/recommend party]

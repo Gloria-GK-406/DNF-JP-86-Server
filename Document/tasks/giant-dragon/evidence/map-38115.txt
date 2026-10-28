@@ -1,0 +1,67 @@
+id 38115 -> Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25275_tranning_(0.0)start.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_NateramWarden/25275_tranning_(0.0)start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3200
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/Step1_Tile00.til Tile/Step1_Tile01.til Tile/Step1_Tile00.til Tile/Step1_Tile01.til Tile/Step1_Tile00.til Tile/Step1_Tile01.til
+[/tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Step1_Mid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Step1_far2.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+250 482 1336 236 -171 11 -144 22
+[dungeon start area]
+150 184 108 164
+[sound]
+M_NEN_AREA AMB_FOREST_04
+[/sound]
+[animation]
+Animation/GateLight1.ani [closeback] 747 -201 0 Animation/Step2_Floor_glue1.ani [bottom] 409 340 0 Animation/Step1_bamboo_glue.ani [normal] 1306 -140 0 Animation/Step1_bamboo_glue.ani [closeback] 1198 -140 0 Animation/Step1_tree.ani [normal] 61 150 0 Animation/Step1_tree.ani [middleback] 620 123 0
+[/animation]
+[scroll animation]
+Animation/Step1_Bamboo1.ani [close] 248 393 0 100 Animation/Step1_Bamboo2.ani [close] 1194 375 0 100 Animation/Step1_Bamboo1.ani [closeback] 500 151 0 100
+[/scroll animation]
+[passive object]
+52990 367 172 0 52991 846 309 0 52988 1219 143 0 52989 1119 147 0 52989 200 148 0 37128 1250 216 0 37128 1345 293 0 52894 868 354 0
+[/passive object]
+[monster]
+69027 1 0 983 191 0 1 1 [fixed] [normal] 69028 1 0 901 191 0 1 1 [fixed] [normal] 69035 1 0 501 172 0 1 1 [fixed] [normal] 69028 1 0 609 321 0 1 1 [fixed] [normal] 69027 1 0 683 318 0 1 1 [fixed] [normal] 69035 1 0 1050 321 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+503 230 0 561 191 0 561 234 0 529 197 0
+[/event monster position]
+[map name]
+PVP无名

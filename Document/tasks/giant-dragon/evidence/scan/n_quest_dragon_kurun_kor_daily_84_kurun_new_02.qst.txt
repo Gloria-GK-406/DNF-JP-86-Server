@@ -1,0 +1,25 @@
+
+[name] name_Kurun_daily_new_01
+[depend message] depend_Kurun_daily_new_01
+[condition message] condition_Kurun_daily_new_01
+[solve message] solve_Kurun_daily_new_01
+[level] 84 99
+[type] [seeking]
+[job] [all]
+[sub type] -1
+[grade] [daily]
+[ignore quest level 4 exp] 1
+[difficulty] I
+[gold multiple] 200
+[npc index] 333
+[complete npc index] 333
+[grow type] -1
+[int data] 10156206 100
+[/int data]
+[reward type] [item]
+[reward int data] 10156318 1
+[/reward int data]
+[pre required quest] 13700
+[/pre required quest]
+[dungeon info] 3200 -1
+[/dungeon info]

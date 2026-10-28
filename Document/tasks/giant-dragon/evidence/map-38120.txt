@@ -1,0 +1,72 @@
+id 38120 -> Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38120_cave_(0.1)start.map
+=== map/Dragon_Kurun_kor/Dragon_Kurun_kor_GolemTwins/38120_cave_(0.1)start.map ===
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[dungeon]
+3201
+[/dungeon]
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til Tile/Normal/Tile01.til
+[/tile]
+[extended tile]
+[tile files]
+0 Tile/Normal/Tile01_Ex.til
+[/tile files]
+[tile map]
+0 0 0 0 0 0 0
+[/tile map]
+[/extended tile]
+[far sight scroll]
+42
+[middle sight scroll]
+90
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/Normal/uffar.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Normal/ufmid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+493 664 1543 287 -127 -9 -114 -4
+[dungeon start area]
+121 233 180 130
+[sound]
+M_IN_CAVE AMB_DIMENSION_01
+[/sound]
+[animation]
+Animation/Normal/midle_black1.ani [closeback] 0 -119 0 Animation/Normal/midle_black3.ani [closeback] 636 -119 0 Animation/Normal/midle_black0.ani [closeback] 1043 -116 0 Animation/Normal/tile_stone6.ani [middleback] 475 123 0 Animation/Normal/tile_stone6.ani [middleback] 1447 183 0 Animation/Normal/tile_stone6.ani [close] 913 514 0 Animation/Normal/tile_stone5.ani [close] 188 499 0 Animation/Normal/tile_stone5.ani [close] 704 504 0 Animation/Normal/tile_stone5.ani [close] 1493 485 0 Animation/Normal/tile_quake2.ani [bottom] 927 294 0 Animation/Normal/tile_quake4.ani [bottom] 1288 358 0 Animation/Normal/tile_stone5.ani [middleback] 1113 129 0 Animation/Normal/tile_stone5.ani [middleback] 273 124 0 Animation/Normal/tile_stone5.ani [middleback] 366 131 0 Animation/Normal/tile_stone6.ani [close] 1342 508 0 Animation/Normal/tile_stone6.ani [close] 450 497 0 Animation/Normal/tile_stone6.ani [middleback] 800 135 0 Animation/Normal/crystal_stone3.ani [normal] 227 187 0 Animation/Normal/crystal_stone4.ani [normal] 372 201 0 Animation/Normal/crystal_stone4.ani [normal] 1005 195 0 Animation/Normal/crystal_stone3.ani [normal] 813 191 0 Animation/Normal/crystal_stone3.ani [normal] 719 192 0 Animation/Normal/crystal_stone4.ani [normal] 1291 199 0
+[/animation]
+[passive object]
+18334 1465 253 0 18335 1553 354 0 18355 475 202 0 18356 562 203 0 18357 102 193 0 18358 61 193 0 18359 593 219 0 18360 626 399 0 18361 539 244 0 18362 995 410 0 18356 1107 192 0 18359 1206 189 0 18359 1224 189 0 18359 1242 188 0 18361 48 407 0 18362 117 410 0 18361 1086 410 0 18362 761 410 0
+[/passive object]
+[monster]
+69029 1 0 552 331 0 1 1 [fixed] [normal] 69030 1 0 870 231 0 1 1 [fixed] [normal] 69029 1 0 660 256 0 1 1 [fixed] [normal] 69030 1 0 832 343 0 1 1 [fixed] [normal] 69027 1 0 961 235 0 1 1 [fixed] [normal] 69027 1 0 729 286 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal] [normal] [normal] [normal] [normal]
+[/monster specific AI]
+[event monster position]
+340 262 0 398 223 0 398 266 0 366 229 0
+[/event monster position]
+[map name]
+PVP无名

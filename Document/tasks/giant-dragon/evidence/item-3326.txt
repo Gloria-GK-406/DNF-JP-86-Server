@@ -1,0 +1,29 @@
+id 3326 -> material/material_3326.stk
+=== stackable/material/material_3326.stk ===
+[name]
+强烈的气息
+[explain]
+在素喃地区的小铁柱那里锻造武器时使用的材料。 (可以在虚祖武斗大会、 月轮山、 镜像阿拉德地区的地下城获得该道具)
+[flavor text]
+武器锻造需要的材料； 可以提升锻造炉的温度。
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[weight]
+1
+[icon]
+Item/stackable/material.img 398
+[field image]
+Item/FieldImage.img 24
+[stackable type]
+[material] 0
+[move wav]
+JEWEL_TOUCH

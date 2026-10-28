@@ -1,0 +1,1 @@
+=== worldmap/ui/kor_shonan_holy.xui ===

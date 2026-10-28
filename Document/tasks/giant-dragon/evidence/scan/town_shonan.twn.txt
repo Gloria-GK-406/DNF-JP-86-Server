@@ -1,0 +1,25 @@
+
+[entering title] Title/Shonan.ani
+[cutscene image] Map/CutScene/Shonan.img 0
+[dungeon what must be cleared] -1
+[area] 0 Town/Shonan/Shonan_Gymnasium.map
+[permission]
+[need level] 69
+[/permission] [normal]
+[/area]
+[area] 1 Town/Shonan/Shonan_Workshop.map
+[permission]
+[need level] 69
+[/permission] [normal]
+[/area]
+[area] 2 Town/Shonan/Shonan_Tournament.map
+[permission]
+[need level] 69
+[/permission] [dungeon gate] 16
+[/area]
+[area] 3 Town/Shonan/Gate_Shonan.map
+[permission]
+[need level] 69
+[/permission] [gate] 474 234
+[/area]
+[name] 虚祖首都 素喃

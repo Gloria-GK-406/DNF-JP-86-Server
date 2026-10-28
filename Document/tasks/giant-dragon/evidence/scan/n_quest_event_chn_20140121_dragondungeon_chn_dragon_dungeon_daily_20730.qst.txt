@@ -1,0 +1,26 @@
+
+[grade] [daily]
+[difficulty] D
+[gold multiple] 200
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 82 99
+[pre required quest] 20725
+[/pre required quest]
+[type] [condition under clear]
+[sub type] 5
+[int data] 3537 2 2
+[/int data]
+[dungeon info] 3537 1
+[/dungeon info]
+[reward type] [item]
+[reward int data] 0 100 3326 16 10002515 5 10002517 1
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 协同 : 念气洞穴深处
+[depend message] 虽然纳特拉已经被击败， 但是它创造出来的烈焰傀儡依然在破坏念气洞穴。 我的国民们都无法正常的进行修炼了。 冒险家， 希望你能帮助我消灭它们。
+[condition message]     组成2人以上的队伍通关『念气洞穴深处』， 要求地下城难度为勇士级以上。
+[solve message] 失去魔焰之源的烈焰傀儡， 已经不能对我们够成威胁了， 谢谢你， 冒险家。

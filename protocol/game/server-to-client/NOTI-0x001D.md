@@ -1,5 +1,21 @@
 # NOTI `0x001D` `START_MAP`
 
+## 巨龙原生计时调用
+
+**ClientStatic / Confirmed**：本次 A21 映射镜像 SHA-256
+`AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D` 中，
+接收 handler RVA `00D57B30` 在 `00D57BF4` 调用 RVA `006D3F50`，后者操作巨龙 manager
+内的 `+0x368` 计时对象。manager 的 `006D3EA0` 明确识别 DGN3200–3202；
+`006D3ED0` 接收三个参数，`006D3FB0` 使用它们及计时值，`006D4050` 置 `+0x391`；
+ACT 路径 `02276516` 调用读取该标志的 `006D3F60`。反汇编中的分支操作数为 VA，行首为 RVA。
+原始窗口与可复现脚本见 [静态摘录](../../../Document/tasks/giant-dragon/evidence/a21-string-xrefs.asm.txt)、
+[输入身份](../../../Document/tasks/giant-dragon/evidence/inputs.json)。
+
+这证明既有地图通知接入原生计时对象，不增加本消息字段，也不证明参数 `7/45000/100000`
+等于45秒总时限。当前服务端沿用既有 START_MAP 投影；本次没有新增巨龙实帧或
+ClientVerified 结论。流程和业务边界分别见 [入场流程](../../patterns/flow-dungeon-entry.md#巨龙候选流程)、
+[任务说明](../../../Document/tasks/giant-dragon/README.md)。
+
 ## 2026-10-07 主动深渊当前投影
 
 **CurrentImplementation / UpstreamImplementation**：offset7写冻结A/B值（1/2），普通保留2；深渊run fog=1。仅首次进入冻结深渊房附加hidden actor模板，order来自已选PVF组，模板flag1/FF；普通演员维持原向量。重访不再次发演员/掉落，也不重抽。首次深渊房的START_MAP之后发送[NOTI02A7](NOTI-0x02A7.md) APC资料。模式/隐藏位的主动深渊效果还待实机；不代表柱交互、怪物波次或奖励已经实现。见[实现边界](../../../Document/tasks/manual-hell-entry/implementation.md)。

@@ -1,0 +1,4 @@
+
+[import script] Common/(R)Gate_Seria.map
+[town movable area] 330 324 289 24 100 0 833 196 78 61 -2 -2 46 212 34 52 101 0
+[/town movable area]

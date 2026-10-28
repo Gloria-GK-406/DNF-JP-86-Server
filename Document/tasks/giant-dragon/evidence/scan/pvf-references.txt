@@ -1,0 +1,72 @@
+n_quest/dragon_kurun_kor/daily_84_kurun_01.qst	[int data]	3200
+n_quest/dragon_kurun_kor/daily_84_kurun_01.qst	[dungeon info]	3200
+n_quest/dragon_kurun_kor/daily_84_kurun_02.qst	[dungeon info]	3200
+n_quest/dragon_kurun_kor/daily_84_kurun_03.qst	[dungeon info]	3201
+n_quest/dragon_kurun_kor/daily_84_kurun_04.qst	[int data]	3201
+n_quest/dragon_kurun_kor/daily_84_kurun_04.qst	[dungeon info]	3201
+n_quest/dragon_kurun_kor/daily_84_kurun_05.qst	[int data]	3202
+n_quest/dragon_kurun_kor/daily_84_kurun_05.qst	[dungeon info]	3202
+n_quest/dragon_kurun_kor/daily_84_kurun_06.qst	[int data]	3202
+n_quest/dragon_kurun_kor/daily_84_kurun_06.qst	[dungeon info]	3202
+n_quest/dragon_kurun_kor/daily_84_kurun_new_01.qst	[dungeon info]	3200
+n_quest/dragon_kurun_kor/daily_84_kurun_new_02.qst	[dungeon info]	3200
+n_quest/dragon_kurun_kor/epic_84_kurun_02.qst	[int data]	3200
+n_quest/dragon_kurun_kor/epic_84_kurun_02.qst	[dungeon info]	3200
+n_quest/dragon_kurun_kor/epic_84_kurun_04.qst	[int data]	3200
+n_quest/dragon_kurun_kor/epic_84_kurun_04.qst	[dungeon info]	3200
+n_quest/dragon_kurun_kor/epic_84_kurun_05.qst	[int data]	3201
+n_quest/dragon_kurun_kor/epic_84_kurun_05.qst	[dungeon info]	3201
+n_quest/dragon_kurun_kor/epic_84_kurun_06.qst	[dungeon info]	3201
+n_quest/dragon_kurun_kor/epic_84_kurun_07.qst	[int data]	3202
+n_quest/dragon_kurun_kor/epic_84_kurun_07.qst	[dungeon info]	3202
+n_quest/dragon_kurun_kor/epic_84_kurun_08.qst	[int data]	3202
+n_quest/dragon_kurun_kor/epic_84_kurun_08.qst	[dungeon info]	3202
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20721.qst	[pre required quest]	20720
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20721.qst	[int data]	3536
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20722.qst	[limit dungeon index]	3536
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20722.qst	[int data]	3536
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20723.qst	[pre required quest]	20722
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20723.qst	[int data]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20724.qst	[int data]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20725.qst	[monster reward item]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20725.qst	[monster reward item]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20725.qst	[monster reward item]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20725.qst	[monster reward item]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20727.qst	[int data]	3540
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20727.qst	[dungeon info]	3540
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20728.qst	[pre required quest]	20727
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20728.qst	[int data]	3538
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20734.qst	[pre required quest]	20728
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_achievement_20735.qst	[int data]	3539
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20729.qst	[pre required quest]	20722
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20729.qst	[int data]	3536
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20729.qst	[dungeon info]	3536
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20730.qst	[int data]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20730.qst	[dungeon info]	3537
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20731.qst	[pre required quest]	20728
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20731.qst	[int data]	3538
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20731.qst	[dungeon info]	3538
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_20731.qst	[reward int data]	10002519
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_8556.qst	[int data]	3200
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_8556.qst	[int data]	3201
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_8556.qst	[int data]	3202
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_8559.qst	[int data]	3200
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_8559.qst	[int data]	3201
+n_quest/event/chn_20140121_dragondungeon/chn_dragon_dungeon_daily_8559.qst	[int data]	3202
+town/chn_shonan_holy.twn	[need quest]	20720
+town/chn_shonan_holy.twn	[need quest]	20720
+town/chn_shonan_holy.twn	[need quest]	20720
+town/chn_shonan_holy.twn	[need quest]	20720
+worldmap/chn_shonan_holy.wdm	[dungeon]	3536
+worldmap/chn_shonan_holy.wdm	[dungeon]	20720
+worldmap/chn_shonan_holy.wdm	[dungeon]	3537
+worldmap/chn_shonan_holy.wdm	[dungeon]	20722
+worldmap/chn_shonan_holy.wdm	[dungeon]	3538
+worldmap/chn_shonan_holy.wdm	[dungeon]	20728
+worldmap/chn_shonan_holy.wdm	[dungeon]	3539
+worldmap/chn_shonan_holy.wdm	[dungeon]	20728
+worldmap/chn_shonan_holy.wdm	[dungeon]	3540
+worldmap/chn_shonan_holy.wdm	[in progress]	20727
+worldmap/kor_shonan_holy.wdm	[dungeon]	3200
+worldmap/kor_shonan_holy.wdm	[dungeon]	3201
+worldmap/kor_shonan_holy.wdm	[dungeon]	3202

@@ -1,0 +1,24 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 80 99
+[pre required quest] 20721
+[/pre required quest]
+[limit dungeon index] 3536
+[/limit dungeon index]
+[type] [hunt monster]
+[sub type] -1
+[int data] 3536 2 100003 3
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 3326 10 10002515 3
+[/reward int data]
+[name] 虚祖圣地 - 扫清障碍
+[depend message] 不管怎样， 调查一定要进行下去。 天界就是被那些可恶的巨龙毁了的。 绝不能让虚祖重蹈天界的覆辙， 一定要消灭魔法巨龙石像！
+[condition message]     前往素喃郊外地区的『念气修炼场』， 击败魔法巨龙石像3次， 要求地下城难度为勇士级以上。
+[solve message] 你是说那个石像仅依靠魔力就可以自由移动？  好奇怪……总有一种不详的预感。

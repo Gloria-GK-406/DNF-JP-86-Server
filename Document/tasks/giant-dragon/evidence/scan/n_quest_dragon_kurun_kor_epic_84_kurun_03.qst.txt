@@ -1,0 +1,25 @@
+
+[name] 贤者九龙
+[depend message] 去月轮山之前， 我建议你先见见九龙大人。
+虽然我也不太了解他， 但是听过九龙大人很久以前就帮助和教导了很多人， 被称为贤者。
+相信我， 九龙大人会帮助你的。
+[condition message] 拜见九龙
+[solve message] 看来白鸣又说些没用的话了， 哈哈~
+年纪大了， 看见年轻人都觉得是种缘分呢， 你说对吧？
+[level] 84 99
+[type] [meet npc]
+[job] [all]
+[sub type] -1
+[grade] [side]
+[difficulty] O
+[gold multiple] 10
+[npc index] 333
+[complete npc index] 334
+[grow type] -1
+[int data] 334
+[/int data]
+[reward type] [item]
+[reward int data] 0 0
+[/reward int data]
+[pre required quest] 13700
+[/pre required quest]

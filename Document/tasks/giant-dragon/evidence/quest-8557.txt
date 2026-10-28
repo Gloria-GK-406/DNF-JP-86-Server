@@ -1,0 +1,44 @@
+id 8557 -> Event/chn_20140121_dragondungeon/chn_Dragon_dungeon_daily_8557.qst
+=== n_quest/Event/chn_20140121_dragondungeon/chn_Dragon_dungeon_daily_8557.qst ===
+[name]
+进攻准备
+[depend message]
+现在局势危急， 所以想要请你帮助我们。
+我们现在需要对付的不只是一个纳特拉。
+月轮山上还存在很多纳特拉的手下， 它们不同于人类， 大部分从一出生开始就可以自由掌握念气。
+为了帮助征战部队发起进攻， 需要一些念气结晶。
+请前往月轮山， 收集一些未精炼的念气结晶回来吧。
+[condition message]
+    前往月轮山地区， 收集[未精炼的念气结晶]。
+[solve message]
+一定可以发挥很大的力量。 冒险家[myname]， 再次谢谢你。
+[level]
+84 99
+[type]
+[seeking]
+[job]
+[all]
+[sub type]
+-1
+[grade]
+[daily]
+[ignore quest level 4 exp]
+1
+[difficulty]
+I
+[gold multiple]
+200
+[npc index]
+333
+[complete npc index]
+333
+[grow type]
+-1
+[int data]
+10094602 10
+[/int data]
+[reward type]
+[item]
+[reward int data]
+490000338 1
+[/reward int data]

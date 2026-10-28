@@ -16,6 +16,84 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonVisitDomainServiceTests
 {
+    [SkippableTheory]
+    [InlineData(4, 0)]
+    [InlineData(1, 1)]
+    public async Task Giant_dragon_rejects_oversized_party_or_practice_before_spending(int count, byte practice)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var content = ContentArchive.CreateContentProvider();
+            var definitions = content.GetRequiredService<IDungeonDefinitionSource>();
+            var structures = new DungeonStructureRuleService(definitions, content.GetRequiredService<IDungeonMapDefinitionSource>());
+            var fatigue = new TestFatigue();
+            var admission = new DungeonAdmissionDomainService(structures, new MaximumDifficulty(),
+                new DungeonDifficultyRuleService(definitions), fatigue);
+            var members = Enumerable.Range(1, count).Select(i => new DungeonRunParticipant(new(i), new(i), (byte)(i-1), i == 1)).ToArray();
+            var result = await admission.PrepareAsync(new(3200,
+                DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Adventure }, 0, practice, members), new(), default);
+            Assert.Null(result.Batch);
+            Assert.Equal(DungeonEntryFailure.MissingPrerequisite, result.Refusal!.Failure);
+            Assert.Empty(fatigue.Spent);
+        });
+    }
+
+    [Fact]
+    public async Task Entry_only_fatigue_is_transactional_and_uses_the_persisted_daily_balance()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = new LearningFixture();
+            await f.SeedAsync();
+            var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
+            var runs = TestParties.Runs(f.Scope);
+            var visits = Bound(f, runs, TwoRoomLayout with { EntryOnlyFatigue = 8 });
+            await using (var tx = f.Scope.Begin())
+                Assert.NotNull(await visits.EnterAsync(f.Session.CharacterId, 10001, 0, DungeonEntryFacts.None, default));
+            Assert.Null(runs.Find(f.Session.CharacterId));
+            Assert.Equal(0, (await fatigue.BalanceOfAsync(f.Session.CharacterId, default)).Used);
+            Assert.NotNull(await visits.EnterAsync(f.Session.CharacterId, 10001, 0, DungeonEntryFacts.None, default));
+            Assert.Equal(8, (await fatigue.BalanceOfAsync(f.Session.CharacterId, default)).Used);
+            var first = runs.Find(f.Session.CharacterId)!;
+            Assert.NotNull(await visits.MoveAsync(f.Session.CharacterId, first, new(1, 0), default));
+            Assert.Equal(8, (await fatigue.BalanceOfAsync(f.Session.CharacterId, default)).Used);
+        });
+    }
+
+    [SkippableTheory]
+    [InlineData(3200, 38116, 1, 0)]
+    [InlineData(3201, 38121, 1, 1)]
+    [InlineData(3202, 38126, 1, 0)]
+    public async Task Giant_dragon_charges_eight_on_entry_and_none_when_moving_or_revisiting(
+        int dungeon, int nextMap, byte x, byte y)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            using var content = ContentArchive.CreateContentProvider();
+            var definitions = content.GetRequiredService<IDungeonDefinitionSource>();
+            var structures = new DungeonStructureRuleService(definitions,
+                content.GetRequiredService<IDungeonMapDefinitionSource>());
+            var fatigue = new TestFatigue();
+            var runs = TestParties.Runs();
+            var visits = DungeonVisitTestFactory.Create(structures, runs, new ImmediateSelection(),
+                new RecordingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(definitions), fatigue);
+            DungeonRunParticipant[] members = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
+            TestParties.EnsureEntryParty(runs, members);
+            var entry = await visits.TryEnterPartyAsync(members, dungeon,
+                DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Adventure }, default);
+            Assert.NotNull(entry.Entry);
+            Assert.All(members, p => Assert.Equal(8, fatigue.Spent[p.CharacterId]));
+            var first = runs.Find(new CharacterId(71))!;
+            var next = await visits.MoveAsync(new(71), first, new(x, y), default);
+            Assert.NotNull(next);
+            Assert.Equal(nextMap, next.Run.CurrentRoomMapId);
+            Assert.NotNull(await visits.MoveAsync(new(71), next.Run, first.CurrentCell, default));
+            Assert.All(members, p => Assert.Equal(8, fatigue.Spent[p.CharacterId]));
+        });
+    }
+
     [Fact]
     public async Task Ordinary_rechallenge_cannot_bypass_difficulty_or_charge_for_a_refused_entry()
     {

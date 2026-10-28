@@ -75,7 +75,8 @@ public sealed class PvfQuestEnemyRewardTests
         var all = await source.GetAllAsync(CancellationToken.None);
         // Same server-PVF snapshot as Projects_every_neutral_eligibility_input_from_the_real_archive.
         // Regional/five-field kill objectives now survive catalogue projection.
-        Assert.Equal(3295, all.Count); // Preserves 3253 quests and restores 42 Circle reward declarations.
+        // The optional native dragon restoration adds 20720–20735 without replacing old quests.
+        Assert.Equal(3295, all.Count(q => q.QuestId is < 20720 or > 20735));
         Assert.Equal(3827, all.Sum(q => q.EnemyRewardItems.Count(r => r.EnemyType == QuestEnemyType.APC)));
         Assert.Contains(new(52853, QuestEnemyType.PassiveObject, 160, -1, 10099811, 1, 100, 5),
             (await source.GetAsync(14987, default))!.EnemyRewardItems);

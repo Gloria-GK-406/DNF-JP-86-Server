@@ -1,0 +1,149 @@
+id 69761 -> NewMonsters\Dragon_Kurun_kor\Dragon_Kurun_kor_KowloonChad\DragonSecond\DragonSecond.mob
+=== monster/NewMonsters\Dragon_Kurun_kor\Dragon_Kurun_kor_KowloonChad\DragonSecond\DragonSecond.mob ===
+[width]
+0 0
+[floating height]
+0
+[name]
+巨龙纳特拉
+[face image]
+Monster/monsterFace.img 1043
+[die effect]
+0 3 1
+[ability table]
+0
+[ability category]
+[HP MAX] * 3200 [EQUIPMENT_PHYSICAL_ATTACK] * 250 [EQUIPMENT_PHYSICAL_DEFENSE] * 140 [EQUIPMENT_MAGICAL_ATTACK] * 250 [EQUIPMENT_MAGICAL_DEFENSE] * 140
+[/ability category]
+[category]
+[dragon] [fort armor] [fixture] [stay]
+[/category]
+[fire resistance]
+100 100
+[water resistance]
+100 100
+[dark resistance]
+100 100
+[light resistance]
+100 100
+[freeze resistance]
+400 400
+[stun resistance]
+400 400
+[blind resistance]
+400 400
+[stone resistance]
+400 400
+[sleep resistance]
+400 400
+[hold resistance]
+400 400
+[slow resistance]
+400 400
+[curse resistance]
+400 400
+[confuse resistance]
+400 400
+[lightning resistance]
+400 400
+[bleeding resistance]
+170 170
+[poison resistance]
+170 170
+[burn resistance]
+170 170
+[piercing resistance]
+0 0
+[weapon break resistance]
+400 400
+[targeting bonus]
+50 75 90 0 95 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 [stand] [dash] 0 0 0
+[item]
+[/item]
+[change direction by target]
+0
+[HP regen speed]
+1400 1400
+[MP regen speed]
+1400 1400
+[hp regen rate]
+0 0
+[level]
+84 84
+[move speed]
+0 0
+[attack speed]
+1000 1000
+[cast speed]
+1000 1000
+[hit recovery]
+1300 1300
+[weight]
+250000 250000
+[move speed]
+0 0
+[lie frame]
+0 1 2 3 4
+[drop item offset]
+0 0
+[fix direction]
+[right]
+[think term]
+2500
+[keep range distance with target]
+0 0 0 0
+[intelligence]
+30 30 1500
+[vision]
+2000
+[level of difficulty]
+[normal]
+70 0
+[expert]
+70 0
+[master]
+70 0
+[king]
+70 0
+[slayer]
+0 0
+[/level of difficulty]
+[common champion drop item]
+[/common champion drop item]
+[waiting action]
+Action/Stay.act
+[proc action]
+Action/Proc.act
+[last action]
+Action/Die.act
+[attack action]
+Action/AttackBite.act Action/AttackCurseStone_1.act Action/AttackHandSwing.act Action/AttackHand.act Action/AttackSilenceMissile.act Action/AttackBreathHP.act Action/HPrestore_Start.act
+[/attack action]
+[attack info]
+AttackInfo/AttackBite.atk   AttackInfo/AttackHandSwing.atk  AttackInfo/AttackBreathHP.atk
+[/attack info]
+[etc action]
+Action/MoveUp.act Action/MoveDown.act Action/HPrestore_Loop.act Action/HPrestore_End.act
+[/etc action]
+[cooltime]
+30000 20000 20000 20000 30000 20000 45000
+[/cooltime]
+[ai pattern]
+[normal]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/normal]
+[expert]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/expert]
+[master]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/master]
+[king]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/king]
+[slayer]
+ai/Event.ai ai/DestinationSelect.ai ai/Action.ai ai/MoveMethod.ai
+[/slayer]
+[/ai pattern]
+[is grabable]
+0

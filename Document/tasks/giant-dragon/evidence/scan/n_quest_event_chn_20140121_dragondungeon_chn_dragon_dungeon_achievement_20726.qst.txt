@@ -1,0 +1,27 @@
+
+[grade] [achievement]
+[difficulty] O
+[gold multiple] 10
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 84 99
+[pre required quest] 20725
+[/pre required quest]
+[type] [meet npc]
+[sub type] -1
+[int data] 20008
+[/int data]
+[reward type] [item]
+[reward int data] 0 100 10002835 3 10002836 3 10002837 3 3326 5
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 虚祖圣地 - 战斗准备
+[depend message] 天界的惨痛教训就在眼前， 如果我们放任不管的话， 纳特拉说不定就会成为下一个巴卡尔。
+所以， 我们一定要尽早地将纳特拉消灭。
+如果你准备好了与巨龙战斗， 那就来找我吧！
+[condition message]     与虚祖圣地的阿斯卡谈谈。
+[solve message] 冒险家， 谢谢你愿意帮助我们渡过这次难关。
+这些东西送给你了， 也许会对你有些帮助。 如果你需要更多的话， 可以随时来找我。

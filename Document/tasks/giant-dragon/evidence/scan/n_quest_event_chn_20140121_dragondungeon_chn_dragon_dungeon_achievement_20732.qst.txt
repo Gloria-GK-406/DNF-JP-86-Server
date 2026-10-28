@@ -1,0 +1,24 @@
+
+[grade] [achievement]
+[difficulty] D
+[gold multiple] 250
+[npc index] 20008
+[complete npc index] -1
+[job] [all]
+[grow type] -1
+[level] 80 99
+[pre required quest] 20723
+[/pre required quest]
+[type] [seeking]
+[sub type] -1
+[int data] 10002514 7
+[/int data]
+[reward type] [item]
+[reward int data] 100330568 1
+[/reward int data]
+[reward selection int data]
+[/reward selection int data]
+[name] 洞穴探索者
+[depend message] 洞穴的入口处还残留着巨龙的魔力， 魔法巨龙石像也将因此而复生。 我们需要一些石像的碎片来研究它的能量机制， 冒险家， 你愿意帮助我们吗？
+[condition message]     收集7个[巨龙石像碎片]交给阿斯卡。
+[solve message] 巨龙石像完全被破坏了！ 冒险家， 谢谢你！
