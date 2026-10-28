@@ -16,8 +16,7 @@ internal sealed partial class DungeonRunDomainService
                 var cell = run.Cells[run.CurrentCell];
                 if (cell.Mechanisms.Count == 0 || cell.Mechanisms.Any(state => state.StartedAt is null)) continue;
                 cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Advance(state, now)).ToArray();
-                var recipients = run.Participants.Where(member => run.IsActiveMember(member.CharacterId)
-                    && run.ReadyParticipants.Contains(member.CharacterId)).Select(member => member.CharacterId).ToArray();
+                var recipients = run.Participants.Where(member => run.ReadyParticipants.Contains(member.CharacterId)).Select(member => member.CharacterId).ToArray();
                 if (recipients.Length > 0)
                     views.Add(new(run.RunId, run.CurrentCell, run.RoomVersion, cell.Mechanisms.ToArray(), recipients));
             }

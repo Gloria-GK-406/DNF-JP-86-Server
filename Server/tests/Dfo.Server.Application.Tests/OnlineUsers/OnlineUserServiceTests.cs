@@ -84,16 +84,13 @@ public sealed class UserServiceTests
         {
             runtime.Begin(session, new CharacterPositionState(1, 0, 10, 20, 0), 100);
         });
+        var parties = TestParties.Create();
         var cleanup = new SelectedSessionCleanupService(
             service.Sessions, new Dfo.Server.Application.Inventory.CharacterContainerDomainService(),
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
             [new KeptPositions()], runtime, new StubChannelEntryPolicy(),
-            new Dfo.Server.Application.Parties.PartyService(
-                new StubPartyMemberStatusDomainService(),
-                new Dfo.Server.Application.Parties.PartyModeRuleService(),
-                TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance),
-            new Dfo.Server.Application.World.DungeonRunDomainService(), []);
+            parties,
+            TestParties.Runs(parties: parties), []);
 
         TestGameplay.Run(() =>
         {

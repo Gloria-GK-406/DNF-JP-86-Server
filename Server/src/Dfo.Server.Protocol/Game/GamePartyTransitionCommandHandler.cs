@@ -208,7 +208,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             {
                 foreach (var member in returning)
                     cardPresentation.Cancel(member.Session.CharacterId, currentRun.RunId);
-                var ended = await EndOrdinaryRunAsync(returning.Select(x => x.Session).ToArray(), currentRun.RunId, cancellationToken).ConfigureAwait(false);
+                var ended = await EndOrdinaryRunAsync(currentRun.RunId, cancellationToken).ConfigureAwait(false);
                 foreach (var character in ended)
                 {
                     registry.ParticipantDeparted(currentRun.RunId, character);
@@ -327,19 +327,21 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         if (currentRun?.Layout.Altar is not null)
             await SettleAltarExitAsync(execution, session, currentRun.RunId, true, cancellationToken).ConfigureAwait(false);
         if (currentRun is not null)
-            cardPresentation.Cancel(session.CharacterId, currentRun.RunId);
-        ended = currentRun is not null
-            && await runs.EndAsync(session.CharacterId, currentRun.RunId)
-                .ConfigureAwait(false);
-        if (ended && currentRun is not null)
-            registry.ParticipantDeparted(currentRun.RunId, session.CharacterId);
-        if (ended)
         {
+            cardPresentation.Cancel(session.CharacterId, currentRun.RunId);
+            // The run's members are its party's, so giving up leaves the party first; the party
+            // mutation then ends this character's part of the run. Outside a real party the leave
+            // is refused and the run, which is theirs alone, ends below.
             var partyResult = await MutatePartyAsync(PartyChange.Leave, session, null, cancellationToken).ConfigureAwait(false);
             partyExecution = new PartyCommandExecution(
                 partyResult,
                 PartyNotificationRecipientCapture.Capture(
                     partyResult.Notifications, sessions, townAreas));
+            ended = partyResult.Succeeded && runs.Find(session.CharacterId)?.RunId != currentRun.RunId;
+            if (!ended)
+                ended = await runs.EndAsync(session.CharacterId, currentRun.RunId).ConfigureAwait(false);
+            if (ended)
+                registry.ParticipantDeparted(currentRun.RunId, session.CharacterId);
         }
 
         if (partyExecution is { Result.Succeeded: true })

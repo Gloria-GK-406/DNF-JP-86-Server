@@ -63,7 +63,9 @@ public sealed class SaoTowerDomainTests
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = new(DungeonPathDirection.None, [27000], [27000]) })
             { Sao = new(progress ?? new("season")), ConsumesFatigue = false };
         var actor = new DungeonCellActorState(1, new(64811, 86, 0), false, false, []);
-        runs.PreparePartyEntry(Players.Select((x, i) => new DungeonRunParticipant(x.AccountId, x.CharacterId, (byte)i, i == 0)).ToArray(),
+        var roster = Players.Select((x, i) => new DungeonRunParticipant(x.AccountId, x.CharacterId, (byte)i, i == 0)).ToArray();
+        TestParties.EnsureEntryParty(runs, roster);
+        runs.PreparePartyEntry(roster,
             layout, DungeonDifficulty.Normal, new(cell, 27000, 1, [actor], []), DungeonRunId.New(), DateTimeOffset.UtcNow);
         return runs.TryClaimActorDeath(new(71), 1)!;
     }
@@ -73,7 +75,7 @@ public sealed class SaoTowerDomainTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService(); var delivery = new Delivery();
+            var runs = TestParties.Runs(); var delivery = new Delivery();
             await using var f = Fixture(runs, delivery);
             var sao = f.Services.GetRequiredService<ISaoTowerDomainService>();
             var claim = Claim(runs);
@@ -91,7 +93,10 @@ public sealed class SaoTowerDomainTests
                 await tx.CommitAsync(default);
             }
             runs.ReleaseActorDeath(claim);
+            TestParties.Leave(runs, Players[0].CharacterId);
             foreach (var player in Players) runs.End(player.CharacterId, claim.RunId);
+            // The last member's party dissolves too, so the late entry forms its own party.
+            TestParties.Leave(runs, Players[1].CharacterId);
             var late = Claim(runs); // another party's earlier floor snapshot
             await using (var tx = f.Scope.Begin())
             {
@@ -108,7 +113,7 @@ public sealed class SaoTowerDomainTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService(); var delivery = new Delivery { Fail = new(72) };
+            var runs = TestParties.Runs(); var delivery = new Delivery { Fail = new(72) };
             await using var f = Fixture(runs, delivery);
             var sao = f.Services.GetRequiredService<ISaoTowerDomainService>();
             var claim = Claim(runs);
@@ -132,7 +137,7 @@ public sealed class SaoTowerDomainTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var runs = new DungeonRunDomainService(); var delivery = new Delivery();
+            var runs = TestParties.Runs(); var delivery = new Delivery();
             await using var f = Fixture(runs, delivery, enabled: false);
             var sao = f.Services.GetRequiredService<ISaoTowerDomainService>();
             Assert.Null(await sao.ReadStatusAsync(default));

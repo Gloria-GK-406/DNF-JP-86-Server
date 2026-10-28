@@ -14,6 +14,8 @@ internal sealed class DungeonProjectionParty(DungeonRunState run) : IPartyServic
         run.Participants.First().CharacterId, new PartySettings(new byte[PartySettings.WireLength]),
         PartyTitle.Empty, [.. run.Participants.Select(value => new PartyMembershipMember(value.CharacterId, value.Slot))]);
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => key == membership.Key ? membership : null;
+    public PartyKey KeyOf(CharacterId characterId) =>
+        membership.Members.Any(member => member.CharacterId == characterId) ? membership.Key : PartyKey.Virtual(characterId);
     public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => throw new NotSupportedException();
     public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
     public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();

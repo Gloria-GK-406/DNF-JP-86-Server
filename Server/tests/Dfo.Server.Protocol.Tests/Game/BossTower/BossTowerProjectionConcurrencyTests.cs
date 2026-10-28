@@ -152,7 +152,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 ],
             };
             var tower = new TowerDomain(initial);
-            var ordinaryRuns = new DungeonRunDomainService();
+            var ordinaryRuns = TestParties.Runs();
             var layout = new DungeonLayout(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000) });
             var ordinary = ordinaryRuns.PreparePartyEntry([new DungeonRunParticipant(external.AccountId, external.CharacterId, 0, true)],
@@ -613,7 +613,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sender = new GiveUpOwnerSender(party.First.ConnectionId);
 
             await new GiveUpDriver(party.Sessions, views, positions,
-                    new DungeonRunDomainService(party.Parties), new DungeonRunDeliveryRegistry(), sender,
+                    TestParties.Runs(parties: party.Parties), new DungeonRunDeliveryRegistry(), sender,
                     TownAreaProjectionTestFactory.Create(party.Sessions, views, sender),
                     NullLogger<GiveUpGameHandler>.Instance, bossParties: party.Coordinator)
                 .HandleAsync(Dispatch(party.First), new GiveUpGameRequest(GameMessageMetadata.Empty),

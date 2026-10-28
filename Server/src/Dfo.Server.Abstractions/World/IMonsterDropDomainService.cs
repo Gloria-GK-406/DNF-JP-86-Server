@@ -63,7 +63,7 @@ public readonly record struct MonsterDropParticipant(AccountId AccountId, Charac
 
 /// <summary>
 /// Values that identify this generation occasion. Mutable character facts are read inside the
-/// domain service. Participants are frozen run members, not the current town party.
+/// domain service. Participants are the run's members when the drop is generated, not the town party.
 /// </summary>
 public sealed record MonsterDropContext(
     DungeonRunId RunId,

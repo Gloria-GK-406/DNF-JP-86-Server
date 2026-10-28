@@ -121,7 +121,7 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
 internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties, IPartyMemberStatusDomainService memberStatus,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    ILogger<GameRequestPeerCommandHandler> logger)
+    IDungeonRunDomainService runs, ILogger<GameRequestPeerCommandHandler> logger)
     :
       ICommandHandler<GameRequestPeerCommand, bool>
 {
@@ -179,7 +179,8 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
         {
             var display = await memberStatus.InvitationOfAsync(inviter, cancellationToken).ConfigureAwait(false);
             request.DemandCurrent();
-            return parties.RequestInvite(inviter, target, display);
+            return PartyRunAdmission.Refusal(runs, inviter, target)
+                ?? parties.RequestInvite(inviter, target, display);
         }
 
     }
@@ -188,7 +189,7 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
 internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    ILogger<GameResponsePeerCommandHandler> logger)
+    IDungeonRunDomainService runs, ILogger<GameResponsePeerCommandHandler> logger)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -228,7 +229,8 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
                 && sessions.IsInWorld(inviter)
                 && PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
                 && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
-                    ? ValueTask.FromResult(parties.AcceptInvite(inviteeCharacter, inviterCharacter))
+                    ? ValueTask.FromResult(PartyRunAdmission.Refusal(runs, inviteeCharacter, inviterCharacter)
+                        ?? parties.AcceptInvite(inviteeCharacter, inviterCharacter))
                     : ValueTask.FromResult(PartyOperationResult.Reject(
                         PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
@@ -241,6 +243,24 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
             invitee.WireUserId, message.InviterWireUserId, result.Succeeded, result.Failure);
         return result.Succeeded;
     }
+}
+
+/// <summary>A party bound to a dungeon run takes no new members.</summary>
+/// <remarks>
+/// A run's members are its party's current members who entered it, so growing that party would hand a
+/// character outside the entry roster a place beside the run. The refusal sits in the protocol commands
+/// because the party service must not depend on runs. Either side being in a run refuses: an invite or an
+/// application into a running party, and a run member (alone in a virtual party too) joining elsewhere.
+/// Both commands already require both sides to stand in town and entering a run leaves it, so this is
+/// unreachable today; it reports what the party service reports for a side outside town.
+/// </remarks>
+internal static class PartyRunAdmission
+{
+    public static PartyOperationResult? Refusal(IDungeonRunDomainService runs,
+        PartyCharacterSnapshot first, PartyCharacterSnapshot second) =>
+        runs.Find(first.CharacterId) is not null || runs.Find(second.CharacterId) is not null
+            ? PartyOperationResult.Reject(PartyFailureReason.NotStandingInTown)
+            : null;
 }
 
 internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,

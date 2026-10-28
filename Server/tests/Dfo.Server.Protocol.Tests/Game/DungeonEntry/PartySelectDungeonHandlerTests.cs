@@ -941,6 +941,7 @@ public sealed class PartySelectDungeonHandlerTests
     private sealed class Parties(PartySnapshot snapshot) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];
@@ -1231,6 +1232,14 @@ public sealed class PartySelectDungeonHandlerTests
         {
             Ended.Add(characterId);
             return true;
+        }
+        public ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId)
+        {
+            CharacterId[] members = [.. current.Where(entry => entry.Value.RunId == runId)
+                .OrderBy(entry => entry.Value.Participant?.Slot)
+                .Select(entry => entry.Key)];
+            Ended.AddRange(members);
+            return ValueTask.FromResult<IReadOnlyList<CharacterId>>(members);
         }
     }
 

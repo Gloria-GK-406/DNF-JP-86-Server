@@ -64,6 +64,8 @@ public sealed class QuestClearVerticalTests
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddCommandDispatching();
+            var parties = TestParties.Create();
+            services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(parties);
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
             services.AddSingleton<IQuestDomainStore>(questStore);
             services.AddSingleton<IItemDomainStore>(itemStore);
@@ -116,6 +118,7 @@ public sealed class QuestClearVerticalTests
                     new DungeonRunParticipant(HelperAccount, Helper, 1, IsLeader: false),
                 ];
                 var layout = QuestLayout();
+                TestParties.Form(parties, participants);
                 var run = runs.PreparePartyEntry(
                     participants,
                     layout,
@@ -175,7 +178,10 @@ public sealed class QuestClearVerticalTests
                     _ => [LeaderSession, HelperSession],
                 };
                 if (transition is PostCommitTransition.PickerDeparted)
+                {
+                    Assert.True(parties.LeaveParty(Leader).Succeeded);
                     Assert.True(runs.End(Leader, run.RunId));
+                }
 
                 var sessions = new Sessions(current);
                 var registry = new DungeonRunDeliveryRegistry();

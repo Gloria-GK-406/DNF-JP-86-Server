@@ -87,5 +87,5 @@ internal sealed record LeaveDungeonAlgorithmResult(IReadOnlyList<CharacterId> En
 internal sealed class LeaveDungeonAlgorithmHandler(IDungeonRunDomainService runs) : ICommandHandler<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult>
 {
     public async ValueTask<LeaveDungeonAlgorithmResult> HandleAsync(CommandExecutionContext context, LeaveDungeonAlgorithmCommand command, CancellationToken ct) =>
-        new(await GamePartyTransitionCommandHandler.EndOrdinaryRunCoreAsync(runs, command.Sessions, command.RunId, ct));
+        new(await GamePartyTransitionCommandHandler.EndOrdinaryRunCoreAsync(runs, command.RunId, ct));
 }

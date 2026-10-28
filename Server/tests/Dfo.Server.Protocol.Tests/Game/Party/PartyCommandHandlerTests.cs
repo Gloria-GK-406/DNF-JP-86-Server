@@ -26,7 +26,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.Party;
 
-public sealed class PartyCommandHandlerTests
+public sealed partial class PartyCommandHandlerTests
 {
     [Fact]
     public async Task Leaving_party_in_a_run_detaches_only_the_departing_character()
@@ -42,7 +42,7 @@ public sealed class PartyCommandHandlerTests
             Assert.True(parties.RequestInvite(first, second,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(second, first).Succeeded);
-            var runs = new DungeonRunDomainService(parties);
+            var runs = TestParties.Runs(parties: parties);
             var layout = new DungeonLayout(
                 10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
@@ -57,13 +57,13 @@ public sealed class PartyCommandHandlerTests
                 Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
-                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs, deliveries: deliveries))
                 .SendAsync(new GameLeavePartyCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty)));
 
             Assert.True(result);
             Assert.Null(runs.Find(Inviter.CharacterId));
             Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
-            Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
+            Assert.Equal([Invitee], deliveries.Find(run.RunId));
         });
     }
 
@@ -81,7 +81,7 @@ public sealed class PartyCommandHandlerTests
             Assert.True(parties.RequestInvite(leader, target,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(target, leader).Succeeded);
-            var runs = new DungeonRunDomainService(parties);
+            var runs = TestParties.Runs(parties: parties);
             var layout = new DungeonLayout(
                 10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                 61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
@@ -90,16 +90,19 @@ public sealed class PartyCommandHandlerTests
                  new DungeonRunParticipant(Invitee.AccountId, Invitee.CharacterId, 1, false)],
                 layout, 0, DungeonCellSeed.CompleteEmpty(layout.StartCell, layout.StartRoomMapId),
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            var deliveries = new DungeonRunDeliveryRegistry();
+            deliveries.Register(run.RunId, [Inviter, Invitee]);
             var context = DomainCommandFixture.Context(
                 Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
-                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs))
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs, deliveries: deliveries))
                 .SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
 
             Assert.True(result);
             Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
             Assert.Null(runs.Find(Invitee.CharacterId));
+            Assert.Equal([Inviter], deliveries.Find(run.RunId));
         });
     }
 
@@ -656,11 +659,11 @@ public sealed class PartyCommandHandlerTests
 
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
-        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
 
     private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
-        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
 
     private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
@@ -967,6 +970,7 @@ public sealed class PartyCommandHandlerTests
     private sealed class RecordingParties(PartyOperationResult? result = null, PartySnapshot? snapshot = null) : IPartyService
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
+        public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public List<string> Writes { get; } = [];
 
         public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }

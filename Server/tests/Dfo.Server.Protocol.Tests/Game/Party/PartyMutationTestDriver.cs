@@ -10,6 +10,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -19,9 +20,10 @@ internal static class PartyMutationTestDriver
 {
     internal static GamePartyTransitionCommandHandler Handler(ISelectedSessionDomainService sessions, IPartyService parties,
         ITownAreaDomainService? town = null, IEventService? events = null, PartyProjectionStreamRegistry? streams = null,
-        IGameMessageSender? sender = null, IDungeonRunDomainService? runs = null) =>
+        IGameMessageSender? sender = null, IDungeonRunDomainService? runs = null,
+        DungeonRunDeliveryRegistry? deliveries = null) =>
         ProtocolAlgorithmFixture.Create<GamePartyTransitionCommandHandler>(sessions, parties, town, events,
-            streams ?? new PartyProjectionStreamRegistry(), sender, runs);
+            streams ?? new PartyProjectionStreamRegistry(), sender, runs, deliveries);
 
     internal static ICommandBus Bus(GamePartyTransitionCommandHandler handler, Action<ICommand>? observe = null) => new Driver(handler, observe);
 
@@ -76,6 +78,7 @@ internal sealed class PartyMutationProbe(IPartyService inner, Action<string, Cha
     public PartyOperationResult CleanupCharacter(CharacterId character) => inner.CleanupCharacter(character);
     public PartySnapshot FindParty(PartyCharacterSnapshot character) => inner.FindParty(character);
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => inner.FindByKey(key);
+    public PartyKey KeyOf(CharacterId characterId) => inner.KeyOf(characterId);
 }
 
 internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = null) : IPartyService
@@ -93,4 +96,5 @@ internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = nu
     public PartyOperationResult CleanupCharacter(CharacterId character) => throw new NotSupportedException();
     public PartySnapshot FindParty(PartyCharacterSnapshot character) => directory.FindParty(character);
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => directory.FindByKey(key);
+    public PartyKey KeyOf(CharacterId characterId) => directory.KeyOf(characterId);
 }

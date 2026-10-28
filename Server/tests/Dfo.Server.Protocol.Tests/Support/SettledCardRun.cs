@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.World;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Support;
 
@@ -9,7 +10,7 @@ internal static class SettledCardRun
 {
     internal static DungeonRunDomainService Create(SelectedSessionIdentity session)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 8153, 7,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(8153) }, 5);

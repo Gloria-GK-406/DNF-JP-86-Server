@@ -27,7 +27,7 @@ public sealed class DungeonEntryMaterialTests
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
     private static (DungeonVisitDomainService Visits, DungeonRunDomainService Runs) Service(LearningFixture f, bool throwCell = false)
     {
-        var runs = new DungeonRunDomainService(f.Scope);
+        var runs = TestParties.Runs(f.Scope);
         return (Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(throwCell),
             f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
             materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(),
@@ -77,6 +77,7 @@ public sealed class DungeonEntryMaterialTests
             await using var f = Fixture(); await f.SeedAsync();
             await SeedMember(f, new(71)); await SeedMember(f, new(72));
             var (visits, runs) = Service(f);
+            TestParties.EnsureEntryParty(runs, Party);
             await using (var tx = f.Scope.Begin())
             {
                 var result = await visits.TryEnterPartyAsync(Party, 1500, DungeonEntryFacts.None, default);
@@ -142,7 +143,7 @@ public sealed class DungeonEntryMaterialTests
             {
                 await shared.AddAsync(3037, available, default); await tx.CommitAsync(default);
             }
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures([new(3037, 12, true)]), runs, new Selection(), new Cells(false),
                 f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
                 materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
@@ -194,7 +195,7 @@ public sealed class DungeonEntryMaterialTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var f = Fixture(); await f.SeedAsync(); await SeedMember(f, new(71));
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             var cells = new InspectingCells(async () =>
             {
                 Assert.Equal(3, await Count(f, new(71), 6337));
@@ -224,7 +225,7 @@ public sealed class DungeonEntryMaterialTests
         {
             await using var f = Fixture(); await f.SeedAsync();
             await SeedTicket(f, new(71), 6337, 30, 0); await SeedTicket(f, new(71), 3332, 2, 1); await SeedTicket(f, new(71), 5555, 1, 2);
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             var admission = new DungeonAdmissionDomainService(new Structures(), f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
                 new DungeonDifficultyRuleService(), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope, runs: runs);
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(false),

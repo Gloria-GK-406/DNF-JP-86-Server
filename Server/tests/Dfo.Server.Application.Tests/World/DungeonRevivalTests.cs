@@ -70,8 +70,9 @@ public sealed class DungeonRevivalTests
     public async Task Teammate_revival_charges_payer_and_second_death_gets_fresh_deadline()
     {
         using var shop = new ShopFixture(services => services.AddSingleton<IDungeonRunDomainService>(provider =>
-            new Dfo.Server.Application.World.DungeonRunDomainService(
-                provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>())));
+            TestParties.Runs(
+                provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>(),
+                provider.GetService<Dfo.Server.Abstractions.Parties.IPartyService>())));
         await shop.Seed(1, 1, 10, 0);
         var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
         var layout = new DungeonLayout(144, 0, 1, 1, new(0, 0), new(0, 0), 61000, 1,

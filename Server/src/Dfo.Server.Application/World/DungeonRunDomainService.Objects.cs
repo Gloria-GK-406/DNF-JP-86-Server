@@ -15,9 +15,8 @@ internal sealed partial class DungeonRunDomainService
             ?? throw new InvalidOperationException("Object rewards require an ambient transaction.");
         lock (this.gate)
         {
-            if (objectCode <= 0 || !this.runsByCharacter.TryGetValue(characterId, out var run)
-                || run.RunId != runId || run.RoomVersion != roomVersion
-                || !run.IsActiveMember(characterId))
+            if (objectCode <= 0 || this.RunOf(characterId) is not { } run
+                || run.RunId != runId || run.RoomVersion != roomVersion)
                 return null;
             var cell = run.Cells[run.CurrentCell];
             if (!this.sealedTreasureRules.AllowsObjectDestruction(run.Layout.DungeonId, run.KilledMonsterCodes, objectCode))
@@ -48,7 +47,7 @@ internal sealed partial class DungeonRunDomainService
             lock (owner.gate)
             {
                 if (!owner.runsById.TryGetValue(run.RunId, out var active)
-                    || !ReferenceEquals(active, run) || !run.IsActiveMember(characterId)
+                    || !ReferenceEquals(active, run) || !run.IsMember(characterId)
                     || run.CurrentCell != cell.Cell || run.RoomVersion != roomVersion
                     || cell.ObjectReservations.GetValueOrDefault(code) != token
                     || cell.ObjectQueues[code].Peek() != index)

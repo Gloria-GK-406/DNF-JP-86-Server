@@ -8,14 +8,15 @@ namespace Dfo.Server.Application.World;
 
 internal sealed partial class DungeonRunDomainService
 {
+    /// <summary>Publishes a prepared run, ending the party's earlier run without a departure.</summary>
     private sealed class EntryCommit(DungeonRunDomainService owner, DungeonRunAggregate next,
-        Dictionary<CharacterId, DungeonRunAggregate?> previous) : ITransactionParticipant
+        DungeonRunAggregate? previous) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
         public ValueTask PrepareAsync(CancellationToken token)
         {
             lock (owner.gate)
-                if (previous.Any(x => owner.runsByCharacter.GetValueOrDefault(x.Key) != x.Value))
+                if (owner.runsByParty.GetValueOrDefault(next.PartyKey) != previous)
                     throw new InvalidOperationException("Dungeon entry changed before commit.");
             return ValueTask.CompletedTask;
         }
@@ -23,11 +24,11 @@ internal sealed partial class DungeonRunDomainService
         {
             lock (owner.gate)
             {
-                foreach (var id in previous.Keys) owner.DetachParticipant(id);
-                owner.runsById.Add(next.RunId, next);
-                foreach (var id in previous.Keys)
+                if (previous is not null)
+                    _ = owner.EndRun(previous);
+                owner.Publish(next);
+                foreach (var id in next.EntrantIds)
                 {
-                    owner.runsByCharacter.Add(id, next);
                     owner.weakness?.For(id).PauseRecovery();
                     owner.creatures?.ChangeCombat(id, true);
                 }
@@ -63,7 +64,7 @@ internal sealed partial class DungeonRunDomainService
         public ValueTask PrepareAsync(CancellationToken token)
         {
             lock (owner.gate)
-                if (owner.runsByCharacter.GetValueOrDefault(leader) != run || run.RoomVersion != version
+                if (owner.RunOf(leader) != run || run.RoomVersion != version
                     || !owner.IsCurrentLeader(run, leader)
                     || !run.ViewFor(leader).Participants.Select(x => x.CharacterId).ToHashSet().SetEquals(members))
                     throw new InvalidOperationException("Dungeon room changed before commit.");

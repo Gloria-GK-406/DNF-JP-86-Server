@@ -117,27 +117,13 @@ internal sealed class SelectedSessionCleanupService(
                         CancellationToken.None));
             }
         }
+        // Captured before the party cleanup below: the run is reached through the party.
+        DungeonRunState? run = null;
         if (ownsSelectedCharacter)
         {
             if (creatures is not null)
                 await RunAsync(() => creatures.LeaveAsync(session, CancellationToken.None));
-            var run = dungeonRuns.Find(session.CharacterId);
-            if (run is not null)
-            {
-                var ended = false;
-                await RunAsync(async () => { ended = await dungeonRuns.EndAsync(session.CharacterId, run.RunId).ConfigureAwait(false); });
-                if (ended)
-                {
-                    foreach (var departure in dungeonDepartures)
-                    {
-                        Run(() =>
-                        {
-                            departure.ParticipantDeparted(run.RunId, session.CharacterId);
-                            return true;
-                        });
-                    }
-                }
-            }
+            run = dungeonRuns.Find(session.CharacterId);
         }
 
         // Tower membership belongs to the exact selected-session generation. It must be released
@@ -180,6 +166,24 @@ internal sealed class SelectedSessionCleanupService(
                 }
                 return partyCleanup.Succeeded;
             });
+            // The run's members are its party's: having left the party, the character's part of
+            // the run ends, or the whole run when nobody else is left in it.
+            if (run is not null)
+            {
+                var ended = false;
+                await RunAsync(async () => { ended = await dungeonRuns.EndAsync(session.CharacterId, run.RunId).ConfigureAwait(false); });
+                if (ended)
+                {
+                    foreach (var departure in dungeonDepartures)
+                    {
+                        Run(() =>
+                        {
+                            departure.ParticipantDeparted(run.RunId, session.CharacterId);
+                            return true;
+                        });
+                    }
+                }
+            }
         }
         Run(() => expertStores.CloseExact(session));
         Run(() => { housing?.CloseExact(session); return true; });

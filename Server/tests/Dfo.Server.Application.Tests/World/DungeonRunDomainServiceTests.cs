@@ -22,7 +22,7 @@ namespace Dfo.Server.Application.Tests.World;
 /// is read back out of the archive every time the room is described -- without a record of what
 /// has gone, a player could walk out of a room and back in and be handed the box again.
 /// </remarks>
-public sealed class DungeonRunDomainServiceTests
+public sealed partial class DungeonRunDomainServiceTests
 {
     private static readonly CharacterId Character = new(1);
 
@@ -31,7 +31,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             BeginWithCell(service, actors:
             [
                 CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0)),
@@ -58,7 +58,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             DungeonRunParticipant[] members = [new(new(1), new(1), 0, true), new(new(2), new(2), 1, false)];
             var run = service.PreparePartyEntry(members, Tutorial, DungeonDifficulty.Normal).Run;
             var now = DateTimeOffset.UnixEpoch;
@@ -98,7 +98,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var leader = new DungeonRunParticipant(new AccountId(1), new CharacterId(1), 0, true);
             var member = new DungeonRunParticipant(new AccountId(2), new CharacterId(2), 1, false);
             var run = service.PreparePartyEntry([leader, member], Tutorial, DungeonDifficulty.Normal).Run;
@@ -128,7 +128,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var leader = new DungeonRunParticipant(new AccountId(1), Character, 0, true);
             var old = service.PreparePartyEntry([leader], Tutorial, DungeonDifficulty.Normal).Run;
             service.TryMarkParticipantReady(Character, old.RunId, old.RoomVersion);
@@ -146,13 +146,14 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var leader = new DungeonRunParticipant(new AccountId(1), Character, 0, true);
             var member = new DungeonRunParticipant(new AccountId(2), new CharacterId(2), 1, false);
             var run = service.PreparePartyEntry([leader, member], Tutorial, DungeonDifficulty.Normal).Run;
             service.TryMarkParticipantReady(Character, run.RunId, run.RoomVersion);
             service.TryMarkParticipantDead(Character, run.RunId, run.RoomVersion);
             Assert.Empty(service.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch));
+            TestParties.Leave(service, member.CharacterId);
             service.End(member.CharacterId, run.RunId);
             Assert.Empty(service.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(20)));
             var ended = service.TryEndPartyWipe(run.RunId, DateTimeOffset.UnixEpoch.AddSeconds(30));
@@ -169,7 +170,7 @@ public sealed class DungeonRunDomainServiceTests
         {
             var leader = new DungeonRunParticipant(new AccountId(101), new CharacterId(1), 0, true);
             var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = service.PreparePartyEntry([leader, member], Tutorial, difficulty: DungeonDifficulty.Normal).Run;
             Assert.Null(service.TryMarkParticipantDead(leader.CharacterId, run.RunId, run.RoomVersion));
             service.TryMarkParticipantReady(leader.CharacterId, run.RunId, run.RoomVersion);
@@ -202,7 +203,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
 
             var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: (DungeonDifficulty)2);
 
@@ -250,7 +251,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: (DungeonDifficulty)2);
 
             var leaderReady = service.TryMarkParticipantReady(
@@ -277,7 +278,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: (DungeonDifficulty)2);
 
             Assert.Null(service.TryMarkParticipantReady(
@@ -289,6 +290,7 @@ public sealed class DungeonRunDomainServiceTests
                 prepared.Run.RunId,
                 prepared.Run.RoomVersion + 1));
 
+            TestParties.Leave(service, member.CharacterId);
             Assert.True(service.End(member.CharacterId, prepared.Run.RunId));
             Assert.Null(service.TryMarkParticipantReady(
                 member.CharacterId,
@@ -314,8 +316,9 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var oldEntry = service.PreparePartyEntry([leader, member], Tutorial, difficulty: (DungeonDifficulty)2);
+            TestParties.Leave(service, member.CharacterId);
 
             var replacement = service.PreparePartyEntry(
                 [member with { Slot = 0, IsLeader = true }],
@@ -344,7 +347,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: (DungeonDifficulty)2);
 
             Assert.True(service.TryAbortEntry(
@@ -366,7 +369,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var prepared = service.PreparePartyEntry([leader, member], Tutorial, difficulty: (DungeonDifficulty)2);
             Assert.NotNull(service.TryMarkParticipantReady(
                 member.CharacterId,
@@ -391,7 +394,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var participant = new DungeonRunParticipant(
                 new AccountId(1), Character, Slot: 0, IsLeader: true);
             var incomplete = new DungeonCellSeed(
@@ -428,7 +431,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service);
             var target = new MazeCell(1, 1);
             var incompleteTarget = new DungeonCellSeed(
@@ -465,7 +468,7 @@ public sealed class DungeonRunDomainServiceTests
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
             DungeonRunParticipant[] party = [leader, member];
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
 
             var started = BeginPartyWithCell(
                 service,
@@ -529,6 +532,7 @@ public sealed class DungeonRunDomainServiceTests
             Assert.NotNull(service.TryClaimClearRewardCard(
                 member.CharacterId, ClearRewardCardKind.Free, 0));
 
+            TestParties.Leave(service, leader.CharacterId);
             Assert.True(service.End(leader.CharacterId));
             Assert.Null(service.Find(leader.CharacterId));
             Assert.Equal(started.RunId, service.Find(member.CharacterId)!.RunId);
@@ -555,7 +559,7 @@ public sealed class DungeonRunDomainServiceTests
             Assert.True(parties.RequestInvite(first, second,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(second, first).Succeeded);
-            var service = new DungeonRunDomainService(parties);
+            var service = TestParties.Runs(parties: parties);
             var run = BeginPartyWithCell(
                 service, [leader, member],
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))],
@@ -599,7 +603,7 @@ public sealed class DungeonRunDomainServiceTests
             Assert.True(parties.RequestInvite(first, second,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(second, first).Succeeded);
-            var runs = new DungeonRunDomainService(parties);
+            var runs = TestParties.Runs(parties: parties);
             var run = BeginPartyWithCell(runs, [leader, member]);
 
             Assert.True(parties.RequestInvite(first, outsider,
@@ -633,7 +637,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
 
             var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
 
@@ -646,7 +650,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
             var afterTaking = Take(service, run, 1);
 
@@ -670,7 +674,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var started = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
             _ = Take(service, started, 1);
 
@@ -690,7 +694,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var started = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
             _ = Take(service, started, 1);
 
@@ -721,7 +725,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(
                 service,
                 actors:
@@ -747,7 +751,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(
                 service,
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
@@ -770,7 +774,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var participant = new DungeonRunParticipant(
                 new AccountId(1), Character, Slot: 0, IsLeader: true);
             var pending = new RolledDrop(
@@ -835,7 +839,7 @@ public sealed class DungeonRunDomainServiceTests
             Assert.True(parties.RequestInvite(first, second,
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(second, first).Succeeded);
-            var service = new DungeonRunDomainService(parties);
+            var service = TestParties.Runs(parties: parties);
             _ = BeginPartyWithCell(service, [leader, member],
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0),
                     pendingLoot:
@@ -861,7 +865,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(
                 service,
                 actors:
@@ -895,7 +899,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service);
             run = Assert.IsType<DungeonRunState>(MoveToEmptyCell(
                 service, run, new MazeCell(1, 1)));
@@ -936,7 +940,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service);
             run = Assert.IsType<DungeonRunState>(MoveToEmptyCell(
                 service, run, new MazeCell(1, 1)));
@@ -972,7 +976,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service);
             run = Assert.IsType<DungeonRunState>(MoveToEmptyCell(service, run, new MazeCell(1, 1)));
             var waveSequence = checked((ushort)(FirstSequence + 1));
@@ -1001,7 +1005,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(service, actors: [CellActor(FirstSequence, new DungeonRoomActor(64639, 62, 3)
             { Declaration = new(64639, DungeonActorSpawnSource.Monster, 4) { IsDummy = true } })]);
             Assert.Null(service.TryClaimActorDeath(Character, FirstSequence));
@@ -1025,7 +1029,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(
                 service,
                 actors:
@@ -1068,7 +1072,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginPartyWithCell(
                 service,
                 [leader, member],
@@ -1090,6 +1094,7 @@ public sealed class DungeonRunDomainServiceTests
 
             var second = Assert.IsType<DungeonGroundDropClaim>(
                 service.TryClaimGroundDrop(member.CharacterId, run.RunId, run.RoomVersion, 2));
+            TestParties.Leave(service, leader.CharacterId);
             Assert.True(service.End(leader.CharacterId, run.RunId));
 
             var gold = Assert.IsType<DungeonPickupChange>(
@@ -1105,7 +1110,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var participant = new DungeonRunParticipant(
                 new AccountId(1), Character, Slot: 0, IsLeader: true);
             var item = new DungeonGroundItem(
@@ -1149,7 +1154,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginPartyWithCell(
                 service,
                 [leader, member],
@@ -1199,7 +1204,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service, actors:
             [
                 CellActor(FirstSequence, new DungeonRoomActor(56349, 5, 1)) with { IsNamedMonster = true },
@@ -1232,7 +1237,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var first = new RolledDrop(1001, 1, DropRarity.Common, DropItemKind.Stackable);
             _ = BeginWithCell(
                 service,
@@ -1258,7 +1263,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = service.Begin(Character, Tutorial, difficulty: 0);
             Assert.NotNull(service.TryOpenClear(Character, run.RunId, run.RoomVersion));
 
@@ -1279,7 +1284,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = service.Begin(Character, Tutorial, difficulty: 0);
 
             Assert.Null(service.TryMove(
@@ -1298,7 +1303,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var old = service.Begin(Character, Tutorial, difficulty: 0);
             var replacement = service.Begin(Character, Tutorial, difficulty: (DungeonDifficulty)1);
             Assert.False(service.End(Character, old.RunId));
@@ -1312,7 +1317,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(
                 service,
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
@@ -1339,7 +1344,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(
                 service,
                 actors:
@@ -1369,7 +1374,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(
                 service,
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
@@ -1387,7 +1392,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var old = service.Begin(Character, Tutorial, difficulty: 0);
             var replacement = service.Begin(Character, Tutorial, difficulty: (DungeonDifficulty)1);
             Assert.NotNull(service.TryOpenClear(
@@ -1403,7 +1408,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
             var first = Assert.IsType<DungeonGroundDropClaim>(
                 service.TryClaimGroundDrop(Character, run.RunId, run.RoomVersion, 1));
@@ -1422,7 +1427,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service, groundItems: [DeclaredItem(1)]);
             var target = new MazeCell(1, 1);
             var claim = Assert.IsType<DungeonGroundDropClaim>(service.TryClaimGroundDrop(
@@ -1458,7 +1463,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginWithCell(service);
             DungeonGroundItemDraft[] drafts =
             [
@@ -1499,7 +1504,7 @@ public sealed class DungeonRunDomainServiceTests
             {
                 new(1001, 1, DropRarity.Common, DropItemKind.Stackable),
             };
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(
                 service,
                 actors:
@@ -1530,7 +1535,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginPartyWithCell(
                 service,
                 [leader, member],
@@ -1539,6 +1544,7 @@ public sealed class DungeonRunDomainServiceTests
                 service.TryClaimGroundDrop(
                     leader.CharacterId, run.RunId, run.RoomVersion, groundDropNumber: 1));
 
+            TestParties.Leave(service, leader.CharacterId);
             Assert.True(service.End(leader.CharacterId, run.RunId));
             Assert.NotNull(service.CommitGroundDrop(claim, DungeonPickupKind.Item));
             Assert.Null(service.TryClaimGroundDrop(
@@ -1551,7 +1557,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = service.Begin(Character, Tutorial, difficulty: 0);
             var free = new ClearRewardCardFace(
                 ClearRewardCardKind.Free, [new ClearRewardCardSlot(0, null)], Gold: 1);
@@ -1585,7 +1591,7 @@ public sealed class DungeonRunDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var service = new DungeonRunDomainService(scope);
+            var service = TestParties.Runs(scope);
             var run = PrepareCardPanel(service);
 
             await using var transaction = scope.Begin();
@@ -1610,7 +1616,7 @@ public sealed class DungeonRunDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var service = new DungeonRunDomainService(scope);
+            var service = TestParties.Runs(scope);
             var run = PrepareCardPanel(service);
 
             await using (var transaction = scope.Begin())
@@ -1643,7 +1649,7 @@ public sealed class DungeonRunDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var scope = new DomainTransactionScope();
-            var service = new DungeonRunDomainService(scope);
+            var service = TestParties.Runs(scope);
             var leader = new DungeonRunParticipant(
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
@@ -1662,6 +1668,7 @@ public sealed class DungeonRunDomainServiceTests
                     "durable store",
                     () => new CallbackCommit(() =>
                     {
+                        TestParties.Leave(service, leader.CharacterId);
                         Assert.True(service.End(leader.CharacterId, run.RunId));
                         stolen = service.TryReserveClearRewardCard(
                             member.CharacterId, run.RunId, ClearRewardCardKind.Free, 0);
@@ -1686,7 +1693,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var leader = new DungeonRunParticipant(
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
@@ -1726,7 +1733,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), Slot: 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginPartyWithCell(
                 service,
                 [leader, member],
@@ -1772,6 +1779,7 @@ public sealed class DungeonRunDomainServiceTests
                 selection => Assert.Equal((1, (byte)1), (selection.Index, selection.Seat)));
             Assert.Equal(memberChange.Selections, service.Find(leader.CharacterId)!.CardSelections);
 
+            TestParties.Leave(service, leader.CharacterId);
             Assert.True(service.End(leader.CharacterId, run.RunId));
             var remainingClaim = Assert.IsType<DungeonClearRewardCardClaim>(
                 service.TryReserveClearRewardCard(
@@ -1834,7 +1842,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = service.Begin(Character, Tutorial, difficulty: 0);
 
             Assert.Null(service.TryClaimSettlement(Character, run.RunId));
@@ -1852,7 +1860,7 @@ public sealed class DungeonRunDomainServiceTests
                 new AccountId(101), new CharacterId(1), 0, IsLeader: true);
             var member = new DungeonRunParticipant(
                 new AccountId(202), new CharacterId(2), 1, IsLeader: false);
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var run = BeginPartyWithCell(
                 service,
                 [leader, member],
@@ -1860,6 +1868,7 @@ public sealed class DungeonRunDomainServiceTests
             var death = Assert.IsType<DungeonActorDeathClaim>(
                 service.TryClaimActorDeath(leader.CharacterId, FirstSequence));
 
+            TestParties.Leave(service, member.CharacterId);
             Assert.True(service.End(member.CharacterId, run.RunId));
             Assert.Null(service.TryClaimParticipantKillEffect(death, member.CharacterId));
         });
@@ -1889,7 +1898,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
 
             var start = service.Begin(Character, Tutorial, difficulty: 0);
             Assert.False(start.IsBossRoom);
@@ -1921,7 +1930,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             service.Begin(Character, Tutorial, difficulty: 0);
 
             Assert.True(service.End(Character));
@@ -1936,7 +1945,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var started = BeginWithCell(
                 service,
                 actors: [CellActor(FirstSequence, new DungeonRoomActor(61670, 1, 0))]);
@@ -1965,7 +1974,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var firstActor = new DungeonRoomActor(
                 61670, 4, (byte)MonsterRank.Ordinary);
             var run = BeginWithCell(
@@ -2023,7 +2032,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             _ = BeginWithCell(
                 service,
                 actors:
@@ -2055,7 +2064,7 @@ public sealed class DungeonRunDomainServiceTests
         {
             var before = DateTimeOffset.UtcNow;
 
-            var run = new DungeonRunDomainService().Begin(Character, Tutorial, difficulty: 0);
+            var run = TestParties.Runs().Begin(Character, Tutorial, difficulty: 0);
 
             Assert.InRange(run.StartedAt, before, DateTimeOffset.UtcNow);
         });
@@ -2069,7 +2078,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
 
             Assert.Null(service.TryClaimGroundDrop(
                 Character, DungeonRunId.New(), expectedRoomVersion: 0, groundDropNumber: 1));
@@ -2087,7 +2096,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Character, Tutorial, difficulty: 0);
             Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
 
@@ -2110,7 +2119,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var run = runs.Begin(Character, Tutorial, difficulty: 0);
             Assert.NotNull(runs.TryOpenClear(Character, run.RunId, run.RoomVersion));
             runs.TrySettle(Character);
@@ -2126,7 +2135,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            Assert.Null(new DungeonRunDomainService().TrySettle(Character));
+            Assert.Null(TestParties.Runs().TrySettle(Character));
         });
     }
 
@@ -2136,7 +2145,7 @@ public sealed class DungeonRunDomainServiceTests
         TestGameplay.Run(() =>
         {
             var helper = new CharacterId(61);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var started = runs.BeginParty(
                 [
                     new DungeonRunParticipant(new AccountId(6), Character, 0, IsLeader: true),
@@ -2161,7 +2170,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var helper = new CharacterId(2);
             var run = BeginPartyWithCell(service,
                 [new(new AccountId(1), Character, 0, true), new(new AccountId(2), helper, 1, false)],
@@ -2201,7 +2210,7 @@ public sealed class DungeonRunDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonRunDomainService();
+            var service = TestParties.Runs();
             var items = Enumerable.Range(0, ushort.MaxValue)
                 .Select(_ => DeclaredItem(1)).ToArray();
             var run = BeginWithCell(service, groundItems: items);
@@ -2244,8 +2253,10 @@ public sealed class DungeonRunDomainServiceTests
         IReadOnlyList<DungeonRunParticipant> participants,
         IReadOnlyList<DungeonCellActorState>? actors = null,
         IReadOnlyList<DungeonGroundItem>? groundItems = null,
-        DungeonDifficulty difficulty = 0) =>
-        service.PreparePartyEntry(
+        DungeonDifficulty difficulty = 0)
+    {
+        TestParties.EnsureEntryParty(service, participants);
+        return service.PreparePartyEntry(
             participants,
             Tutorial,
             difficulty,
@@ -2256,6 +2267,7 @@ public sealed class DungeonRunDomainServiceTests
                 groundItems),
             DungeonRunId.New(),
             DateTimeOffset.UtcNow).Run;
+    }
 
     private static DungeonRunState? MoveToEmptyCell(
         DungeonRunDomainService service,

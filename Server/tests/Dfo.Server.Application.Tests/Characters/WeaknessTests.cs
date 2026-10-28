@@ -20,7 +20,7 @@ public sealed class WeaknessTests
             var character = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
             var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
                 new WeaknessRuleService(new ConfigurationBuilder().Build()));
-            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var runs = TestParties.Runs(weakness: weakness);
             var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
             Assert.True(await runs.EndAsync(Id, old.RunId));
             Assert.Null(runs.Find(Id));
@@ -70,7 +70,7 @@ public sealed class WeaknessTests
             var weakness = new WeaknessDomainService(() => new CharacterDomainService(null!, null!,
                     id => id == Id ? new CurrentCharacterStub() : second, null!),
                 new WeaknessRuleService(new ConfigurationBuilder().Build()));
-            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var runs = TestParties.Runs(weakness: weakness);
             DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
             var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
             foreach (var member in members)
@@ -188,7 +188,7 @@ public sealed class WeaknessTests
         await TestGameplay.RunAsync(async () =>
         {
             var weakness = Create();
-            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var runs = TestParties.Runs(weakness: weakness);
             var run = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
             if (cleared) runs.TryOpenClear(Id, run.RunId, run.RoomVersion);
             Assert.True(await runs.EndAsync(Id, run.RunId));
@@ -206,7 +206,7 @@ public sealed class WeaknessTests
         {
             var weakness = Create();
             await weakness.For(Id).SetWeakness();
-            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var runs = TestParties.Runs(weakness: weakness);
             var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
             Assert.Empty(weakness.AdvanceRecovery());
             var current = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
@@ -225,7 +225,7 @@ public sealed class WeaknessTests
         await TestGameplay.RunAsync(async () =>
         {
             var weakness = Create();
-            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var runs = TestParties.Runs(weakness: weakness);
             DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
             var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
             foreach (var member in members)
@@ -265,7 +265,7 @@ public sealed class WeaknessTests
                 weakness.AdvanceRecovery();
             }
             var before = weakness.For(Id).Value;
-            var runs = new DungeonRunDomainService(null!, null!, weakness);
+            var runs = TestParties.Runs(weakness: weakness);
             var layout = altarId == 0 ? Layout : Layout with
             {
                 DungeonId = altarId,

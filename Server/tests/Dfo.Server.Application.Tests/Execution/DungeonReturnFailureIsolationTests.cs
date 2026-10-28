@@ -37,7 +37,7 @@ public sealed class DungeonReturnFailureIsolationTests
         var sessions = TestSessions.Directory(out var online);
         var members = Enumerable.Range(1, 4).Select(index => sessions.InWorld(online,
             new(9300 + index), new(9300 + index), "ordinary-return-" + index)).ToArray();
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var registry = new DungeonRunDeliveryRegistry();
         var views = new ReturnViews();
         foreach (var session in members)
@@ -120,7 +120,7 @@ public sealed class DungeonReturnFailureIsolationTests
         var sessions = TestSessions.Directory(out var online);
         var members = Enumerable.Range(1, 2).Select(index => sessions.InWorld(online,
             new(9400 + index), new(9400 + index), "cancelled-ordinary-return-" + index)).ToArray();
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var registry = new DungeonRunDeliveryRegistry();
         var views = new ReturnViews();
         foreach (var session in members)

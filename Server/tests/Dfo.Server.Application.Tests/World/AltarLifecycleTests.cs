@@ -308,8 +308,8 @@ public sealed class AltarLifecycleTests
                     await tx.CommitAsync(default);
                 }
             var former = await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(72)).ProgressAsync(default);
-            await runs.EndAsync(new(72), run.RunId);
             Assert.True(parties.LeaveParty(new(72)).Succeeded);
+            await runs.EndAsync(new(72), run.RunId);
             Assert.Single(runs.Find(run.RunId)!.Participants);
             await using (var tx = f.Scope.Begin()) Assert.Null(await altars.SettleBeforeExitAsync(run.RunId, default, new(72)));
             await ReachRound(2);

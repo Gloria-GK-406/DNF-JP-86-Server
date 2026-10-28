@@ -122,6 +122,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
                 ConnectionGeneration = 2,
             };
             var world = Build([Leader, replacement]);
+            TestParties.Leave(world.Runs, Helper.CharacterId);
             Assert.True(world.Runs.End(Helper.CharacterId, world.Run.RunId));
             var change = new DungeonCardSelectionChange(
                 world.Run.RunId,
@@ -150,7 +151,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
 
     private static World Build(IReadOnlyList<SelectedSessionIdentity> current)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var run = runs.BeginParty(
             [
                 new DungeonRunParticipant(

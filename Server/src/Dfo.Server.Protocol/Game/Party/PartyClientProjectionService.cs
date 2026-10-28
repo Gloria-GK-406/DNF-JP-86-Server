@@ -77,6 +77,8 @@ public sealed class PartyClientProjectionService(
 
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => inner.FindByKey(key);
 
+    public PartyKey KeyOf(CharacterId characterId) => inner.KeyOf(characterId);
+
     public PartyOperationResult CreateOrUpdateSettings(
         PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) =>
         Project(inner.CreateOrUpdateSettings(character, settings, title));

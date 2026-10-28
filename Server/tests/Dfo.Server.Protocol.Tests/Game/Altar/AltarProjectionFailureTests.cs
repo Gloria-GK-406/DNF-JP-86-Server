@@ -78,7 +78,7 @@ public sealed class AltarProjectionFailureTests
 
     private sealed class AltarWorld : IAsyncDisposable
     {
-        private readonly DungeonRunDomainService runs = new();
+        private readonly DungeonRunDomainService runs = TestParties.Runs();
         private readonly DungeonRunDeliveryRegistry registry = new();
         private DungeonRunId runId;
         private readonly IAltarDungeonDomainService altars = DispatchProxy.Create<IAltarDungeonDomainService, AltarProbe>();
@@ -124,11 +124,14 @@ public sealed class AltarProjectionFailureTests
         {
             await Outbound.RunAsync(() =>
             {
+            DungeonRunParticipant[] roster =
+            [
+                new DungeonRunParticipant(First.AccountId, First.CharacterId, Slot: 0, IsLeader: true),
+                new DungeonRunParticipant(Second.AccountId, Second.CharacterId, Slot: 1, IsLeader: false),
+            ];
+            TestParties.EnsureEntryParty(runs, roster);
             runId = runs.PreparePartyEntry(
-                [
-                    new DungeonRunParticipant(First.AccountId, First.CharacterId, Slot: 0, IsLeader: true),
-                    new DungeonRunParticipant(Second.AccountId, Second.CharacterId, Slot: 1, IsLeader: false),
-                ],
+                roster,
                 Layout,
                 difficulty: 0,
                 new DungeonCellSeed(Layout.StartCell, Layout.StartRoomMapId, FirstActorSequence: 1, Actors: [], GroundItems: []),

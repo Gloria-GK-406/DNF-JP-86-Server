@@ -211,7 +211,7 @@ public sealed class MirrorDungeonEntryTests
             quests: fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(),
             quotas: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(),
             events: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(), transactions: fixture.Scope,
-            sessions: sessions, onlineCharacters: positions, runs: new DungeonRunDomainService(fixture.Scope));
+            sessions: sessions, onlineCharacters: positions, runs: TestParties.Runs(fixture.Scope));
         visits.Admission = admission;
         return (new(new Rules(), structures, visits, fixture.Services.GetRequiredService<ICharacterDomainService>(), admission, TimeProvider.System), visits, quota);
     }

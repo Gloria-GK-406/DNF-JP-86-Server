@@ -334,7 +334,7 @@ await TestGameplay.RunAsync(async () =>
             connectionGeneration: 1,
             listenerPort: 10010);
         var sessions = new MutableSessions(session);
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var run = runs.BeginParty(
             [new DungeonRunParticipant(
                 session.AccountId, session.CharacterId, Slot: 0, IsLeader: true)],
@@ -402,7 +402,7 @@ await TestGameplay.RunAsync(async () =>
                 connectionGeneration: 1, listenerPort: 10011),
         ];
         var sessions = new PartySessions(participants);
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var run = runs.BeginParty(
             [
                 new DungeonRunParticipant(

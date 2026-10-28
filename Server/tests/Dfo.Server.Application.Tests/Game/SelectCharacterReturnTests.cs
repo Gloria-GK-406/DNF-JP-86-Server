@@ -45,7 +45,7 @@ public sealed partial class SelectCharacterLifecycleTests
             presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
             var stores = new ExpertStoreDomainService();
             stores.Open(selected);
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var departure = new RecordingDungeonDeparture();
             var memberSession = SelectedSessionIdentity.Create(
                 new AccountId(43), new CharacterId(502), new NetworkConnectionId("Game:return-member"), 1, 10011);
@@ -61,11 +61,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 new CharacterContainerDomainService(),
                 presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
                 new StubChannelEntryPolicy(),
-                new PartyService(
-                    new StubPartyMemberStatusDomainService(),
-                    new PartyModeRuleService(),
-                    TimeProvider.System,
-                    EmptyPartyMemberSessionEndpointSource.Instance),
+                TestParties.Of(runs),
                 runs,
                 [departure]);
             var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, cleanup);

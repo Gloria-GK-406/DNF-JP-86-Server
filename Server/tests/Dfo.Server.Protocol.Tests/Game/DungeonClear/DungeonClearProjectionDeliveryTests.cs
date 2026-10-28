@@ -170,6 +170,7 @@ public sealed class DungeonClearProjectionDeliveryTests
         await TestGameplay.RunAsync(async () =>
         {
             var world = Build([Leader, Helper], [Leader, Helper], cycle);
+            TestParties.Leave(world.Runs, Helper.CharacterId);
             Assert.True(world.Runs.End(Helper.CharacterId, world.Run.RunId));
             var change = world.Runs.TryOpenClear(
                 Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
@@ -211,7 +212,7 @@ public sealed class DungeonClearProjectionDeliveryTests
         bool cycle = false,
         IQuestQueryDomainService? queries = null)
     {
-        var runs = new DungeonRunDomainService();
+        var runs = TestParties.Runs();
         var run = runs.BeginParty(
             frozen.Select((session, index) => new DungeonRunParticipant(
                 session.AccountId,
