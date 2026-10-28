@@ -94,6 +94,14 @@ public sealed class BossTowerFrameIntegrationTests
                 host.Services.GetRequiredService<ISelectedSessionDomainService>().EnterWorld(session);
             });
             tower.Seed(session);
+            // The stand-in skips the real tower's entry, so it claims the occupancy that entry would have claimed.
+            await TestGameplay.RunAsync(host.Services, async () =>
+            {
+                await using var transaction = host.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+                Assert.True(host.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>().TryClaim(
+                    [session.CharacterId], new(Dfo.Server.Abstractions.World.DungeonParticipationMode.BossTower, tower.Current!.RunId)));
+                await transaction.CommitAsync(timeout.Token);
+            });
 
             // A21 tower next-stage marker: success is the dedicated map push, with no ordinary CMD ACK.
             var move = new byte[10]; move[0] = byte.MaxValue; move[1] = byte.MaxValue;

@@ -47,7 +47,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        if (TowerProtocol.IsStale(message.Metadata))
+        if (GameRequestFreshness.IsStale(message.Metadata))
         {
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: stale inbound sequence ignored before consuming intent",

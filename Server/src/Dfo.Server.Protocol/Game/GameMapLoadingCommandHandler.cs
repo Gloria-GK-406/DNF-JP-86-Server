@@ -57,6 +57,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly ILogger logger;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly IDungeonParticipationDomainService participation;
     private readonly IGameCommandOutbox outbox;
     private readonly ICommandWorkUnits workUnits;
     private readonly IOnlineUserQueryDomainService onlineUsers;
@@ -73,20 +74,30 @@ internal sealed partial class GameMapLoadingCommandHandler :
         IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
-        ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
+        IDungeonParticipationDomainService participation, ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
         ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
         ILogger<GameMapLoadingCommandHandler> logger)
 
     {
-        this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.visits = visits; this.registry = registry;
         this.fatigue = fatigue; this.weaknessState = weaknessState; this.closures = closures; this.mapOutbox = outbox;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameFinishLoadingCommand command, CancellationToken token)
     {
         var id = command.Dispatch.Connection.ConnectionId;
-        if (await CompleteBossLoadingAsync(execution, id, command.Input.Metadata, token).ConfigureAwait(false)) return true;
-        if (await CompleteIllusionLoadingAsync(execution, id, command.Input.Metadata, token).ConfigureAwait(false)) return true;
+        if (GameRequestFreshness.IsStale(command.Input.Metadata)) return true;
+        // No session, town and ordinary runs all fall to the ordinary flow, which also answers town loads.
+        var session = sessions.FindByConnection(id);
+        switch (session is null ? null : DungeonLocator.Locate(session, participation, bossTowers, illusionTowers))
+        {
+            case DungeonPlace.InBossTower boss:
+                await CompleteBossLoadingAsync(execution, boss, token).ConfigureAwait(false);
+                return true;
+            case DungeonPlace.InIllusionTower illusion:
+                await CompleteIllusionLoadingAsync(execution, illusion, token).ConfigureAwait(false);
+                return true;
+        }
         var completed = await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
         if (!completed)
             logger.LogWarning("Finish loading {ConnectionId}: stale or missing selected-session generation", id);
@@ -97,7 +108,39 @@ internal sealed partial class GameMapLoadingCommandHandler :
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMoveMapCommand command, CancellationToken token)
     {
-        await MoveOrdinaryAsync(execution, command.Dispatch, command.Input, token).ConfigureAwait(false); return true;
+        var context = command.Dispatch; var message = command.Input;
+        if (GameRequestFreshness.IsStale(message.Metadata))
+        {
+            logger.LogWarning("Move-map ignored connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} target=({X},{Y}) reason=StaleSequence",
+                context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal, message.NextX, message.NextY);
+            return true;
+        }
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("Move map received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} target=({X},{Y}) path=({PathX},{PathY})",
+                context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal,
+                message.NextX, message.NextY, message.PathPositionX, message.PathPositionY);
+        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        if (session is null)
+        {
+            logger.LogDebug(
+                "Move map {ConnectionId}: no published session, ignoring ({X},{Y})",
+                context.Connection.ConnectionId, message.NextX, message.NextY);
+            return true;
+        }
+        switch (DungeonLocator.Locate(session, participation, bossTowers, illusionTowers))
+        {
+            case DungeonPlace.InBossTower boss:
+                await AdvanceBossAsync(execution, context.Connection.ConnectionId, boss, message.Metadata, message.NextX, message.NextY, token).ConfigureAwait(false);
+                logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=BossTower", context.Connection.ConnectionId, message.Metadata.Sequence);
+                return true;
+            case DungeonPlace.InIllusionTower illusion:
+                await AdvanceIllusionAsync(execution, illusion, token).ConfigureAwait(false);
+                logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=IllusionTower", context.Connection.ConnectionId, message.Metadata.Sequence);
+                return true;
+            default:
+                await MoveOrdinaryAsync(execution, context, message, session, token).ConfigureAwait(false);
+                return true;
+        }
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameIllusionTowerStageCommand command, CancellationToken token)
     {

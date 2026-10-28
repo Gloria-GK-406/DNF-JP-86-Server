@@ -39,6 +39,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Altar;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Game.Weakness;
@@ -62,6 +63,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly IDungeonParticipationDomainService participation;
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
     private readonly ICommandConnectionClosures closures;
@@ -85,6 +87,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         ICharacterStateProjectionDomainService currentState, ICharacterDomainService characters,
         ITownMovementDomainService towns, IMarriageHousingQueryDomainService housing,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        IDungeonParticipationDomainService participation,
         IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, IDungeonCardPresentationControl cardPresentation,
         IDungeonEntryIntentDomainService entryIntents, IAltarDungeonDomainService altars,
@@ -92,7 +95,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.registry = registry; this.cardPresentation = cardPresentation;
         this.entryIntents = entryIntents; this.altars = altars; this.wake = wake; this.ordering = ordering;
     }
@@ -112,9 +115,27 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         EplpCommandRequest message,
         CancellationToken cancellationToken)
     {
+        if (GameRequestFreshness.IsStale(message.Metadata)) return;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is not null && await SelectBossReturnAsync(execution, session, message.Metadata, message.State, message.Option, cancellationToken).ConfigureAwait(false)) return;
-        if (session is not null && await SelectIllusionReturnAsync(execution, session, message.Metadata, message.State, message.Option, cancellationToken).ConfigureAwait(false)) return;
+        switch (session is null ? null : DungeonLocator.Locate(session, participation, bossTowers, illusionTowers))
+        {
+            case DungeonPlace.InBossTower boss:
+                await SelectBossReturnAsync(execution, boss, message.State, message.Option, cancellationToken).ConfigureAwait(false);
+                return;
+            case DungeonPlace.InIllusionTower illusion:
+                await SelectIllusionReturnAsync(execution, illusion, message.State, message.Option, cancellationToken).ConfigureAwait(false);
+                return;
+            default:
+                await EplpOrdinaryAsync(execution, context, message, session, cancellationToken).ConfigureAwait(false);
+                return;
+        }
+    }
+
+    private async ValueTask EplpOrdinaryAsync(
+        CommandExecutionContext execution, NetworkDispatchContext context,
+        EplpCommandRequest message, SelectedSessionIdentity? session,
+        CancellationToken cancellationToken)
+    {
         // Capture the source before loading any asynchronous character view.
         var currentRun = session is null ? null : runs.Find(session.CharacterId);
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
@@ -296,7 +317,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         GiveUpGameRequest message,
         CancellationToken cancellationToken)
     {
-        if (TowerProtocol.IsStale(message.Metadata))
+        if (GameRequestFreshness.IsStale(message.Metadata))
             return;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)
@@ -307,8 +328,25 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             return;
         }
 
-        if (await TryGiveUpTowersAsync(execution, session, cancellationToken).ConfigureAwait(false)) return;
+        var (candidates, place) = LocatePartyOf(session, null);
+        switch (place)
+        {
+            case DungeonPartyPlace.PartyInBossTower boss:
+                _ = await CoordinateBossTowerPartyAsync(execution, PartyChange.Leave, session, candidates, boss, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                return;
+            case DungeonPartyPlace.PartyInIllusionTower illusion:
+                _ = await CoordinateIllusionTowerPartyAsync(execution, PartyChange.Leave, session, candidates, illusion, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                return;
+            default:
+                await GiveUpOrdinaryAsync(execution, context, session, cancellationToken).ConfigureAwait(false);
+                return;
+        }
+    }
 
+    private async ValueTask GiveUpOrdinaryAsync(
+        CommandExecutionContext execution, NetworkDispatchContext context,
+        SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
         var result = await currentViews.TryLoadAsync(session, cancellationToken)
             .ConfigureAwait(false);
         if (result is null || onlineCharacters.PositionOf(session) is not { } position)

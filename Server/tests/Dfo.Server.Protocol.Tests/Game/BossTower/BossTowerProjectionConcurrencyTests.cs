@@ -79,7 +79,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 first, allowVirtual: false, departureResponse: null, request.Token);
 
             Assert.True(request.IsCancellationRequested);
-            Assert.True(result.Handled);
+            Assert.NotNull(result);
             Assert.True(result.Result.Succeeded);
             Assert.False(commands.PartyToken.CanBeCanceled);
             var remainingParty = parties.FindParty(secondParty);
@@ -117,7 +117,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var result = await coordinator.TryLeaveAsync(
                 session, allowVirtual: true, new GiveUpGameResponse(), request.Token);
 
-            Assert.True(result.Handled);
+            Assert.NotNull(result);
             Assert.True(result.Result.Succeeded);
             Assert.Equal(0, commands.PartyCalls);
             Assert.Null(tower.Find(session));
@@ -172,7 +172,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var result = await coordinator.TryLeaveAsync(
                 external, allowVirtual: false, departureResponse: null, CancellationToken.None);
 
-            Assert.True(result.Result.Succeeded);
+            Assert.True(result!.Result.Succeeded);
             Assert.Equal(1, commands.SynchronizeCalls);
             Assert.Null(tower.Find(external));
             Assert.Null(ordinaryRuns.Find(external.CharacterId));
@@ -216,7 +216,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                     first, allowVirtual: false, departureResponse: null, CancellationToken.None)
                 .AsTask().WaitAsync(TimeSpan.FromSeconds(2));
 
-            Assert.True(result.Handled);
+            Assert.NotNull(result);
             Assert.False(result.Result.Succeeded);
             Assert.Null(tower.Find(first));
             Assert.DoesNotContain(parties.FindParty(PartyCharacter(second)).Members,
@@ -259,7 +259,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var toReturned = await coordinator.TryTransferAsync(
                 first, targetSlot: 2, CancellationToken.None);
 
-            Assert.True(toReturned.Result.Succeeded);
+            Assert.True(toReturned!.Result.Succeeded);
             Assert.Equal(returned.WireUserId,
                 parties.FindParty(PartyCharacter(returned)).LeaderWireUserId);
             Assert.Equal(first,
@@ -269,7 +269,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var backInside = await coordinator.TryTransferAsync(
                 returned, targetSlot: 1, CancellationToken.None);
 
-            Assert.True(backInside.Result.Succeeded);
+            Assert.True(backInside!.Result.Succeeded);
             Assert.Equal(second.WireUserId,
                 parties.FindParty(PartyCharacter(second)).LeaderWireUserId);
             Assert.Equal(second,
@@ -310,8 +310,8 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var missing = await coordinator.TryRemoveAsync(
                 leader, targetSlot: 7, CancellationToken.None);
 
-            Assert.Equal(PartyFailureReason.NotPartyLeader, unauthorized.Result.Failure);
-            Assert.Equal(PartyFailureReason.TargetNotFound, missing.Result.Failure);
+            Assert.Equal(PartyFailureReason.NotPartyLeader, unauthorized!.Result.Failure);
+            Assert.Equal(PartyFailureReason.TargetNotFound, missing!.Result.Failure);
             Assert.Equal(original, tower.Find(leader));
             Assert.Equal(0, commands.PartyCalls);
             Assert.Equal(0, commands.SynchronizeCalls);
@@ -356,7 +356,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         });
         var result = await TestGameplay.RunAsync(async () => await coordinator.TryTransferAsync(first, targetSlot: 1, CancellationToken.None)).WaitAsync(TimeSpan.FromSeconds(2));
 
-        Assert.True(result.Result.Succeeded);
+        Assert.True(result!.Result.Succeeded);
         Assert.Null(tower.Find(third));
         Assert.Equal(second,
             tower.Find(second)!.Members.Single(member => member.IsLeader).Session);
@@ -516,7 +516,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var result = await coordinator.TryLeaveAsync(
                 first, allowVirtual: false, departureResponse: null, CancellationToken.None);
 
-            Assert.True(result.Handled);
+            Assert.NotNull(result);
             Assert.False(result.Result.Succeeded);
             Assert.Equal(PartyFailureReason.CallerNotCurrent, result.Result.Failure);
             Assert.Null(result.Target);

@@ -30,8 +30,16 @@ internal static class ProtocolAlgorithmFixture
         var values = Complete(supplied).ToList();
         var ctor = typeof(T).GetConstructors().Single();
         return (T)ctor.Invoke(ctor.GetParameters().Select(parameter =>
-            values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue : Default(parameter.ParameterType))).ToArray());
+            values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue
+                : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values) : Default(parameter.ParameterType))).ToArray());
     }
+    // Handlers locate their dungeon through the occupancy registry. Unless a test supplies one, it
+    // is read off the dungeon services the test did supply, so a placed member is never unregistered.
+    private static DerivedDungeonParticipation Participation(List<object> values) => new(
+        values.OfType<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(),
+        values.OfType<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(),
+        values.OfType<IDungeonRunDomainService>().LastOrDefault() ?? Default<IDungeonRunDomainService>(),
+        values.OfType<ISelectedSessionDomainService>().LastOrDefault());
     internal static object[] Complete(object?[] supplied)
     {
         var values = supplied.OfType<object>().ToList();

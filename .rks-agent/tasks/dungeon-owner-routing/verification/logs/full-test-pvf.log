@@ -1,0 +1,77 @@
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Pvf.Tests/bin/Debug/net10.0/Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Networking.Tests/bin/Debug/net10.0/Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.HttpApi.Tests/bin/Debug/net10.0/Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Application.Tests/bin/Debug/net10.0/Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Host.Tests/bin/Debug/net10.0/Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Protocol.Tests/bin/Debug/net10.0/Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Persistence.Tests/bin/Debug/net10.0/Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+/Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Infrastructure.Tests/bin/Debug/net10.0/Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+
+已通过! - 失败:     0，通过:    59，已跳过:     0，总计:    59，持续时间: 892 ms - Dfo.Server.HttpApi.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:  2055，已跳过:     0，总计:  2055，持续时间: 7 s - Dfo.Server.Protocol.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:    82，已跳过:     0，总计:    82，持续时间: 17 s - Dfo.Pvf.Tests.dll (net10.0)
+[xUnit.net 00:00:23.34]     Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource [FAIL]
+  失败 Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource [5 s]
+  错误消息:
+   System.IO.InvalidDataException : Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'.
+  堆栈跟踪:
+     at Dfo.Server.Application.World.DungeonStructureRuleService.ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token) in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 206
+   at Dfo.Server.Application.World.DungeonStructureRuleService.PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken) in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 142
+   at Dfo.Server.Application.World.DungeonStructureRuleService.ResolveAsync(Int32 dungeonId, DungeonEntryFacts facts, Int32 seed, CancellationToken cancellationToken) in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 93
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource() in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 72
+--- End of stack trace from previous location ---
+
+已通过! - 失败:     0，通过:   484，已跳过:     0，总计:   484，持续时间: 22 s - Dfo.Server.Persistence.Tests.dll (net10.0)
+[xUnit.net 00:00:27.49]     Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message [1 ms]
+[xUnit.net 00:00:35.74]     Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot [FAIL]
+  失败 Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot [12 s]
+  错误消息:
+   System.IO.InvalidDataException : Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'.
+  堆栈跟踪:
+     at Dfo.Server.Application.World.DungeonStructureRuleService.ValidateReachableMapsAsync(DungeonLayout layout, CancellationToken token) in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 206
+   at Dfo.Server.Application.World.DungeonStructureRuleService.PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken) in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 142
+   at Dfo.Server.Application.World.DungeonStructureRuleService.ResolveAsync(Int32 dungeonId, DungeonEntryFacts facts, Int32 seed, CancellationToken cancellationToken) in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/World/DungeonStructureRuleService.cs:line 93
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.<>c.<<All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot>b__0_0>d.MoveNext() in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 33
+--- End of stack trace from previous location ---
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.<>c.<<All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot>b__0_0>d.MoveNext() in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 57
+--- End of stack trace from previous location ---
+   at Dfo.Server.Testing.TestGameplay.<>c__DisplayClass11_0.<<Untyped>b__0>d.MoveNext() in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Support/TestGameplay.cs:line 99
+--- End of stack trace from previous location ---
+   at Dfo.Server.Testing.TestGameplay.<>c__DisplayClass12_0`1.<<RunCoreAsync>b__0>d.MoveNext() in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Support/TestGameplay.cs:line 111
+--- End of stack trace from previous location ---
+   at Dfo.Server.Application.Execution.GameplayExecutor.Job`1.RunAsync() in /Users/puxianguo/project/DNF-JP-86-Server/Server/src/Dfo.Server.Application/Execution/GameplayExecutor.cs:line 276
+   at Dfo.Server.Testing.TestGameplay.OnOwnExecutorAsync[T](GameplayWork`1 work, Action`1 released) in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Support/TestGameplay.cs:line 122
+   at Dfo.Server.Testing.TestGameplay.OnOwnExecutorAsync[T](GameplayWork`1 work, Action`1 released) in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Support/TestGameplay.cs:line 127
+   at Dfo.Server.Application.Tests.World.DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot() in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Application.Tests/World/DimensionDungeonTests.cs:line 22
+--- End of stack trace from previous location ---
+[xUnit.net 00:01:19.48]     Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [SKIP]
+  已跳过 Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog [1 ms]
+
+已通过! - 失败:     0，通过:  1001，已跳过:     2，总计:  1003，持续时间: 1 m 35 s - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+[xUnit.net 00:03:25.81]     Dfo.Server.Application.Tests.Inventory.AvatarCompoundTests.Rejections_leave_all_inputs_unchanged(reason: "expire") [FAIL]
+  失败 Dfo.Server.Application.Tests.Inventory.AvatarCompoundTests.Rejections_leave_all_inputs_unchanged(reason: "expire") [962 ms]
+  错误消息:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   AvatarCompoundReceipt { Session = SelectedSessionIdentity { AccountId = 1, CharacterId = 1, ConnectionId = shop-test, ConnectionGeneration = 2, WireUserId = 1, ListenerPort = 10011 }, Deductions = System.Collections.Immutable.ImmutableArray`1[Dfo.Server.Data.Inventory.AvatarCompoundDeduction], Outputs = System.Collections.Immutable.ImmutableArray`1[Dfo.Server.Data.Inventory.AvatarCompoundOutput], RareRate = 0, At = 2026/9/8 12:00:00 +00:00 }
+  堆栈跟踪:
+     at Dfo.Server.Application.Tests.Inventory.AvatarCompoundTests.Rejections_leave_all_inputs_unchanged(String reason) in /Users/puxianguo/project/DNF-JP-86-Server/Server/tests/Dfo.Server.Application.Tests/Inventory/AvatarCompoundTests.cs:line 161
+--- End of stack trace from previous location ---
+
+失败!  - 失败:     3，通过:  6106，已跳过:     0，总计:  6109，持续时间: 4 m 1 s - Dfo.Server.Application.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:   210，已跳过:     0，总计:   210，持续时间: 4 m 15 s - Dfo.Server.Networking.Tests.dll (net10.0)
+
+已通过! - 失败:     0，通过:   212，已跳过:     0，总计:   212，持续时间: 4 m 30 s - Dfo.Server.Host.Tests.dll (net10.0)
+exit=1

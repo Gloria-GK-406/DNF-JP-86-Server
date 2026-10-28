@@ -39,6 +39,7 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.Weakness;
 using Microsoft.Extensions.Logging;
@@ -75,6 +76,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly IDungeonParticipationDomainService participation;
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
     private readonly ICommandConnectionClosures closures;
@@ -100,10 +102,11 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         IGameCommandOutbox outbox, ICommandWorkUnits units, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
         ILogger<GameDungeonSelectionCommandHandler> logger, IDungeonEntryIntentDomainService entryIntents,
         IMarriageHousingQueryDomainService housing, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        IDungeonParticipationDomainService participation,
         IDespairTowerDomainService despair, ISaoTowerDomainService sao, TimeProvider clock, IWeaknessDomainService weakness)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
         this.visits = visits;
         this.entryIntents = entryIntents;
         this.despair = despair;
@@ -121,51 +124,42 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
             new Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged(session.CharacterId,
                 Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon), token).ConfigureAwait(false);
 
+    // Tower channels: the caller has already dropped a stale request and located the requester in this tower.
+    /// <summary>Releases the leader's Boss tower run for a new selection.</summary>
+    /// <returns>Whether the run was released, so the same request goes on to the ordinary selection.</returns>
     private async ValueTask<bool> SelectionPrepareBossAsync(CommandExecutionContext execution,
-        NetworkConnectionId connectionId, GameMessageMetadata metadata, int dungeon, CancellationToken token)
+        DungeonPlace.InBossTower place, int dungeon, CancellationToken token)
     {
-        var session = sessions.FindByConnection(connectionId);
-        var run = session is null ? null : bossTowers.Find(session);
-        if (session is null || run is null) return false;
-        // Selection checks for an attached run before consuming a stale request; return does the reverse.
-        if (TowerProtocol.IsStale(metadata)) return true;
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run) || !run.Members.Any(member => member.Session == session && member.IsLeader)) return true;
+        var session = place.Session; var run = place.Run;
+        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run) || !run.Members.Any(member => member.Session == session && member.IsLeader)) return false;
         var participants = run.Members.Select(member => member.Session == session
             ? CaptureParticipant(member.Session) : new SelectedSessionRecipient(member.Session, null)).ToArray();
         var released = await workUnits.WriteAsync(execution, new("selection-release-boss-tower", participants),
             (_, ct) => bossTowers.ReleaseForSelectionAsync(BossTowerActionProjection.BossTowerContext(run, session), dungeon, ct), token).ConfigureAwait(false);
-        return !released.Changed;
+        return released.Changed;
     }
 
-    private async ValueTask<bool> SelectionLeaveBossAsync(CommandExecutionContext execution,
-        NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
+    private async ValueTask SelectionLeaveBossAsync(CommandExecutionContext execution,
+        DungeonPlace.InBossTower place, IGameServerMessage response, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var run = session is null ? null : bossTowers.Find(session);
-        if (session is null || run is null) return false;
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run)) return true;
+        var session = place.Session; var run = place.Run;
+        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run)) return;
         closeTargets.Capture(sessions, onlineUsers, run.Members.Select(member => member.Session));
         var action = await LeaveBossPartyTowerAsync(execution, BossTowerActionProjection.BossTowerContext(run, session),
             run.Members.Select(member => member.Session).ToArray(), token).ConfigureAwait(false);
         if (action.Changed)
             await ProjectBossTowerPartyDepartureAsync(execution, action, session, response, token).ConfigureAwait(false);
-        return true;
     }
 
-    private async ValueTask<bool> SelectionLeaveIllusionAsync(CommandExecutionContext execution,
-        NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
+    private async ValueTask SelectionLeaveIllusionAsync(CommandExecutionContext execution,
+        DungeonPlace.InIllusionTower place, IGameServerMessage response, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
-        var session = sessions.FindByConnection(connectionId);
-        var run = session is null ? null : illusionTowers.Find(session);
-        if (session is null || run is null) return false;
-        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, run)) return true;
+        var session = place.Session; var run = place.Run;
+        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, run)) return;
         closeTargets.Capture(sessions, onlineUsers, run.Members.Select(member => member.Session));
         var action = await LeaveIllusionPartyTowerAsync(execution, IllusionTowerActionProjection.IllusionTowerContext(run, session),
             run.Members.Select(member => member.Session).ToArray(), token).ConfigureAwait(false);
         if (action.Changed)
             await ProjectIllusionTowerPartyDepartureAsync(execution, action, session, response, token).ConfigureAwait(false);
-        return true;
     }
 }

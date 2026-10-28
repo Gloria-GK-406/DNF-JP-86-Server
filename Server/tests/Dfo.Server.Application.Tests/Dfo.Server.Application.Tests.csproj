@@ -62,5 +62,6 @@
     <Compile Include="../Support/RecordedOutbound.Game.cs" Link="Support/RecordedOutbound.Game.cs" />
   </ItemGroup>
   <ItemGroup><Compile Include="../Support/ProtocolAlgorithmFixture.cs" Link="Support/ProtocolAlgorithmFixture.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Support/DerivedDungeonParticipation.cs" Link="Support/DerivedDungeonParticipation.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Support/DungeonClearProjectionDriver.cs" Link="Support/DungeonClearProjectionDriver.cs" /></ItemGroup>
 </Project>

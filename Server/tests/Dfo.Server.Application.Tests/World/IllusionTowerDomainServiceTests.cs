@@ -1028,7 +1028,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var retried = await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => coordinator.TryLeaveAsync(
                 f.Session, allowVirtual: false, departureResponse: null, default));
 
-            Assert.True(retried.Handled);
+            Assert.NotNull(retried);
             Assert.True(retried.Result.Succeeded);
             Assert.True(parties.FindParty(firstParty).IsVirtual);
             var survivorParty = parties.FindParty(otherParty);
@@ -1091,7 +1091,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var removed = await TestEffectFootprints.NonEffect(f.Services, GameMessageMetadata.Empty, () => TowerTestAlgorithms.IllusionParty(f)
                 .TryRemoveAsync(f.Session, targetSlot: 1, default));
 
-            Assert.True(removed.Result.Succeeded);
+            Assert.True(removed!.Result.Succeeded);
             Assert.Null(Tower(f).Find(other));
             Assert.DoesNotContain(parties.FindParty(firstParty).Members,
                 member => member.CharacterId == other.CharacterId);
