@@ -44,11 +44,42 @@ internal sealed class GuardianAltarRuleService(IGuardianAltarContentSource conte
         {
             if (!progress.Stages.TryGetValue(3522, out var cleared) || cleared < 0
                 || survivalRound < 1 || survivalRound > stage.SurvivalMaps.Length) return null;
-            return new(stage, Catalog.Maps[stage.SurvivalMaps[survivalRound - 1]], difficulty, survivalRound);
+            return WithTowers(new(stage, Catalog.Maps[stage.SurvivalMaps[survivalRound - 1]], difficulty, survivalRound), progress);
         }
         if (!progress.Stages.TryGetValue(dungeonId, out var highest) || (int)difficulty > highest + 1) return null;
         var map = stage.Maps.Single(x => x.Difficulty == difficulty);
-        return new(stage, Catalog.Maps[map.MapId], difficulty, 0);
+        return WithTowers(new(stage, Catalog.Maps[map.MapId], difficulty, 0), progress);
+    }
+    private GuardianAltarAdmission WithTowers(GuardianAltarAdmission admission, GuardianAltarProgress progress) => admission with
+    {
+        Towers = progress.Purchases.Where(x => x.Kind == GuardianAltarShopKind.Tower)
+            .Select(x => (x.Id, Level: Catalog.Shop.Single(y => y.RidableId == 1 && y.Kind == x.Kind && y.Id == x.Id).Levels[x.Tier]))
+            .Where(x => x.Level.Level > 0).ToImmutableDictionary(x => x.Id, x => x.Level)
+    };
+    public GuardianAltarProgress? BuyLevels(GuardianAltarProgress progress, GuardianAltarShopKind kind, int id, int firstLevel, int lastLevel)
+    {
+        var definition = Catalog.Shop.SingleOrDefault(x => x.RidableId == 1 && x.Kind == kind && x.Id == id);
+        var owned = progress.Purchases.SingleOrDefault(x => x.Kind == kind && x.Id == id);
+        if (definition is null || owned is null || definition.Levels[owned.Tier].Level + 1 != firstLevel || lastLevel < firstLevel) return null;
+        var target = Array.FindIndex(definition.Levels.ToArray(), x => x.Level == lastLevel);
+        return target < 0 ? null : Buy(progress, kind, id, owned.Tier, target);
+    }
+    private static bool Eligible(GuardianAltarProgress progress, GuardianAltarAchievement achievement) =>
+        progress.Stages.Count(x => x.Key is >= 3511 and <= 3522 && x.Value >= (int)achievement.Difficulty) >= achievement.ClearCount;
+    public GuardianAltarProgressView DescribeProgress(GuardianAltarProgress progress) => new(progress,
+        progress.Purchases.Select(purchase =>
+        {
+            var definition = Catalog.Shop.Single(x => x.RidableId == 1 && x.Kind == purchase.Kind && x.Id == purchase.Id);
+            return new GuardianAltarPurchaseView(purchase.Kind, purchase.Id, definition.Levels[purchase.Tier].Level,
+                definition.Levels.Skip(1).Take(purchase.Tier).Sum(x => x.Price));
+        }).ToImmutableArray(),
+        Catalog.Achievements.Where(x => Eligible(progress, x))
+            .Select(x => new GuardianAltarAchievementView(x.Id, progress.ClaimedAchievements.Contains(x.Id))).ToImmutableArray());
+    public GuardianAltarSpawnView DescribeSpawn(GuardianAltarSpawn spawn)
+    {
+        var definition = Catalog.Summons.Values.First(x => x.MonsterCode == spawn.MonsterCode && x.MinimumLevel == spawn.Level
+            && x.X == spawn.X && x.Y == spawn.Y && x.Z == spawn.Z);
+        return new(spawn, definition.Id, definition.Rank, definition.MaximumLevel);
     }
     public GuardianAltarProgress RecordClear(GuardianAltarProgress progress, GuardianAltarAdmission admission)
     {
@@ -103,7 +134,7 @@ internal sealed class GuardianAltarRuleService(IGuardianAltarContentSource conte
     {
         var reward = Catalog.Achievements.SingleOrDefault(x => x.Id == achievementId);
         return reward is not null && !progress.ClaimedAchievements.Contains(achievementId)
-            && progress.Stages.Count(x => x.Key is >= 3511 and <= 3522 && x.Value >= (int)reward.Difficulty) >= reward.ClearCount ? reward : null;
+            && Eligible(progress, reward) ? reward : null;
     }
     public GuardianAltarShopLevel? SlotUnit(GuardianAltarProgress progress, byte slot)
     {
@@ -141,6 +172,7 @@ internal sealed class GuardianAltarRuleService(IGuardianAltarContentSource conte
         return result.OrderBy(x => x.OffsetMilliseconds).ToImmutableArray();
     }
     public int MaximumEnergy(int level) => Catalog.Configuration.GageLevels.Single(x => x.Level == level).Capacity * 1000;
+    public int MaximumEnergyLevel => Catalog.Configuration.GageLevels.Max(x => x.Level);
     public int EnergyPerSecond(int level) => Catalog.Configuration.GageLevels.Single(x => x.Level == level).Rate;
     public int UpgradeEnergyCost(int level) => checked((int)(Catalog.Configuration.GageLevels.Single(x => x.Level == level).Capacity
         * Catalog.Configuration.UpgradeCostPercent) * 1000);

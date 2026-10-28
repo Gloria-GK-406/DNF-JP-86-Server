@@ -24,7 +24,8 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     IDomainEventSubscriber<DungeonParticipantLeft>
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
-    public GuardianAltarCatalog Catalog => rules.Catalog;
+    public GuardianAltarProgressView DescribeProgress(GuardianAltarProgress value) => rules.DescribeProgress(value);
+    public GuardianAltarSpawnView DescribeSpawn(GuardianAltarSpawn spawn) => rules.DescribeSpawn(spawn);
     private async ValueTask<bool> IsOpenAsync(SelectedSessionIdentity session, CancellationToken ct) =>
         (await events.GetEventInfoListAsync(session.AccountId, clock.GetUtcNow(), ct).ConfigureAwait(false)).Any(x => x.EventId == rules.EventId);
     private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
@@ -95,9 +96,6 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         var plan = rules.Admission(old, context.DungeonId, (GuardianAltarDifficulty)context.Facts.Difficulty);
         if (plan is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
         // An unlocked tower at level zero is a shop offer, not an owned map actor (70 getTowerInfo).
-        plan = plan with { Towers = old.Purchases.Where(x => x.Kind == GuardianAltarShopKind.Tower)
-            .Select(x => (x.Id, Level: rules.Catalog.Shop.Single(y => y.RidableId == 1 && y.Kind == x.Kind && y.Id == x.Id).Levels[x.Tier]))
-            .Where(x => x.Level.Level > 0).ToImmutableDictionary(x => x.Id, x => x.Level) };
         if (old.FreeTickets <= 0 && old.ExtraTickets <= 0) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DailyEntryLimitReached);
         int[] maps = [plan.Map.MapId];
         var cells = maps.Select((map, index) => (cell: new MazeCell(checked((byte)index), 0), map))
@@ -213,12 +211,13 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         var cleared = rules.RecordClear(old, current.Admission);
         var updated = await SaveAsync(character, old, old.FreeTickets > 0 ? cleared with { FreeTickets = old.FreeTickets - 1 }
             : cleared with { ExtraTickets = old.ExtraTickets - 1 }, ct).ConfigureAwait(false);
-        var receipt = await DeliverAsync(current.Session, rules.Rewards(current.Admission), ct).ConfigureAwait(false);
+        var rewards = rules.Rewards(current.Admission);
+        var receipt = await DeliverAsync(current.Session, rewards, ct).ConfigureAwait(false);
         var continuing = current.Admission.Stage.Survival && current.Admission.SurvivalRound < current.Admission.Stage.SurvivalMaps.Length
             && updated.FreeTickets + updated.ExtraTickets > 0;
         var next = current with { Status = continuing ? GuardianAltarStatus.BetweenRounds : GuardianAltarStatus.Won,
             Deadline = continuing ? now.AddSeconds(3) : now.AddSeconds(50), At = now, Generation = checked(current.Generation + 1) };
-        Put(next); return new(next) { StageEnded = true, Progress = updated, Delivery = receipt,
+        Put(next); return new(next) { StageEnded = true, Progress = updated, Delivery = receipt, Rewards = rewards,
             StarDelta = updated.GameStars - old.GameStars, NewSurvivalRecord = updated.BestSurvival > old.BestSurvival,
             UnlockedPurchases = updated.Purchases.Where(x => !old.Purchases.Any(y => y.Kind == x.Kind && y.Id == x.Id)).ToImmutableArray() };
     }
@@ -243,7 +242,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     {
         Writing(nameof(UpgradeEnergyAsync)); ct.ThrowIfCancellationRequested(); var current = Owned(session);
         if (current is not { Status: GuardianAltarStatus.Fighting } || current.EnergyLevel != expectedLevel
-            || current.EnergyLevel >= rules.Catalog.Configuration.GageLevels.Max(x => x.Level)
+            || current.EnergyLevel >= rules.MaximumEnergyLevel
             || current.Energy < rules.UpgradeEnergyCost(current.EnergyLevel)) return ValueTask.FromResult<GuardianAltarActionResult?>(null);
         var next = current with { Energy = current.Energy - rules.UpgradeEnergyCost(current.EnergyLevel),
             EnergyLevel = current.EnergyLevel + 1, Generation = checked(current.Generation + 1) };
@@ -322,14 +321,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     public ValueTask<GuardianAltarProgress?> BuyAsync(SelectedSessionIdentity session, GuardianAltarShopKind kind, int id, int firstLevel, int lastLevel, CancellationToken ct)
     {
         Writing(nameof(BuyAsync));
-        return ChangeAsync(session, x =>
-        {
-            var definition = rules.Catalog.Shop.SingleOrDefault(y => y.RidableId == 1 && y.Kind == kind && y.Id == id);
-            var owned = x.Purchases.SingleOrDefault(y => y.Kind == kind && y.Id == id);
-            if (definition is null || owned is null || definition.Levels[owned.Tier].Level + 1 != firstLevel || lastLevel < firstLevel) return null;
-            var target = Array.FindIndex(definition.Levels.ToArray(), y => y.Level == lastLevel);
-            return target < 0 ? null : rules.Buy(x, kind, id, owned.Tier, target);
-        }, ct);
+        return ChangeAsync(session, x => rules.BuyLevels(x, kind, id, firstLevel, lastLevel), ct);
     }
     public ValueTask<GuardianAltarProgress?> SetSlotAsync(SelectedSessionIdentity session, byte slot, GuardianAltarShopKind kind, int id, CancellationToken ct)
     { Writing(nameof(SetSlotAsync)); return ChangeAsync(session, x => rules.SetSlot(x, slot, kind, id), ct); }

@@ -11,16 +11,11 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class GuardianAltarProtocolTests
 {
-    private static readonly ImmutableDictionary<string, int> Attributes = ImmutableDictionary<string, int>.Empty;
-    private static GuardianAltarCatalog Catalog => new([], new(.8, 3, [new(0, 10, 1000)]),
-        ImmutableDictionary<int, GuardianAltarMap>.Empty,
-        ImmutableDictionary<int, GuardianAltarSummon>.Empty.Add(1, new(1, "enemy", "normal", 64599, 1, 1, 1682, 265, 0)), [],
-        [new(1, GuardianAltarShopKind.Unit, 1000, 0, [new(1, 2749171, 0, 100, 5, null, Attributes)]),
-         new(1, GuardianAltarShopKind.Tower, 64597, 0, [new(1, 64597, 0, 100, null, null, Attributes)])],
-        ImmutableDictionary<int, int>.Empty.Add(0, 500), [new(1, GuardianAltarDifficulty.Easy, 4, [new("normal", 2749211, 8)])]);
     private static GuardianAltarProgress Progress => new(0, new(2026, 10, 27), 3, 2, 0, 0, 0, 0, 0,
         ImmutableDictionary<int, int>.Empty.Add(3511, -1), [new(GuardianAltarShopKind.Unit, 1000, 0), new(GuardianAltarShopKind.Tower, 64597, 0)],
         [new(0, GuardianAltarShopKind.Unit, 1000)], []);
+    private static GuardianAltarProgressView View => new(Progress,
+        [new(GuardianAltarShopKind.Unit, 1000, 1, 0), new(GuardianAltarShopKind.Tower, 64597, 1, 0)], []);
     private static GuardianAltarAdmission Admission => new(new(3511, false, [new(GuardianAltarDifficulty.Easy, 25081, 0, [])], [], []),
         new(25081, 64597, [new(125000, "normal", []), new(20000, "named", [])]), GuardianAltarDifficulty.Easy, 0);
 
@@ -54,7 +49,7 @@ public sealed class GuardianAltarProtocolTests
     [Fact]
     public void Profile_has_a_33_byte_header_and_all_seven_counted_groups_without_unearned_achievements()
     {
-        var body = GuardianAltarPayloadCodec.Open(Progress, Catalog);
+        var body = GuardianAltarPayloadCodec.Open(View);
         using var reader = new BinaryReader(new MemoryStream(body));
         Assert.Equal(1, reader.ReadByte()); Assert.Equal(0, reader.ReadInt32()); Assert.Equal(1u, reader.ReadUInt32());
         Assert.Equal(1, reader.ReadInt32()); Assert.Equal(3, reader.ReadInt32()); Assert.Equal(2, reader.ReadInt32());
@@ -63,7 +58,7 @@ public sealed class GuardianAltarProtocolTests
         for (var group = 0; group < widths.Length; group++)
         { Assert.Equal((uint)expectedCounts[group], reader.ReadUInt32()); Assert.Equal(expectedCounts[group] * widths[group], reader.ReadBytes(expectedCounts[group] * widths[group]).Length); }
         Assert.Equal(reader.BaseStream.Length, reader.BaseStream.Position);
-        Assert.Equal(new byte[] { 1, 1, 0, 0, 0 }, GuardianAltarPayloadCodec.Open(null, Catalog));
+        Assert.Equal(new byte[] { 1, 1, 0, 0, 0 }, GuardianAltarPayloadCodec.Open(null));
     }
     [Fact]
     public void Stage_map_includes_the_initial_monster_group_after_phase_summaries()
@@ -87,7 +82,7 @@ public sealed class GuardianAltarProtocolTests
     [Fact]
     public void Enemy_spawn_contains_the_native_36_byte_declaration_after_its_sequence()
     {
-        var body = GuardianAltarPayloadCodec.Spawn(17, new(0, 64599, 1, 0, 1682, 265, 0), Catalog);
+        var body = GuardianAltarPayloadCodec.Spawn(17, new(new(0, 64599, 1, 0, 1682, 265, 0), 1, "normal", 1));
         Assert.Equal(38, body.Length); Assert.Equal((ushort)17, BinaryPrimitives.ReadUInt16LittleEndian(body));
         Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(2))); Assert.Equal(1, body[6]);
         Assert.Equal(64599, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(14)));
@@ -104,15 +99,15 @@ public sealed class GuardianAltarProtocolTests
             new(2026, 10, 27), GuardianAltarStatus.Won, 1, 2, DateTimeOffset.UnixEpoch, null,
             2, 0, 10000, 0, 1, [], 0, ImmutableDictionary<byte, DateTimeOffset>.Empty);
         var body = GuardianAltarPayloadCodec.Result(new(state) { StageEnded = true, StarDelta = 3,
-            UnlockedPurchases = [new(GuardianAltarShopKind.Unit, 1000, 0)] }, Progress, Catalog);
+            UnlockedPurchases = [new(GuardianAltarShopKind.Unit, 1000, 0)], Rewards = [new("normal", 2749211, 4)] }, View);
         Assert.Equal(61, body.Length); Assert.Equal(3, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(21)));
         Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(25)));
         Assert.Equal(2749211, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(33)));
         Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(37)));
         Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(41)));
         Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(57)));
-        Assert.Equal(GuardianAltarPayloadCodec.Open(Progress, Catalog).AsSpan(9).ToArray(),
-            GuardianAltarPayloadCodec.ProfileUpdate(Progress, Catalog).AsSpan(1).ToArray());
+        Assert.Equal(GuardianAltarPayloadCodec.Open(View).AsSpan(9).ToArray(),
+            GuardianAltarPayloadCodec.ProfileUpdate(View).AsSpan(1).ToArray());
         Assert.Equal(new byte[] { 3, 0, 0, 0, 1 }, GuardianAltarPayloadCodec.Eplp(state, true));
         Assert.Equal(new byte[] { 0, 0, 0, 0, 0 }, GuardianAltarPayloadCodec.Eplp(state with { Status = GuardianAltarStatus.Lost }, false));
         Assert.Equal(new byte[] { 1, 0, 0, 0, 1 }, GuardianAltarPayloadCodec.Eplp(state with

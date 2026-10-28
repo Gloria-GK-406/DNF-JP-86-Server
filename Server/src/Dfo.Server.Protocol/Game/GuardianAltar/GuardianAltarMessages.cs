@@ -61,24 +61,24 @@ internal sealed class GuardianAltarAchievementDecoder : IGameMessageDecoder
 internal sealed class GuardianAltarResetDecoder : IGameMessageDecoder
 { public IClientNetworkMessage? Decode(GameMessageMetadata m, ReadOnlySpan<byte> b) => GuardianAltarRequestCodec.Decode(m, GuardianAltarOperation.Reset, b); }
 
-internal sealed record GuardianAltarOpenResponse(GuardianAltarProgress? Progress, GuardianAltarCatalog Catalog)
+internal sealed record GuardianAltarOpenResponse(GuardianAltarProgressView? View)
     : GameStateSynchronizationMessage, IGameCmdMessage
-{ internal override ushort Type => 0x0392; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Open(Progress, Catalog); }
+{ internal override ushort Type => 0x0392; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Open(View); }
 internal sealed record GuardianAltarActionResponse(GuardianAltarRequest Request, int Result, GuardianAltarProgress? Progress,
     GuardianAltarRunState? Run) : GameStateSynchronizationMessage, IGameCmdMessage
 { internal override ushort Type => (ushort)Request.Operation; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Response(Request, Result, Progress, Run); }
-internal sealed record GuardianAltarProfileMessage(GuardianAltarProgress Progress, GuardianAltarCatalog Catalog)
+internal sealed record GuardianAltarProfileMessage(GuardianAltarProgressView View)
     : GameStateSynchronizationMessage, IGameNotiMessage
-{ internal override ushort Type => 0x0362; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.ProfileUpdate(Progress, Catalog); }
+{ internal override ushort Type => 0x0362; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.ProfileUpdate(View); }
 internal sealed record GuardianAltarStageInfoMessage(GuardianAltarAdmission Admission) : GameStateSynchronizationMessage, IGameNotiMessage
 { internal override ushort Type => 0x035B; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.StageInfo(Admission); }
 internal sealed record GuardianAltarMapMessage(DungeonRunState Run, GuardianAltarAdmission Admission) : GameStateSynchronizationMessage, IGameNotiMessage
 { internal override ushort Type => 0x035C; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Map(Run, Admission); }
-internal sealed record GuardianAltarSpawnMessage(ushort Sequence, GuardianAltarSpawn Spawn, GuardianAltarCatalog Catalog)
+internal sealed record GuardianAltarSpawnMessage(ushort Sequence, GuardianAltarSpawnView View)
     : GameStateSynchronizationMessage, IGameNotiMessage
-{ internal override ushort Type => 0x035D; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Spawn(Sequence, Spawn, Catalog); }
-internal sealed record GuardianAltarResultMessage(GuardianAltarActionResult Action, GuardianAltarProgress Progress, GuardianAltarCatalog Catalog)
+{ internal override ushort Type => 0x035D; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Spawn(Sequence, View); }
+internal sealed record GuardianAltarResultMessage(GuardianAltarActionResult Action, GuardianAltarProgressView View)
     : GameStateSynchronizationMessage, IGameNotiMessage
-{ internal override ushort Type => 0x0361; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Result(Action, Progress, Catalog); }
+{ internal override ushort Type => 0x0361; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Result(Action, View); }
 internal sealed record GuardianAltarEplpMessage(GuardianAltarRunState Run, bool HasTickets) : GameStateSynchronizationMessage, IGameNotiMessage
 { internal override ushort Type => 0x0360; internal override byte[] EncodeBody() => GuardianAltarPayloadCodec.Eplp(Run, HasTickets); }

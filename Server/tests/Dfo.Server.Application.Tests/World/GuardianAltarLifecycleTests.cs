@@ -141,7 +141,7 @@ public sealed class GuardianAltarLifecycleTests
             var old = (await store.ReadAsync(new(71), default))!;
             await using (var tx = f.Scope.Begin()) { await store.SaveAsync(new(71), old with { Revision = old.Revision + 1, ExtraTickets = 100 }, old.Revision, default); await tx.CommitAsync(default); }
             foreach (var difficulty in Enum.GetValues<GuardianAltarDifficulty>())
-            foreach (var stage in altar.Catalog.Stages.Where(x => !x.Survival))
+            foreach (var stage in f.Services.GetRequiredService<IGuardianAltarRuleService>().Catalog.Stages.Where(x => !x.Survival))
             {
                 await using (var tx = f.Scope.Begin()) { Assert.NotNull(await altar.OpenAsync(f.Session, default)); await tx.CommitAsync(default); }
                 var context = Entry with { DungeonId = stage.DungeonId, Facts = DungeonEntryFacts.None with { Difficulty = (Dfo.Server.Data.World.DungeonDifficulty)difficulty } };
@@ -356,6 +356,11 @@ public sealed class GuardianAltarLifecycleTests
             Assert.Equal(12, (await altar.ReadProgressAsync(new(71), default)).AvailableStars);
             await using (var tx = f.Scope.Begin()) { Assert.NotNull(await altar.BuyAsync(f.Session, GuardianAltarShopKind.Unit, 1000, 2, 3, default)); await tx.CommitAsync(default); }
             Assert.Equal(9, (await altar.ReadProgressAsync(new(71), default)).AvailableStars);
+            var upgradedView = altar.DescribeProgress(await altar.ReadProgressAsync(new(71), default));
+            var upgradedUnit = upgradedView.Purchases.Single(x => x.Kind == GuardianAltarShopKind.Unit && x.Id == 1000);
+            Assert.Equal(3, upgradedUnit.Level);
+            Assert.Equal(3, upgradedUnit.InvestedStars);
+            Assert.False(upgradedView.Achievements.Single(x => x.Id == 1).Claimed);
             await using (var tx = f.Scope.Begin()) Assert.Null(await altar.BuyAsync(f.Session, GuardianAltarShopKind.Unit, 1000, 2, 3, default));
             await using (var tx = f.Scope.Begin())
             { Assert.NotNull(await altar.ExchangeSlotsAsync(f.Session, 0, 1, 1000, 2000, default)); await tx.CommitAsync(default); }
@@ -376,6 +381,9 @@ public sealed class GuardianAltarLifecycleTests
             var persisted = await reopened.Services.GetRequiredService<IGuardianAltarProgressDomainStore>().ReadAsync(new(71), default);
             Assert.Contains(1, persisted!.ClaimedAchievements); Assert.Equal(1, persisted.StarResetCount);
             Assert.Equal(12, persisted.AvailableStars);
+            var claimedView = altar.DescribeProgress(persisted);
+            Assert.True(claimedView.Achievements.Single(x => x.Id == 1).Claimed);
+            Assert.Null(rules.ClaimableAchievement(persisted, 1));
         });
     }
 }

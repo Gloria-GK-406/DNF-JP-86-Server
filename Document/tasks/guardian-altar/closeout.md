@@ -21,14 +21,19 @@
 
 | 验证 | 结果 | 日志 |
 |---|---|---|
-| 完整Release构建 | 0警告、0错误 | closeout-build.log |
-| 服务端CI同分类Unit | 1629通过，0失败、0跳过；分项37+792+23+20+757 | closeout-unit-final.log |
-| 祭坛、路由、死亡复活、房间与架构集成 | 270通过，0失败、0跳过 | closeout-application.log |
-| 协议全量，提供实际PVF | 2073通过，0失败、0跳过 | closeout-protocol-final.log |
+| 完整Release构建 | 0警告、0错误 | closeout-rule-owner-build.log |
+| 服务端CI同分类Unit | 1629通过，0失败、0跳过；分项37+792+23+20+757 | closeout-rule-owner-unit.log |
+| 祭坛、路由、死亡复活、房间与架构集成 | 270通过，0失败、0跳过 | closeout-rule-owner-application.log |
+| 协议全量，提供实际PVF | 2073通过，0失败、0跳过 | closeout-rule-owner-protocol.log |
 | 祭坛实际PVF内容 | 2通过，0失败、0跳过 | closeout-content-final.log |
 | Schema归属 | 3通过，0失败、0跳过 | closeout-persistence-final.log |
 | GM前端 | 13个文件、158项通过 | closeout-gm-test.log |
 | 测试报告守卫 | 3通过 | closeout-report-guard.log |
+
+规则服务统一解析购买等级、可用塔、能量等级上限、成就资格和展示事实。
+结算只选择一次奖励，实际发放与结果编码复用同一结果；领域接口不再暴露原始Catalog，协议层只写已解析视图。
+对比重构前后的编码器，117种配置状态、20种生成声明、135种关卡准入各三种结果合计659组正文逐字节一致
+（`closeout-codec-equivalence.log`）；这不增加实机覆盖范围。
 
 主干的新鲜度检查由`GameRequestFreshness`统一提供；祭坛在唯一命令入口检查一次。
 `DungeonOwnerRoutingSourceTests`将0392–039A入口按具名位置与次数登记，

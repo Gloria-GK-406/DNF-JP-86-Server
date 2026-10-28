@@ -87,7 +87,7 @@ internal sealed class GuardianAltarTimerCommandHandler(IGuardianAltarDomainServi
                     action.State.RunId, action.State.Generation, action.State.Admission.Map.MapId, spawn.Sequence,
                     unchecked((short)spawn.Sequence), spawn.Spawn.MonsterCode, spawn.Spawn.Level,
                     action.State.Admission.BasisLevel, action.State.Phase,
-                    Convert.ToHexString(GuardianAltarPayloadCodec.Spawn(spawn.Sequence, spawn.Spawn, altar.Catalog)));
+                    Convert.ToHexString(GuardianAltarPayloadCodec.Spawn(spawn.Sequence, altar.DescribeSpawn(spawn.Spawn))));
             if (action.StageEnded)
                 logger.LogInformation("Guardian altar end prepared run={RunId} status={Status} reason={Reason} returnDue={Deadline}",
                     action.State.RunId, action.State.Status, action.State.EndReason, action.State.Deadline);

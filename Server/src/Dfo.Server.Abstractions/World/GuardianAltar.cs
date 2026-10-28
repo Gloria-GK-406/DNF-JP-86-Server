@@ -10,6 +10,11 @@ public sealed record GuardianAltarPurchase(GuardianAltarShopKind Kind, int Id, i
 /// <summary>Coalesces a wake of the guardian timer; provides no queue or gameplay state access.</summary>
 public interface IGuardianAltarSchedulerWakeSignal { void Wake(); }
 public sealed record GuardianAltarSlot(byte Index, GuardianAltarShopKind Kind, int Id);
+public sealed record GuardianAltarPurchaseView(GuardianAltarShopKind Kind, int Id, int Level, int InvestedStars);
+public sealed record GuardianAltarAchievementView(int Id, bool Claimed);
+public sealed record GuardianAltarProgressView(GuardianAltarProgress Progress,
+    ImmutableArray<GuardianAltarPurchaseView> Purchases, ImmutableArray<GuardianAltarAchievementView> Achievements);
+public sealed record GuardianAltarSpawnView(GuardianAltarSpawn Spawn, int SummonId, string Rank, int MaximumLevel);
 public sealed record GuardianAltarProgress(
     long Revision, DateOnly TicketPeriod, int FreeTickets, int ExtraTickets,
     int GameStars, int PurchasedStars, int AvailableStars, int BestSurvival, int StarResetCount,
@@ -46,6 +51,9 @@ public interface IGuardianAltarRuleService
     GuardianAltarAdmission? Admission(GuardianAltarProgress progress, int dungeonId, GuardianAltarDifficulty difficulty, int survivalRound = 1);
     GuardianAltarProgress RecordClear(GuardianAltarProgress progress, GuardianAltarAdmission admission);
     GuardianAltarProgress? Buy(GuardianAltarProgress progress, GuardianAltarShopKind kind, int id, int expectedTier, int targetTier);
+    GuardianAltarProgress? BuyLevels(GuardianAltarProgress progress, GuardianAltarShopKind kind, int id, int firstLevel, int lastLevel);
+    GuardianAltarProgressView DescribeProgress(GuardianAltarProgress progress);
+    GuardianAltarSpawnView DescribeSpawn(GuardianAltarSpawn spawn);
     GuardianAltarProgress? SetSlot(GuardianAltarProgress progress, byte slot, GuardianAltarShopKind kind, int id);
     GuardianAltarProgress? ExchangeSlots(GuardianAltarProgress progress, byte first, byte second);
     GuardianAltarProgress ResetStars(GuardianAltarProgress progress);
@@ -55,6 +63,7 @@ public interface IGuardianAltarRuleService
     ImmutableArray<GuardianAltarReward> Rewards(GuardianAltarAdmission admission);
     ImmutableArray<GuardianAltarSpawn> PlanPhase(GuardianAltarAdmission admission, int phase, int alive);
     int MaximumEnergy(int level);
+    int MaximumEnergyLevel { get; }
     int EnergyPerSecond(int level);
     int UpgradeEnergyCost(int level);
 }
@@ -80,10 +89,12 @@ public sealed record GuardianAltarActionResult(GuardianAltarRunState State)
     public int StarDelta { get; init; }
     public bool NewSurvivalRecord { get; init; }
     public ImmutableArray<GuardianAltarPurchase> UnlockedPurchases { get; init; } = [];
+    public ImmutableArray<GuardianAltarReward> Rewards { get; init; } = [];
 }
 public interface IGuardianAltarDomainService
 {
-    GuardianAltarCatalog Catalog { get; }
+    GuardianAltarProgressView DescribeProgress(GuardianAltarProgress progress);
+    GuardianAltarSpawnView DescribeSpawn(GuardianAltarSpawn spawn);
     bool Supports(int dungeonId);
     ValueTask<GuardianAltarProgress> ReadProgressAsync(CharacterId character, CancellationToken ct);
     ValueTask<GuardianAltarProgress?> OpenAsync(SelectedSessionIdentity session, CancellationToken ct);

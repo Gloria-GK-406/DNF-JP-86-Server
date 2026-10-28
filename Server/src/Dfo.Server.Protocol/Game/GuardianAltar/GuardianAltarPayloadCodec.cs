@@ -8,12 +8,13 @@ internal static class GuardianAltarPayloadCodec
 {
     private static byte[] Write(Action<BinaryWriter> action)
     { using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); action(writer); return stream.ToArray(); }
-    public static byte[] Open(GuardianAltarProgress? progress, GuardianAltarCatalog catalog) => Write(w =>
-    { w.Write((byte)1); w.Write(progress is null ? 1 : 0); if (progress is null) return; w.Write(1u); Profile(w, progress, catalog); });
-    public static byte[] ProfileUpdate(GuardianAltarProgress progress, GuardianAltarCatalog catalog) => Write(w =>
-    { w.Write((byte)0); Profile(w, progress, catalog); });
-    private static void Profile(BinaryWriter w, GuardianAltarProgress p, GuardianAltarCatalog c)
+    public static byte[] Open(GuardianAltarProgressView? view) => Write(w =>
+    { w.Write((byte)1); w.Write(view is null ? 1 : 0); if (view is null) return; w.Write(1u); Profile(w, view); });
+    public static byte[] ProfileUpdate(GuardianAltarProgressView view) => Write(w =>
+    { w.Write((byte)0); Profile(w, view); });
+    private static void Profile(BinaryWriter w, GuardianAltarProgressView view)
     {
+        var p = view.Progress;
         w.Write(1); w.Write(p.FreeTickets); w.Write(p.ExtraTickets); w.Write(p.GameStars); w.Write(p.PurchasedStars); w.Write(p.AvailableStars);
         w.Write(checked((short)p.BestSurvival)); w.Write(checked((short)p.StarResetCount));
         w.Write(0); w.Write((byte)0);
@@ -21,18 +22,17 @@ internal static class GuardianAltarPayloadCodec
         foreach (var (stage, difficulty) in p.Stages.OrderBy(x => x.Key)) { w.Write(stage); w.Write(difficulty); }
         foreach (var kind in Enum.GetValues<GuardianAltarShopKind>())
         {
-            var items = p.Purchases.Where(x => x.Kind == kind).OrderBy(x => x.Id).ToArray(); w.Write((uint)items.Length);
-            foreach (var item in items) Purchase(w, item, c);
+            var items = view.Purchases.Where(x => x.Kind == kind).OrderBy(x => x.Id).ToArray(); w.Write((uint)items.Length);
+            foreach (var item in items) Purchase(w, item);
         }
         Slots(w, p, GuardianAltarShopKind.Unit); Slots(w, p, GuardianAltarShopKind.Skill);
-        var achievements = Eligible(p, c); w.Write((uint)achievements.Length);
-        foreach (var reward in achievements) { w.Write(reward.Id); w.Write(p.ClaimedAchievements.Contains(reward.Id) ? (byte)1 : (byte)0); }
+        var achievements = view.Achievements; w.Write((uint)achievements.Length);
+        foreach (var reward in achievements) { w.Write(reward.Id); w.Write(reward.Claimed ? (byte)1 : (byte)0); }
     }
-    private static void Purchase(BinaryWriter w, GuardianAltarPurchase item, GuardianAltarCatalog c)
+    private static void Purchase(BinaryWriter w, GuardianAltarPurchaseView item)
     {
-        var definition = c.Shop.Single(x => x.RidableId == 1 && x.Kind == item.Kind && x.Id == item.Id);
-        w.Write((int)item.Kind); w.Write(item.Id); w.Write(checked((short)definition.Levels[item.Tier].Level));
-        w.Write(checked((short)definition.Levels.Skip(1).Take(item.Tier).Sum(x => x.Price)));
+        w.Write((int)item.Kind); w.Write(item.Id); w.Write(checked((short)item.Level));
+        w.Write(checked((short)item.InvestedStars));
     }
     private static void Slots(BinaryWriter w, GuardianAltarProgress p, GuardianAltarShopKind kind)
     {
@@ -63,13 +63,12 @@ internal static class GuardianAltarPayloadCodec
             w.Write(tower.Actor.ActorType); w.Write((byte)0); w.Write((byte)0); w.Write((byte)0);
         }
     });
-    public static byte[] Spawn(ushort sequence, GuardianAltarSpawn spawn, GuardianAltarCatalog c) => Write(w =>
+    public static byte[] Spawn(ushort sequence, GuardianAltarSpawnView view) => Write(w =>
     {
-        var definition = c.Summons.Values.First(x => x.MonsterCode == spawn.MonsterCode && x.MinimumLevel == spawn.Level
-            && x.X == spawn.X && x.Y == spawn.Y && x.Z == spawn.Z);
-        w.Write(sequence); w.Write(definition.Id); w.Write((byte)1); w.Write((byte)0); w.Write((short)0);
-        w.Write(definition.Rank == "normal" ? 0 : definition.Rank == "named" ? 1 : 2); w.Write(definition.MonsterCode);
-        w.Write((short)spawn.Level); w.Write((short)0); w.Write(definition.MaximumLevel);
+        var spawn = view.Spawn;
+        w.Write(sequence); w.Write(view.SummonId); w.Write((byte)1); w.Write((byte)0); w.Write((short)0);
+        w.Write(view.Rank == "normal" ? 0 : view.Rank == "named" ? 1 : 2); w.Write(spawn.MonsterCode);
+        w.Write((short)spawn.Level); w.Write((short)0); w.Write(view.MaximumLevel);
         w.Write((int)spawn.X); w.Write((int)spawn.Y); w.Write((int)spawn.Z);
     });
     public static byte[] Response(GuardianAltarRequest r, int result, GuardianAltarProgress? p, GuardianAltarRunState? run) => Write(w =>
@@ -92,19 +91,17 @@ internal static class GuardianAltarPayloadCodec
             case GuardianAltarOperation.Reset: w.Write(0); break;
         }
     });
-    private static GuardianAltarAchievement[] Eligible(GuardianAltarProgress p, GuardianAltarCatalog c) => c.Achievements.Where(x =>
-        p.Stages.Count(stage => stage.Key is >= 3511 and <= 3522 && stage.Value >= (int)x.Difficulty) >= x.ClearCount).ToArray();
-    public static byte[] Result(GuardianAltarActionResult action, GuardianAltarProgress p, GuardianAltarCatalog c) => Write(w =>
+    public static byte[] Result(GuardianAltarActionResult action, GuardianAltarProgressView view) => Write(w =>
     {
-        var run = action.State;
-        var a = run.Admission; var won = run.Status is GuardianAltarStatus.Won or GuardianAltarStatus.BetweenRounds;
+        var run = action.State; var p = view.Progress;
+        var a = run.Admission;
         w.Write(a.Stage.Survival ? 1 : 0); w.Write(a.Stage.Survival ? a.SurvivalRound : 0); w.Write(p.BestSurvival);
         w.Write(action.NewSurvivalRecord ? (byte)1 : (byte)0); w.Write(a.Stage.DungeonId); w.Write((int)a.Difficulty); w.Write(action.StarDelta);
-        var rewards = !won ? [] : a.Stage.Survival ? a.Stage.SurvivalRewards.Single(x => x.FirstRound <= a.SurvivalRound && x.LastRound >= a.SurvivalRound).Rewards
-            : a.Stage.Maps.Single(x => x.Difficulty == a.Difficulty).Rewards;
+        var rewards = action.Rewards;
         w.Write((uint)rewards.Length); foreach (var reward in rewards) { w.Write(0); w.Write(reward.ItemId); w.Write(reward.Count); }
-        w.Write((uint)action.UnlockedPurchases.Length); foreach (var item in action.UnlockedPurchases) Purchase(w, item, c);
-        var achievements = Eligible(p, c); w.Write((uint)achievements.Length); foreach (var achievement in achievements) { w.Write(achievement.Id); w.Write(p.ClaimedAchievements.Contains(achievement.Id) ? (byte)1 : (byte)0); }
+        w.Write((uint)action.UnlockedPurchases.Length); foreach (var item in action.UnlockedPurchases)
+            Purchase(w, view.Purchases.Single(x => x.Kind == item.Kind && x.Id == item.Id));
+        var achievements = view.Achievements; w.Write((uint)achievements.Length); foreach (var achievement in achievements) { w.Write(achievement.Id); w.Write(achievement.Claimed ? (byte)1 : (byte)0); }
     });
     public static byte[] Eplp(GuardianAltarRunState run, bool hasTickets) => Write(w =>
     { w.Write((int)(run.EndReason ?? (run.Status == GuardianAltarStatus.Won ? GuardianAltarEndReason.Cleared : GuardianAltarEndReason.CenterDestroyed)));

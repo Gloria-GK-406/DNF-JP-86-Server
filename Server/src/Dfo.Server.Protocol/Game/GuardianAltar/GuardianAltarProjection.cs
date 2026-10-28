@@ -36,12 +36,12 @@ internal static class GuardianAltarProjection
         var frames = new List<IGameServerMessage>();
         if (action.RoundStarted)
             frames.Add(new GuardianAltarMapMessage(runs.Find(state.RunId)!, state.Admission));
-        frames.AddRange(action.Spawns.Select(x => new GuardianAltarSpawnMessage(x.Sequence, x.Spawn, altar.Catalog)));
+        frames.AddRange(action.Spawns.Select(x => new GuardianAltarSpawnMessage(x.Sequence, altar.DescribeSpawn(x.Spawn))));
         if (action.StageEnded)
         {
             var progress = action.Progress ?? await altar.ReadProgressAsync(session.CharacterId, ct).ConfigureAwait(false);
             if (state.Status is GuardianAltarStatus.Won or GuardianAltarStatus.BetweenRounds)
-                frames.Add(new GuardianAltarResultMessage(action, progress, altar.Catalog));
+                frames.Add(new GuardianAltarResultMessage(action, altar.DescribeProgress(progress)));
             if (state.Status != GuardianAltarStatus.BetweenRounds) frames.Add(new GuardianAltarEplpMessage(state, progress.FreeTickets + progress.ExtraTickets > 0));
         }
         frames.AddRange(InventoryFrames(action.Delivery, slots, clock));

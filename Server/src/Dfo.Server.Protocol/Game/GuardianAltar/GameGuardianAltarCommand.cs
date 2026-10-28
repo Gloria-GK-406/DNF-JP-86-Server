@@ -41,14 +41,14 @@ internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainServic
         if (!sessions.IsInWorld(session)) return true;
         var frames = new List<IGameServerMessage>();
         if (input.Operation == GuardianAltarOperation.Open)
-            frames.Add(new GuardianAltarOpenResponse(result.Progress, altar.Catalog));
+            frames.Add(new GuardianAltarOpenResponse(result.Progress is { } opened ? altar.DescribeProgress(opened) : null));
         else
         {
             frames.Add(new GuardianAltarActionResponse(input, result.Progress is not null || result.Action is not null ? 0 : 2,
                 result.Progress, result.Action?.State ?? (runs.Find(session.CharacterId) is { } run ? altar.Find(run.RunId) : null)));
             if (input.Operation == GuardianAltarOperation.Reset && result.Progress is { } reset)
             {
-                frames.Add(new GuardianAltarProfileMessage(reset, altar.Catalog));
+                frames.Add(new GuardianAltarProfileMessage(altar.DescribeProgress(reset)));
                 frames.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(session.CharacterId).GoldAsync(ct).ConfigureAwait(false), clock.GetUtcNow()));
             }
         }
