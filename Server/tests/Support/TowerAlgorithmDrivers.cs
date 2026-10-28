@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Protocol.Game.DungeonClear;
+using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Data.Parties;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
@@ -121,9 +123,17 @@ internal sealed class BossTowerPartyDriver(IBossTowerDomainService towers, IPart
     : TowerAlgorithmDriver(sessions, null!, null!, TimeProvider.System, closer, logger, null!, null!, null!, null!,
         boss: towers, mutations: mutations, parties: parties, areas: areas, runs: runs, projectionSource: projection, notifications: notifications)
 {
-    public ValueTask<BossTowerPartyAttempt> TryLeaveAsync(SelectedSessionIdentity caller, bool allowVirtual, IGameServerMessage? departureResponse, CancellationToken token) => exit.CoordinateBossTowerPartyAsync(Execution, PartyChange.Leave, caller, null, allowVirtual, departureResponse, token);
-    public ValueTask<BossTowerPartyAttempt> TryRemoveAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => exit.CoordinateBossTowerPartyAsync(Execution, PartyChange.Remove, caller, targetSlot, false, null, token);
-    public ValueTask<BossTowerPartyAttempt> TryTransferAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => exit.CoordinateBossTowerPartyAsync(Execution, PartyChange.Transfer, caller, targetSlot, false, null, token);
+    public ValueTask<BossTowerPartyAttempt> TryLeaveAsync(SelectedSessionIdentity caller, bool allowVirtual, IGameServerMessage? departureResponse, CancellationToken token) => CoordinateAsync(PartyChange.Leave, caller, null, allowVirtual, departureResponse, token);
+    public ValueTask<BossTowerPartyAttempt> TryRemoveAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => CoordinateAsync(PartyChange.Remove, caller, targetSlot, false, null, token);
+    public ValueTask<BossTowerPartyAttempt> TryTransferAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => CoordinateAsync(PartyChange.Transfer, caller, targetSlot, false, null, token);
+    // The party command locates the whole party first; only a party placed in this tower reaches its channel.
+    private ValueTask<BossTowerPartyAttempt> CoordinateAsync(PartyChange change, SelectedSessionIdentity caller, byte? targetSlot, bool allowVirtual, IGameServerMessage? departureResponse, CancellationToken token)
+    {
+        var (candidates, place) = exit.LocatePartyOf(caller, targetSlot);
+        return place is DungeonPartyPlace.PartyInBossTower located
+            ? exit.CoordinateBossTowerPartyAsync(Execution, change, caller, candidates, located, allowVirtual, departureResponse, token)
+            : ValueTask.FromResult(new BossTowerPartyAttempt(false, PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)));
+    }
 }
 
 internal sealed class IllusionTowerProjectionDriver(IIllusionTowerDomainService towers, ITowerAlgorithmMutations? mutations,
@@ -172,7 +182,15 @@ internal sealed class IllusionTowerPartyDriver(IIllusionTowerDomainService tower
     : TowerAlgorithmDriver(sessions, null!, null!, TimeProvider.System, closer, logger, null!, null!, null!, null!,
         illusion: towers, mutations: mutations, parties: parties, areas: areas, runs: runs, projectionSource: projection, notifications: notifications)
 {
-    public ValueTask<IllusionTowerPartyAttempt> TryLeaveAsync(SelectedSessionIdentity caller, bool allowVirtual, IGameServerMessage? departureResponse, CancellationToken token) => exit.CoordinateIllusionTowerPartyAsync(Execution, PartyChange.Leave, caller, null, allowVirtual, departureResponse, token);
-    public ValueTask<IllusionTowerPartyAttempt> TryRemoveAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => exit.CoordinateIllusionTowerPartyAsync(Execution, PartyChange.Remove, caller, targetSlot, false, null, token);
-    public ValueTask<IllusionTowerPartyAttempt> TryTransferAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => exit.CoordinateIllusionTowerPartyAsync(Execution, PartyChange.Transfer, caller, targetSlot, false, null, token);
+    public ValueTask<IllusionTowerPartyAttempt> TryLeaveAsync(SelectedSessionIdentity caller, bool allowVirtual, IGameServerMessage? departureResponse, CancellationToken token) => CoordinateAsync(PartyChange.Leave, caller, null, allowVirtual, departureResponse, token);
+    public ValueTask<IllusionTowerPartyAttempt> TryRemoveAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => CoordinateAsync(PartyChange.Remove, caller, targetSlot, false, null, token);
+    public ValueTask<IllusionTowerPartyAttempt> TryTransferAsync(SelectedSessionIdentity caller, byte targetSlot, CancellationToken token) => CoordinateAsync(PartyChange.Transfer, caller, targetSlot, false, null, token);
+    // The party command locates the whole party first; only a party placed in this tower reaches its channel.
+    private ValueTask<IllusionTowerPartyAttempt> CoordinateAsync(PartyChange change, SelectedSessionIdentity caller, byte? targetSlot, bool allowVirtual, IGameServerMessage? departureResponse, CancellationToken token)
+    {
+        var (candidates, place) = exit.LocatePartyOf(caller, targetSlot);
+        return place is DungeonPartyPlace.PartyInIllusionTower located
+            ? exit.CoordinateIllusionTowerPartyAsync(Execution, change, caller, candidates, located, allowVirtual, departureResponse, token)
+            : ValueTask.FromResult(new IllusionTowerPartyAttempt(false, PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)));
+    }
 }

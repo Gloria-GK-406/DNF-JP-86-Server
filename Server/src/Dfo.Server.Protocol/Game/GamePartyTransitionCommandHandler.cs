@@ -328,8 +328,25 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             return;
         }
 
-        if (await TryGiveUpTowersAsync(execution, session, cancellationToken).ConfigureAwait(false)) return;
+        var (candidates, place) = LocatePartyOf(session, null);
+        switch (place)
+        {
+            case DungeonPartyPlace.PartyInBossTower boss:
+                _ = await CoordinateBossTowerPartyAsync(execution, PartyChange.Leave, session, candidates, boss, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                return;
+            case DungeonPartyPlace.PartyInIllusionTower illusion:
+                _ = await CoordinateIllusionTowerPartyAsync(execution, PartyChange.Leave, session, candidates, illusion, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                return;
+            default:
+                await GiveUpOrdinaryAsync(execution, context, session, cancellationToken).ConfigureAwait(false);
+                return;
+        }
+    }
 
+    private async ValueTask GiveUpOrdinaryAsync(
+        CommandExecutionContext execution, NetworkDispatchContext context,
+        SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
         var result = await currentViews.TryLoadAsync(session, cancellationToken)
             .ConfigureAwait(false);
         if (result is null || onlineCharacters.PositionOf(session) is not { } position)

@@ -95,10 +95,4 @@ internal sealed partial class GamePartyTransitionCommandHandler
         workUnits.WriteAsync(execution, new("select-boss-tower-result", ProtectedParticipants(BossTowerActionProjection.BossTowerMembers(expected), session)),
             (_, ct) => bossTowers.SelectResultAsync(BossTowerActionProjection.BossTowerContext(expected, session), option, ct), token);
 
-    private async ValueTask<bool> TryGiveUpTowersAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct)
-    {
-        if ((await CoordinateBossTowerPartyAsync(execution, PartyChange.Leave, session, null, true, new GiveUpGameResponse(), ct).ConfigureAwait(false)).Handled) return true;
-        return (await CoordinateIllusionTowerPartyAsync(execution, PartyChange.Leave, session, null, true, new GiveUpGameResponse(), ct).ConfigureAwait(false)).Handled;
-    }
-
 }

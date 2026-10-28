@@ -136,14 +136,11 @@ public sealed partial class PartyCommandHandlerTests
                 [
                     "invite:1->2:64",
                     "accept:2<-1",
-                    "query:2", // Boss and illusion domains each capture current party facts.
-                    "query:2",
+                    "query:2", // The whole party is located once over its current party facts.
                     "leave:2",
                     "query:1",
-                    "query:1",
-                    "query:1",
+                    "query:1", // The ordinary flow then reads the roster for its target.
                     "lead:1->2",
-                    "query:1",
                     "query:1",
                     "query:1",
                     "remove:1->2",
@@ -262,7 +259,7 @@ public sealed partial class PartyCommandHandlerTests
                     CancellationToken.None);
 
             Assert.IsType<GameRemovePartyMemberCommand>(Assert.Single(commands.Commands));
-            Assert.Equal(["query:1", "query:1", "query:1"], parties.Writes);
+            Assert.Equal(["query:1", "query:1"], parties.Writes);
             Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
         });
     }
