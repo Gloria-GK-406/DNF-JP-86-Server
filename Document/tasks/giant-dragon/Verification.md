@@ -15,6 +15,8 @@ decision: manual_required
 
 变基保留主干LinkedDungeon与成员所有权语义，合入EntryOnlyFatigue和计时掉落；测试使用主干TestParties辅助构造真实队伍。构建0警告/错误，巨龙、Visit、死亡与房间相关218项通过（`closeout-build.log`、`closeout-focused.log`）。变基阶段PR单元门1601通过，0失败/跳过（`closeout-final-unit.log`及closeout-final-unit TRX），包括显式标记的巨龙纯内存边界测试。完整Application为6167通过、3失败、0跳过（`closeout-application.log`）；最新主干50e22a91使用同一PVF的隔离副本复现相同三项失败（`closeout-baseline.log`，定向12项中9通过/3失败），新增失败差额为0。三项为两项既有DimensionDungeonTests的7100地图装配失败，以及AvatarCompoundTests.Rejections_leave_all_inputs_unchanged的expire参数失败；不宣称全量内容全绿。变基未替换正在运行的3ed2ea6f产物，不将新源码提交哈希当作现役版本。
 
+8557完成次数由既有QuestRewardRuleService唯一判定，清算编排仅在普通预备成功后认领日额度；删除重复判定后任务/巨龙90项与Application Unit780项通过（`review-quota.log`、`review-quota-unit.log`），0失败/跳过。
+
 当前入场计划同时拥有任务模式及定向迷宫策略，领域编排不再按3540单独定义策略。八图计划与任务状态真值、原准入和掉落/事务相关239项通过（`review-policy.log`），行为要求保持原样；最终全解决方案Unit门1614通过，0失败/跳过（`review-final-unit.log`及对应TRX），最终构建0警告/错误（`review-final-build.log`）。
 
 ## 自动验证

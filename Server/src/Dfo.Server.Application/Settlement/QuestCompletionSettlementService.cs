@@ -39,8 +39,6 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
         }
         if (quest == Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId && count != 1)
             return new(false, quest, null, null, null, null, null);
-        if (quest == IGiantDragonCrystalExchangeDomainService.QuestId && count != 1)
-            return new(false, quest, null, null, null, null, null);
         var ordinary = await completion.PrepareAsync(account, character, quest, selection, count, at, footprint, ct, session).ConfigureAwait(false);
         if (!ordinary.Prepared) return new(false, quest, null, null, null, ordinary.Projection, null);
         var plan = ordinary.Plan ?? throw new InvalidOperationException("Missing prepared quest plan.");
