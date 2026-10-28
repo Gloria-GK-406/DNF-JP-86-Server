@@ -53,6 +53,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly ICharacterDomainService characters;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly IDungeonParticipationDomainService participation;
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
     private readonly ICommandWorkUnits workUnits;
@@ -78,12 +79,13 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         ICharacterQuestLogDomainService questLogs, ICharacterContainerDomainService containers,
         IItemDeliveryDomainService items, IQuestProgressDomainService progress,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        IDungeonParticipationDomainService participation,
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
         ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
         TimeProvider clock, IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal altarWake, ILogger<GameMonsterDeathCommandHandler> logger )
 
     {
-        this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs; this.registry=registry; this.clearEvaluator=clearEvaluator; this.deaths=deaths;
         this.creatures=creatures; this.quests=quests; this.questLogs=questLogs; this.containers=containers;
         this.items=items; this.progress=progress; this.closures=closures; this.slots=slots; this.altarWake=altarWake;
@@ -92,6 +94,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     { await RunAsync(execution, command.Dispatch, command.Input, command.Input.LabelProbe, ct).ConfigureAwait(false); return true; }
     private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context, MonsterDeathRequest message, bool labelProbe, CancellationToken ct)
     {
+        if (GameRequestFreshness.IsStale(message.Metadata)) return;
         if (logger.IsEnabled(LogLevel.Debug))
             logger.LogDebug("Monster death received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} actor={Actor} object={ObjectCode}",
                 context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal, message.ActorSequence, message.ObjectCode);
@@ -101,15 +104,26 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             logger.LogDebug("Monster death ignored connection={ConnectionId} reason=NoSession", context.Connection.ConnectionId);
             return;
         }
-        if (bossTowers.Find(reporter) is not null)
+        switch (DungeonLocator.Locate(reporter, participation, bossTowers, illusionTowers))
         {
-            if (message.ObjectCode is null)
-                _ = await KillBossAsync(execution, reporter.ConnectionId, message.Metadata, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
-            return;
+            // A Boss tower ignores object destruction reports.
+            case DungeonPlace.InBossTower boss:
+                if (message.ObjectCode is null)
+                    await KillBossAsync(execution, boss, message.Metadata, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
+                return;
+            // Object destruction in an illusion tower is answered by the ordinary flow, as in town.
+            case DungeonPlace.InIllusionTower illusion when message.ObjectCode is null:
+                await KillIllusionAsync(execution, illusion, message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false);
+                return;
+            default:
+                await ReportOrdinaryAsync(execution, context, message, labelProbe, reporter, ct).ConfigureAwait(false);
+                return;
         }
-        if (message.ObjectCode is null
-            && await KillIllusionAsync(execution, reporter.ConnectionId, message.Metadata,
-                message.ActorSequence, message.WireUserId, ct).ConfigureAwait(false)) return;
+    }
+
+    private async ValueTask ReportOrdinaryAsync(CommandExecutionContext execution, NetworkDispatchContext context, MonsterDeathRequest message,
+        bool labelProbe, SelectedSessionIdentity reporter, CancellationToken ct)
+    {
         var run = runs.Find(reporter.CharacterId);
         if (run is null)
         {

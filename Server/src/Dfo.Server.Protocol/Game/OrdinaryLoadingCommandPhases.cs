@@ -92,35 +92,9 @@ internal sealed partial class GameMapLoadingCommandHandler
     private async ValueTask MoveOrdinaryAsync(CommandExecutionContext execution,
         NetworkDispatchContext context,
         MoveMapRequest message,
+        SelectedSessionIdentity session,
         CancellationToken cancellationToken)
     {
-        if (logger.IsEnabled(LogLevel.Debug))
-            logger.LogDebug("Move map received connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} target=({X},{Y}) path=({PathX},{PathY})",
-                context.Connection.ConnectionId, message.Metadata.Sequence, message.Metadata.InboundOrdinal,
-                message.NextX, message.NextY, message.PathPositionX, message.PathPositionY);
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
-        {
-            logger.LogDebug(
-                "Move map {ConnectionId}: no published session, ignoring ({X},{Y})",
-                context.Connection.ConnectionId, message.NextX, message.NextY);
-            return;
-        }
-
-        if (await AdvanceBossAsync(execution, context.Connection.ConnectionId,
-            message.Metadata, message.NextX, message.NextY, cancellationToken).ConfigureAwait(false))
-        {
-            logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=BossTower", context.Connection.ConnectionId, message.Metadata.Sequence);
-            return;
-        }
-
-        if (await AdvanceIllusionAsync(
-                execution, context.Connection.ConnectionId, message.Metadata, cancellationToken).ConfigureAwait(false))
-        {
-            logger.LogDebug("Move map routed connection={ConnectionId} sequence={Sequence} route=IllusionTower", context.Connection.ConnectionId, message.Metadata.Sequence);
-            return;
-        }
-
         var current = runs.Find(session.CharacterId);
         if (current is null)
         {

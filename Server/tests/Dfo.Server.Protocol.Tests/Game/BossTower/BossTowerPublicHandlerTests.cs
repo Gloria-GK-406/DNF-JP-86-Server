@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game.BossTowerReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Testing;
@@ -135,10 +136,21 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         new(new NetworkConnectionContext(session.ConnectionId, NetworkEndpointKind.Game, 10011));
 
     // Same production phase body; fake domain actions below intentionally do not prove bus/scope behavior.
-    private sealed class LoadingFlow(TowerDomain towers, Sessions selected, FlowCommands commands, Sender sender)
+    private sealed class LoadingFlow
     {
-        private readonly GameMapLoadingCommandHandler handler = ProtocolAlgorithmFixture.Create<GameMapLoadingCommandHandler>(
-            selected, LoadingDomain.Create(towers, commands), new Dfo.Server.Protocol.Tests.Game.DungeonEntry.LoadingOutbox(sender));
+        private readonly Sessions selected;
+        private readonly IBossTowerDomainService bossTowers;
+        private readonly IIllusionTowerDomainService illusionTowers = ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>();
+        private readonly DerivedDungeonParticipation participation;
+        private readonly GameMapLoadingCommandHandler handler;
+        public LoadingFlow(TowerDomain towers, Sessions selected, FlowCommands commands, Sender sender)
+        {
+            this.selected = selected;
+            bossTowers = LoadingDomain.Create(towers, commands);
+            participation = new(bossTowers, illusionTowers, ProtocolAlgorithmFixture.Default<IDungeonRunDomainService>(), selected);
+            handler = ProtocolAlgorithmFixture.Create<GameMapLoadingCommandHandler>(
+                selected, bossTowers, illusionTowers, participation, new Dfo.Server.Protocol.Tests.Game.DungeonEntry.LoadingOutbox(sender));
+        }
         public async ValueTask HandleAsync(NetworkDispatchContext dispatch, FinishLoadingRequest input, CancellationToken token)
         {
             var command = new GameFinishLoadingCommand(dispatch, input);
@@ -149,10 +161,15 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var command = new GameMoveMapCommand(dispatch, input);
             _ = await handler.HandleAsync(ComponentContext.For(command, handler.GetType()), command, token);
         }
-        public ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, GameMessageMetadata metadata, CancellationToken token)
+        // The Boss channel only receives a requester located in its tower; any other requester is not its request.
+        public async ValueTask<bool> CompleteLoadingAsync(NetworkConnectionId id, GameMessageMetadata metadata, CancellationToken token)
         {
             var command = new GameFinishLoadingCommand(new(new(id, NetworkEndpointKind.Game, 10011)), new(metadata, 0, 0));
-            return handler.CompleteBossLoadingAsync(ComponentContext.For(command, handler.GetType()), id, metadata, token);
+            if (selected.FindByConnection(id) is not { } session
+                || DungeonLocator.Locate(session, participation, bossTowers, illusionTowers) is not DungeonPlace.InBossTower boss)
+                return false;
+            await handler.CompleteBossLoadingAsync(ComponentContext.For(command, handler.GetType()), boss, token);
+            return true;
         }
     }
     private class LoadingDomain : System.Reflection.DispatchProxy
