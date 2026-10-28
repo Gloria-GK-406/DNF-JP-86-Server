@@ -1,11 +1,9 @@
-using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
-using Dfo.Server.Data.Parties;
 using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.World;
@@ -55,8 +53,7 @@ public sealed class OnlineCharacterLocationDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var party = new RecordingPartyPresence();
-            var service = new OnlineCharacterLocationDomainService(party);
+            var service = new OnlineCharacterLocationDomainService();
             var key = new TownAreaKey(7, 3, 4);
             var member = Member(10, 1, key, x: 100);
             var first = Begin(service, member);
@@ -68,7 +65,6 @@ public sealed class OnlineCharacterLocationDomainServiceTests
                 first.CurrentArea!.MembershipRevision,
                 repeated.CurrentArea!.MembershipRevision);
             Assert.Single(repeated.CurrentArea.Members);
-            Assert.Single(party.Updates);
         });
     }
 
@@ -92,12 +88,11 @@ public sealed class OnlineCharacterLocationDomainServiceTests
     }
 
     [Fact]
-    public void Transfer_returns_committed_old_and_new_snapshots_and_updates_party_scope()
+    public void Transfer_returns_committed_old_and_new_snapshots()
     {
         TestGameplay.Run(() =>
         {
-            var party = new RecordingPartyPresence();
-            var service = new OnlineCharacterLocationDomainService(party);
+            var service = new OnlineCharacterLocationDomainService();
             var oldKey = new TownAreaKey(7, 3, 4);
             var newKey = new TownAreaKey(7, 3, 5);
             Begin(service, Member(10, 1, oldKey, x: 100));
@@ -112,7 +107,7 @@ public sealed class OnlineCharacterLocationDomainServiceTests
             Assert.Equal(TownAreaMembershipChangeKind.Transferred, changed.Kind);
             Assert.Equal([20], changed.PreviousArea!.Members.Select(value => value.CharacterId.Value));
             Assert.Equal([10], changed.CurrentArea!.Members.Select(value => value.CharacterId.Value));
-            Assert.Equal(new PartyDirectoryScope(7, 3, 5), party.Updates[^1].Scope);
+            Assert.Equal(newKey, service.Find(new CharacterId(10))!.Area);
         });
     }
 
@@ -136,12 +131,11 @@ public sealed class OnlineCharacterLocationDomainServiceTests
     }
 
     [Fact]
-    public void Last_departure_removes_lazy_area_and_clears_party_scope_but_keeps_the_place_left()
+    public void Last_departure_removes_lazy_area_but_keeps_the_place_left()
     {
         TestGameplay.Run(() =>
         {
-            var party = new RecordingPartyPresence();
-            var service = new OnlineCharacterLocationDomainService(party);
+            var service = new OnlineCharacterLocationDomainService();
             var key = new TownAreaKey(7, 3, 4);
             Begin(service, Member(10, 1, key, x: 100));
 
@@ -153,7 +147,6 @@ public sealed class OnlineCharacterLocationDomainServiceTests
             Assert.Null(service.Find(new CharacterId(10)));
             Assert.Null(service.StandingOf(Session(10, 1)));
             Assert.Equal(Position(key, 100), service.PositionOf(new CharacterId(10)));
-            Assert.Null(party.Updates[^1].Scope);
         });
     }
 
@@ -198,6 +191,19 @@ public sealed class OnlineCharacterLocationDomainServiceTests
         Assert.Equal(["OnlineCharacterRuntimeDomainService"], takers);
     }
 
+    /// <summary>The store holds the position and asks nobody else.</summary>
+    /// <remarks>
+    /// The party reads where its members stand from here, and the party reaches the online runtime,
+    /// which wraps this store: anything this store depended on would close that loop.
+    /// </remarks>
+    [Fact]
+    public void The_location_store_depends_on_nothing() =>
+        Assert.All(
+            typeof(OnlineCharacterLocationDomainService).GetConstructors(
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic),
+            constructor => Assert.Empty(constructor.GetParameters()));
+
     private static TownAreaMember Member(
         int characterId,
         long generation,
@@ -219,12 +225,4 @@ public sealed class OnlineCharacterLocationDomainServiceTests
 
     private static CharacterPositionState Position(TownAreaKey key, short x) =>
         new(key.TownId, key.AreaId, x, 50, 1);
-
-    private sealed class RecordingPartyPresence : IPartyDirectoryPresenceSink
-    {
-        public List<(CharacterId CharacterId, PartyDirectoryScope? Scope)> Updates { get; } = [];
-
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) =>
-            Updates.Add((characterId, scope));
-    }
 }

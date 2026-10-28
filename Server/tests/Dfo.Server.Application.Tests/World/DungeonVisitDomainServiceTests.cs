@@ -703,7 +703,7 @@ public sealed class DungeonVisitDomainServiceTests
             var successor = new DungeonRunParticipant(new AccountId(22), new CharacterId(2), 1, false);
             var parties = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = new PartyCharacterSnapshot(leader.AccountId, leader.CharacterId, 1, scope);
             var second = new PartyCharacterSnapshot(successor.AccountId, successor.CharacterId, 2, scope);

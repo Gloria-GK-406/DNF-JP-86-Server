@@ -29,7 +29,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var replacement = oldPeerPhysical with { };
         Assert.Equal(oldPeerPhysical, replacement); Assert.NotSame(oldPeerPhysical, replacement);
         var users = new PhysicalUsers((first, firstPhysical), (second, oldPeerPhysical));
-        var parties = new PartyService(new PartyStatus(), new PartyModeRuleService(), TimeProvider.System, new NoPartyEndpoints());
+        var parties = new PartyService(new PartyStatus(), new PartyModeRuleService(), TimeProvider.System, new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         TestGameplay.Run(() =>
         {
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second), new(0, 0, 0, 0)).Succeeded);

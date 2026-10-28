@@ -260,7 +260,7 @@ public sealed class GameplayWriteAssertionTests
     public void PartyService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
         var parties = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         var scope = new PartyDirectoryScope(11, 1, 1);
         var leader = new PartyCharacterSnapshot(Account, Character, 1, scope);
         var member = new PartyCharacterSnapshot(new AccountId(8), new CharacterId(80), 2, scope);

@@ -1,8 +1,6 @@
 using Dfo.Server.Abstractions.Execution;
-using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
@@ -23,18 +21,8 @@ namespace Dfo.Server.Application.World;
 /// teardown stores it.
 /// </para>
 /// </remarks>
-/// <param name="parties">
-/// Taken lazily: the party service reaches back here through the online runtime, so resolving it
-/// while this service is being built would close a cycle the container cannot see through factories.
-/// </param>
-internal sealed class OnlineCharacterLocationDomainService(Func<IPartyDirectoryPresenceSink?> parties)
-    : ITownAreaDomainService
+internal sealed class OnlineCharacterLocationDomainService : ITownAreaDomainService
 {
-    public OnlineCharacterLocationDomainService(IPartyDirectoryPresenceSink? parties = null)
-        : this(() => parties)
-    {
-    }
-
     private readonly object sync = new();
     private readonly Dictionary<TownAreaKey, TownArea> areas = [];
     private readonly Dictionary<CharacterId, Location> byCharacter = [];
@@ -77,10 +65,7 @@ internal sealed class OnlineCharacterLocationDomainService(Func<IPartyDirectoryP
             if (Owned(session) is not { } current)
                 return false;
             if (current.Standing is { } standing)
-            {
                 Unstand(standing);
-                parties()?.UpdateDirectoryPresence(session.CharacterId, null);
-            }
 
             byCharacter.Remove(session.CharacterId);
             return true;
@@ -99,7 +84,6 @@ internal sealed class OnlineCharacterLocationDomainService(Func<IPartyDirectoryP
                 return null;
             var previous = Unstand(standing);
             byCharacter[session.CharacterId] = current with { Area = null };
-            parties()?.UpdateDirectoryPresence(session.CharacterId, null);
             return new TownAreaMembershipChange(
                 TownAreaMembershipChangeKind.Left, session.CharacterId, previous, null, reason);
         }
@@ -272,7 +256,6 @@ internal sealed class OnlineCharacterLocationDomainService(Func<IPartyDirectoryP
                 before is null ? null : TownAreaDepartureReason.AreaTransfer);
         }
 
-        UpdatePartyDirectory(member);
         return change;
     }
 
@@ -308,16 +291,6 @@ internal sealed class OnlineCharacterLocationDomainService(Func<IPartyDirectoryP
         area.Key,
         area.MembershipRevision,
         [.. area.Members.OrderBy(id => id.Value).Select(id => byCharacter[id].Standing!)]);
-
-    private void UpdatePartyDirectory(TownAreaMember member) =>
-        parties()?.UpdateDirectoryPresence(
-            member.CharacterId,
-            member.SharesTownPresence
-                ? new PartyDirectoryScope(
-                    member.Area.ChannelId,
-                    member.Area.TownId,
-                    member.Area.AreaId, member.Area.Instance)
-                : null);
 
     /// <summary>One played character's position; it stands in <see cref="Area"/>, or in none while away.</summary>
     private sealed record Location(

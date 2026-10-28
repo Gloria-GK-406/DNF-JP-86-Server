@@ -31,11 +31,8 @@ internal sealed class PartyServiceTestAdapter
         this.sessions = sessions;
         this.presence = presence;
         endpoints = new TestSessionEndpoints(sessions);
-        inner = new PartyService(memberStatus, rules, clock, endpoints);
+        inner = new PartyService(memberStatus, rules, clock, endpoints, presence);
     }
-
-    internal void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) =>
-        inner.UpdateDirectoryPresence(characterId, scope);
 
     internal IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => inner.Query(query);
 

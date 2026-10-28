@@ -254,12 +254,11 @@ internal static class PartyNotificationStages
                 .FirstOrDefault(current => !current.IsVirtual
                     && current.Generation == projected.Generation)
                 is { } latest
-            && latest.Revision > projected.Revision
             && latest.LeaderMember.Character.DirectoryScope != change.Current)
         {
-            // Presence migration advances the Party revision even though the movement protocol
-            // performs its own directory read-repair. Do not let a delayed pre-move plan publish
-            // the old scope again after that newer revision is already authoritative.
+            // The leader's scope is read from where the leader stands now. A plan that names
+            // another scope was made before a later move or roster change, whose own projection
+            // repairs the directory; publishing this one would put the party back where it was.
             return true;
         }
 

@@ -44,7 +44,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var firstParty = PartyCharacter(first);
             var secondParty = PartyCharacter(second);
             Assert.True(parties.RequestInvite(firstParty, secondParty,
@@ -94,7 +94,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(session);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var tower = new TowerDomain(PartyRun(Guid.NewGuid(), session));
             using var request = new CancellationTokenSource();
             var commands = new CoordinatorCommands(tower, parties, request);
@@ -129,7 +129,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(external, successor, towerLeader);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(successor),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(successor), PartyCharacter(external)).Succeeded);
@@ -189,7 +189,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -230,7 +230,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second, returned);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -281,7 +281,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(leader, member);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(leader), PartyCharacter(member),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(member), PartyCharacter(leader)).Succeeded);
@@ -320,7 +320,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         var sessions = new Sessions(first, second, third);
         var parties = new PartyService(
             new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
+            new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         TestGameplay.Run(() =>
         {
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
@@ -493,7 +493,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
             var sessions = new Sessions(second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -699,7 +699,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];
         public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
         public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();

@@ -35,7 +35,7 @@ public sealed partial class PartyCommandHandlerTests
         {
             var parties = new PartyClientProjectionService(new PartyService(
                 new FixedPartyMemberStatus(), new PartyModeRuleService(),
-                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
+                TimeProvider.System, new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = Character(Inviter) with { DirectoryScope = scope };
             var second = Character(Invitee) with { DirectoryScope = scope };
@@ -74,7 +74,7 @@ public sealed partial class PartyCommandHandlerTests
         {
             var parties = new PartyClientProjectionService(new PartyService(
                 new FixedPartyMemberStatus(), new PartyModeRuleService(),
-                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
+                TimeProvider.System, new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = Character(Inviter) with { DirectoryScope = scope };
             var target = Character(Invitee) with { DirectoryScope = scope };
@@ -969,8 +969,6 @@ public sealed partial class PartyCommandHandlerTests
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public List<string> Writes { get; } = [];
-
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
 
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [Snapshot()];
 

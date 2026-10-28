@@ -86,7 +86,8 @@ Networking 不认识单个协议；传输等待本条处理完成后才读该连
 `IOnlineCharacterRuntimeDomainService` 读写：按会话代数归属，不并入角色领域服务。位置由
 `World/OnlineCharacterLocationDomainService` 唯一保存：站在哪个城镇区域与坐标是同一事实，区域广播要在同一把锁下
 读到全员坐标；离城（选图、副本中）时记录不删，保留离开时的落点供回城和下线写库。它的写方法只供运行时调用，
-其他代码经运行时改位置，经只读的 `ITownAreaDomainService` 查区域成员。
+其他代码经运行时改位置，经只读的 `ITownAreaDomainService` 查区域成员。位置记录不依赖任何服务：
+组队服务按需读取队员所在区域（队伍列在队长所在的共享区），不保留位置副本，也不接收推送。
 服务只做业务；`Persistence` 提供仓储与存储实现，`Infrastructure` 提供 PVF 内容源实现。
 
 **三层是上下关系，不是三选一。**

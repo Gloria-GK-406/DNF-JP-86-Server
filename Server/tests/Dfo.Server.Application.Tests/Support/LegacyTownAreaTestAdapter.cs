@@ -238,13 +238,8 @@ namespace Dfo.Server.Application.Sessions
     {
         private readonly Dictionary<CharacterId, SessionPresence> legacy = [];
 
-        public SessionPresenceDomainService(IPartyDirectoryPresenceSink? parties = null)
-        {
-            Locations = new OnlineCharacterLocationDomainService(parties);
-        }
-
         /// <summary>The store the presences are placed in; an online runtime built over it sees them.</summary>
-        public OnlineCharacterLocationDomainService Locations { get; }
+        public OnlineCharacterLocationDomainService Locations { get; } = new();
 
         public void Admit(SessionPresence presence)
         {

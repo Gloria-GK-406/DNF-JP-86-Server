@@ -238,7 +238,6 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyService.RemoveMember(CharacterId, CharacterId)"] = W,
         ["PartyService.RequestInvite(PartyCharacterSnapshot, PartyCharacterSnapshot, PartyInviteDisplayState)"] = W,
         ["PartyService.TransferLeadership(CharacterId, CharacterId)"] = W,
-        ["PartyService.UpdateDirectoryPresence(CharacterId, PartyDirectoryScope)"] = W,
 
         // OnlineCharacterLocationDomainService
         ["OnlineCharacterLocationDomainService.Arrive(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,

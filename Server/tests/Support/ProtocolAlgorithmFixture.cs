@@ -67,6 +67,16 @@ internal static class ProtocolAlgorithmFixture
             if (locations is not null)
                 values.Add(new Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService(TimeProvider.System, locations));
         }
+        // The party reads where its members stand from the same town areas.
+        if (!values.Any(value => value is Dfo.Server.Abstractions.Parties.IPartyService)
+            && values.OfType<Dfo.Server.Abstractions.World.ITownAreaDomainService>().LastOrDefault() is { } partyAreas)
+        {
+            values.Add(new Dfo.Server.Application.Parties.PartyService(
+                (Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)),
+                new Dfo.Server.Application.Parties.PartyModeRuleService(), TimeProvider.System,
+                (Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)),
+                partyAreas));
+        }
         return values.ToArray();
     }
     private static readonly HashSet<Type> EmptyWorldContracts =
@@ -103,7 +113,8 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(Dfo.Server.Abstractions.Parties.IPartyService)) return new Dfo.Server.Application.Parties.PartyService(
             (Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)),
             new Dfo.Server.Application.Parties.PartyModeRuleService(), TimeProvider.System,
-            (Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)));
+            (Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)),
+            (Dfo.Server.Abstractions.World.ITownAreaDomainService)Default(typeof(Dfo.Server.Abstractions.World.ITownAreaDomainService)));
         if (type == typeof(Dfo.Server.Abstractions.World.ITownAreaDomainService)) return new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
         if (type == typeof(ISelectedSessionDomainService)) return TestSessions.Directory();
         if (type == typeof(Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService)) return new Dfo.Server.Protocol.Game.Dungeons.DungeonRunDeliveryRegistry();

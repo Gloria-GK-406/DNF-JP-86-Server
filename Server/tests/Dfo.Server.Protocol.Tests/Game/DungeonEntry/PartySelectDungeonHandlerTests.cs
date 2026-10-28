@@ -947,7 +947,6 @@ public sealed class PartySelectDungeonHandlerTests
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];
         public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
         public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();

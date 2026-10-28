@@ -818,10 +818,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<PartyService>();
         services.TryAddSingleton<IPartyService>(provider =>
             provider.GetRequiredService<PartyService>());
-        services.TryAddSingleton<IPartyDirectoryPresenceSink>(provider =>
-            provider.GetRequiredService<PartyService>());
-        services.TryAddSingleton(provider => new OnlineCharacterLocationDomainService(
-            () => provider.GetRequiredService<IPartyDirectoryPresenceSink>()));
+        services.TryAddSingleton<OnlineCharacterLocationDomainService>();
         services.TryAddSingleton<ITownAreaDomainService>(provider =>
             provider.GetRequiredService<OnlineCharacterLocationDomainService>());
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();

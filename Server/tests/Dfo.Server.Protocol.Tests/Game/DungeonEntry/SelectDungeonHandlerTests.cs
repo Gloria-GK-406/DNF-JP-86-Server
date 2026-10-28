@@ -1201,7 +1201,6 @@ public sealed class SelectDungeonHandlerTests
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public PartyKey KeyOf(CharacterId characterId) => PartyKey.Virtual(characterId);
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];
         public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
             PartySnapshot.Virtual(character, new PartySettings(new byte[PartySettings.WireLength]));

@@ -52,7 +52,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var firstParty = PartyCharacter(first);
             var secondParty = PartyCharacter(second);
             Assert.True(parties.RequestInvite(firstParty, secondParty,
@@ -102,7 +102,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(session);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var tower = new TowerDomain(PartyRun(Guid.NewGuid(), session));
             using var request = new CancellationTokenSource();
             var commands = new CoordinatorCommands(tower, parties, request);
@@ -137,7 +137,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(external, successor, towerLeader);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(successor),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(successor), PartyCharacter(external)).Succeeded);
@@ -197,7 +197,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -238,7 +238,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second, returned);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -289,7 +289,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(leader, member);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(leader), PartyCharacter(member),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(member), PartyCharacter(leader)).Succeeded);
@@ -328,7 +328,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var sessions = new Sessions(first, second, third);
         var parties = new PartyService(
             new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
+            new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         TestGameplay.Run(() =>
         {
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
@@ -499,7 +499,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -674,7 +674,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         // The production party service: the wire party numbers come from the protocol projection.
         var parties = new PartyClientProjectionService(new PartyService(
             new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints()), new PartyClientIdRegistry());
+            new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
         foreach (var member in new[] { second, third })
         {
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(member),
