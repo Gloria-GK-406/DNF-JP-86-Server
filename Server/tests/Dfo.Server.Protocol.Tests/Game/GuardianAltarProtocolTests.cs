@@ -21,7 +21,7 @@ public sealed class GuardianAltarProtocolTests
     private static GuardianAltarProgress Progress => new(0, new(2026, 10, 27), 3, 2, 0, 0, 0, 0, 0,
         ImmutableDictionary<int, int>.Empty.Add(3511, -1), [new(GuardianAltarShopKind.Unit, 1000, 0), new(GuardianAltarShopKind.Tower, 64597, 0)],
         [new(0, GuardianAltarShopKind.Unit, 1000)], []);
-    private static GuardianAltarAdmission Admission => new(new(3511, false, [], [], []),
+    private static GuardianAltarAdmission Admission => new(new(3511, false, [new(GuardianAltarDifficulty.Easy, 25081, 0, [])], [], []),
         new(25081, 64597, [new(125000, "normal", []), new(20000, "named", [])]), GuardianAltarDifficulty.Easy, 0);
 
     [Fact]
@@ -75,6 +75,8 @@ public sealed class GuardianAltarProtocolTests
             CurrentCellState: new(cell, 25081, 0, 1, [new(1, new(64597, 1, 0) { IsHostile = false }, false, false, [])], []));
         var body = GuardianAltarPayloadCodec.Map(run, a);
         Assert.Equal(65, body.Length);
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(4)));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(16)));
         Assert.Equal(25081, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(8)));
         Assert.Equal(145000, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(12)));
         Assert.Equal(2u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(20)));

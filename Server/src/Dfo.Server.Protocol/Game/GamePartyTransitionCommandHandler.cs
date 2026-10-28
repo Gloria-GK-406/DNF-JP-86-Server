@@ -305,6 +305,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         }
         if (leaving)
         {
+            if (isGuardian)
+                await GuardianAltar.GuardianAltarProjection.RestoreInventoryAsync(session, sessions, currentViews, currentState, outbox, cancellationToken).ConfigureAwait(false);
             await ReturnTownAsync(
                 returning.Where(value => sessions.IsInWorld(value.Session))
                     .Select(value => new TownAreaEntry(
@@ -408,6 +410,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
             cancellationToken).ConfigureAwait(false);
+        if (currentRun?.Layout.Guardian is not null)
+            await GuardianAltar.GuardianAltarProjection.RestoreInventoryAsync(session, sessions, currentViews, currentState, outbox, cancellationToken).ConfigureAwait(false);
         await ReturnTownAsync(
             [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],
             cancellationToken).ConfigureAwait(false);

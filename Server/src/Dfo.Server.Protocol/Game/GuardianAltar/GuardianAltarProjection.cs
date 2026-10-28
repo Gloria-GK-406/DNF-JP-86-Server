@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -8,6 +9,20 @@ namespace Dfo.Server.Protocol.Game.GuardianAltar;
 
 internal static class GuardianAltarProjection
 {
+    public static async ValueTask RestoreInventoryAsync(Dfo.Server.Data.World.SelectedSessionIdentity session,
+        ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
+        ICharacterStateProjectionDomainService currentState, IGameCommandOutbox outbox, CancellationToken ct)
+    {
+        if (!sessions.IsInWorld(session)) return;
+        var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Cannot restore altar inventory for {session.CharacterId}.");
+        var restored = await currentState.RefreshAsync(view, ct).ConfigureAwait(false);
+        if (!sessions.IsInWorld(session)) return;
+        // The altar replaces the local item quickbar; rebuild it from current inventory before town entry.
+        await outbox.RegisterExplicitAsync(session.ConnectionId, new([
+            new InventoryFullSnapshotMessage(restored.CharacterInventory.Containers.Single(x => x.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Main),
+                restored.CharacterInventory, restored.AccountInventory, restored.World.PreparedAt)], []), ct).ConfigureAwait(false);
+    }
     public static IReadOnlyList<IGameServerMessage> InventoryFrames(ItemDeliveryReceipt? receipt, IInventorySlotProjectionDomainService slots, TimeProvider clock) => (receipt?.Inventory ?? [])
         .GroupBy(x => slots.Project(x.Slot).Space).Select(group => (IGameServerMessage)new InventoryDeltaMessage(group.Key,
             group.GroupBy(x => x.Slot).Select(x => { var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(

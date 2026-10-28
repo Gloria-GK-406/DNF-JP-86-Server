@@ -47,8 +47,9 @@ internal static class GuardianAltarPayloadCodec
     public static byte[] StageInfo(GuardianAltarAdmission admission) => Write(w => { w.Write(admission.Stage.DungeonId); w.Write((int)admission.Difficulty); });
     public static byte[] Map(DungeonRunState run, GuardianAltarAdmission a) => Write(w =>
     {
-        w.Write(a.Stage.Survival ? 1 : 0); w.Write(a.SurvivalRound); w.Write(a.Map.MapId);
-        w.Write(a.Map.Phases.Sum(x => x.DurationMilliseconds)); w.Write((int)run.Layout.BasisLevel);
+        // A21 initializes the altar scene on wire round 1, including ordinary stages.
+        w.Write(a.Stage.Survival ? 1 : 0); w.Write(a.Stage.Survival ? a.SurvivalRound : 1); w.Write(a.Map.MapId);
+        w.Write(a.Map.Phases.Sum(x => x.DurationMilliseconds)); w.Write(a.BasisLevel);
         w.Write((uint)a.Map.Phases.Length); var offset = 0;
         for (var index = 0; index < a.Map.Phases.Length; index++)
         { var phase = a.Map.Phases[index]; w.Write(index); w.Write(offset); w.Write(phase.Kind == "normal" ? 0 : phase.Kind == "named" ? 1 : 2); offset += phase.DurationMilliseconds; }

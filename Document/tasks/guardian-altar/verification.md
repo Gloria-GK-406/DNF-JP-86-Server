@@ -7,8 +7,25 @@ decision: manual_required
 
 服务端玩法与生产接线已实现，候选版本0.2.10已发布到本工作区artifacts。
 此记录的manual_required指A21完整玩法实机验收，**不表示仍停留在内容解析**。
-玩家已确认入口可点击并复现入场故障；修复后的进图与战斗尚未ClientVerified，
+玩家已确认入口可点击、进图、友军召唤和时间条／HG增长；完整战斗尚未ClientVerified，
 没有完整WireCaptured、云端审核或CI结果，不关闭功能需求、不创建PR。
+
+## 敌军数值、连续入场与快捷栏恢复
+
+实机元数据记录见`default-20261028T070017Z/enemy-send-diagnostic-stdout.log`：
+同一角色第1关简单三局分别编码2／2／3条035D。首局有角色死亡和0361／0360失败结算；
+后两局玩家观察不到敌军，不能把出站编码记录等同于客户端接收或显示。
+当前时间线可生成敌军，尚无证据表明后两局后台调度停止。
+
+已修正普通035C的round=0、地图等级硬编码50，以及三种回城路径缺失Main库存快照。
+地图第三列由误命名的RequiredStars改为BasisLevel，不再增加额外星数准入；难度仍由实际通关进度控制。
+原生字段依据见[035C](../../../protocol/game/server-to-client/NOTI-0x035C.md)。
+`entry-state-red.log`复现round=0，`level-inventory-red.log`复现基准50与缺失库存快照。
+修复后：`state-fix-application.log`中祭坛与退出链36项通过，`state-fix-protocol-full.log`中协议1813项通过，
+`state-fix-content.log`中当前PVF内容2项通过，以上均0失败、0跳过。
+`state-fix-unit.log`中CI同分类Unit为37+20+503+726项通过；`state-fix-build.log`完整Release构建0警告0错误。
+这些检查范围有交集，不累计为独立覆盖量；自动检查不证明实机三项症状已经消失。
+后台诊断测试使用独立测试库及可推进时钟，等待真实托管源产出035D后再停止；它不是实机抓包。
 
 ## 入场模式与拒绝码修复验证
 

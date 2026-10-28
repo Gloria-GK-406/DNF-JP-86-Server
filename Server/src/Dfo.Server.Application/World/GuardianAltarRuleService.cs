@@ -48,7 +48,6 @@ internal sealed class GuardianAltarRuleService(IGuardianAltarContentSource conte
         }
         if (!progress.Stages.TryGetValue(dungeonId, out var highest) || (int)difficulty > highest + 1) return null;
         var map = stage.Maps.Single(x => x.Difficulty == difficulty);
-        if (progress.GameStars + progress.PurchasedStars < map.RequiredStars) return null;
         return new(stage, Catalog.Maps[map.MapId], difficulty, 0);
     }
     public GuardianAltarProgress RecordClear(GuardianAltarProgress progress, GuardianAltarAdmission admission)

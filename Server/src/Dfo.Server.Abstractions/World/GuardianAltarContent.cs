@@ -6,7 +6,7 @@ public enum GuardianAltarDifficulty : byte { Easy, Medium, Hard }
 public enum GuardianAltarShopKind : byte { Unit, Skill, Tower }
 
 public sealed record GuardianAltarReward(string Kind, int ItemId, int Count);
-public sealed record GuardianAltarStageMap(GuardianAltarDifficulty Difficulty, int MapId, int RequiredStars,
+public sealed record GuardianAltarStageMap(GuardianAltarDifficulty Difficulty, int MapId, int BasisLevel,
     ImmutableArray<GuardianAltarReward> Rewards);
 public sealed record GuardianAltarSurvivalReward(int FirstRound, int LastRound, ImmutableArray<GuardianAltarReward> Rewards);
 public sealed record GuardianAltarStage(int DungeonId, bool Survival,

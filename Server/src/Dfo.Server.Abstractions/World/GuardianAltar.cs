@@ -29,6 +29,8 @@ public sealed record GuardianAltarSpawn(int OffsetMilliseconds, int MonsterCode,
 public sealed record GuardianAltarAdmission(GuardianAltarStage Stage, GuardianAltarMap Map,
     GuardianAltarDifficulty Difficulty, int SurvivalRound)
 {
+    // The native survival basis is the zero-based round; ordinary maps declare a difficulty basis.
+    public int BasisLevel => Stage.Survival ? SurvivalRound - 1 : Stage.Maps.Single(x => x.Difficulty == Difficulty).BasisLevel;
     public ImmutableDictionary<int, GuardianAltarShopLevel> Towers { get; init; } = ImmutableDictionary<int, GuardianAltarShopLevel>.Empty;
 }
 

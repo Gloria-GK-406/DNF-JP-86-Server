@@ -15,6 +15,19 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class GuardianAltarProtocolFlowTests
 {
     [SkippableFact]
+    public void Cleared_difficulty_unlocks_the_next_map_without_treating_its_combat_basis_as_a_star_cost()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var f = new ShopFixture(useArchive: true, configure: services => services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path }));
+        var rules = f.Services.GetRequiredService<IGuardianAltarRuleService>();
+        var initial = rules.Initial(new(2026, 10, 28));
+        var cleared = rules.RecordClear(initial, rules.Admission(initial, 3511, GuardianAltarDifficulty.Easy)!);
+        Assert.Equal(3, cleared.GameStars);
+        var medium = Assert.IsType<GuardianAltarAdmission>(rules.Admission(cleared, 3511, GuardianAltarDifficulty.Medium));
+        Assert.Equal(10, medium.BasisLevel);
+        Assert.Null(rules.Admission(initial, 3511, GuardianAltarDifficulty.Medium));
+    }
+    [SkippableFact]
     public async Task Gold_reset_and_achievement_cross_the_real_command_boundary_and_stale_frames_cannot_repeat_assets()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
@@ -74,6 +87,9 @@ public sealed class GuardianAltarProtocolFlowTests
         var types = f.Sender.Outbound.Frames.Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1))).ToArray();
         Assert.Contains((ushort)0x35B, types); Assert.Contains((ushort)0x35C, types);
         Assert.DoesNotContain((ushort)0x1D, types);
+        var mapFrame = Assert.Single(f.Sender.Outbound.Frames, x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x35C);
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(mapFrame.AsSpan(19)));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(mapFrame.AsSpan(31)));
         var loading = altar.Find(run.RunId)!;
         if (finishLoading)
         {
@@ -95,11 +111,45 @@ public sealed class GuardianAltarProtocolFlowTests
         Assert.Empty(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(loading), Origin()));
         Assert.Empty(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(lost), Origin()));
         f.Clock.Advance(TimeSpan.FromSeconds(50));
+        var beforeReturn = f.Sender.Outbound.Frames.Count;
         Assert.Equal(f.Session, Assert.Single(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(lost), Origin())));
         Assert.Null(runs.Find(f.Session.CharacterId));
         Assert.True(await commands.SendInternalAsync(new Dfo.Server.Protocol.Game.ProjectDungeonReturnCommand(f.Session, run.RunId, false), Origin()));
         Assert.True(f.Session.Owns(f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!));
+        var returnTypes = f.Sender.Outbound.Frames.Skip(beforeReturn).Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1))).ToList();
+        Assert.Contains((ushort)0x0D, returnTypes);
+        Assert.True(returnTypes.IndexOf(0x0D) < returnTypes.IndexOf(0x17));
         Assert.Empty(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(lost), Origin()));
+    }
+    [SkippableTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Explicit_exit_restores_inventory_before_town_and_next_entry_initializes_the_client(bool giveUp)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var f = new ShopFixture(useArchive: true, configure: services =>
+        {
+            services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path });
+            services.AddSingleton<ISelectedCharacterCurrentViewDomainService>(p => new EntryFailureProbe.CompleteView(p));
+            services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterSkillPointDomainService, Dfo.Server.Application.Characters.CharacterSkillPointDomainService>();
+        });
+        f.SetLevel(65);
+        ushort sequence = 7;
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            await EffectRequestTransport.SendRaw(f, new(1, 0x392, 0, sequence++), []);
+            var body = new byte[15]; BinaryPrimitives.WriteInt32LittleEndian(body, 3511); body[5] = 3;
+            await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, sequence++), body);
+            var mapFrame = f.Sender.Outbound.Frames.Last(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x35C);
+            Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(mapFrame.AsSpan(19)));
+            await EffectRequestTransport.SendRaw(f, new(1, 0x25, 0, sequence++), new byte[8]);
+            var beforeReturn = f.Sender.Outbound.Frames.Count;
+            await EffectRequestTransport.SendRaw(f, new(1, giveUp ? (ushort)0x2A : (ushort)0x48, 0, sequence++), giveUp ? [] : [1, 1]);
+            var types = f.Sender.Outbound.Frames.Skip(beforeReturn).Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1))).ToList();
+            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+            Assert.Contains((ushort)0x0D, types);
+            Assert.True(types.IndexOf(0x0D) < types.IndexOf(0x17));
+        }
     }
     [SkippableTheory]
     [InlineData(49, false)]

@@ -93,7 +93,7 @@ internal sealed class PvfGuardianAltarContentSource(PvfArchiveProvider provider)
         }).ToImmutableArray();
         Require(survival ? maps.IsEmpty : maps.Length == 3 && maps.Select(x => x.Difficulty).Distinct().Count() == 3,
             path, "unexpected difficulty set");
-        Require(maps.All(x => x.MapId > 0 && x.RequiredStars >= 0), path, "invalid stage map values");
+        Require(maps.All(x => x.MapId > 0 && x.BasisLevel is >= 0 and <= 254), path, "invalid stage map values");
         var survivalMaps = (document.Read(PvfField.Int32List("[advance altar survival map]", optional: !survival)) ?? []).ToImmutableArray();
         Require(survival ? survivalMaps.Length > 0 && survivalMaps.All(x => x > 0) : survivalMaps.IsEmpty,
             path, "invalid survival map list");

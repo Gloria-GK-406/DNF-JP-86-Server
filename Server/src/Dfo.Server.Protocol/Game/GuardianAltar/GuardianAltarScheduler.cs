@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Networking;
@@ -33,7 +34,8 @@ public sealed record ReturnGuardianAltarCommand(GuardianAltarRunState Expected) 
 public sealed record GuardianAltarSchedule(DateTimeOffset? Next, IReadOnlyList<GuardianAltarRunState> Due);
 
 internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainService altar, IDungeonRunDomainService runs,
-    ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry, TimeProvider clock)
+    ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry, TimeProvider clock,
+    ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState, IGameCommandOutbox outbox)
     : ICommandHandler<ReturnGuardianAltarCommand, ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>>
 {
     public async ValueTask<ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>> HandleAsync(CommandExecutionContext context,
@@ -46,6 +48,7 @@ internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainServ
             || current.Deadline is null || current.Deadline > clock.GetUtcNow()) return [];
         if (!await runs.EndAsync(expected.Session.CharacterId, expected.RunId).ConfigureAwait(false)) return [];
         registry.ParticipantDeparted(expected.RunId, expected.Session.CharacterId);
+        await GuardianAltarProjection.RestoreInventoryAsync(expected.Session, sessions, currentViews, currentState, outbox, ct).ConfigureAwait(false);
         return [expected.Session];
     }
 }

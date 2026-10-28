@@ -104,7 +104,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
             .ToDictionary(x => x.cell, x => DungeonCellDefinition.Fixed(x.map));
         var layout = new DungeonLayout(context.DungeonId, 0, checked((byte)maps.Length), 1, new(0, 0),
             new(checked((byte)(maps.Length - 1)), 0), plan.Map.MapId, Random.Shared.Next(), cells,
-            BasisLevel: 50, ExperienceWeight: 0, ConsumesFatigue: false) { Guardian = plan, NoGiveupPenalty = true };
+            BasisLevel: checked((byte)plan.BasisLevel), ExperienceWeight: 0, ConsumesFatigue: false) { Guardian = plan, NoGiveupPenalty = true };
         return await admission.ExecuteAsync(context, new() { ConsumesFatigue = false, EnforceOrdinaryDifficulty = false }, async (receipt, token) =>
         {
             var entered = await visits.EnterGrantedPartyAsync(context.Participants, layout, context.Facts, receipt, token).ConfigureAwait(false);

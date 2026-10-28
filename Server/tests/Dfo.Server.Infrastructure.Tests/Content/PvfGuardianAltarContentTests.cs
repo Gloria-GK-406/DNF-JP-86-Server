@@ -23,7 +23,7 @@ public sealed class PvfGuardianAltarContentTests
         });
         var first = content.Stages[0];
         Assert.Equal(new[] { 25081, 25082, 25083 }, first.Maps.Select(x => x.MapId));
-        Assert.Equal(new[] { 0, 10, 17 }, first.Maps.Select(x => x.RequiredStars));
+        Assert.Equal(new[] { 0, 10, 17 }, first.Maps.Select(x => x.BasisLevel));
         Assert.Contains(new GuardianAltarReward("normal", 2749211, 4), first.Maps[0].Rewards);
         var survival = content.Stages[^1];
         Assert.True(survival.Survival);
