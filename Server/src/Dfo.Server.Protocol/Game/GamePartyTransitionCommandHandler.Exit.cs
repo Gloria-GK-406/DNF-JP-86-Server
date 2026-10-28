@@ -5,6 +5,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.TownProjection;
 
 namespace Dfo.Server.Protocol.Game;
@@ -44,22 +45,21 @@ internal sealed partial class GamePartyTransitionCommandHandler
     }
     private sealed record AltarExitResult(AltarActionResult? Action);
 
-    private async ValueTask<bool> SelectBossReturnAsync(CommandExecutionContext execution,
-        SelectedSessionIdentity session, GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
+    // EPLP tower channels: the caller has already dropped a stale request and located the requester in this tower.
+    private async ValueTask SelectBossReturnAsync(CommandExecutionContext execution,
+        DungeonPlace.InBossTower place, byte state, byte option, CancellationToken token)
     {
-        var expected = bossTowers.Find(session);
-        if (expected is null) return false;
+        var session = place.Session; var expected = place.Run;
         closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
-        if (GameRequestFreshness.IsStale(metadata)) return true;
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, expected)) return true;
+        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, expected)) return;
         if (state == 2)
         {
             await outbox.RegisterExplicitAsync(session.ConnectionId, new([new EplpCommandResponse(state, option)], []), token).ConfigureAwait(false);
-            return true;
+            return;
         }
-        if (state != 1 || option > 2) return true;
+        if (state != 1 || option > 2) return;
         var action = await SelectBossResultAsync(execution, expected, session, option, token).ConfigureAwait(false);
-        if (!action.Changed || action.Run is not { } run) return true;
+        if (!action.Changed || action.Run is not { } run) return;
         var frozen = BossTowerActionProjection.BossTowerExactMembers(sessions, bossTowers, run);
         var failures = (await BossTowerActionProjection.BossTowerSendToExactAsync(sessions, bossTowers, outbox, run, [new EplpCommandResponse(state, option)], token).ConfigureAwait(false)).ToList();
         if (option == 2)
@@ -70,18 +70,15 @@ internal sealed partial class GamePartyTransitionCommandHandler
             await ReturnTownIsolatedAsync(entries, failures, CancellationToken.None).ConfigureAwait(false);
         }
         await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, expected.RunId).ConfigureAwait(false);
-        return true;
     }
 
-    private async ValueTask<bool> SelectIllusionReturnAsync(CommandExecutionContext execution,
-        SelectedSessionIdentity session, GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
+    private async ValueTask SelectIllusionReturnAsync(CommandExecutionContext execution,
+        DungeonPlace.InIllusionTower place, byte state, byte option, CancellationToken token)
     {
-        if (GameRequestFreshness.IsStale(metadata)) return true;
-        var expected = illusionTowers.Find(session);
-        if (expected is null) return false;
+        var session = place.Session; var expected = place.Run;
         closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
-        if (state != EplpCommandHandler.LeaveState) return true;
-        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, expected)) return true;
+        if (state != EplpCommandHandler.LeaveState) return;
+        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, expected)) return;
         var action = await workUnits.WriteAsync(execution, new("select-illusion-tower-return", []),
             (_, ct) => illusionTowers.SelectReturnAsync(IllusionTowerActionProjection.IllusionTowerContext(expected, session), option, ct), token).ConfigureAwait(false);
         Exception? failure = null;
@@ -92,7 +89,6 @@ internal sealed partial class GamePartyTransitionCommandHandler
             catch (Exception error) { failure = error; }
         }
         if (failure is not null) await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, [(session, failure)], expected.RunId).ConfigureAwait(false);
-        return true;
     }
     private ValueTask<Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult> SelectBossResultAsync(CommandExecutionContext execution,
         Dfo.Server.Abstractions.World.BossTower.BossTowerSnapshot expected, SelectedSessionIdentity session, byte option, CancellationToken token) =>

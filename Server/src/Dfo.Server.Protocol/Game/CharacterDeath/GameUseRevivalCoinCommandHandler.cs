@@ -3,17 +3,20 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CharacterDeath;
 internal sealed class GameUseRevivalCoinCommandHandler(ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService onlineUsers, IDungeonRunDomainService runs, IDungeonRunProjectionDomainService registry,
     IDungeonRevivalDomainService revival, ICommandWorkUnits units, IGameCommandOutbox outbox,
-    TimeProvider clock, ILogger<GameUseRevivalCoinCommandHandler> logger, IBossTowerDomainService bossTower)
+    TimeProvider clock, ILogger<GameUseRevivalCoinCommandHandler> logger, IBossTowerDomainService bossTowers,
+    IIllusionTowerDomainService illusionTowers, IDungeonParticipationDomainService participation)
     : ICommandHandler<GameUseRevivalCoinCommand,bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameUseRevivalCoinCommand command, CancellationToken token)
@@ -23,13 +26,24 @@ internal sealed class GameUseRevivalCoinCommandHandler(ISelectedSessionDomainSer
     private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context,
         UseRevivalCoinRequest message, CancellationToken cancellationToken)
     {
+        if (GameRequestFreshness.IsStale(message.Metadata)) return;
         var payer = sessions.FindByConnection(context.Connection.ConnectionId);
         if (payer is null) return;
-        if (bossTower.Find(payer) is not null)
+        switch (DungeonLocator.Locate(payer, participation, bossTowers, illusionTowers))
         {
-            await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
-            return;
+            // A Boss tower has no revival: its channel is the refusal alone. An illusion tower
+            // seat has no ordinary run, so the ordinary flow ends silently there.
+            case DungeonPlace.InBossTower:
+                await RefuseAsync(payer, message, cancellationToken).ConfigureAwait(false);
+                return;
+            default:
+                await ReviveOrdinaryAsync(execution, payer, message, cancellationToken).ConfigureAwait(false);
+                return;
         }
+    }
+    private async ValueTask ReviveOrdinaryAsync(CommandExecutionContext execution, SelectedSessionIdentity payer,
+        UseRevivalCoinRequest message, CancellationToken cancellationToken)
+    {
         if (runs.Find(payer.CharacterId) is not { } expected) return;
         var frozen = registry.Find(expected.RunId);
         if (!frozen.Contains(payer) || !sessions.IsInWorld(payer)) return;

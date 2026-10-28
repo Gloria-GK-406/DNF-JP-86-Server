@@ -28,11 +28,27 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         BackToVillageRequest message,
         CancellationToken cancellationToken)
     {
+        if (GameRequestFreshness.IsStale(message.Metadata)) return true;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is not null && await SelectionLeaveBossAsync(execution, context.Connection.ConnectionId, message.Metadata,
-            new BackToVillageResponse(), cancellationToken).ConfigureAwait(false)) return true;
-        if (session is not null && await SelectionLeaveIllusionAsync(execution, context.Connection.ConnectionId, message.Metadata,
-            new BackToVillageResponse(), cancellationToken).ConfigureAwait(false)) return true;
+        switch (session is null ? null : DungeonLocator.Locate(session, participation, bossTowers, illusionTowers))
+        {
+            case DungeonPlace.InBossTower boss:
+                await SelectionLeaveBossAsync(execution, boss, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
+                return true;
+            case DungeonPlace.InIllusionTower illusion:
+                await SelectionLeaveIllusionAsync(execution, illusion, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
+                return true;
+            default:
+                return await BackToVillageOrdinaryAsync(context, message, session, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async ValueTask<bool> BackToVillageOrdinaryAsync(
+        NetworkDispatchContext context,
+        BackToVillageRequest message,
+        SelectedSessionIdentity? session,
+        CancellationToken cancellationToken)
+    {
         // Where they are standing is asked of the service that owns it. It is recorded and dropped
         // with the published session, so this conjunct admits exactly the connections the two
         // before it do.
@@ -172,9 +188,24 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         EnterSelectDungeonRequest message,
         CancellationToken cancellationToken)
     {
+        if (GameRequestFreshness.IsStale(message.Metadata)) return true;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
-        if (await SelectionPrepareBossAsync(execution, context.Connection.ConnectionId,
-            message.Metadata, message.Selection, cancellationToken).ConfigureAwait(false)) return true;
+        // The one hand-over between channels: a released Boss tower run leaves the leader in town,
+        // so the same request opens the ordinary selection without locating it again. A run the
+        // tower kept ends the request with its owner.
+        if (session is not null
+            && DungeonLocator.Locate(session, participation, bossTowers, illusionTowers) is DungeonPlace.InBossTower boss
+            && !await SelectionPrepareBossAsync(execution, boss, message.Selection, cancellationToken).ConfigureAwait(false))
+            return true;
+        return await EnterOrdinarySelectionAsync(context, message, session, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async ValueTask<bool> EnterOrdinarySelectionAsync(
+        NetworkDispatchContext context,
+        EnterSelectDungeonRequest message,
+        SelectedSessionIdentity? session,
+        CancellationToken cancellationToken)
+    {
         var result = session is null ? null
             : await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (session is null || result is null)
