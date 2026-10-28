@@ -158,6 +158,7 @@ public sealed class CharacterLifecyclePayloadCodecTests
     [InlineData(CharacterDeletionStatus.NameMismatch, new byte[] { 0x00, 0x15 })]
     [InlineData(CharacterDeletionStatus.SlotEmpty, new byte[] { 0x00, 0x02 })]
     [InlineData(CharacterDeletionStatus.MalformedRequest, new byte[] { 0x00, 0x02 })]
+    [InlineData(CharacterDeletionStatus.CharacterSelected, new byte[] { 0x00, 0x02 })]
     public void DeleteRefusalsAreTheEnvelopeAlone(CharacterDeletionStatus status, byte[] expected) =>
         // Nothing after the envelope on a refusal: the handler's failure path reads nothing from
         // the stream, it only switches on the reason byte. Appending an index here would leave two

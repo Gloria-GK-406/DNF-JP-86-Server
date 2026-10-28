@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -17,6 +18,7 @@ public sealed record GameDeleteCharacterCommand(NetworkDispatchContext Dispatch,
 
 public sealed class GameDeleteCharacterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
+    ISelectedSessionDomainService sessions,
     ICharacterDomainService characters,
     IGameCommandOutbox outbox,
     ICommandWorkUnits workUnits,
@@ -32,8 +34,13 @@ public sealed class GameDeleteCharacterCommandHandler(
                 $"Game connection '{command.Dispatch.Connection.ConnectionId}' is not authenticated.");
         }
 
+        // Any selection on the account refuses, not only one on this connection. A login that
+        // displaced another connection leaves that connection's selection to its disconnect
+        // teardown, so a deletion arriving first must wait for it rather than slip past.
         var result = command.Request.RawName is null
             ? new CharacterDeletionResult(CharacterDeletionStatus.MalformedRequest, null)
+            : sessions.Find(accountId) is not null
+                ? new CharacterDeletionResult(CharacterDeletionStatus.CharacterSelected, null)
             : await workUnits.WriteAsync(context, new CommandWorkUnitDeclaration("delete-character", []),
                 (_, ct) => characters.DeleteCharacterAsync(accountId, command.Request.RosterIndex, command.Request.RawName, ct),
                 cancellationToken).ConfigureAwait(false);

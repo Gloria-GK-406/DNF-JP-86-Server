@@ -11,12 +11,11 @@ namespace Dfo.Server.Application.Rental;
 
 internal sealed class EquipmentRentalDomainService(IEquipmentRentalDomainStore links, ILuckyStarDomainStore starStore,
     IAccountLuckyStarDomainService stars, IEquipmentRentalRuleService rules, ICharacterDomainService characters,
-    ICharacterTable owners, ICharacterItemTable items, IItemDeliveryDomainService delivery, IItemDomainStore itemStore,
+    ICharacterItemTable items, IItemDeliveryDomainService delivery, IItemDomainStore itemStore,
     IDomainTransactionAccessor transactions, TimeProvider clock, IInventorySlotMappingRuleService mapping) : IEquipmentRentalDomainService
 {
     public async ValueTask<EquipmentRentalPanel> PanelAsync(AccountId account,CharacterId character,CancellationToken ct)
     {
-        if (!await owners.BelongsToAsync(character,account,ct).ConfigureAwait(false)) return new(0,[]);
         return new(await stars.BalanceAsync(account,ct).ConfigureAwait(false),await ActiveAsync(character,clock.GetUtcNow(),ct).ConfigureAwait(false));
     }
     private async ValueTask<IReadOnlyList<EquipmentRentalItem>> ActiveAsync(CharacterId character,DateTimeOffset now,CancellationToken ct)
@@ -34,7 +33,6 @@ internal sealed class EquipmentRentalDomainService(IEquipmentRentalDomainStore l
         var now=clock.GetUtcNow();
         var panel=await PanelAsync(account,character,ct).ConfigureAwait(false);
         EquipmentRentalReceipt Reject(EquipmentRentalRejection rejection)=>new(rejection,panel,[]);
-        if (!await owners.BelongsToAsync(character,account,ct).ConfigureAwait(false)) return Reject(EquipmentRentalRejection.UnknownOwner);
         var instance=characters.Get(character);
         var identity=await instance.IdentityAsync(ct).ConfigureAwait(false);
         var progress=await instance.ProgressAsync(ct).ConfigureAwait(false);

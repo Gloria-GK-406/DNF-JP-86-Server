@@ -13,7 +13,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CollectionBoxDomainService(ICollectionBoxRuleService rules, IItemDomainStore items,
     IDomainTransactionAccessor transactions, ICollectionBoxSelectionTable selection, ICharacterCollectionBoxTable legacy,
-    IBusinessInventorySlotDomainService slots, IItemDeliveryDomainService delivery, ICharacterTable characters,
+    IBusinessInventorySlotDomainService slots, IItemDeliveryDomainService delivery,
     ILogger<CollectionBoxDomainService> logger) : ICollectionBoxDomainService
 {
     private static ContainerId Box(CharacterId character) => ContainerId.ForCharacter(character, InventoryContainerType.CollectionBox);
@@ -64,7 +64,6 @@ internal sealed class CollectionBoxDomainService(ICollectionBoxRuleService rules
         byte boxId, BusinessSlot? source, int itemId, CancellationToken ct)
     {
         _ = Session;
-        if (!await characters.BelongsToAsync(character, account, ct).ConfigureAwait(false)) throw new CollectionBoxRejectedException(CollectionBoxRejection.InvalidOwner);
         // Permanent boxes never consume extension tickets, including requests forged with a valid ticket slot.
         if (action == CollectionBoxAction.Extend) throw new CollectionBoxRejectedException(CollectionBoxRejection.Permanent);
         var catalog = await rules.CatalogAsync(ct).ConfigureAwait(false);

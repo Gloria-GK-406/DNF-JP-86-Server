@@ -88,24 +88,23 @@ public sealed class CareerReconciliationTests
     }
 
     [Theory]
-    [InlineData(2, 1)]
-    [InlineData(1, 0)]
-    [InlineData(1, 15)]
-    public async Task Invalid_owner_or_career_leaves_character_unchanged(int account, byte grow)
+    [InlineData(0)]
+    [InlineData(15)]
+    public async Task Invalid_career_leaves_character_unchanged(byte grow)
     {
         await TestGameplay.RunAsync(async () =>
         {
             await using var f = Fixture(); await f.SeedAsync();
-            if (account == 2 || grow == 0)
+            if (grow == 0)
             {
                 await using var tx = f.Scope.Begin();
-                Assert.False((await Complete(f, account, grow)).Finished);
+                Assert.False((await Complete(f, grow: grow)).Finished);
                 await tx.CommitAsync(default);
             }
             else await Assert.ThrowsAnyAsync<Exception>(async () =>
             {
                 await using var tx = f.Scope.Begin();
-                await Complete(f, account, grow);
+                await Complete(f, grow: grow);
                 await tx.CommitAsync(default);
             });
             Assert.Equal(0, f.Scalar("SELECT grow_type FROM characters WHERE character_id=71"));

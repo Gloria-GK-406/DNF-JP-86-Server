@@ -178,8 +178,6 @@ internal static class ProtocolAlgorithmFixture
         public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Quests.AcceptedQuestState>> ReadAcceptedAsync(
             Dfo.Server.Data.Accounts.AccountId account, Dfo.Server.Data.Characters.CharacterId character, CancellationToken token) =>
             ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Quests.AcceptedQuestState>>([]);
-        public ValueTask<Dfo.Server.Abstractions.Quests.QuestStatus> QueryAsync(Dfo.Server.Data.Accounts.AccountId account,
-            Dfo.Server.Data.Characters.CharacterId character, int quest, CancellationToken token) => throw new NotSupportedException();
         public ValueTask<Dfo.Server.Data.World.AvailableQuestEntryState> ReadAvailableAsync(Dfo.Server.Data.Accounts.AccountId account,
             Dfo.Server.Data.Characters.CharacterId character, CancellationToken token) => throw new NotSupportedException();
     }

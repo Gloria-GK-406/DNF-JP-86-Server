@@ -113,7 +113,7 @@ internal sealed partial class GameGetItemCommandHandler
         try
         {
             var granted = await itemGrants.GrantAsync(
-                    command.AccountId, command.CharacterId, containers, piece.ItemId, piece.Count,
+                    command.CharacterId, containers, piece.ItemId, piece.Count,
                     cancellationToken)
                 .ConfigureAwait(false);
             int slotIndex;

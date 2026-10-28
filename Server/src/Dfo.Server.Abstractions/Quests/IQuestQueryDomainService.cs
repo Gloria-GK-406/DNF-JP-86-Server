@@ -6,7 +6,6 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Quests;
 
-public enum QuestLifecycle { NotAccepted, Accepted, Completed }
 public sealed record QuestItemRequirementState(int ItemId, int Required, long Held)
 {
     public long Missing => Math.Max(0, Required - Held);
@@ -16,8 +15,6 @@ public sealed record AcceptedQuestState(CarriedQuest Quest, IReadOnlyList<QuestI
     public bool? CompletionAllowed { get; init; }
     public bool CanComplete => CompletionAllowed ?? new QuestTrigger(unchecked((uint)Quest.TriggerValue)).IsComplete;
 }
-public sealed record QuestStatus(int QuestId, bool IsKnown, QuestLifecycle Lifecycle,
-    bool CanAccept, AcceptedQuestState? Accepted = null);
 /// <summary>Quantities are authoritative; shared materials absent from this map are zero.</summary>
 public sealed record QuestHoldingsFacts(IReadOnlyDictionary<int, long> Quantities);
 
@@ -42,10 +39,9 @@ public interface IQuestAvailabilityRuleService
     ValueTask<AvailableQuestEntryState> ReadAvailableAsync(WorldContentSubject subject, CancellationToken ct);
     ValueTask<bool> MeetsRequirementsAsync(QuestDefinition quest, WorldContentSubject subject, CancellationToken ct);
 }
-/// <summary>All three reads are side-effect free. Accepted/ready is distinct from settled/completed.</summary>
+/// <summary>Both reads are side-effect free. Accepted/ready is distinct from settled/completed.</summary>
 public interface IQuestQueryDomainService
 {
-    ValueTask<QuestStatus> QueryAsync(AccountId account, CharacterId character, int questId, CancellationToken ct);
     ValueTask<IReadOnlyList<AcceptedQuestState>> ReadAcceptedAsync(AccountId account, CharacterId character, CancellationToken ct);
     ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, CancellationToken ct);
 }

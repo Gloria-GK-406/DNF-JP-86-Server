@@ -80,7 +80,7 @@ internal sealed class InventorySide
         new CharacterBusinessInventoryDomainService(Containers,
             new ItemPlacementRuleService(placements, new NoWearables()),
             new ItemArrivalRuleService(), lifecycle: Lifecycle),
-        new ItemPlacementRuleService(placements, new NoWearables()), Lifecycle, Store, Scope, new SqliteCharacterTable(database), null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database), new SqliteAccountCargoStateTable(database), new InventoryCapacityRuleService()));
+        new ItemPlacementRuleService(placements, new NoWearables()), Lifecycle, Store, Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database), new SqliteAccountCargoStateTable(database), new InventoryCapacityRuleService()));
 
     public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
         AccountId account, CharacterId character, CancellationToken ct)

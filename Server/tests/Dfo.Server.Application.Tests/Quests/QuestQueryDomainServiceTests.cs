@@ -56,14 +56,9 @@ public sealed class QuestQueryDomainServiceTests
             await shop.Seed(121, 1000, 10, 3);
             shop.Sql("INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,1); INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(1,2001,1),(1,2002,1)");
             var queries = shop.Services.GetRequiredService<IQuestQueryDomainService>();
-            var status = await queries.QueryAsync(new(1), new(1), 2001, default);
-            Assert.Equal(QuestLifecycle.Accepted, status.Lifecycle); // Current run wins over historical clear.
-            Assert.True(status.Accepted!.CanComplete);
-            Assert.False(status.CanAccept);
             var accepted = Assert.Single(await queries.ReadAcceptedAsync(new(1), new(1), default));
-            Assert.Equal(status.Accepted.Quest, accepted.Quest);
-            Assert.Equal(QuestLifecycle.Completed, (await queries.QueryAsync(new(1), new(1), 2002, default)).Lifecycle);
-            Assert.False((await queries.QueryAsync(new(1), new(1), 99999, default)).IsKnown);
+            Assert.Equal(2001, accepted.Quest.QuestId); // Current run wins over historical clear.
+            Assert.True(accepted.CanComplete);
             Assert.DoesNotContain((await queries.ReadAvailableAsync(new(1), new(1), default)).Quests, x => x.QuestId is 2001 or 2002);
             Assert.Equal(1, shop.Scalar("SELECT trigger_value FROM character_active_quests WHERE quest_id=2001"));
             Assert.Equal(1000, shop.SharedCount(3034));
@@ -109,12 +104,9 @@ public sealed class QuestQueryDomainServiceTests
             shop.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(1,2002,1),(1,2003,1)");
             var queries = shop.Services.GetRequiredService<IQuestQueryDomainService>();
             Assert.Equal(new[] { 2001, 2002 }, (await queries.ReadAvailableAsync(new(1), new(1), default)).Quests.Select(x => x.QuestId));
-            var repeat = await queries.QueryAsync(new(1), new(1), 2002, default);
-            Assert.Equal(QuestLifecycle.Completed, repeat.Lifecycle);
-            Assert.True(repeat.CanAccept);
             shop.SetLevel(60, 1);
             Assert.Contains((await queries.ReadAvailableAsync(new(1), new(1), default)).Quests, x => x.QuestId == 2007);
-            await Assert.ThrowsAsync<InvalidDataException>(async () => await queries.QueryAsync(new(2), new(1), 2001, default));
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await queries.ReadAcceptedAsync(new(2), new(1), default));
         });
     }
 }

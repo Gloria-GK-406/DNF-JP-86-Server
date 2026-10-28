@@ -33,8 +33,6 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         _ = transactions.Current ?? throw new InvalidOperationException("Replay state requires a transaction snapshot.");
         var recipient = safety.Capture(session, metadata);
         var at = clock.GetUtcNow();
-        if (!await Get<ICharacterTable>().BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false))
-            throw new InvalidOperationException("Replay state does not belong to the selected account.");
         var needs = request.Needs;
         var appearanceNeeded = needs.HasFlag(ReplayProjectionNeeds.CharacterAppearance);
         ReplayInventoryState? inventory = null;

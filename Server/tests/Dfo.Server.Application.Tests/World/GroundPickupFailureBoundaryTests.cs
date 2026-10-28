@@ -304,10 +304,10 @@ public sealed partial class BossTowerDomainServiceTests
     }
     private sealed class PrepareFailingGrant(Dfo.Server.Abstractions.Inventory.IItemGrantDomainService actual,IDomainTransactionAccessor transactions,PickupPrepareFault fault):Dfo.Server.Abstractions.Inventory.IItemGrantDomainService
     {
-        public async ValueTask<Dfo.Server.Abstractions.Inventory.BusinessItemAdditionResult> GrantAsync(Dfo.Server.Data.Accounts.AccountId account,Dfo.Server.Data.Characters.CharacterId character,
+        public async ValueTask<Dfo.Server.Abstractions.Inventory.BusinessItemAdditionResult> GrantAsync(Dfo.Server.Data.Characters.CharacterId character,
             Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService containers,int item,int count,CancellationToken ct,bool isDefault=false)
         {
-            var result=await actual.GrantAsync(account,character,containers,item,count,ct,isDefault);
+            var result=await actual.GrantAsync(character,containers,item,count,ct,isDefault);
             if(fault.Armed){fault.Armed=false;transactions.Current!.Enlist(fault,()=>fault);}return result;
         }
     }

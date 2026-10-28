@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Accounts;
 
 internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainService premiums,
     IUsageQuotaDomainService counters,
-    ICharacterTable characters, IPremiumServiceRuleService rules, IDailyResetRuleService days,
+    IPremiumServiceRuleService rules, IDailyResetRuleService days,
     IDomainTransactionAccessor transactions, TimeProvider clock, IEventService events) : IPremiumServiceUsageDomainService
 {
     public DateTimeOffset CurrentPeriodStart => days.PeriodStart(clock.GetUtcNow());
@@ -34,52 +34,29 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
         var buff = CurrentUsage((await counters.ReadAsync(id, UsageQuotaKey.Premium(DungeonBuff), token).ConfigureAwait(false)).Premium(), now);
         return [new(0, goldCard), new(1, lottery), new(3, buff), new(5, weakness), new(6, repair)];
     }
-    public async ValueTask<bool> TryUseDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token)
-    {
-        if (transactions.Current is null) throw new InvalidOperationException("Premium consumption requires a transaction.");
-        if (!await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false)
-            || !await premiums.For(accountId).HasBenefitAsync(PremiumBenefit.DoublePot, token).ConfigureAwait(false))
-            return false;
-        var now = clock.GetUtcNow();
-        var round = (await counters.ReadAsync(id, UsageQuotaKey.Premium(DoublePot), token).ConfigureAwait(false)).Premium();
-        var total = (await counters.ReadAsync(id, UsageQuotaKey.Premium(DoublePotTotal), token).ConfigureAwait(false)).Premium();
-        var used = CurrentUsage(round, now);
-        // Before the cumulative counter existed, the round count was the day's actual usage.
-        var totalUsed = CurrentUsage(total ?? round, now);
-        if (used >= rules.DoublePotDailyLimit || totalUsed >= rules.DoublePotTotalDailyLimit) return false;
-        await events.DirectAsync(new PremiumUsageRecorded(id, [
-            new(DoublePot, round, checked(used + 1), now),
-            new(DoublePotTotal, total, checked(totalUsed + 1), now)]), token).ConfigureAwait(false);
-        return true;
-    }
-
     public async ValueTask<DoublePotUsageFacts> DoublePotFactsAsync(AccountId accountId, CharacterId id,
         DateTimeOffset at, CancellationToken token)
     {
-        var eligible = await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false)
-            && (await premiums.For(accountId).ReadAsync(token).ConfigureAwait(false)).Any(x => x.PremiumType == (int)PremiumServiceType.DoublePot && x.ExpiresAtUnixSeconds > at.ToUnixTimeSeconds());
+        var eligible = (await premiums.For(accountId).ReadAsync(token).ConfigureAwait(false)).Any(x => x.PremiumType == (int)PremiumServiceType.DoublePot && x.ExpiresAtUnixSeconds > at.ToUnixTimeSeconds());
         var round = (await counters.ReadAsync(id, UsageQuotaKey.Premium(DoublePot), token).ConfigureAwait(false)).Premium();
         var total = (await counters.ReadAsync(id, UsageQuotaKey.Premium(DoublePotTotal), token).ConfigureAwait(false)).Premium();
         return new(eligible, new(round, total), CurrentUsage(round, at), CurrentUsage(total ?? round, at),
             rules.DoublePotDailyLimit, rules.DoublePotTotalDailyLimit, at);
     }
 
-    public async ValueTask ApplyDoublePotAsync(AccountId accountId, CharacterId id,
+    public async ValueTask ApplyDoublePotAsync(CharacterId id,
         DoublePotUsageDecision decision, CancellationToken token)
     {
-        if (transactions.Current is null || decision.NextRound is < 0 or > 255 || decision.NextTotal is < 0 or > 255
-            || !await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false))
+        if (transactions.Current is null || decision.NextRound is < 0 or > 255 || decision.NextTotal is < 0 or > 255)
             throw new InvalidOperationException("Invalid decided double-pot counter change.");
         await events.DirectAsync(new PremiumUsageRecorded(id, [
             new(DoublePot, decision.Expected.Round, decision.NextRound, decision.At),
             new(DoublePotTotal, decision.Expected.Total, decision.NextTotal, decision.At)]), token).ConfigureAwait(false);
     }
 
-    public async ValueTask RenewDoublePotAsync(AccountId accountId, CharacterId id, CancellationToken token)
+    public async ValueTask RenewDoublePotAsync(CharacterId id, CancellationToken token)
     {
         if (transactions.Current is null) throw new InvalidOperationException("Premium renewal requires a transaction.");
-        if (!await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false))
-            throw new InvalidOperationException("Premium renewal character does not belong to the account.");
         var now = clock.GetUtcNow();
         var round = (await counters.ReadAsync(id, UsageQuotaKey.Premium(DoublePot), token).ConfigureAwait(false)).Premium();
         var total = (await counters.ReadAsync(id, UsageQuotaKey.Premium(DoublePotTotal), token).ConfigureAwait(false)).Premium();
@@ -101,8 +78,7 @@ internal sealed class PremiumServiceUsageDomainService(IPremiumServiceDomainServ
     private async ValueTask<bool> TryUseAsync(AccountId accountId, CharacterId id, string key, PremiumBenefit benefit, int limit, CancellationToken token)
     {
         if (transactions.Current is null) throw new InvalidOperationException("Premium consumption requires a transaction.");
-        if (!await characters.BelongsToAsync(id, accountId, token).ConfigureAwait(false)
-            || !await premiums.For(accountId).HasBenefitAsync(benefit, token).ConfigureAwait(false))
+        if (!await premiums.For(accountId).HasBenefitAsync(benefit, token).ConfigureAwait(false))
             return false;
         var now = clock.GetUtcNow();
         var row = (await counters.ReadAsync(id, UsageQuotaKey.Premium(key), token).ConfigureAwait(false)).Premium();

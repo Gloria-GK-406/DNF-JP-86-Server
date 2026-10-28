@@ -23,7 +23,7 @@ public sealed class ContainerAdditionTests
             await using (var tx = scope.Begin())
             {
                 var reward = await f.Services.GetRequiredService<IItemGrantDomainService>()
-                    .GrantAsync(new(1), new(1), containers, 9001, 2, default);
+                    .GrantAsync(new(1), containers, 9001, 2, default);
                 var added = Assert.IsType<BusinessItemAdditionResult>(reward);
                 Assert.Equal(new ItemPlacementOutcome.PutInEmptySlot(0, 2), added.Placement);
                 Assert.Equal(BusinessInventorySpace.Material, added.Container.Space);
@@ -103,7 +103,7 @@ public sealed class ContainerAdditionTests
                 f.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using var lease = scope.Begin();
             var outcome = await f.Services.GetRequiredService<IItemGrantDomainService>()
-                .GrantAsync(new(1), new(1), containers, 9002, 1, default);
+                .GrantAsync(new(1), containers, 9002, 1, default);
             await lease.CommitAsync(default);
 
             var item = Assert.IsType<BusinessItemAdditionResult>(outcome);

@@ -210,7 +210,7 @@ internal sealed class SetDoublePotUsageEffectHandler(IPremiumServiceUsageDomainS
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, SetDoublePotUsageEffect effect, CancellationToken ct)
     {
         context.Footprint.DemandEffects(context.Owner);
-        await usage.ApplyDoublePotAsync(context.AccountId, context.CharacterId, effect.Decision, ct).ConfigureAwait(false);
+        await usage.ApplyDoublePotAsync(context.CharacterId, effect.Decision, ct).ConfigureAwait(false);
         return new DoublePotUsageChange(effect.Decision);
     }
 }

@@ -48,7 +48,7 @@ internal sealed class BagRewardDelivery(IItemGrantDomainService grants, ICharact
                 }
                 continue;
             }
-            var result = await grants.GrantAsync(account, character, containers, item.ItemId, item.Count, ct);
+            var result = await grants.GrantAsync(character, containers, item.ItemId, item.Count, ct);
             var target = result.Placement switch
             {
                 ItemPlacementOutcome.PutInEmptySlot x => (x.SlotIndex, x.Count),

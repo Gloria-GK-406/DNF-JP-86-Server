@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterSkillLearningDomainService(
     ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
-    ICharacterTable characters, ICharacterEntryTable entries, ICharacterSkillTable skills,
+    ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
     IDomainTransactionAccessor transactions, IPremiumServiceDomainService premiums,
     IPremiumServiceRuleService premiumRules, ICharacterBusinessInventoryDomainService businessInventories,
@@ -29,8 +29,7 @@ internal sealed class CharacterSkillLearningDomainService(
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill slot changes require a transaction.");
         if (pageIndex < 0 || first is < 0 or > 203 || second is < 0 or > 203
-            || !sessions.IsInWorld(session)
-            || await characters.FindOwnerAsync(session.CharacterId, ct) != session.AccountId) return false;
+            || !sessions.IsInWorld(session)) return false;
         var view = await currentViews.TryLoadAsync(session, ct);
         if (view is null || view.World.Channel.PvpSkillProfileApplies) return false;
         var builds = await state.BuildsAsync(session.CharacterId, ct);
@@ -46,8 +45,7 @@ internal sealed class CharacterSkillLearningDomainService(
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill switching requires a transaction.");
         if (target < 0 || !sessions.IsInWorld(session)
-            || townAreas.Find(session.CharacterId) is not { } town || !session.Owns(town)
-            || await characters.FindOwnerAsync(session.CharacterId, ct) != session.AccountId)
+            || townAreas.Find(session.CharacterId) is not { } town || !session.Owns(town))
             return null;
         var view = await currentViews.TryLoadAsync(session, ct);
         if (view is null || view.World.Channel.PvpSkillProfileApplies) return null;
@@ -76,10 +74,6 @@ internal sealed class CharacterSkillLearningDomainService(
             || townAreas.Find(session.CharacterId) is not { } member
             || !session.Owns(member))
             return new(CharacterSkillLearningRejection.UnsupportedScenario);
-        var entry = await entries.FindEntryAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
-        if (entry is null || entry.AccountId != session.AccountId.Value
-            || await characters.FindOwnerAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) != session.AccountId)
-            return new(CharacterSkillLearningRejection.NoSession);
         if (pageIndex < 0) return new(CharacterSkillLearningRejection.PageUnavailable);
         var builds = await state.BuildsAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
         if (!builds.IsUnlocked(new(pageIndex)) || builds.Active.Value != pageIndex)

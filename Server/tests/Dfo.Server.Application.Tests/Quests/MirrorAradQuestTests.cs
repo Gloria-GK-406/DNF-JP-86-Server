@@ -293,40 +293,32 @@ public sealed class MirrorAradQuestTests
             await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
             var before = await store.ReadAsync(new(71), runtime.Current.RunId, default);
             var definitions = new Definitions();
-            var query = new QuestQueryDomainService(definitions,
+            var query = new QuestQueryDomainService(
                 fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), null!,
                 new QuestStateRuleService(definitions), null!,
                 fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
                 mirror: store, runs: runtime,
                 mirrorRules: new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements()));
-            var status = await query.QueryAsync(new(1), new(71), 14299, default);
-            Assert.Equal(QuestLifecycle.Accepted, status.Lifecycle);
-            Assert.True(status.Accepted!.CanComplete);
+            Assert.True(Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).CanComplete);
             definitions.Value = Quest("hunt enemy", null, 32, -1, -3, 1, 1);
             await Write(fixture, async () => await store.WriteAsync(new(1), before! with { TriggerValue = 0 }, default));
             runtime.Current = runtime.Current with { ClearOpen = false, ClearedAt = null };
-            var incompleteRun = await query.QueryAsync(new(1), new(71), 14299, default);
-            Assert.Equal(0, incompleteRun.Accepted!.Quest.TriggerValue);
-            Assert.False(incompleteRun.Accepted.CanComplete);
-            Assert.False(Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).CanComplete);
+            var incompleteRun = Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default));
+            Assert.Equal(0, incompleteRun.Quest.TriggerValue);
+            Assert.False(incompleteRun.CanComplete);
             runtime.Current = runtime.Current with { ClearOpen = true, ClearedAt = Now.AddSeconds(10) };
-            Assert.True((await query.QueryAsync(new(1), new(71), 14299, default)).Accepted!.CanComplete);
+            Assert.True(Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).CanComplete);
             await Write(fixture, async () => await store.WriteAsync(new(1), before!, default));
             Assert.Equal(short.MaxValue, Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).Quest.Slot);
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),
                 System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), runtime.Current.RunId, default)));
             Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=71"));
             await Write(fixture, async () => await store.WriteAsync(new(1), before! with { RewardClaimed = true }, default));
-            Assert.Equal(QuestLifecycle.Completed, (await query.QueryAsync(new(1), new(71), 14299, default)).Lifecycle);
             Assert.Empty(await query.ReadAcceptedAsync(new(1), new(71), default));
             await Write(fixture, async () => await store.WriteAsync(new(1), before! with { GivenUp = true }, default));
-            var givenUp = await query.QueryAsync(new(1), new(71), 14299, default);
-            Assert.Equal(QuestLifecycle.NotAccepted, givenUp.Lifecycle);
-            Assert.False(givenUp.CanAccept);
+            Assert.Empty(await query.ReadAcceptedAsync(new(1), new(71), default));
             runtime.Current = Run();
-            var newRun = await query.QueryAsync(new(1), new(71), 14299, default);
-            Assert.Equal(QuestLifecycle.NotAccepted, newRun.Lifecycle);
-            Assert.True(newRun.CanAccept);
+            Assert.Empty(await query.ReadAcceptedAsync(new(1), new(71), default));
         });
     }
 

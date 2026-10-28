@@ -266,8 +266,6 @@ public sealed class DungeonClearProjectionDeliveryTests
             BeforeRead?.Invoke();
             return ValueTask.FromResult(Accepted);
         }
-        public ValueTask<QuestStatus> QueryAsync(AccountId account, CharacterId character, int id, CancellationToken ct) =>
-            throw new NotSupportedException();
         public ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, CancellationToken ct) =>
             throw new NotSupportedException();
     }

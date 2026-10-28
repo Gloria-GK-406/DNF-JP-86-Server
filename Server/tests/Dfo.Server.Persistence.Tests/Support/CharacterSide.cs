@@ -64,7 +64,7 @@ internal sealed class CharacterSide
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
         new ItemGrantDomainService(null!, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()),
             new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())),
-            this.itemStore, this.Scope, new SqliteCharacterTable(this.database), null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())));
+            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())));
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.
@@ -137,7 +137,7 @@ internal sealed class CharacterSide
                 capsules: new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
                 transactions: Scope), null!),
             new Dfo.Server.Application.Rental.AccountLuckyStarDomainService(new SqliteLuckyStarDomainStore(database),
-                new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,null!,Scope));
+                new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,Scope));
 
     private sealed class LuckyStarContent : Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource
     {
@@ -226,7 +226,7 @@ internal sealed class CharacterSide
                     new LegacyUsageQuotaStore(new SqliteConsumableUsageTable(this.database),
                         new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
                     this.Scope, null!),
-                new SqliteCharacterTable(this.database), new PremiumServiceRuleService(new UsageRules()),
+                new PremiumServiceRuleService(new UsageRules()),
                 new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database));
 
     /// <summary>

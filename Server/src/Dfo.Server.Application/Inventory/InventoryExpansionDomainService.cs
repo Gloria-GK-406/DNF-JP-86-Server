@@ -14,7 +14,7 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainService sessions,
-    ICharacterTable owners, IDungeonRunDomainService runs,
+    IDungeonRunDomainService runs,
     ICharacterDomainService characters, ICharacterCarriedGoldTable goldRows, ICarriedGoldRuleService goldRules,
     IAccountCargoStateTable accountStates,
     IInventoryExpansionStateTable writes, IInventoryLevelDomainService levels,
@@ -151,8 +151,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
     }
     private async ValueTask<bool> CurrentAsync(SelectedSessionIdentity session, CancellationToken ct) =>
         sessions.IsInWorld(session) && runs.Find(session.CharacterId) is null
-        && towers?.IsInTower(session.CharacterId) != true
-        && await owners.BelongsToAsync(session.CharacterId, session.AccountId, ct).ConfigureAwait(false);
+        && towers?.IsInTower(session.CharacterId) != true;
     private ValueTask<int> ParameterAsync(SelectedSessionIdentity session, InventoryExpansionKind kind, CancellationToken ct) =>
         levels.GetLevelAsync(Container(session, kind), ct);
     private ValueTask ChangeAsync(SelectedSessionIdentity session, InventoryExpansionChange change, CancellationToken ct) =>

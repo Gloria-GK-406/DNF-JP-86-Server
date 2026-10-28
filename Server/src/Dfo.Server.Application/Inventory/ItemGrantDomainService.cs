@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemGrantDomainService(ICharacterBusinessInventoryDomainService inventories,
     IItemPlacementRuleService placements, IItemLifecycleDomainService lifecycle,
-    IItemDomainStore items, IDomainTransactionAccessor transactions, ICharacterTable owners,
+    IItemDomainStore items, IDomainTransactionAccessor transactions,
     ItemGrantDelivery delivery, ICharacterContainerDomainService containers,
     IInventoryCapacityDomainService capacities) : IItemGrantDomainService
 {
@@ -55,15 +55,13 @@ internal sealed class ItemGrantDomainService(ICharacterBusinessInventoryDomainSe
             throw new InvalidOperationException("New item target is occupied.");
         return await session.PutAsync(container, slot, await lifecycle.CreateAsync(item, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
     }
-    public async ValueTask<BusinessItemAdditionResult> GrantAsync(AccountId accountId, CharacterId characterId,
+    public async ValueTask<BusinessItemAdditionResult> GrantAsync(CharacterId characterId,
         ICharacterContainerDomainService containers, int itemId, int count, CancellationToken cancellationToken, bool isDefault = false)
     {
         ArgumentNullException.ThrowIfNull(containers);
         _ = Transaction;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
-        if (await owners.FindOwnerAsync(characterId, cancellationToken).ConfigureAwait(false) != accountId)
-            throw new InvalidOperationException("Item recipient is unavailable.");
         var placement = await placements.PlacementForAsync(itemId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException($"Item {itemId} has no placement definition.");
         var space = placement.Destination.Space;

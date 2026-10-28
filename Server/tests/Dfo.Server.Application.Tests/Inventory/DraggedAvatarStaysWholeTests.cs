@@ -260,7 +260,7 @@ public sealed class DraggedAvatarStaysWholeTests
             Assert.True(placement!.StackLimit >= 2, "The archive no longer stacks this template.");
 
             var landed = await side.InUseCaseAsync(
-                token => side.Grants.GrantAsync(new AccountId(Account), new CharacterId(Character),
+                token => side.Grants.GrantAsync(new CharacterId(Character),
                     side.Containers, PileItemId, 2, token));
             var local = Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(landed.Placement);
             var opened = local with { SlotIndex = LegacyInventoryStorageCoordinates.ToStorage(
@@ -296,7 +296,7 @@ public sealed class DraggedAvatarStaysWholeTests
         InventorySide side, int itemId)
     {
         var granted = await side.InUseCaseAsync(
-            token => side.Grants.GrantAsync(new AccountId(Account), new CharacterId(Character),
+            token => side.Grants.GrantAsync(new CharacterId(Character),
                 side.Containers, itemId, 1, token));
         return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
     }

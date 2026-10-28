@@ -27,7 +27,7 @@ internal sealed class TowerInventoryDomainService(ICharacterContainerDomainServi
         var placement = await placements.PlacementForAsync(itemId, ct).ConfigureAwait(false);
         if (placement is null || !ItemContainerAdmission.For(BusinessInventorySpace.TowerQuickSlot).Matches(placement.Traits))
             throw new InvalidDataException($"Tower drop {itemId} is not admitted to the tower quick slots.");
-        var grant = await grants.GrantAsync(session.AccountId, session.CharacterId, containers, itemId, 1, ct).ConfigureAwait(false);
+        var grant = await grants.GrantAsync(session.CharacterId, containers, itemId, 1, ct).ConfigureAwait(false);
         var slot = grant.Placement switch
         {
             ItemPlacementOutcome.AddedToPile { Added: 1 } item => item.SlotIndex,
