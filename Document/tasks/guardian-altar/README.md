@@ -49,10 +49,10 @@
 | ClientStatic | `E:/Project/DNF/DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin` | SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`；本目录反汇编行使用VA，工具参数使用RVA，基址00400000 |
 | Content | `E:/Project/DNF/DNFClient/Script.pvf` | SHA256 `573388731C394A71D5E75ED7DD215124B3D04383631D93116625ED353E06ACAB`；常用客户端副本 |
 | Content | `E:/Project/DNF/DNFClient-A21-protocol2/Script.pvf` | SHA256 `D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84`；研究副本，不能与常用客户端混称同一输入 |
-| Content | `E:/Project/DNF/DNFClient-A21-protocol/Script.pvf` | SHA256 `3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B`；当前玩家服务启动日志确认使用，独立补验 |
+| Content | `E:/Project/DNF/DNFClient-A21-protocol/Script.pvf` | 当前SHA256 `01F1BE685D46647961DF65207A36304777DB20EF5A3D03C68EFAA92F8B0C5189`；2026-10-28默认端口验收输入，85项祭坛相关和2项内容补测通过；初版哈希与原检查记录保留在部署快照 |
 | 70Reference | `E:/Project/DNF/Research/1995chen-dnf/other/等级补丁/70/df_game_r` | SHA256 `CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7` |
 | UpstreamReference | `E:/Project/DNF/ServerS4A21` | HEAD `04e04b43c65c464a9f48833dcaa5d06725342919`；存在未跟踪参考备份目录。当前源码检索仅找到协议枚举，未定位到守护者祭坛玩法实现，不把缺少检索命中扩大为所有历史版本从未实现 |
-| CurrentImplementation | 本工作区 | 领域、持久化、协议及调度已接入；维护独立25000段验收实例，实际运行身份见deployment |
+| CurrentImplementation | 本工作区 | 领域、持久化、协议及调度已接入；按最新用户授权维护默认端口验收实例，实际运行身份见deployment |
 | WireCaptured | 本任务无 | 不以静态机器区代替真实双向样本 |
 | ClientVerified | 有限入口范围 | 玩家确认正确服务上的原生按钮可点击；第1关入场故障已通过实机请求诊断定位，修复后的进图和战斗仍待复验 |
 

@@ -5,6 +5,25 @@
 `artifacts/guardian-altar/active-deployment.json`所指目录的`running-process.json`及`readiness.json`为准。
 当前主干版本核对为0.2.9；并行功能合并前仍须再次核对PATCH，不自动升MINOR或创建Release。
 
+## 当前默认端口验收
+
+用户2026-10-28明确授权使用默认端口部署；遗忘之地会话同时已收到用户“继续修复、不要启动服务器”的指令。
+本轮仅交接核实后的原默认实例，保存其EXE／启动身份、工作目录、配置和私有环境供恢复；没有修改其他工作区。
+当前运行二进制为`0.2.10+91df1c2f110fd4b935690eff96499332e3110195`，
+频道7001、游戏10011、Launcher18080、GM18081，UDP0；保持脚本频道覆盖关闭和单频道11。
+Launcher／GM ready、GM页面200；实际PID与监听以就绪文件为准，不能直接复用文档中的历史PID。
+
+本轮目录为`artifacts/guardian-altar/default-20261028T070017Z/`，
+`active-deployment.json`已指向该目录。原默认写入者停止后，通过SQLite只读源backup API
+取得最新`player-before-switch.db`，包含已提交WAL；不恢复旧库或注入测试资产。
+启动前后账号4、角色9、物品667、槽位659逐行哈希一致，integrity_check=ok。
+`private/`保存前一实例的恢复输入，不提交；`readiness.json`、`live-data-check.json`保存最终核验。
+
+当前玩家服务PVF哈希已不同于初版验证输入，保留现有文件，使用最新玩家库副本完成全网络关闭的兼容启动，
+并针对当前PVF补核祭坛相关85项及内容2项，均0失败0跳过。当前输入哈希见README和就绪文件。
+实际客户端`DNFClient-A21-protocol2/Launcher.ini`已为`http://127.0.0.1:18080/`，无需再次编辑。
+用户须退出旧会话后重新登录，再从[第2步入图](acceptance.md)继续实机验证。
+
 ## 可审查产物
 
 工作区：`C:/Users/Gloria/.codex/worktrees/1890/DNF-JP-86-Server`。
@@ -53,16 +72,16 @@ PID只作本轮快照，任何后续停止／重启都须重新核对，不能�
 入口灰色时先核实实际连接：本轮应为频道25001、游戏25011；7001／10011属于其他服务，不能据此判断祭坛活动是否开放。
 本轮错服诊断的脱敏证据保存在`entry-connection-diagnosis.json`；用户已在正确服务上确认按钮可点击。
 
-## 入图修复候选
+## 隔离端口候选（恢复产物）
 
 修复运行目录使用`artifacts/guardian-altar/entry-fixed-20261027/host/`，
 保留原初版和诊断候选产物；玩家库仍为上述主干实际玩家库。
 本轮新备份为同级`player-before-switch.db`，使用SQLite只读源backup API取得，不能裸复制活动主文件。
 实际启动完成以同级`readiness.json`为准；没有该就绪证据不能要求玩家开始完整验收。
-用户已将默认端口交给另一个agent测试，本轮不得占用、重定向或停止默认端口实例；
-只使用既有25001／25011／25080／25081，若需要默认端口等待用户新命令。
+该隔离候选使用25001／25011／25080／25081；当前默认端口实例以前文及active-deployment.json为准。
+不得将两个候选并行启动为同一玩家库的写入者。
 
-## 本轮实机连接端点
+## 隔离候选连接端点
 
 已核实：频道25001、游戏25011、Launcher HTTP 25080、GM HTTP 25081，均在25000–25999内。
 `Channel.UseScriptCatalog=false`，只配置一个频道，发布配置完整替换频道及GamePorts数组；

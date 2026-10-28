@@ -27,7 +27,18 @@ decision: manual_required
 
 最终候选的实际PID、版本、程序集哈希、备份、健康和监听以
 `active-deployment.json`所指目录的`running-process.json`及`readiness.json`为准。
-仅使用25001／25011／25080／25081，默认端口由另一agent测试，未获用户新指令不得使用。
+初次修复验证使用25001／25011／25080／25081；当前端口授权与实际实例见部署记录。
+
+## 当前默认端口部署验证
+
+用户2026-10-28授权交接默认端口，候选二进制仍为91df1c2f。
+最新玩家库一致副本在全网络关闭条件下兼容启动成功，未并行写玩家库。
+当前PVF哈希为`01F1BE685D46647961DF65207A36304777DB20EF5A3D03C68EFAA92F8B0C5189`，
+与初版不同，已保留文件并补核：祭坛相关85项、内容2项全部通过且0跳过。
+本轮目录中的`current-pvf-application.log`和`current-pvf-content.log`为原始结果。
+最终健康、默认7001／10011／18080／18081、UDP0、备份及核心资产不变证明见
+`default-20261028T070017Z/readiness.json`、`live-data-check.json`和`data-before.json`。
+客户端实机结果仍未通过，不将ready或自动测试记为完整玩法ClientVerified。
 
 ## 初版玩法实现检查（21c1dfd7）
 
