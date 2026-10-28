@@ -1,9 +1,10 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { App, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminApp } from './AdminApp';
 import { LookProvider } from './look';
+import { expect } from 'vitest';
 
 /** Renders the whole console at a route, the way an operator lands on it. */
 export function renderApp(path: string, locale = true) {
@@ -19,6 +20,11 @@ export function deferred<T>() {
 export async function logout() {
   fireEvent.click(await screen.findByRole('button', { name: '账号与会话' }));
   fireEvent.click(await screen.findByRole('button', { name: /退出登录/ }));
+}
+/** antd drops a button's loading state a macrotask after the read settles and ignores clicks until then. */
+export async function clickWhenIdle(button: () => HTMLElement) {
+  await waitFor(() => expect(button().className).not.toContain('ant-btn-loading'));
+  fireEvent.click(button());
 }
 /** Shell side reads that tolerate failure; tests that count requests ignore them. */
 export const shellPaths = new Set(['server-info', 'items/icon-pack', 'overview']);

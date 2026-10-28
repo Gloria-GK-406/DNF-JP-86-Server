@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { api, ApiError, type CharacterDetail, type CharacterView } from './api';
-import { deferred, logout, renderApp } from './test-utils';
+import { clickWhenIdle, deferred, logout, renderApp } from './test-utils';
 vi.mock('./api', async original => ({ ...await original<typeof import('./api')>(), api: vi.fn() }));
 const mocked = vi.mocked(api);
 const identity = { id: 1, loginName: '查询管理员', permissions: ['QueryPlayers'], expiresAt: '2030-01-01T00:00:00Z' };
@@ -32,15 +32,14 @@ beforeEach(() => {
 it('角色查询提供中文输入和空结果，转职按 PVF 名称显示', async () => {
   open(); expect(await search()).toBeTruthy();
   expect(await screen.findByText('没找到，换个关键词试试')).toBeTruthy();
-  await waitFor(() => expect(screen.getByRole('button', { name: /刷新列表/ }).className).not.toContain('loading'));
-  populated(); fireEvent.click(screen.getByRole('button', { name: /刷新列表/ }));
+  populated(); await clickWhenIdle(() => screen.getByRole('button', { name: /刷新列表/ }));
   expect((await screen.findAllByText(/散打/)).length).toBeGreaterThan(0); expect(screen.getAllByText('格斗家（女）').length).toBeGreaterThan(0);
 });
 it('接口失权清除列表和已打开详情', async () => {
   populated(); let revoked = false; const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async path => { if (revoked && path === 'characters/1') throw new ApiError(403, '没有执行此操作的权限。'); return original(path); });
   open(); const panel = await detailPanel(); await within(panel).findByText('姓名编码'); revoked = true;
-  fireEvent.click(within(panel).getByRole('button', { name: '刷新详情' }));
+  await clickWhenIdle(() => within(panel).getByRole('button', { name: '刷新详情' }));
   expect(await screen.findByText('没有访问此页面的权限')).toBeTruthy();
   expect(screen.queryByText('姓名编码')).toBeNull(); expect(screen.queryByText('角色甲')).toBeNull();
 });
@@ -58,7 +57,7 @@ it('搜索与在线过滤重置分页且字面条件进入请求，数字按角�
 it('详情按稳定ID关联账号和所属角色列表并支持刷新', async () => {
   populated(); open(); const panel = await detailPanel(); await within(panel).findByText('姓名编码');
   expect(within(panel).getByText('2,147,483,647')).toBeTruthy();
-  fireEvent.click(within(panel).getByRole('button', { name: '刷新详情' }));
+  await clickWhenIdle(() => within(panel).getByRole('button', { name: '刷新详情' }));
   await waitFor(() => expect(mocked.mock.calls.filter(([path]) => path === 'characters/1').length).toBe(2));
   fireEvent.click(within(panel).getByRole('button', { name: /查看归属账号/ }));
   const account = await screen.findByRole('region', { name: '账号详情' });
@@ -66,7 +65,7 @@ it('详情按稳定ID关联账号和所属角色列表并支持刷新', async ()
   fireEvent.click(within(account).getByRole('button', { name: /查看该账号角色/ }));
   await waitFor(() => expect(mocked).toHaveBeenCalledWith('characters?page=1&pageSize=20&accountId=7'));
   expect(screen.getByText('账号 #7 的角色')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: /刷新列表/ }));
+  await clickWhenIdle(() => screen.getByRole('button', { name: /刷新列表/ }));
   await waitFor(() => expect(mocked.mock.calls.filter(([path]) => path === 'characters?page=1&pageSize=20&accountId=7').length).toBe(2));
 });
 it('账号切换及登录名搜索使用账号分页契约', async () => {
@@ -79,7 +78,7 @@ it('账号切换及登录名搜索使用账号分页契约', async () => {
 it.each([[400, '查询参数无效。'], [500, '查询失败，请稍后重试。'], [0, '网络断开']])('查询失败%s明确反馈并清除旧数据', async (status, message) => {
   populated(); let failed = false; const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async path => { if (failed && path.startsWith('characters?')) throw status ? new ApiError(status, message) : new Error(message); return original(path); });
-  open(); await screen.findAllByText('角色甲'); failed = true; fireEvent.click(screen.getByRole('button', { name: /刷新列表/ }));
+  open(); await screen.findAllByText('角色甲'); failed = true; await clickWhenIdle(() => screen.getByRole('button', { name: /刷新列表/ }));
   expect(await screen.findByText(message)).toBeTruthy();
   await waitFor(() => expect(screen.queryByRole('cell', { name: /角色甲/ })).toBeNull());
 });
@@ -87,7 +86,7 @@ it('详情不存在显示404说明，查询会话失效回登录页', async () =
   populated(); const original = mocked.getMockImplementation()!;
   mocked.mockImplementation(async path => { if (path === 'characters/1') throw new ApiError(404, '角色不存在。'); return original(path); });
   open(); expect((await screen.findAllByText('角色不存在。')).length).toBeGreaterThan(0);
-  mocked.mockRejectedValue(new ApiError(401, '会话失效')); fireEvent.click(screen.getByRole('button', { name: /刷新列表/ }));
+  mocked.mockRejectedValue(new ApiError(401, '会话失效')); await clickWhenIdle(() => screen.getByRole('button', { name: /刷新列表/ }));
   expect(await screen.findByLabelText('管理员账号')).toBeTruthy(); expect(screen.queryByText('角色甲')).toBeNull();
 });
 it('快速连续查询的旧成功响应不能覆盖新结果', async () => {
@@ -154,7 +153,7 @@ it('403后的旧身份轮询成功不能恢复查询权限', async () => {
   const interval = vi.spyOn(window, 'setInterval').mockImplementation((handler, delay) => { if (delay === 60000) tick = handler as () => void; return 456; });
   try {
     open(); const panel = await detailPanel(); await within(panel).findByText('姓名编码'); await act(async () => { tick!(); });
-    forbidden = true; fireEvent.click(within(panel).getByRole('button', { name: '刷新详情' })); await screen.findByText('没有访问此页面的权限');
+    forbidden = true; await clickWhenIdle(() => within(panel).getByRole('button', { name: '刷新详情' })); await screen.findByText('没有访问此页面的权限');
     await act(async () => { stale.resolve(identity); });
     expect(screen.getByText('没有访问此页面的权限')).toBeTruthy(); expect(screen.queryByText('角色甲')).toBeNull();
     expect(within(screen.getByRole('navigation', { name: '主导航' })).queryByText('账号与角色')).toBeNull();

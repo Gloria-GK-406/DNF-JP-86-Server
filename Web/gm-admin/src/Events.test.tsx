@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { api, ApiError } from './api';
 import type { EventEntry, EventList } from './EventsView';
 import type { WeeklyAttendanceSettingsData } from './events/WeeklyAttendanceSettings';
-import { renderApp } from './test-utils';
+import { clickWhenIdle, renderApp } from './test-utils';
 
 vi.mock('./api', async original => ({ ...await original<typeof import('./api')>(), api: vi.fn() }));
 const mocked = vi.mocked(api);
@@ -213,7 +213,7 @@ it('重读失败保持写锁，随后重读成功才恢复', async () => {
   open(); const editor = await edit(); fireEvent.click(screen.getByRole('button', { name: '保存配置' })); await screen.findByText('请先重新读取生效活动');
   fireEvent.click(within(editor).getByRole('button', { name: '重新读取生效活动' })); await screen.findByText('读取失败');
   expect(screen.queryByRole('button', { name: '通用配置' })).toBeNull(); expect(screen.getByText('请先重新读取生效活动')).toBeTruthy();
-  failRead = false; fireEvent.click(screen.getAllByRole('button', { name: /重新读取生效活动/ }).at(-1)!);
+  failRead = false; await clickWhenIdle(() => screen.getAllByRole('button', { name: /重新读取生效活动/ }).at(-1)!);
   await waitFor(() => expect((screen.getByRole('button', { name: '通用配置' }) as HTMLButtonElement).disabled).toBe(false));
   expect(writes()).toHaveLength(1);
 });
