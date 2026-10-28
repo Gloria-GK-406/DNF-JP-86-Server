@@ -217,7 +217,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             if (roster is not null && returning.Count != roster.Members.Length)
                 return;
             if (currentRun is null
-                && (townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)))
+                && (onlineCharacters.StandingOf(session) is not { } member))
                 return;
         }
 

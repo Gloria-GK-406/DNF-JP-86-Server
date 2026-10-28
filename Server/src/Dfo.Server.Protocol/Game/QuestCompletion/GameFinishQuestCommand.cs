@@ -263,10 +263,10 @@ public sealed class GameFinishQuestCommandHandler(
                 }
                 else
                 {
-                    if (townAreas.Find(session.CharacterId) is { } own && session.Owns(own)
+                    if (townAreas.Find(session.CharacterId) is { } own && own.Session == session
                         && townAreas.Find(own.Area) is { } area)
                         foreach (var member in area.VisibleTo(session.CharacterId))
-                            if (selectedSessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
+                            if (selectedSessions.TryGetInWorld(member.CharacterId, out var peer) && member.Session == peer)
                                 audience.Add(peer);
                     if (dungeonRuns.Find(session.CharacterId) is { } run)
                     {

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
@@ -32,7 +34,7 @@ public sealed class CharacterPositionTests
     public void A_character_nobody_is_playing_is_standing_nowhere() =>
         TestGameplay.Run(() =>
         {
-            Assert.Null(new OnlineCharacterRuntimeDomainService(TimeProvider.System).PositionOf(Who));
+            Assert.Null(new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()).PositionOf(Who));
         });
 
     [Fact]
@@ -40,7 +42,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
 
             positions.Begin(Session(), Gate, 100);
 
@@ -61,14 +63,14 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             var session = Session();
             positions.Begin(session, Gate, 100);
 
             var moved = positions.StepTo(session, x: 410, y: 275, direction: 5);
 
-            Assert.Equal(new CharacterPositionState(3, 6, 410, 275, 5), moved);
-            Assert.Equal(moved, positions.PositionOf(Who));
+            Assert.Equal(new CharacterPositionState(3, 6, 410, 275, 5), moved!.Position);
+            Assert.Equal(moved.Position, positions.PositionOf(Who));
         });
     }
 
@@ -85,14 +87,14 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             var session = Session();
             positions.Begin(session, Gate, 100);
 
             var moved = positions.StepTo(session, x: 1, y: 2, direction: 0);
 
-            Assert.Equal(Gate.TownId, moved.TownId);
-            Assert.Equal(Gate.AreaId, moved.AreaId);
+            Assert.Equal(Gate.TownId, moved!.Position.TownId);
+            Assert.Equal(Gate.AreaId, moved.Position.AreaId);
         });
     }
 
@@ -108,14 +110,14 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             var session = Session();
             positions.Begin(session, Gate, 100);
 
-            var moved = positions.CrossInto(session, townId: 5, areaId: 2, x: 100, y: 200);
+            var crossed = positions.CrossInto(session, new TownAreaKey(11, 5, 2), x: 100, y: 200, sharesTownPresence: true);
 
-            Assert.Equal(new CharacterPositionState(5, 2, 100, 200, Gate.Direction), moved);
-            Assert.Equal(moved, positions.PositionOf(Who));
+            Assert.Equal(new TownAreaKey(11, 5, 2), crossed!.CurrentArea!.Key);
+            Assert.Equal(new CharacterPositionState(5, 2, 100, 200, Gate.Direction), positions.PositionOf(Who));
         });
     }
 
@@ -130,14 +132,14 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             var session = Session();
             positions.Begin(session, Gate, 100);
 
-            positions.CrossInto(session, townId: 5, areaId: 2, x: 100, y: 200);
+            positions.CrossInto(session, new TownAreaKey(11, 5, 2), x: 100, y: 200, sharesTownPresence: true);
             var moved = positions.StepTo(session, x: 150, y: 210, direction: 3);
 
-            Assert.Equal(new CharacterPositionState(5, 2, 150, 210, 3), moved);
+            Assert.Equal(new CharacterPositionState(5, 2, 150, 210, 3), moved!.Position);
         });
     }
 
@@ -152,16 +154,43 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             var displaced = Session(generation: 1);
             var replacement = Session(generation: 2);
             positions.Begin(replacement, Gate, 100);
 
-            Assert.Throws<InvalidOperationException>(
-                () => positions.StepTo(displaced, x: 1, y: 2, direction: 0));
-            Assert.Throws<InvalidOperationException>(
-                () => positions.CrossInto(displaced, townId: 1, areaId: 1, x: 1, y: 2));
+            Assert.Null(positions.StepTo(displaced, x: 1, y: 2, direction: 0));
+            Assert.Null(positions.CrossInto(displaced, new TownAreaKey(11, 1, 1), x: 1, y: 2, sharesTownPresence: true));
+            Assert.Null(positions.LeaveTown(displaced, TownAreaDepartureReason.DungeonEntry));
             Assert.Equal(Gate, positions.PositionOf(Who));
+        });
+    }
+
+    /// <summary>Away from town the character stands in no area but keeps where it left.</summary>
+    /// <remarks>
+    /// The dungeon returns the character to that place and a logout while away stores it, so the
+    /// position outlives the area membership; a step while away moves nobody.
+    /// </remarks>
+    [Fact]
+    public void Away_from_town_the_place_left_is_kept_until_the_return()
+    {
+        TestGameplay.Run(() =>
+        {
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var session = Session();
+            positions.Begin(session, Gate, 100);
+
+            var left = positions.LeaveTown(session, TownAreaDepartureReason.DungeonEntry);
+
+            Assert.Equal(TownAreaDepartureReason.DungeonEntry, left!.DepartureReason);
+            Assert.Null(positions.StandingOf(session));
+            Assert.Null(positions.StepTo(session, x: 1, y: 2, direction: 0));
+            Assert.Equal(Gate, positions.PositionOf(Who));
+
+            var back = positions.ReturnToTown(session, new TownAreaKey(11, Gate.TownId, Gate.AreaId), Gate, true);
+
+            Assert.Equal(TownAreaMembershipChangeKind.Joined, back!.Kind);
+            Assert.Equal(Gate, positions.StandingOf(session)!.Position);
         });
     }
 
@@ -171,7 +200,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             var displaced = Session(generation: 1);
             var replacement = Session(generation: 2);
             positions.Begin(replacement, Gate, 100);

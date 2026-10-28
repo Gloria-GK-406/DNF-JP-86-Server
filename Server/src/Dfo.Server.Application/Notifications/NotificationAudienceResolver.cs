@@ -49,7 +49,7 @@ internal sealed class NotificationAudienceResolver(
                      .Where(member => member.SharesTownPresence))
         {
             if (!sessions.TryGetInWorld(candidate.CharacterId, out var current)
-                || !current.Owns(candidate))
+                || candidate.Session != current)
             {
                 continue;
             }

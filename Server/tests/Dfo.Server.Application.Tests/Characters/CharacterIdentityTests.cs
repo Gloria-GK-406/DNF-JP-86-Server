@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -156,7 +157,7 @@ public sealed class CharacterIdentityTests
         new PlayingCharacter(
             Who,
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
-            new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+            new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
             PresentCharacters.StandingInTown(Who),
             new NoCarriedGold(),
             new StoredCarryLimitOnly(),

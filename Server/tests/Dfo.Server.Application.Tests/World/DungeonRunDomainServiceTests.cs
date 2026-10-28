@@ -550,7 +550,7 @@ public sealed partial class DungeonRunDomainServiceTests
             var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
             var parties = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = new PartyCharacterSnapshot(
                 leader.AccountId, leader.CharacterId, 1, scope);
@@ -595,7 +595,7 @@ public sealed partial class DungeonRunDomainServiceTests
                 new AccountId(303), new CharacterId(3), 3, new PartyDirectoryScope(11, 1, 1));
             var parties = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var first = new PartyCharacterSnapshot(
                 leader.AccountId, leader.CharacterId, 1, outsider.DirectoryScope);
             var second = new PartyCharacterSnapshot(
@@ -832,7 +832,7 @@ public sealed partial class DungeonRunDomainServiceTests
             var member = new DungeonRunParticipant(new AccountId(202), new CharacterId(2), 1, false);
             var parties = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = new PartyCharacterSnapshot(leader.AccountId, leader.CharacterId, 1, scope);
             var second = new PartyCharacterSnapshot(member.AccountId, member.CharacterId, 2, scope);

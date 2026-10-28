@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -362,7 +364,7 @@ public sealed class CharacterItemUseTests
             var usability = new PlayingCharacter(
                 Character,
                 new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-                new OnlineCharacterRuntimeDomainService(clock),
+                new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
                 new SessionPresenceDomainService(),
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
@@ -394,7 +396,7 @@ public sealed class CharacterItemUseTests
             var usability = new PlayingCharacter(
                 Character,
                 new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-                new OnlineCharacterRuntimeDomainService(clock),
+                new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
                 PresentCharacters.StandingInTown(Character),
                 new NoCarriedGold(),
                 new StoredCarryLimitOnly(),
@@ -456,7 +458,7 @@ public sealed class CharacterItemUseTests
                     new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
                     new OnlineCharacterRuntimeDomainService(
                         new AdvanceableTimeProvider(
-                            new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero))),
+                            new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero)), new OnlineCharacterLocationDomainService()),
                     PresentCharacters.StandingInTown(Character),
                     new NoCarriedGold(),
                     new StoredCarryLimitOnly(),
@@ -550,7 +552,7 @@ public sealed class CharacterItemUseTests
         params (int ItemId, ItemUseRule Rule)[] rules)
     {
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
-        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
         var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(
             new Dfo.Server.Data.Accounts.AccountId(1), Character,
             new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);

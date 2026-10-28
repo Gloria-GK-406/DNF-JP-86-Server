@@ -736,7 +736,7 @@ public sealed class MonsterDeathHandlerTests
             };
             var party = new PartyService(
                 new FixedPartyMemberStatus(), new PartyModeRuleService(),
-                TimeProvider.System, NoPartyEndpoints.Instance);
+                TimeProvider.System, NoPartyEndpoints.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = new PartyCharacterSnapshot(
                 leader.AccountId, leader.CharacterId, leader.WireUserId, scope);

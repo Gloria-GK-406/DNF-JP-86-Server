@@ -15,7 +15,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class NpcShopDomainService(
     ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas,
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
     ICharacterDomainService characters,
     IAccountWalletDomainService wallets,
     ICharacterBusinessInventoryDomainService inventories,
@@ -34,7 +34,7 @@ internal sealed class NpcShopDomainService(
         var inBossTower = bossTower?.Find(session) is not null;
         if (inBossTower ? !bossTower!.CanShop(session, npcId, shopId)
             : participation?.Find(session.CharacterId) is not null
-                || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member))
+                || onlineCharacters.StandingOf(session) is not { } member)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);

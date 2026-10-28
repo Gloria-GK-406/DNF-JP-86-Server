@@ -37,7 +37,7 @@ internal sealed class SessionAdjacentEntryDomainService(
         foreach (var occupant in occupants)
         {
             if (sessions.TryGetInWorld(occupant.CharacterId, out var exact)
-                && exact.Owns(occupant))
+                && occupant.Session == exact)
             {
                 others.Add(new PresentCharacterState(
                     occupant.CharacterId,

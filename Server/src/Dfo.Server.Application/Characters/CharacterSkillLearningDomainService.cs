@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillLearningDomainService(
     ISelectedSessionDomainService sessions,
-    ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
+    ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
     ICharacterSkillTable skills,
     ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
     IDomainTransactionAccessor transactions, IPremiumServiceDomainService premiums,
@@ -45,7 +45,7 @@ internal sealed class CharacterSkillLearningDomainService(
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill switching requires a transaction.");
         if (target < 0 || !sessions.IsInWorld(session)
-            || townAreas.Find(session.CharacterId) is not { } town || !session.Owns(town))
+            || onlineCharacters.StandingOf(session) is not { } town)
             return null;
         var view = await currentViews.TryLoadAsync(session, ct);
         if (view is null || view.World.Channel.PvpSkillProfileApplies) return null;
@@ -71,8 +71,7 @@ internal sealed class CharacterSkillLearningDomainService(
             || changes.Select(change => change.SkillId).Distinct().Count() != changes.Count)
             return new(CharacterSkillLearningRejection.InvalidRequest);
         if (mode != 0 || selected.World.Channel.PvpSkillProfileApplies
-            || townAreas.Find(session.CharacterId) is not { } member
-            || !session.Owns(member))
+            || onlineCharacters.StandingOf(session) is not { } member)
             return new(CharacterSkillLearningRejection.UnsupportedScenario);
         if (pageIndex < 0) return new(CharacterSkillLearningRejection.PageUnavailable);
         var builds = await state.BuildsAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);

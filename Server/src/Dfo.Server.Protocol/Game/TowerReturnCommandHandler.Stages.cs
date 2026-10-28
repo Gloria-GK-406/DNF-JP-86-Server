@@ -182,7 +182,7 @@ internal partial class TowerReturnCommandHandler
             (_, ct) => bossTowers.StartAsync(BossTowerActionProjection.BossTowerContext(run, leader), ct), token);
 
     internal ValueTask<int> TownEnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) =>
-        TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, currentViews, outbox,
+        TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, onlineCharacters, currentViews, outbox,
             weaknessState, projectWeakness, projections,
             new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), entries, token);
 

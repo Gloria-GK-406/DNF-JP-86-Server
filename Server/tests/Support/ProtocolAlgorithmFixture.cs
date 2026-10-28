@@ -52,6 +52,31 @@ internal static class ProtocolAlgorithmFixture
             if (value is INetworkConnectionCloser closer) values.Add(new Closures(closer));
         }
         if (!values.Any(value => value is bool)) values.Add(false);
+        // Who stands where and the session's own position are one store; a runtime the test did not
+        // supply is built over the town areas it did, so both answer the same placement.
+        if (!values.Any(value => value is IOnlineCharacterRuntimeDomainService))
+        {
+            var areas = values.OfType<Dfo.Server.Abstractions.World.ITownAreaDomainService>().LastOrDefault();
+            var locations = areas as Dfo.Server.Application.World.OnlineCharacterLocationDomainService
+                ?? areas?.GetType().GetProperty("Locations")?.GetValue(areas) as Dfo.Server.Application.World.OnlineCharacterLocationDomainService;
+            if (areas is null)
+            {
+                locations = new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
+                values.Add(locations);
+            }
+            if (locations is not null)
+                values.Add(new Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService(TimeProvider.System, locations));
+        }
+        // The party reads where its members stand from the same town areas.
+        if (!values.Any(value => value is Dfo.Server.Abstractions.Parties.IPartyService)
+            && values.OfType<Dfo.Server.Abstractions.World.ITownAreaDomainService>().LastOrDefault() is { } partyAreas)
+        {
+            values.Add(new Dfo.Server.Application.Parties.PartyService(
+                (Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)),
+                new Dfo.Server.Application.Parties.PartyModeRuleService(), TimeProvider.System,
+                (Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)),
+                partyAreas));
+        }
         return values.ToArray();
     }
     private static readonly HashSet<Type> EmptyWorldContracts =
@@ -88,8 +113,9 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(Dfo.Server.Abstractions.Parties.IPartyService)) return new Dfo.Server.Application.Parties.PartyService(
             (Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)),
             new Dfo.Server.Application.Parties.PartyModeRuleService(), TimeProvider.System,
-            (Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)));
-        if (type == typeof(Dfo.Server.Abstractions.World.ITownAreaDomainService)) return new Dfo.Server.Application.World.TownAreaDomainService();
+            (Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberSessionEndpointSource)),
+            (Dfo.Server.Abstractions.World.ITownAreaDomainService)Default(typeof(Dfo.Server.Abstractions.World.ITownAreaDomainService)));
+        if (type == typeof(Dfo.Server.Abstractions.World.ITownAreaDomainService)) return new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
         if (type == typeof(ISelectedSessionDomainService)) return TestSessions.Directory();
         if (type == typeof(Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService)) return new Dfo.Server.Protocol.Game.Dungeons.DungeonRunDeliveryRegistry();
         if (type == typeof(ISelectedCharacterCurrentViewDomainService)) return new NoCurrentView();

@@ -41,7 +41,7 @@ public sealed partial class HousingNetworkSettlementTests
             { await f.Services.GetRequiredService<IMarriageHousingDomainService>().InitializeAsync(f.Session.AccountId, f.Session.CharacterId, default); await tx.CommitAsync(default); }
             f.Sql("UPDATE marriage_personal_points SET points=100 WHERE character_id=1");
             var room = (await f.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(f.Session.AccountId, f.Session.CharacterId, default))!;
-            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 101, 0, room.Instance), new(101, 0, 900, 250, 5), true);
+            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(f.Session, new(1, 101, 0, room.Instance), new(101, 0, 900, 250, 5), true);
             return p.Id;
         });
     }

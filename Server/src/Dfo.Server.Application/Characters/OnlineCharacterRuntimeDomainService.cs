@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
@@ -10,62 +12,102 @@ namespace Dfo.Server.Application.Characters;
 
 /// <summary>One immutable record per character being played, replaced whole on every change.</summary>
 /// <remarks>
-/// Changes are compare-and-swap on the record, so two commands of one account running side by side
-/// cannot lose each other's change, and none takes a mutual-exclusion primitive. Only
-/// <see cref="Begin"/> inserts; every other write replaces a record its session still owns, so a
-/// write that arrives after <see cref="EndExact"/> finds nothing to replace and cannot bring the
-/// record back.
+/// Vitals, cooldowns and the spirit potion are compare-and-swap on the record, so two commands of
+/// one account running side by side cannot lose each other's change, and none takes a
+/// mutual-exclusion primitive. Only <see cref="Begin"/> inserts; every other write replaces a record
+/// its session still owns, so a write that arrives after <see cref="EndExact"/> finds nothing to
+/// replace and cannot bring the record back.
+/// <para>
+/// The position is not on the record: it is the location service's, written only from here, because
+/// a character's place in its town area is the same fact and the area needs it under its own lock to
+/// show everyone standing there.
+/// </para>
 /// </remarks>
-internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
+internal sealed class OnlineCharacterRuntimeDomainService(
+    TimeProvider clock, OnlineCharacterLocationDomainService locations)
     : IOnlineCharacterRuntimeDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, Entry> entries = new();
 
-    public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent)
+    public TownAreaMembershipChange Begin(
+        SelectedSessionIdentity session,
+        TownAreaKey area,
+        CharacterPositionState position,
+        bool sharesTownPresence,
+        byte hpPercent)
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(Begin));
         ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(position);
+        var standing = locations.Begin(session, area, position, sharesTownPresence);
         entries[session.CharacterId] = new Entry(
-            session, position, Math.Min(hpPercent, (byte)100),
+            session, Math.Min(hpPercent, (byte)100),
             ImmutableDictionary<ItemCooldownKey, long>.Empty, Potion: null);
+        return standing;
     }
 
     public bool EndExact(SelectedSessionIdentity session)
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(EndExact));
         ArgumentNullException.ThrowIfNull(session);
+        var ended = locations.End(session);
         while (entries.TryGetValue(session.CharacterId, out var current) && current.Session == session)
         {
             if (entries.TryRemove(KeyValuePair.Create(session.CharacterId, current)))
                 return true;
         }
-        return false;
+        return ended;
     }
 
-    public CharacterPositionState? PositionOf(SelectedSessionIdentity session)
+    public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => locations.PositionOf(session);
+
+    public CharacterPositionState? PositionOf(CharacterId characterId) => locations.PositionOf(characterId);
+
+    public TownAreaMember? StandingOf(SelectedSessionIdentity session) => locations.StandingOf(session);
+
+    public TownAreaMembershipChange? CrossInto(
+        SelectedSessionIdentity session,
+        TownAreaKey destination,
+        short x,
+        short y,
+        bool sharesTownPresence,
+        byte? direction = null)
     {
-        ArgumentNullException.ThrowIfNull(session);
-        return entries.TryGetValue(session.CharacterId, out var entry) && entry.Session == session
-            ? entry.Position
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(CrossInto));
+        if (locations.StandingOf(session) is not { } standing)
+            return null;
+        var position = standing.Position with
+        {
+            TownId = destination.TownId,
+            AreaId = destination.AreaId,
+            X = x,
+            Y = y,
+            Direction = direction ?? standing.Position.Direction,
+        };
+        return locations.Transfer(session, destination, position, sharesTownPresence);
+    }
+
+    public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(StepTo));
+        return locations.StandingOf(session) is { } standing
+            ? locations.Step(session, standing.Position with { X = x, Y = y, Direction = direction })
             : null;
     }
 
-    public CharacterPositionState? PositionOf(CharacterId characterId) =>
-        entries.TryGetValue(characterId, out var entry) ? entry.Position : null;
-
-    public CharacterPositionState CrossInto(
-        SelectedSessionIdentity session, byte townId, byte areaId, short x, short y)
+    public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason)
     {
-        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(CrossInto));
-        return Move(session, current => current with { TownId = townId, AreaId = areaId, X = x, Y = y });
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(LeaveTown));
+        return locations.Depart(session, reason);
     }
 
-    public CharacterPositionState StepTo(
-        SelectedSessionIdentity session, short x, short y, byte direction)
+    public TownAreaMembershipChange? ReturnToTown(
+        SelectedSessionIdentity session,
+        TownAreaKey area,
+        CharacterPositionState position,
+        bool sharesTownPresence)
     {
-        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(StepTo));
-        return Move(session, current => current with { X = x, Y = y, Direction = direction });
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(ReturnToTown));
+        return locations.Arrive(session, area, position, sharesTownPresence);
     }
 
     public byte HpPercentOf(CharacterId characterId) =>
@@ -110,15 +152,6 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
             ? potion.Rate
             : 0;
 
-    private CharacterPositionState Move(
-        SelectedSessionIdentity session, Func<CharacterPositionState, CharacterPositionState> report)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        return TryChange(session, current => current with { Position = report(current.Position) })?.Position
-            ?? throw new InvalidOperationException(
-                "The session reporting a movement is not the one standing there.");
-    }
-
     /// <summary>Replaces the record this session owns, or answers null when it owns none.</summary>
     private Entry? TryChange(SelectedSessionIdentity session, Func<Entry, Entry> change)
     {
@@ -136,7 +169,6 @@ internal sealed class OnlineCharacterRuntimeDomainService(TimeProvider clock)
     /// <summary>One character's record, compared by reference so a swap only replaces what was read.</summary>
     private sealed record Entry(
         SelectedSessionIdentity Session,
-        CharacterPositionState Position,
         byte HpPercent,
         ImmutableDictionary<ItemCooldownKey, long> Cooldowns,
         SpiritPotion? Potion)

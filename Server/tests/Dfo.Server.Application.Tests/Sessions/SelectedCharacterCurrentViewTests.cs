@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
@@ -62,7 +64,7 @@ public sealed class SelectedCharacterCurrentViewTests
         {
             var old = Session("old", 1);
             var replacement = Session("replacement", 2);
-            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             vitals.Begin(old, new CharacterPositionState(1, 0, 0, 0, 0), 70);
             vitals.Begin(replacement, new CharacterPositionState(1, 0, 0, 0, 0), 85);
 

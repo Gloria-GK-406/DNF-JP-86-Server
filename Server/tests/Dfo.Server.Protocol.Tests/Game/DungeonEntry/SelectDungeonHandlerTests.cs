@@ -549,8 +549,7 @@ public sealed class SelectDungeonHandlerTests
             var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
             Assert.Equal(SelectDungeonRefusal.DungeonNotFound, refusal.ErrorCode);
             Assert.Empty(fatigue.Spent);
-            Assert.True(Identity.Owns(
-                ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+            Assert.True((((ITownAreaDomainService)areas).Find(Identity.CharacterId)!).Session == Identity);
         });
     }
 
@@ -597,8 +596,7 @@ public sealed class SelectDungeonHandlerTests
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-            Assert.True(Identity.Owns(
-                ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+            Assert.True((((ITownAreaDomainService)areas).Find(Identity.CharacterId)!).Session == Identity);
         });
     }
 
@@ -1203,7 +1201,6 @@ public sealed class SelectDungeonHandlerTests
     {
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public PartyKey KeyOf(CharacterId characterId) => PartyKey.Virtual(characterId);
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];
         public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
             PartySnapshot.Virtual(character, new PartySettings(new byte[PartySettings.WireLength]));

@@ -6,6 +6,8 @@ using Dfo.Server.Application;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -27,7 +29,7 @@ public sealed class PartyServiceTests
         TestGameplay.Run(() =>
         {
             var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var oldLeader = Character(2, scope); var survivor = Character(1, scope); var applicant = Character(8, scope);
             Assert.True(service.RequestInvite(oldLeader, survivor, Profile(1)).Succeeded);
@@ -74,7 +76,7 @@ public sealed class PartyServiceTests
         {
             var clock = new AdvanceablePartyClock(DateTimeOffset.UtcNow);
             var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                clock, EmptyPartyMemberSessionEndpointSource.Instance);
+                clock, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = Character(1, scope); var member = Character(2, scope); var applicant = Character(8, scope);
             void Admit(PartyCharacterSnapshot owner, PartyCharacterSnapshot newcomer)
@@ -114,7 +116,7 @@ public sealed class PartyServiceTests
         TestGameplay.Run(() =>
         {
             var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = Character(1, scope); var member = Character(2, scope); var applicant = Character(8, scope);
             Assert.True(service.RequestInvite(leader, member, Profile(1)).Succeeded);
@@ -136,7 +138,7 @@ public sealed class PartyServiceTests
         {
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var first = Character(1, scope);
             var second = Character(2, scope);
@@ -211,7 +213,7 @@ public sealed class PartyServiceTests
     {
         var service = new PartyService(
             new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         var scope = new PartyDirectoryScope(11, 1, 1);
         var leader = Character(1, scope);
         var member = Character(2, scope);
@@ -257,7 +259,7 @@ public sealed class PartyServiceTests
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance);
+                EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var character = Character(91, new PartyDirectoryScope(11, 1, 1));
 
             var roster = service.FindParty(character);
@@ -315,7 +317,7 @@ public sealed class PartyServiceTests
                 new PartyModeRuleService(),
                 TimeProvider.System,
                 new PartyMemberSessionEndpointSource(
-                    selectedSessions, onlineUsers, sessionEndpoints));
+                    selectedSessions, onlineUsers, sessionEndpoints), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.CreateOrUpdateSettings(
                 new PartyCharacterSnapshot(
                     selected.AccountId,
@@ -342,17 +344,24 @@ public sealed class PartyServiceTests
     {
         TestGameplay.Run(() =>
         {
+            var areas = new OnlineCharacterLocationDomainService();
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance);
+                EmptyPartyMemberSessionEndpointSource.Instance, areas);
             var scope = new PartyDirectoryScope(11, 1, 1);
+            Stand(areas, 1, scope);
             Create(service, 1, scope, DirectorySettings(PartyCategory.Story, 10));
+            Stand(areas, 2, scope);
             Create(service, 2, scope, DirectorySettings(PartyCategory.Story, 10));
+            Stand(areas, 3, scope);
             Create(service, 3, scope, DirectorySettings(PartyCategory.Cycle, 20));
+            Stand(areas, 4, new PartyDirectoryScope(12, 1, 1));
             Create(service, 4, new PartyDirectoryScope(12, 1, 1), DirectorySettings(PartyCategory.Story, 10));
+            Stand(areas, 5, new PartyDirectoryScope(11, 2, 1));
             Create(service, 5, new PartyDirectoryScope(11, 2, 1), DirectorySettings(PartyCategory.Story, 10));
+            Stand(areas, 6, new PartyDirectoryScope(11, 1, 2));
             Create(service, 6, new PartyDirectoryScope(11, 1, 2), DirectorySettings(PartyCategory.Story, 10));
 
             Assert.Equal(3, service.Query(new PartyDirectoryQuery(scope)).Count);
@@ -380,26 +389,28 @@ public sealed class PartyServiceTests
     {
         TestGameplay.Run(() =>
         {
+            var areas = new OnlineCharacterLocationDomainService();
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance);
+                EmptyPartyMemberSessionEndpointSource.Instance, areas);
             var first = new PartyDirectoryScope(11, 1, 1);
             var second = new PartyDirectoryScope(11, 1, 2);
+            Stand(areas, 1, first);
             Create(service, 1, first, DirectorySettings(PartyCategory.Story, 10));
             Create(service, 2, null, DirectorySettings(PartyCategory.Story, 10));
 
             Assert.Single(service.Query(new PartyDirectoryQuery(first)));
-            service.UpdateDirectoryPresence(new CharacterId(1), null);
+            Stand(areas, 1, null);
             Assert.Empty(service.Query(new PartyDirectoryQuery(first)));
-            service.UpdateDirectoryPresence(new CharacterId(1), second);
+            Stand(areas, 1, second);
             Assert.Empty(service.Query(new PartyDirectoryQuery(first)));
             Assert.Single(service.Query(new PartyDirectoryQuery(second)));
 
-            service.UpdateDirectoryPresence(new CharacterId(2), first);
+            Stand(areas, 2, first);
             Assert.Single(service.Query(new PartyDirectoryQuery(first)));
-            service.UpdateDirectoryPresence(new CharacterId(2), null);
+            Stand(areas, 2, null);
             Assert.Empty(service.Query(new PartyDirectoryQuery(first)));
         });
     }
@@ -409,12 +420,12 @@ public sealed class PartyServiceTests
     {
         TestGameplay.Run(() =>
         {
+            var presence = new SessionPresenceDomainService();
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance);
-            var presence = new SessionPresenceDomainService(service);
+                EmptyPartyMemberSessionEndpointSource.Instance, presence);
             var first = SelectedSessionIdentity.Create(
                 new AccountId(1), new CharacterId(1), new NetworkConnectionId("private-1"), 1, 10011);
             var second = SelectedSessionIdentity.Create(
@@ -460,12 +471,12 @@ public sealed class PartyServiceTests
     {
         TestGameplay.Run(() =>
         {
+            var presence = new SessionPresenceDomainService();
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance);
-            var presence = new SessionPresenceDomainService(service);
+                EmptyPartyMemberSessionEndpointSource.Instance, presence);
             var old = SelectedSessionIdentity.Create(
                 new AccountId(1), new CharacterId(1), new NetworkConnectionId("old"), 1, 10011);
             var replacement = old with
@@ -497,7 +508,6 @@ public sealed class PartyServiceTests
             var fixture = new PartyFixture();
             var leader = fixture.Admit(1, 101);
             var scope = new PartyDirectoryScope(ChannelId: 11, TownId: 1, AreaId: 1);
-            fixture.Parties.UpdateDirectoryPresence(leader.CharacterId, scope);
             Assert.True(fixture.Parties.CreateOrUpdateSettingsExact(
                 leader, new PartyModeRuleService().DefaultSettings, PartyTitle.Empty).Succeeded);
 
@@ -629,19 +639,22 @@ public sealed class PartyServiceTests
     {
         TestGameplay.Run(() =>
         {
+            var areas = new OnlineCharacterLocationDomainService();
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                EmptyPartyMemberSessionEndpointSource.Instance);
+                EmptyPartyMemberSessionEndpointSource.Instance, areas);
             var firstScope = new PartyDirectoryScope(11, 1, 1);
             var secondScope = new PartyDirectoryScope(11, 1, 2);
             var leader = Character(1, firstScope);
             var successor = Character(2, firstScope);
+            Stand(areas, 1, firstScope);
+            Stand(areas, 2, firstScope);
 
             Assert.True(service.RequestInvite(leader, successor, Profile(1)).Succeeded);
             Assert.True(service.AcceptInvite(successor, leader).Succeeded);
-            service.UpdateDirectoryPresence(successor.CharacterId, secondScope);
+            Stand(areas, 2, secondScope);
 
             var transfer = service.TransferLeadership(
                 leader.CharacterId,
@@ -693,7 +706,7 @@ public sealed class PartyServiceTests
         {
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var founder = Character(1, scope);
             var leader = Character(2, scope);
@@ -725,7 +738,7 @@ public sealed class PartyServiceTests
         {
             var service = new PartyService(
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = Character(1, scope);
             var removed = Character(2, scope);
@@ -1124,6 +1137,24 @@ public sealed class PartyServiceTests
             settings,
             PartyTitle.Empty);
         Assert.True(result.Succeeded);
+    }
+
+    /// <summary>Stands the character in <paramref name="scope"/>'s shared area, or takes it out of town.</summary>
+    private static void Stand(OnlineCharacterLocationDomainService areas, int characterId, PartyDirectoryScope? scope)
+    {
+        var session = SelectedSessionIdentity.Create(
+            new AccountId(characterId), new CharacterId(characterId),
+            new NetworkConnectionId("stand-" + characterId), 1, 10011);
+        if (scope is null)
+        {
+            areas.Depart(session, TownAreaDepartureReason.DungeonEntry);
+            return;
+        }
+        areas.Begin(
+            session,
+            new TownAreaKey(scope.ChannelId, scope.TownId, scope.AreaId, scope.Instance),
+            new CharacterPositionState(scope.TownId, scope.AreaId, 0, 0, 0),
+            sharesTownPresence: true);
     }
 
     private static PartyCharacterSnapshot Character(

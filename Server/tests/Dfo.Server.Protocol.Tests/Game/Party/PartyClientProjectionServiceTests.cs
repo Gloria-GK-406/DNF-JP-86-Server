@@ -17,7 +17,7 @@ public sealed class PartyClientProjectionServiceTests
         TestGameplay.Run(() =>
         {
             var inner = new PartyService(new FixedStatus(), new PartyModeRuleService(),
-                TimeProvider.System, new NoEndpoints());
+                TimeProvider.System, new NoEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var service = new PartyClientProjectionService(inner, new PartyClientIdRegistry());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = new PartyCharacterSnapshot(new AccountId(1), new CharacterId(1), 1, scope);
@@ -47,7 +47,7 @@ public sealed class PartyClientProjectionServiceTests
         {
             var inner = new PartyService(
                 new FixedStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoEndpoints());
+                new NoEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var service = new PartyClientProjectionService(inner, new PartyClientIdRegistry());
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = new PartyCharacterSnapshot(new AccountId(1), new CharacterId(1), 1, scope);

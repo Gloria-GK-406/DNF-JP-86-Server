@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -79,7 +81,7 @@ public sealed class UserServiceTests
             service.Publish(session);
             return session;
         });
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
         TestGameplay.Run(() =>
         {
             runtime.Begin(session, new CharacterPositionState(1, 0, 10, 20, 0), 100);

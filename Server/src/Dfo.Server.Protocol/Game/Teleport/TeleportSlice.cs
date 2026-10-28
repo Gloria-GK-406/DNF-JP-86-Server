@@ -141,7 +141,7 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
         }
         var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
         var previous = townAreas.Find(session.CharacterId);
-        if (view is null || previous is null || !session.Owns(previous)) return false;
+        if (view is null || previous is null || previous.Session != session) return false;
         BusinessSlot source;
         try { source = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.SourceSlot)); }
         catch (InventorySlotMappingException)

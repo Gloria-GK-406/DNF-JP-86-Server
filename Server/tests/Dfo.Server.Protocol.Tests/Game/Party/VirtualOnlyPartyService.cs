@@ -8,8 +8,6 @@ internal sealed class VirtualOnlyPartyService : IPartyService
 {
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
     public PartyKey KeyOf(CharacterId characterId) => PartyKey.Virtual(characterId);
-    public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
-
     public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [];
 
     public PartySnapshot FindParty(PartyCharacterSnapshot character) =>

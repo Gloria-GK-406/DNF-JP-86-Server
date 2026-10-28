@@ -177,8 +177,7 @@ public sealed class CharacterSkillLearningTests
             Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario,
                 (await fixture.LearnAsync([new(1, 0, 1)], mode: 1)).Rejection);
             fixture.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(
-                fixture.Session.CharacterId,
-                fixture.Session.TownAreaLease(),
+                fixture.Session,
                 TownAreaDepartureReason.SessionEnded);
             Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario, (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
             // Selected but no longer in the world.
@@ -406,8 +405,7 @@ internal sealed class LearningFixture : IAsyncDisposable
             sessions.Select(Session);
             sessions.EnterWorld(Session);
             Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
-                Session.CharacterId,
-                Session.TownAreaLease(),
+                Session,
                 new TownAreaKey(1, 0, 0),
                 new CharacterPositionState(0, 0, 0, 0, 0),
                 true));

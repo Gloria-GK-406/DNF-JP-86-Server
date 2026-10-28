@@ -35,13 +35,13 @@ public sealed class TownPeerProtocolCommandFlowTests
             newNeighbor = await TowerSourceMembers.AddAsync(f, 4, 3, 2, 4000);
             var runtime = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
             var towns = f.Services.GetRequiredService<ITownAreaDomainService>();
-            towns.TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(channel.ChannelId, 0, 0),
+            towns.TransferExact(f.Session, new(channel.ChannelId, 0, 0),
                 runtime.PositionOf(f.Session)!, true);
             foreach (var (session, town, area) in new[] { (oldNeighbor, (byte)0, (byte)0), (newNeighbor, (byte)11, (byte)3) })
             {
                 var position = new CharacterPositionState(town, area, 100, 200, 0);
                 runtime.Begin(session, position, 100);
-                towns.Enter(new(session.CharacterId, session.TownAreaLease(), new(channel.ChannelId, town, area), position, true));
+                towns.Enter(new(session, new(channel.ChannelId, town, area), position, true));
             }
             var parties = f.Services.GetRequiredService<IPartyService>();
             PartyCharacterSnapshot Member(SelectedSessionIdentity session) => new(session.AccountId, session.CharacterId, session.WireUserId, new(channel.ChannelId, 0, 0));

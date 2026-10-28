@@ -63,33 +63,28 @@ internal static class TownMovementProjection
              new GameServerNoticeMessage(reason)], []), cancellationToken);
     }
 
-    internal static async ValueTask<bool> TownTransferAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyTownProjectionDelivery partyTown, ISelectedCharacterCurrentViewDomainService currentViews, IMarriageHousingQueryDomainService housing, IGameCommandOutbox outbox, IMarriageHousingSessionDomainService housingSessions, 
+    /// <summary>Crosses the session's character into another area and projects the result.</summary>
+    /// <returns>False when the crossing was refused or the session no longer stands there.</returns>
+    internal static async ValueTask<bool> TownTransferAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, IOnlineCharacterRuntimeDomainService onlineCharacters, ICommandProjections projections, IPartyTownProjectionDelivery partyTown, ISelectedCharacterCurrentViewDomainService currentViews, IMarriageHousingQueryDomainService housing, IGameCommandOutbox outbox, IMarriageHousingSessionDomainService housingSessions, 
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,
         SelectCharacterResult result,
         int channelId,
-        Dfo.Server.Data.Characters.CharacterPositionState moved,
+        byte townId,
+        byte areaId,
+        short x,
+        short y,
         TownAreaMember previousMember,
         bool sharesTownPresence,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(result);
-        ArgumentNullException.ThrowIfNull(moved);
         ArgumentNullException.ThrowIfNull(previousMember);
-        var instance = moved.TownId == 101 ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
-        if (moved.TownId == 101 && instance is not > 0) return false;
-        var destination = new TownAreaKey(
-            channelId,
-            moved.TownId,
-            moved.AreaId, instance ?? 0);
-        var change = townAreas.TransferExact(
-            session.CharacterId,
-            session.TownAreaLease(),
-            destination,
-            moved,
-            sharesTownPresence);
-        if (change is null)
+        var instance = townId == 101 ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
+        if (townId == 101 && instance is not > 0) return false;
+        var destination = new TownAreaKey(channelId, townId, areaId, instance ?? 0);
+        if (onlineCharacters.CrossInto(session, destination, x, y, sharesTownPresence) is null)
             return false;
 
         return await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, partyTown, currentViews, housing, outbox, housingSessions, connectionId, session, result, previousMember, cancellationToken).ConfigureAwait(false);
@@ -99,12 +94,12 @@ internal static class TownMovementProjection
         SelectCharacterResult result, TownAreaMember previousMember, CancellationToken cancellationToken)
     {
         var member = townAreas.Find(session.CharacterId);
-        if (member is null || !session.Owns(member)) return false;
+        if (member is null || member.Session != session) return false;
         var changedArea = previousMember.Area != member.Area;
         if (changedArea && previousMember.Area.TownId == 101) housingSessions.CloseExact(session);
         var currentKey = member.Area;
         var current = townAreas.Find(currentKey);
-        var own = current?.Members.SingleOrDefault(member => session.Owns(member));
+        var own = current?.Members.SingleOrDefault(member => member.Session == session);
         if (own is null)
         {
             if (changedArea
@@ -181,49 +176,38 @@ internal static class TownMovementProjection
         return true;
     }
 
-    internal static async ValueTask<bool> TownMoveAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IGameCommandOutbox outbox, 
+    /// <summary>Steps the session's character within its area and projects the result.</summary>
+    internal static async ValueTask<bool> TownMoveAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, IOnlineCharacterRuntimeDomainService onlineCharacters, ICommandProjections projections, IGameCommandOutbox outbox, 
         NetworkConnectionId connectionId,
         SelectedSessionIdentity session,
-        Dfo.Server.Data.Characters.CharacterPositionState position,
+        short x,
+        short y,
+        byte direction,
         ushort trailer,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(position);
-        var previous = townAreas.Find(session.CharacterId);
-        if (previous is null || !session.Owns(previous))
+        var previous = onlineCharacters.StandingOf(session);
+        if (previous is null)
         {
             await TownMovementProjection.TownRegisterNotiAsync(outbox, 
                 connectionId,
-                new UserPositionNotification(
-                    session.WireUserId,
-                    position.X,
-                    position.Y,
-                    position.Direction,
-                    trailer),
+                new UserPositionNotification(session.WireUserId, x, y, direction, trailer),
                 cancellationToken).ConfigureAwait(false);
             return false;
         }
-        var movement = townAreas.MoveExact(
-            session.CharacterId,
-            session.TownAreaLease(),
-            position);
+        var movement = onlineCharacters.StepTo(session, x, y, direction);
         var area = movement?.Area ?? townAreas.Find(previous.Area);
         if (area is null)
         {
             await TownMovementProjection.TownRegisterNotiAsync(outbox, 
                 connectionId,
-                new UserPositionNotification(
-                    session.WireUserId,
-                    position.X,
-                    position.Y,
-                    position.Direction,
-                    trailer),
+                new UserPositionNotification(session.WireUserId, x, y, direction, trailer),
                 cancellationToken).ConfigureAwait(false);
             return false;
         }
 
         var current = townAreas.Find(area.Key);
-        var own = current?.Members.SingleOrDefault(member => session.Owns(member));
+        var own = current?.Members.SingleOrDefault(member => member.Session == session);
         if (own is null)
             return false;
 

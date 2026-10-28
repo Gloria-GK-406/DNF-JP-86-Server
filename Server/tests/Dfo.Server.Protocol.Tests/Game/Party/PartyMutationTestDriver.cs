@@ -63,7 +63,6 @@ internal sealed class PartyMutationProbe(IPartyService inner, Action<string, Cha
     bool throwAfterLeave = false) : IPartyService
 {
     public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => inner.Query(query);
-    public void UpdateDirectoryPresence(CharacterId character, PartyDirectoryScope? scope) => inner.UpdateDirectoryPresence(character, scope);
     public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => inner.CreateOrUpdateSettings(character, settings, title);
     public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => inner.RequestInvite(inviter, target, display);
     public PartyOperationResult AcceptInvite(PartyCharacterSnapshot invitee, PartyCharacterSnapshot inviter) => inner.AcceptInvite(invitee, inviter);
@@ -87,7 +86,6 @@ internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = nu
     internal List<CharacterId> Left { get; } = [];
     public PartyOperationResult LeaveParty(CharacterId character) { Left.Add(character); observed?.Invoke(character); return PartyOperationResult.Success(); }
     public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => directory.Query(query);
-    public void UpdateDirectoryPresence(CharacterId character, PartyDirectoryScope? scope) => directory.UpdateDirectoryPresence(character, scope);
     public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
     public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();
     public PartyOperationResult AcceptInvite(PartyCharacterSnapshot invitee, PartyCharacterSnapshot inviter) => throw new NotSupportedException();

@@ -633,7 +633,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             ICharacterSkillPointDomainService, CharacterSkillPointDomainService>();
         // What a character being played is like right now: position, vitals, cooldowns and the
-        // spirit potion, owned by the session generation that began it.
+        // spirit potion, owned by the session generation that began it. The position is kept by the
+        // location service, which only this runtime writes.
         services.TryAddSingleton<
             IOnlineCharacterRuntimeDomainService, OnlineCharacterRuntimeDomainService>();
         // A character's keys and options, asked by identifier. The entry load is the only other
@@ -817,9 +818,9 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<PartyService>();
         services.TryAddSingleton<IPartyService>(provider =>
             provider.GetRequiredService<PartyService>());
-        services.TryAddSingleton<IPartyDirectoryPresenceSink>(provider =>
-            provider.GetRequiredService<PartyService>());
-        services.TryAddSingleton<ITownAreaDomainService, TownAreaDomainService>();
+        services.TryAddSingleton<OnlineCharacterLocationDomainService>();
+        services.TryAddSingleton<ITownAreaDomainService>(provider =>
+            provider.GetRequiredService<OnlineCharacterLocationDomainService>());
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
         services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();

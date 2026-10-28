@@ -25,9 +25,11 @@ internal static class TestParties
     private static readonly PartyDirectoryScope Town = new(11, 1, 1);
     private static readonly ConditionalWeakTable<IDungeonRunDomainService, IPartyService> PartiesOfRuns = new();
 
-    public static PartyService Create() => new(
+    /// <summary>A real party service reading where members stand from <paramref name="areas"/>.</summary>
+    public static PartyService Create(ITownAreaDomainService? areas = null) => new(
         new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-        TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+        TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance,
+        areas ?? new OnlineCharacterLocationDomainService());
 
     /// <summary>A run service over <paramref name="parties"/>, or over a fresh real party service.</summary>
     /// <remarks>A missing transaction accessor keeps the run service's immediate-apply path.</remarks>

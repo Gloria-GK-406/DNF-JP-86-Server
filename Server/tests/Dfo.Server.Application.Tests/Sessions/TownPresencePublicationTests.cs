@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Testing;
@@ -21,7 +22,7 @@ public sealed class TownPresencePublicationTests
         {
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var presence = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
             var currentViews = new FixedCurrentViews();
             var service = new SelectCharacterSessionEntryService(
                 sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
@@ -53,7 +54,7 @@ public sealed class TownPresencePublicationTests
         {
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var presence = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
             var currentViews = new FixedCurrentViews();
             var service = new SelectCharacterSessionEntryService(
                 sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
@@ -78,7 +79,7 @@ public sealed class TownPresencePublicationTests
         {
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var presence = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
             var currentViews = new FixedCurrentViews();
             var service = new SelectCharacterSessionEntryService(
                 sessions, currentViews, presence, new PvpLobbyDomainService(), positions);
@@ -105,7 +106,7 @@ public sealed class TownPresencePublicationTests
         {
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var presence = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
             var currentViews = new FixedCurrentViews();
             var service = new SelectCharacterSessionEntryService(
                 sessions, currentViews, presence, new PvpLobbyDomainService(), positions);

@@ -10,7 +10,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainService sessions,
-    ITownAreaDomainService townAreas, IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
+    IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
     ITeleportConsumableRuleService rules, IItemUseJudgementService judgement,
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService
@@ -20,7 +20,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
-            || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member)
+            || onlineCharacters.StandingOf(session) is not { } member
             || onlineCharacters.PositionOf(session) is not { } standing)
             return new(ItemUsability.CharacterStateUnavailable);
         var bound = slots.Find(session.CharacterId, source);

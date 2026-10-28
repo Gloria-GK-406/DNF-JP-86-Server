@@ -217,7 +217,7 @@ public sealed class CreatureProjectionDeliveryTests
             new NetworkConnectionId(connection), id, 10011);
 
     private static TownAreaMember Member(SelectedSessionIdentity session, TownAreaKey area,
-        bool shares) => new(session.CharacterId, session.TownAreaLease(), area,
+        bool shares) => new(session, area,
             new CharacterPositionState(area.TownId, area.AreaId, 100, 200, 1), shares);
 
     public class NullProxy : DispatchProxy
@@ -291,20 +291,9 @@ public sealed class CreatureProjectionDeliveryTests
     {
         public TownAreaMember? Find(CharacterId characterId) =>
             members.FirstOrDefault(x => x.CharacterId == characterId);
-        public TownAreaSnapshot? Find(TownAreaKey key) => new(key, 1, 1,
+        public TownAreaSnapshot? Find(TownAreaKey key) => new(key, 1,
             members.Where(x => x.Area == key).ToArray());
         public IReadOnlyList<TownAreaSnapshot> Query(TownAreaFilter filter) => [];
-        public TownAreaMembershipChange Enter(TownAreaMember member) => throw new NotSupportedException();
-        public TownAreaMembershipChange? LeaveExact(CharacterId characterId,
-            TownAreaMembershipLease lease, TownAreaDepartureReason reason) =>
-            throw new NotSupportedException();
-        public TownAreaMembershipChange? TransferExact(CharacterId characterId,
-            TownAreaMembershipLease lease, TownAreaKey destination,
-            CharacterPositionState position, bool sharesTownPresence) =>
-            throw new NotSupportedException();
-        public TownAreaMovement? MoveExact(CharacterId characterId,
-            TownAreaMembershipLease lease, CharacterPositionState position) =>
-            throw new NotSupportedException();
     }
 
     /// <summary>

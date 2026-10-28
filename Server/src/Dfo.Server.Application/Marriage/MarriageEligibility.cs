@@ -11,7 +11,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Marriage;
 
 /// <summary>Read-only facts about the people in a marriage: sessions, town, level, pairing and gold.</summary>
-internal sealed class MarriageEligibility(ISelectedSessionDomainService sessions, ITownAreaDomainService areas,
+internal sealed class MarriageEligibility(ISelectedSessionDomainService sessions, IOnlineCharacterRuntimeDomainService onlineCharacters,
     ICharacterDomainService characters, IMarriageProposalRuleService proposalRules, ICharacterInventoryEntryDomainService inventory)
 {
     /// <remarks>The use cases reach the session only through here (<c>MarriageArchitectureTests</c>).</remarks>
@@ -21,9 +21,8 @@ internal sealed class MarriageEligibility(ISelectedSessionDomainService sessions
         sessions.TryGetInWorld(character, out var session) ? session : null;
 
     public bool SameTown(SelectedSessionIdentity first, SelectedSessionIdentity second) =>
-        first.ListenerPort == second.ListenerPort && areas.Find(first.CharacterId) is { SharesTownPresence: true } a
-        && areas.Find(second.CharacterId) is { SharesTownPresence: true } b && a.Area == b.Area
-        && a.Lease == first.TownAreaLease() && b.Lease == second.TownAreaLease();
+        first.ListenerPort == second.ListenerPort && onlineCharacters.StandingOf(first) is { SharesTownPresence: true } a
+        && onlineCharacters.StandingOf(second) is { SharesTownPresence: true } b && a.Area == b.Area;
 
     /// <summary>Both meet the minimum level and their jobs form an opposite-sex pair.</summary>
     public async ValueTask<bool> CanPairAsync(SelectedSessionIdentity firstSession, SelectedSessionIdentity secondSession, CancellationToken ct)

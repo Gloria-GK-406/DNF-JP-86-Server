@@ -221,7 +221,7 @@ public sealed class MarriageCeremonyTests
                 x => x.RequestReservationAsync(fixture.Session, peer, 0, 0, default));
             var reconnected = MarriageHarness.Reselect(fixture, peer);
             fixture.Services.GetRequiredService<ITownAreaDomainService>().Enter(
-                new(reconnected.CharacterId, reconnected.TownAreaLease(), new(1, 21, 1),
+                new(reconnected, new(1, 21, 1),
                     new(21, 1, 120, 100, 0), true));
             var next = await RunAsync(fixture,
                 x => x.RequestReservationAsync(fixture.Session, reconnected, 0, 0, default));

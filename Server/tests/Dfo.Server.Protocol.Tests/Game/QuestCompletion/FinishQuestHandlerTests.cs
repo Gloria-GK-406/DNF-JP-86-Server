@@ -233,8 +233,8 @@ public sealed class FinishQuestHandlerTests
             {
                 var area = new TownAreaKey(1, 0, 0);
                 var position = new CharacterPositionState(0, 0, 0, 0, 0);
-                areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, !privateRoom));
-                areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), area, position, true));
+                areas.Enter(new(actor, area, position, !privateRoom));
+                areas.Enter(new(peer, area, position, true));
             }
             var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
             entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
@@ -273,8 +273,8 @@ public sealed class FinishQuestHandlerTests
             ITownAreaDomainService areas = new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
             var area = new TownAreaKey(1, 0, 0);
             var position = new CharacterPositionState(0, 0, 0, 0, 0);
-            areas.Enter(new(actor.CharacterId, actor.TownAreaLease(), area, position, true));
-            areas.Enter(new(townPeer.CharacterId, townPeer.TownAreaLease(), area, position, true));
+            areas.Enter(new(actor, area, position, true));
+            areas.Enter(new(townPeer, area, position, true));
             var entry = ExperienceFrameEntry.At(StartingLevel, StartingExperience);
             entry = entry with { CharacterEntry = entry.CharacterEntry with { Features = new([], null!, null!, null!, []) } };
             var ledger = new SkillPointLedger();

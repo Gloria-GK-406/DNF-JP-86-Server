@@ -196,7 +196,7 @@ public sealed class GuardianAltarProtocolFlowTests
         Assert.Equal(f.Session, Assert.Single(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(lost), Origin())));
         Assert.Null(runs.Find(f.Session.CharacterId));
         Assert.True(await commands.SendInternalAsync(new Dfo.Server.Protocol.Game.ProjectDungeonReturnCommand(f.Session, run.RunId, false), Origin()));
-        Assert.True(f.Session.Owns(f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!));
+        Assert.Equal(f.Session, f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Session);
         var returnTypes = f.Sender.Outbound.Frames.Skip(beforeReturn).Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1))).ToList();
         Assert.Contains((ushort)0x0D, returnTypes);
         Assert.True(returnTypes.IndexOf(0x0D) < returnTypes.IndexOf(0x17));

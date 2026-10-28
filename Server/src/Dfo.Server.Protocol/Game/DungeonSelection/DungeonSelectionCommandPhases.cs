@@ -250,7 +250,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         {
             entryIntents!.Record(member.Session, intent);
         }
-        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, projections, projectionState, currentViews, parties,
+        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, onlineCharacters, projections, projectionState, currentViews, parties,
             attached.Select(member => member.Session).ToArray(),
             TownAreaDepartureReason.DungeonSelection,
             cancellationToken).ConfigureAwait(false);

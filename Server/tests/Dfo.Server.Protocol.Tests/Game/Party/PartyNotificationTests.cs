@@ -25,7 +25,7 @@ public sealed class PartyNotificationTests
         await TestGameplay.RunAsync(async () =>
         {
             var parties = new PartyClientProjectionService(new PartyService(new FixedPartyMemberStatus(),
-                new PartyModeRuleService(), TimeProvider.System, NoPartyEndpoints.Instance), new PartyClientIdRegistry());
+                new PartyModeRuleService(), TimeProvider.System, NoPartyEndpoints.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
             var oldLeader = Character(Inviter); var survivor = Character(Invitee); var applicant = Character(Observer);
             Assert.True(parties.RequestInvite(oldLeader, survivor, Profile()).Succeeded);
             Assert.True(parties.AcceptInvite(survivor, oldLeader).Succeeded);
@@ -874,11 +874,12 @@ public sealed class PartyNotificationTests
     {
         await TestGameplay.RunAsync(async () =>
         {
+            var presence = new FixedPresence(Inviter, Invitee, Observer);
             var parties = new PartyService(
                 new FixedPartyMemberStatus(),
                 new PartyModeRuleService(),
                 TimeProvider.System,
-                NoPartyEndpoints.Instance);
+                NoPartyEndpoints.Instance, presence);
             var created = parties.CreateOrUpdateSettings(
                 Character(Inviter),
                 DefaultSettings(),
@@ -886,11 +887,10 @@ public sealed class PartyNotificationTests
             Assert.True(created.Succeeded);
             var plan = created.Notifications;
             var sessions = new SessionDirectory(Inviter, Invitee, Observer);
-            var presence = new FixedPresence(Inviter, Invitee, Observer);
             var captured = PartyNotificationRecipientCapture.Capture(plan, sessions, presence);
-            parties.UpdateDirectoryPresence(
-                Inviter.CharacterId,
-                new PartyDirectoryScope(11, 1, 2));
+            // The leader moves on before the plan is delivered.
+            presence.Admit(new SessionPresence(
+                Inviter.CharacterId, Inviter.ListenerPort, 1, 2, true, Inviter, ChannelId: 11));
             var bus = new RecordingNotificationBus();
             var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(bus, new PartyProjectionStreamRegistry(), sessions, presence, parties);
 

@@ -558,7 +558,7 @@ internal static class PartyNotificationRecipientCapture
                          scope.AreaId, scope.Instance))?.Members ?? [])
                     .Select(item => item.SharesTownPresence
                         && sessions.TryGetInWorld(item.CharacterId, out var exact)
-                        && exact.Owns(item) ? exact : null)
+                        && item.Session == exact ? exact : null)
                     .OfType<SelectedSessionIdentity>()
                     .Distinct()
                     .ToArray()))

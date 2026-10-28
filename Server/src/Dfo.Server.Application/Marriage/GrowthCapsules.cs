@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
@@ -10,13 +11,12 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleContentSource content, IItemDeliveryDomainService delivery,
-    ITownAreaDomainService areas, HousingState housing, IDungeonRunDomainService runs, IEventService events)
+    IOnlineCharacterRuntimeDomainService onlineCharacters, HousingState housing, IDungeonRunDomainService runs, IEventService events)
 {
     public async ValueTask<MarriageCapsuleResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation, MarriageCapsuleAction action, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandActive(actor);
-        var town = areas.Find(actor.CharacterId);
-        if (town is null || town.Lease != actor.TownAreaLease() || runs.Find(actor.CharacterId) is not null) return new(action == MarriageCapsuleAction.Make ? -6 : action == MarriageCapsuleAction.Give ? -7 : -8);
+        if (onlineCharacters.StandingOf(actor) is null || runs.Find(actor.CharacterId) is not null) return new(action == MarriageCapsuleAction.Make ? -6 : action == MarriageCapsuleAction.Give ? -7 : -8);
         if (action == MarriageCapsuleAction.Take && (await housing.ReadAsync(relation.Id, ct).ConfigureAwait(false) is not { } room || !housing.IsInside(actor, room))) return new(-8);
         var rules = content.Load(); var own = await state.ReadAsync(relation.Id, actor.CharacterId, ct).ConfigureAwait(false);
         var peer = relation.Proposer.CharacterId == actor.CharacterId ? relation.Recipient : relation.Proposer;

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Persistence;
@@ -141,7 +142,7 @@ public sealed class CarriedGoldCapTests
             new PlayingCharacter(
                 Who,
                 new ItemUseJudgementService(new FakeItemUseRules()),
-                new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+                new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
                 new SessionPresenceDomainService(),
                 gold,
                 new CarriedGoldRuleService(archive),

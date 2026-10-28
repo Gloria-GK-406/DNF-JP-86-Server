@@ -103,7 +103,7 @@ public sealed class TeleportConsumableTests
         var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
         TestGameplay.Run(f.Services, () =>
         {
-            areas.TransferExact(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 2, 3), current, false);
+            areas.TransferExact(f.Session, new(1, 2, 3), current, false);
             f.SetLevel(2);
             f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(f.Session, current, 100);
         });
@@ -192,9 +192,9 @@ public sealed class TeleportConsumableTests
         {
             var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
             var replacement = f.Session with { ConnectionGeneration = f.Session.ConnectionGeneration + 1 };
-            areas.Enter(new(f.Session.CharacterId, replacement.TownAreaLease(), new(1, 0, 0), Start, true));
+            areas.Enter(new(replacement, new(1, 0, 0), Start, true));
             previous = Assert.IsType<TownAreaMember>(areas.Find(f.Session.CharacterId));
-            Assert.False(f.Session.Owns(previous));
+            Assert.False(previous.Session == f.Session);
             var views = f.Services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>();
             Assert.NotNull(await views.TryLoadAsync(f.Session, default));
         });

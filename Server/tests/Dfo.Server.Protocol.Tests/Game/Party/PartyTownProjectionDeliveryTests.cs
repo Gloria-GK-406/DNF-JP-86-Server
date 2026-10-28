@@ -302,8 +302,6 @@ public sealed class PartyTownProjectionDeliveryTests
             .DistinctBy(value => (value.PartyId, value.Generation))
             .ToArray();
 
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
-
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => parties;
 
         public PartySnapshot FindParty(PartyCharacterSnapshot character) =>
@@ -350,8 +348,6 @@ public sealed class PartyTownProjectionDeliveryTests
         public int ReadCount { get; private set; }
 
         public PartySnapshot Current { get; set; } = current;
-
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
 
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query)
         {

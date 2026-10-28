@@ -77,7 +77,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(DungeonRunDomainService),
         typeof(CreatureRuntimeDomainService),
         typeof(PartyService),
-        typeof(TownAreaDomainService),
+        typeof(OnlineCharacterLocationDomainService),
         typeof(DungeonParticipationDomainService),
         typeof(DungeonCardPresentationCoordinator),
         typeof(BossTowerDomainService),
@@ -238,16 +238,20 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyService.RemoveMember(CharacterId, CharacterId)"] = W,
         ["PartyService.RequestInvite(PartyCharacterSnapshot, PartyCharacterSnapshot, PartyInviteDisplayState)"] = W,
         ["PartyService.TransferLeadership(CharacterId, CharacterId)"] = W,
-        ["PartyService.UpdateDirectoryPresence(CharacterId, PartyDirectoryScope)"] = W,
 
-        // TownAreaDomainService
-        ["TownAreaDomainService.Enter(TownAreaMember)"] = W,
-        ["TownAreaDomainService.Find(CharacterId)"] = R,
-        ["TownAreaDomainService.Find(TownAreaKey)"] = R,
-        ["TownAreaDomainService.LeaveExact(CharacterId, TownAreaMembershipLease, TownAreaDepartureReason)"] = W,
-        ["TownAreaDomainService.MoveExact(CharacterId, TownAreaMembershipLease, CharacterPositionState)"] = W,
-        ["TownAreaDomainService.Query(TownAreaFilter)"] = R,
-        ["TownAreaDomainService.TransferExact(CharacterId, TownAreaMembershipLease, TownAreaKey, CharacterPositionState, Boolean)"] = W,
+        // OnlineCharacterLocationDomainService
+        ["OnlineCharacterLocationDomainService.Arrive(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,
+        ["OnlineCharacterLocationDomainService.Begin(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,
+        ["OnlineCharacterLocationDomainService.Depart(SelectedSessionIdentity, TownAreaDepartureReason)"] = W,
+        ["OnlineCharacterLocationDomainService.End(SelectedSessionIdentity)"] = W,
+        ["OnlineCharacterLocationDomainService.Find(CharacterId)"] = R,
+        ["OnlineCharacterLocationDomainService.Find(TownAreaKey)"] = R,
+        ["OnlineCharacterLocationDomainService.PositionOf(CharacterId)"] = R,
+        ["OnlineCharacterLocationDomainService.PositionOf(SelectedSessionIdentity)"] = R,
+        ["OnlineCharacterLocationDomainService.Query(TownAreaFilter)"] = R,
+        ["OnlineCharacterLocationDomainService.StandingOf(SelectedSessionIdentity)"] = R,
+        ["OnlineCharacterLocationDomainService.Step(SelectedSessionIdentity, CharacterPositionState)"] = W,
+        ["OnlineCharacterLocationDomainService.Transfer(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,
 
         // DungeonParticipationDomainService
         ["DungeonParticipationDomainService.Find(CharacterId)"] = ReadNote(ConditionalEnlist),
@@ -340,14 +344,17 @@ public sealed class GameplayWriteEntryTableTests
 
         // OnlineCharacterRuntimeDomainService
         ["OnlineCharacterRuntimeDomainService.ApplySpiritPotion(SelectedSessionIdentity, Double, TimeSpan)"] = W,
-        ["OnlineCharacterRuntimeDomainService.Begin(SelectedSessionIdentity, CharacterPositionState, Byte)"] = W,
-        ["OnlineCharacterRuntimeDomainService.CrossInto(SelectedSessionIdentity, Byte, Byte, Int16, Int16)"] = W,
+        ["OnlineCharacterRuntimeDomainService.Begin(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean, Byte)"] = W,
+        ["OnlineCharacterRuntimeDomainService.CrossInto(SelectedSessionIdentity, TownAreaKey, Int16, Int16, Boolean, Byte?)"] = W,
         ["OnlineCharacterRuntimeDomainService.EndExact(SelectedSessionIdentity)"] = W,
         ["OnlineCharacterRuntimeDomainService.HpPercentOf(CharacterId)"] = R,
         ["OnlineCharacterRuntimeDomainService.IsCoolingDown(CharacterId, ItemCooldownKey)"] = R,
         ["OnlineCharacterRuntimeDomainService.PositionOf(CharacterId)"] = R,
+        ["OnlineCharacterRuntimeDomainService.LeaveTown(SelectedSessionIdentity, TownAreaDepartureReason)"] = W,
         ["OnlineCharacterRuntimeDomainService.PositionOf(SelectedSessionIdentity)"] = R,
+        ["OnlineCharacterRuntimeDomainService.ReturnToTown(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,
         ["OnlineCharacterRuntimeDomainService.SpiritPotionBonusRateOf(CharacterId)"] = R,
+        ["OnlineCharacterRuntimeDomainService.StandingOf(SelectedSessionIdentity)"] = R,
         ["OnlineCharacterRuntimeDomainService.StartCooldown(SelectedSessionIdentity, ItemCooldownKey, TimeSpan)"] = W,
         ["OnlineCharacterRuntimeDomainService.StepTo(SelectedSessionIdentity, Int16, Int16, Byte)"] = W,
 

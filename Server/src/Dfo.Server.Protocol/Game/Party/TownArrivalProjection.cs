@@ -51,13 +51,14 @@ internal static class TownArrivalProjection
     internal static async ValueTask<int> EnterAsync(
         ISelectedSessionDomainService sessions, ITownMovementDomainService towns,
         IMarriageHousingQueryDomainService housing, ITownAreaDomainService townAreas,
+        IOnlineCharacterRuntimeDomainService onlineCharacters,
         ISelectedCharacterCurrentViewDomainService currentViews, IGameCommandOutbox outbox,
         IWeaknessDomainService weaknessState, bool projectWeakness, ICommandProjections projections,
         IPartyTownProjectionDelivery partyTown,
         IReadOnlyList<TownAreaEntry> entries, CancellationToken token)
     {
         var candidates = await TownPrepareCandidatesAsync(sessions, towns, housing, entries, token).ConfigureAwait(false);
-        var admissions = TownCommitAdmissions(sessions, townAreas, candidates);
+        var admissions = TownCommitAdmissions(sessions, townAreas, onlineCharacters, candidates);
         var deliveries = await TownCaptureDeliveriesAsync(sessions, townAreas, currentViews, admissions, token).ConfigureAwait(false);
         await TownProjectOwnersAsync(sessions, outbox, weaknessState, projectWeakness, deliveries, token).ConfigureAwait(false);
         await TownProjectPreviousAreasAsync(sessions, townAreas, projections, currentViews, admissions, token).ConfigureAwait(false);
@@ -89,7 +90,7 @@ internal static class TownArrivalProjection
         return candidates;
     }
 
-    internal static List<TownAreaAdmission> TownCommitAdmissions(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, List<(TownAreaEntry Entry, bool SharesTownPresence, int Instance)> candidates)
+    internal static List<TownAreaAdmission> TownCommitAdmissions(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, IOnlineCharacterRuntimeDomainService onlineCharacters, List<(TownAreaEntry Entry, bool SharesTownPresence, int Instance)> candidates)
     {
         var admissions = new List<TownAreaAdmission>(candidates.Count);
         foreach (var candidate in candidates)
@@ -101,19 +102,17 @@ internal static class TownArrivalProjection
             var previousScope = previous is { SharesTownPresence: true }
                 ? TownArrivalProjection.TownScope(previous.Area)
                 : null;
-            var member = new TownAreaMember(
-                entry.Session.CharacterId,
-                entry.Session.TownAreaLease(),
+            var change = onlineCharacters.ReturnToTown(
+                entry.Session,
                 new TownAreaKey(
                     entry.Runtime.World.Channel.ChannelId,
                     entry.Position.TownId,
                     entry.Position.AreaId, candidate.Instance),
                 entry.Position,
                 candidate.SharesTownPresence);
-            admissions.Add(new TownAreaAdmission(
-                entry,
-                townAreas.Enter(member),
-                previousScope));
+            if (change is null)
+                continue;
+            admissions.Add(new TownAreaAdmission(entry, change, previousScope));
         }
 
         return admissions;
@@ -126,7 +125,7 @@ internal static class TownArrivalProjection
         {
             var current = townAreas.Find(admission.Change.CurrentArea!.Key);
             var own = current?.Members.SingleOrDefault(
-                member => admission.Entry.Session.Owns(member));
+                member => member.Session == admission.Entry.Session);
             if (own is null)
                 continue;
             var peers = await TownArrivalProjection.TownVisibleParticipantsAsync(sessions, currentViews, 
@@ -202,7 +201,7 @@ internal static class TownArrivalProjection
         CancellationToken cancellationToken)
     {
         var peerSessions = peers.Select(candidate => candidate.Session).ToArray();
-        var own = current.Members.Single(member => admission.Entry.Session.Owns(member));
+        var own = current.Members.Single(member => member.Session == admission.Entry.Session);
         if (admission.Change.Kind != TownAreaMembershipChangeKind.Unchanged
             && own.SharesTownPresence
             && peerSessions.Length > 0)
@@ -340,7 +339,7 @@ internal static class TownArrivalProjection
 
     internal static SelectedSessionIdentity? TownExactSession(ISelectedSessionDomainService sessions, TownAreaMember member)
     {
-        return sessions.TryGetInWorld(member.CharacterId, out var session) && session.Owns(member) ? session : null;
+        return sessions.TryGetInWorld(member.CharacterId, out var session) && member.Session == session ? session : null;
     }
 
     internal static PartyDirectoryScope TownScope(TownAreaKey key) =>

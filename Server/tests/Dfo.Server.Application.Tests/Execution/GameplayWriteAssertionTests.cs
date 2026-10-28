@@ -260,7 +260,7 @@ public sealed class GameplayWriteAssertionTests
     public void PartyService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
         var parties = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance);
+            TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         var scope = new PartyDirectoryScope(11, 1, 1);
         var leader = new PartyCharacterSnapshot(Account, Character, 1, scope);
         var member = new PartyCharacterSnapshot(new AccountId(8), new CharacterId(80), 2, scope);
@@ -277,18 +277,18 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public void TownAreaDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    public void OnlineCharacterLocationDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var towns = new TownAreaDomainService();
-        var member = new TownAreaMember(Character, new TownAreaMembershipLease(1), new TownAreaKey(11, 1, 2),
+        var towns = new OnlineCharacterLocationDomainService();
+        var member = new TownAreaMember(Session(), new TownAreaKey(11, 1, 2),
             new CharacterPositionState(1, 2, 3, 4, 5), sharesTownPresence: true);
         var seen = ViolationCapture.Attach();
 
-        Assert.Throws<GameplayOffExecutorException>(() => towns.Enter(member));
+        Assert.Throws<GameplayOffExecutorException>(() => towns.Begin(member.Session, member.Area, member.Position, member.SharesTownPresence));
 
-        AssertOneViolation(seen, "TownAreaDomainService.Enter");
+        AssertOneViolation(seen, "OnlineCharacterLocationDomainService.Begin");
         Assert.Null(towns.Find(Character));
-        TestGameplay.Run(() => towns.Enter(member));
+        TestGameplay.Run(() => towns.Begin(member.Session, member.Area, member.Position, member.SharesTownPresence));
         Assert.Equal(member, towns.Find(Character));
     }
 
@@ -420,7 +420,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void OnlineCharacterRuntimeDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
         var session = Session();
         var position = new CharacterPositionState(1, 2, 3, 4, 5);
         var seen = ViolationCapture.Attach();
@@ -437,8 +437,8 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task A_continuation_that_outlived_its_job_writes_as_if_off_the_executor()
     {
-        var towns = new TownAreaDomainService();
-        var member = new TownAreaMember(Character, new TownAreaMembershipLease(1), new TownAreaKey(11, 1, 2),
+        var towns = new OnlineCharacterLocationDomainService();
+        var member = new TownAreaMember(Session(), new TownAreaKey(11, 1, 2),
             new CharacterPositionState(1, 2, 3, 4, 5), sharesTownPresence: true);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var seen = new System.Collections.Concurrent.ConcurrentQueue<GameplayAssertionViolation>();
@@ -447,13 +447,13 @@ public sealed class GameplayWriteAssertionTests
         {
             await release.Task;
             ViolationCapture.Attach(seen);
-            towns.Enter(member);
+            towns.Begin(member.Session, member.Area, member.Position, member.SharesTownPresence);
         })));
         release.TrySetResult();
 
         await Assert.ThrowsAsync<GameplayOffExecutorException>(() => leaked.WaitAsync(Patience));
 
-        AssertOneViolation(seen, "TownAreaDomainService.Enter");
+        AssertOneViolation(seen, "OnlineCharacterLocationDomainService.Begin");
         Assert.Null(towns.Find(Character));
     }
 
@@ -462,7 +462,7 @@ public sealed class GameplayWriteAssertionTests
     {
         // Unlike the gates, whose old WaitAsync looked at the token first, a write member never checked it, so
         // the assertion does not either: the violation is reported whatever the caller's token says.
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
         var seen = ViolationCapture.Attach();

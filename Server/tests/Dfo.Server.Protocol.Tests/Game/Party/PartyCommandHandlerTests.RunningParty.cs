@@ -144,7 +144,7 @@ public sealed partial class PartyCommandHandlerTests
         {
             var parties = new PartyClientProjectionService(new PartyService(
                 new FixedPartyMemberStatus(), new PartyModeRuleService(),
-                TimeProvider.System, new NoPartyEndpoints()), new PartyClientIdRegistry());
+                TimeProvider.System, new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
             return new RunningPartyFixture(parties, TestParties.Runs(parties: parties));
         }
 

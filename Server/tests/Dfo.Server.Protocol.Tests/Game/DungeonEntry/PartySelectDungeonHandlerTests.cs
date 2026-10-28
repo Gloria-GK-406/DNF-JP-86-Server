@@ -112,9 +112,10 @@ public sealed class PartySelectDungeonHandlerTests
             var sender = new Sender();
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runId, [Leader, Member]);
+            var areas = new SessionPresenceDomainService();
             var handler = new EplpDriver(
-                sessions, runtime, new PartyPositions(), runs, deliveries, sender,
-                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                sessions, runtime, new PartyPositions(areas), runs, deliveries, sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender, areas),
                 NullLogger<EplpCommandHandler>.Instance, parties: new Parties(Snapshot()));
             var request = new EplpCommandRequest(GameMessageMetadata.Empty, 1, 2);
 
@@ -171,9 +172,10 @@ public sealed class PartySelectDungeonHandlerTests
             var runtime = new PartyRuntime((Leader, EntryFor(Leader)), (Member, EntryFor(Member)));
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runId, [Leader, Member]);
+            var areas = new SessionPresenceDomainService();
             var handler = new EplpDriver(
-                sessions, runtime, new PartyPositions(), runs, deliveries, outbound.Game,
-                TownAreaProjectionTestFactory.Create(sessions, runtime, outbound.Game),
+                sessions, runtime, new PartyPositions(areas), runs, deliveries, outbound.Game,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, outbound.Game, areas),
                 NullLogger<EplpCommandHandler>.Instance, parties: new Parties(Snapshot()), ordering: outbound.Ordering);
 
             await handler.HandleAsync(Dispatch(Leader),
@@ -272,16 +274,18 @@ public sealed class PartySelectDungeonHandlerTests
         intents.Record(Leader, DungeonEntryIntent.Directed(DungeonId));
         intents.Record(Member, DungeonEntryIntent.Directed(DungeonId));
         var sender = new Sender();
+        var areas = new SessionPresenceDomainService();
         using var services = new ServiceCollection()
             .AddSingleton<ISelectedSessionDomainService>(sessions)
             .AddSingleton<ISelectedCharacterCurrentViewDomainService>(new RuntimeCurrentView(runtime))
-            .AddSingleton<IOnlineCharacterRuntimeDomainService>(new PartyPositions())
+            .AddSingleton<IOnlineCharacterRuntimeDomainService>(new PartyPositions(areas))
             .AddSingleton<IDungeonRunDomainService>(new RollbackRuns())
             .AddSingleton(new DungeonRunDeliveryRegistry())
             .AddSingleton<IDungeonEntryIntentDomainService>(intents)
             .AddSingleton<IPartyService>(new Parties(Snapshot()))
             .AddSingleton<IGameMessageSender>(sender)
-            .AddSingleton(TownAreaProjectionTestFactory.Create(sessions, runtime, sender))
+            .AddSingleton(TownAreaProjectionTestFactory.Create(sessions, runtime, sender, areas))
+            .AddSingleton<ITownAreaDomainService>(areas)
             .AddSingleton<Microsoft.Extensions.Logging.ILogger<BackToVillageHandler>>(
                 NullLogger<BackToVillageHandler>.Instance)
             .BuildServiceProvider();
@@ -572,7 +576,7 @@ public sealed class PartySelectDungeonHandlerTests
                 world.Runs.Ended.OrderBy(value => value.Value));
             Assert.DoesNotContain(world.Sender.Messages(Leader.ConnectionId), frame => frame is StartMapNotification);
             Assert.DoesNotContain(world.Sender.Messages(Member.ConnectionId), frame => frame is StartMapNotification);
-            Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
+            Assert.True((world.Areas.Find(Leader.CharacterId)!).Session == Leader);
         });
     }
 
@@ -643,8 +647,8 @@ public sealed class PartySelectDungeonHandlerTests
                 world.Sender.Messages(Leader.ConnectionId),
                 frame => frame is StartMapNotification);
             Assert.Equal([Member.ConnectionId], world.Closer.Closed);
-            Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
-            Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+            Assert.True((world.Areas.Find(Leader.CharacterId)!).Session == Leader);
+            Assert.True((world.Areas.Find(Member.CharacterId)!).Session == Member);
         });
     }
 
@@ -683,8 +687,8 @@ public sealed class PartySelectDungeonHandlerTests
         Assert.Equal(
             [Leader.CharacterId, Member.CharacterId],
             world.Runs.Ended.OrderBy(value => value.Value));
-        Assert.True(Leader.Owns(world.Areas.Find(Leader.CharacterId)!));
-        Assert.True(Member.Owns(world.Areas.Find(Member.CharacterId)!));
+        Assert.True((world.Areas.Find(Leader.CharacterId)!).Session == Leader);
+        Assert.True((world.Areas.Find(Member.CharacterId)!).Session == Member);
     }
 
     /// <summary>
@@ -943,7 +947,6 @@ public sealed class PartySelectDungeonHandlerTests
         public PartyMembershipSnapshot? FindByKey(PartyKey key) => null;
         public PartyKey KeyOf(CharacterId characterId) => throw new NotSupportedException();
         public PartySnapshot FindParty(PartyCharacterSnapshot character) => snapshot;
-        public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) { }
         public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) => [snapshot];
         public PartyOperationResult CreateOrUpdateSettings(PartyCharacterSnapshot character, PartySettings settings, PartyTitle title) => throw new NotSupportedException();
         public PartyOperationResult RequestInvite(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target, PartyInviteDisplayState display) => throw new NotSupportedException();
@@ -1070,27 +1073,60 @@ public sealed class PartySelectDungeonHandlerTests
         public bool RemoveExact(SelectedSessionIdentity session) => throw new NotSupportedException();
     }
 
-    private sealed class PartyPositions : IOnlineCharacterRuntimeDomainService
+    /// <summary>
+    /// The party as it stood before the dungeon: the real runtime over the town areas the handler
+    /// reads, both members away from town and keeping where they left.
+    /// </summary>
+    private sealed class PartyPositions(SessionPresenceDomainService? areas = null)
+        : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? PositionOf(CharacterId characterId) =>
+        private readonly Dfo.Server.Application.World.OnlineCharacterLocationDomainService locations =
+            areas?.Locations ?? new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
+        private Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService? inner;
+
+        private static CharacterPositionState? Left(CharacterId characterId) =>
             characterId == Leader.CharacterId
                 ? new CharacterPositionState(1, 1, 400, 300, 1)
                 : characterId == Member.CharacterId
                     ? new CharacterPositionState(1, 1, 430, 300, 3)
                     : null;
 
-        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
+        private Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService Inner
+        {
+            get
+            {
+                if (inner is not null)
+                    return inner;
+                inner = new(TimeProvider.System, locations);
+                foreach (var session in new[] { Leader, Member })
+                {
+                    if (locations.PositionOf(session) is not null)
+                        continue;
+                    var position = Left(session.CharacterId)!;
+                    locations.Begin(session, new TownAreaKey(
+                        EntryFor(session).World.Channel.ChannelId, position.TownId, position.AreaId), position, true);
+                    locations.Depart(session, TownAreaDepartureReason.DungeonEntry);
+                }
+                return inner;
+            }
+        }
+
+        public CharacterPositionState? PositionOf(CharacterId characterId) => Inner.PositionOf(characterId);
+
+        public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) =>
             throw new NotSupportedException();
-        public CharacterPositionState CrossInto(
-            SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+        public TownAreaMembershipChange? CrossInto(SelectedSessionIdentity session, TownAreaKey destination, short x, short y, bool sharesTownPresence, byte? direction = null) =>
             throw new NotSupportedException();
-        public CharacterPositionState StepTo(
-            SelectedSessionIdentity session, short x, short y, byte direction) =>
+        public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException();
         public bool EndExact(SelectedSessionIdentity session) => throw new NotSupportedException();
 
-        // Test double: only the position is modelled; the rest of the runtime is empty.
-        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => Inner.PositionOf(session);
+        public TownAreaMember? StandingOf(SelectedSessionIdentity session) => Inner.StandingOf(session);
+        public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason) =>
+            Inner.LeaveTown(session, reason);
+        public TownAreaMembershipChange? ReturnToTown(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence) =>
+            Inner.ReturnToTown(session, area, position, sharesTownPresence);
         public byte HpPercentOf(CharacterId characterId) => 0;
         public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
         public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }

@@ -25,5 +25,4 @@ internal sealed class DungeonProjectionParty(DungeonRunState run) : IPartyServic
     public PartyOperationResult LeaveParty(CharacterId character) => throw new NotSupportedException();
     public PartyOperationResult CleanupCharacter(CharacterId character) => throw new NotSupportedException();
     public PartySnapshot FindParty(PartyCharacterSnapshot character) => throw new NotSupportedException();
-    public void UpdateDirectoryPresence(CharacterId character, PartyDirectoryScope? scope) => throw new NotSupportedException();
 }

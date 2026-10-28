@@ -36,7 +36,7 @@ public sealed class RentalProtocolCommandFlowTests(ITestOutputHelper output)
             var session = await TowerSourceMembers.AddAsync(f, 3, 2, 1, 4000);
             var position = new Dfo.Server.Data.Characters.CharacterPositionState(0, 0, 10, 20, 0);
             f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
-            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(), new(1, 0, 0), position, true));
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session, new(1, 0, 0), position, true));
             await using var tx = ((DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>()).Begin();
             var store = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Services.GetRequiredService<IDomainTransactionAccessor>().Current!);
             var item = Assert.Single(await store.GetAllAsync(ContainerId.ForCharacter(f.Session.CharacterId, InventoryContainerType.Main), default), item => item.ItemId == 401000037);

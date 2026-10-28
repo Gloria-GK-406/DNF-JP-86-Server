@@ -4,14 +4,8 @@ using Dfo.Server.Data.OnlineUsers;
 
 namespace Dfo.Server.Abstractions.Parties;
 
-/// <summary>Narrow ordered presence projection consumed by the session lifecycle.</summary>
-public interface IPartyDirectoryPresenceSink
-{
-    void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope);
-}
-
 /// <summary>The sole writer and query boundary for process-local party state.</summary>
-public interface IPartyService : IPartyDirectoryPresenceSink
+public interface IPartyService
 {
     IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query);
 

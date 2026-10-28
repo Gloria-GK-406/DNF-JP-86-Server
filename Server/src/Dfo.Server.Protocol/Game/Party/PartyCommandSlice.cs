@@ -291,7 +291,7 @@ internal static class PartyCharacterProjection
         out PartyCharacterSnapshot character)
     {
         var current = townAreas.Find(session.CharacterId);
-        if (current is null || !session.Owns(current))
+        if (current is null || current.Session != session)
         {
             character = null!;
             return false;

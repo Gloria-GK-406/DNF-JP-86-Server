@@ -66,9 +66,6 @@ public sealed class PartyClientProjectionService(
     PartyService inner,
     PartyClientIdRegistry ids) : IPartyService
 {
-    public void UpdateDirectoryPresence(CharacterId characterId, PartyDirectoryScope? scope) =>
-        inner.UpdateDirectoryPresence(characterId, scope);
-
     public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query) =>
         inner.Query(query).Select(ids.Project).ToArray();
 

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Channel;
@@ -58,10 +59,10 @@ public sealed class TownProjectionHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var positions = Standing();
+            var positions = Standing(out var placed);
             var before = positions.PositionOf(Identity.CharacterId);
             var persistence = new RecordingPersistence { Refuse = refuseWrite };
-            var presenceRegistry = Presence();
+            var presenceRegistry = placed;
             var previousMember = ((ITownAreaDomainService)presenceRegistry).Find(Identity.CharacterId);
             var sender = new RecordingSender();
             var notifications = new RecordingNotifications();
@@ -129,9 +130,9 @@ public sealed class TownProjectionHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var positions = Standing();
+            var positions = Standing(out var placed);
             var before = positions.PositionOf(Identity.CharacterId);
-            var presence = Presence();
+            var presence = placed;
             var membership = ((ITownAreaDomainService)presence).Find(Identity.CharacterId);
             var sender = new RecordingSender();
             var notifications = new RecordingNotifications();
@@ -190,7 +191,7 @@ public sealed class TownProjectionHandlerTests
                 EntryFor(otherListenerOldPeer, WalkedTownId, WalkedAreaId, x: 900));
             currentViews.Publish(otherListenerNewPeer,
                 EntryFor(otherListenerNewPeer, CrossedTownId, CrossedAreaId, x: 950));
-            var positions = Standing();
+            var positions = Standing(out var placed);
             positions.Begin(
                 oldPeer,
                 new CharacterPositionState(
@@ -211,7 +212,7 @@ public sealed class TownProjectionHandlerTests
                 otherListenerNewPeer,
                 new CharacterPositionState(
                     CrossedTownId, CrossedAreaId, 950, 300, WalkedDirection), 100);
-            var presence = Presence();
+            var presence = placed;
             presence.Admit(new SessionPresence(
                 oldPeer.CharacterId,
                 oldPeer.ListenerPort,
@@ -259,13 +260,13 @@ public sealed class TownProjectionHandlerTests
             // This observation starts at the town-transfer protocol stage. Business crossing
             // remains covered through the real CMD in the other area-change cases above.
             var previous = ((ITownAreaDomainService)presence).Find(Identity.CharacterId)!;
-            var moved = positions.CrossInto(Identity, CrossedTownId, CrossedAreaId, CrossedX, CrossedY);
             await TownMovementProjection.TownTransferAsync(
-                sessions, presence, new global::Dfo.Server.Testing.TestCommandProjections(notifications), partyProjection,
+                sessions, presence, positions, new global::Dfo.Server.Testing.TestCommandProjections(notifications), partyProjection,
                 currentViews, Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
                 new Dfo.Server.Testing.ProtocolAlgorithmFixture.Outbox(sender),
                 Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(),
-                Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, 10, moved, previous, true, CancellationToken.None);
+                Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, 10,
+                CrossedTownId, CrossedAreaId, CrossedX, CrossedY, previous, true, CancellationToken.None);
 
             Assert.Collection(
                 notifications.Published,
@@ -342,8 +343,8 @@ public sealed class TownProjectionHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var positions = Standing();
-            var presence = Presence();
+            var positions = Standing(out var placed);
+            var presence = placed;
             var sender = new RecordingSender();
             var notifications = new RecordingNotifications();
             var sessions = new OneSession(Identity);
@@ -386,8 +387,8 @@ public sealed class TownProjectionHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var positions = Standing();
-            var presence = Presence();
+            var positions = Standing(out var placed);
+            var presence = placed;
             var peer = PeerIdentity(61, "peer");
             var otherListenerPeer = PeerIdentity(62, "other-listener", listenerPort: 10011);
             presence.Admit(new SessionPresence(
@@ -451,8 +452,8 @@ public sealed class TownProjectionHandlerTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var positions = Standing();
-            var presence = Presence();
+            var positions = Standing(out var placed);
+            var presence = placed;
             // An area lease is the connection generation alone, and two connections can stand at the
             // same generation; the stale record keeps an earlier one so that only the session decides.
             var oldPeer = PeerIdentity(61, "peer-old") with { ConnectionGeneration = 1 };
@@ -537,30 +538,20 @@ public sealed class TownProjectionHandlerTests
     /// the position gets there in production: entry places it once and every later frame reports a
     /// move. It is also what leaves the snapshot behind -- the copy entry took is never revisited.
     /// </remarks>
-    private static OnlineCharacterRuntimeDomainService Standing()
+    private static OnlineCharacterRuntimeDomainService Standing(out SessionPresenceDomainService presence)
     {
-        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        presence = new SessionPresenceDomainService();
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
         positions.Begin(
             Identity,
+            new TownAreaKey(10, PlacedTownId, PlacedAreaId),
             new CharacterPositionState(
-                PlacedTownId, PlacedAreaId, PlacedX, PlacedY, PlacedDirection), 100);
-        positions.CrossInto(Identity, WalkedTownId, WalkedAreaId, 500, 400);
+                PlacedTownId, PlacedAreaId, PlacedX, PlacedY, PlacedDirection),
+            true,
+            100);
+        positions.CrossInto(Identity, new TownAreaKey(10, WalkedTownId, WalkedAreaId), 500, 400, true);
         positions.StepTo(Identity, WalkedX, WalkedY, WalkedDirection);
         return positions;
-    }
-
-    private static SessionPresenceDomainService Presence()
-    {
-        var presence = new SessionPresenceDomainService();
-        presence.Admit(new SessionPresence(
-            Identity.CharacterId,
-            Identity.ListenerPort,
-            WalkedTownId,
-            WalkedAreaId,
-            StandingInTown: true,
-            Identity,
-            ChannelId: 10));
-        return presence;
     }
 
     /// <summary>

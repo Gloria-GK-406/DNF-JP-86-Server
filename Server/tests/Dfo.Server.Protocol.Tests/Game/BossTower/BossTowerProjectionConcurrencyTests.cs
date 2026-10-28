@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
@@ -51,7 +52,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var firstParty = PartyCharacter(first);
             var secondParty = PartyCharacter(second);
             Assert.True(parties.RequestInvite(firstParty, secondParty,
@@ -101,7 +102,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(session);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             var tower = new TowerDomain(PartyRun(Guid.NewGuid(), session));
             using var request = new CancellationTokenSource();
             var commands = new CoordinatorCommands(tower, parties, request);
@@ -136,7 +137,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(external, successor, towerLeader);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(external), PartyCharacter(successor),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(successor), PartyCharacter(external)).Succeeded);
@@ -196,7 +197,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -237,7 +238,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(first, second, returned);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -288,7 +289,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(leader, member);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(leader), PartyCharacter(member),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(member), PartyCharacter(leader)).Succeeded);
@@ -327,7 +328,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var sessions = new Sessions(first, second, third);
         var parties = new PartyService(
             new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints());
+            new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
         TestGameplay.Run(() =>
         {
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
@@ -498,7 +499,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             var sessions = new Sessions(second);
             var parties = new PartyService(
                 new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-                new NoPartyEndpoints());
+                new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(second),
                 new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(second), PartyCharacter(first)).Succeeded);
@@ -608,13 +609,15 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                         PvpSkillProfileApplies: false),
                 },
             });
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var areas = new SessionPresenceDomainService();
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
             positions.Begin(party.First, new CharacterPositionState(1, 1, 100, 100, 0), 100);
+            positions.LeaveTown(party.First, TownAreaDepartureReason.DungeonEntry);
             var sender = new GiveUpOwnerSender(party.First.ConnectionId);
 
             await new GiveUpDriver(party.Sessions, views, positions,
                     TestParties.Runs(parties: party.Parties), new DungeonRunDeliveryRegistry(), sender,
-                    TownAreaProjectionTestFactory.Create(party.Sessions, views, sender),
+                    TownAreaProjectionTestFactory.Create(party.Sessions, views, sender, areas),
                     NullLogger<GiveUpGameHandler>.Instance, bossParties: party.Coordinator)
                 .HandleAsync(Dispatch(party.First), new GiveUpGameRequest(GameMessageMetadata.Empty),
                     CancellationToken.None);
@@ -671,7 +674,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         // The production party service: the wire party numbers come from the protocol projection.
         var parties = new PartyClientProjectionService(new PartyService(
             new PartyStatus(), new PartyModeRuleService(), TimeProvider.System,
-            new NoPartyEndpoints()), new PartyClientIdRegistry());
+            new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
         foreach (var member in new[] { second, third })
         {
             Assert.True(parties.RequestInvite(PartyCharacter(first), PartyCharacter(member),
@@ -1034,10 +1037,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
 
     private sealed class NoTown : ITownAreaDomainService
     {
-        public TownAreaMembershipChange Enter(TownAreaMember member) => throw new NotSupportedException();
-        public TownAreaMembershipChange? LeaveExact(CharacterId characterId, TownAreaMembershipLease lease, TownAreaDepartureReason reason) => null;
-        public TownAreaMembershipChange? TransferExact(CharacterId characterId, TownAreaMembershipLease lease, TownAreaKey destination, CharacterPositionState position, bool sharesTownPresence) => null;
-        public TownAreaMovement? MoveExact(CharacterId characterId, TownAreaMembershipLease lease, CharacterPositionState position) => null;
         public TownAreaMember? Find(CharacterId characterId) => null;
         public TownAreaSnapshot? Find(TownAreaKey key) => null;
         public IReadOnlyList<TownAreaSnapshot> Query(TownAreaFilter filter) => [];

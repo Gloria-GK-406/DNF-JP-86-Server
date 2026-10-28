@@ -100,16 +100,12 @@ internal sealed partial class GameTownMovementCommandHandler :
             return false;
         }
 
-        // The position is asked for here alongside the published session because the refusal below
-        // reports where the character stays. The two arrive and leave together -- publication
-        // records both and teardown drops both -- so this conjunct admits and refuses exactly the
-        // connections the two before it do.
+        // Where the character stands is asked for here alongside the published session because the
+        // refusal below reports where the character stays.
         var result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
         if (!sessions.IsInWorld(session)
             || result is null
-            || onlineCharacters.PositionOf(session) is not { } standing
-            || townAreas.Find(session.CharacterId) is not { } standingMember
-            || !session.Owns(standingMember))
+            || onlineCharacters.StandingOf(session) is not { Position: var standing } standingMember)
         {
             logger.LogWarning(
                 "Set user area {ConnectionId}: no published session, ignoring {TownId}:{AreaId}",
@@ -209,14 +205,15 @@ internal sealed partial class GameTownMovementCommandHandler :
                 await PersistAsync(execution, session, destination, cancellationToken).ConfigureAwait(false);
         }
         var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
-        var moved = onlineCharacters.CrossInto(
-            session, message.TownId, message.AreaId, message.X, message.Y);
-        if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions,
+        if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, onlineCharacters, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions,
                 context.Connection.ConnectionId,
                 session,
                 result,
                 channel.ChannelId,
-                moved,
+                message.TownId,
+                message.AreaId,
+                message.X,
+                message.Y,
                 standingMember,
                 sharesTownPresence,
                 cancellationToken).ConfigureAwait(false))
@@ -240,10 +237,10 @@ internal sealed partial class GameTownMovementCommandHandler :
             session.WireUserId,
             standing.TownId,
             standing.AreaId,
-            moved.TownId,
-            moved.AreaId,
-            moved.X,
-            moved.Y);
+            message.TownId,
+            message.AreaId,
+            message.X,
+            message.Y);
 
         return true;
     }
@@ -253,14 +250,13 @@ internal sealed partial class GameTownMovementCommandHandler :
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetUserPositionCommand command, CancellationToken token)
     {
         var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
-        if (session is null || !sessions.IsInWorld(session) || townAreas.Find(session.CharacterId) is not { } member || !session.Owns(member))
+        if (session is null || !sessions.IsInWorld(session) || onlineCharacters.StandingOf(session) is null)
         {
             logger.LogDebug("Set user position {ConnectionId}: no published session, ignoring ({X},{Y})",
                 command.Dispatch.Connection.ConnectionId, command.Input.X, command.Input.Y);
             return false;
         }
         var input = command.Input;
-        var moved = onlineCharacters.StepTo(session, input.X, input.Y, input.Direction);
-        return await TownMovementProjection.TownMoveAsync(sessions, townAreas, projections, outbox, command.Dispatch.Connection.ConnectionId, session, moved, input.Trailer, token).ConfigureAwait(false);
+        return await TownMovementProjection.TownMoveAsync(sessions, townAreas, onlineCharacters, projections, outbox, command.Dispatch.Connection.ConnectionId, session, input.X, input.Y, input.Direction, input.Trailer, token).ConfigureAwait(false);
     }
 }

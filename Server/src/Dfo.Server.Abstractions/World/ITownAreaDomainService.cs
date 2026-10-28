@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.World;
 
@@ -22,35 +23,20 @@ public readonly record struct TownAreaKey
     public int Instance { get; }
 }
 
-/// <summary>
-/// An opaque generation that owns one character's current area membership.
-/// </summary>
+/// <summary>One character standing in a town area, as the session playing it.</summary>
 /// <remarks>
-/// It deliberately carries no connection or session semantics. The application boundary maps a
-/// selected-character generation to this lease; the area only uses it for compare-and-remove.
+/// The session is the one whose record this is, so a member compared with a session answers
+/// whether that session -- not an earlier or later one of the same character -- is standing here.
 /// </remarks>
-public readonly record struct TownAreaMembershipLease
-{
-    public TownAreaMembershipLease(long value)
-    {
-        if (value <= 0)
-            throw new ArgumentOutOfRangeException(nameof(value));
-        Value = value;
-    }
-
-    public long Value { get; }
-}
-
-/// <summary>One character as known by a town area.</summary>
 public sealed record TownAreaMember
 {
     public TownAreaMember(
-        CharacterId characterId,
-        TownAreaMembershipLease lease,
+        SelectedSessionIdentity session,
         TownAreaKey area,
         CharacterPositionState position,
         bool sharesTownPresence)
     {
+        ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(position);
         if (position.TownId != area.TownId || position.AreaId != area.AreaId)
         {
@@ -58,15 +44,14 @@ public sealed record TownAreaMember
                 "The member position must belong to the supplied town area.", nameof(position));
         }
 
-        CharacterId = characterId;
-        Lease = lease;
+        Session = session;
         Area = area;
         Position = position;
         SharesTownPresence = sharesTownPresence;
     }
 
-    public CharacterId CharacterId { get; }
-    public TownAreaMembershipLease Lease { get; }
+    public SelectedSessionIdentity Session { get; }
+    public CharacterId CharacterId => Session.CharacterId;
     public TownAreaKey Area { get; }
     public CharacterPositionState Position { get; }
     public bool SharesTownPresence { get; }
@@ -76,7 +61,6 @@ public sealed record TownAreaMember
 public sealed record TownAreaSnapshot(
     TownAreaKey Key,
     long MembershipRevision,
-    long MovementRevision,
     IReadOnlyList<TownAreaMember> Members)
 {
     /// <summary>The members this viewer is allowed to project in town.</summary>
@@ -112,7 +96,6 @@ public enum TownAreaDepartureReason
 public sealed record TownAreaMembershipChange(
     TownAreaMembershipChangeKind Kind,
     CharacterId CharacterId,
-    TownAreaMembershipLease Lease,
     TownAreaSnapshot? PreviousArea,
     TownAreaSnapshot? CurrentArea,
     TownAreaDepartureReason? DepartureReason = null);
@@ -120,7 +103,6 @@ public sealed record TownAreaMembershipChange(
 /// <summary>The immutable result emitted by one committed in-area movement.</summary>
 public sealed record TownAreaMovement(
     CharacterId CharacterId,
-    TownAreaMembershipLease Lease,
     CharacterPositionState Position,
     TownAreaSnapshot Area);
 
@@ -131,29 +113,17 @@ public sealed record TownAreaFilter(
     byte? AreaId = null);
 
 /// <summary>
-/// Owns every live town-area entity and the reverse index from character to membership.
+/// Who stands in which town area, and where. Read only: every change is made by the session
+/// playing the character, through <c>IOnlineCharacterRuntimeDomainService</c>.
 /// </summary>
+/// <remarks>
+/// A character away from town -- choosing or running a dungeon -- still has a place it left, but
+/// it stands in no area, so it is in no snapshot and <see cref="Find(CharacterId)"/> does not
+/// answer for it.
+/// </remarks>
 public interface ITownAreaDomainService
 {
-    TownAreaMembershipChange Enter(TownAreaMember member);
-
-    TownAreaMembershipChange? LeaveExact(
-        CharacterId characterId,
-        TownAreaMembershipLease lease,
-        TownAreaDepartureReason reason);
-
-    TownAreaMembershipChange? TransferExact(
-        CharacterId characterId,
-        TownAreaMembershipLease lease,
-        TownAreaKey destination,
-        CharacterPositionState position,
-        bool sharesTownPresence);
-
-    TownAreaMovement? MoveExact(
-        CharacterId characterId,
-        TownAreaMembershipLease lease,
-        CharacterPositionState position);
-
+    /// <summary>Where a character stands in town, or null when it is not standing in any area.</summary>
     TownAreaMember? Find(CharacterId characterId);
 
     TownAreaSnapshot? Find(TownAreaKey key);
