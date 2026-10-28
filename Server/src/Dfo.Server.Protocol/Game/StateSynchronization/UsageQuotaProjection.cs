@@ -54,6 +54,7 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
         if (!sessions.IsInWorld(session)) return [];
         return notification.Family switch
         {
+            UsageQuotaFamily.GiantDragonCrystalExchange => [],
             UsageQuotaFamily.ReviveCoin => [new DailyReviveCoinStateMessage(snapshot.ReviveCoinClaimed
                 ?? throw new InvalidDataException("Missing revive coin quota snapshot."))],
             UsageQuotaFamily.GoldSilverHorn => [new GoldSilverHornQuotaMessage((snapshot.GoldSilverHorn

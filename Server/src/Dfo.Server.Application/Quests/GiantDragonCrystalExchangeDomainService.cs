@@ -1,29 +1,25 @@
-using System.Globalization;
 using Dfo.Server.Abstractions.Configuration;
-using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Quests;
-using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Quests;
 
-internal sealed class GiantDragonCrystalExchangeDomainService(ICharacterDailyCounterTable counters,
-    IDailyResetRuleService reset, TimeProvider clock, IDomainTransactionAccessor transactions)
+internal sealed class GiantDragonCrystalExchangeDomainService(IUsageQuotaDomainService quotas,
+    IDailyResetRuleService reset, TimeProvider clock, IEventService events)
     : IGiantDragonCrystalExchangeDomainService
 {
-    // This quota is deliberately limited to 8557; other daily quests retain their existing lifecycle.
-    private const string CounterKey = "giant-dragon.quest.8557";
-    private string Period => reset.PeriodStart(clock.GetUtcNow()).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-
     public async ValueTask<bool> CanAcceptAsync(CharacterId character, CancellationToken ct) =>
-        await counters.FindClaimedPeriodAsync(character, CounterKey, ct).ConfigureAwait(false) != Period;
+        (await quotas.ReadAsync(character, UsageQuotaKey.GiantDragonCrystalExchange(reset.PeriodStart(clock.GetUtcNow())), ct)
+            .ConfigureAwait(false))?.UsedCount is not > 0;
 
     public async ValueTask<bool> TryCompleteAsync(CharacterId character, CancellationToken ct)
     {
-        if (transactions.Current is not { IsReadOnly: false })
-            throw new InvalidOperationException("Crystal exchange quota requires a writable transaction.");
-        if (!await CanAcceptAsync(character, ct).ConfigureAwait(false)) return false;
-        await counters.ClaimAsync(character, CounterKey, Period, ct).ConfigureAwait(false);
+        var period = reset.PeriodStart(clock.GetUtcNow());
+        var previous = await quotas.ReadAsync(character, UsageQuotaKey.GiantDragonCrystalExchange(period), ct).ConfigureAwait(false);
+        if (previous?.UsedCount > 0) return false;
+        await events.DirectAsync(new GiantDragonCrystalExchangeRecorded(character, period, previous), ct).ConfigureAwait(false);
         return true;
     }
 }

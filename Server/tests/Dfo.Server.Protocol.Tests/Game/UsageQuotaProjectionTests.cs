@@ -17,6 +17,17 @@ namespace Dfo.Server.Protocol.Tests.Game;
 
 public sealed class UsageQuotaProjectionTests
 {
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task Crystal_exchange_quota_has_no_separate_wire_message_from_quest_projection()
+    {
+        var sessions = new Sessions();
+        var messages = await new UsageQuotaViewChangedHandler(new Snapshots(), sessions).ComposeAsync(
+            new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
+            new(sessions.Current.CharacterId, UsageQuotaFamily.GiantDragonCrystalExchange), default);
+        Assert.Empty(messages);
+    }
+
     [Theory]
     [InlineData(0, "00000000")]
     [InlineData(1, "00000100")]

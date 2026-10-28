@@ -19,6 +19,8 @@ decision: manual_required
 
 当前入场计划同时拥有任务模式及定向迷宫策略，领域编排不再按3540单独定义策略。八图计划与任务状态真值、原准入和掉落/事务相关239项通过（`review-policy.log`），行为要求保持原样；最终全解决方案Unit门1614通过，0失败/跳过（`review-final-unit.log`及对应TRX），最终构建0警告/错误（`review-final-build.log`）。
 
+8557日额度经GiantDragonCrystalExchangeRecorded直接事实进入UsageQuotaDomainService，在同一业务事务内校验expected值并CAS写入；业务服务只解释资格和刷新周期，不直接读写counter table。保留固定旧键与Unix周期字段，无schema迁移，旧当日额度不失效。新增回归覆盖旧周期/空周期兼容、跨日、陈旧expected拒绝、只读/缺事务拒绝和回滚；配额可见效果沿既有任务链投影，不新增专用协议。最终构建0警告/错误，全部Unit1615项和配额/巨龙相关92项通过，0失败/跳过（`owner-final-build.log`、`owner-verified-unit.log`、`owner-verified-focused.log`）。完整Application复核6191通过、相同3项主干基线失败、0跳过（`owner-final-application.log`），新增失败差额0。
+
 ## 自动验证
 
 完整stdout/stderr和TRX位于本工作区 `artifacts/giant-dragon/`，不随Git提交。测试使用临时库，未接触玩家库。
