@@ -108,6 +108,13 @@ internal sealed partial class GameMapLoadingCommandHandler :
         {
             var result = await workUnits.WriteAsync(execution, new("guardian-altar.ready", [CaptureParticipant(selected)]),
                 async (_, ct) => new GuardianAltar.GuardianAltarMutation(Action: await guardian.ReadyAsync(selected, activity.RunId, ct).ConfigureAwait(false)), token).ConfigureAwait(false);
+            if (result.Action is { } ready)
+                logger.LogInformation("Guardian altar ready run={RunId} map={MapId} difficulty={Difficulty} round={Round} basis={Basis} generation={Generation} firstSpawnMs={FirstSpawn} nextActor={NextActor} initialActors={Actors}",
+                    activity.RunId, ready.State.Admission.Map.MapId, ready.State.Admission.Difficulty,
+                    ready.State.Admission.Stage.Survival ? ready.State.Admission.SurvivalRound : 1, ready.State.Admission.BasisLevel,
+                    ready.State.Generation, ready.State.PlannedSpawns.IsEmpty ? -1 : ready.State.PlannedSpawns[0].OffsetMilliseconds,
+                    ready.State.NextActorSequence, string.Join(";", activity.CurrentCellState.Actors.Select(actor =>
+                        $"{actor.Sequence}:{actor.Actor.Code}:{actor.Actor.Level}:{actor.Actor.ActorType}")));
             guardianWake.Wake();
         }
         if (!completed)
