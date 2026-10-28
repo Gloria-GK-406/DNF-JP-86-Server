@@ -330,8 +330,8 @@ public sealed class MirrorAradQuestTests
             await using var fixture = new LearningFixture();
             await fixture.SeedAsync();
             var store = fixture.Services.GetRequiredService<IMirrorAradQuestDomainStore>();
-            var clock = new Clock { Now = new(2026, 10, 10, 15, 59, 59, TimeSpan.Zero) };
-            var quota = new MirrorDungeonQuotaDomainService(fixture.Services.GetRequiredService<IUsageQuotaDomainService>(), clock, fixture.Services.GetRequiredService<IEventService>());
+            var clock = new Clock { Now = new(2026, 10, 10, 21, 59, 59, TimeSpan.Zero) }; // 05:59:59 UTC+8
+            var quota = new MirrorDungeonQuotaDomainService(fixture.Services.GetRequiredService<IUsageQuotaDomainService>(), clock, fixture.Services.GetRequiredService<IEventService>(), fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>());
             DungeonRunParticipant[] participants = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
             await Write(fixture, async () => await store.WriteQuotaAsync(new(2), new(72), new(2026, 10, 10), new(Entries: 10), default));
             await Write(fixture, async () => Assert.Equal((byte)1, await quota.TryReserveEntryAsync(participants, 10, default)));
@@ -383,7 +383,8 @@ public sealed class MirrorAradQuestTests
         var effects = new Effects(fixture.Services.GetRequiredService<SqliteDatabase>());
         var service = new MirrorAradQuestDomainService(store, new MirrorAradQuestRuleService(new Definitions(), new MirrorRules(), new Placements()), runs,
             fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), fixture.Services.GetRequiredService<ICharacterDomainService>(),
-            preview, new Clock { Now = Now }, fixture.Services.GetRequiredService<IEventService>(), fixture.Services.GetRequiredService<IUsageQuotaDomainService>());
+            preview, new Clock { Now = Now }, fixture.Services.GetRequiredService<IEventService>(), fixture.Services.GetRequiredService<IUsageQuotaDomainService>(),
+            fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>());
         var settlement = new QuestCompletionSettlementService(null!, new DefinitionDomain(), effects,
             fixture.Services.GetRequiredService<IEventService>(),
             fixture.Services.GetRequiredService<IGiantDragonCrystalExchangeDomainService>(), service);

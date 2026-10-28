@@ -49,19 +49,18 @@ internal sealed class DailyRefillDomainService(
                 "Daily refill character ownership does not match the account.");
         }
 
-        var ordinaryPeriod = refillRules.PeriodOf(preparedAt);
+        var period = refillRules.PeriodOf(preparedAt);
         const string attemptKey = "daily_refill_attempt";
         var attempted = await counters.FindClaimedPeriodAsync(characterId, attemptKey, cancellationToken).ConfigureAwait(false);
-        var ordinaryDue = refillRules.IsDue(attempted, ordinaryPeriod);
+        var ordinaryDue = refillRules.IsDue(attempted, period);
         var committed = new List<DailyRefillCommittedGrant>();
         foreach (var rule in rules)
         {
             if (!ordinaryDue && !refillRules.UsesIndependentPeriod(rule)) continue;
-            var period = refillRules.PeriodOf(rule, preparedAt);
             var key = CounterPrefix + rule.ItemId;
             var claimed = await counters.FindClaimedPeriodAsync(characterId, key, cancellationToken)
                 .ConfigureAwait(false);
-            if (!refillRules.IsDue(rule, claimed, period))
+            if (!refillRules.IsDue(claimed, period))
             {
                 continue;
             }
@@ -89,7 +88,7 @@ internal sealed class DailyRefillDomainService(
         }
 
         if (ordinaryDue && claimOrdinaryBatch
-            && await counters.ClaimAsync(characterId, attemptKey, ordinaryPeriod, cancellationToken) != 1)
+            && await counters.ClaimAsync(characterId, attemptKey, period, cancellationToken) != 1)
             throw new InvalidDataException("Daily refill attempt was not persisted.");
         return new DailyRefillMutationResult(
             [.. committed.GroupBy(value => value.Slot).Select(g => new DailyRefillCommittedGrant(g.Key, g.Last().ItemId, g.Sum(v => v.GrantedCount), g.Last().CommittedCount))

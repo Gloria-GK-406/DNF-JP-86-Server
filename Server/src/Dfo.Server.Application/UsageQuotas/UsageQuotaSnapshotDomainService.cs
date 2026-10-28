@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -12,7 +13,7 @@ namespace Dfo.Server.Application.UsageQuotas;
 internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService quotas,
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions,
-    IDespairTowerDomainService despair, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IHerasDungeonDomainService? heras = null, IGoldSilverHornDomainService? goldSilverHorn = null, IReviveCoinDomainService? reviveCoins = null) : IUsageQuotaSnapshotDomainService
+    IDespairTowerDomainService despair, IDailyResetRuleService daily, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IHerasDungeonDomainService? heras = null, IGoldSilverHornDomainService? goldSilverHorn = null, IReviveCoinDomainService? reviveCoins = null) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
         UsageQuotaFamily family, CancellationToken cancellationToken)
@@ -43,7 +44,7 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
                 await premiumUsage.ReadAtAsync(characterId, at, cancellationToken).ConfigureAwait(false), null),
             UsageQuotaFamily.MirrorDungeon => new(at, [], null, [],
                 await quotas.ReadMirrorAsync(characterId,
-                    DateOnly.FromDateTime(at.ToOffset(TimeSpan.FromHours(8)).DateTime), cancellationToken).ConfigureAwait(false)),
+                    daily.PeriodDay(at), cancellationToken).ConfigureAwait(false)),
             _ => throw new ArgumentOutOfRangeException(nameof(family)),
         };
     }

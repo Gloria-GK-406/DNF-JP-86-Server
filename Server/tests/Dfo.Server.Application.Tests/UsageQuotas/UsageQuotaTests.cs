@@ -182,11 +182,12 @@ public sealed class UsageQuotaTests
     }
 
     [Fact]
-    public async Task Mirror_snapshot_uses_local_midnight_and_does_not_write_a_reset_or_emit_an_event()
+    public async Task Mirror_snapshot_turns_at_the_game_reset_and_does_not_write_a_reset_or_emit_an_event()
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var clock = new FixedClock { Now = new(2026, 10, 10, 23, 59, 0, TimeSpan.FromHours(8)) };
+            // 05:59 on the 11th is still the game day of the 10th; midnight is not a boundary.
+            var clock = new FixedClock { Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8)) };
             await using var f = new LearningFixture(configure: services => services.AddSingleton<TimeProvider>(clock));
             await f.SeedAsync();
             await using (var tx = f.Scope.Begin())

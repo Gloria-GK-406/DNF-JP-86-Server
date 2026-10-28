@@ -113,7 +113,7 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
     };
 
     public NpcShopRuleService Rules() => new(this,
-        new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new DailyRefillRuleService(), new PermanentExpiration(), TimeProvider.System);
+        new ItemPlacementRuleService(this, new NoWearables()), new ItemArrivalRuleService(), new DailyRefillRuleService(new Scheduling.OnlineExpiredItemScheduleTests.SixOClock()), new PermanentExpiration(), TimeProvider.System);
 
     private sealed class PermanentExpiration : IItemExpirationRuleService
     {

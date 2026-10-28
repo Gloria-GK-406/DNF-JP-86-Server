@@ -113,7 +113,7 @@ internal sealed class InventorySide
     public IDailyRefillDomainService Mutations => new DailyRefillDomainService(
         new SqliteCharacterTable(this.database),
         new SqliteCharacterDailyCounterTable(this.database),
-        new DailyRefillRuleService(),
+        new DailyRefillRuleService(new TestReset()),
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
             new ItemArrivalRuleService(), lifecycle: Lifecycle),

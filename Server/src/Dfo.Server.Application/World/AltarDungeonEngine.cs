@@ -23,7 +23,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     IDailyResetRuleService daily, IEventService events, IDomainTransactionAccessor transactions, TimeProvider clock,
     ICharacterGameplayFactDomainService gameplay)
 {
-    public DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    public DateOnly Period() => daily.PeriodDay(clock.GetUtcNow());
     public AltarDungeonState? Find(AltarStateStore store, DungeonRunId runId) => runs.Find(runId) is not null ? store.Find(runId) : null;
     public IReadOnlyList<AltarDeadline> Pending(AltarStateStore store) => store.All()
         .Where(x => x.NextDeadline is not null && runs.Find(x.RunId) is not null)

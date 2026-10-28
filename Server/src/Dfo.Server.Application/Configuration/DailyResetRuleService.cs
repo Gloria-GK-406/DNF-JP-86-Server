@@ -4,7 +4,6 @@ namespace Dfo.Server.Application.Configuration;
 
 internal sealed class DailyResetRuleService(IServerConfigService settings) : IDailyResetRuleService
 {
-    private static readonly TimeSpan BusinessOffset = TimeSpan.FromHours(8);
     private readonly TimeSpan resetTime = Validate(settings.GetConfig<TimeSpan>("Game:DailyResetTime"));
 
     private static TimeSpan Validate(TimeSpan value) => value >= TimeSpan.Zero && value < TimeSpan.FromDays(1)
@@ -12,8 +11,8 @@ internal sealed class DailyResetRuleService(IServerConfigService settings) : IDa
 
     public DateTimeOffset PeriodStart(DateTimeOffset now)
     {
-        var local = now.ToOffset(BusinessOffset);
-        var start = new DateTimeOffset(local.Date + resetTime, BusinessOffset);
+        var local = now.ToOffset(IDailyResetRuleService.BusinessOffset);
+        var start = new DateTimeOffset(local.Date + resetTime, IDailyResetRuleService.BusinessOffset);
         if (local < start) start = start.AddDays(-1);
         return start.ToUniversalTime();
     }

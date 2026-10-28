@@ -14,7 +14,7 @@ internal sealed class GoldSilverHornDomainService(IGoldSilverHornRuleService rul
     IDailyResetRuleService daily, TimeProvider clock) : IGoldSilverHornDomainService
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
-    private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Period() => daily.PeriodDay(clock.GetUtcNow());
 
     public async ValueTask<GoldSilverHornQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken ct)
     {

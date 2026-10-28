@@ -16,7 +16,7 @@ internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeo
     IDailyResetRuleService daily, IEventService events, TimeProvider clock) : IHerasDungeonDomainService
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
-    private DateOnly Period(DateTimeOffset at) => DateOnly.FromDateTime(daily.PeriodStart(at).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Period(DateTimeOffset at) => daily.PeriodDay(at);
     public ValueTask<HerasQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken ct) => ReadQuotaAtAsync(character, clock.GetUtcNow(), ct);
     public async ValueTask<HerasQuotaSnapshot> ReadQuotaAtAsync(CharacterId character, DateTimeOffset at, CancellationToken ct)
     {

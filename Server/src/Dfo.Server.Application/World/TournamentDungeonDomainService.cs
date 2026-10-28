@@ -29,7 +29,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     private readonly Lock gate = new();
     private readonly Dictionary<CharacterId, TournamentDungeonState> states = [];
     public bool Supports(int dungeonId) => rules.IsSupported(dungeonId);
-    private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Period() => daily.PeriodDay(clock.GetUtcNow());
     public async ValueTask<IReadOnlyList<TournamentQuotaSnapshot>> ReadQuotaAsync(CharacterId characterId, CancellationToken ct)
     {
         var period = Period();

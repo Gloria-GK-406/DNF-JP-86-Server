@@ -225,7 +225,7 @@ public sealed class UsageQuotaProjectionTests
     }
 
     [Fact]
-    public async Task Mirror_online_worker_refreshes_at_local_midnight_and_retries_failed_delivery()
+    public async Task Mirror_online_worker_refreshes_at_the_game_reset_and_retries_failed_delivery()
     {
         var sessions = new Sessions(); var clock = new Clock(); var events = new Events();
         await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
@@ -234,7 +234,9 @@ public sealed class UsageQuotaProjectionTests
         Assert.Single(events.Projections);
         var exact = Assert.IsType<NotificationAudience.TheseSessions>(events.Projections[0]);
         Assert.Equal(sessions.Current, Assert.Single(exact.Sessions));
-        clock.Now = clock.Now.AddMinutes(2);
+        clock.Now = new(2026, 10, 11, 5, 59, 0, TimeSpan.FromHours(8));
+        await worker.RefreshAsync(default); Assert.Single(events.Projections); // Midnight is not a boundary.
+        clock.Now = clock.Now.AddMinutes(1);
         events.Outcome = NotificationOutcome.Failed;
         await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
         events.Outcome = NotificationOutcome.Registered;

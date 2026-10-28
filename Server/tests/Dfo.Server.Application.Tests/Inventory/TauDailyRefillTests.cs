@@ -31,9 +31,7 @@ public sealed partial class ItemDeliveryTests
         private readonly DailyRefillRuleService rules = new(new SixOClock());
         public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId == 9001;
         public string PeriodOf(DateTimeOffset at) => rules.PeriodOf(at);
-        public string PeriodOf(DailyRefillRule rule, DateTimeOffset at) => rules.PeriodOf(UsesIndependentPeriod(rule) ? rule with { ItemId = 690001556 } : rule, at);
         public bool IsDue(string? claimed, string period) => rules.IsDue(claimed, period);
-        public bool IsDue(DailyRefillRule rule, string? claimed, string period) => rules.IsDue(UsesIndependentPeriod(rule) ? rule with { ItemId = 690001556 } : rule, claimed, period);
         public int GrantFor(DailyRefillRule rule, int count) => rules.GrantFor(rule, count);
     }
 
@@ -70,20 +68,17 @@ public sealed partial class ItemDeliveryTests
         });
     }
 
-    [Theory]
-    [InlineData(690001556)]
-    [InlineData(2680738)]
-    [InlineData(2749110)]
-    public void Activity_tickets_use_game_day_and_legacy_midnight_claim_does_not_reissue(int item)
+    [Fact]
+    public void Every_refill_uses_the_game_day_and_a_legacy_midnight_claim_does_not_reissue()
     {
         var rules = new DailyRefillRuleService(new SixOClock());
-        var tau = new DailyRefillRule(item, 1, DateTimeOffset.MaxValue, DailyRefillMode.Add, 10, 4, new(BusinessInventorySpace.Quest, 0, 55));
         var at = new DateTimeOffset(2026, 10, 15, 5, 59, 0, TimeSpan.FromHours(8));
-        Assert.Equal("2026-10-14", rules.PeriodOf(tau, at));
-        Assert.Equal("2026-10-15", rules.PeriodOf(tau, at.AddMinutes(1)));
-        Assert.Equal("2026-10-15", rules.PeriodOf(tau with { ItemId = 9001 }, at));
-        Assert.False(rules.IsDue(tau, "2026-10-15", rules.PeriodOf(tau, at)));
-        Assert.False(rules.IsDue(tau, "2026-10-15", rules.PeriodOf(tau, at.AddMinutes(1))));
+        Assert.Equal("2026-10-14", rules.PeriodOf(at));
+        Assert.Equal("2026-10-15", rules.PeriodOf(at.AddMinutes(1)));
+        // Claimed at 01:00 under the midnight calendar: that morning's date, ahead of the game day.
+        Assert.False(rules.IsDue("2026-10-15", rules.PeriodOf(at)));
+        Assert.False(rules.IsDue("2026-10-15", rules.PeriodOf(at.AddMinutes(1))));
+        Assert.True(rules.IsDue("2026-10-15", rules.PeriodOf(at.AddDays(1).AddMinutes(1))));
     }
     [Fact]
     public async Task Tau_only_online_refill_does_not_claim_ordinary_batch_and_new_ordinary_rules_wait_until_tomorrow()

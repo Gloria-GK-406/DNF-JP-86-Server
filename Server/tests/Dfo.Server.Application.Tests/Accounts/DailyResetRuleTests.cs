@@ -30,6 +30,19 @@ public sealed class DailyResetRuleTests
         Assert.Equal(expected, rule.IsCurrentPeriod(DateTimeOffset.Parse(recorded), DateTimeOffset.Parse(now)));
     }
     [Theory]
+    [InlineData("2026-10-28T05:59:59+08:00", "2026-10-27")]
+    [InlineData("2026-10-28T06:00:00+08:00", "2026-10-28")]
+    [InlineData("2026-10-28T00:30:00+08:00", "2026-10-27")]
+    [InlineData("2026-10-27T23:59:59+08:00", "2026-10-27")]
+    [InlineData("2027-01-01T03:00:00+08:00", "2026-12-31")]
+    [InlineData("2026-10-27T21:59:59Z", "2026-10-27")]
+    [InlineData("2026-10-27T22:00:00Z", "2026-10-28")]
+    public void Period_day_is_the_game_day_not_the_calendar_day(string now, string expected)
+    {
+        IDailyResetRuleService rule = new DailyResetRuleService(new Settings(TimeSpan.FromHours(6)));
+        Assert.Equal(DateOnly.Parse(expected), rule.PeriodDay(DateTimeOffset.Parse(now)));
+    }
+    [Theory]
     [InlineData(-1)]
     [InlineData(24)]
     public void Invalid_reset_time_is_rejected(int hour) =>

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -16,7 +17,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     IMirrorAradQuestRuleService rules, IDungeonRunDomainService runs,
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
     IInventoryEffectPreflightDomainService preview,
-    TimeProvider clock, IEventService events, IUsageQuotaDomainService quotas) : IMirrorAradQuestDomainService,
+    TimeProvider clock, IEventService events, IUsageQuotaDomainService quotas, IDailyResetRuleService reset) : IMirrorAradQuestDomainService,
     IDomainEventSubscriber<DungeonParticipantLeft>, IDomainEventSubscriber<DungeonMapCleared>
 {
     private DungeonRunState? Authorized(AccountId account, CharacterId character, int quest)
@@ -63,7 +64,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         if (state.RewardClaimed)
             return new(true, quest, objective.Quest.ObjectiveTypeCode, award, [], new(0, 0, []), state, null, null, AlreadyClaimed: true);
         if (!rules.CanFinish(objective, state, run)) return Refused();
-        var day = MirrorDungeonQuotaDomainService.Day(clock);
+        var day = reset.PeriodDay(clock.GetUtcNow());
         var quota = await quotas.ReadMirrorAsync(character, day, ct).ConfigureAwait(false);
         var effects = await rules.RewardEffectsAsync(progress.Level, quota, ct).ConfigureAwait(false);
         if (effects is null) return Refused();
@@ -166,20 +167,21 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
         _ = await events.EnqueueAsync(new MirrorQuestChanged(character), ct).ConfigureAwait(false);
 }
 
-internal sealed class MirrorDungeonQuotaDomainService(IUsageQuotaDomainService quotas, TimeProvider clock, IEventService events) : IMirrorDungeonQuotaDomainService
+internal sealed class MirrorDungeonQuotaDomainService(IUsageQuotaDomainService quotas, TimeProvider clock, IEventService events,
+    IDailyResetRuleService daily) : IMirrorDungeonQuotaDomainService
 {
-    internal static DateOnly Day(TimeProvider clock) => DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Day() => daily.PeriodDay(clock.GetUtcNow());
     public async ValueTask<byte?> FindBlockedSlotAsync(IReadOnlyList<DungeonRunParticipant> participants, int dailyLimit, CancellationToken ct)
     {
         if (dailyLimit <= 0) return null;
-        var day = Day(clock);
+        var day = Day();
         foreach (var member in participants)
             if ((await quotas.ReadMirrorAsync(member.CharacterId, day, ct).ConfigureAwait(false)).Entries >= dailyLimit) return member.Slot;
         return null;
     }
     public async ValueTask<byte?> TryReserveEntryAsync(IReadOnlyList<DungeonRunParticipant> participants, int dailyLimit, CancellationToken ct)
     {
-        var day = Day(clock);
+        var day = Day();
         var entries = System.Collections.Immutable.ImmutableArray.CreateBuilder<MirrorEntryQuotaUpdate>();
         foreach (var member in participants)
         {
