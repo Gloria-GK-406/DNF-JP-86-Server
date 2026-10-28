@@ -1,0 +1,189 @@
+Input: DNF-memory-rva.bin; image base 0x00400000
+SHA256: AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D
+Source: E:/Project/DNF/DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin
+Method: bounded Capstone excerpts; ranges omitted between groups; not a runtime trace.
+
+## client-death-countdown-gates.txt: VA 011500D0..011500EA
+0x011500d0: cmp      byte ptr [ebp - 0x2b1], 0
+0x011500d7: mov      edx, dword ptr [esi]
+0x011500d9: mov      edx, dword ptr [edx + 0xb10]
+0x011500df: sete     al
+0x011500e2: movzx    ecx, al
+0x011500e5: push     ecx
+0x011500e6: mov      ecx, esi
+0x011500e8: call     edx
+0x011500ea: call     0xa75300
+
+## client-death-countdown-gates.txt: VA 01150212..01150221
+0x01150212: mov      ecx, dword ptr [0x3a5c990]
+0x01150218: push     1
+0x0115021a: call     0x19e7380
+0x0115021f: test     eax, eax
+0x01150221: jle      0x115030b
+
+## client-death-countdown-gates.txt: VA 0115030B..0115038E
+0x0115030b: mov      ecx, dword ptr [0x3a5c9b8]
+0x01150311: call     0x2300bf0
+0x01150316: mov      ecx, eax
+0x01150318: call     0x2846d50
+0x0115031d: test     eax, eax
+0x0115031f: jne      0x11505b4
+0x01150325: mov      ecx, dword ptr [0x3a5c9b8]
+0x0115032b: call     0x2300c00
+0x01150330: mov      ecx, eax
+0x01150332: call     0x1a182f0
+0x01150337: test     eax, eax
+0x01150339: jne      0x11505b4
+0x0115033f: mov      ecx, dword ptr [0x3a5c9b8]
+0x01150345: call     0x2300c30
+0x0115034a: mov      ecx, eax
+0x0115034c: call     0x1a182f0
+0x01150351: test     eax, eax
+0x01150353: jne      0x11505b4
+0x01150359: mov      ecx, dword ptr [0x3a5c9b8]
+0x0115035f: call     0x2300c40
+0x01150364: mov      ecx, eax
+0x01150366: call     0x1a182f0
+0x0115036b: test     eax, eax
+0x0115036d: jne      0x11505b4
+0x01150373: call     0x10cbbd0
+0x01150378: call     0x1102c30
+0x0115037d: mov      ecx, eax
+0x0115037f: call     0x11038e0
+0x01150384: mov      ecx, dword ptr [0x3a5c9b8]
+0x0115038a: push     2
+0x0115038c: test     al, al
+0x0115038e: je       0x115040f
+
+## client-death-countdown-gates.txt: VA 0115040F..01150416
+0x0115040f: call     0x2300bc0
+0x01150414: mov      ecx, eax
+0x01150416: call     0x138ae10
+
+## client-death-ui-set-state.txt: VA 0138AE33..0138AE71
+0x0138ae33: cmp      dword ptr [ebp + 8], 4
+0x0138ae37: je       0x138ae53
+0x0138ae39: mov      eax, dword ptr [ebp + 8]
+0x0138ae3c: lea      ecx, [edi + 0x30]
+0x0138ae3f: mov      dword ptr [edi + 0x4c], eax
+0x0138ae42: call     0x27c3410
+0x0138ae47: push     0
+0x0138ae49: push     0
+0x0138ae4b: lea      ecx, [edi + 0x30]
+0x0138ae4e: call     0x27c3b60
+0x0138ae53: cmp      dword ptr [ebp + 8], 0
+0x0138ae57: jne      0x138ae7d
+0x0138ae59: mov      ecx, dword ptr [0x3a5c9b8]
+0x0138ae5f: push     0
+0x0138ae61: push     -1
+0x0138ae63: push     0x40
+0x0138ae65: call     0x2304790
+0x0138ae6a: mov      dword ptr [edi + 0x50], 0xffffffff
+0x0138ae71: mov      byte ptr [edi + 0x54], 0
+
+## client-death-ui-timer.txt: VA 0138A36C..0138A39E
+0x0138a36c: call     0x27c3660
+0x0138a371: mov      ecx, 0x270f
+0x0138a376: sub      ecx, eax
+0x0138a378: mov      eax, 0x10624dd3
+0x0138a37d: imul     ecx
+0x0138a37f: sar      edx, 6
+0x0138a382: mov      ecx, edx
+0x0138a384: shr      ecx, 0x1f
+0x0138a387: add      ecx, edx
+0x0138a389: mov      dword ptr [ebp - 0x18], ecx
+0x0138a38c: lea      eax, [ebp - 0x10]
+0x0138a38f: js       0x138a394
+0x0138a391: lea      eax, [ebp - 0x18]
+0x0138a394: mov      edx, dword ptr [0x3bab2d8]
+0x0138a39a: mov      edi, dword ptr [eax]
+0x0138a39c: mov      ebx, dword ptr [edx]
+0x0138a39e: push     0x328e450
+
+## client-death-ui-timer.txt: VA 0138A4C4..0138A524
+0x0138a4c4: cmp      byte ptr [esi + 0x54], 0
+0x0138a4c8: je       0x138a528
+0x0138a4ca: lea      ecx, [esi + 0x30]
+0x0138a4cd: call     0x27c3660
+0x0138a4d2: mov      edx, 0x270f
+0x0138a4d7: sub      edx, eax
+0x0138a4d9: jns      0x138a528
+0x0138a4db: call     0xa9aa30
+0x0138a4e0: test     al, al
+0x0138a4e2: je       0x138a4f2
+0x0138a4e4: push     0
+0x0138a4e6: call     0xaa6b90
+0x0138a4eb: mov      ecx, eax
+0x0138a4ed: call     0xaaa2f0
+0x0138a4f2: push     0
+0x0138a4f4: push     0x2a
+0x0138a4f6: call     0x274ca50
+0x0138a4fb: mov      ecx, eax
+0x0138a4fd: call     0x274d1e0
+0x0138a502: call     0x274e6d0
+0x0138a507: call     0x1102c30
+0x0138a50c: push     eax
+0x0138a50d: call     0x119b940
+0x0138a512: mov      ecx, eax
+0x0138a514: call     0x119b2b0
+0x0138a519: test     eax, eax
+0x0138a51b: je       0x138a524
+0x0138a51d: mov      ecx, eax
+0x0138a51f: call     0x17238f0
+0x0138a524: mov      byte ptr [esi + 0x54], 0
+
+## client-death-ui-frame.txt: VA 0138B39D..0138B3C1
+0x0138b39d: cmp      dword ptr [esi + 0x4c], 0
+0x0138b3a1: je       0x138b3e7
+0x0138b3a3: call     0x1102c30
+0x0138b3a8: test     eax, eax
+0x0138b3aa: je       0x138b3e7
+0x0138b3ac: call     0x1102c30
+0x0138b3b1: mov      ecx, eax
+0x0138b3b3: call     0x163e1e0
+0x0138b3b8: cmp      eax, 1
+0x0138b3bb: jne      0x138b3e7
+0x0138b3bd: push     0
+0x0138b3bf: mov      ecx, esi
+0x0138b3c1: call     0x138ae10
+
+## client-death-ui-frame.txt: VA 0138B3E7..0138B3F4
+0x0138b3e7: cmp      dword ptr [esi + 0x4c], 2
+0x0138b3eb: jne      0x138b3f4
+0x0138b3ed: mov      ecx, esi
+0x0138b3ef: call     0x138a320
+0x0138b3f4: mov      esi, dword ptr [ebp + 0xc]
+
+## client-altar-eplp-ui-action.txt: VA 010C5888..010C58D0
+0x010c5888: mov      esi, ecx
+0x010c588a: mov      eax, dword ptr [ebp + 8]
+0x010c588d: lea      ecx, [esi + 0x48]
+0x010c5890: mov      dword ptr [esi + 4], eax
+0x010c5893: call     0x27c3660
+0x010c5898: mov      ecx, dword ptr [esi + 4]
+0x010c589b: mov      dword ptr [esi + ecx*4 + 0x64], eax
+0x010c589f: lea      ecx, [esi + 8]
+0x010c58a2: call     0x27c3410
+0x010c58a7: push     0
+0x010c58a9: push     0
+0x010c58ab: lea      ecx, [esi + 8]
+0x010c58ae: call     0x27c3b60
+0x010c58b3: mov      eax, dword ptr [esi + 4]
+0x010c58b6: sub      eax, 0
+0x010c58b9: je       0x10c5bbc
+0x010c58bf: dec      eax
+0x010c58c0: je       0x10c5ba2
+0x010c58c6: sub      eax, 7
+0x010c58c9: je       0x10c58d5
+0x010c58cb: mov      esi, dword ptr [esi + 0x28]
+0x010c58ce: push     1
+0x010c58d0: jmp      0x10c5bd4
+
+## client-altar-eplp-ui-action.txt: VA 010C5BCF..010C5BDD
+0x010c5bcf: push     0
+0x010c5bd1: mov      esi, dword ptr [esi + 0x30]
+0x010c5bd4: mov      edx, dword ptr [esi]
+0x010c5bd6: mov      eax, dword ptr [edx + 8]
+0x010c5bd9: mov      ecx, esi
+0x010c5bdb: call     eax
+0x010c5bdd: mov      ecx, dword ptr [ebp - 0xc]
