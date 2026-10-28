@@ -48,7 +48,7 @@ internal sealed partial class GameMapLoadingCommandHandler
     internal async ValueTask<bool> CompleteBossLoadingAsync(CommandExecutionContext execution, NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : bossTowers.Find(session);
         if (session is null || expected is null) return false;
@@ -69,7 +69,7 @@ internal sealed partial class GameMapLoadingCommandHandler
     private async ValueTask<bool> AdvanceBossAsync(CommandExecutionContext execution, NetworkConnectionId connectionId,
         GameMessageMetadata metadata, byte targetX, byte targetY, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata))
+        if (GameRequestFreshness.IsStale(metadata))
         {
             logger.LogWarning("Move-map ignored connection={ConnectionId} sequence={Sequence} ordinal={Ordinal} target=({X},{Y}) reason=StaleSequence",
                 connectionId, metadata.Sequence, metadata.InboundOrdinal, targetX, targetY);
@@ -103,7 +103,7 @@ internal sealed partial class GameMapLoadingCommandHandler
     private async ValueTask<bool> CompleteIllusionLoadingAsync(CommandExecutionContext execution, NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : illusionTowers.Find(session);
         if (session is null || expected is null) return false;
@@ -121,7 +121,7 @@ internal sealed partial class GameMapLoadingCommandHandler
     private async ValueTask<bool> StartIllusionAsync(CommandExecutionContext execution, NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : illusionTowers.Find(session);
         if (session is null || expected is null) return false;
@@ -133,7 +133,7 @@ internal sealed partial class GameMapLoadingCommandHandler
     private async ValueTask<bool> AdvanceIllusionAsync(CommandExecutionContext execution, NetworkConnectionId connectionId,
         GameMessageMetadata metadata, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : illusionTowers.Find(session);
         if (session is null || expected is null) return false;

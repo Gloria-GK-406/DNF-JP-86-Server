@@ -128,7 +128,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         var run = session is null ? null : bossTowers.Find(session);
         if (session is null || run is null) return false;
         // Selection checks for an attached run before consuming a stale request; return does the reverse.
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run) || !run.Members.Any(member => member.Session == session && member.IsLeader)) return true;
         var participants = run.Members.Select(member => member.Session == session
             ? CaptureParticipant(member.Session) : new SelectedSessionRecipient(member.Session, null)).ToArray();
@@ -140,7 +140,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private async ValueTask<bool> SelectionLeaveBossAsync(CommandExecutionContext execution,
         NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var run = session is null ? null : bossTowers.Find(session);
         if (session is null || run is null) return false;
@@ -156,7 +156,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private async ValueTask<bool> SelectionLeaveIllusionAsync(CommandExecutionContext execution,
         NetworkConnectionId connectionId, GameMessageMetadata metadata, IGameServerMessage response, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(connectionId);
         var run = session is null ? null : illusionTowers.Find(session);
         if (session is null || run is null) return false;

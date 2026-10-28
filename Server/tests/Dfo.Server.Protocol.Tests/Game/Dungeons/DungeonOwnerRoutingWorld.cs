@@ -60,7 +60,7 @@ internal sealed class DungeonOwnerRoutingWorld
         Runs = TestParties.Runs(parties: Parties);
         Boss = new BossTowers(Sessions);
         Illusion = new IllusionTowers(Sessions);
-        Participation = new Registrations(Boss, Illusion, Runs);
+        Participation = new DerivedDungeonParticipation(Boss, Illusion, Runs, Sessions);
     }
 
     public ISelectedSessionDomainService Sessions { get; }
@@ -69,7 +69,7 @@ internal sealed class DungeonOwnerRoutingWorld
     public DungeonRunDeliveryRegistry Registry { get; } = new();
     public BossTowers Boss { get; }
     public IllusionTowers Illusion { get; }
-    public Registrations Participation { get; }
+    public DerivedDungeonParticipation Participation { get; }
     public RecordingOutbox Outbox { get; } = new();
     public RecordingUnits Units { get; } = new();
     public RecordingViews Views { get; } = new();
@@ -179,7 +179,7 @@ internal sealed class DungeonOwnerRoutingWorld
 
     internal sealed record TowerAction(string Name, SelectedSessionIdentity Session, Guid RunId);
 
-    internal sealed class BossTowers(ISelectedSessionDomainService sessions) : IBossTowerDomainService
+    internal sealed class BossTowers(ISelectedSessionDomainService sessions) : IBossTowerDomainService, ICharacterTowerSeats
     {
         private readonly List<BossTowerSnapshot> runs = [];
         public List<TowerAction> Actions { get; } = [];
@@ -192,7 +192,8 @@ internal sealed class DungeonOwnerRoutingWorld
                 Room(), [], null, DateTimeOffset.UnixEpoch));
             return members[0];
         }
-        public BossTowerSnapshot? RunOf(CharacterId character) => runs.SingleOrDefault(run => run.Members.Any(member => member.Session.CharacterId == character));
+        /// <summary>The run seating this character under any session generation, as the occupancy registry sees it.</summary>
+        public Guid? RunOf(CharacterId character) => runs.SingleOrDefault(run => run.Members.Any(member => member.Session.CharacterId == character))?.RunId;
 
         public bool Supports(int dungeonId) => dungeonId == 3505;
         public BossTowerSnapshot? Find(SelectedSessionIdentity session) => runs.SingleOrDefault(run => run.Members.Any(member => member.Session == session));
@@ -236,7 +237,7 @@ internal sealed class DungeonOwnerRoutingWorld
         }
     }
 
-    internal sealed class IllusionTowers(ISelectedSessionDomainService sessions) : IIllusionTowerDomainService
+    internal sealed class IllusionTowers(ISelectedSessionDomainService sessions) : IIllusionTowerDomainService, ICharacterTowerSeats
     {
         private readonly List<IllusionTowerSnapshot> runs = [];
         public List<TowerAction> Actions { get; } = [];
@@ -247,7 +248,8 @@ internal sealed class DungeonOwnerRoutingWorld
                 Room(), [], null, DateTimeOffset.UnixEpoch) { TotalLevels = 3 });
             return members[0];
         }
-        public IllusionTowerSnapshot? RunOf(CharacterId character) => runs.SingleOrDefault(run => run.Members.Any(member => member.Session.CharacterId == character));
+        /// <summary>The run seating this character under any session generation, as the occupancy registry sees it.</summary>
+        public Guid? RunOf(CharacterId character) => runs.SingleOrDefault(run => run.Members.Any(member => member.Session.CharacterId == character))?.RunId;
 
         public IllusionTowerSnapshot? Find(SelectedSessionIdentity session) => runs.SingleOrDefault(run => run.Members.Any(member => member.Session == session));
         public bool IsInTower(CharacterId characterId) => RunOf(characterId) is not null;
@@ -282,24 +284,6 @@ internal sealed class DungeonOwnerRoutingWorld
             Record(name, context);
             return ValueTask.FromResult(new TowerActionResult(false, Find(context.Session)));
         }
-    }
-
-    /// <summary>
-    /// The occupancy registry as production keeps it: by character, never by session generation.
-    /// <see cref="Residual"/> holds an ordinary registration whose run can no longer be found by
-    /// character, as after a party departure that has not yet ended the character's part.
-    /// </summary>
-    internal sealed class Registrations(BossTowers boss, IllusionTowers illusion, IDungeonRunDomainService runs) : IDungeonParticipationDomainService
-    {
-        public Dictionary<CharacterId, DungeonParticipationOwner> Residual { get; } = [];
-        public DungeonParticipationOwner? Find(CharacterId character) =>
-            boss.RunOf(character) is { } bossRun ? new(DungeonParticipationMode.BossTower, bossRun.RunId)
-            : illusion.RunOf(character) is { } illusionRun ? new(DungeonParticipationMode.IllusionTower, illusionRun.RunId)
-            : runs.Find(character) is { } ordinary ? new(DungeonParticipationMode.Ordinary, ordinary.RunId.Value)
-            : Residual.GetValueOrDefault(character);
-        public bool TryClaim(IReadOnlyList<CharacterId> characters, DungeonParticipationOwner owner) => throw new NotSupportedException();
-        public void Release(CharacterId character, DungeonParticipationOwner expected) => throw new NotSupportedException();
-        public void ReleaseCommitted(CharacterId character, DungeonParticipationOwner expected) => throw new NotSupportedException();
     }
 
     internal sealed record Frame(NetworkConnectionId Connection, IGameServerMessage Message);

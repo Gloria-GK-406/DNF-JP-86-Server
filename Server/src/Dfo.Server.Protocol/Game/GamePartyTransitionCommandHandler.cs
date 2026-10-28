@@ -296,7 +296,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         GiveUpGameRequest message,
         CancellationToken cancellationToken)
     {
-        if (TowerProtocol.IsStale(message.Metadata))
+        if (GameRequestFreshness.IsStale(message.Metadata))
             return;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null)

@@ -97,7 +97,7 @@ internal sealed class BossTowerProjectionDriver(IBossTowerDomainService towers, 
     }
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId id, GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(id); var run = session is null ? null : bossTowers.Find(session);
         if (session is null || run is null) return false;
         if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run)) return true;
@@ -148,7 +148,7 @@ internal sealed class IllusionTowerProjectionDriver(IIllusionTowerDomainService 
     }
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId id, GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(id); var run = session is null ? null : illusionTowers.Find(session);
         if (session is null || run is null) return false;
         if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, run)) return true;

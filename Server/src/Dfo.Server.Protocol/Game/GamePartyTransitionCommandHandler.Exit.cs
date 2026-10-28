@@ -50,7 +50,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
         var expected = bossTowers.Find(session);
         if (expected is null) return false;
         closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, expected)) return true;
         if (state == 2)
         {
@@ -76,7 +76,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
     private async ValueTask<bool> SelectIllusionReturnAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, GameMessageMetadata metadata, byte state, byte option, CancellationToken token)
     {
-        if (TowerProtocol.IsStale(metadata)) return true;
+        if (GameRequestFreshness.IsStale(metadata)) return true;
         var expected = illusionTowers.Find(session);
         if (expected is null) return false;
         closeTargets.Capture(sessions, onlineUsers, expected.Members.Select(member => member.Session));

@@ -103,7 +103,7 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
     }
     private async ValueTask<bool> DieBossAsync(CommandExecutionContext execution,NetworkConnectionId connectionId,GameMessageMetadata metadata,CancellationToken token)
     {
-        if(TowerProtocol.IsStale(metadata))return true;
+        if(GameRequestFreshness.IsStale(metadata))return true;
         var session=sessions.FindByConnection(connectionId);var expected=session is null?null:bossTowers.Find(session);
         if(session is null||expected is null)return false;
         if(!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session,expected))return true;
@@ -117,7 +117,7 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
     }
     private async ValueTask<bool> DieIllusionAsync(CommandExecutionContext execution,NetworkConnectionId connectionId,GameMessageMetadata metadata,CancellationToken token)
     {
-        if(TowerProtocol.IsStale(metadata))return true;
+        if(GameRequestFreshness.IsStale(metadata))return true;
         var session=sessions.FindByConnection(connectionId);var expected=session is null?null:illusionTowers.Find(session);
         if(session is null||expected is null)return false;
         if(!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session,expected))return true;
