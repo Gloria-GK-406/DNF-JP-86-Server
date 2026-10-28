@@ -83,7 +83,3 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
         };
     }
 }
-
-
-
-// Mirror's original quota resets at local midnight, independently of the 06:00 item/premium period.

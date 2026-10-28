@@ -20,30 +20,32 @@ namespace Dfo.Server.Application.Tests.Inventory;
 [Trait("Category", "Unit")]
 public sealed class RefillRuleServiceTests
 {
-    private static readonly IDailyRefillRuleService Refill = new DailyRefillRuleService();
+    private static readonly IDailyRefillRuleService Refill =
+        new DailyRefillRuleService(new Scheduling.OnlineExpiredItemScheduleTests.SixOClock());
 
     private static readonly IItemArrivalRuleService Arrival = new ItemArrivalRuleService();
 
     // ---------------------------------------------------------------- the day boundary
 
     /// <remarks>
-    /// Two instants an hour apart that straddle midnight in UTC+8 are two days; the same pair
-    /// written in UTC is one. A boundary quietly moved to UTC would refill twice in one evening.
+    /// The day turns at the game reset, 06:00 in UTC+8, not at midnight: an evening and the small
+    /// hours after it are one day, and the minute after the reset is the next.
     /// </remarks>
     [Fact]
-    public void ADayTurnsOverAtMidnightInUtcPlusEight()
+    public void ADayTurnsOverAtTheGameResetNotAtMidnight()
     {
         var lateOnDayOne = new DateTimeOffset(2026, 8, 12, 23, 30, 0, TimeSpan.FromHours(8));
-        var earlyOnDayTwo = new DateTimeOffset(2026, 8, 13, 0, 30, 0, TimeSpan.FromHours(8));
+        var earlyNextMorning = new DateTimeOffset(2026, 8, 13, 5, 59, 0, TimeSpan.FromHours(8));
+        var afterReset = new DateTimeOffset(2026, 8, 13, 6, 0, 0, TimeSpan.FromHours(8));
 
         Assert.Equal("2026-08-12", Refill.PeriodOf(lateOnDayOne));
-        Assert.Equal("2026-08-13", Refill.PeriodOf(earlyOnDayTwo));
-        Assert.Equal(lateOnDayOne.UtcDateTime.Day, earlyOnDayTwo.UtcDateTime.Day);
+        Assert.Equal("2026-08-12", Refill.PeriodOf(earlyNextMorning));
+        Assert.Equal("2026-08-13", Refill.PeriodOf(afterReset));
     }
 
-    /// <remarks>The pair to the one above: crossing midnight in UTC changes nothing.</remarks>
+    /// <remarks>Crossing midnight in UTC changes nothing.</remarks>
     [Fact]
-    public void OneDayInUtcPlusEightIsOneDayHoweverUtcFalls()
+    public void OneGameDayIsOneDayHoweverUtcFalls()
     {
         var beforeUtcMidnight = new DateTimeOffset(2026, 8, 13, 7, 30, 0, TimeSpan.FromHours(8));
         var afterUtcMidnight = new DateTimeOffset(2026, 8, 13, 8, 30, 0, TimeSpan.FromHours(8));
@@ -86,6 +88,16 @@ public sealed class RefillRuleServiceTests
     public void ARuleClaimedOnAnotherDayIsDueAgain()
     {
         Assert.True(Refill.IsDue("2026-08-12", "2026-08-13"));
+    }
+
+    /// <remarks>
+    /// A claim recorded under the old midnight calendar can be a day ahead of the game day on the
+    /// morning the reset moved to 06:00. It stays settled rather than granting that day twice.
+    /// </remarks>
+    [Fact]
+    public void AClaimAheadOfTheGameDayIsNotDue()
+    {
+        Assert.False(Refill.IsDue("2026-08-13", "2026-08-12"));
     }
 
     // ---------------------------------------------------------------- how many are granted

@@ -53,7 +53,7 @@ internal sealed class WeeklyAttendanceRuleService(IWeeklyAttendanceDefinitionSou
     }
     public DateTimeOffset WeekStart(DateTimeOffset now)
     {
-        var day = reset.PeriodStart(now).ToOffset(TimeSpan.FromHours(8));
+        var day = reset.PeriodStart(now).ToOffset(IDailyResetRuleService.BusinessOffset);
         return day.AddDays(-(((int)day.DayOfWeek+6)%7)).ToUniversalTime();
     }
 }

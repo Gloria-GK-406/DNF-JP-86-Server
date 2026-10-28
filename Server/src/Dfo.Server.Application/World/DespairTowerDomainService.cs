@@ -24,8 +24,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
     ICharacterDomainService characters, IItemDeliveryDomainService delivery,
     IQuestProgressDomainService quests) : IDespairTowerDomainService
 {
-    private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow())
-        .ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Period() => daily.PeriodDay(clock.GetUtcNow());
     public bool IsTower(int dungeonId) => rules.IsTower(dungeonId);
     public async ValueTask<DespairTowerStatus> ReadStatusAsync(CharacterId character, CancellationToken ct)
     {

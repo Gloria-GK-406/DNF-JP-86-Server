@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -153,39 +154,28 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
 }
 
 /// <summary>
-/// Which day a refill belongs to, and whether it is still owed.
+/// Which game day a refill belongs to, and whether it is still owed.
 /// </summary>
 /// <remarks>
-/// The day is the one in UTC+8, which is where this game's day has always turned over. Reading it
-/// from the moment's own offset rather than from the server's clock is what keeps the answer the
-/// same wherever the host happens to be.
+/// The day is the game day of <see cref="IDailyResetRuleService"/>, the same one every other daily
+/// count turns over on; the claim record spells it as that day's date.
 /// </remarks>
-internal sealed class DailyRefillRuleService(Dfo.Server.Abstractions.Configuration.IDailyResetRuleService? reset = null) : IDailyRefillRuleService
+internal sealed class DailyRefillRuleService(IDailyResetRuleService reset) : IDailyRefillRuleService
 {
-    private static readonly TimeSpan DayBoundaryOffset = TimeSpan.FromHours(8);
-
     public string PeriodOf(DateTimeOffset preparedAt) =>
-        preparedAt.ToOffset(DayBoundaryOffset).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        reset.PeriodDay(preparedAt).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId is 690001556 or 2680738 or 2749110;
 
-    public string PeriodOf(DailyRefillRule rule, DateTimeOffset preparedAt) => UsesIndependentPeriod(rule)
-        ? (reset ?? throw new InvalidOperationException("Game-day refill requires daily-reset rules."))
-            .PeriodStart(preparedAt).ToOffset(DayBoundaryOffset).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-        : PeriodOf(preparedAt);
-
-    // An old midnight claim may be ahead of the new 06:00 period during deployment morning.
-    // Retain it conservatively instead of moving the ledger backwards and granting twice.
-    public bool IsDue(DailyRefillRule rule, string? claimedPeriod, string period) => UsesIndependentPeriod(rule)
-        ? claimedPeriod is null || string.CompareOrdinal(claimedPeriod, period) < 0
-        : IsDue(claimedPeriod, period);
-
     /// <remarks>
-    /// The recorded day is compared, not merely looked for. A record that only said "claimed" would
-    /// be a claim for ever rather than a claim for one day.
+    /// The recorded day is compared, not merely looked for: a record that only said "claimed" would
+    /// be a claim for ever rather than a claim for one day. It is compared by order, not equality.
+    /// Claims written while the day still turned at midnight can be ahead of the game day: one made
+    /// at 01:00 records that morning's date, while until 06:00 the game day is still the one before.
+    /// A later or equal claim stays settled instead of granting the same day twice.
     /// </remarks>
     public bool IsDue(string? claimedPeriod, string period) =>
-        !string.Equals(claimedPeriod, period, StringComparison.Ordinal);
+        claimedPeriod is null || string.CompareOrdinal(claimedPeriod, period) < 0;
 
     public int GrantFor(DailyRefillRule rule, int currentCount)
     {

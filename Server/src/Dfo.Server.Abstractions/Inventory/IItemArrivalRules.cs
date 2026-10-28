@@ -72,19 +72,15 @@ public interface IItemArrivalRuleService
 /// </remarks>
 public interface IDailyRefillRuleService
 {
-    /// <summary>The day this moment falls in, as the claim record spells it.</summary>
+    /// <summary>The game day this moment falls in, as the claim record spells it.</summary>
     string PeriodOf(DateTimeOffset preparedAt);
 
-    string PeriodOf(DailyRefillRule rule, DateTimeOffset preparedAt) => PeriodOf(preparedAt);
-
-    /// <summary>Rules whose game-day claim is independent from the first-login refill batch.</summary>
+    /// <summary>Rules also refilled online at the reset, not only by the first-login refill batch.</summary>
     bool UsesIndependentPeriod(DailyRefillRule rule) => false;
 
     /// <summary>Whether a rule is still owed, given the day already recorded against it.</summary>
     /// <param name="claimedPeriod">Null when nothing has ever been recorded for it.</param>
     bool IsDue(string? claimedPeriod, string period);
-
-    bool IsDue(DailyRefillRule rule, string? claimedPeriod, string period) => IsDue(claimedPeriod, period);
 
     /// <summary>How many the rule grants, given what the character already holds of it.</summary>
     int GrantFor(DailyRefillRule rule, int currentCount);

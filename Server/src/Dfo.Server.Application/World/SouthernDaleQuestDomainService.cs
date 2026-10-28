@@ -10,7 +10,7 @@ internal sealed class SouthernDaleQuestDomainService(ISouthernDaleDomainStore st
     ISouthernDaleRuleService rules, IEventManagementDomainService activities,
     IDailyResetRuleService reset, TimeProvider clock, IDomainTransactionAccessor transactions) : ISouthernDaleQuestDomainService
 {
-    private DateOnly Period => DateOnly.FromDateTime(reset.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Period => reset.PeriodDay(clock.GetUtcNow());
 
     public async ValueTask<bool> CanAcceptAsync(CharacterId character, CancellationToken ct) =>
         (await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries

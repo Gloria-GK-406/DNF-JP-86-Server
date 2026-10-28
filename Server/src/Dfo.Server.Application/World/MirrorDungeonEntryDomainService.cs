@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.World;
 
@@ -6,7 +7,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService rules,
     IDungeonStructureRuleService structures, IDungeonVisitDomainService visits,
-    ICharacterDomainService characters, IDungeonAdmissionDomainService admission, TimeProvider clock) : IMirrorDungeonEntryDomainService
+    ICharacterDomainService characters, IDungeonAdmissionDomainService admission, TimeProvider clock, IDailyResetRuleService daily) : IMirrorDungeonEntryDomainService
 {
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
@@ -26,7 +27,7 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
         return await admission.ExecuteAsync(context with { Facts = facts }, new()
         {
             Mirror = true, MirrorCatalog = catalog, RequiredQuestIds = catalog.RequiredQuestIds,
-            Quota = new(UsageQuotaFamily.MirrorDungeon, DateOnly.FromDateTime(clock.GetUtcNow().ToOffset(TimeSpan.FromHours(8)).DateTime), catalog.DailyEntryLimit),
+            Quota = new(UsageQuotaFamily.MirrorDungeon, daily.PeriodDay(clock.GetUtcNow()), catalog.DailyEntryLimit),
         }, async (receipt, token) =>
         {
             var levels = new List<byte>();

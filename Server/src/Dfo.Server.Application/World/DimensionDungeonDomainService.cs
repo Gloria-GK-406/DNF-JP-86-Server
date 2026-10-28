@@ -9,7 +9,7 @@ internal sealed class DimensionDungeonDomainService(IDimensionDungeonRuleService
     IDungeonVisitDomainService visits, IUsageQuotaDomainService quotas, IDungeonAdmissionDomainService admission,
     IDailyResetRuleService daily, TimeProvider clock) : IDimensionDungeonDomainService
 {
-    private DateOnly Period() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Period() => daily.PeriodDay(clock.GetUtcNow());
     public async ValueTask<DimensionQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken ct)
     {
         var period = Period();

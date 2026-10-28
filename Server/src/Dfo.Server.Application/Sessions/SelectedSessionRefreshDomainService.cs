@@ -15,13 +15,7 @@ internal sealed class SelectedSessionRefreshDomainService(ISelectedSessionSnapsh
     public DateTimeOffset CurrentPeriod(SelectedSessionRefreshTopic topic)
     {
         if (topic == SelectedSessionRefreshTopic.Premium) return premium.CurrentPeriodStart;
-        var now = clock.GetUtcNow();
-        if (topic == SelectedSessionRefreshTopic.Mirror)
-        {
-            var local = now.ToOffset(TimeSpan.FromHours(8));
-            return new DateTimeOffset(local.Date, local.Offset);
-        }
-        return daily.PeriodStart(now);
+        return daily.PeriodStart(clock.GetUtcNow());
     }
     public SelectedSessionRefreshScan Capture(SelectedSessionRefreshTopic topic)
     {

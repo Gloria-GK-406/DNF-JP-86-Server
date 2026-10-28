@@ -14,7 +14,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ReviveCoinRuleService(IDailyResetRuleService daily) : IReviveCoinRuleService
 {
     public bool SupportsConsumable(int itemId) => itemId == 42;
-    public DateOnly Period(DateTimeOffset at) => DateOnly.FromDateTime(daily.PeriodStart(at).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    public DateOnly Period(DateTimeOffset at) => daily.PeriodDay(at);
     public GrantOpeningVirtualEffect Grant() => new(1, 1, 0, new(1, 1));
     public bool CanClaim(int balance, int used) => balance == 0 && used == 0;
 }

@@ -438,16 +438,17 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
     }
 
     /// <summary>
-    /// The day a refill belongs to is the one in UTC+8, not the one in UTC.
+    /// The day a refill belongs to is the game day: it turns at the 06:00 reset in UTC+8, not at
+    /// midnight and not in UTC.
     /// </summary>
     /// <remarks>
-    /// Two entries an hour apart across midnight in Seoul are two days and refill twice; two
-    /// entries either side of midnight in UTC are one day and refill once. Nothing else in the
-    /// suite pins which of the two the server means, so a boundary quietly moved to UTC would give
-    /// every player a second refill at 16:00 local and nothing would go red.
+    /// An evening entry and one in the small hours after it are one day and refill once; the first
+    /// entry after the reset is the next day and refills again. Nothing else in the suite pins the
+    /// boundary against the database, so a day quietly turned back to midnight would hand out a
+    /// second refill at 00:00 and nothing would go red.
     /// </remarks>
     [Fact]
-    public async Task DailyRefill_TurnsOverAtMidnightInUtcPlusEight()
+    public async Task DailyRefill_TurnsOverAtTheGameReset()
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
@@ -464,21 +465,19 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
                 DailyRefillMode.Add, 100, 2,
                 new(BusinessInventorySpace.Consumable, 0, 55));
 
-            // 23:30 and 00:30 in UTC+8: one hour apart, and two different days.
-            var lateOnDayOne = new DateTimeOffset(2026, 8, 12, 23, 30, 0, TimeSpan.FromHours(8));
-            var earlyOnDayTwo = new DateTimeOffset(2026, 8, 13, 0, 30, 0, TimeSpan.FromHours(8));
+            var evening = new DateTimeOffset(2026, 8, 12, 23, 30, 0, TimeSpan.FromHours(8));
+            var smallHours = new DateTimeOffset(2026, 8, 13, 0, 30, 0, TimeSpan.FromHours(8));
+            var afterReset = new DateTimeOffset(2026, 8, 13, 6, 0, 0, TimeSpan.FromHours(8));
             var first = await repository.ApplyDailyRefillAsync(
-                new AccountId(7), new CharacterId(70), [rule], lateOnDayOne, CancellationToken.None);
+                new AccountId(7), new CharacterId(70), [rule], evening, CancellationToken.None);
             var second = await repository.ApplyDailyRefillAsync(
-                new AccountId(7), new CharacterId(70), [rule], earlyOnDayTwo, CancellationToken.None);
+                new AccountId(7), new CharacterId(70), [rule], smallHours, CancellationToken.None);
+            var third = await repository.ApplyDailyRefillAsync(
+                new AccountId(7), new CharacterId(70), [rule], afterReset, CancellationToken.None);
 
             Assert.Single(first.Grants);
-            Assert.Single(second.Grants);
-
-            // The same two instants written as UTC straddle midnight in UTC as well -- but the
-            // other way round, so a server that used UTC would see one day where this sees two.
-            Assert.Equal(12, lateOnDayOne.UtcDateTime.Day);
-            Assert.Equal(12, earlyOnDayTwo.UtcDateTime.Day);
+            Assert.Empty(second.Grants);
+            Assert.Single(third.Grants);
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }

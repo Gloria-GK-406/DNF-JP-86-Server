@@ -213,7 +213,8 @@ public sealed class MirrorDungeonEntryTests
             events: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(), transactions: fixture.Scope,
             sessions: sessions, onlineCharacters: positions, runs: TestParties.Runs(fixture.Scope));
         visits.Admission = admission;
-        return (new(new Rules(), structures, visits, fixture.Services.GetRequiredService<ICharacterDomainService>(), admission, TimeProvider.System), visits, quota);
+        return (new(new Rules(), structures, visits, fixture.Services.GetRequiredService<ICharacterDomainService>(), admission, TimeProvider.System,
+            fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>()), visits, quota);
     }
 
     private sealed class Rules : IMirrorDungeonRuleService

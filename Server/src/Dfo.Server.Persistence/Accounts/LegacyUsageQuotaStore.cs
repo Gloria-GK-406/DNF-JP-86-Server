@@ -7,7 +7,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Persistence.Accounts;
 
-/// <summary>Preserves the existing tables, counter keys, timestamps, and mirror midnight buckets.</summary>
+/// <summary>Preserves the existing tables, counter keys, timestamps, and mirror per-game-day buckets.</summary>
 internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
     IPremiumServiceUsageTable premiums, IMirrorAradQuestDomainStore mirror, SqliteDatabase database) : IUsageQuotaStore
 {
