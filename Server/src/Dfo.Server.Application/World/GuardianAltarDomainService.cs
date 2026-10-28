@@ -138,6 +138,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         if (Owned(current.Session) is null) { state.Put(current.Session.CharacterId, null); return null; }
         var run = runs.Find(runId)!;
         if (current.Status == GuardianAltarStatus.Loading) return End(current, GuardianAltarStatus.Lost, now);
+        if (current.Status == GuardianAltarStatus.Ending) return End(current, GuardianAltarStatus.Lost, now);
         if (current.Status == GuardianAltarStatus.BetweenRounds)
         {
             var nextPlan = rules.Admission(await LoadAsync(current.Session.CharacterId, ct).ConfigureAwait(false),
@@ -150,7 +151,9 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         }
         if (current.Status != GuardianAltarStatus.Fighting) return null;
         var center = run.CurrentCellState.Actors.SingleOrDefault(x => (x.Actor.Declaration?.Code ?? x.Actor.Code) == current.Admission.Map.CenterMonsterCode);
-        if (center is null || center.IsDead || run.DeadParticipants.Contains(current.Session.CharacterId)) return End(current, GuardianAltarStatus.Lost, now);
+        if (run.DeadParticipants.Contains(current.Session.CharacterId))
+            return BeginFailure(current, GuardianAltarEndReason.CharacterDied, now);
+        if (center is null || center.IsDead) return BeginFailure(current, GuardianAltarEndReason.CenterDestroyed, now);
         var elapsed = checked((int)Math.Min(int.MaxValue, Math.Max(0, (now - current.At).TotalMilliseconds)));
         var energy = (int)Math.Min(rules.MaximumEnergy(current.EnergyLevel), current.Energy + (long)elapsed * rules.EnergyPerSecond(current.EnergyLevel) / 1000);
         var phaseElapsed = checked(current.PhaseElapsedMilliseconds + elapsed); var phase = current.Phase;
@@ -192,6 +195,13 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         // 70Reference RegistTimerEPLPReturnVillage schedules 0xC350 ms after the result.
         var next = current with { Status = status, Deadline = now.AddSeconds(50), At = now, Generation = checked(current.Generation + 1) };
         Put(next); return new(next) { StageEnded = true };
+    }
+    private GuardianAltarActionResult BeginFailure(GuardianAltarRunState current, GuardianAltarEndReason reason, DateTimeOffset occurredAt)
+    {
+        // Native RegistTimerEPLP waits 1000 ms from the failure event, then starts the 50-second return.
+        var next = current with { Status = GuardianAltarStatus.Ending, EndReason = reason, At = occurredAt,
+            Deadline = occurredAt.AddSeconds(1), Generation = checked(current.Generation + 1) };
+        Put(next); return new(next);
     }
     private async ValueTask<GuardianAltarActionResult> SettleAsync(GuardianAltarRunState current, DateTimeOffset now, CancellationToken ct)
     {
@@ -272,6 +282,19 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         if (claim is null) return ValueTask.FromResult(false);
         try { transactions.Current!.Enlist((this, runId, roomVersion, actor), () => new DeathCommit(runs, claim)); }
         catch { runs.ReleaseActorDeath(claim); throw; }
+        var deadActor = claim.Run.CurrentCellState.FindActor(actor)?.Actor;
+        if ((deadActor?.Declaration?.Code ?? deadActor?.Code) == current.Admission.Map.CenterMonsterCode)
+            _ = BeginFailure(current, GuardianAltarEndReason.CenterDestroyed, clock.GetUtcNow());
+        return ValueTask.FromResult(true);
+    }
+    public ValueTask<bool> ReportCharacterDeathAsync(SelectedSessionIdentity session, DungeonRunId runId, long roomVersion,
+        DateTimeOffset occurredAt, CancellationToken ct)
+    {
+        Writing(nameof(ReportCharacterDeathAsync)); ct.ThrowIfCancellationRequested(); var current = Owned(session);
+        if (current is null || current.Status is not (GuardianAltarStatus.Fighting or GuardianAltarStatus.Paused)
+            || current.RunId != runId || current.RoomVersion != roomVersion
+            || !runs.Find(runId)!.DeadParticipants.Contains(session.CharacterId)) return ValueTask.FromResult(false);
+        _ = BeginFailure(current, GuardianAltarEndReason.CharacterDied, occurredAt);
         return ValueTask.FromResult(true);
     }
     private sealed class DeathCommit(IDungeonRunDomainService runs, DungeonActorDeathClaim claim) : ITransactionParticipant

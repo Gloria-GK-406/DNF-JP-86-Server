@@ -3,13 +3,13 @@
 状态：按用户授权维护实机验收候选，版本0.2.10，分支`codex/168-guardian-altar`。
 初版基线为`21c1dfd78f0e7866eb40e878305dcd019ea99f5e`；入图修复后实际运行提交和PID以
 `artifacts/guardian-altar/active-deployment.json`所指目录的`running-process.json`及`readiness.json`为准。
-当前主干版本核对为0.2.9；并行功能合并前仍须再次核对PATCH，不自动升MINOR或创建Release。
+并行功能合并前须核对主干实际版本及PATCH，不自动升MINOR或创建Release。
 
 ## 当前默认端口验收
 
 用户2026-10-28明确授权使用默认端口部署；遗忘之地会话同时已收到用户“继续修复、不要启动服务器”的指令。
 本轮仅交接核实后的原默认实例，保存其EXE／启动身份、工作目录、配置和私有环境供恢复；没有修改其他工作区。
-当前运行二进制为`0.2.10+91df1c2f110fd4b935690eff96499332e3110195`，
+运行版本和提交只以当前`running-process.json`及EXE ProductVersion为准；死亡链修复保持版本0.2.10，
 频道7001、Launcher18080、GM18081，UDP0；直接启用主干脚本目录，游戏端口从主干etc派生。
 祭坛验收选普通11频道（游戏10011），公开频道地址为`127.0.0.1:7001`，须与实际频道监听一致。
 Launcher／GM ready、GM页面200；实际PID与监听以就绪文件为准，不能直接复用文档中的历史PID。
@@ -27,8 +27,10 @@ Info含16个正确名称／地址／端口。证据为`channel-wire-verification
 默认端口切换必须同步`LauncherAuth.PublicChannel.Port`，不能只改HTTP与TCP监听；
 旧值25001会使登录器仍把客户端导向隔离端口，即使默认HTTP健康返回ready也看不到频道列表。
 
-本轮目录为`artifacts/guardian-altar/default-20261028T070017Z/`，
-`active-deployment.json`已指向该目录。原默认写入者停止后，通过SQLite只读源backup API
+初次默认端口目录为`artifacts/guardian-altar/default-20261028T070017Z/`；后续修复使用独立发布目录，
+当前目录通过`active-deployment.json`解析，不沿用历史PID。每次切换前通过SQLite只读源backup API取得新快照，
+完整核对旧进程EXE／启动时间，停止该实例后再启动新候选，不并行写主干玩家库。
+以下初次切换证据保留在该目录：
 取得最新`player-before-switch.db`，包含已提交WAL；不恢复旧库或注入测试资产。
 启动前后账号4、角色9、物品667、槽位659逐行哈希一致，integrity_check=ok。
 `private/`保存前一实例的恢复输入，不提交；当前频道修正前的新备份为`player-before-pve-channel.db`，
@@ -38,6 +40,8 @@ Info含16个正确名称／地址／端口。证据为`channel-wire-verification
 并针对当前PVF补核祭坛相关85项及内容2项，均0失败0跳过。当前输入哈希见README和就绪文件。
 实际客户端`DNFClient-A21-protocol2/Launcher.ini`已为`http://127.0.0.1:18080/`，无需再次编辑。
 用户须退出旧会话后重新登录，再从[第2步入图](acceptance.md)继续实机验证。
+死亡链候选保留相同主干etc与端口，新增元数据日志记录死亡事件时间、EPLP期限、结束原因和回城期限；
+不记录口令、票据或完整协议载荷。每轮`readiness.json`、`player-backup.json`与`player-after-start.json`核对实际运行和玩家核心数据。
 
 ## 可审查产物
 

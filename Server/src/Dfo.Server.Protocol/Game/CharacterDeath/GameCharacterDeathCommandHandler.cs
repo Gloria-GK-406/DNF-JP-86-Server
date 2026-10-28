@@ -61,13 +61,18 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
     private readonly IDungeonRunDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly ICommandConnectionClosures closures;
+    private readonly IGuardianAltarDomainService guardian;
+    private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
     public GameCharacterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
         IDungeonRunProjectionDomainService registry, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units,
-        IGameCommandOutbox outbox, ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameCharacterDeathCommandHandler> logger )
+        IGameCommandOutbox outbox, ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameCharacterDeathCommandHandler> logger,
+        IGuardianAltarDomainService guardian, IGuardianAltarSchedulerWakeSignal guardianWake)
 
     {
-        this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers;this.runs=runs;this.registry=registry;this.closures=closures;}
+        this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers;this.runs=runs;this.registry=registry;this.closures=closures;
+        this.guardian = guardian; this.guardianWake = guardianWake;
+    }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameCharacterDeathCommand command, CancellationToken token)
     {
@@ -78,15 +83,25 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
         {
             case DungeonPlace.InBossTower boss:await DieBossAsync(execution,boss,message.Metadata,token).ConfigureAwait(false);return true;
             case DungeonPlace.InIllusionTower illusion:await DieIllusionAsync(execution,illusion,token).ConfigureAwait(false);return true;
-            default:await DieOrdinaryAsync(connectionId,session,message,token).ConfigureAwait(false);return true;
+            default:await DieOrdinaryAsync(execution,connectionId,session,message,token).ConfigureAwait(false);return true;
         }
     }
-    private async ValueTask DieOrdinaryAsync(NetworkConnectionId connectionId,SelectedSessionIdentity session,CharacterDeathRequest message,CancellationToken token)
+    private async ValueTask DieOrdinaryAsync(CommandExecutionContext execution,NetworkConnectionId connectionId,SelectedSessionIdentity session,CharacterDeathRequest message,CancellationToken token)
     {
         var expected=runs.Find(session.CharacterId);if(expected is null)return;
         if(!sessions.IsInWorld(session)||registry.Find(expected.RunId).SingleOrDefault(x=>x.CharacterId==session.CharacterId)!=session)return;
         // Original Direct mutation: no transaction or work unit is created for ordinary death.
+        var occurredAt = clock.GetUtcNow();
         var committed=runs.TryMarkParticipantDead(session.CharacterId,expected.RunId,expected.RoomVersion);if(committed is null)return;
+        if (committed.Layout.Guardian is not null)
+        {
+            var scheduled = await workUnits.WriteAsync(execution, new("guardian-altar.character-death", [CaptureParticipant(session) with { Metadata = message.Metadata }]),
+                (_, ct) => guardian.ReportCharacterDeathAsync(session, committed.RunId, committed.RoomVersion, occurredAt, ct), token).ConfigureAwait(false);
+            if (scheduled && guardian.Find(committed.RunId) is { } ending)
+                logger.LogInformation("Guardian altar death scheduled character={CharacterId} run={RunId} reason={Reason} occurred={OccurredAt} eplpDue={Deadline}",
+                    session.CharacterId, committed.RunId, ending.EndReason, occurredAt, ending.Deadline);
+            guardianWake.Wake();
+        }
         var notification=new CharacterLifeStateNotification(session.WireUserId);
         var secondary=registry.Find(committed.RunId)
             .Where(x=>x.CharacterId!=session.CharacterId)

@@ -1,7 +1,7 @@
 # 守护者祭坛原生流程
 
 适用A21，DGN3511–3523。当前为ClientStatic、70Reference与CurrentImplementation交叉映射；
-没有本任务WireCaptured或ClientVerified。输入哈希、原始摘录及领域规则见
+没有本任务完整WireCaptured；入口和首关简单已有有限ClientVerified，完整玩法仍待验收。输入哈希、原始摘录及领域规则见
 [实现说明](../../Document/tasks/guardian-altar/README.md)。这里维护协议编排，单包字段以链接页为准。
 
 1. 选角与活动在线更新发送[033F](../game/server-to-client/NOTI-0x033F.md#守护者祭坛通用调度)，
@@ -20,6 +20,8 @@
    再发[0361](../game/server-to-client/NOTI-0x0361.md)及真实背包变化。成功领取每轮奖励扣一次，失败不扣。
    普通终局及生存最终结束再发送[0360](../game/server-to-client/NOTI-0x0360.md)。
    生存中间轮只更新035C时间线，保留当前地图、中心和能量，不重新Loading。
+   普通失败只发0360，不发送空0361；中心死亡原因0、角色死亡原因1，事件后1秒进入结束投影。
+   Ending期间冻结本局操作，保留普通0020死亡广播，复活请求拒绝且不扣币。
 7. 结果操作复用0048／退出链；自动回城为结果后50秒，旧run／session／generation的回调被拒绝。
    主动放弃、结果回城和自动回城在进入城镇前从当前角色事实补发Main完整库存，恢复祭坛替换的物品快捷栏。
    不修改原库存位置或快捷栏持久化设置。再次选择从原生0392重新进入。加载超时、断线和主动退出不冒充通关。

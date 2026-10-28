@@ -59,13 +59,17 @@ public interface IGuardianAltarRuleService
     int UpgradeEnergyCost(int level);
 }
 
-public enum GuardianAltarStatus : byte { Loading, Fighting, Paused, BetweenRounds, Won, Lost, Abandoned }
+public enum GuardianAltarStatus : byte { Loading, Fighting, Paused, BetweenRounds, Won, Lost, Abandoned, Ending }
+public enum GuardianAltarEndReason : byte { CenterDestroyed = 0, CharacterDied = 1, Cleared = 3 }
 public sealed record GuardianAltarRunState(DungeonRunId RunId, SelectedSessionIdentity Session,
     GuardianAltarAdmission Admission, DateOnly TicketPeriod, GuardianAltarStatus Status,
     long RoomVersion, long Generation, DateTimeOffset At, DateTimeOffset? Deadline,
     int Phase, int PhaseElapsedMilliseconds, int Energy, int EnergyLevel, int NextActorSequence,
     ImmutableArray<GuardianAltarSpawn> PlannedSpawns, int NextSpawn,
-    ImmutableDictionary<byte, DateTimeOffset> UnitCooldowns);
+    ImmutableDictionary<byte, DateTimeOffset> UnitCooldowns)
+{
+    public GuardianAltarEndReason? EndReason { get; init; }
+}
 public sealed record GuardianAltarActionResult(GuardianAltarRunState State)
 {
     public ImmutableArray<(ushort Sequence, GuardianAltarSpawn Spawn)> Spawns { get; init; } = [];
@@ -95,6 +99,7 @@ public interface IGuardianAltarDomainService
     ValueTask<GuardianAltarActionResult?> PauseAsync(SelectedSessionIdentity session, bool pause, CancellationToken ct);
     ValueTask<GuardianAltarActionResult?> AbandonAsync(SelectedSessionIdentity session, CancellationToken ct);
     ValueTask<bool> ReportDeathAsync(SelectedSessionIdentity session, DungeonRunId run, long roomVersion, ushort actor, CancellationToken ct);
+    ValueTask<bool> ReportCharacterDeathAsync(SelectedSessionIdentity session, DungeonRunId run, long roomVersion, DateTimeOffset occurredAt, CancellationToken ct);
     ValueTask<GuardianAltarProgress?> BuyAsync(SelectedSessionIdentity session, GuardianAltarShopKind kind, int id, int firstLevel, int lastLevel, CancellationToken ct);
     ValueTask<GuardianAltarProgress?> SetSlotAsync(SelectedSessionIdentity session, byte slot, GuardianAltarShopKind kind, int id, CancellationToken ct);
     ValueTask<GuardianAltarProgress?> ExchangeSlotsAsync(SelectedSessionIdentity session, byte first, byte second, int expectedFirstId, int expectedSecondId, CancellationToken ct);

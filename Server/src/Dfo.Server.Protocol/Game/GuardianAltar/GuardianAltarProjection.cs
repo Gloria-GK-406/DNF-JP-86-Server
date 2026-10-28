@@ -40,7 +40,8 @@ internal static class GuardianAltarProjection
         if (action.StageEnded)
         {
             var progress = action.Progress ?? await altar.ReadProgressAsync(session.CharacterId, ct).ConfigureAwait(false);
-            frames.Add(new GuardianAltarResultMessage(action, progress, altar.Catalog));
+            if (state.Status is GuardianAltarStatus.Won or GuardianAltarStatus.BetweenRounds)
+                frames.Add(new GuardianAltarResultMessage(action, progress, altar.Catalog));
             if (state.Status != GuardianAltarStatus.BetweenRounds) frames.Add(new GuardianAltarEplpMessage(state, progress.FreeTickets + progress.ExtraTickets > 0));
         }
         frames.AddRange(InventoryFrames(action.Delivery, slots, clock));

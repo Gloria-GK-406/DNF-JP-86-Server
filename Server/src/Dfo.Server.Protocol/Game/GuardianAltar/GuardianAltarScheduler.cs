@@ -80,7 +80,12 @@ internal sealed class GuardianAltarTimerCommandHandler(IGuardianAltarDomainServi
         if (result is CommandWriteResult<GuardianAltarMutation>.CommitRolledBack failed) rejected = failed.Cause;
         if (rejected is not null) { logger.LogError(rejected, "Guardian altar deadline failed run={Run} generation={Generation}", expected.RunId, expected.Generation); return false; }
         if (((CommandWriteResult<GuardianAltarMutation>.Returned)result).Value.Action is { } action)
+        {
             await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, slots, clock, ct).ConfigureAwait(false);
+            if (action.StageEnded)
+                logger.LogInformation("Guardian altar end prepared run={RunId} status={Status} reason={Reason} returnDue={Deadline}",
+                    action.State.RunId, action.State.Status, action.State.EndReason, action.State.Deadline);
+        }
         return true;
     }
 }

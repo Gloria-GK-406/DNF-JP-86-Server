@@ -107,5 +107,6 @@ internal static class GuardianAltarPayloadCodec
         var achievements = Eligible(p, c); w.Write((uint)achievements.Length); foreach (var achievement in achievements) { w.Write(achievement.Id); w.Write(p.ClaimedAchievements.Contains(achievement.Id) ? (byte)1 : (byte)0); }
     });
     public static byte[] Eplp(GuardianAltarRunState run, bool hasTickets) => Write(w =>
-    { w.Write(run.Status == GuardianAltarStatus.Won ? 3 : 0); w.Write(hasTickets ? (byte)1 : (byte)0); });
+    { w.Write((int)(run.EndReason ?? (run.Status == GuardianAltarStatus.Won ? GuardianAltarEndReason.Cleared : GuardianAltarEndReason.CenterDestroyed)));
+        w.Write(hasTickets ? (byte)1 : (byte)0); });
 }

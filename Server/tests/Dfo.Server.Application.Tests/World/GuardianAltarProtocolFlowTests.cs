@@ -14,6 +14,85 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class GuardianAltarProtocolFlowTests
 {
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Character_death_anchors_failure_to_the_event_and_emits_only_one_death_eplp_without_rewards(bool paused)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var f = new ShopFixture(useArchive: true, configure: services =>
+        {
+            services.AddSingleton(new PvfContentOptions { ArchivePath = ContentArchive.Path });
+            services.AddSingleton<ISelectedCharacterCurrentViewDomainService>(p => new EntryFailureProbe.CompleteView(p));
+            services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterSkillPointDomainService, Dfo.Server.Application.Characters.CharacterSkillPointDomainService>();
+        });
+        await f.Seed(1, 1, 10, 0);
+        f.SetLevel(65);
+        await EffectRequestTransport.SendRaw(f, new(1, 0x392, 0, 7), []);
+        var entry = new byte[15]; BinaryPrimitives.WriteInt32LittleEndian(entry, 3511); entry[5] = 3;
+        await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, 8), entry);
+        await EffectRequestTransport.SendRaw(f, new(1, 0x25, 0, 9), new byte[8]);
+        var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
+        var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!;
+        var commands = f.Services.GetRequiredService<ICommandBus>();
+        InternalCommandOrigin Origin() => new(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), "test:guardian-death", InternalCommandCancellation.BodyOnly);
+        var stale = altar.Find(run.RunId)!;
+        var beforeProgress = await altar.ReadProgressAsync(f.Session.CharacterId, default);
+        var beforeItems = f.Scalar("SELECT count(*) FROM items");
+        var before = f.Sender.Outbound.Frames.Count;
+        ushort sequence = 10;
+        f.Clock.Advance(TimeSpan.FromMilliseconds(750));
+        if (paused)
+        {
+            var pause = new byte[15]; pause[14] = 1;
+            await EffectRequestTransport.SendRaw(f, new(1, 0x398, 0, sequence++), pause);
+            before = f.Sender.Outbound.Frames.Count;
+        }
+        await EffectRequestTransport.SendRaw(f, new(1, 0x28, 0, sequence++), new byte[4]);
+        var deathAt = f.Clock.GetUtcNow();
+        ushort Type(byte[] frame) => BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1));
+        Assert.Equal(new ushort[] { 0x28, 0x20 }, f.Sender.Outbound.Frames.Skip(before).Select(Type));
+        f.Clock.Advance(TimeSpan.FromMilliseconds(250));
+        await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(altar.Find(run.RunId)!), Origin());
+        Assert.DoesNotContain(f.Sender.Outbound.Frames.Skip(before), x => Type(x) is 0x360 or 0x361);
+        var pending = altar.Find(run.RunId)!;
+        Assert.Equal(deathAt.AddSeconds(1), pending.Deadline);
+        await EffectRequestTransport.SendRaw(f, new(1, 0x28, 0, sequence++), new byte[4]);
+        Assert.Equal(pending.Generation, altar.Find(run.RunId)!.Generation);
+        var revive = new byte[2]; BinaryPrimitives.WriteUInt16LittleEndian(revive, f.Session.WireUserId);
+        await EffectRequestTransport.SendRaw(f, new(1, 0x29, 0, sequence++), revive);
+        Assert.Equal(0, f.Sender.Outbound.Frames.Last()[15]);
+        var coin = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>()
+            .FindContainer(f.Session.CharacterId, Dfo.Server.Data.Inventory.InventoryContainerType.Main)!.GetAsync(1, default);
+        Assert.Equal(10, coin!.Snapshot.ToCore().Value);
+        Assert.Contains(f.Session.CharacterId, f.Services.GetRequiredService<IDungeonRunDomainService>().Find(run.RunId)!.DeadParticipants);
+        Assert.Equal(pending.Generation, altar.Find(run.RunId)!.Generation);
+        f.Clock.Advance(TimeSpan.FromMilliseconds(749));
+        await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(pending), Origin());
+        Assert.DoesNotContain(f.Sender.Outbound.Frames.Skip(before), x => Type(x) is 0x360 or 0x361);
+        f.Clock.Advance(TimeSpan.FromMilliseconds(1));
+        await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(altar.Find(run.RunId)!), Origin());
+        var ended = altar.Find(run.RunId)!;
+        Assert.Equal(GuardianAltarStatus.Lost, ended.Status);
+        Assert.Equal(deathAt.AddSeconds(51), ended.Deadline);
+        Assert.DoesNotContain(f.Sender.Outbound.Frames.Skip(before), x => Type(x) == 0x361);
+        var eplp = Assert.Single(f.Sender.Outbound.Frames.Skip(before), x => Type(x) == 0x360);
+        Assert.Equal(new byte[] { 1, 0, 0, 0, 1 }, eplp[15..]);
+        var count = f.Sender.Outbound.Frames.Count;
+        await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(stale), Origin());
+        await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(pending), Origin());
+        Assert.Equal(count, f.Sender.Outbound.Frames.Count);
+        var afterProgress = await altar.ReadProgressAsync(f.Session.CharacterId, default);
+        Assert.Equal((beforeProgress.Revision, beforeProgress.FreeTickets, beforeProgress.ExtraTickets, beforeProgress.GameStars),
+            (afterProgress.Revision, afterProgress.FreeTickets, afterProgress.ExtraTickets, afterProgress.GameStars));
+        Assert.Equal(beforeItems, f.Scalar("SELECT count(*) FROM items"));
+        Assert.Equal(0, f.Scalar("SELECT count(*) FROM guardian_altar_settlements"));
+        Assert.Empty(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(ended), Origin()));
+        f.Clock.Advance(TimeSpan.FromSeconds(50));
+        Assert.Equal(f.Session, Assert.Single(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(ended), Origin())));
+        Assert.True(await commands.SendInternalAsync(new Dfo.Server.Protocol.Game.ProjectDungeonReturnCommand(f.Session, run.RunId, false), Origin()));
+        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+    }
     [SkippableFact]
     public void Cleared_difficulty_unlocks_the_next_map_without_treating_its_combat_basis_as_a_star_cost()
     {
@@ -108,6 +187,8 @@ public sealed class GuardianAltarProtocolFlowTests
         InternalCommandOrigin Origin() => new(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), "test:guardian-deadline", InternalCommandCancellation.BodyOnly);
         Assert.True(await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(altar.Find(run.RunId)!), Origin()));
         var lost = altar.Find(run.RunId)!; Assert.Equal(GuardianAltarStatus.Lost, lost.Status);
+        if (finishLoading) Assert.Equal(GuardianAltarEndReason.CenterDestroyed, lost.EndReason);
+        Assert.DoesNotContain(f.Sender.Outbound.Frames, x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x361);
         Assert.Empty(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(loading), Origin()));
         Assert.Empty(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(lost), Origin()));
         f.Clock.Advance(TimeSpan.FromSeconds(50));

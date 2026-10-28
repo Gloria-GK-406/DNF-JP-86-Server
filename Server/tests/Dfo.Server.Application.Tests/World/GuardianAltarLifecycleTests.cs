@@ -262,7 +262,9 @@ public sealed class GuardianAltarLifecycleTests
             var center = run.CurrentCellState.Actors.Single(x => x.Actor.Code == 64597);
             await using (var tx = f.Scope.Begin()) Assert.True(await altar.ReportDeathAsync(f.Session, run.RunId, run.RoomVersion, center.Sequence, default));
             Assert.False(runs.Find(run.RunId)!.CurrentCellState.FindActor(center.Sequence)!.IsDead);
+            Assert.Equal(GuardianAltarStatus.Fighting, altar.Find(run.RunId)!.Status);
             await using (var tx = f.Scope.Begin()) { Assert.True(await altar.ReportDeathAsync(f.Session, run.RunId, run.RoomVersion, center.Sequence, default)); await tx.CommitAsync(default); }
+            Assert.Equal(GuardianAltarStatus.Ending, altar.Find(run.RunId)!.Status);
             var state = altar.Find(run.RunId)!; clock.At = state.Deadline!.Value;
             await using (var tx = f.Scope.Begin())
             { Assert.Equal(GuardianAltarStatus.Lost, (await altar.AdvanceAsync(run.RunId, state.Generation, clock.At, default))!.State.Status); await tx.CommitAsync(default); }

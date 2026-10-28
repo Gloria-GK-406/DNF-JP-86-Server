@@ -115,6 +115,8 @@ public sealed class GuardianAltarProtocolTests
             GuardianAltarPayloadCodec.ProfileUpdate(Progress, Catalog).AsSpan(1).ToArray());
         Assert.Equal(new byte[] { 3, 0, 0, 0, 1 }, GuardianAltarPayloadCodec.Eplp(state, true));
         Assert.Equal(new byte[] { 0, 0, 0, 0, 0 }, GuardianAltarPayloadCodec.Eplp(state with { Status = GuardianAltarStatus.Lost }, false));
+        Assert.Equal(new byte[] { 1, 0, 0, 0, 1 }, GuardianAltarPayloadCodec.Eplp(state with
+            { Status = GuardianAltarStatus.Lost, EndReason = GuardianAltarEndReason.CharacterDied }, true));
     }
     [Theory]
     [InlineData(GuardianAltarOperation.Buy, 25)] [InlineData(GuardianAltarOperation.SetSlot, 19)]
