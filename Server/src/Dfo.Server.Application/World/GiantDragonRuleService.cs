@@ -32,10 +32,11 @@ internal sealed class GiantDragonRuleService(IDungeonDefinitionSource dungeons, 
             if (material is not { ItemId: 3326, Category: "material", EquipmentType: null }
                 || !Enum.IsDefined((DropRarity)(material.Rarity ?? 0)))
                 throw new InvalidDataException("Giant dragon breath material is missing/incompatible.");
-            // User-approved local policy, not an inferred native integer award algorithm.
+            // User-approved approximation: nearest HUD tick, with ties taking the lower award.
+            // The 100-second green gauge has eight equal intervals; this is not the native award algorithm.
             // See Document/tasks/giant-dragon/TimeAttackReward.md.
             reward = new(new(3326, 1, (DropRarity)(material.Rarity ?? 0), DropItemKind.Stackable),
-                9, 3, TimeSpan.FromSeconds(100), TimeSpan.FromSeconds(45));
+                9, 3, TimeSpan.FromMilliseconds(18750), TimeSpan.FromMilliseconds(12500));
         }
         return new(definition, townId, areaId, quest, id == 3538) { TimeReward = reward };
     }
@@ -54,7 +55,8 @@ internal static class GiantDragonTimeRewardRules
 {
     internal static int CountFor(GiantDragonTimeRewardPlan plan, TimeSpan elapsed)
     {
-        var lost = elapsed <= plan.GracePeriod ? 0 : (elapsed.Ticks - plan.GracePeriod.Ticks) / plan.StepPeriod.Ticks;
+        var lost = elapsed < plan.FirstDecreaseAt ? 0
+            : 1 + (elapsed.Ticks - plan.FirstDecreaseAt.Ticks) / plan.StepPeriod.Ticks;
         return (int)Math.Max(plan.MinimumCount, plan.MaximumCount - lost);
     }
 }

@@ -16,20 +16,22 @@ public sealed partial class GiantDragonDungeonTests
 {
     private static readonly GiantDragonTimeRewardPlan RewardPlan = new(
         new(3326, 1, DropRarity.Rare, DropItemKind.Stackable), 9, 3,
-        TimeSpan.FromSeconds(100), TimeSpan.FromSeconds(45));
+        TimeSpan.FromMilliseconds(18750), TimeSpan.FromMilliseconds(12500));
 
     [Theory]
-    [InlineData(-1, 9)] [InlineData(0, 9)] [InlineData(66822, 9)] [InlineData(95997, 9)]
-    [InlineData(99999, 9)] [InlineData(100000, 9)] [InlineData(144999, 9)]
-    [InlineData(145000, 8)] [InlineData(145001, 8)] [InlineData(189999, 8)]
-    [InlineData(190000, 7)] [InlineData(235000, 6)] [InlineData(280000, 5)]
-    [InlineData(325000, 4)] [InlineData(369999, 4)] [InlineData(370000, 3)]
+    [InlineData(-1, 9)] [InlineData(0, 9)] [InlineData(18749, 9)]
+    [InlineData(18750, 8)] [InlineData(18751, 8)] [InlineData(31249, 8)]
+    [InlineData(31250, 7)] [InlineData(40362, 7)] [InlineData(43749, 7)]
+    [InlineData(43750, 6)] [InlineData(50284, 6)] [InlineData(56249, 6)]
+    [InlineData(56250, 5)] [InlineData(66822, 5)] [InlineData(68749, 5)]
+    [InlineData(68750, 4)] [InlineData(81249, 4)] [InlineData(81250, 3)]
+    [InlineData(95997, 3)] [InlineData(100000, 3)]
     [InlineData(460000, 3)] [InlineData(long.MaxValue / 10000, 3)]
     public void Approved_time_reward_has_exact_millisecond_boundaries(long elapsed, int expected) =>
         Assert.Equal(expected, GiantDragonTimeRewardRules.CountFor(RewardPlan, TimeSpan.FromMilliseconds(elapsed)));
 
     [Theory]
-    [InlineData(true, true, true, true, 9)]
+    [InlineData(true, true, true, true, 7)]
     [InlineData(false, true, true, true, 4)]
     [InlineData(true, false, true, true, 4)]
     [InlineData(true, true, false, true, 4)]
@@ -55,7 +57,7 @@ public sealed partial class GiantDragonDungeonTests
                 layout, DungeonDifficulty.Adventure,
                 new(cell, 38119, 1, [new(1, new(69037, 1, bossActor ? (byte)3 : (byte)0), false, false, loot, monster)], []),
                 DungeonRunId.New(), clock.Now).Run;
-            clock.Now = clock.Now.AddMilliseconds(95997);
+            clock.Now = clock.Now.AddMilliseconds(40362);
             var change = runs.CommitActorDeathChange(runs.TryClaimActorDeath(new(1), 1)!)!;
             Assert.Equal(2, change.Recipients.Count);
             Assert.Equal(expected, change.AddedGroundItems.Where(x => x.ItemId == 3326 && x.OwnerCharacterId is null).Sum(x => x.Count));
@@ -132,7 +134,7 @@ public sealed partial class GiantDragonDungeonTests
         var character = f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71));
         var before = await character.ProgressAsync(default);
         var request = new MonsterDeathSettlementRequest(f.Session, [f.Session], run.RunId, run.RoomVersion, boss.Sequence);
-        clock.Now = run.StartedAt.AddMilliseconds(145000);
+        clock.Now = run.StartedAt.AddMilliseconds(25000);
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(f.Services, async () =>
         {
             await using var tx = f.Scope.Begin();
@@ -167,9 +169,9 @@ public sealed partial class GiantDragonDungeonTests
     }
 
     [SkippableTheory]
-    [InlineData(3200, 66822, 9)]
-    [InlineData(3201, 145000, 8)]
-    [InlineData(3202, 370000, 3)]
+    [InlineData(3200, 50284, 6)]
+    [InlineData(3201, 40362, 7)]
+    [InlineData(3202, 90000, 3)]
     public async Task Time_reward_replaces_final_boss_shared_breath_once_using_confirmed_death_time(
         int dungeonId, int elapsedMilliseconds, int expected)
     {

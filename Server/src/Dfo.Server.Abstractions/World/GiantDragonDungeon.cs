@@ -16,7 +16,7 @@ public sealed record GiantDragonEntryRule(DungeonDefinition Dungeon, int TownId,
 
 /// <summary>Immutable local reward policy and material metadata frozen by ordinary dragon admission.</summary>
 public sealed record GiantDragonTimeRewardPlan(RolledDrop Material, int MaximumCount, int MinimumCount,
-    TimeSpan GracePeriod, TimeSpan StepPeriod);
+    TimeSpan FirstDecreaseAt, TimeSpan StepPeriod);
 
 public interface IGiantDragonRuleService
 {
