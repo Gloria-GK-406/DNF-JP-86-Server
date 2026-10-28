@@ -25,7 +25,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         footprint.DemandEffects(new(account, id, session));
         QuestCompletionPreparation Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, projection);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
-        if (definition is null || definition.Grade is QuestGrade.Title or QuestGrade.Crack
+        if (definition is null || definition.IsManagedByAchievement
             || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
         var character = characters.Get(id);
         if (definition.Grade == QuestGrade.Wedding && (marriage is null

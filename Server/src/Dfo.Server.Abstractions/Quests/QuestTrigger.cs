@@ -24,6 +24,40 @@ public readonly record struct QuestTrigger(uint PackedValue)
     public bool IsComplete => PackedValue == 0;
 
     /// <summary>
+    /// The word a quest opens at: each named counter set to the count it still needs.
+    /// </summary>
+    /// <remarks>
+    /// The only way a declared objective becomes a trigger. A count must fit a channel (1 to 511)
+    /// and each channel may be named once; anything else is a declaration this word cannot hold,
+    /// and is refused rather than wrapped or clamped -- wrapping 600 opens the quest at 88, and
+    /// clamping a non-positive count opens it already complete.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// No counter is named, a channel is outside the three or repeated, or a count does not fit.
+    /// </exception>
+    public static QuestTrigger FromRemainingCounts(IEnumerable<(int Channel, int Count)> remaining)
+    {
+        ArgumentNullException.ThrowIfNull(remaining);
+        var packed = 0u;
+        var named = 0;
+        foreach (var (channel, count) in remaining)
+        {
+            if (channel is < 0 or >= ChannelCount)
+                throw new ArgumentOutOfRangeException(nameof(remaining), channel, "A trigger has three channels.");
+            if ((named & (1 << channel)) != 0)
+                throw new ArgumentOutOfRangeException(nameof(remaining), channel, "A channel is named twice.");
+            if (count is < 1 or > (int)ChannelMask)
+                throw new ArgumentOutOfRangeException(nameof(remaining), count, "A count must fit a nine-bit channel and be at least one.");
+            named |= 1 << channel;
+            packed |= (uint)count << (channel * ChannelWidth);
+        }
+
+        if (named == 0)
+            throw new ArgumentOutOfRangeException(nameof(remaining), "A quest opens with at least one counter.");
+        return new QuestTrigger(packed);
+    }
+
+    /// <summary>
     /// Whether a report carrying this selector is one a quest can be advanced by at all.
     /// </summary>
     /// <remarks>
