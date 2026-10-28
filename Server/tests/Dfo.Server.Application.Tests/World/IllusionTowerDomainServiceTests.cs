@@ -1582,9 +1582,9 @@ public sealed partial class IllusionTowerDomainServiceTests
             var grants = f.Services.GetRequiredService<IItemGrantDomainService>();
             await using (var tx = Scope(f).Begin())
             {
-                var ordinary = await grants.GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 3033, 2, default);
+                var ordinary = await grants.GrantAsync(f.Session.CharacterId, containers, 3033, 2, default);
                 Assert.True(ordinary.Container.IsPersistent);
-                var permanent = await grants.GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 3033, 3, default, isDefault: true);
+                var permanent = await grants.GrantAsync(f.Session.CharacterId, containers, 3033, 3, default, isDefault: true);
                 Assert.True(permanent.Container.IsDefault);
                 await tx.CommitAsync(default);
             }
@@ -1699,7 +1699,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             {
                 var denied = await costs.ConsumeAsync(f.Session, [new(new(BusinessInventorySpace.TowerQuickSlot, index), 6515, 1)], default);
                 Assert.False(denied.Success);
-                await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAsync(f.Session.AccountId,
+                await f.Services.GetRequiredService<IItemGrantDomainService>().GrantAsync(
                     f.Session.CharacterId, containers, 6515, 2, default);
                 Assert.True((await costs.ConsumeAsync(f.Session, [new(new(BusinessInventorySpace.TowerQuickSlot, index), 6515, 2)], default)).Success);
                 await tx.CommitAsync(default);

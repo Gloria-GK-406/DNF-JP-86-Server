@@ -136,7 +136,6 @@ public sealed class CharacterSkillLearningTests
     [InlineData("UPDATE characters SET job=0 WHERE character_id=71", CharacterSkillLearningRejection.SkillUnavailable)]
     [InlineData("UPDATE characters SET grow_type=15 WHERE character_id=71", CharacterSkillLearningRejection.SkillUnavailable)]
     [InlineData("UPDATE characters SET skill_tree_index=1 WHERE character_id=71", CharacterSkillLearningRejection.PageUnavailable)]
-    [InlineData("UPDATE characters SET account_id=2 WHERE character_id=71", CharacterSkillLearningRejection.NoSession)]
     [InlineData("UPDATE characters SET delete_flag=1 WHERE character_id=71", CharacterSkillLearningRejection.NoSession)]
     [InlineData("UPDATE characters SET bonus_sp=-1000 WHERE character_id=71", CharacterSkillLearningRejection.InsufficientPoints)]
     public async Task Current_database_facts_override_the_entry_snapshot(string sql, CharacterSkillLearningRejection rejection)

@@ -12,7 +12,7 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWeeklyAttendanceRuleService rules,
-    IItemDeliveryDomainService delivery,ICharacterTable owners) : IManagedEventDomainService,IWeeklyAttendanceDomainService
+    IItemDeliveryDomainService delivery) : IManagedEventDomainService,IWeeklyAttendanceDomainService
 {
     public int EventId => 2208;
     private static EventConfiguration Initial => new(0,"initial",false,"累计周签到","周签到","", "","",null,null);
@@ -104,7 +104,6 @@ internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWee
     public async ValueTask<AttendanceClaimResult> ClaimAsync(AccountId account,CharacterId recipient,DateTimeOffset now,CancellationToken ct)
     {
         await store.AcquireWriteAsync(ct);
-        if (await owners.FindOwnerAsync(recipient,ct)!=account) return new(false,WeeklyAttendanceState.Empty);
         var state=await StateAsync(account,now,ct);
         if (!state.CanClaim) return new(false,state);
         var c=await Configuration(ct); var d=(await Definition(c,ct)).Definition!;

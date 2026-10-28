@@ -11,7 +11,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Quests;
 
-internal sealed class QuestCompletionDomainService(ICharacterDomainService characters, ICharacterTable rows,
+internal sealed class QuestCompletionDomainService(ICharacterDomainService characters,
     ICharacterContainerDomainService containers, IConsumableStateDomainService state,
     ICharacterSkillStateDomainService skills, IQuestCompletionEffectRuleService rules,
     IInventoryEffectPreflightDomainService preview,
@@ -25,8 +25,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         footprint.DemandEffects(new(account, id, session));
         QuestCompletionPreparation Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, projection);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
-        if (definition is null || definition.IsManagedByAchievement
-            || await rows.FindOwnerAsync(id, ct).ConfigureAwait(false) != account) return Refuse();
+        if (definition is null || definition.IsManagedByAchievement) return Refuse();
         var character = characters.Get(id);
         if (definition.Grade == QuestGrade.Wedding && (marriage is null
             || !await marriage.CanCompleteAsync(account, id, quest, ct).ConfigureAwait(false))) return Refuse();

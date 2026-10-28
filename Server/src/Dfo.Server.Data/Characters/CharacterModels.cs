@@ -69,6 +69,14 @@ public enum CharacterDeletionStatus
     MalformedRequest,
     SlotEmpty,
     NameMismatch,
+
+    /// <summary>The account still has a character selected, so nothing on its roster may go.</summary>
+    /// <remarks>
+    /// The roster screen is only reached after the selection is released, so an honest client
+    /// never meets this. It is what lets everything done under a selected session take the
+    /// session's own word that the character is the account's and still exists.
+    /// </remarks>
+    CharacterSelected,
 }
 
 /// <summary>A character's combat stats, in the fixed-point form the wire and the database use.</summary>

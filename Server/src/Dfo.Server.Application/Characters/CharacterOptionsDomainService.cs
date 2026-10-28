@@ -9,15 +9,14 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterOptionsDomainService(ISelectedSessionDomainService sessions,
-    ICharacterTable characters, ICharacterSettingsTable settings,
+    ICharacterSettingsTable settings,
     IDomainTransactionAccessor transactions) : ICharacterOptionsDomainService
 {
     public async ValueTask<bool> SaveAsync(SelectedSessionIdentity session, byte[] body, CancellationToken ct)
     {
         if (transactions.Current is null) throw new InvalidOperationException("Saving character options requires a transaction.");
         if (body.Length != 516 || BinaryPrimitives.ReadUInt32LittleEndian(body) != 512) return false;
-        if (!sessions.IsInWorld(session)
-            || await characters.FindOwnerAsync(session.CharacterId,ct) != session.AccountId) return false;
+        if (!sessions.IsInWorld(session)) return false;
         // Transitional opaque storage, including the prefix consumed by NOTI 0187. See GH #129.
         await settings.SaveOptionAsync(session.CharacterId,body,ct);
         return true;

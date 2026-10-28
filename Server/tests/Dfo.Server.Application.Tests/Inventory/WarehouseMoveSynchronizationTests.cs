@@ -29,7 +29,7 @@ public sealed class WarehouseMoveSynchronizationTests
         AssertSlot(host, 0, virtualSlot, itemId, 4, 0);
         AssertSlot(host, list, 0, itemId, 3, 0);
         await WarehouseStorageTests.InTransaction(host, async () =>
-            await host.Services.GetRequiredService<IItemGrantDomainService>().GrantAsync(host.Session.AccountId,
+            await host.Services.GetRequiredService<IItemGrantDomainService>().GrantAsync(
                 host.Session.CharacterId, host.Services.GetRequiredService<ICharacterContainerDomainService>(), itemId, 2, default));
         await Send(host, list, 0, 0, virtualSlot, 3);
         Assert.Null(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);

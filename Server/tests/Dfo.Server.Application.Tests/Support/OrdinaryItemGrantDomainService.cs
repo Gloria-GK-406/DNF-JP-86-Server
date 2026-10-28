@@ -12,7 +12,6 @@ internal sealed class OrdinaryItemGrantDomainService(IItemPlacementRuleService? 
     : IItemGrantDomainService
 {
     public async ValueTask<BusinessItemAdditionResult> GrantAsync(
-        AccountId accountId,
         CharacterId characterId,
         ICharacterContainerDomainService containers,
         int itemId,

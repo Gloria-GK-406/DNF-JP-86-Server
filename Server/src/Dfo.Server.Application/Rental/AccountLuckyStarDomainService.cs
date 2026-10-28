@@ -10,7 +10,7 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Rental;
 
 internal sealed class AccountLuckyStarDomainService(ILuckyStarDomainStore store, ILuckyStarRuleService rules,
-    ICharacterDomainService characters, ICharacterTable owners, IDungeonRunDomainService runs,
+    ICharacterDomainService characters, IDungeonRunDomainService runs,
     IDomainTransactionAccessor transactions, IEventService? events = null) : IAccountLuckyStarDomainService
 {
     public async ValueTask<int> BalanceAsync(AccountId account,CancellationToken ct) =>
@@ -55,7 +55,7 @@ internal sealed class AccountLuckyStarDomainService(ILuckyStarDomainStore store,
     public async ValueTask<LuckyStarMutation> PurchaseAsync(AccountId account,CharacterId character,int count,CancellationToken ct)
     {
         var balance=await BeginAsync(account,ct).ConfigureAwait(false);
-        if (balance is null || !await owners.BelongsToAsync(character,account,ct).ConfigureAwait(false)) return new(LuckyStarRejection.UnknownOwner,balance??0);
+        if (balance is null) return new(LuckyStarRejection.UnknownOwner,0);
         var price=(long)count*rules.Catalog.GoldPerStar;
         if (count<=0 || price>int.MaxValue) return new(LuckyStarRejection.InvalidCount,balance.Value);
         if ((long)balance.Value+count>rules.Catalog.Limit) return new(LuckyStarRejection.LimitReached,balance.Value);
@@ -76,7 +76,6 @@ internal sealed class AccountLuckyStarDomainService(ILuckyStarDomainStore store,
         var balance=await BeginAsync(account,ct).ConfigureAwait(false);
         var run=runs.Find(character);
         if (balance is null || run is not {ClearOpen:true} || run.RunId!=runId || runId.Value==Guid.Empty
-            || !await owners.BelongsToAsync(character,account,ct).ConfigureAwait(false)
             || !(run.Participants.Any(x=>x.CharacterId==character && x.AccountId==account)
                 || run.Participant is {} participant && participant.CharacterId==character && participant.AccountId==account))
             return new(LuckyStarRejection.UnknownOwner,balance??0);

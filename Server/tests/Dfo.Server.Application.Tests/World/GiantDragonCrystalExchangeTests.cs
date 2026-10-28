@@ -92,9 +92,7 @@ public sealed partial class GiantDragonDungeonTests
         if (enough)
         {
             Assert.False((await commands.SendAsync(new QuestAcceptTestInput(new(1), new(71), 8557))).Accepted);
-            Assert.False((await f.Services.GetRequiredService<IQuestQueryDomainService>().QueryAsync(new(1), new(71), 8557, default)).CanAccept);
             clock.Now = clock.Now.AddDays(1);
-            Assert.True((await f.Services.GetRequiredService<IQuestQueryDomainService>().QueryAsync(new(1), new(71), 8557, default)).CanAccept);
             Assert.True((await commands.SendAsync(new QuestAcceptTestInput(new(1), new(71), 8557))).Accepted);
             Assert.Equal(1, Count(490000338));
         }

@@ -20,7 +20,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessions,
     ICharacterDomainService characters,
-    ICharacterTable characterRows, IAccountWalletDomainService wallets, ICharacterBusinessInventoryDomainService stores,
+    IAccountWalletDomainService wallets, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemGrantDomainService grants, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
     ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
@@ -33,8 +33,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var transaction = transactions.Current
             ?? throw new InvalidOperationException("CERA purchases require a transaction boundary.");
-        if (!sessions.IsInWorld(session)
-            || !await characterRows.BelongsToAsync(session.CharacterId, session.AccountId, cancellationToken).ConfigureAwait(false))
+        if (!sessions.IsInWorld(session))
             return CeraShopPurchaseResult.Refused(CeraShopRejection.NoSession);
 
         var character = characters.Get(session.CharacterId);
@@ -130,7 +129,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         }
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (quote.Subscriptions.Any(subscription => subscription.Service == PremiumServiceType.DoublePot))
-            await premiumUsage.RenewDoublePotAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
+            await premiumUsage.RenewDoublePotAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
         foreach (var write in plan.Writes)
         {
             footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));

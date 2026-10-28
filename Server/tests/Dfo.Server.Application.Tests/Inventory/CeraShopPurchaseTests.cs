@@ -520,14 +520,12 @@ public sealed class CeraShopPurchaseTests
     }
 
     [Fact]
-    public async Task Old_selection_and_mismatched_persisted_ownership_cannot_purchase()
+    public async Task Old_selection_cannot_purchase()
     {
         using var shop = new CeraShopFixture();
         var old = shop.Host.Session;
         shop.Host.Select(2);
         Assert.Equal(CeraShopRejection.NoSession, (await shop.Command(old, CeraShopTestContent.Entry())).Rejection);
-        shop.Host.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'actual-owner'); UPDATE characters SET account_id=2 WHERE character_id=2;");
-        Assert.Equal(CeraShopRejection.NoSession, (await shop.Buy(CeraShopTestContent.Entry())).Rejection);
         Assert.Equal(100000, shop.Cera);
     }
 }

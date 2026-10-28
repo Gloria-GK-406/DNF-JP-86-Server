@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
@@ -10,6 +12,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
+using Dfo.Server.Data.World;
 using Dfo.Server.Protocol;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.AccountRoster;
@@ -160,6 +163,21 @@ public sealed class CharacterRosterCommandFlowTests
         }
     }
 
+    [Theory]
+    [InlineData("roster-flow")]
+    [InlineData("displaced-connection")]
+    public async Task Deletion_is_refused_without_a_write_while_the_account_still_has_a_selection(string selectedOn)
+    {
+        await using var world = new World();
+        world.Selected = SelectedSessionIdentity.Create(new(19), new(71), new(selectedOn), 1, 10011);
+        var result = await world.Bus.SendAsync(new GameDeleteCharacterCommand(new(world.Connection), new(GameMessageMetadata.Empty, 2, [7, 8, 9])));
+        var response = Assert.IsType<DeleteCharacterResponse>(Assert.Single(world.Output.Entries.SelectMany(entry => entry.Messages)));
+        Assert.Equal(CharacterDeletionStatus.CharacterSelected, result.Status);
+        Assert.Equal(result.Status, response.Status);
+        Assert.Equal(0, world.Characters.WriteCommits);
+        Assert.Null(world.Characters.LastName);
+    }
+
     [Fact]
     public async Task A_roster_read_failure_after_creation_preserves_the_ACK_and_committed_unit_then_closes_source()
     {
@@ -202,6 +220,7 @@ public sealed class CharacterRosterCommandFlowTests
         public Users Users { get; }
         public Characters Characters { get; private set; } = null!;
         public Output Output { get; }
+        public SelectedSessionIdentity? Selected { get; set; }
         public ICommandBus Bus => Services.GetRequiredService<ICommandBus>();
         public World()
         {
@@ -209,6 +228,9 @@ public sealed class CharacterRosterCommandFlowTests
             services.AddNetworkMessageDispatching();
             Users = new(Connection);
             services.AddSingleton<IOnlineUserQueryDomainService>(Users);
+            var sessions = DispatchProxy.Create<ISelectedSessionDomainService, Sessions>();
+            ((Sessions)(object)sessions).Find = account => Selected is { } held && held.AccountId == account ? held : null;
+            services.AddSingleton(sessions);
             services.AddSingleton<ICharacterDomainService>(p => Characters = new(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             services.AddSingleton<INetworkConnectionContexts>(new Connections(Connection));
             services.AddSingleton<IOutboundMessageEncoder>(p => new Encoder(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
@@ -232,6 +254,16 @@ public sealed class CharacterRosterCommandFlowTests
         }
         public Task DispatchAsync(int kind) => Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(Connection), Request(kind), default).AsTask();
         public ValueTask DisposeAsync() => Services.DisposeAsync();
+    }
+
+    /// <summary>Answers only which selection the account holds; anything else is out of this test's reach.</summary>
+    public class Sessions : DispatchProxy
+    {
+        internal Func<AccountId, SelectedSessionIdentity?> Find = _ => null;
+        protected override object? Invoke(MethodInfo? method, object?[]? args) =>
+            method?.Name == nameof(ISelectedSessionDomainService.Find) && args is [AccountId account]
+                ? Find(account)
+                : throw new NotSupportedException(method?.Name);
     }
 
     private sealed class Users(NetworkConnectionContext connection) : IOnlineUserQueryDomainService

@@ -18,9 +18,9 @@ internal sealed partial class PlayingCharacter
         RequireProgressionTransaction();
         if (source.Occasion.Character != Id || session is not null && session.CharacterId != Id)
             throw new ArgumentException("Experience source names a different character.");
+        if (session is not null && session.AccountId != source.Occasion.Account)
+            throw new ArgumentException("Experience source names a different owner.");
         if (await ProgressAsync(ct).ConfigureAwait(false) is not { } before) return null;
-        if (await characters.FindOwnerAsync(Id, ct).ConfigureAwait(false) != source.Occasion.Account)
-            throw new InvalidOperationException("Experience source names a different owner.");
         var reward = await experienceCalculation!.CalculateAsync(source, before.Level, ct).ConfigureAwait(false);
         var decision = ExperienceRules.DecideAward(before, reward);
         var result = await experienceEffects!().ApplyAsync(new(source.Occasion.Account, Id, at, footprint, session),

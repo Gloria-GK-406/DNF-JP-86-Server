@@ -565,7 +565,7 @@ public sealed class GroundPickupTests
     private sealed class CreatureDropGrant(Dfo.Server.Protocol.Tests.Support.MoveItemFixture fixture,
         IBusinessItemContainer bag) : IItemGrantDomainService
     {
-        public async ValueTask<BusinessItemAdditionResult> GrantAsync(AccountId account, CharacterId character,
+        public async ValueTask<BusinessItemAdditionResult> GrantAsync(CharacterId character,
             ICharacterContainerDomainService containers, int itemId, int count, CancellationToken ct, bool isDefault = false)
         {
             var record = await fixture.Session.CreateAsync(new ItemSnapshot

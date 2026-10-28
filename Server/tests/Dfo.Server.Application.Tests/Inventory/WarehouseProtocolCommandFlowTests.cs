@@ -166,12 +166,11 @@ public sealed class WarehouseProtocolCommandFlowTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("tower")] [InlineData("owner")] [InlineData("world")] [InlineData("dungeon")]
+    [InlineData("tower")] [InlineData("world")] [InlineData("dungeon")]
     public async Task Current_domain_restrictions_stay_inside_Main(string restriction)
     {
         var trace = new Trace { NotInWorld = restriction == "world" }; var tower = TowerPresenceProxy.Create(out var presence); using var f = WarehouseStorageTests.Fixture(s => { Configure(s, trace); s.AddSingleton(tower); }); await Seed(f, false);
         if (restriction == "tower") presence.Members.Add(f.Session.CharacterId);
-        if (restriction == "owner") f.Sql("UPDATE characters SET account_id=99 WHERE character_id=1");
         if (restriction == "dungeon") f.InTransaction(() =>
         {
             var cell = new MazeCell(0, 0);

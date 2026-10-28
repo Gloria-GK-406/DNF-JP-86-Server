@@ -21,7 +21,7 @@ public sealed class SkillMaterialConsumptionTests
         {
             await using var tx = f.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
             await f.Services.GetRequiredService<IItemGrantDomainService>()
-                .GrantAsync(f.Session.AccountId, f.Session.CharacterId, containers, 6515, 2, default);
+                .GrantAsync(f.Session.CharacterId, containers, 6515, 2, default);
             await tx.CommitAsync(default);
         });
         await DeleteWire.Send(f,3,6515,2,2,container:InventoryContainerType.QuickSlot);

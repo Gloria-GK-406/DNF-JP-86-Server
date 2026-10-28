@@ -31,7 +31,7 @@ public sealed class SharedMaterialContainerTests
                 var containers = host.Services.GetRequiredService<ICharacterContainerDomainService>();
                 if (wholeQuantity) await host.Services.GetRequiredService<IItemGrantDomainService>().GrantAllAsync(new CharacterId(1), 3033, 3, default);
                 else await host.Services.GetRequiredService<IItemGrantDomainService>()
-                    .GrantAsync(new AccountId(1), new CharacterId(1), containers, 3033, 3, default);
+                    .GrantAsync(new CharacterId(1), containers, 3033, 3, default);
             });
             Assert.Equal(10, (await shared.GetAsync(0, default))!.Count);
             Assert.Equal(0, host.Scalar("SELECT cube_black FROM accounts WHERE account_id=1"));

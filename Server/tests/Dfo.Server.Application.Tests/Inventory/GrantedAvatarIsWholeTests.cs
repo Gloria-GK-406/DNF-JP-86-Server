@@ -229,7 +229,7 @@ public sealed class GrantedAvatarIsWholeTests
     /// <summary>One avatar granted through the container verb every reward reaches.</summary>
     private static async Task<ItemPlacementOutcome.PutInEmptySlot> GrantAsync(InventorySide side)
     {
-        var granted = await side.InUseCaseAsync(token => side.Grants.GrantAsync(new AccountId(Account), new CharacterId(Character),
+        var granted = await side.InUseCaseAsync(token => side.Grants.GrantAsync(new CharacterId(Character),
             side.Containers, AvatarItemId, 1, token));
         return Assert.IsType<ItemPlacementOutcome.PutInEmptySlot>(granted.Placement);
     }

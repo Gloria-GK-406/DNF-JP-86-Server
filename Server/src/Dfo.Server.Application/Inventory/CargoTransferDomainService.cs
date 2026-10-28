@@ -12,7 +12,7 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CargoTransferDomainService(ISelectedSessionDomainService sessions,
-    ICharacterTable characters, IDungeonRunDomainService runs,
+    IDungeonRunDomainService runs,
     IBusinessInventorySlotDomainService slots, ICargoItemRuleService rules,
     IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time,
     IIllusionTowerDomainService? towers = null) : ICargoTransferDomainService
@@ -22,7 +22,6 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
     {
         if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
             || towers?.IsInTower(session.CharacterId) == true
-            || !await characters.BelongsToAsync(session.CharacterId, session.AccountId, cancellationToken).ConfigureAwait(false)
             || !Served(source.Space) || !Served(destination.Space))
             return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
         var from = slots.Find(session.CharacterId, source);

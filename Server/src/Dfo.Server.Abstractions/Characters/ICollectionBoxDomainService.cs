@@ -8,7 +8,7 @@ namespace Dfo.Server.Abstractions.Characters;
 public enum CollectionBoxAction { Select, Put, Withdraw, Extend }
 public enum CollectionBoxRejection
 {
-    InvalidOwner, Permanent, UnknownBox, WrongBox, InvalidItem, LegacyConflict,
+    Permanent, UnknownBox, WrongBox, InvalidItem, LegacyConflict,
     SourceUnavailable, MissingItem, LockedOrTimed, InvalidAction,
 }
 public sealed record CollectionBoxInventoryChange(BusinessSlot Slot, ItemSnapshot? Item);
