@@ -36,9 +36,13 @@ decision: manual_required
 当前PVF哈希为`01F1BE685D46647961DF65207A36304777DB20EF5A3D03C68EFAA92F8B0C5189`，
 与初版不同，已保留文件并补核：祭坛相关85项、内容2项全部通过且0跳过。
 本轮目录中的`current-pvf-application.log`和`current-pvf-content.log`为原始结果。
-最终健康、默认7001／10011／18080／18081、UDP0、备份及核心资产不变证明见
-`default-20261028T070017Z/readiness.json`、`live-data-check.json`和`data-before.json`。
-客户端实机结果仍未通过，不将ready或自动测试记为完整玩法ClientVerified。
+当前直接引用主干原始etc，脚本目录开启，原生过滤竞技频道后16条频道对应16个游戏端口；
+另有频道7001、HTTP18080／18081，共19个监听、UDP0。公开频道地址也必须为7001，旧值25001已修正。
+线上Channel握手／版本／脚本／Info验证中，ASCII版本为66，脚本4760字节与主干文件逐字节一致，
+Info的16条名称、IP及端口与主干目录一致。未修改ASCII编码或频道etc。
+证据见`default-20261028T070017Z/channel-wire-verification.json`和`readiness.json`；
+新备份及核心资产不变证明见`player-before-pve-channel.db`、`live-data-check-main-channel.json`。
+竞技端口冲突及现有过滤配置边界见部署记录；客户端频道显示、入图和完整玩法仍待确认。
 
 ## 初版玩法实现检查（21c1dfd7）
 

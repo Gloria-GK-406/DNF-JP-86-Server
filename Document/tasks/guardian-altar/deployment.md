@@ -10,14 +10,29 @@
 用户2026-10-28明确授权使用默认端口部署；遗忘之地会话同时已收到用户“继续修复、不要启动服务器”的指令。
 本轮仅交接核实后的原默认实例，保存其EXE／启动身份、工作目录、配置和私有环境供恢复；没有修改其他工作区。
 当前运行二进制为`0.2.10+91df1c2f110fd4b935690eff96499332e3110195`，
-频道7001、游戏10011、Launcher18080、GM18081，UDP0；保持脚本频道覆盖关闭和单频道11。
+频道7001、Launcher18080、GM18081，UDP0；直接启用主干脚本目录，游戏端口从主干etc派生。
+祭坛验收选普通11频道（游戏10011），公开频道地址为`127.0.0.1:7001`，须与实际频道监听一致。
 Launcher／GM ready、GM页面200；实际PID与监听以就绪文件为准，不能直接复用文档中的历史PID。
+
+`Channel.UseScriptCatalog=true`，`Channel.ScriptPath`直接引用
+`E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/Resources/Channel/channel_info.etc`，
+不修改其内容或编码，不另写频道etc，不维护手工频道数组。
+主干源文件和主干运行副本SHA256均为`C1407121715461DA1C92E7A6ECC4DF52DA85C07CAB233DD4DDEC10D83230F338`。
+使用已有`IncludePvpChannels=false`，普通／非竞技频道16条；竞技频道10050等端口被Codex旧TCP连接占用，
+完整竞技列表会导致整组Game监听失败，未停止Codex或修改端口来抢占。
+当前16个游戏监听加频道与HTTP共19个TCP监听已核对。竞技频道恢复须先解决端口占用并重新核验。
+
+线级探针验证了握手、ASCII版本66、脚本和Info响应：脚本解密后4760字节与主干etc逐字节一致，
+Info含16个正确名称／地址／端口。证据为`channel-wire-verification.json`；不据此宣称客户端界面已通过。
+默认端口切换必须同步`LauncherAuth.PublicChannel.Port`，不能只改HTTP与TCP监听；
+旧值25001会使登录器仍把客户端导向隔离端口，即使默认HTTP健康返回ready也看不到频道列表。
 
 本轮目录为`artifacts/guardian-altar/default-20261028T070017Z/`，
 `active-deployment.json`已指向该目录。原默认写入者停止后，通过SQLite只读源backup API
 取得最新`player-before-switch.db`，包含已提交WAL；不恢复旧库或注入测试资产。
 启动前后账号4、角色9、物品667、槽位659逐行哈希一致，integrity_check=ok。
-`private/`保存前一实例的恢复输入，不提交；`readiness.json`、`live-data-check.json`保存最终核验。
+`private/`保存前一实例的恢复输入，不提交；当前频道修正前的新备份为`player-before-pve-channel.db`，
+最终核心资产不变证明为`live-data-check-main-channel.json`，当前监听与脚本证明为`readiness.json`。
 
 当前玩家服务PVF哈希已不同于初版验证输入，保留现有文件，使用最新玩家库副本完成全网络关闭的兼容启动，
 并针对当前PVF补核祭坛相关85项及内容2项，均0失败0跳过。当前输入哈希见README和就绪文件。
