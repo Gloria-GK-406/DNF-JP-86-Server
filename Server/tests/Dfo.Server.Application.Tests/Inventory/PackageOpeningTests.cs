@@ -43,7 +43,7 @@ public sealed class PackageOpeningTests
     public async Task Permanent_source_remains_usable_after_2038()
     {
         using var opening = new OpeningFixture();
-        await opening.Host.SeedCore(80, StackableItemCore.Create(2, 1001, 1) with { ExpireTime = int.MaxValue });
+        await opening.Host.SeedCore(80, StackableItemCore.Create(2, 1001, 1) with { ExpireTime = 0 });
         opening.Host.Clock.Advance(new DateTimeOffset(2040, 1, 1, 0, 0, 0, TimeSpan.Zero) - opening.Host.Clock.GetUtcNow());
         await opening.Package();
         Assert.Equal(0, opening.Host.Count(1001));

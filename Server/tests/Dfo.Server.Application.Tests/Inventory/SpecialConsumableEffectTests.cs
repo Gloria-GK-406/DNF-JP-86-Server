@@ -172,11 +172,11 @@ public sealed class SpecialConsumableEffectTests
     }
 
     [Fact]
-    public void Permanent_item_can_be_used_after_the_timestamp_sentinel()
+    public void Permanent_item_can_be_used_after_2038()
     {
         var rule = ItemUseRules.Potion(0);
         var plans = new ItemUseEffectRuleService(new ItemUseJudgementService(new FakeItemUseRules((8474, rule))));
-        var item = TestItemReferences.FromCore(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = int.MaxValue },
+        var item = TestItemReferences.FromCore(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = 0 },
             ItemWorldClass.Interchangeable);
         var result = plans.Build(rule, new(BusinessInventorySpace.QuickSlot, 0), item,
             new ItemUseCandidate(60, QuestJobRequirement.Swordman, ItemUsePlace.Village, false), null,

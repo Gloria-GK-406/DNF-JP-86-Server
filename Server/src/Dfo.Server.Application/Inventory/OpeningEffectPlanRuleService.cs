@@ -45,7 +45,7 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useR
         {
             var remaining = checked((int)amount);
             foreach (var standing in held.Where(x => x.Item.ItemId == id && x.Item.IsPile && x.Item.Snapshot.EquipmentLockId == 0
-                && (x.Item.Snapshot.ExpireTime is 0 or int.MaxValue || x.Item.Snapshot.ExpireTime > at.ToUnixTimeSeconds())))
+                && !x.Item.Snapshot.Lifetime.IsExpired(at)))
             {
                 var take = Math.Min(remaining, standing.Item.Count);
                 if (take <= 0) continue;

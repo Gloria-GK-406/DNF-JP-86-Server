@@ -21,7 +21,7 @@ internal sealed class ExpiredCharacterItemCleanupDomainService(
                 .ConfigureAwait(false))
             return new(false, []);
 
-        var now = clock.GetUtcNow().ToUnixTimeSeconds();
+        var now = clock.GetUtcNow();
         var held = await items.ReadByCharacterAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
         var itemSession = store.SessionIn(transaction);
@@ -33,8 +33,7 @@ internal sealed class ExpiredCharacterItemCleanupDomainService(
             var container = ContainerId.ForCharacter(characterId, (Dfo.Server.Data.Inventory.InventoryContainerType)row.ListType);
             var item = await itemSession.GetAsync(container, row.SlotIndex, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Expired item disappeared during cleanup.");
-            var expires = item.Snapshot.AvatarDetail?.ExpireDate ?? item.Snapshot.ExpireTime;
-            if (expires <= 0 || expires == int.MaxValue || expires > now)
+            if (!item.Snapshot.Lifetime.IsExpired(now))
                 throw new InvalidDataException("Expired item changed during cleanup.");
             await itemSession.DeleteItemAsync(await itemSession.TakeAsync(item, null, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false);
@@ -43,11 +42,6 @@ internal sealed class ExpiredCharacterItemCleanupDomainService(
         return new(true, [.. changed.Order()]);
     }
 
-    private static bool IsExpired(CharacterItemRow item, long now)
-    {
-        var expiresAt = item.Core.ItemKind == 8
-            ? item.Avatar?.ExpireDate ?? 0
-            : item.Core.ExpireTime;
-        return expiresAt > 0 && expiresAt != int.MaxValue && expiresAt <= now;
-    }
+    private static bool IsExpired(CharacterItemRow item, DateTimeOffset now) =>
+        Dfo.Server.Data.Inventory.ItemLifetime.Of(item.Core.ItemKind, item.Core.ExpireTime, checked((int?)item.Avatar?.ExpireDate)).IsExpired(now);
 }

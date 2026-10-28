@@ -10,6 +10,7 @@ public sealed record ItemSnapshot
     /// <summary>Optional appearance override. Avatar zero means transparent; null means unbound. Never part of the item wire core.</summary>
     public int? AppearanceItemId { get; init; }
     public int DisplayItemId => AppearanceItemId ?? ItemId;
+    public ItemLifetime Lifetime => ItemLifetime.Of(LegacyKind, ExpireTime, AvatarDetail?.ExpireDate);
     public int Count { get; init; } = 1;
     public ItemTraits Type { get; init; }
     public bool IsPile { get; init; }

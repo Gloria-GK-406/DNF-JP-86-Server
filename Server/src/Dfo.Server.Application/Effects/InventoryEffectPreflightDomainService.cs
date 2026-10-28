@@ -36,7 +36,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
                         var item = await state.GetAsync(consume.Slot, ct).ConfigureAwait(false);
                         if (consume.Count <= 0 || item is not { IsPile: true } || item.ItemId != consume.ExpectedItemId
                             || item.EquipmentLockId != consume.ExpectedEquipmentLockId
-                            || item.ExpireTime is > 0 and < int.MaxValue && item.ExpireTime <= context.At.ToUnixTimeSeconds())
+                            || item.Lifetime.IsExpired(context.At))
                             Refuse(InventoryEffectRejection.InvalidTarget);
                         if (item!.Count < consume.Count) Refuse(InventoryEffectRejection.InsufficientAssets);
                         state.SetSlot(consume.Slot, item.Count == consume.Count ? null : item with

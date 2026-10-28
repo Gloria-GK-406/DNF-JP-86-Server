@@ -58,7 +58,7 @@ internal sealed class EquipmentReinforcementDomainService(
         var goldCost = rule.GoldCost;
         if (quote.IsTicket && (source is null || source.Count < 1 || source.Snapshot.SortLockFlag != 0
             || source.Snapshot.EquipmentLockId != 0 || protectionSlot is not null
-            || source.Snapshot.ExpireTime > 0 && source.Snapshot.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()
+            || source.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow())
             || await characters.Get(session.CharacterId).CanUseAsync(source.ItemId, ct).ConfigureAwait(false) != ItemUsability.Allowed))
             return new(EquipmentReinforcementRejection.InvalidRequest);
 
@@ -83,8 +83,7 @@ internal sealed class EquipmentReinforcementDomainService(
             protectionItem = ticketBound is null ? null
                 : await ticketBound.Container.GetAsync(ticketBound.Slot.Index, ct).ConfigureAwait(false);
             if (protectionItem is not { IsPile: true, Count: > 0 }
-                || protectionItem.Snapshot.ExpireTime > 0
-                    && protectionItem.Snapshot.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds())
+                || protectionItem.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow()))
                 return new(EquipmentReinforcementRejection.InvalidRequest);
             protectionDefinition = await rule.ProtectionAsync(protectionItem.ItemId, ct)
                 .ConfigureAwait(false);
@@ -158,8 +157,7 @@ internal sealed class EquipmentReinforcementDomainService(
             if (bound is null) continue;
             foreach (var item in await bound.Container.GetAllAsync(ct).ConfigureAwait(false))
             {
-                if (!item.IsPile || item.Count <= 0 || item.Snapshot.ExpireTime > 0
-                    && item.Snapshot.ExpireTime <= timeProvider.GetUtcNow().ToUnixTimeSeconds()) continue;
+                if (!item.IsPile || item.Count <= 0 || item.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow())) continue;
                 available.Add(new(space, item.SlotIndex), item);
             }
         }

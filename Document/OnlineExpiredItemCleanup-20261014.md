@@ -6,7 +6,7 @@
 
 回调只枚举当前选角会话，逐角色提交 `CleanupOnlineExpiredItemsCommand`。现有会话生命周期门、账号独占门和事务管线保护执行；删除前重新确认精确会话、发布状态和认证在线状态。排队期间下线/切角的旧会话不清理，不扫描离线角色数据库。
 
-登录与在线共用 `IExpiredCharacterItemCleanupDomainService.CleanupAsync`。它检查实例绝对期限并删除，到期定义和容器范围保持原登录实现：角色持有的持久化物品，不含账号仓库、邮件和称号簿；0及int.MaxValue为永久，未来期限保留。返回变化容器供在线投影；无变化不发送通知。
+登录与在线共用 `IExpiredCharacterItemCleanupDomainService.CleanupAsync`。它检查实例绝对期限并删除，到期定义和容器范围保持原登录实现：角色持有的持久化物品，不含账号仓库、邮件和称号簿；到期按 `ItemLifetime.IsExpired` 判断：0 为永久，其余截止时刻小于等于当前时刻即删除（负值同样删除），未来期限保留。返回变化容器供在线投影；无变化不发送通知。
 
 删除与 `InventoryContentsChanged`、`OnlineExpiredItemsRemoved` 事件同事务。前者沿既有路径重检相关任务，后者仅投影原连接generation。提交后通过EventService刷新当前容器快照和锁定列表；穿戴变化使用统一当前角色视图的外观，刷新本人和当前可见玩家。通知读取当前状态，不用旧槽位删除回执覆盖后来的新物品。宠物运行态同步参与同一事务。
 

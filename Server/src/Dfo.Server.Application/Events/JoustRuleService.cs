@@ -19,7 +19,7 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
             if (d.MinimumLevel is < 1 or > 86 || d.MaximumBetting is < 1 or > 1000
                 || !d.Knights.Select(k => k.Index).SequenceEqual(Enumerable.Range(0, 12))
                 || d.Materials.Length != 2 || d.Materials.Select(m => m.ItemId).Distinct().Count() != 2
-                || d.Materials.Concat([d.Reward, d.BettingReward]).Any(i => i.GrantTemplate is not { IsPile:true, ExpireTime:0 }))
+                || d.Materials.Concat([d.Reward, d.BettingReward]).Any(i => i.GrantTemplate is not { IsPile:true, Lifetime.IsPermanent:true }))
                 throw new InvalidDataException("马战内容不完整或超出协议支持范围。");
             definition=d;return (d, null);
         }
@@ -176,7 +176,6 @@ internal sealed class JoustRuleService(IJoustDefinitionSource source) : IJoustRu
     {
         var declaration = d.Materials.SingleOrDefault(i => i.ItemId == item.ItemId);
         return declaration is not null && item.IsPile && item.EquipmentLockId == 0
-            && (item.ExpireTime == 0 || item.ExpireTime > now.ToUnixTimeSeconds()
-                || declaration.ArchivedExpiresAt?.ToUnixTimeSeconds() == item.ExpireTime);
+            && (!item.Lifetime.IsExpired(now) || declaration.ArchivedExpiresAt?.ToUnixTimeSeconds() == item.Lifetime.Deadline);
     }
 }

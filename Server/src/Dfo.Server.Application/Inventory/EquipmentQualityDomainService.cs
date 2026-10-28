@@ -73,6 +73,6 @@ internal sealed class EquipmentQualityDomainService(ISelectedSessionDomainServic
         var changed = await target.Container.UpdateAsync(item, _ => next, ct).ConfigureAwait(false);
         return new(EquipmentQualityRejection.None, new(session, targetSlot, materialSlot, changed.Snapshot, remaining, now)
             { Material = box.Snapshot with { Count = remaining } });
-        bool Expired(ItemSnapshot snapshot) => snapshot.ExpireTime > 0 && snapshot.ExpireTime <= now.ToUnixTimeSeconds();
+        bool Expired(ItemSnapshot snapshot) => snapshot.Lifetime.IsExpired(now);
     }
 }

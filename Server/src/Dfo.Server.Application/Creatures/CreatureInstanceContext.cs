@@ -70,7 +70,7 @@ internal sealed class CreatureInstanceContext(CharacterId owner, IDomainTransact
     }
     public bool IsLive(CreatureLocation location, CreatureState state) =>
         location.Item.ItemId == state.ItemTemplateId
-        && (location.Item.Snapshot.ExpireTime is <= 0 or int.MaxValue || location.Item.Snapshot.ExpireTime > Now.ToUnixTimeSeconds());
+        && !location.Item.Snapshot.Lifetime.IsExpired(Now);
     private sealed class Lifetime : ITransactionParticipant
     {
         public bool Settled { get; private set; }

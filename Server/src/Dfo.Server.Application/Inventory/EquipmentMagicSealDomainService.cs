@@ -46,8 +46,7 @@ internal sealed class EquipmentMagicSealDomainService(
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null)
             return new(EquipmentMagicSealRejection.ItemUnavailable);
-        if (target.Snapshot.ExpireTime > 0
-            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentMagicSealRejection.ItemUnavailable);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentMagicSealRejection.Locked);

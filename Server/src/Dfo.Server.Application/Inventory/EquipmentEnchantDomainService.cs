@@ -51,16 +51,14 @@ internal sealed class EquipmentEnchantDomainService(
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null)
             return new(EquipmentEnchantRejection.ItemUnavailable);
-        if (target.Snapshot.ExpireTime > 0
-            && target.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+        if (target.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentEnchantRejection.ItemUnavailable);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentEnchantRejection.Locked);
         if (bead is not { IsPile: true, Count: > 0 })
             return new(EquipmentEnchantRejection.MaterialUnavailable);
         if (bead.Snapshot.EquipmentLockId != 0 || bead.Snapshot.SortLockFlag != 0
-            || bead.Snapshot.ExpireTime > 0
-                && bead.Snapshot.ExpireTime <= clock.GetUtcNow().ToUnixTimeSeconds())
+            || bead.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return new(EquipmentEnchantRejection.MaterialUnavailable);
         var plan = await rules.EnchantAsync(target, beadSlot, bead.Snapshot, ct).ConfigureAwait(false);
         var cardId = plan.Decision;

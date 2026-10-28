@@ -80,7 +80,7 @@ internal static class GameInventoryItemEntry
         writer.Write(checked((short)item.SlotIndex));
         writer.Write(core.ItemId);
         writer.Write(core.ItemKind == 8
-            ? AvatarLifetimeOnTheWire.RemainingSeconds(avatar!.ExpireDate, preparedAt)
+            ? ItemLifetimeOnTheWire.RemainingSeconds(ItemLifetime.At(avatar!.ExpireDate), preparedAt)
             : core.Value);
         writer.Write(core.Attribute);
         writer.Write(core.Durability);

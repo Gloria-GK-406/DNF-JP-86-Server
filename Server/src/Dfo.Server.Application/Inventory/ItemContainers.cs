@@ -20,8 +20,7 @@ internal static class ArrivingAvatar
     /// </summary>
     /// <remarks>
     /// Zero is a present avatar fact with no expiry; SQL NULL still means no avatar facts.
-    /// A21's zero remaining-time value displays unlimited. The former int.MaxValue
-    /// placeholder is recognized at the wire boundary for existing stored items.
+    /// A21's zero remaining-time value displays unlimited; int.MaxValue is an ordinary 2038 deadline.
     /// See Document/Avatar-Permanent-20260909.md for the client comparison branches.
     /// </remarks>
     private const int NeverExpires = 0;

@@ -37,7 +37,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
             ?? throw new OpeningRejectedException(OpeningRejection.NoSession, "No source container.");
         var item = await bag.GetAsync(slot.Index, ct).ConfigureAwait(false);
         if (item is null || !item.IsPile || item.Count <= 0
-            || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= now.ToUnixTimeSeconds())
+            || item.Snapshot.Lifetime.IsExpired(now))
             throw new OpeningRejectedException(OpeningRejection.WrongItem, "Missing, expired or nonstackable source.");
         var usability = await characterDomain.Get(session.CharacterId).CanUseAsync(item.ItemId, ct).ConfigureAwait(false);
         if (usability != ItemUsability.Allowed)

@@ -19,7 +19,7 @@ internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDo
             .ConfigureAwait(false);
         if (effect.Count <= 0 || item is null || !item.IsPile || item.ItemId != effect.ExpectedItemId
             || item.Snapshot.EquipmentLockId != effect.ExpectedEquipmentLockId
-            || item.Count < effect.Count || item.Snapshot.ExpireTime is > 0 and < int.MaxValue && item.Snapshot.ExpireTime <= context.At.ToUnixTimeSeconds())
+            || item.Count < effect.Count || item.Snapshot.Lifetime.IsExpired(context.At))
             throw new InvalidOperationException($"Consumption target {effect.Slot} no longer satisfies its plan.");
         return item;
     }

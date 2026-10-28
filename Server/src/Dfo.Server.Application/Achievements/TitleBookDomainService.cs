@@ -126,7 +126,7 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
     }
     private TitleBookSlotDefinition? Find(int category, int index) => rules.Catalog().FirstOrDefault(x => x.Category == category)?.Slots.FirstOrDefault(x => x.Index == index && x.SlotType >= 0);
     private async ValueTask<bool> UsableAsync(ItemSnapshot item, BusinessSlot slot, CancellationToken ct, bool requirePermanent = true) =>
-        !item.IsPile && item.EquipmentLockId == 0 && item.SortLockFlag == 0 && (!requirePermanent || item.ExpireTime <= 0)
+        !item.IsPile && item.EquipmentLockId == 0 && item.SortLockFlag == 0 && (!requirePermanent || item.Lifetime.IsPermanent)
         && await placement.WornSlotForAsync(item.ItemId, ct) is { Space: BusinessInventorySpace.WornEquipment, Index: 1 } worn
         && (slot.Space == BusinessInventorySpace.CarriedEquipment || slot == worn);
     private async ValueTask<bool> QualifiedAsync(CharacterId character, TitleBookSlotDefinition definition, CancellationToken ct) =>
