@@ -26,6 +26,7 @@ public sealed partial class GiantDragonDungeonTests
     [InlineData(280000, 5)] [InlineData(325000, 4)] [InlineData(370000, 3)]
     [InlineData(414999, 3)] [InlineData(415000, 2)] [InlineData(460000, 2)]
     [InlineData(long.MaxValue / 10000, 2)]
+    [Trait("Category", "Unit")]
     public void Approved_time_reward_has_exact_millisecond_boundaries(long elapsed, int expected) =>
         Assert.Equal(expected, GiantDragonTimeRewardRules.CountFor(RewardPlan, TimeSpan.FromMilliseconds(elapsed)));
 
@@ -35,6 +36,7 @@ public sealed partial class GiantDragonDungeonTests
     [InlineData(true, false, true, true, 4)]
     [InlineData(true, true, false, true, 4)]
     [InlineData(true, true, true, false, 4)]
+    [Trait("Category", "Unit")]
     public void Shared_time_reward_preserves_other_and_personal_loot_and_is_not_multiplied_by_party(
         bool bossRoom, bool monster, bool enabled, bool bossActor, int expected)
     {
@@ -42,7 +44,7 @@ public sealed partial class GiantDragonDungeonTests
         {
             var clock = new DragonRewardClock();
             var rules = new GiantDragonRuleService(null!, null!, new(), null!);
-            var runs = new DungeonRunDomainService(null!, null!, clock: clock, giantDragons: rules);
+            var runs = TestParties.Runs(clock: clock, giantDragons: rules);
             var cell = new MazeCell(0, 0);
             var boss = bossRoom ? cell : new MazeCell(1, 0);
             var layout = new DungeonLayout(3200, 0, 2, 1, cell, boss, 38119, 1,
@@ -53,7 +55,9 @@ public sealed partial class GiantDragonDungeonTests
                 new(0, 123, 0, DropItemKind.Gold), new(10002515, 2, 0, DropItemKind.Stackable),
                 new(10094602, 2, DropRarity.Uncommon, DropItemKind.Stackable, OwnerCharacterId: new(2)),
                 new(10094602, 1, DropRarity.Uncommon, DropItemKind.Stackable, OwnerCharacterId: new(1), Delivery: RolledDropDelivery.DirectQuestItem)];
-            var run = runs.PreparePartyEntry([new(new(1), new(1), 0, true), new(new(2), new(2), 1, false)],
+            DungeonRunParticipant[] members = [new(new(1), new(1), 0, true), new(new(2), new(2), 1, false)];
+            TestParties.EnsureEntryParty(runs, members);
+            var run = runs.PreparePartyEntry(members,
                 layout, DungeonDifficulty.Adventure,
                 new(cell, 38119, 1, [new(1, new(69037, 1, bossActor ? (byte)3 : (byte)0), false, false, loot, monster)], []),
                 DungeonRunId.New(), clock.Now).Run;
@@ -91,12 +95,13 @@ public sealed partial class GiantDragonDungeonTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
+    [Trait("Category", "Unit")]
     public void Guaranteed_time_reward_survives_an_empty_original_roll_and_only_replaces_the_last_boss(bool earlierBoss)
     {
         TestGameplay.Run(() =>
         {
             var clock = new DragonRewardClock();
-            var runs = new DungeonRunDomainService(null!, null!, clock: clock,
+            var runs = TestParties.Runs(clock: clock,
                 giantDragons: new GiantDragonRuleService(null!, null!, new(), null!));
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(3200, 0, 1, 1, cell, cell, 38119, 1,

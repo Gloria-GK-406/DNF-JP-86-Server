@@ -1,6 +1,6 @@
 # 巨龙系列 #167
 
-状态：已在2026-10-27独占时段切换原玩家库，等待A21用户验收；未创建PR。实际运行身份、现役资源与备份见 [部署记录](Deployment-20261027.md)。基线 `63fb3993`，分支 `codex/167-giant-dragon`，暂定版本 `0.2.10`，合并前按最新main重新核对版本。
+状态：用户于2026-10-28明确同意当前范围收尾，并免除恢复双阶段曲线后的本轮复测；正在按最新主干规范执行PR审核与CI。变基基线 `50e22a91`，分支 `codex/167-giant-dragon`；版本沿用主干0.2.10，无版本差异。实际运行身份、现役资源与备份见 [部署记录](Deployment-20261027.md)。未覆盖项及用户授权边界见 [验证记录](Verification.md#收尾授权与验收边界)。
 范围见 [#167](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/167)、[#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。用户明确授权“恢复世界图98原生入口，并明确作为本服新增开放规则”。本会话独立工作区，不使用subagent，不修改其他并行任务。
 
 ## 证据边界
@@ -73,4 +73,4 @@ dotnet run --project Document/tasks/giant-dragon/probe/Probe.csproj -- restore-e
 自动结果、已知基线失败和自查边界见 [Verification.md](Verification.md)。具体测试按 [Human-Test-List.md](Human-Test-List.md) 编号执行。
 [Smoke.ps1](Smoke.ps1) 使用独立临时库，启动前核实候选23070/23071/23072的TCP与UDP占用，关闭频道脚本目录以避免端口被 `10000+channel.Id` 改写，记录实际PID/EXE及监听。当前UDP发现实现固定12311/12312，隔离烟测关闭它；多人实机需要先协调独占服务时段。
 
-用户确认时段前不结束共享Host、不同时写玩家库、不替换共享PVF。本次已按授权核定数据库/PVF，保留原服务产物和配置，用SQLite backup API备份、在副本确认兼容性后切换到原玩家库，记录见上述部署页。用户实机通过前不创建PR、不将issue范围标为完成。
+用户确认时段前不结束共享Host、不同时写玩家库、不替换共享PVF。本次已按授权核定数据库/PVF，保留原服务产物和配置，用SQLite backup API备份、在副本确认兼容性后切换到原玩家库，记录见上述部署页。本轮按用户明确收尾授权提交PR；不将豁免复测、自动测试或已知开门问题标为ClientVerified，不将#167未覆盖范围关闭。

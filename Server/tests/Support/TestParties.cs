@@ -41,12 +41,13 @@ internal static class TestParties
         IDungeonRoomMechanismRuleService? mechanismRules = null,
         IDungeonRoomMechanismWakeSignal? mechanismWake = null,
         ISealedTreasureRuleService? sealedTreasureRules = null,
-        IDungeonParticipationDomainService? participation = null)
+        IDungeonParticipationDomainService? participation = null,
+        IGiantDragonRuleService? giantDragons = null)
     {
         parties ??= Create();
         var runs = new DungeonRunDomainService(
             transactions!, parties, weakness, creatures, lifecycle, clock,
-            mechanismRules, mechanismWake, sealedTreasureRules, participation);
+            mechanismRules, mechanismWake, sealedTreasureRules, participation, giantDragons: giantDragons);
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;
     }

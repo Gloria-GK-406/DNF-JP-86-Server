@@ -47,7 +47,7 @@ public sealed class DungeonVisitDomainServiceTests
             await using var f = new LearningFixture();
             await f.SeedAsync();
             var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
-            var runs = new DungeonRunDomainService(f.Scope);
+            var runs = TestParties.Runs(f.Scope);
             var visits = Bound(f, runs, TwoRoomLayout with { EntryOnlyFatigue = 8 });
             await using (var tx = f.Scope.Begin())
                 Assert.NotNull(await visits.EnterAsync(f.Session.CharacterId, 10001, 0, DungeonEntryFacts.None, default));
@@ -76,10 +76,11 @@ public sealed class DungeonVisitDomainServiceTests
             var structures = new DungeonStructureRuleService(definitions,
                 content.GetRequiredService<IDungeonMapDefinitionSource>());
             var fatigue = new TestFatigue();
-            var runs = new DungeonRunDomainService();
+            var runs = TestParties.Runs();
             var visits = DungeonVisitTestFactory.Create(structures, runs, new ImmediateSelection(),
                 new RecordingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(definitions), fatigue);
             DungeonRunParticipant[] members = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
+            TestParties.EnsureEntryParty(runs, members);
             var entry = await visits.TryEnterPartyAsync(members, dungeon,
                 DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Adventure }, default);
             Assert.NotNull(entry.Entry);
