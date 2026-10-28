@@ -205,6 +205,7 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<IDungeonRoomDropSource>()
         .AddContentWarmup<IDungeonRoomActorSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IAltarDungeonContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IGuardianAltarContentSource>()
         // Whole indexes outside the synthetic load that executor jobs still reach (TASK-15 round 3, review B2).
         .AddContentWarmup<ICreatureDefinitionSource>()
         .AddContentWarmup<ICreatureEquipmentLifetimeSource>()

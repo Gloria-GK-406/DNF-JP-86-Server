@@ -2,14 +2,18 @@ using System.Collections.Immutable;
 using Dfo.Pvf;
 using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfGuardianAltarContentSource(PvfArchiveProvider provider) : IGuardianAltarContentSource
+internal sealed class PvfGuardianAltarContentSource(PvfArchiveProvider provider) : IGuardianAltarContentSource, IContentWarmup
 {
     private readonly Lazy<GuardianAltarCatalog> catalog = new(() => Read(provider.Archive));
     public GuardianAltarCatalog Catalog => catalog.Value;
+    public string Name => "guardian-altar";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Catalog.Stages.Length);
 
     private static GuardianAltarCatalog Read(PvfArchive archive)
     {
