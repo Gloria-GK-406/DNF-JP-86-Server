@@ -34,13 +34,11 @@ internal sealed class GiantDragonDomainService(IGiantDragonRuleService rules, ID
                 var log = quests.LogOf(member.AccountId, member.CharacterId);
                 var active = await log.FindCarriedAsync(quest, ct).ConfigureAwait(false) is not null;
                 var cleared = (await log.ClearedAsync(ct).ConfigureAwait(false)).Any(x => x.QuestId == quest && x.Mark != 0);
-                if (context.DungeonId == 3540 ? !active : !cleared && !(entry.AllowActiveQuest && active))
+                if (!entry.AcceptsQuest(active, cleared))
                     return new(null, DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }
         }
-        // The restored selector exposes this quest-only dungeon directly. Its active quest
-        // was checked above; choose the quest maze explicitly rather than an ordinary maze.
-        var facts = context.DungeonId == 3540 ? context.Facts with { Intent = DungeonEntryIntent.Directed(3540) } : context.Facts;
+        var facts = entry.IntentOverride is { } intent ? context.Facts with { Intent = intent } : context.Facts;
         return await admission.ExecuteAsync(context with { Facts = facts }, new() { RequireMinimumLevel = true }, async (receipt, token) =>
         {
             DungeonLayout? layout;

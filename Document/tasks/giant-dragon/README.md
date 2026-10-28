@@ -61,7 +61,7 @@ dotnet run --project Document/tasks/giant-dragon/probe/Probe.csproj -- restore-e
 ## 实现与机制边界
 
 - Infrastructure从DGN解析仅入场疲劳，Structure冻结到本局，Visit是疲劳扣费owner；Admission在消费前统一检查人数和练习限制。无第二个计费器或巨龙余额表。
-- GiantDragon领域服务只编排入口、任务与既有Admission→Structure→Visit。门票使用既有任务物品容器和事务；建房失败整体回滚门票、疲劳与run。
+- GiantDragon规则服务返回包含任务状态要求及定向迷宫intent的不可变入场计划；领域服务只收集真实任务事实，按该计划编排既有Admission→Structure→Visit。门票使用既有任务物品容器和事务；建房失败整体回滚门票、疲劳与run。
 - 20728及20731的subtype5按原文和 `3538/-1/2` 解析两人通关目标。Quest owner消费既有可靠 `DungeonMapCleared`，检查Boss房、DGN、难度、不同角色数和接取时间；幂等更新任务后沿现有进度通知投影。裸通关事实和客户端计数不能推进，不新增平行清图状态。
 - MAP/OBJ/ACT仍由原客户端资源驱动机关与Boss阶段，服务端发送真实声明演员/物件并沿既有死亡、掉落、清场和结算链处理。不增加猜测的巨龙计时opcode。静态指令支持沿原生START_MAP链运行计时，但不能证明实机机关正常。
 - `[nateram time attack info]` 三参数原样保留；未将45000推断为总时限。20735的六分钟挑战是另一项可选任务，目前沿既有客户端计数，**没有新增服务端耗时校验**；不把它计为服务器可信限时验收。

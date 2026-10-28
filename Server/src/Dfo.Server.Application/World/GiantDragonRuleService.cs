@@ -25,6 +25,13 @@ internal sealed class GiantDragonRuleService(IDungeonDefinitionSource dungeons, 
         // because completing that quest itself requires clearing 3538. WDM pairs alone
         // do not prove the client's historical quest-gate algorithm.
         int? quest = id switch { 3536 => 20720, 3537 => 20722, 3538 or 3539 => 20728, 3540 => 20727, _ => null };
+        var questRequirement = id switch
+        {
+            3540 => GiantDragonQuestRequirement.Active,
+            3538 => GiantDragonQuestRequirement.ActiveOrCleared,
+            >= 3536 => GiantDragonQuestRequirement.Cleared,
+            _ => GiantDragonQuestRequirement.None,
+        };
         GiantDragonTimeRewardPlan? reward = null;
         if (!restored)
         {
@@ -38,7 +45,12 @@ internal sealed class GiantDragonRuleService(IDungeonDefinitionSource dungeons, 
             reward = new(new(10094602, 1, (DropRarity)(material.Rarity ?? 0), DropItemKind.Stackable),
                 9, 2, TimeSpan.FromSeconds(145), TimeSpan.FromSeconds(45));
         }
-        return new(definition, townId, areaId, quest, id == 3538) { TimeReward = reward };
+        return new(definition, townId, areaId, quest, questRequirement)
+        {
+            TimeReward = reward,
+            // This restored quest-only selector must resolve the quest maze rather than an ordinary maze.
+            IntentOverride = id == 3540 ? DungeonEntryIntent.Directed(id) : null,
+        };
     }
 
     public IReadOnlyList<RolledDrop> ResolveTimeReward(GiantDragonTimeRewardPlan plan, TimeSpan elapsed,

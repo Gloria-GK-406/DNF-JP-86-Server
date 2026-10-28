@@ -8,10 +8,22 @@ public sealed record GiantDragonOptions
     public bool RestoredVariantsEnabled { get; init; }
 }
 
+public enum GiantDragonQuestRequirement : byte { None, Cleared, Active, ActiveOrCleared }
+
 public sealed record GiantDragonEntryRule(DungeonDefinition Dungeon, int TownId, int AreaId,
-    int? QuestId, bool AllowActiveQuest)
+    int? QuestId, GiantDragonQuestRequirement QuestRequirement)
 {
     public GiantDragonTimeRewardPlan? TimeReward { get; init; }
+    public DungeonEntryIntent? IntentOverride { get; init; }
+
+    public bool AcceptsQuest(bool active, bool cleared) => QuestRequirement switch
+    {
+        GiantDragonQuestRequirement.None => true,
+        GiantDragonQuestRequirement.Cleared => cleared,
+        GiantDragonQuestRequirement.Active => active,
+        GiantDragonQuestRequirement.ActiveOrCleared => active || cleared,
+        _ => throw new InvalidOperationException("Unknown giant dragon quest requirement."),
+    };
 }
 
 /// <summary>Immutable local reward policy and material metadata frozen by ordinary dragon admission.</summary>

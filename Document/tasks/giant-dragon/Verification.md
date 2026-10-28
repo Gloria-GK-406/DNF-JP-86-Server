@@ -13,7 +13,9 @@ decision: manual_required
 
 已确认普通3200入场、怪物和走门，临时近似曲线数量符合预期，以及任务面板可见8557。日志确认3201和3202有成功Boss结算；用户对3202第三房报告“小怪和石头都没了，等很久才开门”，原因未定，见 [第三房调查](Room38127.md)。恢复后的第二阶段曲线、8557实际扣料发票、翻牌重复发放保护和重登、多人、跨日、恢复五变体的完整实机验收仍未覆盖；20735没有新增服务端耗时校验。#167保留未完成范围，不用PR合并自动关闭整项。
 
-变基保留主干LinkedDungeon与成员所有权语义，合入EntryOnlyFatigue和计时掉落；测试使用主干TestParties辅助构造真实队伍。构建0警告/错误，巨龙、Visit、死亡与房间相关218项通过（`closeout-build.log`、`closeout-focused.log`）。最终PR单元门1601通过，0失败/跳过（`closeout-final-unit.log`及closeout-final-unit TRX），包括显式标记的巨龙纯内存边界测试。完整Application为6167通过、3失败、0跳过（`closeout-application.log`）；最新主干50e22a91使用同一PVF的隔离副本复现相同三项失败（`closeout-baseline.log`，定向12项中9通过/3失败），新增失败差额为0。三项为两项既有DimensionDungeonTests的7100地图装配失败，以及AvatarCompoundTests.Rejections_leave_all_inputs_unchanged的expire参数失败；不宣称全量内容全绿。变基未替换正在运行的3ed2ea6f产物，不将新源码提交哈希当作现役版本。
+变基保留主干LinkedDungeon与成员所有权语义，合入EntryOnlyFatigue和计时掉落；测试使用主干TestParties辅助构造真实队伍。构建0警告/错误，巨龙、Visit、死亡与房间相关218项通过（`closeout-build.log`、`closeout-focused.log`）。变基阶段PR单元门1601通过，0失败/跳过（`closeout-final-unit.log`及closeout-final-unit TRX），包括显式标记的巨龙纯内存边界测试。完整Application为6167通过、3失败、0跳过（`closeout-application.log`）；最新主干50e22a91使用同一PVF的隔离副本复现相同三项失败（`closeout-baseline.log`，定向12项中9通过/3失败），新增失败差额为0。三项为两项既有DimensionDungeonTests的7100地图装配失败，以及AvatarCompoundTests.Rejections_leave_all_inputs_unchanged的expire参数失败；不宣称全量内容全绿。变基未替换正在运行的3ed2ea6f产物，不将新源码提交哈希当作现役版本。
+
+当前入场计划同时拥有任务模式及定向迷宫策略，领域编排不再按3540单独定义策略。八图计划与任务状态真值、原准入和掉落/事务相关239项通过（`review-policy.log`），行为要求保持原样；最终全解决方案Unit门1614通过，0失败/跳过（`review-final-unit.log`及对应TRX），最终构建0警告/错误（`review-final-build.log`）。
 
 ## 自动验证
 
