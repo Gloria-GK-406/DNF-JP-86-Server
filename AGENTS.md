@@ -40,15 +40,16 @@ CMD 在唯一玩法执行器中划分事务并登记投影，作业结束后由�
 | 提交、创建 PR、分支收尾或发布 | [开发与发布约定](Document/server-ci-release.md) |
 | 编写或整理文档、注释、证据 | [文档维护规范](Document/DocumentationGuidelines.md) |
 
-## 功能开发与版本规则
+## 功能开发、审核与版本号
 
 - 新功能必须按 [新功能开发流程](Document/FeatureDevelopment.md) 执行：新建独立工作区，收集
   客户端探查、70 服务端及上游参考资料，阅读审核规范并确定方案，再实现与验证。
-  使用当前主干实际使用的数据库准备用户测试，明确功能测试步骤及顺序；用户测试通过后才创建 PR，
-  等待云 agent 审核结束且通过、当前提交 CI 通过后合并主干。
-- 一般 bugfix 和文档添加、修改不提升版本；新功能提升第三位 `PATCH`。
-  第一位 `MAJOR`、第二位 `MINOR` 只有用户明确提出或同意后才可提升。
-  版本唯一声明、单次递增及并行 PR 核对方式见 [开发与发布约定](Document/server-ci-release.md#版本规则)。
+  使用当前主干实际使用的数据库准备用户测试，明确功能测试步骤及顺序；用户测试通过后才创建 PR。
+- 所有 PR 都要完成 [Codex 审核闭环](Document/server-ci-release.md#codex-审核闭环)：等待审核结果，
+  逐条修复或回复理由后留言纯文本 `@codex review` 复审，直到当前提交通过；再等当前提交 CI 通过后合并，
+  并按 [合并与清理](Document/server-ci-release.md#合并与清理) 删除远端、本地任务分支及任务工作区。
+- 版本号只由用户授权后在主干上修改，任何开发分支和 PR 都不改
+  （见 [版本规则](Document/server-ci-release.md#版本规则)）。
 
 ## Code Review Rules
 
