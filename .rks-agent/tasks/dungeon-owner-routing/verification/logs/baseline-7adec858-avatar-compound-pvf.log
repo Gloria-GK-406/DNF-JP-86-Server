@@ -1,0 +1,3 @@
+  失败 Dfo.Server.Application.Tests.Inventory.AvatarCompoundTests.Rejections_leave_all_inputs_unchanged(reason: "expire") [283 ms]
+   Assert.Null() Failure: Value is not null
+失败!  - 失败:     1，通过:     9，已跳过:     0，总计:    10，持续时间: 3 s - Dfo.Server.Application.Tests.dll (net10.0)
