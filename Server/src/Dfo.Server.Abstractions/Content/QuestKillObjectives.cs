@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Quests;
+
 namespace Dfo.Server.Abstractions.Content;
 
 public enum QuestKillParseStatus { NotApplicable, Parsed, Unsupported, Invalid }
@@ -30,6 +32,6 @@ public sealed record QuestKillObjectiveDefinition(
         new(QuestKillParseStatus.NotApplicable, [], []);
 
     public uint? InitialTrigger => Status is QuestKillParseStatus.Parsed or QuestKillParseStatus.Unsupported
-        ? Targets.Aggregate(0u, (value, target) => value | ((uint)target.RequiredCount << (9 * target.ChannelIndex)))
+        ? QuestTrigger.FromRemainingCounts(Targets.Select(target => (target.ChannelIndex, target.RequiredCount))).PackedValue
         : null;
 }

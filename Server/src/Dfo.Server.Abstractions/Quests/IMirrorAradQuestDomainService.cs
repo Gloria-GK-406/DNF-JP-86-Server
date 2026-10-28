@@ -38,7 +38,7 @@ public sealed record MirrorQuestObjective(QuestDefinition Quest, MirrorQuestKind
     int LocationCount = 0, int TimeLimitSeconds = 0, bool RequireNoRevive = false)
 {
     public uint InitialTrigger => Kind == MirrorQuestKind.Hunt
-        ? Hunt.Aggregate(0u, (v, x) => v | ((uint)x.Count << (x.Channel * 9)))
+        ? QuestTrigger.FromRemainingCounts(Hunt.Select(x => (x.Channel, x.Count))).PackedValue
         : Kind == MirrorQuestKind.Locations ? (uint)LocationCount : 1;
 }
 public interface IMirrorAradQuestRuleService

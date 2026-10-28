@@ -2,6 +2,7 @@ using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Quests;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -479,7 +480,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
             [],
             hasSpecialRewardStatus,
             ProjectSeekingItems(objectiveType, objectiveIntData),
-            ComputeInitialTrigger(objectiveType, objectiveIntData),
+            ComputeInitialTrigger(grade, objectiveType, objectiveIntData, questId),
             ProjectEventItems(eventItemValues),
             paysAtCharacterLevel,
             QuestKillObjectiveParser.Parse(objectiveType, objectiveIntData),
@@ -508,44 +509,50 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
     /// stride-based interpretation here. A trigger holds three nine-bit remaining-count channels.
     /// See protocol/game/client-to-server/0x001F.md for the acceptance response.
     /// </remarks>
-    private static uint ComputeInitialTrigger(string objectiveType, IReadOnlyList<int> intData) =>
-        objectiveType switch
-        {
-            "condition under clear" or "clear map" => PackChannels(intData, 4),
-            "condition under clear2" => PackChannels(intData, 5),
-            "clear quest" or "quest clear" when intData.Count is > 0 and <= 3
-                && intData.All(id => id > 0)
-                && intData.Distinct().Count() == intData.Count => (uint)intData.Count,
-            "normal clear" => PackTrigger(1, 1, 0),
-            _ => DefaultInitialTrigger,
-        };
+    internal static uint ComputeInitialTrigger(
+        QuestGrade? grade, string objectiveType, IReadOnlyList<int> intData, int questId)
+    {
+        // Their objectives follow another flow's grammar; see QuestDefinition.InitialTrigger.
+        if (QuestDefinition.IsManagedByAchievementGrade(grade))
+            return DefaultInitialTrigger;
 
-    /// <summary>The trigger of a quest whose objective declares no counts.</summary>
+        try
+        {
+            return objectiveType switch
+            {
+                "condition under clear" or "clear map" => PackChannels(intData, 4),
+                "condition under clear2" => PackChannels(intData, 5),
+                "clear quest" or "quest clear" when intData.Count is > 0 and <= 3
+                    && intData.All(id => id > 0)
+                    && intData.Distinct().Count() == intData.Count
+                    => QuestTrigger.FromRemainingCounts([(0, intData.Count)]).PackedValue,
+                "normal clear" => QuestTrigger.FromRemainingCounts([(0, 1), (1, 1)]).PackedValue,
+                _ => DefaultInitialTrigger,
+            };
+        }
+        catch (ArgumentOutOfRangeException error)
+        {
+            throw new InvalidDataException(
+                $"Quest {questId}: [int data] declares a count a trigger cannot hold.", error);
+        }
+    }
+
+    /// <summary>The trigger of a quest whose objective declares no counts: one thing left to do.</summary>
     private const uint DefaultInitialTrigger = 1;
 
     /// <summary>
-    /// Every stride-th value of the objective data, packed into the first three channels.
+    /// Every stride-th value of the objective data, as the counts of the first three channels.
     /// </summary>
     private static uint PackChannels(IReadOnlyList<int> intData, int stride)
     {
-        if (intData.Count == 0)
-            return DefaultInitialTrigger;
+        var counts = new List<(int Channel, int Count)>();
+        for (var index = 0; index + stride <= intData.Count && counts.Count < QuestTrigger.ChannelCount; index += stride)
+            counts.Add((counts.Count, intData[index + stride - 1]));
 
-        var channels = new List<int>();
-        for (var index = 0; index + stride <= intData.Count; index += stride)
-            channels.Add(intData[index + stride - 1]);
-
-        return channels.Count == 0
+        return counts.Count == 0
             ? DefaultInitialTrigger
-            : PackTrigger(
-                channels[0],
-                channels.Count > 1 ? channels[1] : 0,
-                channels.Count > 2 ? channels[2] : 0);
+            : QuestTrigger.FromRemainingCounts(counts).PackedValue;
     }
-
-    /// <summary>Three counts in one word, nine bits each, low channel first.</summary>
-    private static uint PackTrigger(int first, int second, int third) =>
-        (uint)(((third & 0x1FF) << 18) | ((second & 0x1FF) << 9) | (first & 0x1FF));
 
     /// <summary>The <c>[depend give item]</c> pairs, read as item then count.</summary>
     /// <remarks>

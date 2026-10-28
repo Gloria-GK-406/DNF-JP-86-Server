@@ -82,6 +82,32 @@ public sealed class PvfQuestDefinitionSourceTests
                 questId: 1779));
     }
 
+    [Theory]
+    [InlineData(QuestGrade.Normal, "condition under clear", new[] { 144, 2, 0, 5 }, 5u)]
+    [InlineData(QuestGrade.Normal, "condition under clear", new[] { 144, 2, 0 }, 1u)]
+    [InlineData(QuestGrade.Normal, "condition under clear2", new[] { 1, 2, 3, 4, 7, 1, 2, 3, 4, 9 }, 7u | (9u << 9))]
+    [InlineData(QuestGrade.Normal, "clear quest", new[] { 11, 12, 13 }, 3u)]
+    [InlineData(QuestGrade.Normal, "normal clear", new int[] { }, 1u | (1u << 9))]
+    [InlineData(QuestGrade.Normal, "meet npc", new[] { 5 }, 1u)]
+    [InlineData(QuestGrade.Title, "condition under clear", new[] { 11000, -1, -1, -1 }, 1u)]
+    [InlineData(QuestGrade.Title, "condition under clear", new[] { -1, 2, -1, -1 }, 1u)]
+    [InlineData(QuestGrade.Crack, "condition under clear", new[] { 144, 2, 0, 600 }, 1u)]
+    public void Opening_trigger_reads_counts_only_for_quests_the_ordinary_log_carries(
+        QuestGrade grade, string type, int[] intData, uint expected) =>
+        Assert.Equal(expected, PvfQuestDefinitionSource.ComputeInitialTrigger(grade, type, intData, questId: 7));
+
+    /// <summary>
+    /// 6548 and 6557 are titles whose last operand is a consumable limit of -1; masked into a count
+    /// it read as 511. An ordinary quest declaring such a count is refused, not wrapped.
+    /// </summary>
+    [Theory]
+    [InlineData(new[] { 144, 2, 0, -1 })]
+    [InlineData(new[] { 144, 2, 0, 0 })]
+    [InlineData(new[] { 144, 2, 0, 512 })]
+    public void An_ordinary_count_a_trigger_cannot_hold_rejects_the_definition(int[] intData) =>
+        Assert.Throws<InvalidDataException>(() =>
+            PvfQuestDefinitionSource.ComputeInitialTrigger(QuestGrade.Normal, "condition under clear", intData, questId: 7));
+
     [Fact]
     public void Seeking_operands_preserve_gold_and_seek_meet_uses_only_item_pair()
     {

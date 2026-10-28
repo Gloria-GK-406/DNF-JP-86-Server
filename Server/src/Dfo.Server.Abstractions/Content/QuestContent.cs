@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.Quests;
+
 namespace Dfo.Server.Abstractions.Content;
 
 /// <summary>An inclusive character-level band.</summary>
@@ -247,10 +249,29 @@ public sealed record QuestDefinition(
     public QuestKillObjectiveDefinition KillObjectives { get; init; }
         = KillObjectives ?? QuestKillObjectiveDefinition.NotApplicable;
 
+    /// <summary>
+    /// Title and crack quests never enter the ordinary quest log: titles belong to the achievement
+    /// flow, cracks to the mirror flow, and each keeps its own progress.
+    /// </summary>
+    public bool IsManagedByAchievement => IsManagedByAchievementGrade(Grade);
+
+    /// <inheritdoc cref="IsManagedByAchievement"/>
+    public static bool IsManagedByAchievementGrade(QuestGrade? grade) => grade is QuestGrade.Title or QuestGrade.Crack;
+
     private uint initialTrigger = InitialTrigger;
+
+    /// <summary>The ordinary quest log's opening trigger.</summary>
+    /// <remarks>
+    /// Derived only for quests the ordinary log carries. A quest managed elsewhere keeps the
+    /// declared value untouched: its objective arguments follow that flow's own grammar (a title's
+    /// <c>condition under clear</c> 13 ends in a consumable limit, not a count), so reading them as
+    /// counts would invent a trigger nobody sends.
+    /// </remarks>
     public uint InitialTrigger
     {
-        get => WeddingTrialCount is { } wedding ? checked((uint)wedding) : KillObjectives.InitialTrigger ?? initialTrigger;
+        get => IsManagedByAchievement ? initialTrigger
+            : WeddingTrialCount is { } wedding ? QuestTrigger.FromRemainingCounts([(0, wedding)]).PackedValue
+            : KillObjectives.InitialTrigger ?? initialTrigger;
         init => initialTrigger = value;
     }
 
