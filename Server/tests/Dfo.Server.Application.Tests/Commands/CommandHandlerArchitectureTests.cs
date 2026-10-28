@@ -35,6 +35,7 @@ public sealed class CommandHandlerArchitectureTests
     private static readonly IReadOnlyDictionary<Type, string> Exempt =
         new Dictionary<Type, string>
         {
+            [typeof(Dfo.Server.Abstractions.World.IGuardianAltarSchedulerWakeSignal)] = "仅唤醒守护者祭坛调度器的具名纯信号；不提供等待、排程、世界读取或队列权限。",
             [typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal)] = "仅唤醒原祭坛调度器的具名纯信号；不提供等待、排程、世界读取或队列权限。",
             [typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl)] = "仅原翻牌生产者的固定两阶段与精确取消，不提供world或任意调度能力。",
             [typeof(TimeProvider)] =

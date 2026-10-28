@@ -1,0 +1,721 @@
+Input: E:\Project\DNF\DNFClient-A21-debug\dumps\dnf-dump-20260922-194214-883-23144\DNF-memory-rva.bin
+SHA256: aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d
+
+## RVA 0xd56ca0; VA base 0x400000
+0x01156ca0: push     ebp
+0x01156ca1: mov      ebp, esp
+0x01156ca3: push     -1
+0x01156ca5: push     0x2d73f4b
+0x01156caa: mov      eax, dword ptr fs:[0]
+0x01156cb0: push     eax
+0x01156cb1: sub      esp, 0xf0
+0x01156cb7: push     ebx
+0x01156cb8: push     esi
+0x01156cb9: push     edi
+0x01156cba: mov      eax, dword ptr [0x399cee0]
+0x01156cbf: xor      eax, ebp
+0x01156cc1: push     eax
+0x01156cc2: lea      eax, [ebp - 0xc]
+0x01156cc5: mov      dword ptr fs:[0], eax
+0x01156ccb: lea      eax, [ebp - 0x25]
+0x01156cce: push     1
+0x01156cd0: xor      ebx, ebx
+0x01156cd2: push     eax
+0x01156cd3: mov      byte ptr [ebp - 0x25], bl
+0x01156cd6: call     0x27c5380
+0x01156cdb: add      esp, 8
+0x01156cde: lea      ecx, [ebp - 0xd8]
+0x01156ce4: call     0x1107c70
+0x01156ce9: pxor     xmm0, xmm0
+0x01156ced: lea      ecx, [ebp - 0xfc]
+0x01156cf3: push     0x21
+0x01156cf5: push     ecx
+0x01156cf6: mov      dword ptr [ebp - 4], ebx
+0x01156cf9: movq     qword ptr [ebp - 0xfc], xmm0
+0x01156d01: movq     qword ptr [ebp - 0xf4], xmm0
+0x01156d09: movq     qword ptr [ebp - 0xec], xmm0
+0x01156d11: movq     qword ptr [ebp - 0xe4], xmm0
+0x01156d19: mov      byte ptr [ebp - 0xdc], bl
+0x01156d1f: call     0x27c5380
+0x01156d24: movq     xmm0, qword ptr [ebp - 0xfc]
+0x01156d2c: mov      dl, byte ptr [ebp - 0xdc]
+0x01156d32: movq     qword ptr [ebp - 0xd8], xmm0
+0x01156d3a: movq     xmm0, qword ptr [ebp - 0xf4]
+0x01156d42: movq     qword ptr [ebp - 0xd0], xmm0
+0x01156d4a: movq     xmm0, qword ptr [ebp - 0xec]
+0x01156d52: lea      eax, [ebp - 0x10]
+0x01156d55: movq     qword ptr [ebp - 0xc8], xmm0
+0x01156d5d: movq     xmm0, qword ptr [ebp - 0xe4]
+0x01156d65: push     eax
+0x01156d66: movq     qword ptr [ebp - 0xc0], xmm0
+0x01156d6e: mov      byte ptr [ebp - 0xb8], dl
+0x01156d74: mov      dword ptr [ebp - 0x10], ebx
+0x01156d77: call     0x27c5310
+0x01156d7c: add      esp, 0xc
+0x01156d7f: mov      dword ptr [ebp - 0x20], ebx
+0x01156d82: cmp      dword ptr [ebp - 0x10], ebx
+0x01156d85: jbe      0x1156eb7
+0x01156d8b: jmp      0x1156d90
+0x01156d8d: lea      ecx, [ecx]
+0x01156d90: lea      ecx, [ebp - 0x18]
+0x01156d93: push     8
+0x01156d95: pxor     xmm0, xmm0
+0x01156d99: push     ecx
+0x01156d9a: movq     qword ptr [ebp - 0x18], xmm0
+0x01156d9f: call     0x27c5380
+0x01156da4: mov      ecx, dword ptr [ebp - 0xac]
+0x01156daa: lea      edx, [ebp - 0x18]
+0x01156dad: add      esp, 8
+0x01156db0: cmp      edx, ecx
+0x01156db2: mov      edx, dword ptr [ebp - 0xb0]
+0x01156db8: jae      0x1156e33
+0x01156dba: lea      eax, [ebp - 0x18]
+0x01156dbd: cmp      edx, eax
+0x01156dbf: ja       0x1156e33
+0x01156dc1: mov      esi, dword ptr [ebp - 0xa8]
+0x01156dc7: mov      edi, eax
+0x01156dc9: sub      edi, edx
+0x01156dcb: sar      edi, 3
+0x01156dce: cmp      ecx, esi
+0x01156dd0: jne      0x1156e22
+0x01156dd2: mov      eax, ecx
+0x01156dd4: sub      eax, edx
+0x01156dd6: sar      eax, 3
+0x01156dd9: cmp      eax, 0x1ffffffe
+0x01156dde: ja       0x1156f76
+0x01156de4: sub      esi, edx
+0x01156de6: inc      eax
+0x01156de7: sar      esi, 3
+0x01156dea: cmp      eax, esi
+0x01156dec: jbe      0x1156e22
+0x01156dee: mov      ecx, esi
+0x01156df0: mov      edx, ecx
+0x01156df2: shr      edx, 1
+0x01156df4: mov      esi, 0x1fffffff
+0x01156df9: sub      esi, edx
+0x01156dfb: cmp      esi, ecx
+0x01156dfd: jae      0x1156e03
+0x01156dff: xor      ecx, ecx
+0x01156e01: jmp      0x1156e05
+0x01156e03: add      ecx, edx
+0x01156e05: cmp      ecx, eax
+0x01156e07: cmovb    ecx, eax
+0x01156e0a: push     ecx
+0x01156e0b: lea      ecx, [ebp - 0xb4]
+0x01156e11: call     0x160dd40
+0x01156e16: mov      ecx, dword ptr [ebp - 0xac]
+0x01156e1c: mov      edx, dword ptr [ebp - 0xb0]
+0x01156e22: mov      eax, ecx
+0x01156e24: cmp      ecx, ebx
+0x01156e26: je       0x1156e9e
+0x01156e28: mov      ecx, dword ptr [edx + edi*8]
+0x01156e2b: mov      dword ptr [eax], ecx
+0x01156e2d: mov      edx, dword ptr [edx + edi*8 + 4]
+0x01156e31: jmp      0x1156e95
+0x01156e33: mov      esi, dword ptr [ebp - 0xa8]
+0x01156e39: cmp      ecx, esi
+0x01156e3b: jne      0x1156e87
+0x01156e3d: mov      eax, ecx
+0x01156e3f: sub      eax, edx
+0x01156e41: sar      eax, 3
+0x01156e44: cmp      eax, 0x1ffffffe
+0x01156e49: ja       0x1156f76
+0x01156e4f: sub      esi, edx
+0x01156e51: mov      edx, esi
+0x01156e53: inc      eax
+0x01156e54: sar      edx, 3
+0x01156e57: cmp      eax, edx
+0x01156e59: jbe      0x1156e87
+0x01156e5b: mov      ecx, edx
+0x01156e5d: shr      edx, 1
+0x01156e5f: mov      esi, 0x1fffffff
+0x01156e64: sub      esi, edx
+0x01156e66: cmp      esi, ecx
+0x01156e68: jae      0x1156e6e
+0x01156e6a: xor      ecx, ecx
+0x01156e6c: jmp      0x1156e70
+0x01156e6e: add      ecx, edx
+0x01156e70: cmp      ecx, eax
+0x01156e72: cmovb    ecx, eax
+0x01156e75: push     ecx
+0x01156e76: lea      ecx, [ebp - 0xb4]
+0x01156e7c: call     0x160dd40
+0x01156e81: mov      ecx, dword ptr [ebp - 0xac]
+0x01156e87: mov      eax, ecx
+0x01156e89: cmp      ecx, ebx
+0x01156e8b: je       0x1156e9e
+0x01156e8d: mov      ecx, dword ptr [ebp - 0x18]
+0x01156e90: mov      dword ptr [eax], ecx
+0x01156e92: mov      edx, dword ptr [ebp - 0x14]
+0x01156e95: mov      dword ptr [eax + 4], edx
+0x01156e98: mov      ecx, dword ptr [ebp - 0xac]
+0x01156e9e: mov      eax, dword ptr [ebp - 0x20]
+0x01156ea1: inc      eax
+0x01156ea2: add      ecx, 8
+0x01156ea5: mov      dword ptr [ebp - 0xac], ecx
+0x01156eab: mov      dword ptr [ebp - 0x20], eax
+0x01156eae: cmp      eax, dword ptr [ebp - 0x10]
+0x01156eb1: jb       0x1156d90
+0x01156eb7: lea      eax, [ebp - 0x10]
+0x01156eba: push     eax
+0x01156ebb: call     0x27c5310
+0x01156ec0: add      esp, 4
+0x01156ec3: mov      dword ptr [ebp - 0x20], ebx
+0x01156ec6: cmp      dword ptr [ebp - 0x10], ebx
+0x01156ec9: jbe      0x115705d
+0x01156ecf: nop
+0x01156ed0: lea      ecx, [ebp - 0x1c]
+0x01156ed3: push     0xc
+0x01156ed5: pxor     xmm0, xmm0
+0x01156ed9: push     ecx
+0x01156eda: movq     qword ptr [ebp - 0x1c], xmm0
+0x01156edf: mov      dword ptr [ebp - 0x14], 0
+0x01156ee6: call     0x27c5380
+0x01156eeb: mov      edi, dword ptr [ebp - 0x98]
+0x01156ef1: mov      esi, dword ptr [ebp - 0x9c]
+0x01156ef7: lea      edx, [ebp - 0x1c]
+0x01156efa: add      esp, 8
+0x01156efd: cmp      edx, edi
+0x01156eff: jae      0x1156fc0
+0x01156f05: mov      eax, edx
+0x01156f07: cmp      esi, eax
+0x01156f09: ja       0x1156fc0
+0x01156f0f: mov      ebx, dword ptr [ebp - 0x94]
+0x01156f15: mov      ecx, edx
+0x01156f17: sub      ecx, esi
+0x01156f19: mov      eax, 0x2aaaaaab
+0x01156f1e: imul     ecx
+0x01156f20: sar      edx, 1
+0x01156f22: mov      eax, edx
+0x01156f24: shr      eax, 0x1f
+0x01156f27: add      eax, edx
+0x01156f29: mov      dword ptr [ebp - 0x24], eax
+0x01156f2c: cmp      edi, ebx
+0x01156f2e: jne      0x1156f9f
+0x01156f30: mov      ecx, edi
+0x01156f32: sub      ecx, esi
+0x01156f34: mov      eax, 0x2aaaaaab
+0x01156f39: imul     ecx
+0x01156f3b: sar      edx, 1
+0x01156f3d: mov      ecx, edx
+0x01156f3f: shr      ecx, 0x1f
+0x01156f42: add      ecx, edx
+0x01156f44: cmp      ecx, 0x15555554
+0x01156f4a: ja       0x1156f76
+0x01156f4c: sub      ebx, esi
+0x01156f4e: mov      eax, 0x2aaaaaab
+0x01156f53: imul     ebx
+0x01156f55: sar      edx, 1
+0x01156f57: mov      eax, edx
+0x01156f59: shr      eax, 0x1f
+0x01156f5c: inc      ecx
+0x01156f5d: add      eax, edx
+0x01156f5f: cmp      ecx, eax
+0x01156f61: jbe      0x1156f9f
+0x01156f63: mov      edx, eax
+0x01156f65: shr      edx, 1
+0x01156f67: mov      esi, 0x15555555
+0x01156f6c: sub      esi, edx
+0x01156f6e: cmp      esi, eax
+0x01156f70: jae      0x1156f80
+0x01156f72: xor      eax, eax
+0x01156f74: jmp      0x1156f82
+0x01156f76: push     0x3043888
+0x01156f7b: call     0x2c4d3e1
+0x01156f80: add      eax, edx
+0x01156f82: cmp      eax, ecx
+0x01156f84: cmovb    eax, ecx
+0x01156f87: push     eax
+0x01156f88: lea      ecx, [ebp - 0xa0]
+0x01156f8e: call     0x29c18d0
+0x01156f93: mov      edi, dword ptr [ebp - 0x98]
+0x01156f99: mov      esi, dword ptr [ebp - 0x9c]
+0x01156f9f: mov      eax, dword ptr [ebp - 0x24]
+0x01156fa2: lea      ecx, [eax + eax*2]
+0x01156fa5: lea      esi, [esi + ecx*4]
+0x01156fa8: test     edi, edi
+0x01156faa: je       0x1157042
+0x01156fb0: movq     xmm0, qword ptr [esi]
+0x01156fb4: movq     qword ptr [edi], xmm0
+0x01156fb8: mov      edx, dword ptr [esi + 8]
+0x01156fbb: mov      dword ptr [edi + 8], edx
+0x01156fbe: jmp      0x115703c
+0x01156fc0: mov      ebx, dword ptr [ebp - 0x94]
+0x01156fc6: cmp      edi, ebx
+0x01156fc8: jne      0x1157029
+0x01156fca: mov      ecx, edi
+0x01156fcc: sub      ecx, esi
+0x01156fce: mov      eax, 0x2aaaaaab
+0x01156fd3: imul     ecx
+0x01156fd5: sar      edx, 1
+0x01156fd7: mov      ecx, edx
+0x01156fd9: shr      ecx, 0x1f
+0x01156fdc: add      ecx, edx
+0x01156fde: cmp      ecx, 0x15555554
+0x01156fe4: ja       0x1156f76
+0x01156fe6: sub      ebx, esi
+0x01156fe8: mov      eax, 0x2aaaaaab
+0x01156fed: imul     ebx
+0x01156fef: sar      edx, 1
+0x01156ff1: mov      eax, edx
+0x01156ff3: shr      eax, 0x1f
+0x01156ff6: inc      ecx
+0x01156ff7: add      eax, edx
+0x01156ff9: cmp      ecx, eax
+0x01156ffb: jbe      0x1157029
+0x01156ffd: mov      edx, eax
+0x01156fff: shr      edx, 1
+0x01157001: mov      esi, 0x15555555
+0x01157006: sub      esi, edx
+0x01157008: cmp      esi, eax
+0x0115700a: jae      0x1157010
+0x0115700c: xor      eax, eax
+0x0115700e: jmp      0x1157012
+0x01157010: add      eax, edx
+0x01157012: cmp      eax, ecx
+0x01157014: cmovb    eax, ecx
+0x01157017: push     eax
+0x01157018: lea      ecx, [ebp - 0xa0]
+0x0115701e: call     0x29c18d0
+0x01157023: mov      edi, dword ptr [ebp - 0x98]
+0x01157029: test     edi, edi
+0x0115702b: je       0x1157042
+0x0115702d: movq     xmm0, qword ptr [ebp - 0x1c]
+0x01157032: movq     qword ptr [edi], xmm0
+0x01157036: mov      eax, dword ptr [ebp - 0x14]
+0x01157039: mov      dword ptr [edi + 8], eax
+0x0115703c: mov      edi, dword ptr [ebp - 0x98]
+0x01157042: mov      eax, dword ptr [ebp - 0x20]
+0x01157045: inc      eax
+0x01157046: add      edi, 0xc
+0x01157049: mov      dword ptr [ebp - 0x98], edi
+0x0115704f: mov      dword ptr [ebp - 0x20], eax
+0x01157052: cmp      eax, dword ptr [ebp - 0x10]
+0x01157055: jb       0x1156ed0
+0x0115705b: xor      ebx, ebx
+0x0115705d: lea      ecx, [ebp - 0x10]
+0x01157060: push     ecx
+0x01157061: call     0x27c5310
+0x01157066: add      esp, 4
+0x01157069: mov      dword ptr [ebp - 0x20], ebx
+0x0115706c: cmp      dword ptr [ebp - 0x10], ebx
+0x0115706f: jbe      0x11571f8
+0x01157075: lea      edx, [ebp - 0x1c]
+0x01157078: push     0xc
+0x0115707a: pxor     xmm0, xmm0
+0x0115707e: push     edx
+0x0115707f: movq     qword ptr [ebp - 0x1c], xmm0
+0x01157084: mov      dword ptr [ebp - 0x14], 0
+0x0115708b: call     0x27c5380
+0x01157090: mov      edi, dword ptr [ebp - 0x84]
+0x01157096: mov      esi, dword ptr [ebp - 0x88]
+0x0115709c: lea      eax, [ebp - 0x1c]
+0x0115709f: add      esp, 8
+0x011570a2: cmp      eax, edi
+0x011570a4: jae      0x115715a
+0x011570aa: mov      ecx, eax
+0x011570ac: cmp      esi, ecx
+0x011570ae: ja       0x115715a
+0x011570b4: mov      ebx, dword ptr [ebp - 0x80]
+0x011570b7: sub      ecx, esi
+0x011570b9: mov      eax, 0x2aaaaaab
+0x011570be: imul     ecx
+0x011570c0: sar      edx, 1
+0x011570c2: mov      eax, edx
+0x011570c4: shr      eax, 0x1f
+0x011570c7: add      eax, edx
+0x011570c9: mov      dword ptr [ebp - 0x24], eax
+0x011570cc: cmp      edi, ebx
+0x011570ce: jne      0x1157139
+0x011570d0: mov      ecx, edi
+0x011570d2: sub      ecx, esi
+0x011570d4: mov      eax, 0x2aaaaaab
+0x011570d9: imul     ecx
+0x011570db: sar      edx, 1
+0x011570dd: mov      ecx, edx
+0x011570df: shr      ecx, 0x1f
+0x011570e2: add      ecx, edx
+0x011570e4: cmp      ecx, 0x15555554
+0x011570ea: ja       0x1156f76
+0x011570f0: sub      ebx, esi
+0x011570f2: mov      eax, 0x2aaaaaab
+0x011570f7: imul     ebx
+0x011570f9: sar      edx, 1
+0x011570fb: mov      eax, edx
+0x011570fd: shr      eax, 0x1f
+0x01157100: inc      ecx
+0x01157101: add      eax, edx
+0x01157103: cmp      ecx, eax
+0x01157105: jbe      0x1157139
+0x01157107: mov      edx, eax
+0x01157109: shr      edx, 1
+0x0115710b: mov      esi, 0x15555555
+0x01157110: sub      esi, edx
+0x01157112: cmp      esi, eax
+0x01157114: jae      0x115711a
+0x01157116: xor      eax, eax
+0x01157118: jmp      0x115711c
+0x0115711a: add      eax, edx
+0x0115711c: cmp      eax, ecx
+0x0115711e: cmovb    eax, ecx
+0x01157121: push     eax
+0x01157122: lea      ecx, [ebp - 0x8c]
+0x01157128: call     0x29c18d0
+0x0115712d: mov      edi, dword ptr [ebp - 0x84]
+0x01157133: mov      esi, dword ptr [ebp - 0x88]
+0x01157139: mov      eax, dword ptr [ebp - 0x24]
+0x0115713c: lea      edx, [eax + eax*2]
+0x0115713f: lea      esi, [esi + edx*4]
+0x01157142: test     edi, edi
+0x01157144: je       0x11571dd
+0x0115714a: movq     xmm0, qword ptr [esi]
+0x0115714e: movq     qword ptr [edi], xmm0
+0x01157152: mov      eax, dword ptr [esi + 8]
+0x01157155: mov      dword ptr [edi + 8], eax
+0x01157158: jmp      0x11571d7
+0x0115715a: mov      ebx, dword ptr [ebp - 0x80]
+0x0115715d: cmp      edi, ebx
+0x0115715f: jne      0x11571c4
+0x01157161: mov      ecx, edi
+0x01157163: sub      ecx, esi
+0x01157165: mov      eax, 0x2aaaaaab
+0x0115716a: imul     ecx
+0x0115716c: sar      edx, 1
+0x0115716e: mov      ecx, edx
+0x01157170: shr      ecx, 0x1f
+0x01157173: add      ecx, edx
+0x01157175: cmp      ecx, 0x15555554
+0x0115717b: ja       0x1156f76
+0x01157181: sub      ebx, esi
+0x01157183: mov      eax, 0x2aaaaaab
+0x01157188: imul     ebx
+0x0115718a: sar      edx, 1
+0x0115718c: mov      eax, edx
+0x0115718e: shr      eax, 0x1f
+0x01157191: inc      ecx
+0x01157192: add      eax, edx
+0x01157194: cmp      ecx, eax
+0x01157196: jbe      0x11571c4
+0x01157198: mov      edx, eax
+0x0115719a: shr      edx, 1
+0x0115719c: mov      esi, 0x15555555
+0x011571a1: sub      esi, edx
+0x011571a3: cmp      esi, eax
+0x011571a5: jae      0x11571ab
+0x011571a7: xor      eax, eax
+0x011571a9: jmp      0x11571ad
+0x011571ab: add      eax, edx
+0x011571ad: cmp      eax, ecx
+0x011571af: cmovb    eax, ecx
+0x011571b2: push     eax
+0x011571b3: lea      ecx, [ebp - 0x8c]
+0x011571b9: call     0x29c18d0
+0x011571be: mov      edi, dword ptr [ebp - 0x84]
+0x011571c4: test     edi, edi
+0x011571c6: je       0x11571dd
+0x011571c8: movq     xmm0, qword ptr [ebp - 0x1c]
+0x011571cd: movq     qword ptr [edi], xmm0
+0x011571d1: mov      ecx, dword ptr [ebp - 0x14]
+0x011571d4: mov      dword ptr [edi + 8], ecx
+0x011571d7: mov      edi, dword ptr [ebp - 0x84]
+0x011571dd: mov      eax, dword ptr [ebp - 0x20]
+0x011571e0: inc      eax
+0x011571e1: add      edi, 0xc
+0x011571e4: mov      dword ptr [ebp - 0x84], edi
+0x011571ea: mov      dword ptr [ebp - 0x20], eax
+0x011571ed: cmp      eax, dword ptr [ebp - 0x10]
+0x011571f0: jb       0x1157075
+0x011571f6: xor      ebx, ebx
+0x011571f8: lea      edx, [ebp - 0x10]
+0x011571fb: push     edx
+0x011571fc: call     0x27c5310
+0x01157201: add      esp, 4
+0x01157204: mov      dword ptr [ebp - 0x20], ebx
+0x01157207: cmp      dword ptr [ebp - 0x10], ebx
+0x0115720a: jbe      0x1157378
+0x01157210: lea      eax, [ebp - 0x1c]
+0x01157213: push     0xc
+0x01157215: pxor     xmm0, xmm0
+0x01157219: push     eax
+0x0115721a: movq     qword ptr [ebp - 0x1c], xmm0
+0x0115721f: mov      dword ptr [ebp - 0x14], 0
+0x01157226: call     0x27c5380
+0x0115722b: mov      edi, dword ptr [ebp - 0x70]
+0x0115722e: mov      esi, dword ptr [ebp - 0x74]
+0x01157231: lea      ecx, [ebp - 0x1c]
+0x01157234: add      esp, 8
+0x01157237: cmp      ecx, edi
+0x01157239: jae      0x11572e6
+0x0115723f: mov      edx, ecx
+0x01157241: cmp      esi, edx
+0x01157243: ja       0x11572e6
+0x01157249: mov      ebx, dword ptr [ebp - 0x6c]
+0x0115724c: sub      ecx, esi
+0x0115724e: mov      eax, 0x2aaaaaab
+0x01157253: imul     ecx
+0x01157255: sar      edx, 1
+0x01157257: mov      eax, edx
+0x01157259: shr      eax, 0x1f
+0x0115725c: add      eax, edx
+0x0115725e: mov      dword ptr [ebp - 0x24], eax
+0x01157261: cmp      edi, ebx
+0x01157263: jne      0x11572c5
+0x01157265: mov      ecx, edi
+0x01157267: sub      ecx, esi
+0x01157269: mov      eax, 0x2aaaaaab
+0x0115726e: imul     ecx
+0x01157270: sar      edx, 1
+0x01157272: mov      ecx, edx
+0x01157274: shr      ecx, 0x1f
+0x01157277: add      ecx, edx
+0x01157279: cmp      ecx, 0x15555554
+0x0115727f: ja       0x1156f76
+0x01157285: sub      ebx, esi
+0x01157287: mov      eax, 0x2aaaaaab
+0x0115728c: imul     ebx
+0x0115728e: sar      edx, 1
+0x01157290: mov      eax, edx
+0x01157292: shr      eax, 0x1f
+0x01157295: inc      ecx
+0x01157296: add      eax, edx
+0x01157298: cmp      ecx, eax
+0x0115729a: jbe      0x11572c5
+0x0115729c: mov      edx, eax
+0x0115729e: shr      edx, 1
+0x011572a0: mov      esi, 0x15555555
+0x011572a5: sub      esi, edx
+0x011572a7: cmp      esi, eax
+0x011572a9: jae      0x11572af
+0x011572ab: xor      eax, eax
+0x011572ad: jmp      0x11572b1
+0x011572af: add      eax, edx
+0x011572b1: cmp      eax, ecx
+0x011572b3: cmovb    eax, ecx
+0x011572b6: push     eax
+0x011572b7: lea      ecx, [ebp - 0x78]
+0x011572ba: call     0x29c18d0
+0x011572bf: mov      edi, dword ptr [ebp - 0x70]
+0x011572c2: mov      esi, dword ptr [ebp - 0x74]
+0x011572c5: mov      eax, dword ptr [ebp - 0x24]
+0x011572c8: lea      eax, [eax + eax*2]
+0x011572cb: lea      esi, [esi + eax*4]
+0x011572ce: test     edi, edi
+0x011572d0: je       0x1157360
+0x011572d6: movq     xmm0, qword ptr [esi]
+0x011572da: movq     qword ptr [edi], xmm0
+0x011572de: mov      ecx, dword ptr [esi + 8]
+0x011572e1: mov      dword ptr [edi + 8], ecx
+0x011572e4: jmp      0x115735d
+0x011572e6: mov      ebx, dword ptr [ebp - 0x6c]
+0x011572e9: cmp      edi, ebx
+0x011572eb: jne      0x115734a
+0x011572ed: mov      ecx, edi
+0x011572ef: sub      ecx, esi
+0x011572f1: mov      eax, 0x2aaaaaab
+0x011572f6: imul     ecx
+0x011572f8: sar      edx, 1
+0x011572fa: mov      ecx, edx
+0x011572fc: shr      ecx, 0x1f
+0x011572ff: add      ecx, edx
+0x01157301: cmp      ecx, 0x15555554
+0x01157307: ja       0x1156f76
+0x0115730d: sub      ebx, esi
+0x0115730f: mov      eax, 0x2aaaaaab
+0x01157314: imul     ebx
+0x01157316: sar      edx, 1
+0x01157318: mov      eax, edx
+0x0115731a: shr      eax, 0x1f
+0x0115731d: inc      ecx
+0x0115731e: add      eax, edx
+0x01157320: cmp      ecx, eax
+0x01157322: jbe      0x115734a
+0x01157324: mov      edx, eax
+0x01157326: shr      edx, 1
+0x01157328: mov      esi, 0x15555555
+0x0115732d: sub      esi, edx
+0x0115732f: cmp      esi, eax
+0x01157331: jae      0x1157337
+0x01157333: xor      eax, eax
+0x01157335: jmp      0x1157339
+0x01157337: add      eax, edx
+0x01157339: cmp      eax, ecx
+0x0115733b: cmovb    eax, ecx
+0x0115733e: push     eax
+0x0115733f: lea      ecx, [ebp - 0x78]
+0x01157342: call     0x29c18d0
+0x01157347: mov      edi, dword ptr [ebp - 0x70]
+0x0115734a: test     edi, edi
+0x0115734c: je       0x1157360
+0x0115734e: movq     xmm0, qword ptr [ebp - 0x1c]
+0x01157353: movq     qword ptr [edi], xmm0
+0x01157357: mov      edx, dword ptr [ebp - 0x14]
+0x0115735a: mov      dword ptr [edi + 8], edx
+0x0115735d: mov      edi, dword ptr [ebp - 0x70]
+0x01157360: mov      eax, dword ptr [ebp - 0x20]
+0x01157363: inc      eax
+0x01157364: add      edi, 0xc
+0x01157367: mov      dword ptr [ebp - 0x70], edi
+0x0115736a: mov      dword ptr [ebp - 0x20], eax
+0x0115736d: cmp      eax, dword ptr [ebp - 0x10]
+0x01157370: jb       0x1157210
+0x01157376: xor      ebx, ebx
+0x01157378: lea      eax, [ebp - 0x10]
+0x0115737b: push     eax
+0x0115737c: call     0x27c5310
+0x01157381: add      esp, 4
+0x01157384: xor      esi, esi
+0x01157386: cmp      dword ptr [ebp - 0x10], ebx
+0x01157389: jbe      0x11573bd
+0x0115738b: jmp      0x1157390
+0x0115738d: lea      ecx, [ecx]
+0x01157390: lea      ecx, [ebp - 0x1c]
+0x01157393: push     0xa
+0x01157395: pxor     xmm0, xmm0
+0x01157399: push     ecx
+0x0115739a: movq     qword ptr [ebp - 0x1c], xmm0
+0x0115739f: mov      word ptr [ebp - 0x14], bx
+0x011573a3: call     0x27c5380
+0x011573a8: add      esp, 8
+0x011573ab: lea      edx, [ebp - 0x1c]
+0x011573ae: push     edx
+0x011573af: lea      ecx, [ebp - 0x64]
+0x011573b2: call     0x1108360
+0x011573b7: inc      esi
+0x011573b8: cmp      esi, dword ptr [ebp - 0x10]
+0x011573bb: jb       0x1157390
+0x011573bd: lea      eax, [ebp - 0x10]
+0x011573c0: push     eax
+0x011573c1: call     0x27c5310
+0x011573c6: add      esp, 4
+0x011573c9: xor      esi, esi
+0x011573cb: cmp      dword ptr [ebp - 0x10], ebx
+0x011573ce: jbe      0x11573fd
+0x011573d0: lea      ecx, [ebp - 0x1c]
+0x011573d3: push     0xa
+0x011573d5: pxor     xmm0, xmm0
+0x011573d9: push     ecx
+0x011573da: movq     qword ptr [ebp - 0x1c], xmm0
+0x011573df: mov      word ptr [ebp - 0x14], bx
+0x011573e3: call     0x27c5380
+0x011573e8: add      esp, 8
+0x011573eb: lea      edx, [ebp - 0x1c]
+0x011573ee: push     edx
+0x011573ef: lea      ecx, [ebp - 0x50]
+0x011573f2: call     0x1108360
+0x011573f7: inc      esi
+0x011573f8: cmp      esi, dword ptr [ebp - 0x10]
+0x011573fb: jb       0x11573d0
+0x011573fd: lea      eax, [ebp - 0x10]
+0x01157400: push     eax
+0x01157401: call     0x27c5310
+0x01157406: add      esp, 4
+0x01157409: mov      dword ptr [ebp - 0x20], ebx
+0x0115740c: cmp      dword ptr [ebp - 0x10], ebx
+0x0115740f: jbe      0x115756c
+0x01157415: xor      eax, eax
+0x01157417: lea      ecx, [ebp - 0x18]
+0x0115741a: push     5
+0x0115741c: push     ecx
+0x0115741d: mov      dword ptr [ebp - 0x18], eax
+0x01157420: mov      byte ptr [ebp - 0x14], al
+0x01157423: call     0x27c5380
+0x01157428: mov      edi, dword ptr [ebp - 0x34]
+0x0115742b: mov      esi, dword ptr [ebp - 0x38]
+0x0115742e: lea      edx, [ebp - 0x18]
+0x01157431: add      esp, 8
+0x01157434: cmp      edx, edi
+0x01157436: jae      0x11574e0
+0x0115743c: mov      eax, edx
+0x0115743e: cmp      esi, eax
+0x01157440: ja       0x11574e0
+0x01157446: mov      ebx, dword ptr [ebp - 0x30]
+0x01157449: mov      ecx, edx
+0x0115744b: sub      ecx, esi
+0x0115744d: mov      eax, 0x66666667
+0x01157452: imul     ecx
+0x01157454: sar      edx, 1
+0x01157456: mov      eax, edx
+0x01157458: shr      eax, 0x1f
+0x0115745b: add      eax, edx
+0x0115745d: mov      dword ptr [ebp - 0x24], eax
+0x01157460: cmp      edi, ebx
+0x01157462: jne      0x11574c4
+0x01157464: mov      ecx, edi
+0x01157466: sub      ecx, esi
+0x01157468: mov      eax, 0x66666667
+0x0115746d: imul     ecx
+0x0115746f: sar      edx, 1
+0x01157471: mov      ecx, edx
+0x01157473: shr      ecx, 0x1f
+0x01157476: add      ecx, edx
+0x01157478: cmp      ecx, 0x33333332
+0x0115747e: ja       0x1156f76
+0x01157484: sub      ebx, esi
+0x01157486: mov      eax, 0x66666667
+0x0115748b: imul     ebx
+0x0115748d: sar      edx, 1
+0x0115748f: mov      eax, edx
+0x01157491: shr      eax, 0x1f
+0x01157494: inc      ecx
+0x01157495: add      eax, edx
+0x01157497: cmp      ecx, eax
+0x01157499: jbe      0x11574c4
+0x0115749b: mov      edx, eax
+0x0115749d: shr      edx, 1
+0x0115749f: mov      esi, 0x33333333
+0x011574a4: sub      esi, edx
+0x011574a6: cmp      esi, eax
+0x011574a8: jae      0x11574ae
+0x011574aa: xor      eax, eax
+0x011574ac: jmp      0x11574b0
+0x011574ae: add      eax, edx
+0x011574b0: cmp      eax, ecx
+0x011574b2: cmovb    eax, ecx
+0x011574b5: push     eax
+0x011574b6: lea      ecx, [ebp - 0x3c]
+0x011574b9: call     0x29c16b0
+0x011574be: mov      edi, dword ptr [ebp - 0x34]
+0x011574c1: mov      esi, dword ptr [ebp - 0x38]
+0x011574c4: mov      eax, dword ptr [ebp - 0x24]
+0x011574c7: lea      esi, [esi + eax*4]
+0x011574ca: test     edi, edi
+0x011574cc: je       0x1157556
+0x011574d2: mov      ecx, dword ptr [esi + eax]
+0x011574d5: mov      dword ptr [edi], ecx
+0x011574d7: mov      dl, byte ptr [esi + eax + 4]
+0x011574db: mov      byte ptr [edi + 4], dl
+0x011574de: jmp      0x1157553
+0x011574e0: mov      ebx, dword ptr [ebp - 0x30]
+0x011574e3: cmp      edi, ebx
+0x011574e5: jne      0x1157544
+0x011574e7: mov      ecx, edi
+0x011574e9: sub      ecx, esi
+0x011574eb: mov      eax, 0x66666667
+0x011574f0: imul     ecx
+0x011574f2: sar      edx, 1
+0x011574f4: mov      ecx, edx
+0x011574f6: shr      ecx, 0x1f
+0x011574f9: add      ecx, edx
+0x011574fb: cmp      ecx, 0x33333332
+0x01157501: ja       0x1156f76
+0x01157507: sub      ebx, esi
+0x01157509: mov      eax, 0x66666667
+0x0115750e: imul     ebx
+0x01157510: sar      edx, 1
+0x01157512: mov      eax, edx
+0x01157514: shr      eax, 0x1f
+0x01157517: inc      ecx
+0x01157518: add      eax, edx
+0x0115751a: cmp      ecx, eax
+0x0115751c: jbe      0x1157544
+0x0115751e: mov      edx, eax
+0x01157520: shr      edx, 1
+0x01157522: mov      esi, 0x33333333
+0x01157527: sub      esi, edx
+0x01157529: cmp      esi, eax
+0x0115752b: jae      0x1157531
+0x0115752d: xor      eax, eax
+0x0115752f: jmp      0x1157533
+0x01157531: add      eax, edx
+0x01157533: cmp      eax, ecx
+0x01157535: cmovb    eax, ecx

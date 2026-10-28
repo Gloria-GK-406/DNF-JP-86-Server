@@ -28,6 +28,14 @@ internal sealed class DungeonCellFactory(
             .ToImmutableArray();
         var contents = await rooms.DescribeAsync(context, cancellationToken)
             .ConfigureAwait(false);
+        if (context.Layout.Guardian is { } guardian)
+            // Native ProcStage starts at zero and shares this counter with later 035D summons.
+            // A21 reads 035D identifiers as signed words; ordinary room random bases are unsuitable.
+            return new(context.Cell, context.MapId, 0,
+                contents.Actors.Where(actor => guardian.Towers.ContainsKey(actor.Actor.Code)).Select((actor, index) => new DungeonCellActorState(
+                    checked((ushort)index), actor.Actor with
+                    { Code = guardian.Towers[actor.Actor.Code].ResourceId, Level = checked((byte)guardian.Towers[actor.Actor.Code].Level), IsHostile = false }, actor.IsAiCharacter,
+                    false, [], IsMonster: false)).ToArray(), []) { MechanismBlocksClear = true };
 
         var groundItems = new List<DungeonGroundItem>(contents.GroundDrops.Count);
         foreach (var ground in contents.GroundDrops)

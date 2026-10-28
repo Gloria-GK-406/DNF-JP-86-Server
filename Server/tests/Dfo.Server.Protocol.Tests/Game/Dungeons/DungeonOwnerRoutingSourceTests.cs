@@ -72,6 +72,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
             "0x009F illusion stage start: a single illusion channel with no routing, judged at its entry"),
         new(Rule.Stale, "Game/DungeonEntry/SelectDungeonCommandPhases.cs", "SelectDungeonAsync", 1,
             "0x0010 select dungeon: judged before consuming the entry intent, outside dungeon owner routing"),
+        new(Rule.Stale, "Game/GuardianAltar/GameGuardianAltarCommand.cs", "HandleAsync", 1,
+            "0x0392-0x039A guardian actions: the single activity entry rejects stale frames before any owned mutation"),
 
         .. Routes.Select(route => new Site(Rule.Locate, route.Path, route.Member, 1, route.Commands + ": the one locate")),
         new(Rule.Locate, PartyStages, "LocatePartyOf", 1,
@@ -147,6 +149,24 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
     public void The_listed_sites_alone_are_clean()
     {
         Assert.Empty(Violations(Listed()));
+    }
+
+    [Fact]
+    public void Guardian_action_allowance_does_not_allow_staleness_checks_inside_its_mutation()
+    {
+        var files = Listed();
+        const string path = "Game/GuardianAltar/GameGuardianAltarCommand.cs";
+        files[path] += """
+
+            private ValueTask MutateAsync(GameMessageMetadata metadata)
+            {
+                if (GameRequestFreshness.IsStale(metadata)) return;
+            }
+            """;
+
+        var violation = Assert.Single(Violations(files));
+        Assert.StartsWith(path + ":", violation, StringComparison.Ordinal);
+        Assert.EndsWith("Stale in MutateAsync is not listed", violation, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -87,6 +87,7 @@ public sealed class GameplayWriteEntryTableTests
         // Not named by appendix F: the altar state the engine works on lives here, and
         // AltarDungeonDomainService.HandleAsync removes from it without going through the engine.
         typeof(AltarStateStore),
+        typeof(GuardianAltarRuntimeStore),
         typeof(OnlineCharacterRuntimeDomainService),
         // TASK-30: the rest of the in-process gameplay state, found by GameplayStateCensusTests.
         typeof(ClientSettingsDomainService),
@@ -333,6 +334,9 @@ public sealed class GameplayWriteEntryTableTests
         ["AltarStateStore.Find(DungeonRunId)"] = R,
         ["AltarStateStore.Put(AltarDungeonState, IDomainTransactionAccessor)"] = W,
         ["AltarStateStore.Remove(DungeonRunId)"] = W,
+        ["GuardianAltarRuntimeStore.All()"] = R,
+        ["GuardianAltarRuntimeStore.Find(CharacterId)"] = ReadNote("Transaction-local reads; read-only participation has no state publication."),
+        ["GuardianAltarRuntimeStore.Put(CharacterId, GuardianAltarRuntime)"] = W,
 
         // OnlineCharacterRuntimeDomainService
         ["OnlineCharacterRuntimeDomainService.ApplySpiritPotion(SelectedSessionIdentity, Double, TimeSpan)"] = W,

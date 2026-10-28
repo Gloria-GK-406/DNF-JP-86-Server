@@ -1,0 +1,61 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\µÈ¼¶²¹¶¡\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x812dd9a _ZN12advancealtar9ProcStage8resetAllEv (69 bytes)
+0x0812dd9a: push     ebp
+0x0812dd9b: mov      ebp, esp
+0x0812dd9d: sub      esp, 0x18
+0x0812dda0: mov      eax, dword ptr [ebp + 8]
+0x0812dda3: mov      dword ptr [eax + 0x70], 0
+0x0812ddaa: mov      eax, dword ptr [ebp + 8]
+0x0812ddad: mov      dword ptr [eax + 0x8c], 0
+0x0812ddb7: mov      dword ptr [esp + 4], 0
+0x0812ddbf: mov      eax, dword ptr [ebp + 8]
+0x0812ddc2: mov      dword ptr [esp], eax
+0x0812ddc5: call     0x812dde0 ; _ZN12advancealtar9ProcStage5resetENS_9StageType1TE
+0x0812ddca: mov      dword ptr [esp + 4], 1
+0x0812ddd2: mov      eax, dword ptr [ebp + 8]
+0x0812ddd5: mov      dword ptr [esp], eax
+0x0812ddd8: call     0x812dde0 ; _ZN12advancealtar9ProcStage5resetENS_9StageType1TE
+0x0812dddd: leave    
+0x0812ddde: ret      
+
+## 0x812dde0 _ZN12advancealtar9ProcStage5resetENS_9StageType1TE (144 bytes)
+0x0812dde0: push     ebp
+0x0812dde1: mov      ebp, esp
+0x0812dde3: sub      esp, 0x18
+0x0812dde6: mov      eax, dword ptr [ebp + 8]
+0x0812dde9: mov      dword ptr [eax + 8], 0
+0x0812ddf0: mov      eax, dword ptr [ebp + 8]
+0x0812ddf3: mov      dword ptr [eax + 0xc], 0
+0x0812ddfa: mov      eax, dword ptr [ebp + 8]
+0x0812ddfd: mov      dword ptr [eax + 0x10], 0
+0x0812de04: mov      eax, dword ptr [ebp + 8]
+0x0812de07: mov      dword ptr [eax + 0x68], 0xffffffff
+0x0812de0e: mov      eax, dword ptr [ebp + 8]
+0x0812de11: mov      dword ptr [eax + 0x74], 0
+0x0812de18: mov      eax, dword ptr [ebp + 8]
+0x0812de1b: add      eax, 0x18
+0x0812de1e: mov      dword ptr [esp], eax
+0x0812de21: call     0x812d43c ; _ZN12advancealtar9ProcStage18ProcSummonObjectMs5resetEv
+0x0812de26: mov      eax, dword ptr [ebp + 0xc]
+0x0812de29: cmp      eax, 1
+0x0812de2c: je       0x812de6e
+0x0812de2e: mov      eax, dword ptr [ebp + 8]
+0x0812de31: mov      dword ptr [eax + 4], 7
+0x0812de38: mov      eax, dword ptr [ebp + 8]
+0x0812de3b: mov      word ptr [eax + 0x14], 0
+0x0812de41: mov      eax, dword ptr [ebp + 8]
+0x0812de44: add      eax, 0x50
+0x0812de47: mov      dword ptr [esp], eax
+0x0812de4a: call     0x81354c8 ; _ZNSt3mapIsN12advancealtar18_MapMonsterSummaryESt4lessIsESaISt4pairIKsS1_EEE5clearEv
+0x0812de4f: mov      eax, dword ptr [ebp + 8]
+0x0812de52: mov      byte ptr [eax + 0x78], 1
+0x0812de56: mov      eax, dword ptr [ebp + 8]
+0x0812de59: mov      dword ptr [eax + 0x7c], 0
+0x0812de60: mov      eax, dword ptr [ebp + 8]
+0x0812de63: sub      eax, -0x80
+0x0812de66: mov      dword ptr [esp], eax
+0x0812de69: call     0x8096b6e ; _ZNSt6vectorIiSaIiEE5clearEv
+0x0812de6e: leave    
+0x0812de6f: ret      

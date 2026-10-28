@@ -15,6 +15,8 @@ public sealed record DungeonAdmissionOptions
     public bool Mirror { get; init; }
     public IReadOnlyDictionary<CharacterId, int> GoldCosts { get; init; } = new Dictionary<CharacterId, int>();
     public bool RequireMinimumLevel { get; init; }
+    /// <summary>False only for domains that have already validated their own independent difficulty progression.</summary>
+    public bool EnforceOrdinaryDifficulty { get; init; } = true;
     public bool? ConsumesFatigue { get; init; }
     public IReadOnlyList<int> RequiredQuestIds { get; init; } = [];
     public IReadOnlyList<HellTicketAlternative>? HellTickets { get; init; }

@@ -1,0 +1,249 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x812f8ec _ZN12advancealtar18Timer_StageControl15RegistTimerEPLPEiNS_12StageEndType1TE (106 bytes)
+0x0812f8ec: push     ebp
+0x0812f8ed: mov      ebp, esp
+0x0812f8ef: push     edi
+0x0812f8f0: push     esi
+0x0812f8f1: push     ebx
+0x0812f8f2: sub      esp, 0x3c
+0x0812f8f5: mov      dword ptr [ebp - 0x1c], 0x3e8
+0x0812f8fc: cmp      dword ptr [ebp + 0xc], 3
+0x0812f900: jne      0x812f909
+0x0812f902: mov      dword ptr [ebp - 0x1c], 0x3e8
+0x0812f909: mov      edi, dword ptr [ebp + 0xc]
+0x0812f90c: mov      eax, dword ptr [ebp - 0x1c]
+0x0812f90f: mov      ebx, eax
+0x0812f911: mov      esi, eax
+0x0812f913: sar      esi, 0x1f
+0x0812f916: call     0x80f647c ; _Z12G_TimerQueuev
+0x0812f91b: mov      dword ptr [esp + 0x1c], edi
+0x0812f91f: mov      dword ptr [esp + 0x18], 0xa9
+0x0812f927: mov      dword ptr [esp + 0x10], ebx
+0x0812f92b: mov      dword ptr [esp + 0x14], esi
+0x0812f92f: mov      dword ptr [esp + 0xc], 0xa9
+0x0812f937: mov      edx, dword ptr [ebp + 8]
+0x0812f93a: mov      dword ptr [esp + 8], edx
+0x0812f93e: mov      dword ptr [esp + 4], 8
+0x0812f946: mov      dword ptr [esp], eax
+0x0812f949: call     0x8630e60 ; _ZN10TimerQueue23InsertTimerInMilisecondEN10TimerEntry8OBJ_TYPEEi13TIMER_MESSAGExij
+0x0812f94e: add      esp, 0x3c
+0x0812f951: pop      ebx
+0x0812f952: pop      esi
+0x0812f953: pop      edi
+0x0812f954: pop      ebp
+0x0812f955: ret
+
+## 0x8130ab2 _ZN12advancealtar7Manager9dieCharacEP5CUser (262 bytes)
+0x08130ab2: push     ebp
+0x08130ab3: mov      ebp, esp
+0x08130ab5: sub      esp, 0x28
+0x08130ab8: cmp      dword ptr [ebp + 8], 0
+0x08130abc: je       0x8130bb2
+0x08130ac2: mov      eax, dword ptr [ebp + 8]
+0x08130ac5: mov      dword ptr [esp], eax
+0x08130ac8: call     0x8655262 ; _ZN5CUser15getAdvanceAltarEv
+0x08130acd: mov      dword ptr [ebp - 0xc], eax
+0x08130ad0: cmp      dword ptr [ebp - 0xc], 0
+0x08130ad4: je       0x8130bb6
+0x08130ada: mov      eax, dword ptr [ebp - 0xc]
+0x08130add: mov      dword ptr [esp], eax
+0x08130ae0: call     0x81348ae ; _ZN12advancealtar12StageControl12getProcStageEv
+0x08130ae5: mov      dword ptr [esp], eax
+0x08130ae8: call     0x812f770 ; _ZNK12advancealtar9ProcStage13isRewardStateEv
+0x08130aed: xor      eax, 1
+0x08130af0: test     al, al
+0x08130af2: jne      0x8130bb5
+0x08130af8: mov      eax, dword ptr [ebp - 0xc]
+0x08130afb: mov      dword ptr [esp], eax
+0x08130afe: call     0x81348ae ; _ZN12advancealtar12StageControl12getProcStageEv
+0x08130b03: mov      dword ptr [esp], eax
+0x08130b06: call     0x812eb04 ; _ZNK12advancealtar9ProcStage12getStageTypeEv
+0x08130b0b: cmp      eax, 1
+0x08130b0e: sete     al
+0x08130b11: test     al, al
+0x08130b13: je       0x8130b60
+0x08130b15: mov      eax, dword ptr [ebp - 0xc]
+0x08130b18: mov      dword ptr [esp], eax
+0x08130b1b: call     0x81348ae ; _ZN12advancealtar12StageControl12getProcStageEv
+0x08130b20: mov      dword ptr [esp], eax
+0x08130b23: call     0x812e3f6 ; _ZN12advancealtar9ProcStage19clearStageAndRewardEv
+0x08130b28: mov      eax, dword ptr [ebp - 0xc]
+0x08130b2b: mov      dword ptr [esp], eax
+0x08130b2e: call     0x81348ae ; _ZN12advancealtar12StageControl12getProcStageEv
+0x08130b33: mov      dword ptr [esp + 4], 5
+0x08130b3b: mov      dword ptr [esp], eax
+0x08130b3e: call     0x8134844 ; _ZN12advancealtar9ProcStage8setStateENS0_5State1TE
+0x08130b43: mov      eax, dword ptr [ebp - 0xc]
+0x08130b46: mov      dword ptr [esp], eax
+0x08130b49: call     0x81348ba ; _ZNK12advancealtar12StageControl8getIndexEv
+0x08130b4e: mov      dword ptr [esp + 4], 1
+0x08130b56: mov      dword ptr [esp], eax
+0x08130b59: call     0x812f89c ; _ZN12advancealtar18Timer_StageControl22RegistTimerClearRewardEiNS_12StageEndType1TE
+0x08130b5e: jmp      0x8130bb6
+0x08130b60: mov      eax, dword ptr [ebp - 0xc]
+0x08130b63: mov      dword ptr [esp], eax
+0x08130b66: call     0x81348ae ; _ZN12advancealtar12StageControl12getProcStageEv
+0x08130b6b: mov      dword ptr [esp + 4], 6
+0x08130b73: mov      dword ptr [esp], eax
+0x08130b76: call     0x8134844 ; _ZN12advancealtar9ProcStage8setStateENS0_5State1TE
+0x08130b7b: mov      eax, dword ptr [ebp - 0xc]
+0x08130b7e: mov      dword ptr [esp], eax
+0x08130b81: call     0x81348ba ; _ZNK12advancealtar12StageControl8getIndexEv
+0x08130b86: mov      dword ptr [esp + 4], 1
+0x08130b8e: mov      dword ptr [esp], eax
+0x08130b91: call     0x812f8ec ; _ZN12advancealtar18Timer_StageControl15RegistTimerEPLPEiNS_12StageEndType1TE
+0x08130b96: mov      dword ptr [esp + 8], 0
+0x08130b9e: mov      eax, dword ptr [ebp - 0xc]
+0x08130ba1: mov      dword ptr [esp + 4], eax
+0x08130ba5: mov      eax, dword ptr [ebp + 8]
+0x08130ba8: mov      dword ptr [esp], eax
+0x08130bab: call     0x8133bd4 ; _ZN12advancealtar10HistoryLog16dungeonClearInfoER5CUserRNS_12StageControlEb
+0x08130bb0: jmp      0x8130bb6
+0x08130bb2: nop
+0x08130bb3: jmp      0x8130bb6
+0x08130bb5: nop
+0x08130bb6: leave
+0x08130bb7: ret
+Input: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x81c2a12 _ZN29DisPatcher_DieCharacInDungeon7processEP5CUserR8MSG_BASER9ParamBase (407 bytes)
+0x081c2a12: push     ebp
+0x081c2a13: mov      ebp, esp
+0x081c2a15: push     esi
+0x081c2a16: push     ebx
+0x081c2a17: sub      esp, 0x30
+0x081c2a1a: mov      eax, dword ptr [ebp + 0x14]
+0x081c2a1d: mov      dword ptr [ebp - 0x1c], eax
+0x081c2a20: mov      eax, dword ptr [ebp + 0x10]
+0x081c2a23: mov      dword ptr [esp + 8], eax
+0x081c2a27: mov      eax, dword ptr [ebp + 0xc]
+0x081c2a2a: mov      dword ptr [esp + 4], eax
+0x081c2a2e: mov      eax, dword ptr [ebp + 8]
+0x081c2a31: mov      dword ptr [esp], eax
+0x081c2a34: call     0x81c2bc0 ; _ZN29DisPatcher_DieCharacInDungeon11check_errorEP5CUserR8MSG_BASE
+0x081c2a39: mov      edx, eax
+0x081c2a3b: mov      eax, dword ptr [ebp - 0x1c]
+0x081c2a3e: mov      dword ptr [eax + 4], edx
+0x081c2a41: mov      eax, dword ptr [ebp - 0x1c]
+0x081c2a44: mov      eax, dword ptr [eax + 4]
+0x081c2a47: test     eax, eax
+0x081c2a49: jle      0x81c2a55
+0x081c2a4b: mov      eax, 0
+0x081c2a50: jmp      0x81c2ba2
+0x081c2a55: mov      eax, dword ptr [ebp - 0x1c]
+0x081c2a58: mov      eax, dword ptr [eax + 4]
+0x081c2a5b: test     eax, eax
+0x081c2a5d: jns      0x81c2a91
+0x081c2a5f: mov      eax, dword ptr [ebp + 0xc]
+0x081c2a62: mov      dword ptr [esp], eax
+0x081c2a65: call     0x80da36e ; _ZNK5CUser10get_acc_idEv
+0x081c2a6a: mov      edx, dword ptr [ebp - 0x1c]
+0x081c2a6d: mov      edx, dword ptr [edx + 4]
+0x081c2a70: mov      dword ptr [esp + 0xc], eax
+0x081c2a74: mov      dword ptr [esp + 8], edx
+0x081c2a78: mov      dword ptr [esp + 4], 0x8bd5e00
+0x081c2a80: mov      dword ptr [esp], 0xcbb
+0x081c2a87: call     0x85908d7 ; _Z8LineFunciPKcij
+0x081c2a8c: jmp      0x81c2ba2
+0x081c2a91: mov      eax, dword ptr [ebp + 0x10]
+0x081c2a94: mov      dword ptr [ebp - 0x18], eax
+0x081c2a97: mov      eax, dword ptr [ebp - 0x18]
+0x081c2a9a: movzx    eax, word ptr [eax + 0xf]
+0x081c2a9e: movzx    esi, ax
+0x081c2aa1: mov      eax, dword ptr [ebp - 0x18]
+0x081c2aa4: movzx    eax, word ptr [eax + 0xd]
+0x081c2aa8: movzx    ebx, ax
+0x081c2aab: mov      eax, dword ptr [ebp + 0xc]
+0x081c2aae: mov      dword ptr [esp], eax
+0x081c2ab1: call     0x8101028 ; _ZNK15CUserCharacInfo16getCurCharacNameEv
+0x081c2ab6: mov      edx, dword ptr [ebp + 0xc]
+0x081c2ab9: add      edx, 0x79700
+0x081c2abf: mov      dword ptr [esp + 0xc], esi
+0x081c2ac3: mov      dword ptr [esp + 8], ebx
+0x081c2ac7: mov      dword ptr [esp + 4], eax
+0x081c2acb: mov      dword ptr [esp], edx
+0x081c2ace: call     0x8684dfa ; _ZN15cUserHistoryLog9CharacDieEPKctt
+0x081c2ad3: mov      eax, dword ptr [ebp + 0xc]
+0x081c2ad6: mov      dword ptr [esp], eax
+0x081c2ad9: call     0x822fe4e ; _ZN5CUser13GetPartyIndexEv
+0x081c2ade: movsx    ebx, ax
+0x081c2ae1: call     0x80cc18e ; _Z14G_CGameManagerv
+0x081c2ae6: mov      dword ptr [esp + 4], ebx
+0x081c2aea: mov      dword ptr [esp], eax
+0x081c2aed: call     0x8294f32 ; _ZN12CGameManager8GetPartyEi
+0x081c2af2: mov      dword ptr [ebp - 0x14], eax
+0x081c2af5: mov      eax, dword ptr [ebp + 0xc]
+0x081c2af8: mov      dword ptr [esp], eax
+0x081c2afb: call     0x8146824 ; _ZN6Global14CBossTowerFunc18DieCharacInDungeonEP5CUser
+0x081c2b00: test     al, al
+0x081c2b02: je       0x81c2b0e
+0x081c2b04: mov      eax, 0
+0x081c2b09: jmp      0x81c2ba2
+0x081c2b0e: mov      eax, dword ptr [ebp + 0xc]
+0x081c2b11: mov      dword ptr [esp], eax
+0x081c2b14: call     0x80da38c ; _ZN5CUser9get_stateEv
+0x081c2b19: cmp      eax, 0xd
+0x081c2b1c: sete     al
+0x081c2b1f: test     al, al
+0x081c2b21: je       0x81c2b2e
+0x081c2b23: mov      eax, dword ptr [ebp + 0xc]
+0x081c2b26: mov      dword ptr [esp], eax
+0x081c2b29: call     0x8130ab2 ; _ZN12advancealtar7Manager9dieCharacEP5CUser
+0x081c2b2e: mov      eax, dword ptr [ebp + 0xc]
+0x081c2b31: mov      dword ptr [esp], eax
+0x081c2b34: call     0x865514c ; _ZN5CUser8GetPartyEv
+0x081c2b39: mov      dword ptr [ebp - 0x10], eax
+0x081c2b3c: cmp      dword ptr [ebp - 0x10], 0
+0x081c2b40: je       0x81c2b85
+0x081c2b42: mov      eax, dword ptr [ebp - 0x10]
+0x081c2b45: mov      eax, dword ptr [eax + 0xcac]
+0x081c2b4b: mov      dword ptr [ebp - 0xc], eax
+0x081c2b4e: cmp      dword ptr [ebp - 0xc], 0
+0x081c2b52: je       0x81c2b85
+0x081c2b54: mov      eax, dword ptr [ebp - 0xc]
+0x081c2b57: movzx    eax, byte ptr [eax + 0x89f]
+0x081c2b5e: test     al, al
+0x081c2b60: jle      0x81c2b85
+0x081c2b62: mov      eax, dword ptr [ebp + 0xc]
+0x081c2b65: mov      dword ptr [esp + 4], eax
+0x081c2b69: mov      eax, dword ptr [ebp - 0x10]
+0x081c2b6c: mov      dword ptr [esp], eax
+0x081c2b6f: call     0x85b8e5c ; _ZN6CParty18BloodHandleDieUserEP5CUser
+0x081c2b74: mov      eax, dword ptr [ebp - 0x1c]
+0x081c2b77: mov      dword ptr [eax + 4], 0x7fffffff
+0x081c2b7e: mov      eax, 0
+0x081c2b83: jmp      0x81c2ba2
+0x081c2b85: cmp      dword ptr [ebp - 0x14], 0
+0x081c2b89: je       0x81c2b9d
+0x081c2b8b: mov      eax, dword ptr [ebp + 0xc]
+0x081c2b8e: mov      dword ptr [esp + 4], eax
+0x081c2b92: mov      eax, dword ptr [ebp - 0x14]
+0x081c2b95: mov      dword ptr [esp], eax
+0x081c2b98: call     0x85a7828 ; _ZN6CParty8die_userEP5CUser
+0x081c2b9d: mov      eax, 0
+0x081c2ba2: add      esp, 0x30
+0x081c2ba5: pop      ebx
+0x081c2ba6: pop      esi
+0x081c2ba7: pop      ebp
+0x081c2ba8: ret
+
+## 0x81c2baa _ZN29DisPatcher_DieCharacInDungeon4sendEP5CUserR9ParamBase (22 bytes)
+0x081c2baa: push     ebp
+0x081c2bab: mov      ebp, esp
+0x081c2bad: sub      esp, 0x10
+0x081c2bb0: mov      eax, dword ptr [ebp + 0x10]
+0x081c2bb3: mov      dword ptr [ebp - 4], eax
+0x081c2bb6: mov      eax, dword ptr [ebp - 4]
+0x081c2bb9: mov      eax, dword ptr [eax + 4]
+0x081c2bbc: test     eax, eax
+0x081c2bbe: leave
+0x081c2bbf: ret
+
+## 0x825dade _ZN17IPacketDispatcherI17MSG_DIE_CHARACTER20stDieCharacInDungeonL8ch_state0EE4sendEP5CUserR9ParamBase (5 bytes)
+0x0825dade: push     ebp
+0x0825dadf: mov      ebp, esp
+0x0825dae1: pop      ebp
+0x0825dae2: ret

@@ -22,6 +22,37 @@ ACT读取其状态；未引入新opcode或升级实帧、实机证据。
 worldmap98及任务20720–20735为用户授权的本服资源恢复，见
 [规则与验证边界](../Document/tasks/giant-dragon/README.md)。
 
+## 守护者祭坛实现与实机范围
+
+CurrentImplementation / ClientStatic / 70Reference：入口4／10、0392–039A请求与响应、035B/C/D/0360/1/2通知已注册，独立玩法接入执行器、事务、持久化与结果回城。035E没有虚构推送，035F为原生测试路径，不作为常规流程依赖。没有完整WireCaptured；入口、首关简单／中等出怪与召唤已有有限ClientVerified，玩家接受原生死亡倒计时并授权PR收尾。未逐项实测条件保留在[验收记录](../Document/tasks/guardian-altar/acceptance.md)。[流程](patterns/flow-guardian-altar.md)、[实现及验证](../Document/tasks/guardian-altar/README.md)。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x0392` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0392](game/client-to-server/0x0392.md) |
+| `0x01` CMD | `0x0392` | GuardianAltar response | 自动编码验证 | [0x0392](game/client-to-server/0x0392.md) |
+| `0x01` | `0x0393` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0393](game/client-to-server/0x0393.md) |
+| `0x01` CMD | `0x0393` | GuardianAltar response | 自动编码验证 | [0x0393](game/client-to-server/0x0393.md) |
+| `0x01` | `0x0394` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0394](game/client-to-server/0x0394.md) |
+| `0x01` CMD | `0x0394` | GuardianAltar response | 自动编码验证 | [0x0394](game/client-to-server/0x0394.md) |
+| `0x01` | `0x0395` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0395](game/client-to-server/0x0395.md) |
+| `0x01` CMD | `0x0395` | GuardianAltar response | 自动编码验证 | [0x0395](game/client-to-server/0x0395.md) |
+| `0x01` | `0x0396` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0396](game/client-to-server/0x0396.md) |
+| `0x01` CMD | `0x0396` | GuardianAltar response | 自动编码验证 | [0x0396](game/client-to-server/0x0396.md) |
+| `0x01` | `0x0397` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0397](game/client-to-server/0x0397.md) |
+| `0x01` CMD | `0x0397` | GuardianAltar response | 自动编码验证 | [0x0397](game/client-to-server/0x0397.md) |
+| `0x01` | `0x0398` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0398](game/client-to-server/0x0398.md) |
+| `0x01` CMD | `0x0398` | GuardianAltar response | 自动编码验证 | [0x0398](game/client-to-server/0x0398.md) |
+| `0x01` | `0x0399` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x0399](game/client-to-server/0x0399.md) |
+| `0x01` CMD | `0x0399` | GuardianAltar response | 自动编码验证 | [0x0399](game/client-to-server/0x0399.md) |
+| `0x01` | `0x039A` | GuardianAltar decoder / CMD | CurrentImplementation；待实机 | [0x039A](game/client-to-server/0x039A.md) |
+| `0x01` CMD | `0x039A` | GuardianAltar response | 自动编码验证 | [0x039A](game/client-to-server/0x039A.md) |
+| `0x00` NOTI | `0x035B` | GuardianAltar notification | 自动编码验证 | [0x035B](game/server-to-client/NOTI-0x035B.md) |
+| `0x00` NOTI | `0x035C` | GuardianAltar notification | 自动编码验证 | [0x035C](game/server-to-client/NOTI-0x035C.md) |
+| `0x00` NOTI | `0x035D` | GuardianAltar notification | 自动编码验证 | [0x035D](game/server-to-client/NOTI-0x035D.md) |
+| `0x00` NOTI | `0x0360` | GuardianAltar notification | 自动编码验证 | [0x0360](game/server-to-client/NOTI-0x0360.md) |
+| `0x00` NOTI | `0x0361` | GuardianAltar notification | 自动编码验证 | [0x0361](game/server-to-client/NOTI-0x0361.md) |
+| `0x00` NOTI | `0x0362` | GuardianAltar notification | 自动编码验证 | [0x0362](game/server-to-client/NOTI-0x0362.md) |
+
 ## 2026-10-20 循环任务客户端原生提交（核心流程已验收）
 
 ClientStatic / High：已定位 [NOTI0105](game/server-to-client/NOTI-0x0105.md) 驱动循环看板目标检查及 C2S CMD0022 的入口。CurrentImplementation：循环清场发送 ready 通知；已达标时先同步完整已接任务进度，异步进度随后达标时按 023F → 0105 再检查。结算仍由客户端提交请求驱动，不恢复服务端代办完成/取消。2026-10-20 部署 `70d8ba9f` 后，用户确认结果符合预期，本轮原生自动提交及成功看板记为 ClientVerified / Confirmed；body 09 的来源仍为参照实现，不升级为官方 WireCaptured，也不代表全部边界分支已验收。[实现与验收](../Document/CycleQuestNativeSubmit-20261020.md)。

@@ -1,0 +1,53 @@
+=== map/town/underfoot/underfoot_npcplaza.map ===
+[player number]
+2 8
+[pvp start area]
+116 156 1100 180 162 177 77 149 1053 165 60 166
+[pvp practice start area]
+108 121 74 256 1087 123 57 251
+[shadow type]
+[mirror]
+[type]
+[normal]
+[tile]
+Tile/Master_Tile00.til Tile/Master_Tile00.til Tile/Master_Tile00.til Tile/Master_Tile00.til Tile/Master_Tile00.til Tile/Master_Tile00.til
+[/tile]
+[far sight scroll]
+50
+[middle sight scroll]
+75
+[background animation]
+[ani info]
+[filename]
+Animation/Far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Mid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[town movable area]
+882 354 120 30 2 2
+[/town movable area]
+[virtual movable area]
+20 170 1320 170 894 327 100 40
+[/virtual movable area]
+[sound]
+M_UNDERFOOT
+[/sound]
+[animation]
+Animation/Dw_Gate.ani [close] 934 381 0 Animation/Dw_Gate_L.ani [close] 934 382 0 Animation/NPC_Plaza1.ani [closeback] 215 229 0 Animation/NPC_Plaza2.ani [closeback] 367 246 0 Animation/NPC_Plaza1.ani [closeback] 809 229 0 Animation/NPC_Plaza3.ani [closeback] 1125 245 0 Animation/NPC_Plaza1.ani [closeback] 1403 229 0
+[/animation]
+[NPC]
+64 [right] 150 145 0 7 [left] 360 145 0 6 [left] 770 145 0 12 [right] 980 147 0 149 [left] 570 145 0 444 [right] 1170 145 0
+[/NPC]
+[map name]
+PVP无名

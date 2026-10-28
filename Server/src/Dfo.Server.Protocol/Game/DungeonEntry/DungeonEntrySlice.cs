@@ -89,7 +89,9 @@ public sealed record SelectDungeonRefusal(byte ErrorCode, byte Context, bool Mir
     public const byte MemberEntryLimitReached = 0xAD;
     public const byte LevelTooLow = 0xAC;
     public const byte HellLevelTooLow = 0x6F;
-    public const byte MissingPrerequisite = 0x07;
+    // A21's ordinary-entry switch maps 0x07 to upgrade-room broadcasting, not a
+    // missing prerequisite. Its 0x13 branch reports an unavailable selection state.
+    public const byte MissingPrerequisite = InvalidSelectionState;
     // A21 uses this branch for an invalid dungeon or difficulty, not an entry quota.
     public const byte InvalidDungeonOrDifficulty = 0x15;
 

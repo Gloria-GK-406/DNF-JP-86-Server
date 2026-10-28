@@ -1,0 +1,29 @@
+=== etc/advancealtar/advancealtargagereward.etc ===
+[gage max]
+1000
+[/gage max]
+[ball count per hit]
+3
+[gage charging per ball]
+8
+[decrease gage time unit]
+300
+[decrease gage amount per time]
+1
+[decrease gage lower limit]
+1000
+[random rate]
+45 45 10
+[/random rate]
+[hp]
+1500
+[/hp]
+[mp]
+50
+[/mp]
+[item reward max]
+5
+[/item reward max]
+[item reward]
+10001255 3242 8 7463 7464 3332
+[/item reward]

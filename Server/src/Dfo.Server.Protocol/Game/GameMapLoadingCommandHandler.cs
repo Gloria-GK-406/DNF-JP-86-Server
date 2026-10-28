@@ -70,18 +70,22 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly IWeaknessDomainService weaknessState;
     private readonly ICommandConnectionClosures closures;
     private readonly IGameCommandOutbox mapOutbox;
+    private readonly IGuardianAltarDomainService guardian;
+    private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
     public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
         IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
         ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
-        ILogger<GameMapLoadingCommandHandler> logger)
+        ILogger<GameMapLoadingCommandHandler> logger, IGuardianAltarDomainService guardian,
+        IGuardianAltarSchedulerWakeSignal guardianWake)
 
     {
         this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.visits = visits; this.registry = registry;
         this.fatigue = fatigue; this.weaknessState = weaknessState; this.closures = closures; this.mapOutbox = outbox;
+        this.guardian = guardian; this.guardianWake = guardianWake;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameFinishLoadingCommand command, CancellationToken token)
     {
@@ -99,6 +103,20 @@ internal sealed partial class GameMapLoadingCommandHandler :
                 return true;
         }
         var completed = await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
+        var selected = sessions.FindByConnection(id);
+        if (completed && selected is not null && runs.Find(selected.CharacterId) is { Layout.Guardian: not null } activity)
+        {
+            var result = await workUnits.WriteAsync(execution, new("guardian-altar.ready", [CaptureParticipant(selected)]),
+                async (_, ct) => new GuardianAltar.GuardianAltarMutation(Action: await guardian.ReadyAsync(selected, activity.RunId, ct).ConfigureAwait(false)), token).ConfigureAwait(false);
+            if (result.Action is { } ready)
+                logger.LogInformation("Guardian altar ready run={RunId} map={MapId} difficulty={Difficulty} round={Round} basis={Basis} generation={Generation} firstSpawnMs={FirstSpawn} nextActor={NextActor} initialActors={Actors}",
+                    activity.RunId, ready.State.Admission.Map.MapId, ready.State.Admission.Difficulty,
+                    ready.State.Admission.Stage.Survival ? ready.State.Admission.SurvivalRound : 1, ready.State.Admission.BasisLevel,
+                    ready.State.Generation, ready.State.PlannedSpawns.IsEmpty ? -1 : ready.State.PlannedSpawns[0].OffsetMilliseconds,
+                    ready.State.NextActorSequence, string.Join(";", activity.CurrentCellState.Actors.Select(actor =>
+                        $"{actor.Sequence}:{actor.Actor.Code}:{actor.Actor.Level}:{actor.Actor.ActorType}")));
+            guardianWake.Wake();
+        }
         if (!completed)
             logger.LogWarning("Finish loading {ConnectionId}: stale or missing selected-session generation", id);
         else

@@ -1,0 +1,88 @@
+id 25081 -> AdvanceAltar/AdvanceAltar_stage_01_1easy.map
+=== map/AdvanceAltar/AdvanceAltar_stage_01_1easy.map ===
+[background correction]
+-80
+[player number]
+2 8
+[pvp start area]
+0 0 0 0 0 0 0 0 0 0 0 0
+[type]
+[normal]
+[greed]
+BB BB
+[tile]
+Tile/LeftTile.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/Tile0.til Tile/RightTile2_edge.til
+[/tile]
+[far sight scroll]
+56
+[near sight scroll]
+110
+[background animation]
+[ani info]
+[filename]
+Animation/far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[pathgate pos]
+74 2007 145 2067 318 2860 269 2868
+[dungeon start area]
+211 303 28 20
+[sound]
+BLOOD_RAIN_AMB BLOOD_THUNDER_AMB
+[/sound]
+[animation]
+Animation/StoneImage1.ani [middleback] 441 265 0 Animation/StoneImage0.ani [middleback] 1077 265 0 Animation/MagicCircle00.ani [bottom] 1694 273 0 Animation/MagicCircle01.ani [bottom] 1694 273 0 Animation/MagicCircle02.ani [bottom] 1694 273 0
+[/animation]
+[passive object]
+12639 113 260 0 12639 91 323 0 12671 20 280 0 12617 245 220 105 12610 759 220 105 12590 1110 238 0 12590 662 238 0 12590 215 238 0 12590 1233 318 0 12590 782 318 0 12590 335 318 0 12682 1303 249 0 12683 1423 329 0 12682 1383 249 0 12683 1503 329 0 12682 1463 249 0 12683 1583 329 0 12682 1543 249 0 12683 1663 329 0 12682 1623 249 0 12683 1743 329 0 12682 1703 249 0 12683 1823 329 0 12684 1323 258 0
+[/passive object]
+[monster]
+64632 1 0 450 270 0 1 1 [fixed] [normal] 64597 0 1 20 280 0 1 1 [fixed] [normal]
+[/monster]
+[monster specific AI]
+[normal] [normal]
+[/monster specific AI]
+[monster team]
+0 0
+[/monster team]
+[center index]
+64597
+[/center index]
+[time line]
+[phase]
+[duration]
+125000
+[/duration]
+[type]
+normal
+[/type]
+[action assign]
+1001 -1 -1
+[/action assign]
+[/phase]
+[phase]
+[duration]
+20000
+[/duration]
+[type]
+named
+[/type]
+[action assign]
+1002 -1 -1
+[/action assign]
+[/phase]
+[/time line]
+[summon start area]
+15 260 1 1
+[map name]
+PVP无名
+[camera edge exception]
+1
+[/camera edge exception]
+[camera edge recovery object]
+12684 1
+[/camera edge recovery object]

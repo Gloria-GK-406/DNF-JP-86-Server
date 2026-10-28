@@ -1,0 +1,7 @@
+# Preserve local verification output without committing full machine logs or inventories.
+*.log
+__pycache__/
+70-symbols.txt
+70-data-symbols.txt
+70-manager-symbols.txt
+pvf-files.txt

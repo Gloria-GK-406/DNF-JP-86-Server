@@ -1,0 +1,1171 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\µÈ¼¶²¹¶¡\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x812d378 _ZN12advancealtar9ProcStage18ProcSummonObjectMsC1ERNS_10CharacDataERKi (120 bytes)
+0x0812d378: push     ebp
+0x0812d379: mov      ebp, esp
+0x0812d37b: push     esi
+0x0812d37c: push     ebx
+0x0812d37d: sub      esp, 0x10
+0x0812d380: mov      eax, dword ptr [ebp + 8]
+0x0812d383: mov      dword ptr [eax], 0
+0x0812d389: mov      eax, dword ptr [ebp + 8]
+0x0812d38c: add      eax, 4
+0x0812d38f: mov      dword ptr [esp], eax
+0x0812d392: call     0x8134f68 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EEC2Ev
+0x0812d397: mov      eax, dword ptr [ebp + 8]
+0x0812d39a: add      eax, 0x10
+0x0812d39d: mov      dword ptr [esp], eax
+0x0812d3a0: call     0x8134fda ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEEC2Ev
+0x0812d3a5: mov      eax, dword ptr [ebp + 8]
+0x0812d3a8: mov      dword ptr [eax + 0x28], 0
+0x0812d3af: mov      eax, dword ptr [ebp + 8]
+0x0812d3b2: mov      dword ptr [eax + 0x2c], 0
+0x0812d3b9: mov      eax, dword ptr [ebp + 8]
+0x0812d3bc: mov      edx, dword ptr [ebp + 0xc]
+0x0812d3bf: mov      dword ptr [eax + 0x30], edx
+0x0812d3c2: mov      eax, dword ptr [ebp + 8]
+0x0812d3c5: mov      edx, dword ptr [ebp + 0x10]
+0x0812d3c8: mov      dword ptr [eax + 0x34], edx
+0x0812d3cb: add      esp, 0x10
+0x0812d3ce: pop      ebx
+0x0812d3cf: pop      esi
+0x0812d3d0: pop      ebp
+0x0812d3d1: ret
+0x0812d3d2: mov      ebx, edx
+0x0812d3d4: mov      esi, eax
+0x0812d3d6: mov      eax, dword ptr [ebp + 8]
+0x0812d3d9: add      eax, 4
+0x0812d3dc: mov      dword ptr [esp], eax
+0x0812d3df: call     0x8134f7c ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EED1Ev
+0x0812d3e4: mov      eax, esi
+0x0812d3e6: mov      edx, ebx
+0x0812d3e8: mov      dword ptr [esp], eax
+0x0812d3eb: call     0x8ae3750 ; _Unwind_Resume
+
+## 0x812d378 _ZN12advancealtar9ProcStage18ProcSummonObjectMsC2ERNS_10CharacDataERKi (120 bytes)
+0x0812d378: push     ebp
+0x0812d379: mov      ebp, esp
+0x0812d37b: push     esi
+0x0812d37c: push     ebx
+0x0812d37d: sub      esp, 0x10
+0x0812d380: mov      eax, dword ptr [ebp + 8]
+0x0812d383: mov      dword ptr [eax], 0
+0x0812d389: mov      eax, dword ptr [ebp + 8]
+0x0812d38c: add      eax, 4
+0x0812d38f: mov      dword ptr [esp], eax
+0x0812d392: call     0x8134f68 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EEC2Ev
+0x0812d397: mov      eax, dword ptr [ebp + 8]
+0x0812d39a: add      eax, 0x10
+0x0812d39d: mov      dword ptr [esp], eax
+0x0812d3a0: call     0x8134fda ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEEC2Ev
+0x0812d3a5: mov      eax, dword ptr [ebp + 8]
+0x0812d3a8: mov      dword ptr [eax + 0x28], 0
+0x0812d3af: mov      eax, dword ptr [ebp + 8]
+0x0812d3b2: mov      dword ptr [eax + 0x2c], 0
+0x0812d3b9: mov      eax, dword ptr [ebp + 8]
+0x0812d3bc: mov      edx, dword ptr [ebp + 0xc]
+0x0812d3bf: mov      dword ptr [eax + 0x30], edx
+0x0812d3c2: mov      eax, dword ptr [ebp + 8]
+0x0812d3c5: mov      edx, dword ptr [ebp + 0x10]
+0x0812d3c8: mov      dword ptr [eax + 0x34], edx
+0x0812d3cb: add      esp, 0x10
+0x0812d3ce: pop      ebx
+0x0812d3cf: pop      esi
+0x0812d3d0: pop      ebp
+0x0812d3d1: ret
+0x0812d3d2: mov      ebx, edx
+0x0812d3d4: mov      esi, eax
+0x0812d3d6: mov      eax, dword ptr [ebp + 8]
+0x0812d3d9: add      eax, 4
+0x0812d3dc: mov      dword ptr [esp], eax
+0x0812d3df: call     0x8134f7c ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EED1Ev
+0x0812d3e4: mov      eax, esi
+0x0812d3e6: mov      edx, ebx
+0x0812d3e8: mov      dword ptr [esp], eax
+0x0812d3eb: call     0x8ae3750 ; _Unwind_Resume
+
+## 0x812d3f0 _ZN12advancealtar9ProcStage18ProcSummonObjectMsD1Ev (75 bytes)
+0x0812d3f0: push     ebp
+0x0812d3f1: mov      ebp, esp
+0x0812d3f3: push     esi
+0x0812d3f4: push     ebx
+0x0812d3f5: sub      esp, 0x10
+0x0812d3f8: mov      eax, dword ptr [ebp + 8]
+0x0812d3fb: add      eax, 0x10
+0x0812d3fe: mov      dword ptr [esp], eax
+0x0812d401: call     0x81349ae ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEED1Ev
+0x0812d406: jmp      0x812d426
+0x0812d408: mov      ebx, edx
+0x0812d40a: mov      esi, eax
+0x0812d40c: mov      eax, dword ptr [ebp + 8]
+0x0812d40f: add      eax, 4
+0x0812d412: mov      dword ptr [esp], eax
+0x0812d415: call     0x8134f7c ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EED1Ev
+0x0812d41a: mov      eax, esi
+0x0812d41c: mov      edx, ebx
+0x0812d41e: mov      dword ptr [esp], eax
+0x0812d421: call     0x8ae3750 ; _Unwind_Resume
+0x0812d426: mov      eax, dword ptr [ebp + 8]
+0x0812d429: add      eax, 4
+0x0812d42c: mov      dword ptr [esp], eax
+0x0812d42f: call     0x8134f7c ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EED1Ev
+0x0812d434: add      esp, 0x10
+0x0812d437: pop      ebx
+0x0812d438: pop      esi
+0x0812d439: pop      ebp
+0x0812d43a: ret
+
+## 0x812d3f0 _ZN12advancealtar9ProcStage18ProcSummonObjectMsD2Ev (75 bytes)
+0x0812d3f0: push     ebp
+0x0812d3f1: mov      ebp, esp
+0x0812d3f3: push     esi
+0x0812d3f4: push     ebx
+0x0812d3f5: sub      esp, 0x10
+0x0812d3f8: mov      eax, dword ptr [ebp + 8]
+0x0812d3fb: add      eax, 0x10
+0x0812d3fe: mov      dword ptr [esp], eax
+0x0812d401: call     0x81349ae ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEED1Ev
+0x0812d406: jmp      0x812d426
+0x0812d408: mov      ebx, edx
+0x0812d40a: mov      esi, eax
+0x0812d40c: mov      eax, dword ptr [ebp + 8]
+0x0812d40f: add      eax, 4
+0x0812d412: mov      dword ptr [esp], eax
+0x0812d415: call     0x8134f7c ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EED1Ev
+0x0812d41a: mov      eax, esi
+0x0812d41c: mov      edx, ebx
+0x0812d41e: mov      dword ptr [esp], eax
+0x0812d421: call     0x8ae3750 ; _Unwind_Resume
+0x0812d426: mov      eax, dword ptr [ebp + 8]
+0x0812d429: add      eax, 4
+0x0812d42c: mov      dword ptr [esp], eax
+0x0812d42f: call     0x8134f7c ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EED1Ev
+0x0812d434: add      esp, 0x10
+0x0812d437: pop      ebx
+0x0812d438: pop      esi
+0x0812d439: pop      ebp
+0x0812d43a: ret
+
+## 0x812d43c _ZN12advancealtar9ProcStage18ProcSummonObjectMs5resetEv (205 bytes)
+0x0812d43c: push     ebp
+0x0812d43d: mov      ebp, esp
+0x0812d43f: sub      esp, 0x28
+0x0812d442: mov      eax, dword ptr [ebp + 8]
+0x0812d445: mov      dword ptr [eax], 0
+0x0812d44b: mov      eax, dword ptr [ebp + 8]
+0x0812d44e: mov      dword ptr [eax + 0x28], 0
+0x0812d455: mov      eax, dword ptr [ebp + 8]
+0x0812d458: mov      dword ptr [eax + 0x2c], 0
+0x0812d45f: mov      eax, dword ptr [ebp + 8]
+0x0812d462: lea      edx, [eax + 4]
+0x0812d465: lea      eax, [ebp - 0x14]
+0x0812d468: mov      dword ptr [esp + 4], edx
+0x0812d46c: mov      dword ptr [esp], eax
+0x0812d46f: call     0x8135054 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE5beginEv
+0x0812d474: sub      esp, 4
+0x0812d477: lea      eax, [ebp - 0x14]
+0x0812d47a: mov      dword ptr [esp + 4], eax
+0x0812d47e: lea      eax, [ebp - 0x18]
+0x0812d481: mov      dword ptr [esp], eax
+0x0812d484: call     0x8135078 ; _ZN9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEC2IPS3_EERKNS0_IT_NS_11__enable_ifIXsrSt10__are_sameISC_SB_E7__valueES8_E6__typeEEE
+0x0812d489: jmp      0x812d4bd
+0x0812d48b: lea      eax, [ebp - 0x18]
+0x0812d48e: mov      dword ptr [esp], eax
+0x0812d491: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d496: mov      eax, dword ptr [eax]
+0x0812d498: mov      dword ptr [esp], eax
+0x0812d49b: call     0x87244f0 ; _ZdlPv
+0x0812d4a0: lea      eax, [ebp - 0xc]
+0x0812d4a3: mov      dword ptr [esp + 8], 0
+0x0812d4ab: lea      edx, [ebp - 0x18]
+0x0812d4ae: mov      dword ptr [esp + 4], edx
+0x0812d4b2: mov      dword ptr [esp], eax
+0x0812d4b5: call     0x81350e4 ; _ZN9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEppEi
+0x0812d4ba: sub      esp, 4
+0x0812d4bd: mov      eax, dword ptr [ebp + 8]
+0x0812d4c0: lea      edx, [eax + 4]
+0x0812d4c3: lea      eax, [ebp - 0x10]
+0x0812d4c6: mov      dword ptr [esp + 4], edx
+0x0812d4ca: mov      dword ptr [esp], eax
+0x0812d4cd: call     0x8135092 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE3endEv
+0x0812d4d2: sub      esp, 4
+0x0812d4d5: lea      eax, [ebp - 0x10]
+0x0812d4d8: mov      dword ptr [esp + 4], eax
+0x0812d4dc: lea      eax, [ebp - 0x18]
+0x0812d4df: mov      dword ptr [esp], eax
+0x0812d4e2: call     0x81350b8 ; _ZN9__gnu_cxxneIPKPN12advancealtar15_SummonObjectMsEPS3_St6vectorIS3_SaIS3_EEEEbRKNS_17__normal_iteratorIT_T1_EERKNSA_IT0_SC_EE
+0x0812d4e7: test     al, al
+0x0812d4e9: jne      0x812d48b
+0x0812d4eb: mov      eax, dword ptr [ebp + 8]
+0x0812d4ee: add      eax, 0x10
+0x0812d4f1: mov      dword ptr [esp], eax
+0x0812d4f4: call     0x8135122 ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEE5clearEv
+0x0812d4f9: mov      eax, dword ptr [ebp + 8]
+0x0812d4fc: add      eax, 4
+0x0812d4ff: mov      dword ptr [esp], eax
+0x0812d502: call     0x8135136 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE5clearEv
+0x0812d507: leave
+0x0812d508: ret
+
+## 0x812d50a _ZNK12advancealtar9ProcStage18ProcSummonObjectMs11isEndSummonEv (53 bytes)
+0x0812d50a: push     ebp
+0x0812d50b: mov      ebp, esp
+0x0812d50d: push     ebx
+0x0812d50e: sub      esp, 0x14
+0x0812d511: mov      eax, dword ptr [ebp + 8]
+0x0812d514: mov      ebx, dword ptr [eax]
+0x0812d516: mov      eax, dword ptr [ebp + 8]
+0x0812d519: add      eax, 4
+0x0812d51c: mov      dword ptr [esp], eax
+0x0812d51f: call     0x8135152 ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE4sizeEv
+0x0812d524: cmp      ebx, eax
+0x0812d526: setae    al
+0x0812d529: test     al, al
+0x0812d52b: je       0x812d534
+0x0812d52d: mov      eax, 1
+0x0812d532: jmp      0x812d539
+0x0812d534: mov      eax, 0
+0x0812d539: add      esp, 0x14
+0x0812d53c: pop      ebx
+0x0812d53d: pop      ebp
+0x0812d53e: ret
+
+## 0x812d540 _ZN12advancealtar9ProcStage18ProcSummonObjectMs18insertSummonObjectERNS_15_SummonObjectMsE (121 bytes)
+0x0812d540: push     ebp
+0x0812d541: mov      ebp, esp
+0x0812d543: sub      esp, 0x38
+0x0812d546: mov      eax, dword ptr [ebp + 0xc]
+0x0812d549: mov      dword ptr [ebp - 0x28], eax
+0x0812d54c: mov      eax, dword ptr [ebp + 8]
+0x0812d54f: lea      edx, [eax + 4]
+0x0812d552: lea      eax, [ebp - 0x28]
+0x0812d555: mov      dword ptr [esp + 4], eax
+0x0812d559: mov      dword ptr [esp], edx
+0x0812d55c: call     0x813516e ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE9push_backEOS2_
+0x0812d561: mov      eax, dword ptr [ebp + 0xc]
+0x0812d564: mov      dword ptr [ebp - 0xc], eax
+0x0812d567: mov      eax, dword ptr [ebp + 0xc]
+0x0812d56a: lea      ecx, [eax + 4]
+0x0812d56d: lea      eax, [ebp - 0x14]
+0x0812d570: lea      edx, [ebp - 0xc]
+0x0812d573: mov      dword ptr [esp + 8], edx
+0x0812d577: mov      dword ptr [esp + 4], ecx
+0x0812d57b: mov      dword ptr [esp], eax
+0x0812d57e: call     0x8135198 ; _ZSt9make_pairIRsPN12advancealtar15_SummonObjectMsEESt4pairINSt17__decay_and_stripIT_E6__typeENS5_IT0_E6__typeEEOS6_OS9_
+0x0812d583: sub      esp, 4
+0x0812d586: lea      eax, [ebp - 0x14]
+0x0812d589: mov      dword ptr [esp + 4], eax
+0x0812d58d: lea      eax, [ebp - 0x1c]
+0x0812d590: mov      dword ptr [esp], eax
+0x0812d593: call     0x81351da ; _ZNSt4pairIKsPN12advancealtar15_SummonObjectMsEEC1IsS3_EEOS_IT_T0_E
+0x0812d598: mov      eax, dword ptr [ebp + 8]
+0x0812d59b: lea      ecx, [eax + 0x10]
+0x0812d59e: lea      eax, [ebp - 0x24]
+0x0812d5a1: lea      edx, [ebp - 0x1c]
+0x0812d5a4: mov      dword ptr [esp + 8], edx
+0x0812d5a8: mov      dword ptr [esp + 4], ecx
+0x0812d5ac: mov      dword ptr [esp], eax
+0x0812d5af: call     0x813520c ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEE6insertERKS7_
+0x0812d5b4: sub      esp, 4
+0x0812d5b7: leave
+0x0812d5b8: ret
+
+## 0x812d5ba _ZN12advancealtar9ProcStage18ProcSummonObjectMs22getLastInsertDataIndexEv (22 bytes)
+0x0812d5ba: push     ebp
+0x0812d5bb: mov      ebp, esp
+0x0812d5bd: sub      esp, 0x18
+0x0812d5c0: mov      eax, dword ptr [ebp + 8]
+0x0812d5c3: add      eax, 4
+0x0812d5c6: mov      dword ptr [esp], eax
+0x0812d5c9: call     0x8135152 ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE4sizeEv
+0x0812d5ce: leave
+0x0812d5cf: ret
+
+## 0x812d5d0 _ZN12advancealtar9ProcStage18ProcSummonObjectMs24completePushSummonObjectEi (135 bytes)
+0x0812d5d0: push     ebp
+0x0812d5d1: mov      ebp, esp
+0x0812d5d3: push     ebx
+0x0812d5d4: sub      esp, 0x14
+0x0812d5d7: cmp      dword ptr [ebp + 0xc], 0
+0x0812d5db: jle      0x812d5f0
+0x0812d5dd: mov      eax, dword ptr [ebp + 8]
+0x0812d5e0: add      eax, 4
+0x0812d5e3: mov      dword ptr [esp], eax
+0x0812d5e6: call     0x8135152 ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE4sizeEv
+0x0812d5eb: cmp      eax, dword ptr [ebp + 0xc]
+0x0812d5ee: jg       0x812d5f7
+0x0812d5f0: mov      eax, 1
+0x0812d5f5: jmp      0x812d5fc
+0x0812d5f7: mov      eax, 0
+0x0812d5fc: test     al, al
+0x0812d5fe: jne      0x812d650
+0x0812d600: mov      eax, dword ptr [ebp + 8]
+0x0812d603: add      eax, 4
+0x0812d606: mov      dword ptr [esp], eax
+0x0812d609: call     0x8135152 ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE4sizeEv
+0x0812d60e: lea      edx, [eax - 1]
+0x0812d611: mov      eax, dword ptr [ebp + 8]
+0x0812d614: add      eax, 4
+0x0812d617: mov      dword ptr [esp + 4], edx
+0x0812d61b: mov      dword ptr [esp], eax
+0x0812d61e: call     0x8135238 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EEixEj
+0x0812d623: mov      ebx, eax
+0x0812d625: mov      eax, dword ptr [ebp + 0xc]
+0x0812d628: mov      edx, dword ptr [ebp + 8]
+0x0812d62b: add      edx, 4
+0x0812d62e: mov      dword ptr [esp + 4], eax
+0x0812d632: mov      dword ptr [esp], edx
+0x0812d635: call     0x8135238 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EEixEj
+0x0812d63a: mov      dword ptr [esp + 8], 0x812daec
+0x0812d642: mov      dword ptr [esp + 4], ebx
+0x0812d646: mov      dword ptr [esp], eax
+0x0812d649: call     0x813524a ; _ZSt4sortIPPN12advancealtar15_SummonObjectMsEPFbPKS1_S5_EEvT_S8_T0_
+0x0812d64e: jmp      0x812d651
+0x0812d650: nop
+0x0812d651: add      esp, 0x14
+0x0812d654: pop      ebx
+0x0812d655: pop      ebp
+0x0812d656: ret
+
+## 0x812d658 _ZN12advancealtar9ProcStage18ProcSummonObjectMs25summonObjectAndSendPacketEv (428 bytes)
+0x0812d658: push     ebp
+0x0812d659: mov      ebp, esp
+0x0812d65b: push     esi
+0x0812d65c: push     ebx
+0x0812d65d: sub      esp, 0x50
+0x0812d660: mov      eax, dword ptr [ebp + 8]
+0x0812d663: add      eax, 4
+0x0812d666: mov      dword ptr [esp], eax
+0x0812d669: call     0x8135152 ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE4sizeEv
+0x0812d66e: mov      dword ptr [ebp - 0x10], eax
+0x0812d671: jmp      0x812d7e7
+0x0812d676: mov      eax, dword ptr [ebp + 8]
+0x0812d679: mov      eax, dword ptr [eax]
+0x0812d67b: mov      edx, dword ptr [ebp + 8]
+0x0812d67e: add      edx, 4
+0x0812d681: mov      dword ptr [esp + 4], eax
+0x0812d685: mov      dword ptr [esp], edx
+0x0812d688: call     0x8135238 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EEixEj
+0x0812d68d: mov      eax, dword ptr [eax]
+0x0812d68f: test     eax, eax
+0x0812d691: sete     al
+0x0812d694: test     al, al
+0x0812d696: jne      0x812d7d9
+0x0812d69c: mov      eax, dword ptr [ebp + 8]
+0x0812d69f: mov      eax, dword ptr [eax]
+0x0812d6a1: mov      edx, dword ptr [ebp + 8]
+0x0812d6a4: add      edx, 4
+0x0812d6a7: mov      dword ptr [esp + 4], eax
+0x0812d6ab: mov      dword ptr [esp], edx
+0x0812d6ae: call     0x8135238 ; _ZNSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EEixEj
+0x0812d6b3: mov      eax, dword ptr [eax]
+0x0812d6b5: mov      dword ptr [ebp - 0xc], eax
+0x0812d6b8: mov      eax, dword ptr [ebp - 0xc]
+0x0812d6bb: mov      edx, dword ptr [eax]
+0x0812d6bd: mov      eax, dword ptr [ebp + 8]
+0x0812d6c0: mov      eax, dword ptr [eax + 0x34]
+0x0812d6c3: mov      eax, dword ptr [eax]
+0x0812d6c5: cmp      edx, eax
+0x0812d6c7: jg       0x812d7fc
+0x0812d6cd: mov      eax, dword ptr [ebp - 0xc]
+0x0812d6d0: mov      edx, dword ptr [eax]
+0x0812d6d2: mov      eax, dword ptr [ebp + 8]
+0x0812d6d5: mov      eax, dword ptr [eax + 0x34]
+0x0812d6d8: mov      eax, dword ptr [eax]
+0x0812d6da: cmp      edx, eax
+0x0812d6dc: jg       0x812d7da
+0x0812d6e2: mov      eax, dword ptr [ebp - 0xc]
+0x0812d6e5: mov      eax, dword ptr [eax + 0x10]
+0x0812d6e8: test     eax, eax
+0x0812d6ea: jne      0x812d7da
+0x0812d6f0: mov      eax, dword ptr [ebp + 8]
+0x0812d6f3: mov      eax, dword ptr [eax + 0x2c]
+0x0812d6f6: lea      edx, [eax + 1]
+0x0812d6f9: mov      eax, dword ptr [ebp + 8]
+0x0812d6fc: mov      dword ptr [eax + 0x2c], edx
+0x0812d6ff: mov      eax, dword ptr [ebp - 0xc]
+0x0812d702: mov      dword ptr [eax + 0x10], 1
+0x0812d709: lea      eax, [ebp - 0x44]
+0x0812d70c: mov      dword ptr [esp], eax
+0x0812d70f: call     0x81346a6 ; _ZN16NOTIPacketStruct26_NotiAdvanceAltarSpawnUnitC1Ev
+0x0812d714: mov      eax, dword ptr [ebp - 0xc]
+0x0812d717: movzx    eax, word ptr [eax + 4]
+0x0812d71b: mov      word ptr [ebp - 0x44], ax
+0x0812d71f: mov      eax, dword ptr [ebp - 0xc]
+0x0812d722: add      eax, 0x14
+0x0812d725: mov      dword ptr [esp + 8], 0x24
+0x0812d72d: mov      dword ptr [esp + 4], eax
+0x0812d731: lea      eax, [ebp - 0x44]
+0x0812d734: add      eax, 4
+0x0812d737: mov      dword ptr [esp], eax
+0x0812d73a: call     0x807d8a0 ;
+0x0812d73f: lea      eax, [ebp - 0x1c]
+0x0812d742: mov      dword ptr [esp], eax
+0x0812d745: call     0x858dd4c ; _ZN11PacketGuardC2Ev
+0x0812d74a: mov      dword ptr [esp + 8], 0x20b
+0x0812d752: mov      dword ptr [esp + 4], 0
+0x0812d75a: lea      eax, [ebp - 0x1c]
+0x0812d75d: mov      dword ptr [esp], eax
+0x0812d760: call     0x80cb8fc ; _ZN18InterfacePacketBuf10put_headerEii
+0x0812d765: lea      eax, [ebp - 0x44]
+0x0812d768: mov      dword ptr [esp + 8], 0x28
+0x0812d770: mov      dword ptr [esp + 4], eax
+0x0812d774: lea      eax, [ebp - 0x1c]
+0x0812d777: mov      dword ptr [esp], eax
+0x0812d77a: call     0x811df08 ; _ZN18InterfacePacketBuf10put_binaryEPci
+0x0812d77f: mov      dword ptr [esp + 4], 1
+0x0812d787: lea      eax, [ebp - 0x1c]
+0x0812d78a: mov      dword ptr [esp], eax
+0x0812d78d: call     0x80cb958 ; _ZN18InterfacePacketBuf8finalizeEb
+0x0812d792: mov      eax, dword ptr [ebp + 8]
+0x0812d795: mov      eax, dword ptr [eax + 0x30]
+0x0812d798: mov      dword ptr [esp], eax
+0x0812d79b: call     0x8134814 ; _ZNK12advancealtar10CharacData7getUserEv
+0x0812d7a0: lea      edx, [ebp - 0x1c]
+0x0812d7a3: mov      dword ptr [esp + 4], edx
+0x0812d7a7: mov      dword ptr [esp], eax
+0x0812d7aa: call     0x86485ba ; _ZN5CUser4SendER11PacketGuard
+0x0812d7af: jmp      0x812d7cc
+0x0812d7b1: mov      ebx, edx
+0x0812d7b3: mov      esi, eax
+0x0812d7b5: lea      eax, [ebp - 0x1c]
+0x0812d7b8: mov      dword ptr [esp], eax
+0x0812d7bb: call     0x858de80 ; _ZN11PacketGuardD1Ev
+0x0812d7c0: mov      eax, esi
+0x0812d7c2: mov      edx, ebx
+0x0812d7c4: mov      dword ptr [esp], eax
+0x0812d7c7: call     0x8ae3750 ; _Unwind_Resume
+0x0812d7cc: lea      eax, [ebp - 0x1c]
+0x0812d7cf: mov      dword ptr [esp], eax
+0x0812d7d2: call     0x858de80 ; _ZN11PacketGuardD1Ev
+0x0812d7d7: jmp      0x812d7da
+0x0812d7d9: nop
+0x0812d7da: mov      eax, dword ptr [ebp + 8]
+0x0812d7dd: mov      eax, dword ptr [eax]
+0x0812d7df: lea      edx, [eax + 1]
+0x0812d7e2: mov      eax, dword ptr [ebp + 8]
+0x0812d7e5: mov      dword ptr [eax], edx
+0x0812d7e7: mov      eax, dword ptr [ebp + 8]
+0x0812d7ea: mov      eax, dword ptr [eax]
+0x0812d7ec: cmp      eax, dword ptr [ebp - 0x10]
+0x0812d7ef: setb     al
+0x0812d7f2: test     al, al
+0x0812d7f4: jne      0x812d676
+0x0812d7fa: jmp      0x812d7fd
+0x0812d7fc: nop
+0x0812d7fd: add      esp, 0x50
+0x0812d800: pop      ebx
+0x0812d801: pop      esi
+0x0812d802: pop      ebp
+0x0812d803: ret
+
+## 0x812d804 _ZNK12advancealtar9ProcStage18ProcSummonObjectMs8debugLogEv (743 bytes)
+0x0812d804: push     ebp
+0x0812d805: mov      ebp, esp
+0x0812d807: push     edi
+0x0812d808: push     esi
+0x0812d809: push     ebx
+0x0812d80a: sub      esp, 0x9c
+0x0812d810: mov      eax, dword ptr [ebp + 8]
+0x0812d813: lea      edx, [eax + 4]
+0x0812d816: lea      eax, [ebp - 0x54]
+0x0812d819: mov      dword ptr [esp + 4], edx
+0x0812d81d: mov      dword ptr [esp], eax
+0x0812d820: call     0x81352aa ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE5beginEv
+0x0812d825: sub      esp, 4
+0x0812d828: mov      dword ptr [ebp - 0x20], 0
+0x0812d82f: jmp      0x812d951
+0x0812d834: lea      eax, [ebp - 0x54]
+0x0812d837: mov      dword ptr [esp], eax
+0x0812d83a: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d83f: mov      eax, dword ptr [eax]
+0x0812d841: test     eax, eax
+0x0812d843: sete     al
+0x0812d846: test     al, al
+0x0812d848: jne      0x812d92f
+0x0812d84e: lea      eax, [ebp - 0x54]
+0x0812d851: mov      dword ptr [esp], eax
+0x0812d854: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d859: mov      eax, dword ptr [eax]
+0x0812d85b: mov      eax, dword ptr [eax + 0x20]
+0x0812d85e: mov      dword ptr [ebp - 0x78], eax
+0x0812d861: lea      eax, [ebp - 0x54]
+0x0812d864: mov      dword ptr [esp], eax
+0x0812d867: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d86c: mov      eax, dword ptr [eax]
+0x0812d86e: mov      eax, dword ptr [eax + 0x1c]
+0x0812d871: mov      dword ptr [ebp - 0x74], eax
+0x0812d874: lea      eax, [ebp - 0x54]
+0x0812d877: mov      dword ptr [esp], eax
+0x0812d87a: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d87f: mov      eax, dword ptr [eax]
+0x0812d881: movzx    eax, byte ptr [eax + 0xc]
+0x0812d885: movzx    eax, al
+0x0812d888: mov      dword ptr [ebp - 0x70], eax
+0x0812d88b: lea      eax, [ebp - 0x54]
+0x0812d88e: mov      dword ptr [esp], eax
+0x0812d891: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d896: mov      eax, dword ptr [eax]
+0x0812d898: movzx    eax, word ptr [eax + 4]
+0x0812d89c: cwde
+0x0812d89d: mov      dword ptr [ebp - 0x6c], eax
+0x0812d8a0: lea      eax, [ebp - 0x54]
+0x0812d8a3: mov      dword ptr [esp], eax
+0x0812d8a6: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d8ab: mov      eax, dword ptr [eax]
+0x0812d8ad: mov      edi, dword ptr [eax + 0x14]
+0x0812d8b0: lea      eax, [ebp - 0x54]
+0x0812d8b3: mov      dword ptr [esp], eax
+0x0812d8b6: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d8bb: mov      eax, dword ptr [eax]
+0x0812d8bd: mov      esi, dword ptr [eax + 8]
+0x0812d8c0: lea      eax, [ebp - 0x54]
+0x0812d8c3: mov      dword ptr [esp], eax
+0x0812d8c6: call     0x8135118 ; _ZNK9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEdeEv
+0x0812d8cb: mov      eax, dword ptr [eax]
+0x0812d8cd: mov      ebx, dword ptr [eax]
+0x0812d8cf: mov      dword ptr [esp + 0xc], 0
+0x0812d8d7: mov      dword ptr [esp + 8], 0x140
+0x0812d8df: mov      dword ptr [esp + 4], 0x8b6d5e0
+0x0812d8e7: lea      eax, [ebp - 0x4c]
+0x0812d8ea: mov      dword ptr [esp], eax
+0x0812d8ed: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0x0812d8f2: mov      eax, dword ptr [ebp - 0x78]
+0x0812d8f5: mov      dword ptr [esp + 0x20], eax
+0x0812d8f9: mov      eax, dword ptr [ebp - 0x74]
+0x0812d8fc: mov      dword ptr [esp + 0x1c], eax
+0x0812d900: mov      eax, dword ptr [ebp - 0x70]
+0x0812d903: mov      dword ptr [esp + 0x18], eax
+0x0812d907: mov      eax, dword ptr [ebp - 0x6c]
+0x0812d90a: mov      dword ptr [esp + 0x14], eax
+0x0812d90e: mov      dword ptr [esp + 0x10], edi
+0x0812d912: mov      dword ptr [esp + 0xc], esi
+0x0812d916: mov      dword ptr [esp + 8], ebx
+0x0812d91a: mov      dword ptr [esp + 4], 0x8b6c618
+0x0812d922: lea      eax, [ebp - 0x4c]
+0x0812d925: mov      dword ptr [esp], eax
+0x0812d928: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0x0812d92d: jmp      0x812d930
+0x0812d92f: nop
+0x0812d930: lea      eax, [ebp - 0x3c]
+0x0812d933: mov      dword ptr [esp + 8], 0
+0x0812d93b: lea      edx, [ebp - 0x54]
+0x0812d93e: mov      dword ptr [esp + 4], edx
+0x0812d942: mov      dword ptr [esp], eax
+0x0812d945: call     0x81350e4 ; _ZN9__gnu_cxx17__normal_iteratorIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEppEi
+0x0812d94a: sub      esp, 4
+0x0812d94d: add      dword ptr [ebp - 0x20], 1
+0x0812d951: mov      eax, dword ptr [ebp + 8]
+0x0812d954: lea      edx, [eax + 4]
+0x0812d957: lea      eax, [ebp - 0x50]
+0x0812d95a: mov      dword ptr [esp + 4], edx
+0x0812d95e: mov      dword ptr [esp], eax
+0x0812d961: call     0x81352d6 ; _ZNKSt6vectorIPN12advancealtar15_SummonObjectMsESaIS2_EE3endEv
+0x0812d966: sub      esp, 4
+0x0812d969: lea      eax, [ebp - 0x50]
+0x0812d96c: mov      dword ptr [esp + 4], eax
+0x0812d970: lea      eax, [ebp - 0x54]
+0x0812d973: mov      dword ptr [esp], eax
+0x0812d976: call     0x8135302 ; _ZN9__gnu_cxxneIPKPN12advancealtar15_SummonObjectMsESt6vectorIS3_SaIS3_EEEEbRKNS_17__normal_iteratorIT_T0_EESE_
+0x0812d97b: test     al, al
+0x0812d97d: jne      0x812d834
+0x0812d983: mov      eax, dword ptr [ebp + 8]
+0x0812d986: lea      edx, [eax + 0x10]
+0x0812d989: lea      eax, [ebp - 0x58]
+0x0812d98c: mov      dword ptr [esp + 4], edx
+0x0812d990: mov      dword ptr [esp], eax
+0x0812d993: call     0x813532e ; _ZNKSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEE5beginEv
+0x0812d998: sub      esp, 4
+0x0812d99b: mov      dword ptr [ebp - 0x1c], 0
+0x0812d9a2: jmp      0x812daae
+0x0812d9a7: lea      eax, [ebp - 0x58]
+0x0812d9aa: mov      dword ptr [esp], eax
+0x0812d9ad: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812d9b2: mov      eax, dword ptr [eax + 4]
+0x0812d9b5: mov      eax, dword ptr [eax + 0x20]
+0x0812d9b8: mov      dword ptr [ebp - 0x68], eax
+0x0812d9bb: lea      eax, [ebp - 0x58]
+0x0812d9be: mov      dword ptr [esp], eax
+0x0812d9c1: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812d9c6: mov      eax, dword ptr [eax + 4]
+0x0812d9c9: mov      eax, dword ptr [eax + 0x1c]
+0x0812d9cc: mov      dword ptr [ebp - 0x64], eax
+0x0812d9cf: lea      eax, [ebp - 0x58]
+0x0812d9d2: mov      dword ptr [esp], eax
+0x0812d9d5: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812d9da: mov      eax, dword ptr [eax + 4]
+0x0812d9dd: movzx    eax, byte ptr [eax + 0xc]
+0x0812d9e1: movzx    eax, al
+0x0812d9e4: mov      dword ptr [ebp - 0x60], eax
+0x0812d9e7: lea      eax, [ebp - 0x58]
+0x0812d9ea: mov      dword ptr [esp], eax
+0x0812d9ed: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812d9f2: mov      eax, dword ptr [eax + 4]
+0x0812d9f5: movzx    eax, word ptr [eax + 4]
+0x0812d9f9: cwde
+0x0812d9fa: mov      dword ptr [ebp - 0x5c], eax
+0x0812d9fd: lea      eax, [ebp - 0x58]
+0x0812da00: mov      dword ptr [esp], eax
+0x0812da03: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812da08: mov      eax, dword ptr [eax + 4]
+0x0812da0b: mov      edi, dword ptr [eax + 0x14]
+0x0812da0e: lea      eax, [ebp - 0x58]
+0x0812da11: mov      dword ptr [esp], eax
+0x0812da14: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812da19: mov      eax, dword ptr [eax + 4]
+0x0812da1c: mov      esi, dword ptr [eax + 8]
+0x0812da1f: lea      eax, [ebp - 0x58]
+0x0812da22: mov      dword ptr [esp], eax
+0x0812da25: call     0x81353cc ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812da2a: mov      eax, dword ptr [eax + 4]
+0x0812da2d: mov      ebx, dword ptr [eax]
+0x0812da2f: mov      dword ptr [esp + 0xc], 0
+0x0812da37: mov      dword ptr [esp + 8], 0x14d
+0x0812da3f: mov      dword ptr [esp + 4], 0x8b6d5e0
+0x0812da47: lea      eax, [ebp - 0x34]
+0x0812da4a: mov      dword ptr [esp], eax
+0x0812da4d: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0x0812da52: mov      eax, dword ptr [ebp - 0x68]
+0x0812da55: mov      dword ptr [esp + 0x20], eax
+0x0812da59: mov      eax, dword ptr [ebp - 0x64]
+0x0812da5c: mov      dword ptr [esp + 0x1c], eax
+0x0812da60: mov      eax, dword ptr [ebp - 0x60]
+0x0812da63: mov      dword ptr [esp + 0x18], eax
+0x0812da67: mov      eax, dword ptr [ebp - 0x5c]
+0x0812da6a: mov      dword ptr [esp + 0x14], eax
+0x0812da6e: mov      dword ptr [esp + 0x10], edi
+0x0812da72: mov      dword ptr [esp + 0xc], esi
+0x0812da76: mov      dword ptr [esp + 8], ebx
+0x0812da7a: mov      dword ptr [esp + 4], 0x8b6c67c
+0x0812da82: lea      eax, [ebp - 0x34]
+0x0812da85: mov      dword ptr [esp], eax
+0x0812da88: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0x0812da8d: lea      eax, [ebp - 0x24]
+0x0812da90: mov      dword ptr [esp + 8], 0
+0x0812da98: lea      edx, [ebp - 0x58]
+0x0812da9b: mov      dword ptr [esp + 4], edx
+0x0812da9f: mov      dword ptr [esp], eax
+0x0812daa2: call     0x813538e ; _ZNSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEppEi
+0x0812daa7: sub      esp, 4
+0x0812daaa: add      dword ptr [ebp - 0x1c], 1
+0x0812daae: mov      eax, dword ptr [ebp + 8]
+0x0812dab1: lea      edx, [eax + 0x10]
+0x0812dab4: lea      eax, [ebp - 0x38]
+0x0812dab7: mov      dword ptr [esp + 4], edx
+0x0812dabb: mov      dword ptr [esp], eax
+0x0812dabe: call     0x8135354 ; _ZNKSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEE3endEv
+0x0812dac3: sub      esp, 4
+0x0812dac6: lea      eax, [ebp - 0x38]
+0x0812dac9: mov      dword ptr [esp + 4], eax
+0x0812dacd: lea      eax, [ebp - 0x58]
+0x0812dad0: mov      dword ptr [esp], eax
+0x0812dad3: call     0x813537a ; _ZNKSt23_Rb_tree_const_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEneERKS6_
+0x0812dad8: test     al, al
+0x0812dada: jne      0x812d9a7
+0x0812dae0: lea      esp, [ebp - 0xc]
+0x0812dae3: add      esp, 0
+0x0812dae6: pop      ebx
+0x0812dae7: pop      esi
+0x0812dae8: pop      edi
+0x0812dae9: pop      ebp
+0x0812daea: ret
+
+## 0x812daec _ZN12advancealtar9ProcStage18ProcSummonObjectMs7compareEPKNS_15_SummonObjectMsES4_ (20 bytes)
+0x0812daec: push     ebp
+0x0812daed: mov      ebp, esp
+0x0812daef: mov      eax, dword ptr [ebp + 8]
+0x0812daf2: mov      edx, dword ptr [eax]
+0x0812daf4: mov      eax, dword ptr [ebp + 0xc]
+0x0812daf7: mov      eax, dword ptr [eax]
+0x0812daf9: cmp      edx, eax
+0x0812dafb: setl     al
+0x0812dafe: pop      ebp
+0x0812daff: ret
+
+## 0x812db00 _ZN12advancealtar9ProcStage18ProcSummonObjectMs6dieMobEttRK15MSG_MONSTER_DIE (280 bytes)
+0x0812db00: push     ebp
+0x0812db01: mov      ebp, esp
+0x0812db03: sub      esp, 0x48
+0x0812db06: mov      edx, dword ptr [ebp + 0xc]
+0x0812db09: mov      eax, dword ptr [ebp + 0x10]
+0x0812db0c: mov      word ptr [ebp - 0x2c], dx
+0x0812db10: mov      word ptr [ebp - 0x30], ax
+0x0812db14: movzx    eax, word ptr [ebp - 0x2c]
+0x0812db18: mov      word ptr [ebp - 0x1a], ax
+0x0812db1c: mov      eax, dword ptr [ebp + 8]
+0x0812db1f: lea      ecx, [eax + 0x10]
+0x0812db22: lea      eax, [ebp - 0x20]
+0x0812db25: lea      edx, [ebp - 0x1a]
+0x0812db28: mov      dword ptr [esp + 8], edx
+0x0812db2c: mov      dword ptr [esp + 4], ecx
+0x0812db30: mov      dword ptr [esp], eax
+0x0812db33: call     0x81353da ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEE4findERS6_
+0x0812db38: sub      esp, 4
+0x0812db3b: mov      eax, dword ptr [ebp + 8]
+0x0812db3e: lea      edx, [eax + 0x10]
+0x0812db41: lea      eax, [ebp - 0x18]
+0x0812db44: mov      dword ptr [esp + 4], edx
+0x0812db48: mov      dword ptr [esp], eax
+0x0812db4b: call     0x8135406 ; _ZNSt3mapIsPN12advancealtar15_SummonObjectMsESt4lessIsESaISt4pairIKsS2_EEE3endEv
+0x0812db50: sub      esp, 4
+0x0812db53: lea      eax, [ebp - 0x18]
+0x0812db56: mov      dword ptr [esp + 4], eax
+0x0812db5a: lea      eax, [ebp - 0x20]
+0x0812db5d: mov      dword ptr [esp], eax
+0x0812db60: call     0x813542c ; _ZNKSt17_Rb_tree_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEneERKS6_
+0x0812db65: test     al, al
+0x0812db67: je       0x812dc11
+0x0812db6d: lea      eax, [ebp - 0x20]
+0x0812db70: mov      dword ptr [esp], eax
+0x0812db73: call     0x8135440 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812db78: mov      eax, dword ptr [eax + 4]
+0x0812db7b: mov      dword ptr [ebp - 0x14], eax
+0x0812db7e: lea      eax, [ebp - 0x20]
+0x0812db81: mov      dword ptr [esp], eax
+0x0812db84: call     0x8135440 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812db89: mov      eax, dword ptr [eax + 4]
+0x0812db8c: mov      eax, dword ptr [eax + 0x10]
+0x0812db8f: mov      dword ptr [ebp - 0x10], eax
+0x0812db92: mov      eax, dword ptr [ebp - 0x14]
+0x0812db95: mov      eax, dword ptr [eax + 0x10]
+0x0812db98: cmp      eax, 1
+0x0812db9b: jne      0x812dc11
+0x0812db9d: mov      eax, dword ptr [ebp - 0x14]
+0x0812dba0: movzx    eax, byte ptr [eax + 0xc]
+0x0812dba4: xor      eax, 1
+0x0812dba7: test     al, al
+0x0812dba9: je       0x812dc11
+0x0812dbab: lea      eax, [ebp - 0x20]
+0x0812dbae: mov      dword ptr [esp], eax
+0x0812dbb1: call     0x8135440 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812dbb6: mov      eax, dword ptr [eax + 4]
+0x0812dbb9: mov      byte ptr [eax + 0xc], 1
+0x0812dbbd: mov      eax, dword ptr [ebp + 8]
+0x0812dbc0: mov      eax, dword ptr [eax + 0x28]
+0x0812dbc3: lea      edx, [eax + 1]
+0x0812dbc6: mov      eax, dword ptr [ebp + 8]
+0x0812dbc9: mov      dword ptr [eax + 0x28], edx
+0x0812dbcc: mov      eax, dword ptr [ebp + 8]
+0x0812dbcf: mov      eax, dword ptr [eax + 0x30]
+0x0812dbd2: mov      dword ptr [esp], eax
+0x0812dbd5: call     0x8134814 ; _ZNK12advancealtar10CharacData7getUserEv
+0x0812dbda: mov      dword ptr [ebp - 0xc], eax
+0x0812dbdd: cmp      dword ptr [ebp - 0xc], 0
+0x0812dbe1: je       0x812dc0a
+0x0812dbe3: lea      eax, [ebp - 0x20]
+0x0812dbe6: mov      dword ptr [esp], eax
+0x0812dbe9: call     0x8135440 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKsPN12advancealtar15_SummonObjectMsEEEptEv
+0x0812dbee: mov      eax, dword ptr [eax + 4]
+0x0812dbf1: mov      eax, dword ptr [eax + 0x14]
+0x0812dbf4: mov      edx, dword ptr [ebp + 0x14]
+0x0812dbf7: mov      dword ptr [esp + 8], edx
+0x0812dbfb: mov      dword ptr [esp + 4], eax
+0x0812dbff: mov      eax, dword ptr [ebp - 0xc]
+0x0812dc02: mov      dword ptr [esp], eax
+0x0812dc05: call     0x8133b40 ; _ZN12advancealtar10HistoryLog11killMonsterER5CUseriRK15MSG_MONSTER_DIE
+0x0812dc0a: mov      eax, 1
+0x0812dc0f: jmp      0x812dc16
+0x0812dc11: mov      eax, 0
+0x0812dc16: leave
+0x0812dc17: ret
+
+## 0x812eba8 _ZN12advancealtar9ProcStage28makeCurrentPhaseSummonObjectEv (1361 bytes)
+0x0812eba8: push     ebp
+0x0812eba9: mov      ebp, esp
+0x0812ebab: push     esi
+0x0812ebac: push     ebx
+0x0812ebad: sub      esp, 0xb0
+0x0812ebb3: mov      eax, dword ptr [ebp + 8]
+0x0812ebb6: mov      eax, dword ptr [eax + 0x90]
+0x0812ebbc: test     eax, eax
+0x0812ebbe: jne      0x812ebca
+0x0812ebc0: mov      ebx, 0
+0x0812ebc5: jmp      0x812f0ed
+0x0812ebca: mov      eax, dword ptr [ebp + 8]
+0x0812ebcd: mov      eax, dword ptr [eax + 0x90]
+0x0812ebd3: mov      dword ptr [ebp - 0x3c], eax
+0x0812ebd6: mov      eax, dword ptr [ebp + 8]
+0x0812ebd9: mov      dword ptr [esp], eax
+0x0812ebdc: call     0x812eb5a ; _ZNK12advancealtar9ProcStage13isEndAllPhaseEv
+0x0812ebe1: test     al, al
+0x0812ebe3: je       0x812ebef
+0x0812ebe5: mov      ebx, 0
+0x0812ebea: jmp      0x812f0ed
+0x0812ebef: mov      eax, dword ptr [ebp + 8]
+0x0812ebf2: mov      eax, dword ptr [eax + 0xc]
+0x0812ebf5: mov      dword ptr [esp + 4], eax
+0x0812ebf9: mov      eax, dword ptr [ebp - 0x3c]
+0x0812ebfc: mov      dword ptr [esp], eax
+0x0812ebff: call     0x81359dc ; _ZNKSt6vectorIN12advancealtar5PhaseESaIS1_EEixEj
+0x0812ec04: mov      dword ptr [ebp - 0x38], eax
+0x0812ec07: mov      eax, dword ptr [ebp + 8]
+0x0812ec0a: mov      eax, dword ptr [eax + 0xc]
+0x0812ec0d: lea      edx, [eax + 1]
+0x0812ec10: mov      eax, dword ptr [ebp + 8]
+0x0812ec13: mov      dword ptr [eax + 0xc], edx
+0x0812ec16: mov      eax, dword ptr [ebp + 8]
+0x0812ec19: add      eax, 0x18
+0x0812ec1c: mov      dword ptr [esp], eax
+0x0812ec1f: call     0x8134820 ; _ZNK12advancealtar9ProcStage18ProcSummonObjectMs20getAliveMonsterCountEv
+0x0812ec24: mov      dword ptr [ebp - 0x34], eax
+0x0812ec27: mov      eax, dword ptr [ebp - 0x38]
+0x0812ec2a: mov      eax, dword ptr [eax]
+0x0812ec2c: mov      dword ptr [ebp - 0x30], eax
+0x0812ec2f: mov      eax, dword ptr [ebp - 0x30]
+0x0812ec32: mov      dword ptr [ebp - 0x2c], eax
+0x0812ec35: mov      eax, dword ptr [ebp + 8]
+0x0812ec38: mov      eax, dword ptr [eax + 0x10]
+0x0812ec3b: add      dword ptr [ebp - 0x30], eax
+0x0812ec3e: mov      eax, dword ptr [ebp - 0x38]
+0x0812ec41: add      eax, 8
+0x0812ec44: mov      dword ptr [ebp - 0x28], eax
+0x0812ec47: lea      eax, [ebp - 0x78]
+0x0812ec4a: mov      edx, dword ptr [ebp - 0x28]
+0x0812ec4d: mov      dword ptr [esp + 4], edx
+0x0812ec51: mov      dword ptr [esp], eax
+0x0812ec54: call     0x81359f6 ; _ZNKSt6vectorIN12advancealtar13_ActionAssignESaIS1_EE5beginEv
+0x0812ec59: sub      esp, 4
+0x0812ec5c: lea      eax, [ebp - 0x7c]
+0x0812ec5f: mov      edx, dword ptr [ebp - 0x28]
+0x0812ec62: mov      dword ptr [esp + 4], edx
+0x0812ec66: mov      dword ptr [esp], eax
+0x0812ec69: call     0x8135a22 ; _ZNKSt6vectorIN12advancealtar13_ActionAssignESaIS1_EE3endEv
+0x0812ec6e: sub      esp, 4
+0x0812ec71: lea      eax, [ebp - 0x80]
+0x0812ec74: mov      edx, dword ptr [ebp - 0x28]
+0x0812ec77: mov      dword ptr [esp + 4], edx
+0x0812ec7b: mov      dword ptr [esp], eax
+0x0812ec7e: call     0x8135a22 ; _ZNKSt6vectorIN12advancealtar13_ActionAssignESaIS1_EE3endEv
+0x0812ec83: sub      esp, 4
+0x0812ec86: jmp      0x812ed2a
+0x0812ec8b: lea      eax, [ebp - 0x78]
+0x0812ec8e: mov      dword ptr [esp], eax
+0x0812ec91: call     0x8135aae ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEptEv
+0x0812ec96: movzx    eax, word ptr [eax + 8]
+0x0812ec9a: cmp      ax, -1
+0x0812ec9e: jne      0x812ecbc
+0x0812eca0: lea      eax, [ebp - 0x78]
+0x0812eca3: mov      dword ptr [esp], eax
+0x0812eca6: call     0x8135aae ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEptEv
+0x0812ecab: movzx    eax, word ptr [eax + 0xa]
+0x0812ecaf: cmp      ax, -1
+0x0812ecb3: jne      0x812ecbc
+0x0812ecb5: mov      eax, 1
+0x0812ecba: jmp      0x812ecc1
+0x0812ecbc: mov      eax, 0
+0x0812ecc1: test     al, al
+0x0812ecc3: je       0x812eccd
+0x0812ecc5: mov      eax, dword ptr [ebp - 0x78]
+0x0812ecc8: mov      dword ptr [ebp - 0x80], eax
+0x0812eccb: jmp      0x812ed0d
+0x0812eccd: lea      eax, [ebp - 0x78]
+0x0812ecd0: mov      dword ptr [esp], eax
+0x0812ecd3: call     0x8135aae ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEptEv
+0x0812ecd8: movzx    eax, word ptr [eax + 8]
+0x0812ecdc: cwde
+0x0812ecdd: cmp      eax, dword ptr [ebp - 0x34]
+0x0812ece0: jg       0x812ecfe
+0x0812ece2: lea      eax, [ebp - 0x78]
+0x0812ece5: mov      dword ptr [esp], eax
+0x0812ece8: call     0x8135aae ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEptEv
+0x0812eced: movzx    eax, word ptr [eax + 0xa]
+0x0812ecf1: cwde
+0x0812ecf2: cmp      eax, dword ptr [ebp - 0x34]
+0x0812ecf5: jl       0x812ecfe
+0x0812ecf7: mov      eax, 1
+0x0812ecfc: jmp      0x812ed03
+0x0812ecfe: mov      eax, 0
+0x0812ed03: test     al, al
+0x0812ed05: je       0x812ed0d
+0x0812ed07: mov      eax, dword ptr [ebp - 0x78]
+0x0812ed0a: mov      dword ptr [ebp - 0x7c], eax
+0x0812ed0d: lea      eax, [ebp - 0x70]
+0x0812ed10: mov      dword ptr [esp + 8], 0
+0x0812ed18: lea      edx, [ebp - 0x78]
+0x0812ed1b: mov      dword ptr [esp + 4], edx
+0x0812ed1f: mov      dword ptr [esp], eax
+0x0812ed22: call     0x8135a7a ; _ZN9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEppEi
+0x0812ed27: sub      esp, 4
+0x0812ed2a: lea      eax, [ebp - 0x74]
+0x0812ed2d: mov      edx, dword ptr [ebp - 0x28]
+0x0812ed30: mov      dword ptr [esp + 4], edx
+0x0812ed34: mov      dword ptr [esp], eax
+0x0812ed37: call     0x8135a22 ; _ZNKSt6vectorIN12advancealtar13_ActionAssignESaIS1_EE3endEv
+0x0812ed3c: sub      esp, 4
+0x0812ed3f: lea      eax, [ebp - 0x74]
+0x0812ed42: mov      dword ptr [esp + 4], eax
+0x0812ed46: lea      eax, [ebp - 0x78]
+0x0812ed49: mov      dword ptr [esp], eax
+0x0812ed4c: call     0x8135a4e ; _ZN9__gnu_cxxneIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T0_EESD_
+0x0812ed51: test     al, al
+0x0812ed53: jne      0x812ec8b
+0x0812ed59: lea      eax, [ebp - 0x6c]
+0x0812ed5c: mov      edx, dword ptr [ebp - 0x28]
+0x0812ed5f: mov      dword ptr [esp + 4], edx
+0x0812ed63: mov      dword ptr [esp], eax
+0x0812ed66: call     0x8135a22 ; _ZNKSt6vectorIN12advancealtar13_ActionAssignESaIS1_EE3endEv
+0x0812ed6b: sub      esp, 4
+0x0812ed6e: lea      eax, [ebp - 0x6c]
+0x0812ed71: mov      dword ptr [esp + 4], eax
+0x0812ed75: lea      eax, [ebp - 0x7c]
+0x0812ed78: mov      dword ptr [esp], eax
+0x0812ed7b: call     0x8135ab8 ; _ZN9__gnu_cxxeqIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T0_EESD_
+0x0812ed80: test     al, al
+0x0812ed82: je       0x812ed8a
+0x0812ed84: mov      eax, dword ptr [ebp - 0x80]
+0x0812ed87: mov      dword ptr [ebp - 0x7c], eax
+0x0812ed8a: lea      eax, [ebp - 0x68]
+0x0812ed8d: mov      edx, dword ptr [ebp - 0x28]
+0x0812ed90: mov      dword ptr [esp + 4], edx
+0x0812ed94: mov      dword ptr [esp], eax
+0x0812ed97: call     0x8135a22 ; _ZNKSt6vectorIN12advancealtar13_ActionAssignESaIS1_EE3endEv
+0x0812ed9c: sub      esp, 4
+0x0812ed9f: lea      eax, [ebp - 0x68]
+0x0812eda2: mov      dword ptr [esp + 4], eax
+0x0812eda6: lea      eax, [ebp - 0x7c]
+0x0812eda9: mov      dword ptr [esp], eax
+0x0812edac: call     0x8135ab8 ; _ZN9__gnu_cxxeqIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T0_EESD_
+0x0812edb1: test     al, al
+0x0812edb3: je       0x812edbf
+0x0812edb5: mov      ebx, 0
+0x0812edba: jmp      0x812f0ed
+0x0812edbf: lea      eax, [ebp - 0x98]
+0x0812edc5: mov      dword ptr [esp], eax
+0x0812edc8: call     0x80c6c64 ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEEC1Ev
+0x0812edcd: mov      dword ptr [ebp - 0x24], 0xffffffff
+0x0812edd4: lea      eax, [ebp - 0x7c]
+0x0812edd7: mov      dword ptr [esp], eax
+0x0812edda: call     0x8135aae ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar13_ActionAssignESt6vectorIS2_SaIS2_EEEptEv
+0x0812eddf: mov      eax, dword ptr [eax + 4]
+0x0812ede2: mov      dword ptr [ebp - 0x20], eax
+0x0812ede5: cmp      dword ptr [ebp - 0x20], 0
+0x0812ede9: je       0x812f086
+0x0812edef: mov      eax, dword ptr [ebp - 0x20]
+0x0812edf2: add      eax, 4
+0x0812edf5: mov      dword ptr [ebp - 0x1c], eax
+0x0812edf8: lea      eax, [ebp - 0x9c]
+0x0812edfe: mov      edx, dword ptr [ebp - 0x1c]
+0x0812ee01: mov      dword ptr [esp + 4], edx
+0x0812ee05: mov      dword ptr [esp], eax
+0x0812ee08: call     0x8135ae4 ; _ZNKSt6vectorIN12advancealtar7_ActionESaIS1_EE5beginEv
+0x0812ee0d: sub      esp, 4
+0x0812ee10: jmp      0x812f054
+0x0812ee15: mov      eax, dword ptr [ebp + 8]
+0x0812ee18: mov      eax, dword ptr [eax + 0x10]
+0x0812ee1b: mov      dword ptr [ebp - 0x18], eax
+0x0812ee1e: lea      eax, [ebp - 0x9c]
+0x0812ee24: mov      dword ptr [esp], eax
+0x0812ee27: call     0x8135b9c ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEptEv
+0x0812ee2c: mov      eax, dword ptr [eax + 4]
+0x0812ee2f: mov      dword ptr [ebp - 0x14], eax
+0x0812ee32: cmp      dword ptr [ebp - 0x14], 0
+0x0812ee36: je       0x812f034
+0x0812ee3c: lea      eax, [ebp - 0x9c]
+0x0812ee42: mov      dword ptr [esp], eax
+0x0812ee45: call     0x8135b9c ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEptEv
+0x0812ee4a: mov      eax, dword ptr [eax + 8]
+0x0812ee4d: add      dword ptr [ebp - 0x18], eax
+0x0812ee50: jmp      0x812f023
+0x0812ee55: lea      eax, [ebp - 0x9c]
+0x0812ee5b: mov      dword ptr [esp], eax
+0x0812ee5e: call     0x8135b9c ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEptEv
+0x0812ee63: movzx    eax, byte ptr [eax + 0x10]
+0x0812ee67: test     al, al
+0x0812ee69: je       0x812ef79
+0x0812ee6f: mov      eax, dword ptr [ebp - 0x14]
+0x0812ee72: lea      edx, [eax + 0xc]
+0x0812ee75: lea      eax, [ebp - 0xa0]
+0x0812ee7b: mov      dword ptr [esp + 8], edx
+0x0812ee7f: lea      edx, [ebp - 0x98]
+0x0812ee85: mov      dword ptr [esp + 4], edx
+0x0812ee89: mov      dword ptr [esp], eax
+0x0812ee8c: call     0x80cd2ee ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEE4findERS3_
+0x0812ee91: sub      esp, 4
+0x0812ee94: lea      eax, [ebp - 0x60]
+0x0812ee97: lea      edx, [ebp - 0x98]
+0x0812ee9d: mov      dword ptr [esp + 4], edx
+0x0812eea1: mov      dword ptr [esp], eax
+0x0812eea4: call     0x80cd31a ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEE3endEv
+0x0812eea9: sub      esp, 4
+0x0812eeac: lea      eax, [ebp - 0x60]
+0x0812eeaf: mov      dword ptr [esp + 4], eax
+0x0812eeb3: lea      eax, [ebp - 0xa0]
+0x0812eeb9: mov      dword ptr [esp], eax
+0x0812eebc: call     0x80c78f0 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKiiEEeqERKS3_
+0x0812eec1: test     al, al
+0x0812eec3: je       0x812ef1e
+0x0812eec5: mov      dword ptr [ebp - 0x44], 1
+0x0812eecc: mov      eax, dword ptr [ebp - 0x14]
+0x0812eecf: lea      ecx, [eax + 0xc]
+0x0812eed2: lea      eax, [ebp - 0x4c]
+0x0812eed5: lea      edx, [ebp - 0x44]
+0x0812eed8: mov      dword ptr [esp + 8], edx
+0x0812eedc: mov      dword ptr [esp + 4], ecx
+0x0812eee0: mov      dword ptr [esp], eax
+0x0812eee3: call     0x8135ba6 ; _ZSt9make_pairIRKiiESt4pairINSt17__decay_and_stripIT_E6__typeENS3_IT0_E6__typeEEOS4_OS7_
+0x0812eee8: sub      esp, 4
+0x0812eeeb: lea      eax, [ebp - 0x4c]
+0x0812eeee: mov      dword ptr [esp + 4], eax
+0x0812eef2: lea      eax, [ebp - 0x54]
+0x0812eef5: mov      dword ptr [esp], eax
+0x0812eef8: call     0x80c6d20 ; _ZNSt4pairIKiiEC1IiiEEOS_IT_T0_E
+0x0812eefd: lea      eax, [ebp - 0x5c]
+0x0812ef00: lea      edx, [ebp - 0x54]
+0x0812ef03: mov      dword ptr [esp + 8], edx
+0x0812ef07: lea      edx, [ebp - 0x98]
+0x0812ef0d: mov      dword ptr [esp + 4], edx
+0x0812ef11: mov      dword ptr [esp], eax
+0x0812ef14: call     0x80c6d50 ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEE6insertERKS4_
+0x0812ef19: sub      esp, 4
+0x0812ef1c: jmp      0x812ef79
+0x0812ef1e: lea      eax, [ebp - 0xa0]
+0x0812ef24: mov      dword ptr [esp], eax
+0x0812ef27: call     0x80cd340 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKiiEEptEv
+0x0812ef2c: add      eax, 4
+0x0812ef2f: mov      dword ptr [ebp - 0xc], eax
+0x0812ef32: mov      eax, dword ptr [ebp - 0xc]
+0x0812ef35: mov      ebx, dword ptr [eax]
+0x0812ef37: lea      eax, [ebp - 0x9c]
+0x0812ef3d: mov      dword ptr [esp], eax
+0x0812ef40: call     0x8135b9c ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEptEv
+0x0812ef45: movzx    eax, word ptr [eax + 0x12]
+0x0812ef49: cwde
+0x0812ef4a: cmp      ebx, eax
+0x0812ef4c: setge    al
+0x0812ef4f: test     al, al
+0x0812ef51: je       0x812ef6c
+0x0812ef53: lea      eax, [ebp - 0x9c]
+0x0812ef59: mov      dword ptr [esp], eax
+0x0812ef5c: call     0x8135b9c ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEptEv
+0x0812ef61: mov      eax, dword ptr [eax + 0xc]
+0x0812ef64: add      dword ptr [ebp - 0x18], eax
+0x0812ef67: jmp      0x812f023
+0x0812ef6c: mov      eax, dword ptr [ebp - 0xc]
+0x0812ef6f: mov      eax, dword ptr [eax]
+0x0812ef71: lea      edx, [eax + 1]
+0x0812ef74: mov      eax, dword ptr [ebp - 0xc]
+0x0812ef77: mov      dword ptr [eax], edx
+0x0812ef79: mov      dword ptr [esp], 0x38
+0x0812ef80: call     0x8724450 ; _Znwj
+0x0812ef85: mov      ebx, eax
+0x0812ef87: mov      eax, ebx
+0x0812ef89: mov      dword ptr [esp], eax
+0x0812ef8c: call     0x8134674 ; _ZN12advancealtar15_SummonObjectMsC2Ev
+0x0812ef91: mov      dword ptr [ebp - 0x10], ebx
+0x0812ef94: mov      eax, dword ptr [ebp - 0x10]
+0x0812ef97: mov      edx, dword ptr [ebp - 0x18]
+0x0812ef9a: mov      dword ptr [eax], edx
+0x0812ef9c: mov      eax, dword ptr [ebp + 8]
+0x0812ef9f: movzx    eax, word ptr [eax + 0x14]
+0x0812efa3: mov      edx, dword ptr [ebp - 0x10]
+0x0812efa6: mov      word ptr [edx + 4], ax
+0x0812efaa: lea      edx, [eax + 1]
+0x0812efad: mov      eax, dword ptr [ebp + 8]
+0x0812efb0: mov      word ptr [eax + 0x14], dx
+0x0812efb4: mov      eax, dword ptr [ebp - 0x20]
+0x0812efb7: mov      edx, dword ptr [eax]
+0x0812efb9: mov      eax, dword ptr [ebp - 0x10]
+0x0812efbc: mov      dword ptr [eax + 8], edx
+0x0812efbf: mov      eax, dword ptr [ebp - 0x10]
+0x0812efc2: mov      byte ptr [eax + 0xc], 0
+0x0812efc6: mov      eax, dword ptr [ebp - 0x10]
+0x0812efc9: lea      edx, [eax + 0x14]
+0x0812efcc: mov      dword ptr [esp + 8], 0x24
+0x0812efd4: mov      eax, dword ptr [ebp - 0x14]
+0x0812efd7: mov      dword ptr [esp + 4], eax
+0x0812efdb: mov      dword ptr [esp], edx
+0x0812efde: call     0x807d8a0 ;
+0x0812efe3: mov      eax, dword ptr [ebp + 8]
+0x0812efe6: lea      edx, [eax + 0x18]
+0x0812efe9: mov      eax, dword ptr [ebp - 0x10]
+0x0812efec: mov      dword ptr [esp + 4], eax
+0x0812eff0: mov      dword ptr [esp], edx
+0x0812eff3: call     0x812d540 ; _ZN12advancealtar9ProcStage18ProcSummonObjectMs18insertSummonObjectERNS_15_SummonObjectMsE
+0x0812eff8: lea      eax, [ebp - 0x9c]
+0x0812effe: mov      dword ptr [esp], eax
+0x0812f001: call     0x8135b9c ; _ZNK9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEptEv
+0x0812f006: mov      eax, dword ptr [eax + 0xc]
+0x0812f009: add      dword ptr [ebp - 0x18], eax
+0x0812f00c: cmp      dword ptr [ebp - 0x24], -1
+0x0812f010: jne      0x812f023
+0x0812f012: mov      eax, dword ptr [ebp + 8]
+0x0812f015: add      eax, 0x18
+0x0812f018: mov      dword ptr [esp], eax
+0x0812f01b: call     0x812d5ba ; _ZN12advancealtar9ProcStage18ProcSummonObjectMs22getLastInsertDataIndexEv
+0x0812f020: mov      dword ptr [ebp - 0x24], eax
+0x0812f023: mov      eax, dword ptr [ebp - 0x18]
+0x0812f026: cmp      eax, dword ptr [ebp - 0x30]
+0x0812f029: setl     al
+0x0812f02c: test     al, al
+0x0812f02e: jne      0x812ee55
+0x0812f034: lea      eax, [ebp - 0x40]
+0x0812f037: mov      dword ptr [esp + 8], 0
+0x0812f03f: lea      edx, [ebp - 0x9c]
+0x0812f045: mov      dword ptr [esp + 4], edx
+0x0812f049: mov      dword ptr [esp], eax
+0x0812f04c: call     0x8135b68 ; _ZN9__gnu_cxx17__normal_iteratorIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEppEi
+0x0812f051: sub      esp, 4
+0x0812f054: lea      eax, [ebp - 0x64]
+0x0812f057: mov      edx, dword ptr [ebp - 0x1c]
+0x0812f05a: mov      dword ptr [esp + 4], edx
+0x0812f05e: mov      dword ptr [esp], eax
+0x0812f061: call     0x8135b10 ; _ZNKSt6vectorIN12advancealtar7_ActionESaIS1_EE3endEv
+0x0812f066: sub      esp, 4
+0x0812f069: lea      eax, [ebp - 0x64]
+0x0812f06c: mov      dword ptr [esp + 4], eax
+0x0812f070: lea      eax, [ebp - 0x9c]
+0x0812f076: mov      dword ptr [esp], eax
+0x0812f079: call     0x8135b3c ; _ZN9__gnu_cxxneIPKN12advancealtar7_ActionESt6vectorIS2_SaIS2_EEEEbRKNS_17__normal_iteratorIT_T0_EESD_
+0x0812f07e: test     al, al
+0x0812f080: jne      0x812ee15
+0x0812f086: mov      eax, dword ptr [ebp + 8]
+0x0812f089: lea      edx, [eax + 0x18]
+0x0812f08c: mov      eax, dword ptr [ebp - 0x24]
+0x0812f08f: mov      dword ptr [esp + 4], eax
+0x0812f093: mov      dword ptr [esp], edx
+0x0812f096: call     0x812d5d0 ; _ZN12advancealtar9ProcStage18ProcSummonObjectMs24completePushSummonObjectEi
+0x0812f09b: mov      eax, dword ptr [ebp + 8]
+0x0812f09e: mov      eax, dword ptr [eax + 0x10]
+0x0812f0a1: mov      edx, eax
+0x0812f0a3: add      edx, dword ptr [ebp - 0x2c]
+0x0812f0a6: mov      eax, dword ptr [ebp + 8]
+0x0812f0a9: mov      dword ptr [eax + 0x10], edx
+0x0812f0ac: mov      eax, dword ptr [ebp + 8]
+0x0812f0af: add      eax, 0x18
+0x0812f0b2: mov      dword ptr [esp], eax
+0x0812f0b5: call     0x812d804 ; _ZNK12advancealtar9ProcStage18ProcSummonObjectMs8debugLogEv
+0x0812f0ba: mov      ebx, 1
+0x0812f0bf: lea      eax, [ebp - 0x98]
+0x0812f0c5: mov      dword ptr [esp], eax
+0x0812f0c8: call     0x80c6ac6 ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEED1Ev
+0x0812f0cd: jmp      0x812f0ed
+0x0812f0cf: mov      ebx, edx
+0x0812f0d1: mov      esi, eax
+0x0812f0d3: lea      eax, [ebp - 0x98]
+0x0812f0d9: mov      dword ptr [esp], eax
+0x0812f0dc: call     0x80c6ac6 ; _ZNSt3mapIiiSt4lessIiESaISt4pairIKiiEEED1Ev
+0x0812f0e1: mov      eax, esi
+0x0812f0e3: mov      edx, ebx
+0x0812f0e5: mov      dword ptr [esp], eax
+0x0812f0e8: call     0x8ae3750 ; _Unwind_Resume
+0x0812f0ed: mov      eax, ebx
+0x0812f0ef: lea      esp, [ebp - 8]
+0x0812f0f2: add      esp, 0
+0x0812f0f5: pop      ebx
+0x0812f0f6: pop      esi
+0x0812f0f7: pop      ebp
+0x0812f0f8: ret
+
+## 0x8134820 _ZNK12advancealtar9ProcStage18ProcSummonObjectMs20getAliveMonsterCountEv (23 bytes)
+0x08134820: push     ebp
+0x08134821: mov      ebp, esp
+0x08134823: mov      eax, dword ptr [ebp + 8]
+0x08134826: mov      edx, dword ptr [eax + 0x2c]
+0x08134829: mov      eax, dword ptr [ebp + 8]
+0x0813482c: mov      eax, dword ptr [eax + 0x28]
+0x0813482f: mov      ecx, edx
+0x08134831: sub      ecx, eax
+0x08134833: mov      eax, ecx
+0x08134835: pop      ebp
+0x08134836: ret

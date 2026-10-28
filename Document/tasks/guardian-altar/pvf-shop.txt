@@ -1,0 +1,226 @@
+=== etc/advancealtar/advancealtarshop.etc ===
+[star reset fee gold]
+0 500 1 1000 2 2000 3 4000 4 7000 5 10000 6 13000 7 16000 8 20000 9 25000 10 30000
+[/star reset fee gold]
+[ridable id]
+1
+[unit]
+[id]
+1000
+[unlock stage index]
+0
+[field name]
+level index price name cooltime need point explain type explain image index hp dmg
+[/field name]
+[list]
+1 2749171 0 美人鱼战士 Lv1 100 5 英雄克雷泽在海底的伙伴； 初级战士。近攻型， 攻击速度较慢。  0 25 3 2 2749172 1 美人鱼战士 Lv2 100 5 英雄克雷泽在海底的伙伴； 初级战士。近攻型， 攻击速度较慢。  0 35 5 3 2749173 2 美人鱼战士 Lv3 100 5 英雄克雷泽在海底的伙伴； 初级战士。近攻型， 攻击速度较慢。  0 48 7 4 2749174 2 美人鱼战士 Lv4 100 5 英雄克雷泽在海底的伙伴； 初级战士。近攻型， 攻击速度较慢。  0 70 14
+[/list]
+[/id]
+[id]
+2000
+[unlock stage index]
+0
+[field name]
+level index price name cooltime need point explain type explain image index hp dmg
+[/field name]
+[list]
+1 2749176 0 雄人鱼 Lv1 100 8 与美人鱼战士一样属于初级战士。远攻型， 每次只能攻击一个目标。  1 20 2 2 2749177 1 雄人鱼 Lv2 100 8 与美人鱼战士一样属于初级战士。远攻型， 每次只能攻击一个目标。  1 28 3 3 2749178 2 雄人鱼 Lv3 100 8 与美人鱼战士一样属于初级战士。远攻型， 每次只能攻击一个目标。  1 40 5 4 2749179 2 雄人鱼 Lv4 100 8 与美人鱼战士一样属于初级战士。远攻型， 每次只能攻击一个目标。  1 80 12
+[/list]
+[/id]
+[id]
+3000
+[unlock stage index]
+3511
+[field name]
+level index price name cooltime need point explain type explain image index hp dmg
+[/field name]
+[list]
+1 2749181 0 小海龟 Lv1 100 20 背着巨大火炮的海龟。由于火炮和龟壳都很重， 移动速度较慢。  2 50 5 2 2749182 2 小海龟 Lv2 100 20 背着巨大火炮的海龟。由于火炮和龟壳都很重， 移动速度较慢。  2 65 7 3 2749183 2 小海龟 Lv3 100 20 背着巨大火炮的海龟。由于火炮和龟壳都很重， 移动速度较慢。  2 80 10 4 2749184 3 小海龟 Lv4 100 20 背着巨大火炮的海龟。由于火炮和龟壳都很重， 移动速度较慢。  2 130 20
+[/list]
+[/id]
+[id]
+4000
+[unlock stage index]
+3513
+[field name]
+level index price name cooltime need point explain type explain image index hp dmg
+[/field name]
+[list]
+1 2749186 0 蓝影马萨乔 Lv1 100 30 擅长刀术的海龟； 整体攻击速度较慢。群攻型， 可以给敌人造成巨大伤害。偶尔也会使用远距离攻击， 但威力较小。  3 80 10 2 2749187 2 蓝影马萨乔 Lv2 100 30 擅长刀术的海龟； 整体攻击速度较慢。群攻型， 可以给敌人造成巨大伤害。偶尔也会使用远距离攻击， 但威力较小。  3 100 13 3 2749188 3 蓝影马萨乔 Lv3 100 30 擅长刀术的海龟； 整体攻击速度较慢。群攻型， 可以给敌人造成巨大伤害。偶尔也会使用远距离攻击， 但威力较小。  3 130 17 4 2749189 3 蓝影马萨乔 Lv4 100 30 擅长刀术的海龟； 整体攻击速度较慢。群攻型， 可以给敌人造成巨大伤害。偶尔也会使用远距离攻击， 但威力较小。  3 200 25
+[/list]
+[/id]
+[id]
+5000
+[unlock stage index]
+3515
+[field name]
+level index price name cooltime need point explain type explain image index hp
+[/field name]
+[list]
+1 2749191 0 胆小的海龟 Lv1 100 30 虽然生性胆小， 但为了同伴会勇敢战斗。平时苦练防御能力， 在与敌人交战时，可以为我军创造更多的攻击机会。  4 125 2 2749192 2 胆小的海龟 Lv2 100 30 虽然生性胆小， 但为了同伴会勇敢战斗。平时苦练防御能力， 在与敌人交战时，可以为我军创造更多的攻击机会。  4 150 3 2749193 3 胆小的海龟 Lv3 100 30 虽然生性胆小， 但为了同伴会勇敢战斗。平时苦练防御能力， 在与敌人交战时，可以为我军创造更多的攻击机会。  4 200 4 2749194 3 胆小的海龟 Lv4 100 30 虽然生性胆小， 但为了同伴会勇敢战斗。平时苦练防御能力， 在与敌人交战时，可以为我军创造更多的攻击机会。  4 320
+[/list]
+[/id]
+[id]
+6000
+[unlock stage index]
+3517
+[field name]
+level index price name cooltime need point explain type explain image index hp rcv
+[/field name]
+[list]
+1 2749196 0 美人鱼魔法师 Lv1 100 50 具有神秘能力的魔法师，可以恢复我军的战斗力。  5 50 10 2 2749197 3 美人鱼魔法师 Lv2 100 50 具有神秘能力的魔法师，可以恢复我军的战斗力。  5 65 17 3 2749198 4 美人鱼魔法师 Lv3 100 50 具有神秘能力的魔法师，可以恢复我军的战斗力。  5 80 25 4 2749199 4 美人鱼魔法师 Lv4 100 50 具有神秘能力的魔法师，可以恢复我军的战斗力。  5 130 40
+[/list]
+[/id]
+[id]
+7000
+[unlock stage index]
+3519
+[field name]
+level index price name cooltime need point explain type explain image index hp dmg
+[/field name]
+[list]
+1 2749201 0 银钩菲力 Lv1 100 55 可以借助其它伙伴的力量， 发动强力的攻击。  6 100 10 2 2749202 3 银钩菲力 Lv2 100 55 可以借助其它伙伴的力量， 发动强力的攻击。  6 130 13 3 2749203 4 银钩菲力 Lv3 100 55 可以借助其它伙伴的力量， 发动强力的攻击。  6 170 17 3 2749204 5 银钩菲力 Lv4 100 55 可以借助其它伙伴的力量， 发动强力的攻击。  6 250 25
+[/list]
+[/id]
+[id]
+8000
+[unlock stage index]
+3521
+[field name]
+level index price name cooltime need point explain type explain image index hp dmg
+[/field name]
+[list]
+1 2749206 0 巨齿鳄 Lv1 100 75 性格暴躁、 多血质， 且拥有极其锋利的牙齿。只要它出现， 再厉害的敌人也会感到紧张。  7 150 15 2 2749207 3 巨齿鳄 Lv2 100 75 性格暴躁、 多血质， 且拥有极其锋利的牙齿。只要它出现， 再厉害的敌人也会感到紧张。  7 200 20 3 2749208 4 巨齿鳄 Lv3 100 75 性格暴躁、 多血质， 且拥有极其锋利的牙齿。只要它出现， 再厉害的敌人也会感到紧张。  7 300 26 4 2749209 6 巨齿鳄 Lv4 100 75 性格暴躁、 多血质， 且拥有极其锋利的牙齿。只要它出现， 再厉害的敌人也会感到紧张。  7 500 40
+[/list]
+[/id]
+[/unit]
+[skill]
+[id]
+100
+[unlock stage index]
+0
+[is settable slot]
+0
+[field name]
+level index price name cooltime explain type explain set slot image index hp
+[/field name]
+[list]
+1 0 0 克雷泽的领悟 Lv1 100 克雷泽领悟了战斗技巧， 开始感受到自己在逐渐变强。  0 0 50 2 0 1 克雷泽的领悟 Lv2 100 克雷泽领悟了战斗技巧， 开始感受到自己在逐渐变强。  0 0 100 3 0 2 克雷泽的领悟 Lv3 100 克雷泽领悟了战斗技巧， 开始感受到自己在逐渐变强。  0 0 150 4 0 3 克雷泽的领悟 Lv4 100 克雷泽领悟了战斗技巧， 开始感受到自己在逐渐变强。  0 0 300
+[/list]
+[/id]
+[id]
+1001
+[unlock stage index]
+0
+[is settable slot]
+0
+[field name]
+level index price name cooltime explain type explain set slot image index dmg
+[/field name]
+[list]
+1 0 0 基础修炼 Lv1 100 只懂得苦练基础技能， 因而获得“鲁莽的修炼者”称号。  0 1 2 2 0 1 基础修炼 Lv2 100 只懂得苦练基础技能， 因而获得“鲁莽的修炼者”称号。  0 1 3 3 0 2 基础修炼 Lv3 100 只懂得苦练基础技能， 因而获得“鲁莽的修炼者”称号。  0 1 5 4 0 3 基础修炼 Lv4 100 只懂得苦练基础技能， 因而获得“鲁莽的修炼者”称号。  0 1 8
+[/list]
+[/id]
+[id]
+1501
+[unlock stage index]
+0
+[field name]
+level index price name cooltime explain type explain set slot image index dmg
+[/field name]
+[list]
+1 2 0 炫波掌 Lv1 100 通过坚持不懈的修炼，克雷泽的手掌随时可以引发剧烈的波动。  1 2 9 2 2 2 炫波掌 Lv2 100 通过坚持不懈的修炼，克雷泽的手掌随时可以引发剧烈的波动。  1 2 12 3 2 3 炫波掌 Lv3 100 通过坚持不懈的修炼，克雷泽的手掌随时可以引发剧烈的波动。  1 2 17 4 2 4 炫波掌 Lv4 100 通过坚持不懈的修炼，克雷泽的手掌随时可以引发剧烈的波动。  1 2 27
+[/list]
+[/id]
+[id]
+2001
+[unlock stage index]
+3512
+[field name]
+level index price name cooltime explain type explain set slot image index etc rcv
+[/field name]
+[list]
+1 3 0 护甲防御 Lv1 100 克雷泽冥想的时候， 喜欢钻进自己的龟甲里，这样可以不受外人干扰。  1 3 100 50 2 3 2 护甲防御 Lv2 100 克雷泽冥想的时候， 喜欢钻进自己的龟甲里，这样可以不受外人干扰。  1 3 100 100 3 3 3 护甲防御 Lv3 100 克雷泽冥想的时候， 喜欢钻进自己的龟甲里，这样可以不受外人干扰。  1 3 100 200 4 3 4 护甲防御 Lv4 100 克雷泽冥想的时候， 喜欢钻进自己的龟甲里，这样可以不受外人干扰。  1 3 100 300
+[/list]
+[/id]
+[id]
+3001
+[unlock stage index]
+3514
+[field name]
+level index price name cooltime explain type explain set slot image index dmg
+[/field name]
+[list]
+1 4 0 龟甲旋击 Lv1 100 将自己坚硬的龟壳作为武器，以粉碎敌人的气势进行前冲攻击。  1 4 7 2 4 2 龟甲旋击 Lv2 100 将自己坚硬的龟壳作为武器，以粉碎敌人的气势进行前冲攻击。  1 4 10 3 4 3 龟甲旋击 Lv3 100 将自己坚硬的龟壳作为武器，以粉碎敌人的气势进行前冲攻击。  1 4 14 4 4 4 龟甲旋击 Lv4 100 将自己坚硬的龟壳作为武器，以粉碎敌人的气势进行前冲攻击。  1 4 20
+[/list]
+[/id]
+[id]
+5001
+[unlock stage index]
+3516
+[field name]
+level index price name cooltime explain type explain set slot image index sdt
+[/field name]
+[list]
+1 6 0 寒冰之怒 Lv1 100 经历磨难之后的克雷泽变得非常冷静。 当它愤怒的时候， 会散发冰冷的气息，似乎可以冻住周围所有物体。使用该技能后， 还可以提高英雄克雷泽的攻击力。  1 6 20 2 6 3 寒冰之怒 Lv2 100 经历磨难之后的克雷泽变得非常冷静。 当它愤怒的时候， 会散发冰冷的气息，似乎可以冻住周围所有物体。使用该技能后， 还可以提高英雄克雷泽的攻击力。  1 6 30 3 6 3 寒冰之怒 Lv3 100 经历磨难之后的克雷泽变得非常冷静。 当它愤怒的时候， 会散发冰冷的气息，似乎可以冻住周围所有物体。使用该技能后， 还可以提高英雄克雷泽的攻击力。  1 6 50 4 6 5 寒冰之怒 Lv4 100 经历磨难之后的克雷泽变得非常冷静。 当它愤怒的时候， 会散发冰冷的气息，似乎可以冻住周围所有物体。使用该技能后， 还可以提高英雄克雷泽的攻击力。  1 6 80
+[/list]
+[/id]
+[id]
+4001
+[unlock stage index]
+3518
+[field name]
+level index price name cooltime explain type explain set slot image index dmg
+[/field name]
+[list]
+1 5 0 龟派连环击 Lv1 100 当它在修炼过程中进入忘我境界的时候，会施展出一套华丽的连环招数。这套招数具有非常强劲的杀伤力， 甚至可以震天动地。连续按下技能快捷键， 可以延长技能持续的时间。  1 5 35 2 5 3 龟派连环击 Lv2 100 当它在修炼过程中进入忘我境界的时候，会施展出一套华丽的连环招数。这套招数具有非常强劲的杀伤力， 甚至可以震天动地。连续按下技能快捷键， 可以延长技能持续的时间。  1 5 60 3 5 3 龟派连环击 Lv3 100 当它在修炼过程中进入忘我境界的时候，会施展出一套华丽的连环招数。这套招数具有非常强劲的杀伤力， 甚至可以震天动地。连续按下技能快捷键， 可以延长技能持续的时间。  1 5 100 4 5 5 龟派连环击 Lv4 100 当它在修炼过程中进入忘我境界的时候，会施展出一套华丽的连环招数。这套招数具有非常强劲的杀伤力， 甚至可以震天动地。连续按下技能快捷键， 可以延长技能持续的时间。  1 5 200
+[/list]
+[/id]
+[/skill]
+[tower]
+[id]
+64597
+[unlock stage index]
+0
+[field name]
+level index price name cooltime explain type explain image index hp
+[/field name]
+[list]
+1 64597 0 召唤阵 Lv1 100 升级后， 可以提升召唤阵的HP量。  1 70 2 64597 1 召唤阵 Lv2 100 升级后， 可以提升召唤阵的HP量。  1 150 3 64597 2 召唤阵 Lv3 100 升级后， 可以提升召唤阵的HP量。  1 300 4 64597 3 召唤阵 Lv4 100 升级后， 可以提升召唤阵的HP量。  1 500
+[/list]
+[/id]
+[id]
+12610
+[unlock stage index]
+3513
+[field name]
+level index price name cooltime explain type explain image index dmg
+[/field name]
+[list]
+0 12610 0 哥布林弓兵 100 升级后， 可以增强哥布林弓兵发射的箭矢数和攻击力。  2 4 1 12610 3 哥布林弓兵 Lv1 100 升级后， 可以增强哥布林弓兵发射的箭矢数和攻击力。  2 4 2 12611 2 哥布林弓兵 Lv2 100 升级后， 可以增强哥布林弓兵发射的箭矢数和攻击力。  3 6 3 12612 3 哥布林弓兵 Lv3 100 升级后， 可以增强哥布林弓兵发射的箭矢数和攻击力。  4 18 4 12613 5 哥布林弓兵 Lv4 100 升级后， 可以增强哥布林弓兵发射的箭矢数和攻击力。  5 30
+[/list]
+[/id]
+[id]
+12617
+[unlock stage index]
+3517
+[field name]
+level index price name cooltime explain type explain image index dmg
+[/field name]
+[list]
+0 12617 0 龙头炮 100 升级后， 可以增强龙头炮的攻击力和爆发力。  6 10 1 12617 4 龙头炮 Lv1 100 升级后， 可以增强龙头炮的攻击力和爆发力。  6 8 2 12618 3 龙头炮 Lv2 100 升级后， 可以增强龙头炮的攻击力和爆发力。  7 10 3 12619 3 龙头炮 Lv3 100 升级后， 可以增强龙头炮的攻击力和爆发力。  8 19 4 12620 5 龙头炮 Lv4 100 升级后， 可以增强龙头炮的攻击力和爆发力。  9 30
+[/list]
+[/id]
+[id]
+64632
+[unlock stage index]
+3521
+[field name]
+level index price name cooltime explain type explain image index dmg
+[/field name]
+[list]
+0 64660 0 哥布林直升机 100 升级后， 可以提升召唤阵的HP量。  10 16 1 64632 5 哥布林直升机 Lv1 100 升级后， 可以提升召唤阵的HP量。  10 13 2 64633 4 哥布林直升机 Lv2 100 升级后， 可以提升召唤阵的HP量。  11 16 3 64634 4 哥布林直升机 Lv3 100 升级后， 可以提升召唤阵的HP量。  12 20 4 64635 5 哥布林直升机 Lv4 100 升级后， 可以提升召唤阵的HP量。  13 30
+[/list]
+[/id]
+[/tower]
+[/ridable id]

@@ -215,7 +215,12 @@ internal sealed partial class GameSelectDungeonCommandHandler
                         ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
                         : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
                 }
-                if (layout.Altar is { } altar)
+                if (layout.Guardian is { } guardianPlan)
+                {
+                    frames.Add(new Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarStageInfoMessage(guardianPlan));
+                    frames.Add(new Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarMapMessage(visit.Run, guardianPlan));
+                }
+                else if (layout.Altar is { } altar)
                 {
                     frames.Add(new Dfo.Server.Protocol.Game.Altar.AltarInfoMessage(layout.DungeonId, altar.Kind));
                     frames.Add(new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(visit.Run));

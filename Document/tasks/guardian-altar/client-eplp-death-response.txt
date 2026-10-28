@@ -1,0 +1,108 @@
+Input: E:\Project\DNF\DNFClient-A21-debug\dumps\dnf-dump-20260922-194214-883-23144\DNF-memory-rva.bin
+SHA256: aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d
+
+## RVA 0xd47d10; VA base 0x400000
+0x01147d10: push     ebp
+0x01147d11: mov      ebp, esp
+0x01147d13: sub      esp, 8
+0x01147d16: xor      eax, eax
+0x01147d18: mov      dword ptr [ebp - 8], eax
+0x01147d1b: mov      byte ptr [ebp - 4], al
+0x01147d1e: lea      eax, [ebp - 8]
+0x01147d21: push     5
+0x01147d23: push     eax
+0x01147d24: call     0x27c5380
+0x01147d29: mov      ecx, dword ptr [0x3a5c9b8]
+0x01147d2f: add      esp, 8
+0x01147d32: test     ecx, ecx
+0x01147d34: je       0x1147e76
+0x01147d3a: call     0x2300cd0
+0x01147d3f: test     eax, eax
+0x01147d41: je       0x1147e76
+0x01147d47: movzx    ecx, byte ptr [ebp - 4]
+0x01147d4b: push     ecx
+0x01147d4c: push     0x3244eb0
+0x01147d51: call     0x27bacc0
+0x01147d56: add      esp, 4
+0x01147d59: push     eax
+0x01147d5a: push     0x2c92
+0x01147d5f: push     0x3244e40
+0x01147d64: call     0x27bacc0
+0x01147d69: add      esp, 4
+0x01147d6c: push     eax
+0x01147d6d: push     0x3244c48
+0x01147d72: call     0x27bacc0
+0x01147d77: add      esp, 4
+0x01147d7a: push     eax
+0x01147d7b: push     0
+0x01147d7d: call     0x27be270
+0x01147d82: mov      eax, dword ptr [ebp - 8]
+0x01147d85: add      esp, 0x18
+0x01147d88: cmp      eax, 3
+0x01147d8b: je       0x1147e3a
+0x01147d91: mov      ecx, dword ptr [0x3a5c9b8]
+0x01147d97: cmp      eax, 2
+0x01147d9a: je       0x1147e2c
+0x01147da0: call     0x2300cd0
+0x01147da5: mov      ecx, eax
+0x01147da7: call     0x19e9e80
+0x01147dac: mov      ecx, dword ptr [0x3a5c9b8]
+0x01147db2: test     eax, eax
+0x01147db4: je       0x1147de6
+0x01147db6: push     0xa
+0x01147db8: call     0x2300cd0
+0x01147dbd: mov      ecx, eax
+0x01147dbf: call     0x10c5860
+0x01147dc4: push     -1
+0x01147dc6: push     -1
+0x01147dc8: push     0
+0x01147dca: push     0
+0x01147dcc: push     -1
+0x01147dce: push     0x31b13f4
+0x01147dd3: call     0x27bacc0
+0x01147dd8: add      esp, 4
+0x01147ddb: push     eax
+0x01147ddc: call     0x1648a20
+0x01147de1: add      esp, 0x18
+0x01147de4: jmp      0x1147e3a
+0x01147de6: call     0x2300cd0
+0x01147deb: mov      ecx, eax
+0x01147ded: call     0x2846d50
+0x01147df2: test     eax, eax
+0x01147df4: jne      0x1147e3a
+0x01147df6: mov      ecx, dword ptr [0x3a5c9b8]
+0x01147dfc: push     0xa
+0x01147dfe: call     0x2300cd0
+0x01147e03: mov      ecx, eax
+0x01147e05: call     0x10c5860
+0x01147e0a: push     -1
+0x01147e0c: push     -1
+0x01147e0e: push     0
+0x01147e10: push     0
+0x01147e12: push     -1
+0x01147e14: push     0x31b13f4
+0x01147e19: call     0x27bacc0
+0x01147e1e: add      esp, 4
+0x01147e21: push     eax
+0x01147e22: call     0x1648a20
+0x01147e27: add      esp, 0x18
+0x01147e2a: jmp      0x1147e3a
+0x01147e2c: push     8
+0x01147e2e: call     0x2300cd0
+0x01147e33: mov      ecx, eax
+0x01147e35: call     0x10c5860
+0x01147e3a: mov      edx, dword ptr [0x3a42f94]
+0x01147e40: mov      ecx, dword ptr [edx + 0x21c]
+0x01147e46: call     0xc4efd0
+0x01147e4b: mov      ecx, eax
+0x01147e4d: call     0x14317d0
+0x01147e52: mov      eax, dword ptr [0x3a42f94]
+0x01147e57: mov      ecx, dword ptr [eax + 0x21c]
+0x01147e5d: call     0x27fd960
+0x01147e62: mov      ecx, eax
+0x01147e64: call     0x1431760
+0x01147e69: mov      ecx, dword ptr [0x3a42f94]
+0x01147e6f: mov      byte ptr [ecx + 0x1f1], 0
+0x01147e76: mov      esp, ebp
+0x01147e78: pop      ebp
+0x01147e79: ret

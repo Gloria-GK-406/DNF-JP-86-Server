@@ -1,0 +1,161 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\µÈ¼¶²¹¶¡\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x8132f8e _ZN12advancealtar25CharacAdvanceAltarManager14setDefaultSlotEv (581 bytes)
+0x08132f8e: push     ebp
+0x08132f8f: mov      ebp, esp
+0x08132f91: sub      esp, 0x98
+0x08132f97: mov      eax, dword ptr [ebp + 8]
+0x08132f9a: mov      eax, dword ptr [eax]
+0x08132f9c: test     eax, eax
+0x08132f9e: je       0x81331d0
+0x08132fa4: mov      dword ptr [ebp - 0x10], 0
+0x08132fab: jmp      0x81330aa
+0x08132fb0: mov      eax, dword ptr [ebp - 0x10]
+0x08132fb3: mov      byte ptr [ebp - 0x59], al
+0x08132fb6: mov      eax, dword ptr [ebp + 8]
+0x08132fb9: mov      eax, dword ptr [eax]
+0x08132fbb: lea      ecx, [eax + 0x84]
+0x08132fc1: lea      eax, [ebp - 0x60]
+0x08132fc4: lea      edx, [ebp - 0x59]
+0x08132fc7: mov      dword ptr [esp + 8], edx
+0x08132fcb: mov      dword ptr [esp + 4], ecx
+0x08132fcf: mov      dword ptr [esp], eax
+0x08132fd2: call     0x813650e ; _ZNSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE4findERS5_
+0x08132fd7: sub      esp, 4
+0x08132fda: mov      eax, dword ptr [ebp + 8]
+0x08132fdd: mov      eax, dword ptr [eax]
+0x08132fdf: lea      edx, [eax + 0x84]
+0x08132fe5: lea      eax, [ebp - 0x58]
+0x08132fe8: mov      dword ptr [esp + 4], edx
+0x08132fec: mov      dword ptr [esp], eax
+0x08132fef: call     0x81361e8 ; _ZNSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE3endEv
+0x08132ff4: sub      esp, 4
+0x08132ff7: lea      eax, [ebp - 0x58]
+0x08132ffa: mov      dword ptr [esp + 4], eax
+0x08132ffe: lea      eax, [ebp - 0x60]
+0x08133001: mov      dword ptr [esp], eax
+0x08133004: call     0x813626e ; _ZNKSt17_Rb_tree_iteratorISt4pairIKhN12advancealtar5_SlotEEEeqERKS5_
+0x08133009: test     al, al
+0x0813300b: je       0x8133094
+0x08133011: lea      eax, [ebp - 0x6a]
+0x08133014: mov      dword ptr [esp], eax
+0x08133017: call     0x813449a ; _ZN12advancealtar5_SlotC1Ev
+0x0813301c: mov      eax, dword ptr [ebp - 0x10]
+0x0813301f: movzx    eax, byte ptr [eax + 0x8b6d394]
+0x08133026: mov      byte ptr [ebp - 0x6a], al
+0x08133029: mov      dword ptr [ebp - 0x69], 1
+0x08133030: mov      dword ptr [ebp - 0x64], 0
+0x08133037: mov      eax, dword ptr [ebp - 0x10]
+0x0813303a: mov      byte ptr [ebp - 0x65], al
+0x0813303d: lea      eax, [ebp - 0x40]
+0x08133040: lea      edx, [ebp - 0x6a]
+0x08133043: mov      dword ptr [esp + 8], edx
+0x08133047: lea      edx, [ebp - 0x6a]
+0x0813304a: add      edx, 5
+0x0813304d: mov      dword ptr [esp + 4], edx
+0x08133051: mov      dword ptr [esp], eax
+0x08133054: call     0x81365c1 ; _ZSt9make_pairIRhRN12advancealtar5_SlotEESt4pairINSt17__decay_and_stripIT_E6__typeENS5_IT0_E6__typeEEOS6_OS9_
+0x08133059: sub      esp, 4
+0x0813305c: lea      eax, [ebp - 0x40]
+0x0813305f: mov      dword ptr [esp + 4], eax
+0x08133063: lea      eax, [ebp - 0x4b]
+0x08133066: mov      dword ptr [esp], eax
+0x08133069: call     0x8136600 ; _ZNSt4pairIKhN12advancealtar5_SlotEEC2IhS2_EEOS_IT_T0_E
+0x0813306e: mov      eax, dword ptr [ebp + 8]
+0x08133071: mov      eax, dword ptr [eax]
+0x08133073: lea      ecx, [eax + 0x84]
+0x08133079: lea      eax, [ebp - 0x54]
+0x0813307c: lea      edx, [ebp - 0x4b]
+0x0813307f: mov      dword ptr [esp + 8], edx
+0x08133083: mov      dword ptr [esp + 4], ecx
+0x08133087: mov      dword ptr [esp], eax
+0x0813308a: call     0x8136640 ; _ZNSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE6insertERKS6_
+0x0813308f: sub      esp, 4
+0x08133092: jmp      0x81330a6
+0x08133094: lea      eax, [ebp - 0x60]
+0x08133097: mov      dword ptr [esp], eax
+0x0813309a: call     0x8136260 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKhN12advancealtar5_SlotEEEptEv
+0x0813309f: mov      dword ptr [eax + 7], 0
+0x081330a6: add      dword ptr [ebp - 0x10], 1
+0x081330aa: cmp      dword ptr [ebp - 0x10], 5
+0x081330ae: setle    al
+0x081330b1: test     al, al
+0x081330b3: jne      0x8132fb0
+0x081330b9: mov      dword ptr [ebp - 0xc], 0
+0x081330c0: jmp      0x81331bf
+0x081330c5: mov      eax, dword ptr [ebp - 0xc]
+0x081330c8: mov      byte ptr [ebp - 0x35], al
+0x081330cb: mov      eax, dword ptr [ebp + 8]
+0x081330ce: mov      eax, dword ptr [eax]
+0x081330d0: lea      ecx, [eax + 0x9c]
+0x081330d6: lea      eax, [ebp - 0x70]
+0x081330d9: lea      edx, [ebp - 0x35]
+0x081330dc: mov      dword ptr [esp + 8], edx
+0x081330e0: mov      dword ptr [esp + 4], ecx
+0x081330e4: mov      dword ptr [esp], eax
+0x081330e7: call     0x813650e ; _ZNSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE4findERS5_
+0x081330ec: sub      esp, 4
+0x081330ef: mov      eax, dword ptr [ebp + 8]
+0x081330f2: mov      eax, dword ptr [eax]
+0x081330f4: lea      edx, [eax + 0x9c]
+0x081330fa: lea      eax, [ebp - 0x34]
+0x081330fd: mov      dword ptr [esp + 4], edx
+0x08133101: mov      dword ptr [esp], eax
+0x08133104: call     0x81361e8 ; _ZNSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE3endEv
+0x08133109: sub      esp, 4
+0x0813310c: lea      eax, [ebp - 0x34]
+0x0813310f: mov      dword ptr [esp + 4], eax
+0x08133113: lea      eax, [ebp - 0x70]
+0x08133116: mov      dword ptr [esp], eax
+0x08133119: call     0x813626e ; _ZNKSt17_Rb_tree_iteratorISt4pairIKhN12advancealtar5_SlotEEEeqERKS5_
+0x0813311e: test     al, al
+0x08133120: je       0x81331a9
+0x08133126: lea      eax, [ebp - 0x7a]
+0x08133129: mov      dword ptr [esp], eax
+0x0813312c: call     0x813449a ; _ZN12advancealtar5_SlotC1Ev
+0x08133131: mov      eax, dword ptr [ebp - 0xc]
+0x08133134: movzx    eax, byte ptr [eax + 0x8b6d39a]
+0x0813313b: mov      byte ptr [ebp - 0x7a], al
+0x0813313e: mov      dword ptr [ebp - 0x79], 2
+0x08133145: mov      dword ptr [ebp - 0x74], 0
+0x0813314c: mov      eax, dword ptr [ebp - 0xc]
+0x0813314f: mov      byte ptr [ebp - 0x75], al
+0x08133152: lea      eax, [ebp - 0x1b]
+0x08133155: lea      edx, [ebp - 0x7a]
+0x08133158: mov      dword ptr [esp + 8], edx
+0x0813315c: lea      edx, [ebp - 0x7a]
+0x0813315f: add      edx, 5
+0x08133162: mov      dword ptr [esp + 4], edx
+0x08133166: mov      dword ptr [esp], eax
+0x08133169: call     0x81365c1 ; _ZSt9make_pairIRhRN12advancealtar5_SlotEESt4pairINSt17__decay_and_stripIT_E6__typeENS5_IT0_E6__typeEEOS6_OS9_
+0x0813316e: sub      esp, 4
+0x08133171: lea      eax, [ebp - 0x1b]
+0x08133174: mov      dword ptr [esp + 4], eax
+0x08133178: lea      eax, [ebp - 0x26]
+0x0813317b: mov      dword ptr [esp], eax
+0x0813317e: call     0x8136600 ; _ZNSt4pairIKhN12advancealtar5_SlotEEC2IhS2_EEOS_IT_T0_E
+0x08133183: mov      eax, dword ptr [ebp + 8]
+0x08133186: mov      eax, dword ptr [eax]
+0x08133188: lea      ecx, [eax + 0x9c]
+0x0813318e: lea      eax, [ebp - 0x30]
+0x08133191: lea      edx, [ebp - 0x26]
+0x08133194: mov      dword ptr [esp + 8], edx
+0x08133198: mov      dword ptr [esp + 4], ecx
+0x0813319c: mov      dword ptr [esp], eax
+0x0813319f: call     0x8136640 ; _ZNSt3mapIhN12advancealtar5_SlotESt4lessIhESaISt4pairIKhS1_EEE6insertERKS6_
+0x081331a4: sub      esp, 4
+0x081331a7: jmp      0x81331bb
+0x081331a9: lea      eax, [ebp - 0x70]
+0x081331ac: mov      dword ptr [esp], eax
+0x081331af: call     0x8136260 ; _ZNKSt17_Rb_tree_iteratorISt4pairIKhN12advancealtar5_SlotEEEptEv
+0x081331b4: mov      dword ptr [eax + 7], 0
+0x081331bb: add      dword ptr [ebp - 0xc], 1
+0x081331bf: cmp      dword ptr [ebp - 0xc], 5
+0x081331c3: setle    al
+0x081331c6: test     al, al
+0x081331c8: jne      0x81330c5
+0x081331ce: jmp      0x81331d1
+0x081331d0: nop
+0x081331d1: leave
+0x081331d2: ret

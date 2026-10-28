@@ -1,0 +1,209 @@
+=== etc/advancealtar/advancealtarcharmshoplist.etc ===
+[reward data]
+[type]
+1
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_01
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+2
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+3
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+4
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+5
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+6
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+7
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+8
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+9
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+10
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+11
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+12
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]
+[reward data]
+[type]
+13
+[reward item]
+normal 100360001 1
+[/reward item]
+[require item]
+normal 2749211 10
+[require item]
+[reward title]
+chn_advaltar_achievement_msg_02
+[postal title]
+chn_game_server_msg_90
+[postal letter]
+chn_game_server_msg_91
+[/reward data]

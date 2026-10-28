@@ -15,6 +15,7 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
         CharacterId target, DungeonRunId runId, CancellationToken cancellationToken)
     {
         if (!sessions.IsInWorld(payer)) return new(false);
+        if (runs.Find(target)?.Layout.Guardian is not null) return new(false);
         var isTournament = runs.Find(target)?.Layout.Tournament is not null;
         if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
             .CanRevive(target, runId)) return new(false);

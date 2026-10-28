@@ -54,6 +54,18 @@ internal sealed record EventInformationMessage(EventInfo[] Information) : GameSt
 { internal override ushort Type=>0x006C;internal override byte[] EncodeBody()=>EventPayloadCodec.Information(Information); }
 internal sealed record WeeklyAttendanceStateMessage(WeeklyAttendanceState State) : GameStateSynchronizationMessage,IGameNotiMessage
 { internal override ushort Type=>0x042D;internal override byte[] EncodeBody()=>EventPayloadCodec.Attendance(State); }
+internal sealed record ScheduledActivityStateMessage(ScheduledActivityState State) : GameStateSynchronizationMessage, IGameNotiMessage
+{
+    internal override ushort Type => 0x033F;
+    internal override byte[] EncodeBody()
+    {
+        var body = new byte[16];
+        BinaryPrimitives.WriteUInt32LittleEndian(body, checked((uint)State.Category));
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4), State.Open ? 1u : 0u);
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8), checked((uint)State.ContentId));
+        return body;
+    }
+}
 internal sealed record ScheduledDungeonStateMessage(ScheduledDungeonState State) : GameStateSynchronizationMessage,IGameNotiMessage
 {
     internal override ushort Type => 0x033F;
@@ -113,6 +125,7 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
         var state=await projection.ReadNowAsync(session,ct);
         List<IServerNetworkMessage> messages = [new EventInformationMessage(state.Information),new WeeklyAttendanceStateMessage(state.Attendance),
             .. state.ScheduledDungeons.Select(x => new ScheduledDungeonStateMessage(x)),
+            .. state.ScheduledActivities.Select(x => new ScheduledActivityStateMessage(x)),
             .. state.ScheduledQuests.Select(x => new ScheduledQuestStateMessage(x)),
             .. state.Joust is { } joust ? Dfo.Server.Protocol.Game.Joust.JoustPayloadCodec.Snapshot(joust) : []];
         if (notice.RefreshQuestOffers)

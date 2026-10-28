@@ -1,0 +1,165 @@
+Input: E:\Project\DNF\Research\1995chen-dnf\other\等级补丁\70\df_game_r
+SHA256: cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7
+
+## 0x80e94dc _ZN22CEventAdvanceAltarOpen10StartEventEv (5 bytes)
+0x080e94dc: push     ebp
+0x080e94dd: mov      ebp, esp
+0x080e94df: pop      ebp
+0x080e94e0: ret
+
+## 0x80e94e2 _ZN22CEventAdvanceAltarOpen10StartEventE10Word_Param (81 bytes)
+0x080e94e2: push     ebp
+0x080e94e3: mov      ebp, esp
+0x080e94e5: sub      esp, 0x28
+0x080e94e8: mov      eax, dword ptr [ebp + 8]
+0x080e94eb: mov      dword ptr [esp + 4], 1
+0x080e94f3: mov      dword ptr [esp], eax
+0x080e94f6: call     0x80c84e2 ; _ZN10CEventBase12SetEventFlagEb
+0x080e94fb: mov      dword ptr [esp + 0xc], 0
+0x080e9503: mov      dword ptr [esp + 8], 0x48e
+0x080e950b: mov      dword ptr [esp + 4], 0x8b314a0
+0x080e9513: lea      eax, [ebp - 0x18]
+0x080e9516: mov      dword ptr [esp], eax
+0x080e9519: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0x080e951e: mov      dword ptr [esp + 4], 0x8b30800
+0x080e9526: lea      eax, [ebp - 0x18]
+0x080e9529: mov      dword ptr [esp], eax
+0x080e952c: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0x080e9531: leave
+0x080e9532: ret
+
+## 0x80e9534 _ZN22CEventAdvanceAltarOpen8EndEventEv (81 bytes)
+0x080e9534: push     ebp
+0x080e9535: mov      ebp, esp
+0x080e9537: sub      esp, 0x28
+0x080e953a: mov      eax, dword ptr [ebp + 8]
+0x080e953d: mov      dword ptr [esp + 4], 0
+0x080e9545: mov      dword ptr [esp], eax
+0x080e9548: call     0x80c84e2 ; _ZN10CEventBase12SetEventFlagEb
+0x080e954d: mov      dword ptr [esp + 0xc], 0
+0x080e9555: mov      dword ptr [esp + 8], 0x494
+0x080e955d: mov      dword ptr [esp + 4], 0x8b31460
+0x080e9565: lea      eax, [ebp - 0x18]
+0x080e9568: mov      dword ptr [esp], eax
+0x080e956b: call     0x854f718 ; _ZN8cMyTraceC2EPKcii
+0x080e9570: mov      dword ptr [esp + 4], 0x8b30828
+0x080e9578: lea      eax, [ebp - 0x18]
+0x080e957b: mov      dword ptr [esp], eax
+0x080e957e: call     0x854f788 ; _ZN8cMyTraceclEPKcz
+0x080e9583: leave
+0x080e9584: ret
+
+## 0x80e95c5 _GLOBAL__I__ZN22CEventAdvanceAltarOpen10StartEventEv (28 bytes)
+0x080e95c5: push     ebp
+0x080e95c6: mov      ebp, esp
+0x080e95c8: sub      esp, 0x18
+0x080e95cb: mov      dword ptr [esp + 4], 0xffff
+0x080e95d3: mov      dword ptr [esp], 1
+0x080e95da: call     0x80e9585 ; _Z41__static_initialization_and_destruction_0ii
+0x080e95df: leave
+0x080e95e0: ret
+
+## 0x80e95e2 _ZN22CEventAdvanceAltarOpenD1Ev (48 bytes)
+0x080e95e2: push     ebp
+0x080e95e3: mov      ebp, esp
+0x080e95e5: sub      esp, 0x18
+0x080e95e8: mov      eax, dword ptr [ebp + 8]
+0x080e95eb: mov      dword ptr [eax], 0x8b314e8
+0x080e95f1: mov      eax, dword ptr [ebp + 8]
+0x080e95f4: mov      dword ptr [esp], eax
+0x080e95f7: call     0x810ae52 ; _ZN10CEventBaseD1Ev
+0x080e95fc: mov      eax, 0
+0x080e9601: test     al, al
+0x080e9603: je       0x80e9610
+0x080e9605: mov      eax, dword ptr [ebp + 8]
+0x080e9608: mov      dword ptr [esp], eax
+0x080e960b: call     0x87244f0 ; _ZdlPv
+0x080e9610: leave
+0x080e9611: ret
+
+## 0x80e95e2 _ZN22CEventAdvanceAltarOpenD2Ev (48 bytes)
+0x080e95e2: push     ebp
+0x080e95e3: mov      ebp, esp
+0x080e95e5: sub      esp, 0x18
+0x080e95e8: mov      eax, dword ptr [ebp + 8]
+0x080e95eb: mov      dword ptr [eax], 0x8b314e8
+0x080e95f1: mov      eax, dword ptr [ebp + 8]
+0x080e95f4: mov      dword ptr [esp], eax
+0x080e95f7: call     0x810ae52 ; _ZN10CEventBaseD1Ev
+0x080e95fc: mov      eax, 0
+0x080e9601: test     al, al
+0x080e9603: je       0x80e9610
+0x080e9605: mov      eax, dword ptr [ebp + 8]
+0x080e9608: mov      dword ptr [esp], eax
+0x080e960b: call     0x87244f0 ; _ZdlPv
+0x080e9610: leave
+0x080e9611: ret
+
+## 0x80e9612 _ZN22CEventAdvanceAltarOpenD0Ev (30 bytes)
+0x080e9612: push     ebp
+0x080e9613: mov      ebp, esp
+0x080e9615: sub      esp, 0x18
+0x080e9618: mov      eax, dword ptr [ebp + 8]
+0x080e961b: mov      dword ptr [esp], eax
+0x080e961e: call     0x80e95e2 ; _ZN22CEventAdvanceAltarOpenD2Ev
+0x080e9623: mov      eax, dword ptr [ebp + 8]
+0x080e9626: mov      dword ptr [esp], eax
+0x080e9629: call     0x87244f0 ; _ZdlPv
+0x080e962e: leave
+0x080e962f: ret
+
+## 0x8116b2c _ZN22CEventAdvanceAltarOpenC1Ev (28 bytes)
+0x08116b2c: push     ebp
+0x08116b2d: mov      ebp, esp
+0x08116b2f: sub      esp, 0x18
+0x08116b32: mov      eax, dword ptr [ebp + 8]
+0x08116b35: mov      dword ptr [esp], eax
+0x08116b38: call     0x810ae2c ; _ZN10CEventBaseC2Ev
+0x08116b3d: mov      eax, dword ptr [ebp + 8]
+0x08116b40: mov      dword ptr [eax], 0x8b314e8
+0x08116b46: leave
+0x08116b47: ret
+
+## 0x8116b2c _ZN22CEventAdvanceAltarOpenC2Ev (28 bytes)
+0x08116b2c: push     ebp
+0x08116b2d: mov      ebp, esp
+0x08116b2f: sub      esp, 0x18
+0x08116b32: mov      eax, dword ptr [ebp + 8]
+0x08116b35: mov      dword ptr [esp], eax
+0x08116b38: call     0x810ae2c ; _ZN10CEventBaseC2Ev
+0x08116b3d: mov      eax, dword ptr [ebp + 8]
+0x08116b40: mov      dword ptr [eax], 0x8b314e8
+0x08116b46: leave
+0x08116b47: ret
+
+## 0x8126d60 _ZN21CDailyScheduleManager19GM_OpenAdvanceAltarEv (47 bytes)
+0x08126d60: push     ebp
+0x08126d61: mov      ebp, esp
+0x08126d63: sub      esp, 0x18
+0x08126d66: mov      eax, dword ptr [ebp + 8]
+0x08126d69: add      eax, 0xb4
+0x08126d6e: mov      dword ptr [esp + 0xc], eax
+0x08126d72: mov      dword ptr [esp + 8], 4
+0x08126d7a: mov      dword ptr [esp + 4], 0xa
+0x08126d82: mov      eax, dword ptr [ebp + 8]
+0x08126d85: mov      dword ptr [esp], eax
+0x08126d88: call     0x8126dc0 ; _ZN21CDailyScheduleManager15GM_OpenScheduleEi18_DailyScheduleTypeR14_DailySchedule
+0x08126d8d: leave
+0x08126d8e: ret
+
+## 0x812f7b8 _ZN12advancealtar14Timer_MainTick19RegistNextTimerGageEv (77 bytes)
+0x0812f7b8: push     ebp
+0x0812f7b9: mov      ebp, esp
+0x0812f7bb: sub      esp, 0x28
+0x0812f7be: call     0x80f647c ; _Z12G_TimerQueuev
+0x0812f7c3: mov      dword ptr [esp + 0x1c], 0
+0x0812f7cb: mov      dword ptr [esp + 0x18], 0
+0x0812f7d3: mov      dword ptr [esp + 0x10], 0x3e8
+0x0812f7db: mov      dword ptr [esp + 0x14], 0
+0x0812f7e3: mov      dword ptr [esp + 0xc], 0xa6
+0x0812f7eb: mov      dword ptr [esp + 8], 0
+0x0812f7f3: mov      dword ptr [esp + 4], 8
+0x0812f7fb: mov      dword ptr [esp], eax
+0x0812f7fe: call     0x8630e60 ; _ZN10TimerQueue23InsertTimerInMilisecondEN10TimerEntry8OBJ_TYPEEi13TIMER_MESSAGExij
+0x0812f803: leave
+0x0812f804: ret

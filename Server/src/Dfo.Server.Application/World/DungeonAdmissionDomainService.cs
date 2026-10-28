@@ -78,7 +78,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                 if (options.RequiredQuestIds.Any(id => !cleared.Any(x => x.QuestId == id && (options.MirrorCatalog is null || x.Mark != 0))))
                     return Refuse(options.HellTickets is null ? DungeonEntryFailure.MissingPrerequisite : DungeonEntryFailure.HellQuestNotCleared, member.Slot);
             }
-            if (!options.Mirror)
+            if (!options.Mirror && options.EnforceOrdinaryDifficulty)
             {
                 var maximum = await difficulties.GetMaximumAsync(member.CharacterId, context.DungeonId, ct).ConfigureAwait(false);
                 var cycle = context.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle;

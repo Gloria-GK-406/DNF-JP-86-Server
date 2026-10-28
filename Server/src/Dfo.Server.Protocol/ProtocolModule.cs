@@ -181,6 +181,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledActivityStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledActivityStateMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>();
@@ -279,6 +280,45 @@ public sealed class ProtocolModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
         services.TryAddSingleton<IAltarSchedulerWakeSignal>(p => p.GetRequiredService<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>());
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
+        services.TryAddSingleton<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarWakeSignal>();
+        services.TryAddSingleton<IGuardianAltarSchedulerWakeSignal>(sp => sp.GetRequiredService<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarWakeSignal>());
+        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarScheduler>();
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarOpen);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarBuy);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarSetSlot);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarUpgradeEnergy);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarSummon);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarExchange);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarPause);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarAchievement);
+        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarReset);
+        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand, bool, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarOpen, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarBuy, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarSetSlot, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarUpgradeEnergy, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarSummon, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarExchange, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarPause, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarAchievement, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarReset, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)));
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenDecoder>(0x0392, ClientMessageType.GameGuardianAltarOpen);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarBuyDecoder>(0x0393, ClientMessageType.GameGuardianAltarBuy);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSetSlotDecoder>(0x0394, ClientMessageType.GameGuardianAltarSetSlot);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarUpgradeDecoder>(0x0395, ClientMessageType.GameGuardianAltarUpgradeEnergy);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSummonDecoder>(0x0396, ClientMessageType.GameGuardianAltarSummon);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarExchangeDecoder>(0x0397, ClientMessageType.GameGuardianAltarExchange);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarPauseDecoder>(0x0398, ClientMessageType.GameGuardianAltarPause);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarAchievementDecoder>(0x0399, ClientMessageType.GameGuardianAltarAchievement);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResetDecoder>(0x039A, ClientMessageType.GameGuardianAltarReset);
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenResponse>>();
+        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarActionResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarActionResponse>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarProfileMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarProfileMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarStageInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarStageInfoMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarMapMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSpawnMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSpawnMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResultMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResultMessage>>();
+        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarEplpMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarEplpMessage>>();
         services.AddIsolatedWorldMaintenanceCommands();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
