@@ -25,7 +25,7 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
 
     /// <summary>The actor's town area membership, when the actor's session owns it.</summary>
     public TownAreaMember? Standing(SelectedSessionIdentity actor) =>
-        areas.Find(actor.CharacterId) is { } member && actor.Owns(member) ? member : null;
+        onlineCharacters.StandingOf(actor) is { } member ? member : null;
 
     /// <summary>Whether the character's membership, owned or not, is this room.</summary>
     public bool IsIn(CharacterId character, MarriageChurchRoom room) => areas.Find(character)?.Area == Key(room);
@@ -33,16 +33,16 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
     public int? ChannelOf(CharacterId character) => areas.Find(character)?.Area.ChannelId;
 
     public SelectedSessionIdentity[] Occupants(MarriageChurchRoom room) =>
-        online.Snapshot().Where(x => areas.Find(x.CharacterId) is { } a && x.Owns(a) && a.Area == Key(room)).ToArray();
+        online.Snapshot().Where(x => onlineCharacters.StandingOf(x) is { } a && a.Area == Key(room)).ToArray();
 
     public bool IsEmpty(MarriageChurchRoom room) =>
-        !online.Snapshot().Any(x => areas.Find(x.CharacterId) is { } a && x.Owns(a) && a.Area == Key(room));
+        !online.Snapshot().Any(x => onlineCharacters.StandingOf(x) is { } a && a.Area == Key(room));
 
     /// <summary>The character is online on its original account and standing in the room.</summary>
     public bool IsPresent(SelectedSessionIdentity original, MarriageChurchRoom room)
     {
         return sessions.TryGetInWorld(original.CharacterId, out var current) && current.AccountId == original.AccountId
-            && areas.Find(current.CharacterId) is { } member && current.Owns(member)
+            && onlineCharacters.StandingOf(current) is { } member
             && member.Area == Key(room);
     }
 
@@ -102,7 +102,7 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
         var room = await store.ReadAsync(ceremony, ct).ConfigureAwait(false);
         if (room is null || room.ChannelId != channelId || room.TownId != townId || room.AreaId != areaId) return false;
         var standing = areas.Find(actor.CharacterId);
-        var alreadyInside = standing is not null && actor.Owns(standing)
+        var alreadyInside = standing is not null && standing.Session == actor
             && standing.Area == new TownAreaKey(channelId, townId, areaId);
         return (room.ReadyUntil > clock.GetUtcNow() || alreadyInside)
             && await store.IsAdmittedAsync(room.CeremonyId, actor.CharacterId, ct).ConfigureAwait(false);
@@ -115,7 +115,7 @@ internal sealed class ChurchRooms(IMarriageChurchDomainStore store, IMarriageChu
         var guestRoom = await store.ReadAsync(ceremony, ct).ConfigureAwait(false);
         if (guestRoom is null || guestRoom.ChannelId != channelId || guestRoom.TownId != townId || guestRoom.AreaId != areaId) return null;
         var member = areas.Find(actor.CharacterId);
-        var inside = member is not null && actor.Owns(member) && member.Area == new TownAreaKey(channelId, townId, areaId);
+        var inside = member is not null && member.Session == actor && member.Area == new TownAreaKey(channelId, townId, areaId);
         if (phase == MarriageWeddingPhase.Completed && !inside) return false;
         return (guestRoom.ReadyUntil > clock.GetUtcNow() || inside)
             && await store.IsAdmittedAsync(ceremony, actor.CharacterId, ct).ConfigureAwait(false);

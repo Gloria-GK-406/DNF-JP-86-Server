@@ -20,8 +20,8 @@
 当前库存投影由入场读取链路组装，物品修改通过引用、取出记录与生命周期服务完成；
 见 [物品与容器](ItemContainers.md)。
 
-位置、队伍血量百分比、物品冷却与灵药加成由 `IOnlineCharacterRuntimeDomainService` 的同一条
-运行时记录持有，记录属于开始它的会话代数；旧连接的迟到写入与清理不能改到或移除新连接的记录。
+位置、队伍血量百分比、物品冷却与灵药加成都经 `IOnlineCharacterRuntimeDomainService` 读写，
+记录属于开始它的会话代数，其中位置与城镇区域成员是位置服务里的同一条记录；旧连接的迟到写入与清理不能改到或移除新连接的记录。
 这些短期运行态不复制整份 `SelectCharacterResult`。
 
 登录落点只在选角准备阶段通过 `IEntryPlacementRuleService.ResolveAsync` 计算。

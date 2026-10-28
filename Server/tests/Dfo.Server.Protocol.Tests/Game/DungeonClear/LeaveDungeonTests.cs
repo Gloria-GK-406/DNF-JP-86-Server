@@ -164,11 +164,15 @@ public sealed class LeaveDungeonTests
     }
 
     private static EplpDriver StoryHandler(OneRun runs, RecordingSender sender,
-        IDungeonEntryIntentDomainService? intents = null) => new(
-        new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(),
-        runs, new DungeonRunDeliveryRegistry(), sender,
-        TownAreaProjectionTestFactory.Create(new OneSession(Identity), new OneRuntimeSession(Entry()), sender),
-        NullLogger<EplpCommandHandler>.Instance, entryIntents: intents);
+        IDungeonEntryIntentDomainService? intents = null)
+    {
+        var areas = new SessionPresenceDomainService();
+        return new(
+            new OneSession(Identity), new OneRuntimeSession(Entry()), new StandingWhereTheyAre(areas),
+            runs, new DungeonRunDeliveryRegistry(), sender,
+            TownAreaProjectionTestFactory.Create(new OneSession(Identity), new OneRuntimeSession(Entry()), sender, areas),
+            NullLogger<EplpCommandHandler>.Instance, entryIntents: intents);
+    }
 
     [Fact]
     public async Task Failed_exit_delivery_releases_the_transition_without_repeating_the_exit()
@@ -379,17 +383,19 @@ public sealed class LeaveDungeonTests
                 listenerPort: 10010);
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runs.RunId, [Identity, helper]);
+            var areas = new SessionPresenceDomainService();
             var handler = new EplpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                new StandingWhereTheyAre(),
+                new StandingWhereTheyAre(areas),
                 runs,
                 deliveries,
                 new RecordingSender(),
                 TownAreaProjectionTestFactory.Create(
                     new OneSession(Identity),
                     new OneRuntimeSession(Entry()),
-                    new RecordingSender()),
+                    new RecordingSender(),
+                    areas),
                 NullLogger<EplpCommandHandler>.Instance);
 
             await handler.HandleAsync(
@@ -413,16 +419,17 @@ public sealed class LeaveDungeonTests
             deliveries.Register(runs.RunId, [Identity]);
             var sender = new RecordingSender();
             var parties = new RecordingPartyMutations();
+            var areas = new SessionPresenceDomainService();
             var handler = new GiveUpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                new StandingWhereTheyAre(),
+                new StandingWhereTheyAre(areas),
                 runs,
                 deliveries,
                 sender,
-                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(new SessionPresenceDomainService(), new OneSession(Identity), new OneRuntimeSession(Entry()), new NoopNotificationBus(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance, new FixedWeakness(weaknessValue)),
+                global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, new OneSession(Identity), new OneRuntimeSession(Entry()), new NoopNotificationBus(), new NoopPartyTownProjection(), sender, SharedTownMovementDomainService.Instance, new FixedWeakness(weaknessValue)),
                 NullLogger<GiveUpGameHandler>.Instance,
-                new SessionPresenceDomainService(),
+                areas,
                 parties,
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotificationBus()));
 
@@ -453,19 +460,20 @@ public sealed class LeaveDungeonTests
         await TestGameplay.RunAsync(async () =>
         {
             var parties = new RecordingPartyMutations();
+            var areas = new SessionPresenceDomainService();
             var handler = new GiveUpDriver(
                 new OneSession(Identity),
                 new OneRuntimeSession(Entry()),
-                new StandingWhereTheyAre(),
+                new StandingWhereTheyAre(areas),
                 new OneRun(hasRun: false),
                 new DungeonRunDeliveryRegistry(),
                 new RecordingSender(),
                 TownAreaProjectionTestFactory.Create(
                     new OneSession(Identity),
                     new OneRuntimeSession(Entry()),
-                    new RecordingSender()),
+                    new RecordingSender(), areas),
                 NullLogger<GiveUpGameHandler>.Instance,
-                new SessionPresenceDomainService(),
+                areas,
                 parties,
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(new NoopNotificationBus()));
 
@@ -512,7 +520,7 @@ public sealed class LeaveDungeonTests
         RecordingPartyMutations parties, ICommandWorkUnits units, IAltarDungeonDomainService altars)
         : ICommandHandler<GameGiveUpGameCommand, bool>
     {
-        private readonly GamePartyTransitionCommandHandler handler = new(selected,new OneRuntimeSession(Entry()),new StandingWhereTheyAre(),runs,registry,            parties,new SessionPresenceDomainService(),ProtocolAlgorithmFixture.Default<ICommandProjections>(),ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterStateProjectionDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),ProtocolAlgorithmFixture.Default<ITownMovementDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),new DerivedDungeonParticipation(ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),runs,selected),ProtocolAlgorithmFixture.NoOnline(),units,            new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),ProtocolAlgorithmFixture.Default<IDungeonCardPresentationControl>(),ProtocolAlgorithmFixture.Default<IDungeonEntryIntentDomainService>(),altars,ProtocolAlgorithmFixture.Default<IAltarSchedulerWakeSignal>(),ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(),TimeProvider.System,            NullLogger<GamePartyTransitionCommandHandler>.Instance,ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),guardian: ProtocolAlgorithmFixture.Default<IGuardianAltarDomainService>());
+        private readonly GamePartyTransitionCommandHandler handler = new SessionPresenceDomainService() is var areas ? new(selected,new OneRuntimeSession(Entry()),new StandingWhereTheyAre(areas),runs,registry,            parties,areas,ProtocolAlgorithmFixture.Default<ICommandProjections>(),ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterStateProjectionDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),ProtocolAlgorithmFixture.Default<ITownMovementDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),new DerivedDungeonParticipation(ProtocolAlgorithmFixture.Default<IBossTowerDomainService>(),ProtocolAlgorithmFixture.Default<IIllusionTowerDomainService>(),runs,selected),ProtocolAlgorithmFixture.NoOnline(),units,            new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender),ProtocolAlgorithmFixture.Default<ICommandConnectionClosures>(),ProtocolAlgorithmFixture.Default<IDungeonCardPresentationControl>(),ProtocolAlgorithmFixture.Default<IDungeonEntryIntentDomainService>(),altars,ProtocolAlgorithmFixture.Default<IAltarSchedulerWakeSignal>(),ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(),TimeProvider.System,            NullLogger<GamePartyTransitionCommandHandler>.Instance,ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),guardian: ProtocolAlgorithmFixture.Default<IGuardianAltarDomainService>()) : null!;
         public ValueTask<bool> HandleAsync(CommandExecutionContext context, GameGiveUpGameCommand command, CancellationToken ct) =>
             handler.HandleAsync(context, command, ct);
     }
@@ -592,14 +600,15 @@ public sealed class LeaveDungeonTests
             var deliveries = new DungeonRunDeliveryRegistry();
             deliveries.Register(runs.RunId, [Identity]);
             var sender = new RecordingSender();
+            var areas = new SessionPresenceDomainService();
             var handler = Dfo.Server.Protocol.Tests.Game.DungeonEntry.DungeonSelectionTestDriver.Back(
                 new OneSession(Identity),
                 new RuntimeCurrentView(new OneRuntimeSession(Entry())),
-                new StandingWhereTheyAre(),
+                new StandingWhereTheyAre(areas),
                 runs,
                 deliveries,
                 sender,
-                ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(new SessionPresenceDomainService(),
+                ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(areas,
                     new OneSession(Identity), new OneRuntimeSession(Entry()), sender,
                     new NoopNotificationBus(), new NoopPartyTownProjection(), SharedTownMovementDomainService.Instance,
                     new FixedWeakness(37)),
@@ -642,7 +651,7 @@ public sealed class LeaveDungeonTests
         var handler = new EplpDriver(
             new OneSession(Identity),
             new OneRuntimeSession(Entry()),
-            new StandingWhereTheyAre(),
+            new StandingWhereTheyAre(areas),
             runs,
             new DungeonRunDeliveryRegistry(),
             sender,
@@ -977,26 +986,57 @@ public sealed class LeaveDungeonTests
     }
 
     /// <summary>The service that owns where the character is, answering the one place they are.</summary>
-    private sealed class StandingWhereTheyAre : IOnlineCharacterRuntimeDomainService
+    /// <remarks>
+    /// The real runtime over the town areas the handler reads, so the return to town lands in the
+    /// same store the projection is built from. The character left that place for the dungeon,
+    /// unless the test already stood it in town; any other character answers the same place.
+    /// </remarks>
+    private sealed class StandingWhereTheyAre(SessionPresenceDomainService? areas = null)
+        : IOnlineCharacterRuntimeDomainService
     {
-        public CharacterPositionState? PositionOf(CharacterId characterId) => Standing;
+        private readonly Dfo.Server.Application.World.OnlineCharacterLocationDomainService locations =
+            areas?.Locations ?? new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
+        private Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService? inner;
 
-        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
+        private Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService Inner
+        {
+            get
+            {
+                if (inner is not null)
+                    return inner;
+                inner = new(TimeProvider.System, locations);
+                if (locations.PositionOf(Identity) is null)
+                {
+                    locations.Begin(Identity, new TownAreaKey(
+                        Entry().World.Channel.ChannelId, Standing.TownId, Standing.AreaId), Standing, true);
+                    locations.Depart(Identity, TownAreaDepartureReason.DungeonEntry);
+                }
+                return inner;
+            }
+        }
+
+        public CharacterPositionState? PositionOf(CharacterId characterId) =>
+            Inner.PositionOf(characterId) ?? Standing;
+
+        public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) =>
             throw new NotSupportedException("Leaving a dungeon does not place anyone.");
 
-        public CharacterPositionState CrossInto(
-            SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+        public TownAreaMembershipChange? CrossInto(SelectedSessionIdentity session, TownAreaKey destination, short x, short y, bool sharesTownPresence, byte? direction = null) =>
             throw new NotSupportedException("Leaving a dungeon reports no movement.");
 
-        public CharacterPositionState StepTo(
-            SelectedSessionIdentity session, short x, short y, byte direction) =>
+        public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException("Leaving a dungeon reports no movement.");
 
         public bool EndExact(SelectedSessionIdentity session) =>
             throw new NotSupportedException("Leaving a dungeon does not end the session.");
 
-        // Test double: only the position is modelled; the rest of the runtime is empty.
-        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public CharacterPositionState? PositionOf(SelectedSessionIdentity session) =>
+            Inner.PositionOf(session) ?? Standing;
+        public TownAreaMember? StandingOf(SelectedSessionIdentity session) => Inner.StandingOf(session);
+        public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason) =>
+            Inner.LeaveTown(session, reason);
+        public TownAreaMembershipChange? ReturnToTown(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence) =>
+            Inner.ReturnToTown(session, area, position, sharesTownPresence);
         public byte HpPercentOf(CharacterId characterId) => 0;
         public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
         public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }
@@ -1009,15 +1049,13 @@ public sealed class LeaveDungeonTests
     {
         public CharacterPositionState? PositionOf(CharacterId characterId) => null;
 
-        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
+        public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
-        public CharacterPositionState CrossInto(
-            SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
+        public TownAreaMembershipChange? CrossInto(SelectedSessionIdentity session, TownAreaKey destination, short x, short y, bool sharesTownPresence, byte? direction = null) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
-        public CharacterPositionState StepTo(
-            SelectedSessionIdentity session, short x, short y, byte direction) =>
+        public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
             throw new NotSupportedException("This fixture holds nothing.");
 
         public bool EndExact(SelectedSessionIdentity session) =>
@@ -1025,6 +1063,11 @@ public sealed class LeaveDungeonTests
 
         // Test double: only the position is modelled; the rest of the runtime is empty.
         public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => PositionOf(session.CharacterId);
+        public TownAreaMember? StandingOf(SelectedSessionIdentity session) => null;
+        public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason) =>
+            throw new NotSupportedException();
+        public TownAreaMembershipChange? ReturnToTown(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence) =>
+            throw new NotSupportedException();
         public byte HpPercentOf(CharacterId characterId) => 0;
         public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => false;
         public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) { }

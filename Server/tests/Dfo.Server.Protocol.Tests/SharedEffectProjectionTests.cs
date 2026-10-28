@@ -25,7 +25,7 @@ public sealed class SharedEffectProjectionTests
             SelectedSessionIdentity Add(int id, byte area, bool visible)
             {
                 var s = SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id), new NetworkConnectionId("shared-" + id), 2, 10011);
-                Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, s); areas.Enter(new(s.CharacterId, s.TownAreaLease(), new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
+                Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, state, s); areas.Enter(new(s, new(1, 2, area), new(2, area, 0, 0, 0), visible)); return s;
             }
             var actor = Add(1, 12, true); var peer = Add(2, 12, true); Add(3, 13, true); Add(4, 12, false);
             var request = new SharedEffectRequest(GameMessageMetadata.Empty, 10002625, 65);

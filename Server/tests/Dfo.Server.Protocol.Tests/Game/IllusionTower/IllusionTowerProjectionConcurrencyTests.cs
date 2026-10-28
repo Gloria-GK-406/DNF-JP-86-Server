@@ -1032,10 +1032,6 @@ public sealed class IllusionTowerProjectionConcurrencyTests
 
     private sealed class NoTown : ITownAreaDomainService
     {
-        public TownAreaMembershipChange Enter(TownAreaMember member) => throw new NotSupportedException();
-        public TownAreaMembershipChange? LeaveExact(CharacterId characterId, TownAreaMembershipLease lease, TownAreaDepartureReason reason) => null;
-        public TownAreaMembershipChange? TransferExact(CharacterId characterId, TownAreaMembershipLease lease, TownAreaKey destination, CharacterPositionState position, bool sharesTownPresence) => null;
-        public TownAreaMovement? MoveExact(CharacterId characterId, TownAreaMembershipLease lease, CharacterPositionState position) => null;
         public TownAreaMember? Find(CharacterId characterId) => null;
         public TownAreaSnapshot? Find(TownAreaKey key) => null;
         public IReadOnlyList<TownAreaSnapshot> Query(TownAreaFilter filter) => [];

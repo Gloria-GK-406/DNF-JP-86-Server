@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
@@ -45,14 +47,15 @@ public sealed class OnlineCharacterRuntimeTests
             var session = Session("Game:own", 2);
             runtime.Begin(session, Town, 80);
 
-            var stepped = runtime.StepTo(session, 120, 220, 1);
-            var crossed = runtime.CrossInto(session, 4, 2, 10, 20);
+            var stepped = runtime.StepTo(session, 120, 220, 1)!.Position;
+            runtime.CrossInto(session, new TownAreaKey(11, 4, 2), 10, 20, true);
+            var crossed = runtime.PositionOf(session);
             runtime.StartCooldown(session, Potion, TimeSpan.FromSeconds(30));
             runtime.ApplySpiritPotion(session, 0.5, TimeSpan.FromMinutes(10));
 
             Assert.Equal(Town with { X = 120, Y = 220, Direction = 1 }, stepped);
             Assert.Equal(stepped with { TownId = 4, AreaId = 2, X = 10, Y = 20 }, crossed);
-            Assert.Equal(crossed, runtime.PositionOf(session));
+            Assert.Equal(crossed, runtime.StandingOf(session)!.Position);
             Assert.True(runtime.IsCoolingDown(Character, Potion));
             Assert.Equal(0.5, runtime.SpiritPotionBonusRateOf(Character));
 
@@ -74,8 +77,8 @@ public sealed class OnlineCharacterRuntimeTests
             runtime.Begin(stale, Town, 50);
             runtime.Begin(successor, Town with { X = 1 }, 60);
 
-            Assert.Throws<InvalidOperationException>(() => runtime.StepTo(stale, 9, 9, 0));
-            Assert.Throws<InvalidOperationException>(() => runtime.CrossInto(stale, 9, 9, 9, 9));
+            Assert.Null(runtime.StepTo(stale, 9, 9, 0));
+            Assert.Null(runtime.CrossInto(stale, new TownAreaKey(11, 9, 9), 9, 9, true));
             runtime.StartCooldown(stale, Potion, TimeSpan.FromMinutes(1));
             runtime.ApplySpiritPotion(stale, 1.0, TimeSpan.FromMinutes(1));
 
@@ -103,7 +106,7 @@ public sealed class OnlineCharacterRuntimeTests
 
             Assert.True(runtime.EndExact(session));
 
-            Assert.Throws<InvalidOperationException>(() => runtime.StepTo(session, 1, 1, 0));
+            Assert.Null(runtime.StepTo(session, 1, 1, 0));
             runtime.StartCooldown(session, Potion, TimeSpan.FromMinutes(1));
             runtime.ApplySpiritPotion(session, 1.0, TimeSpan.FromMinutes(1));
             Assert.Null(runtime.PositionOf(session));
@@ -228,7 +231,7 @@ public sealed class OnlineCharacterRuntimeTests
     private static OnlineCharacterRuntimeDomainService Runtime(out SteppedClock clock)
     {
         clock = new SteppedClock(new DateTimeOffset(2026, 10, 21, 0, 0, 0, TimeSpan.Zero));
-        return new OnlineCharacterRuntimeDomainService(clock);
+        return new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>

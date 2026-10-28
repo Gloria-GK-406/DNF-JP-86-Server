@@ -168,10 +168,10 @@ internal sealed partial class GameMarriageCommandHandler :
         outbox.RegisterExplicitAsync(actor.ConnectionId, new([new WeddingAvatarNotification(church, restore)], []), ct);
     private async ValueTask<bool> MoveAsync(SelectedSessionIdentity actor, int channel, MarriageChurchLocation location, CancellationToken ct)
     {
-        if (!sessions.IsInWorld(actor) || townAreas.Find(actor.CharacterId) is not { } previous || !actor.Owns(previous)
+        if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not { } previous
             || await currentViews.TryLoadAsync(actor, ct).ConfigureAwait(false) is not { } view) return false;
-        var moved = onlineCharacters.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
-        return await TownMovementProjection.TownTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, channel, moved, previous, true, ct).ConfigureAwait(false);
+        return await TownMovementProjection.TownTransferAsync(sessions, townAreas, onlineCharacters, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, channel,
+            location.TownId, location.AreaId, location.X, location.Y, previous, true, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameWeddingProposalCommand command, CancellationToken ct)
@@ -341,18 +341,16 @@ internal sealed partial class GameMarriageCommandHandler :
         WeddingChurchEnterRequest message, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(context.Connection.ConnectionId);
-        var previous = actor is null ? null : townAreas.Find(actor.CharacterId);
+        var previous = actor is null ? null : onlineCharacters.StandingOf(actor);
         var view = actor is null ? null : await currentViews.TryLoadAsync(actor, ct).ConfigureAwait(false);
-        var result = actor is null || !sessions.IsInWorld(actor) || previous is null
-            || !actor.Owns(previous) || view is null
+        var result = actor is null || !sessions.IsInWorld(actor) || previous is null || view is null
             ? new MarriageChurchEntryResult(-10)
             : await WriteAsync(execution, context, message.Metadata, "EnterMarriageChurch", [actor], (_, token) => venue.EnterChurchAsync(actor, message.Peer, message.ChurchArea, message.Flag, token), ct).ConfigureAwait(false);
         if (result.Succeeded && actor is not null && previous is not null && view is not null)
         {
             var entry = result.Snapshot!;
-            var moved = onlineCharacters.CrossInto(actor, entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y);
-            if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, entry.Room.ChannelId,
-                moved, previous, true, ct).ConfigureAwait(false)) result = new(-10);
+            if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, onlineCharacters, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, entry.Room.ChannelId,
+                entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y, previous, true, ct).ConfigureAwait(false)) result = new(-10);
             if (result.Succeeded)
                 await AppearanceAsync(actor, entry, false, ct).ConfigureAwait(false);
         }

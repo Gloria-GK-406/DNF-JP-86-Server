@@ -549,8 +549,7 @@ public sealed class SelectDungeonHandlerTests
             var refusal = Assert.IsType<SelectDungeonRefusal>(Assert.Single(sender.Sent));
             Assert.Equal(SelectDungeonRefusal.DungeonNotFound, refusal.ErrorCode);
             Assert.Empty(fatigue.Spent);
-            Assert.True(Identity.Owns(
-                ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+            Assert.True((((ITownAreaDomainService)areas).Find(Identity.CharacterId)!).Session == Identity);
         });
     }
 
@@ -597,8 +596,7 @@ public sealed class SelectDungeonHandlerTests
 
             await handler.HandleAsync(Dispatch(), Request(), CancellationToken.None);
 
-            Assert.True(Identity.Owns(
-                ((ITownAreaDomainService)areas).Find(Identity.CharacterId)!));
+            Assert.True((((ITownAreaDomainService)areas).Find(Identity.CharacterId)!).Session == Identity);
         });
     }
 

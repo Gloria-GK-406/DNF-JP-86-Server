@@ -347,7 +347,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
         }
 
         // Town memberships are removed right after the dungeon delivery, before any other job runs.
-        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, projections, projectionState, currentViews, parties,
+        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, onlineCharacters, projections, projectionState, currentViews, parties,
             attachments.Members.Select(attachment => attachment.Session).ToArray(),
             TownAreaDepartureReason.DungeonEntry,
             cancellationToken).ConfigureAwait(false);

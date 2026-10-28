@@ -47,7 +47,7 @@ namespace Dfo.Server.Protocol.Game.Party;
 
 internal static class TownDepartureProjection
 {
-    internal static async ValueTask<IReadOnlyList<TownAreaMembershipChange>> TownLeaveManyAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState, ISelectedCharacterCurrentViewDomainService currentViews, IPartyService parties, 
+    internal static async ValueTask<IReadOnlyList<TownAreaMembershipChange>> TownLeaveManyAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, IOnlineCharacterRuntimeDomainService onlineCharacters, ICommandProjections projections, IPartyProjectionStateDomainService projectionState, ISelectedCharacterCurrentViewDomainService currentViews, IPartyService parties, 
         IReadOnlyList<SelectedSessionIdentity> leavingSessions,
         TownAreaDepartureReason reason,
         CancellationToken cancellationToken)
@@ -57,14 +57,10 @@ internal static class TownDepartureProjection
         foreach (var session in leavingSessions.Distinct())
         {
             ArgumentNullException.ThrowIfNull(session);
-            var current = townAreas.Find(session.CharacterId);
-            if (current is null || !session.Owns(current))
+            if (onlineCharacters.StandingOf(session) is not { } current)
                 continue;
             var previousScope = current.SharesTownPresence ? TownArrivalProjection.TownScope(current.Area) : null;
-            var change = townAreas.LeaveExact(
-                session.CharacterId,
-                session.TownAreaLease(),
-                reason);
+            var change = onlineCharacters.LeaveTown(session, reason);
             if (change is not null)
             {
                 departures.Add(new TownAreaDeparture(

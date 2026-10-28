@@ -235,7 +235,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             f.Sender.Outbound.Connections.Add(connection);
             var run = CharacterDeathProtocolLifecycleTests.Enter(f, party ? member : null);
             TestGameplay.Run(f.Services, () => Assert.NotNull(f.Services.GetRequiredService<ITownAreaDomainService>()
-                .LeaveExact(f.Session.CharacterId, f.Session.TownAreaLease(), TownAreaDepartureReason.DungeonSelection)));
+                .LeaveExact(f.Session, TownAreaDepartureReason.DungeonSelection)));
             f.Sender.Outbound.Clear();
             return new TwoMemberRun(f, member, connection, run);
         }

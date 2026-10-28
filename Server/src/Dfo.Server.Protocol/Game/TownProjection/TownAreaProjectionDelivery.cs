@@ -43,6 +43,7 @@ public sealed record TownAreaDeparture(
 public sealed class TownAreaProjectionDelivery
 {
     private readonly ITownAreaDomainService townAreas;
+    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
     private readonly ISelectedSessionDomainService selectedSessions;
     private readonly ISelectedCharacterCurrentViewDomainService currentViews;
     private readonly ITownMovementDomainService towns;
@@ -51,29 +52,29 @@ public sealed class TownAreaProjectionDelivery
     private readonly ICommandProjections notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameCommandOutbox outbox;
-    private readonly IPartyService parties;
-    private readonly IPartyProjectionStateDomainService projectionState;
     private readonly IWeaknessDomainService weaknessState;
     private const bool projectWeakness = true;
 
     public TownAreaProjectionDelivery(
         ITownAreaDomainService townAreas,
+        IOnlineCharacterRuntimeDomainService onlineCharacters,
         ISelectedSessionDomainService selectedSessions,
         ISelectedCharacterCurrentViewDomainService currentViews,
         ICommandProjections notifications,
         IPartyTownProjectionDelivery partyTownProjection,
-        IGameCommandOutbox outbox, IPartyService parties, IPartyProjectionStateDomainService projectionState, IWeaknessDomainService weaknessState,
+        IGameCommandOutbox outbox, IWeaknessDomainService weaknessState,
         ITownMovementDomainService towns,
         Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
         Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions)
     {
         this.townAreas = townAreas;
+        this.onlineCharacters = onlineCharacters;
         this.selectedSessions = selectedSessions;
         this.currentViews = currentViews;
         this.towns = towns;
         this.notifications = notifications;
         this.partyTownProjection = partyTownProjection;
-        this.outbox = outbox; this.parties = parties; this.projectionState = projectionState; this.weaknessState = weaknessState;
+        this.outbox = outbox; this.weaknessState = weaknessState;
         this.housing = housing;
         this.housingSessions = housingSessions;
     }
@@ -81,59 +82,9 @@ public sealed class TownAreaProjectionDelivery
     public ValueTask RefuseTownChangeAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
         SelectCharacterResult result, Dfo.Server.Data.Characters.CharacterPositionState standing,
         string reason, CancellationToken token) => TownMovementProjection.TownRefuseTownChangeAsync(outbox, connectionId, session, result, standing, reason, token);
-    public ValueTask<bool> TransferAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
-        SelectCharacterResult result, int channelId, Dfo.Server.Data.Characters.CharacterPositionState moved,
-        TownAreaMember previous, bool sharesTownPresence, CancellationToken token) =>
-        TownMovementProjection.TownTransferAsync(selectedSessions, townAreas, notifications, partyTownProjection, currentViews, housing, outbox, housingSessions, connectionId, session, result, channelId, moved, previous, sharesTownPresence, token);
     public ValueTask<bool> ProjectTransferAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
         SelectCharacterResult result, TownAreaMember previous, CancellationToken token) =>
         TownMovementProjection.TownProjectTransferAsync(selectedSessions, townAreas, notifications, partyTownProjection, currentViews, housing, outbox, housingSessions, connectionId, session, result, previous, token);
-
-    /// <summary>Sets one actor's position on its own client and every current same-area observer.</summary>
-    public async ValueTask<bool> ForcePositionAsync(
-        SelectedSessionIdentity session,
-        Dfo.Server.Data.Characters.CharacterPositionState position,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(position);
-        var previous = townAreas.Find(session.CharacterId);
-        if (!selectedSessions.IsInWorld(session) || previous is null || !session.Owns(previous)
-            || previous.Area.TownId != position.TownId || previous.Area.AreaId != position.AreaId)
-            return false;
-        if (!selectedSessions.IsInWorld(session))
-            return false;
-        var movement = townAreas.MoveExact(session.CharacterId, session.TownAreaLease(), position);
-        if (movement is null) return false;
-        var own = movement.Area.Members.Single(member => session.Owns(member));
-        var message = new ForcedTownPositionNotification(session.WireUserId,
-            own.Position.X, own.Position.Y, own.Position.Direction);
-        var targets = own.SharesTownPresence
-            ? movement.Area.Members.Where(member => member.SharesTownPresence && member.CharacterId != session.CharacterId)
-                .Select(ExactSession).Where(candidate => candidate is not null)
-                .Select(candidate => new GameExplicitMessageTarget(candidate!.ConnectionId, [message])).ToArray()
-            : [];
-        await outbox.RegisterExplicitAsync(session.ConnectionId, new([message], targets), cancellationToken).ConfigureAwait(false);
-        return true;
-    }
-
-    public ValueTask<bool> MoveAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
-        Dfo.Server.Data.Characters.CharacterPositionState position, ushort trailer, CancellationToken token) =>
-        TownMovementProjection.TownMoveAsync(selectedSessions, townAreas, notifications, outbox, connectionId, session, position, trailer, token);
-
-    public async ValueTask<TownAreaMembershipChange?> LeaveAsync(
-        SelectedSessionIdentity session,
-        TownAreaDepartureReason reason,
-        CancellationToken cancellationToken)
-    {
-        var changes = await LeaveManyAsync([session], reason, cancellationToken)
-            .ConfigureAwait(false);
-        return changes.SingleOrDefault();
-    }
-
-    /// <summary>Removes every exact member before publishing each area's final revision.</summary>
-    public ValueTask<IReadOnlyList<TownAreaMembershipChange>> LeaveManyAsync(
-        IReadOnlyList<SelectedSessionIdentity> sessions, TownAreaDepartureReason reason, CancellationToken token) =>
-        TownDepartureProjection.TownLeaveManyAsync(selectedSessions, townAreas, notifications, projectionState, currentViews, parties, sessions, reason, token);
 
     /// <summary>
     /// Admits one or more characters and projects the resulting area revision. Callers describe
@@ -141,7 +92,7 @@ public sealed class TownAreaProjectionDelivery
     /// notification remain owned here.
     /// </summary>
     public ValueTask<int> EnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken cancellationToken) =>
-        TownArrivalProjection.EnterAsync(selectedSessions, towns, housing, townAreas, currentViews, outbox,
+        TownArrivalProjection.EnterAsync(selectedSessions, towns, housing, townAreas, onlineCharacters, currentViews, outbox,
             weaknessState, projectWeakness, notifications,
             partyTownProjection, entries, cancellationToken);
 
@@ -186,15 +137,6 @@ public sealed class TownAreaProjectionDelivery
         await PublishCurrentRosterCoreAsync(snapshot.Key, cancellationToken).ConfigureAwait(false);
     }
 
-    private ValueTask PublishArrivalCoreAsync(SelectedSessionIdentity newcomer, TownPresenceSynchronizationState state,
-        IReadOnlyList<SelectedSessionIdentity> peerSessions, CancellationToken token) =>
-        TownArrivalProjection.TownPublishArrivalCoreAsync(townAreas, notifications, partyTownProjection, newcomer, state, peerSessions, token);
     private ValueTask PublishCurrentRosterCoreAsync(TownAreaKey key, CancellationToken token) =>
         TownArrivalProjection.TownPublishCurrentRosterCoreAsync(selectedSessions, townAreas, notifications, currentViews, key, token);
-    private ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)>>
-        VisibleParticipantsAsync(TownAreaSnapshot area, SelectedSessionIdentity viewer, CancellationToken token) =>
-        TownArrivalProjection.TownVisibleParticipantsAsync(selectedSessions, currentViews, area, viewer, token);
-    private SelectedSessionIdentity? ExactSession(TownAreaMember member) =>
-        selectedSessions.TryGetInWorld(member.CharacterId, out var session) && session.Owns(member) ? session : null;
-    private static PartyDirectoryScope Scope(TownAreaKey key) => new(key.ChannelId, key.TownId, key.AreaId, key.Instance);
 }

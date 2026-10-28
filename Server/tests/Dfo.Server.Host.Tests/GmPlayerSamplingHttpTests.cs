@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -79,10 +80,14 @@ public sealed class GmPlayerSamplingHttpTests
     {
         public CharacterPositionState? PositionOf(CharacterId id) { var result = inner.PositionOf(id); onRead(); return result; }
         public CharacterPositionState? PositionOf(SelectedSessionIdentity session) { var result = inner.PositionOf(session); onRead(); return result; }
-        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) => inner.Begin(session, position, hpPercent);
-        public CharacterPositionState CrossInto(SelectedSessionIdentity session, byte town, byte area, short x, short y) => inner.CrossInto(session, town, area, x, y);
-        public CharacterPositionState StepTo(SelectedSessionIdentity session, short x, short y, byte direction) => inner.StepTo(session, x, y, direction);
+        public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) => inner.Begin(session, area, position, sharesTownPresence, hpPercent);
+        public TownAreaMembershipChange? CrossInto(SelectedSessionIdentity session, TownAreaKey destination, short x, short y, bool sharesTownPresence, byte? direction = null) => inner.CrossInto(session, destination, x, y, sharesTownPresence, direction);
+        public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction) => inner.StepTo(session, x, y, direction);
         public bool EndExact(SelectedSessionIdentity session) => inner.EndExact(session);
+        public TownAreaMember? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
+        public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason) => inner.LeaveTown(session, reason);
+        public TownAreaMembershipChange? ReturnToTown(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence) =>
+            inner.ReturnToTown(session, area, position, sharesTownPresence);
         public byte HpPercentOf(CharacterId characterId) => inner.HpPercentOf(characterId);
         public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) => inner.IsCoolingDown(characterId, key);
         public void StartCooldown(SelectedSessionIdentity session, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key, TimeSpan duration) => inner.StartCooldown(session, key, duration);

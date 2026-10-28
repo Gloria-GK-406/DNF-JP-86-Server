@@ -36,10 +36,10 @@ public sealed class ExpiredItemsProjectionTests
             var owner = Dfo.Server.Testing.TestSessions.InWorld(
                 sessions, state, source.AccountInventory.AccountId, source.Character.Identity.CharacterId, "owner");
             var peer = Dfo.Server.Testing.TestSessions.InWorld(sessions, state, new(90), new(91), "peer");
-            var towns = new TownAreaDomainService();
+            var towns = new OnlineCharacterLocationDomainService();
             foreach (var session in new[] { owner, peer })
-                towns.Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(), new(1, 1, 2), new(1, 2, 1, 1, 0), true));
-            var visibility = new CharacterVisibleSessionDomainService(sessions, towns, TestParties.Runs());
+                towns.Enter(new TownAreaMember(session, new(1, 1, 2), new(1, 2, 1, 1, 0), true));
+            var visibility = new CharacterVisibleSessionDomainService(sessions, towns, new Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService(TimeProvider.System, towns), TestParties.Runs());
             var reads = new ReadModel(source);
             var handler = new ExpiredItemsRefreshHandler(sessions, reads, visibility, reads, reads, housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(), mailbox: ProtocolAlgorithmFixture.Default<IMailboxQueryDomainService>());
             var notice = new ExpiredItemsRefresh(owner, [InventoryContainerType.Equipment], DateTimeOffset.UtcNow);

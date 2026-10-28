@@ -59,8 +59,7 @@ public sealed class MarriagePairCorrectionTests
         f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
         var position = new CharacterPositionState(2, 1, 100, 200, 0);
         f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
-        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(),
-            new(1, 2, 1), position, true));
+        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session, new(1, 2, 1), position, true));
         return session;
     }
 

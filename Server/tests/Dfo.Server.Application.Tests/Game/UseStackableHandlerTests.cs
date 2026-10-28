@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
@@ -613,7 +615,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         // The online character runtime holds both the cooldowns and the spirit potion, for the
         // session that entered the world.
-        var cooldowns = new OnlineCharacterRuntimeDomainService(clock);
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
         TestGameplay.Run(() => cooldowns.Begin(OneSession.Session, new CharacterPositionState(1, 1, 0, 0, 0), 100));
         var potion = cooldowns;
         var sessions = new OneSession();
@@ -636,9 +638,9 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var ruleService = new ItemUseEffectRuleService(judgement);
         var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock);
 
-        var areas = new Dfo.Server.Application.World.TownAreaDomainService();
-        TestGameplay.Run(() => areas.Enter(new(OneSession.Session.CharacterId, OneSession.Session.TownAreaLease(), new(1, 1, 1), new(1, 1, 0, 0, 0), true)));
-        var shared = new SharedEffectDomainService(sessions, areas, slots, ruleService, useEffects, clock);
+        var areas = new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
+        TestGameplay.Run(() => areas.Enter(new(OneSession.Session, new(1, 1, 1), new(1, 1, 0, 0, 0), true)));
+        var shared = new SharedEffectDomainService(sessions, new OnlineCharacterRuntimeDomainService(clock, areas), slots, ruleService, useEffects, clock);
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddNetworkMessageDispatching();

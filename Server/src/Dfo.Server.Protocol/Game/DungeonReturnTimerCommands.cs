@@ -40,7 +40,7 @@ internal sealed partial class TowerReturnCommandHandler
         var view = await currentViews.TryLoadAsync(session, token).ConfigureAwait(false);
         var position = onlineCharacters.PositionOf(session);
         if (view is null || position is null) throw new InvalidOperationException($"Cannot prepare dungeon return for {session.CharacterId}.");
-        await TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, currentViews, outbox,
+        await TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, onlineCharacters, currentViews, outbox,
             weaknessState, true, projections,
             new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState),
             [new TownAreaEntry(session, view, position)], token).ConfigureAwait(false);

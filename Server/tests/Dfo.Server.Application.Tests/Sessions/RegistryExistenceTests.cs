@@ -76,8 +76,7 @@ public sealed class RegistryExistenceTests
                 "Game:2",
                 listenerPort: 10011);
             provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
-                session.CharacterId,
-                session.TownAreaLease(),
+                session,
                 new TownAreaKey(StubChannelEntryPolicy.GeneralChannel.ChannelId, 1, 0),
                 new CharacterPositionState(1, 0, 0, 0, 0),
                 true));

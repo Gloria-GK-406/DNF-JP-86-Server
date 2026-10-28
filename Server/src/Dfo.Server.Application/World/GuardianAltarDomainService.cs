@@ -20,7 +20,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     IDungeonAdmissionDomainService admission, IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
     IDungeonEntryIntentDomainService intents, IItemDeliveryDomainService delivery, IDailyResetRuleService daily,
     IDomainTransactionAccessor transactions, TimeProvider clock, IEventManagementDomainService events, IPartyService parties,
-    IDungeonParticipationDomainService participation, ITownAreaDomainService towns, IExpertStoreDomainService stores) : IGuardianAltarDomainService,
+    IDungeonParticipationDomainService participation, IOnlineCharacterRuntimeDomainService onlineCharacters, IExpertStoreDomainService stores) : IGuardianAltarDomainService,
     IDomainEventSubscriber<DungeonParticipantLeft>
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
@@ -50,7 +50,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     {
         Writing(nameof(OpenAsync));
         if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
-            || participation.Find(session.CharacterId) is not null || towns.Find(session.CharacterId) is not { } town || !session.Owns(town)
+            || participation.Find(session.CharacterId) is not null || onlineCharacters.StandingOf(session) is null
             || stores.HasOpenStore(session.CharacterId)
             || !parties.FindParty(new(session.AccountId, session.CharacterId, session.WireUserId, null)).IsVirtual
             || !await IsOpenAsync(session, ct).ConfigureAwait(false)

@@ -197,7 +197,7 @@ public sealed class MirrorDungeonEntryTests
         if (boundary != "member-quest") fixture.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(72,14395,1);");
         var sessions = fixture.Services.GetRequiredService<ISelectedSessionDomainService>();
         var other = fixture.EnterWorld(2, 72, "mirror-member");
-        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
         positions.Begin(fixture.Session, new(21, 2, 865, 208, 0), 100);
         positions.Begin(other, new(21, boundary == "position" ? (byte)1 : (byte)2, 865, 208, 0), 100);
         var visits = new Visits();

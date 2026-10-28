@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Commands;
@@ -159,7 +160,7 @@ public sealed class VendingMachineTests
             TestGameplay.Run(f.Host.Services, () =>
             {
                 var towns=f.Host.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>();
-                towns.LeaveExact(f.Host.Session.CharacterId,towns.Find(f.Host.Session.CharacterId)!.Lease,Dfo.Server.Abstractions.World.TownAreaDepartureReason.DungeonEntry);
+                towns.LeaveExact(towns.Find(f.Host.Session.CharacterId)!.Session,Dfo.Server.Abstractions.World.TownAreaDepartureReason.DungeonEntry);
             });
         }
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>Use(f)); Assert.Equal(2,f.Host.Count(7454));

@@ -96,9 +96,9 @@ internal static class SharedEffectProjection
                     ? GameInventoryDelivery.Notification(new(InventoryContainerType.Main, [new(item.ItemUid, m.Slot, item.ToCore(), item.AvatarDetail)], state.PreparedAt))
                     : GameInventoryDelivery.ClearedSlotNotification(InventoryContainerType.Main, m.Slot, state.PreparedAt));
             messages.Add(effect); // The ACK alone never renders the caster's effect.
-            if (areas.Find(actor.CharacterId) is { } self && actor.Owns(self) && areas.Find(self.Area) is { } scene)
+            if (areas.Find(actor.CharacterId) is { } self && self.Session == actor && areas.Find(self.Area) is { } scene)
                 foreach (var member in scene.VisibleTo(actor.CharacterId).Where(x => x.CharacterId != actor.CharacterId))
-                    if (sessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member))
+                    if (sessions.TryGetInWorld(member.CharacterId, out var peer) && member.Session == peer)
                         targets.Add(new(peer.ConnectionId, [effect]));
         }
         return new(messages, targets);

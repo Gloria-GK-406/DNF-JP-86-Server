@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Parties;
@@ -48,7 +50,7 @@ public sealed class PartyMemberStatusDomainServiceTests
                     },
                 },
             };
-            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
             var sessions = Dfo.Server.Testing.TestSessions.Directory();
             sessions.Select(session);
@@ -91,7 +93,7 @@ public sealed class PartyMemberStatusDomainServiceTests
                     },
                 },
             };
-            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
             var sessions = Dfo.Server.Testing.TestSessions.Directory();
             sessions.Select(session);

@@ -319,8 +319,7 @@ public sealed class EffectOperationReplayTests
                 registry.GetRequiredUser(user.OnlineUserId).Generation, 10011);
             registry.Select(session);
             registry.EnterWorld(session);
-            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(session.CharacterId, session.TownAreaLease(),
-                new TownAreaKey(1, 0, 0), new CharacterPositionState(0, 0, 0, 0, 0), true));
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(session, new TownAreaKey(1, 0, 0), new CharacterPositionState(0, 0, 0, 0, 0), true));
             return (safety, replacement);
         });
         Assert.True(safety.IsBlocked(f.Connection)); Assert.False(safety.IsBlocked(replacement));

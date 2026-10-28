@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
@@ -40,7 +41,7 @@ public sealed class ClientSettingsBlobTests
         var towns = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.ITownAreaDomainService>();
         TestGameplay.Run(f.Services, () =>
         {
-            towns.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
+            towns.Enter(new(peer, new(1, 0, 0), new(0, 0, 0, 0, 0), true));
         });
         var service = f.Services.GetRequiredService<IClientSettingsDomainService>(); var origin = Origin(f);
         var on = new byte[150]; on[2] = on[110] = on[148] = 1;
@@ -84,7 +85,7 @@ public sealed class ClientSettingsBlobTests
         });
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            towns.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 0, 1), new(0, 1, 0, 0, 0), true));
+            towns.Enter(new(peer, new(1, 0, 1), new(0, 1, 0, 0, 0), true));
             await using (var tx = f.Scope.Begin())
             {
                 await service.SaveMainAsync(origin, on, default);

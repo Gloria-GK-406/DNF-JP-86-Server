@@ -244,7 +244,7 @@ public sealed class CreatureAndEffectProtocolCommandFlowTests(ITestOutputHelper 
             var registry = f.Services.GetRequiredService<OnlineStateRegistry>(); var online = registry.RegisterConnection(connection); registry.Authenticate(online.OnlineUserId, new(id));
             var session = SelectedSessionIdentity.Create(new(id), new(id + 1), connection.ConnectionId, registry.GetRequiredUser(online.OnlineUserId).Generation, 10011);
             registry.Select(session); registry.EnterWorld(session);
-            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), visible));
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session, new(1, 0, 0), new(0, 0, 0, 0, 0), visible));
         });
         f.Sender.Outbound.Connections.Add(connection); return connection;
     }

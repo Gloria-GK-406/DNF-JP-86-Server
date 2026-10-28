@@ -91,8 +91,7 @@ internal static class MarriageHarness
         TestGameplay.Run(f.Services, () =>
         {
             var moved = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, town, area, x, y);
-            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(),
-                new(channel, town, area), moved, true);
+            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor, new(channel, town, area), moved, true);
         });
     }
 
@@ -114,8 +113,7 @@ internal static class MarriageHarness
         TestGameplay.Run(f.Services, () =>
         {
             f.Services.GetRequiredService<ISelectedSessionDomainService>().ReleaseExact(actor);
-            f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(actor.CharacterId, actor.TownAreaLease(),
-                TownAreaDepartureReason.SessionEnded);
+            f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(actor, TownAreaDepartureReason.SessionEnded);
         });
     }
 
@@ -143,8 +141,7 @@ internal static class MarriageHarness
             f.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
             var position = new CharacterPositionState(2, 1, 100, 200, 0);
             f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, position, 100);
-            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session.CharacterId, session.TownAreaLease(),
-                new(channel, 2, 1), position, true));
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(session, new(channel, 2, 1), position, true));
             return session;
         });
     }

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Accounts;
@@ -17,7 +19,7 @@ public sealed class SpiritPotionDomainServiceTests
         TestGameplay.Run(() =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 9, 28, 0, 0, 0, TimeSpan.Zero));
-            var potions = new OnlineCharacterRuntimeDomainService(clock);
+            var potions = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
             var character = new CharacterId(7);
             var session = SelectedSessionIdentity.Create(
                 new AccountId(1), character, new NetworkConnectionId("Game:potion"), 2, 10011);

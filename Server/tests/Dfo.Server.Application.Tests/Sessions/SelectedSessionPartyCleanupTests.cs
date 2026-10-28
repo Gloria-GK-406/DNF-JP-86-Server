@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
@@ -173,10 +174,10 @@ public sealed class SelectedSessionPartyCleanupTests
                 presence,
                 new ExpertStoreDomainService(),
                 new PvpLobbyDomainService(),
-                [],
+                [new KeptPositions()],
                 failAfterPartyCleanup
-                    ? new ThrowingRuntime()
-                    : new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+                    ? new ThrowingRuntime(presence.Locations)
+                    : new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations),
                 new StubChannelEntryPolicy(),
                 Parties.Service,
                 TestParties.Runs(),
@@ -214,21 +215,29 @@ public sealed class SelectedSessionPartyCleanupTests
         }
     }
 
-    /// <summary>A step after party cleanup that fails: ending the online character's record.</summary>
-    private sealed class ThrowingRuntime : IOnlineCharacterRuntimeDomainService
+    private sealed class KeptPositions : ISelectedSessionPositionPersistence
     {
-        private readonly OnlineCharacterRuntimeDomainService inner = new(TimeProvider.System);
+        public ValueTask PersistAsync(AccountId accountId, CharacterId characterId,
+            CharacterPositionState position, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
 
-        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
-            inner.Begin(session, position, hpPercent);
+    /// <summary>A step after party cleanup that fails: ending the online character's record.</summary>
+    private sealed class ThrowingRuntime(OnlineCharacterLocationDomainService? locations = null) : IOnlineCharacterRuntimeDomainService
+    {
+        private readonly OnlineCharacterRuntimeDomainService inner =
+            new(TimeProvider.System, locations ?? new OnlineCharacterLocationDomainService());
+
+        public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) => inner.Begin(session, area, position, sharesTownPresence, hpPercent);
         public bool EndExact(SelectedSessionIdentity session) =>
             throw new InvalidOperationException("fault after party cleanup");
         public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => inner.PositionOf(session);
         public CharacterPositionState? PositionOf(CharacterId characterId) => inner.PositionOf(characterId);
-        public CharacterPositionState CrossInto(SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
-            inner.CrossInto(session, townId, areaId, x, y);
-        public CharacterPositionState StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
-            inner.StepTo(session, x, y, direction);
+        public TownAreaMembershipChange? CrossInto(SelectedSessionIdentity session, TownAreaKey destination, short x, short y, bool sharesTownPresence, byte? direction = null) => inner.CrossInto(session, destination, x, y, sharesTownPresence, direction);
+        public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction) => inner.StepTo(session, x, y, direction);
+        public TownAreaMember? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
+        public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason) => inner.LeaveTown(session, reason);
+        public TownAreaMembershipChange? ReturnToTown(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence) =>
+            inner.ReturnToTown(session, area, position, sharesTownPresence);
         public byte HpPercentOf(CharacterId characterId) => inner.HpPercentOf(characterId);
         public bool IsCoolingDown(CharacterId characterId, Dfo.Server.Abstractions.Inventory.ItemCooldownKey key) =>
             inner.IsCoolingDown(characterId, key);

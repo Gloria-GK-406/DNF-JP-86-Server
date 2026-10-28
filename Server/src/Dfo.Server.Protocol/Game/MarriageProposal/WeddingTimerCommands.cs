@@ -79,13 +79,12 @@ internal sealed partial class GameMarriageCommandHandler
         Dfo.Server.Abstractions.World.TownAreaMember previous;
         try
         {
-            if (!sessions.IsInWorld(actor) || townAreas.Find(actor.CharacterId) is not {} observed || !actor.Owns(observed)
+            if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not {} observed
                 || await currentViews.TryLoadAsync(actor, token).ConfigureAwait(false) is not {} currentView) return;
             previous = observed; view = currentView;
-            var moved = onlineCharacters.CrossInto(actor, location.TownId, location.AreaId, location.X, location.Y);
-            var instance = moved.TownId == 101 ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
-            if (moved.TownId == 101 && instance is not > 0) return;
-            if (townAreas.TransferExact(actor.CharacterId, actor.TownAreaLease(), new(channel, moved.TownId, moved.AreaId, instance ?? 0), moved, true) is null) return;
+            var instance = location.TownId == 101 ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
+            if (location.TownId == 101 && instance is not > 0) return;
+            if (onlineCharacters.CrossInto(actor, new(channel, location.TownId, location.AreaId, instance ?? 0), location.X, location.Y, true) is null) return;
         }
         catch (Exception error) when (IsWeddingBusinessFailure(error))
         { context.Request!.DemandCurrent(); logger.LogWarning(error, "Committed wedding projection failed for one recipient; other recipients continue."); return; }
@@ -95,22 +94,17 @@ internal sealed partial class GameMarriageCommandHandler
     private async ValueTask WeddingPositionAsync(CommandExecutionContext context, MarriageWeddingStanding standing, CancellationToken token)
     {
         var actor = standing.Actor;
-        if (!sessions.IsInWorld(actor) || townAreas.Find(actor.CharacterId) is not {} area || !actor.Owns(area)
+        if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not {} area
             || area.Area.TownId != standing.Position.TownId || area.Area.AreaId != standing.Position.AreaId) return;
         Dfo.Server.Abstractions.World.TownAreaMovement? movement;
         try
         {
-            var position = onlineCharacters.StepTo(actor, standing.Position.X, standing.Position.Y, standing.Position.Direction);
-            var previous = townAreas.Find(actor.CharacterId);
-            if (!sessions.IsInWorld(actor) || previous is null || !actor.Owns(previous)
-                || previous.Area.TownId != position.TownId || previous.Area.AreaId != position.AreaId) return;
-            if (!sessions.IsInWorld(actor)) return;
-            movement = townAreas.MoveExact(actor.CharacterId, actor.TownAreaLease(), position);
+            movement = onlineCharacters.StepTo(actor, standing.Position.X, standing.Position.Y, standing.Position.Direction);
         }
         catch (Exception error) when (IsWeddingBusinessFailure(error))
         { context.Request!.DemandCurrent(); logger.LogWarning(error, "Committed wedding projection failed for one recipient; other recipients continue."); return; }
         if (movement is null) return;
-        var own = movement.Area.Members.Single(member => actor.Owns(member));
+        var own = movement.Area.Members.Single(member => member.Session == actor);
         var message = new ForcedTownPositionNotification(actor.WireUserId, own.Position.X, own.Position.Y, own.Position.Direction);
         var targets = own.SharesTownPresence ? movement.Area.Members.Where(member => member.SharesTownPresence && member.CharacterId != actor.CharacterId)
             .Select((member => TownArrivalProjection.TownExactSession(sessions, member))).Where(candidate => candidate is not null).Select(candidate => new GameExplicitMessageTarget(candidate!.ConnectionId, [message])).ToArray() : [];

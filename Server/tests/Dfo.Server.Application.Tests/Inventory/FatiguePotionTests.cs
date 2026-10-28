@@ -165,7 +165,7 @@ public sealed class FatiguePotionTests
             if (reason == "dungeon")
             {
                 var towns = f.Services.GetRequiredService<ITownAreaDomainService>();
-                towns.LeaveExact(f.Session.CharacterId, towns.Find(f.Session.CharacterId)!.Lease, TownAreaDepartureReason.DungeonEntry);
+                towns.LeaveExact(towns.Find(f.Session.CharacterId)!.Session, TownAreaDepartureReason.DungeonEntry);
             }
             await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f, clock));
             Assert.Equal(5, f.Scalar("SELECT bonus_sp FROM characters WHERE character_id=71"));

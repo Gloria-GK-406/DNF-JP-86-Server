@@ -7,7 +7,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterVisibleSessionDomainService(ISelectedSessionDomainService sessions,
-    ITownAreaDomainService towns, IDungeonRunDomainService runs, IIllusionTowerDomainService? towers = null,
+    ITownAreaDomainService towns, IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunDomainService runs, IIllusionTowerDomainService? towers = null,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null)
     : ICharacterVisibleSessionDomainService
 {
@@ -33,11 +33,11 @@ internal sealed class CharacterVisibleSessionDomainService(ISelectedSessionDomai
                 if (sessions.TryGetInWorld(member.CharacterId, out var peer)
                     && runs.Find(member.CharacterId)?.RunId == run.RunId) result.Add(peer);
         }
-        else if (towns.Find(owner.CharacterId) is { } own && owner.Owns(own)
+        else if (onlineCharacters.StandingOf(owner) is { } own
             && towns.Find(own.Area) is { } area)
         {
             foreach (var member in area.VisibleTo(owner.CharacterId))
-                if (sessions.TryGetInWorld(member.CharacterId, out var peer) && peer.Owns(member)) result.Add(peer);
+                if (sessions.TryGetInWorld(member.CharacterId, out var peer) && member.Session == peer) result.Add(peer);
         }
         return result.ToArray();
     }

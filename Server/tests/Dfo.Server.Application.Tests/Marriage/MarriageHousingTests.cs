@@ -63,8 +63,8 @@ public sealed partial class MarriageHousingTests
     {
         TestGameplay.Run(w.F.Services, () =>
         {
-            var position = w.F.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().CrossInto(actor, 101, 0, 900, 250);
-            w.F.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(actor.CharacterId, actor.TownAreaLease(), new(channel, 101, 0, instance), position, true);
+            Assert.NotNull(w.F.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+                .CrossInto(actor, new TownAreaKey(channel, 101, 0, instance), 900, 250, true));
         });
     }
     private static async Task<HousingSnapshot> Read(HousingWorld w) => (await w.F.Services.GetRequiredService<IMarriageHousingQueryDomainService>().ReadAsync(w.F.Session.AccountId, w.F.Session.CharacterId, default))!;
@@ -144,7 +144,7 @@ public sealed partial class MarriageHousingTests
             Assert.Null(areas.Find(new TownAreaKey(1, 101, 0)));
             var stranger = AddCharacter(f, 3, 73, 0);
             var position = new Dfo.Server.Data.Characters.CharacterPositionState(101, 0, 900, 250, 5);
-            Assert.Null(areas.TransferExact(stranger.CharacterId, stranger.TownAreaLease(), new(1, 101, 0), position, true));
+            Assert.Null(areas.TransferExact(stranger, new(1, 101, 0), position, true));
             Assert.DoesNotContain(areas.Find(new TownAreaKey(1, 101, 0, room.Instance))!.Members, x => x.CharacterId == stranger.CharacterId);
             Enter(w, w.Peer, room.Instance, channel: 2);
             Assert.Single(areas.Find(new TownAreaKey(1, 101, 0, room.Instance))!.Members);

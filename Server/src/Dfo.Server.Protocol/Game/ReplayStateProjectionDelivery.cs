@@ -54,7 +54,7 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
             var position = onlineCharacters.PositionOf(session);
             var view = await views.TryLoadAsync(session, ct).ConfigureAwait(false);
             safety.DemandCurrent(recipient);
-            if (member is not null && session.Owns(member) && position is not null && view is not null)
+            if (member is not null && member.Session == session && position is not null && view is not null)
                 await townDelivery.ProjectTransferAsync(session.ConnectionId,
                     session, view, member, ct).ConfigureAwait(false);
             foreach (var area in request.TouchedTownAreas)

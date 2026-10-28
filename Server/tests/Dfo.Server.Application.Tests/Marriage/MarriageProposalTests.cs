@@ -47,8 +47,8 @@ public sealed class MarriageProposalTests
             positions.Begin(f.Session, new(21, 1, 100, 100, 0), 100);
             positions.Begin(peer, new(21, 1, 120, 100, 0), 100);
             var areas = f.Services.GetRequiredService<ITownAreaDomainService>();
-            areas.Enter(new(f.Session.CharacterId, f.Session.TownAreaLease(), new(1, 21, 1), new(21, 1, 100, 100, 0), true));
-            areas.Enter(new(peer.CharacterId, peer.TownAreaLease(), new(1, 21, 1), new(21, 1, 120, 100, 0), true));
+            areas.Enter(new(f.Session, new(1, 21, 1), new(21, 1, 100, 100, 0), true));
+            areas.Enter(new(peer, new(1, 21, 1), new(21, 1, 120, 100, 0), true));
             return (f, peer);
         });
     }
@@ -136,7 +136,7 @@ public sealed class MarriageProposalTests
             f.Sql("UPDATE characters SET job=12 WHERE character_id=72;");
             Assert.Equal(MarriageProposalFailure.Ineligible, (await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Failure);
             f.Sql("UPDATE characters SET job=0 WHERE character_id=72;");
-            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(peer.CharacterId, peer.TownAreaLease(), new(1, 22, 1), new(22, 1, 120, 100, 0), true);
+            f.Services.GetRequiredService<ITownAreaDomainService>().TransferExact(peer, new(1, 22, 1), new(22, 1, 120, 100, 0), true);
             Assert.False((await Run(f, s => s.ProposeAsync(f.Session, peer, default))).Succeeded);
             Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM marriage_proposals"));
         });
@@ -148,7 +148,7 @@ public sealed class MarriageProposalTests
         {
             var (f, peer) = await Fixture(); await using var fixture = f;
             await Run(f, s => s.ProposeAsync(f.Session, peer, default));
-            f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(peer.CharacterId, peer.TownAreaLease(), TownAreaDepartureReason.DungeonEntry);
+            f.Services.GetRequiredService<ITownAreaDomainService>().LeaveExact(peer, TownAreaDepartureReason.DungeonEntry);
             Assert.False((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 0, default))).Succeeded);
             Assert.True((await Run(f, s => s.RespondProposalAsync(peer, f.Session, 1, default))).Succeeded);
         });

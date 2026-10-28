@@ -154,8 +154,8 @@ public sealed class NameTagPurchaseTests
             registry.Select(peer);
             registry.EnterWorld(peer);
             shop.Host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(peer);
-            shop.Host.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(peer.CharacterId,
-                peer.TownAreaLease(), new(1, 0, 0), new(0, 0, 0, 0, 0), true));
+            shop.Host.Services.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(peer,
+                new(1, 0, 0), new(0, 0, 0, 0, 0), true));
             return Task.CompletedTask;
         });
         await shop.Handle(CeraShopTestContent.Input(CeraShopTestContent.Entry(First)));

@@ -79,10 +79,10 @@ public sealed class TownMovementProtocolCommandFlowTests
     public async Task Replaced_town_member_is_never_moved_by_area_or_position(bool area)
     {
         using var f=TeleportConsumableTests.Fixture();
-        TestGameplay.Run(f.Services,()=>{var replacement=f.Session with{ConnectionGeneration=f.Session.ConnectionGeneration+1};f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(f.Session.CharacterId,replacement.TownAreaLease(),new(1,0,0),new(0,0,12,34,5),true));});
+        TestGameplay.Run(f.Services,()=>{var replacement=f.Session with{ConnectionGeneration=f.Session.ConnectionGeneration+1};f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(replacement,new(1,0,0),new(0,0,12,34,5),true));});
         if(area)await Area(f,11,3,123,456);else await Wire(f,0x23,[140,0,240,0,2,107,0],7);
         Assert.Empty(f.Sender.Messages);Assert.Equal(0,f.Scalar("SELECT town_id FROM characters WHERE character_id=1"));
-        TestGameplay.Run(f.Services,()=>{Assert.Equal((byte)0,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session)!.TownId);Assert.False(f.Session.Owns(f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!));});
+        TestGameplay.Run(f.Services,()=>{Assert.Null(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session));var standing=f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!;Assert.NotEqual(f.Session,standing.Session);Assert.Equal(new CharacterPositionState(0,0,12,34,5),standing.Position);});
     }
     [Theory] [InlineData(false)] [InlineData(true)]
     public async Task Housing_return_is_remembered_after_the_ordinary_position_is_durably_committed(bool failRemember)

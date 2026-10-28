@@ -177,8 +177,8 @@ public sealed class GmPlayerDirectoryHttpTests
         var positions = host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
         TestGameplay.Run(host.Services, () =>
         {
-            positions.Begin(prepared, new(3, 4, 100, 200, 2), 100);
-            positions.StepTo(prepared, 123, 234, 1); positions.CrossInto(prepared, 5, 6, 321, 432);
+            positions.Begin(prepared, new TownAreaKey(11, 3, 4), new(3, 4, 100, 200, 2), true, 100);
+            positions.StepTo(prepared, 123, 234, 1); positions.CrossInto(prepared, new TownAreaKey(11, 5, 6), 321, 432, true);
         });
         var moved = await GetAsync(host, "characters/40");
         Assert.Equal("current", moved.GetProperty("position").GetProperty("source").GetString());
@@ -205,7 +205,7 @@ public sealed class GmPlayerDirectoryHttpTests
         Cleanup(host, prepared); var replacement = Publish(host, replacementUser, 40, 40, 21012);
         TestGameplay.Run(host.Services, () =>
         {
-            positions.Begin(replacement, new(8, 9, 888, 999, 3), 100);
+            positions.Begin(replacement, new TownAreaKey(11, 8, 9), new(8, 9, 888, 999, 3), true, 100);
         });
         Cleanup(host, prepared);
         TestGameplay.Run(host.Services, () =>
@@ -293,7 +293,7 @@ public sealed class GmPlayerDirectoryHttpTests
             var session = SelectedSessionIdentity.Create(new(account), new(character), user.Connection.ConnectionId, user.Generation, port);
             host.Services.GetRequiredService<ISelectedSessionDomainService>().Select(session);
             host.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(session);
-            host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, new(3, 4, 100, 200, 2), 100);
+            host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(session, new TownAreaKey(11, 3, 4), new(3, 4, 100, 200, 2), true, 100);
             return session;
         });
     }

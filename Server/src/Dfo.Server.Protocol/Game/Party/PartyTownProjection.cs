@@ -166,7 +166,7 @@ internal static class PartyTownProjection
         {
             var currentPresence = townAreas.Find(recipient.CharacterId);
             if (currentPresence is null
-                || !recipient.Owns(currentPresence)
+                || currentPresence.Session != recipient
                 || !currentPresence.SharesTownPresence)
             {
                 continue;
@@ -211,7 +211,7 @@ internal static class PartyTownProjection
         var member = townAreas.Find(characterId);
         return member is not null
             && sessions.TryGetInWorld(characterId, out var session)
-            && session.Owns(member)
+            && member.Session == session
             ? session
             : null;
     }

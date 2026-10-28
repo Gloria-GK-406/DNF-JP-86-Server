@@ -153,7 +153,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                     await outbox.RegisterExplicitAsync(batch.Session.ConnectionId,
                         new GameExplicitMessageDelivery(batch.Frames, []), token).ConfigureAwait(false);
             }
-            await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, projections, projectionState, currentViews, parties, ordered.Select(value => value.Session).ToArray(),
+            await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, onlineCharacters, projections, projectionState, currentViews, parties, ordered.Select(value => value.Session).ToArray(),
                 TownAreaDepartureReason.DungeonEntry, token).ConfigureAwait(false);
         }
         catch (Exception error) when (committed)

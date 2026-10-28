@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
@@ -5,13 +6,13 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
-internal sealed class SharedEffectDomainService(ISelectedSessionDomainService sessions, ITownAreaDomainService areas,
+internal sealed class SharedEffectDomainService(ISelectedSessionDomainService sessions, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IBusinessInventorySlotDomainService inventory, IItemUseEffectRuleService rules, IItemUseEffectDomainService effects, TimeProvider clock) : ISharedEffectDomainService
 {
     public async ValueTask<SharedEffectUseResult> UseAsync(SelectedSessionIdentity actor, BusinessSlot slot, int itemId, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandActive(actor);
-        if (!sessions.IsInWorld(actor) || areas.Find(actor.CharacterId) is not { } member || !actor.Owns(member)
+        if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not { } member
             || !slot.Space.IsCarriedItemSpace() || itemId <= 0) return new(false);
         var bound = inventory.Find(actor.CharacterId, slot);
         var item = bound is null ? null : await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false);

@@ -416,8 +416,7 @@ internal sealed class ShopFixture : IDisposable
             provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(
                 session, new CharacterPositionState(0, 0, 0, 0, 0), 100);
             provider.GetRequiredService<ITownAreaDomainService>().Enter(new TownAreaMember(
-                session.CharacterId,
-                session.TownAreaLease(),
+                session,
                 new TownAreaKey(1, 0, 0),
                 new CharacterPositionState(0, 0, 0, 0, 0),
                 true));

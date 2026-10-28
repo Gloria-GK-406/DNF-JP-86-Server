@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Parties;
@@ -38,8 +39,8 @@ public sealed class TownAreaProjectionDeliveryTests
             var bride = Session(1, "bride"); var groom = Session(2, "groom");
             var guest = Session(3, "guest"); var outside = Session(4, "outside");
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
             var areas = new SessionPresenceDomainService();
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
             var views = new FixedCurrentViews();
             foreach (var actor in new[] { bride, groom, guest, outside })
             {
@@ -93,8 +94,8 @@ public sealed class TownAreaProjectionDeliveryTests
         await outbound.RunAsync(async () =>
         {
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
             var areas = new SessionPresenceDomainService();
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
             var views = new FixedCurrentViews();
             foreach (var actor in new[] { bride, groom })
             {
@@ -177,8 +178,8 @@ public sealed class TownAreaProjectionDeliveryTests
             var first = Session(1, "groom"); var second = Session(2, "bride");
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); sessions.EnterWorldWithConnection(state, first); sessions.EnterWorldWithConnection(state, second);
             var views = new FixedCurrentViews(); views.Publish(first, Entry(first, 100)); views.Publish(second, Entry(second, 300));
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
             var areas = new SessionPresenceDomainService();
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
             foreach (var session in new[] { first, second })
             {
                 positions.Begin(session, new(3, 6, 100, 200, 1), 100);
@@ -204,27 +205,6 @@ public sealed class TownAreaProjectionDeliveryTests
     }
 
     [Fact]
-    public async Task Forced_standing_respects_private_presence_and_rejects_a_replaced_owner()
-    {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var actor = Session(1, "old"); var peer = Session(2, "peer");
-            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); sessions.EnterWorldWithConnection(state, actor); sessions.EnterWorldWithConnection(state, peer);
-            var areas = new SessionPresenceDomainService(); var key = new TownAreaKey(11, 2, 12);
-            ((ITownAreaDomainService)areas).Enter(new(actor.CharacterId, actor.TownAreaLease(), key, new(2, 12, 100, 200, 5), false));
-            ((ITownAreaDomainService)areas).Enter(Member(peer, key, 300));
-            var sender = new RecordingSender();
-            var delivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, new FixedCurrentViews(), new RecordingNotificationBus(), new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
-            Assert.True(await delivery.ForcePositionAsync(actor, new(2, 12, 670, 330, 5), default));
-            Assert.Empty(Assert.Single(sender.Deliveries).Delivery.BestEffortTargets);
-            sessions.EnterWorldWithConnection(state, Session(1, "replacement"));
-            Assert.False(await delivery.ForcePositionAsync(actor, new(2, 12, 685, 360, 5), default));
-            Assert.Single(sender.Deliveries);
-            Assert.Equal((short)670, ((ITownAreaDomainService)areas).Find(actor.CharacterId)!.Position.X);
-        });
-    }
-
-    [Fact]
     public async Task Returning_to_town_receives_existing_players_and_publishes_itself_to_them()
     {
         await TestGameplay.RunAsync(async () =>
@@ -242,6 +222,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var areas = new SessionPresenceDomainService();
             var key = new TownAreaKey(11, 3, 6);
             ((ITownAreaDomainService)areas).Enter(Member(existing, key, x: 300));
+            AwayFrom(areas, returning, key);
             var notifications = new RecordingNotificationBus();
             var sender = new RecordingSender();
             var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, notifications, new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance));
@@ -303,6 +284,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var areas = new SessionPresenceDomainService();
             var key = new TownAreaKey(11, 3, 6);
             ((ITownAreaDomainService)areas).Enter(Member(existing, key, x: 300));
+            AwayFrom(areas, returning, key);
             var notifications = new RecordingNotificationBus();
             var sender = new RecordingSender();
             var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, notifications, new NoopPartyProjection(), sender, new SharedTownMovement()));
@@ -344,6 +326,8 @@ public sealed class TownAreaProjectionDeliveryTests
             var areas = new SessionPresenceDomainService();
             var key = new TownAreaKey(11, 3, 6);
             ((ITownAreaDomainService)areas).Enter(Member(existing, key, 300));
+            AwayFrom(areas, first, key);
+            AwayFrom(areas, second, key);
             var sender = new RecordingSender();
             var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, new RecordingNotificationBus(), new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance));
             Assert.Equal(2, await delivery.EnterAsync(
@@ -433,7 +417,7 @@ public sealed class TownAreaProjectionDeliveryTests
                     Entry(old, 100),
                     new CharacterPositionState(3, 6, 100, 200, 1))],
                 CancellationToken.None));
-            Assert.Equal(replacement.TownAreaLease(), store.Find(old.CharacterId)!.Lease);
+            Assert.Equal(replacement, store.Find(old.CharacterId)!.Session);
         });
     }
 
@@ -445,13 +429,19 @@ public sealed class TownAreaProjectionDeliveryTests
             2,
             10011);
 
+    /// <summary>A returning session left town for a dungeon; the return lands its record back.</summary>
+    private static void AwayFrom(SessionPresenceDomainService areas, SelectedSessionIdentity session, TownAreaKey key)
+    {
+        ((ITownAreaDomainService)areas).Enter(Member(session, key, x: 0));
+        ((ITownAreaDomainService)areas).LeaveExact(session, TownAreaDepartureReason.DungeonEntry);
+    }
+
     private static TownAreaMember Member(
         SelectedSessionIdentity session,
         TownAreaKey key,
         short x) =>
         new(
-            session.CharacterId,
-            session.TownAreaLease(),
+            session,
             key,
             new CharacterPositionState(key.TownId, key.AreaId, x, 200, 1),
             true);

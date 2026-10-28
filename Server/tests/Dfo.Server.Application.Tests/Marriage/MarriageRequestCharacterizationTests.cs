@@ -88,8 +88,7 @@ public sealed class MarriageRequestCharacterizationTests
             await using var w = await ChurchTownAsync(); var f = w.F; var peer = w.Peer;
             var first = await InTx(f, () => Couple(f).ProposeAsync(f.Session, peer, default));
             var reconnected = Reselect(f, peer);
-            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(reconnected.CharacterId, reconnected.TownAreaLease(),
-                new(1, 2, 1), new(2, 1, 100, 200, 0), true));
+            f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(reconnected, new(1, 2, 1), new(2, 1, 100, 200, 0), true));
             var next = await InTx(f, () => Couple(f).ProposeAsync(f.Session, reconnected, default));
             Assert.True(next.Succeeded); Assert.True(next.Changed);
             Assert.NotEqual(first.Proposal!.Id, next.Proposal!.Id);

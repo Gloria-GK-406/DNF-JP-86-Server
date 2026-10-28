@@ -21,6 +21,7 @@ internal sealed class TownArrivalProjectionDriver(TownAreaProjectionDelivery del
             ProtocolAlgorithmFixture.Field<ITownMovementDomainService>(delivery),
             ProtocolAlgorithmFixture.Field<IMarriageHousingQueryDomainService>(delivery),
             ProtocolAlgorithmFixture.Field<ITownAreaDomainService>(delivery),
+            ProtocolAlgorithmFixture.Field<IOnlineCharacterRuntimeDomainService>(delivery),
             ProtocolAlgorithmFixture.Field<ISelectedCharacterCurrentViewDomainService>(delivery),
             ProtocolAlgorithmFixture.Field<IGameCommandOutbox>(delivery),
             ProtocolAlgorithmFixture.Field<IWeaknessDomainService>(delivery), false,

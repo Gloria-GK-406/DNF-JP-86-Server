@@ -161,7 +161,7 @@ public sealed class SessionGenerationOwnershipTests
             var session = Session("position", 9);
             var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
                 session.AccountId, session.CharacterId.Value, 1);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             runtime.Begin(session, result.Character.Position, 100);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
@@ -202,7 +202,7 @@ public sealed class SessionGenerationOwnershipTests
         await TestGameplay.RunAsync(async () =>
         {
             var session = Session("channel-fails", 9);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             runtime.Begin(session, new CharacterPositionState(1, 0, 10, 10, 0), 100);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
@@ -270,7 +270,7 @@ public sealed class SessionGenerationOwnershipTests
             var session = Session("cleanup-cooldown", 11);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
             runtime.StartCooldown(session, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
             runtime.ApplySpiritPotion(session, 1, TimeSpan.FromHours(2));
@@ -297,7 +297,7 @@ public sealed class SessionGenerationOwnershipTests
             var returned = Session("cooldown-returned", 13);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(returned);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
             runtime.Begin(returned, new CharacterPositionState(1, 0, 0, 0, 0), 100);
             runtime.StartCooldown(returned, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
             runtime.ApplySpiritPotion(returned, 1, TimeSpan.FromHours(2));
@@ -324,28 +324,33 @@ public sealed class SessionGenerationOwnershipTests
         IChannelEntryDomainService? channels = null,
         RecordingPositionPersistence? persistence = null,
         DungeonRunDomainService? runs = null,
-        IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null) =>
-        new(directory, new CharacterContainerDomainService(),
-            presence ?? new SessionPresenceDomainService(), stores ?? new ExpertStoreDomainService(),
-            new PvpLobbyDomainService(), persistence is null ? [] : [persistence],
-            runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System),
+        IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null)
+    {
+        var areas = presence ?? new SessionPresenceDomainService();
+        return new(directory, new CharacterContainerDomainService(),
+            areas, stores ?? new ExpertStoreDomainService(),
+            new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
+            runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),
             new PassiveParties(), runs ?? TestParties.Runs(), departures ?? []);
+    }
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>
-    private sealed class ThrowingRuntime : IOnlineCharacterRuntimeDomainService
+    private sealed class ThrowingRuntime(OnlineCharacterLocationDomainService? locations = null) : IOnlineCharacterRuntimeDomainService
     {
-        private readonly OnlineCharacterRuntimeDomainService inner = new(TimeProvider.System);
+        private readonly OnlineCharacterRuntimeDomainService inner =
+            new(TimeProvider.System, locations ?? new OnlineCharacterLocationDomainService());
 
-        public void Begin(SelectedSessionIdentity session, CharacterPositionState position, byte hpPercent) =>
-            inner.Begin(session, position, hpPercent);
+        public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) => inner.Begin(session, area, position, sharesTownPresence, hpPercent);
         public bool EndExact(SelectedSessionIdentity session) => throw new InvalidOperationException("fault");
         public CharacterPositionState? PositionOf(SelectedSessionIdentity session) => inner.PositionOf(session);
         public CharacterPositionState? PositionOf(CharacterId characterId) => inner.PositionOf(characterId);
-        public CharacterPositionState CrossInto(SelectedSessionIdentity session, byte townId, byte areaId, short x, short y) =>
-            inner.CrossInto(session, townId, areaId, x, y);
-        public CharacterPositionState StepTo(SelectedSessionIdentity session, short x, short y, byte direction) =>
-            inner.StepTo(session, x, y, direction);
+        public TownAreaMembershipChange? CrossInto(SelectedSessionIdentity session, TownAreaKey destination, short x, short y, bool sharesTownPresence, byte? direction = null) => inner.CrossInto(session, destination, x, y, sharesTownPresence, direction);
+        public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction) => inner.StepTo(session, x, y, direction);
+        public TownAreaMember? StandingOf(SelectedSessionIdentity session) => inner.StandingOf(session);
+        public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason) => inner.LeaveTown(session, reason);
+        public TownAreaMembershipChange? ReturnToTown(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence) =>
+            inner.ReturnToTown(session, area, position, sharesTownPresence);
         public byte HpPercentOf(CharacterId characterId) => inner.HpPercentOf(characterId);
         public bool IsCoolingDown(CharacterId characterId, ItemCooldownKey key) => inner.IsCoolingDown(characterId, key);
         public void StartCooldown(SelectedSessionIdentity session, ItemCooldownKey key, TimeSpan duration) =>

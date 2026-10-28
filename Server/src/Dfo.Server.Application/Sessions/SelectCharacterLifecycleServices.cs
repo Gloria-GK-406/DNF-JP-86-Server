@@ -58,7 +58,7 @@ internal sealed class SelectedSessionCleanupService(
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
-        if (currentMember is not null && session.Owns(currentMember))
+        if (currentMember is not null && currentMember.Session == session)
         {
             // Preserve the exact peer generations this area snapshot was built from. Reducing
             // them to character IDs would let a replacement on another listener receive this
@@ -73,7 +73,7 @@ internal sealed class SelectedSessionCleanupService(
                      ?? [])
             {
                 if (sessions.TryGetInWorld(peer.CharacterId, out var exact)
-                    && exact.Owns(peer))
+                    && peer.Session == exact)
                 {
                     audience.Add(exact);
                 }
@@ -187,13 +187,9 @@ internal sealed class SelectedSessionCleanupService(
         }
         Run(() => expertStores.CloseExact(session));
         Run(() => { housing?.CloseExact(session); return true; });
-        Run(() => townAreas.LeaveExact(
-            session.CharacterId,
-            session.TownAreaLease(),
-            TownAreaDepartureReason.SessionEnded) is not null);
         Run(() => pvp.ClearReadyExact(session));
-        // Position, vitals, cooldowns and the spirit potion go together, and only if this session
-        // still owns them: a successor that has already begun keeps its own.
+        // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
+        // and only if this session still owns them: a successor that has already begun keeps its own.
         Run(() => runtime.EndExact(session));
         Run(() => sessions.ReleaseExact(session));
 
@@ -264,7 +260,7 @@ internal sealed class SelectedSessionCleanupService(
                          scope.AreaId, scope.Instance))?.Members ?? [])
                     .Select(item => item.SharesTownPresence
                         && sessions.TryGetInWorld(item.CharacterId, out var exact)
-                        && exact.Owns(item) ? exact : null)
+                        && item.Session == exact ? exact : null)
                     .OfType<SelectedSessionIdentity>()
                     .Distinct()
                     .ToArray()))
@@ -288,7 +284,7 @@ internal sealed class SelectCharacterSessionEntryService(
         var position = runtime.PositionOf(session)
             ?? throw new InvalidDataException("The published town position is unavailable.");
         var current = townAreas.Find(session.CharacterId);
-        if (current is null || !session.Owns(current) || !current.SharesTownPresence)
+        if (current is null || current.Session != session || !current.SharesTownPresence)
             return null;
         var occupants = townAreas.Find(current.Area)?.Members
             .Where(member => member.SharesTownPresence
@@ -304,7 +300,7 @@ internal sealed class SelectCharacterSessionEntryService(
             if (!sessions.TryGetInWorld(occupant.CharacterId, out var owner))
                 continue;
             var otherResult = await currentViews.TryLoadAsync(owner, cancellationToken).ConfigureAwait(false);
-            if (!owner.Owns(occupant) || otherResult is null)
+            if (occupant.Session != owner || otherResult is null)
             {
                 continue;
             }
@@ -388,18 +384,13 @@ internal sealed class SelectCharacterSessionEntryService(
         if (!sessions.IsSelected(session))
             throw new InvalidOperationException("Cannot publish a replaced selection.");
         creatures?.Enter(session);
-        runtime.Begin(session, result.Character.Position, checked((byte)Math.Clamp(
-            result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent, 0, 100)));
         var position = result.Character.Position;
-        townAreas.Enter(new TownAreaMember(
-            session.CharacterId,
-            session.TownAreaLease(),
-            new TownAreaKey(
-                result.World.Channel.ChannelId,
-                position.TownId,
-                position.AreaId),
+        runtime.Begin(
+            session,
+            new TownAreaKey(result.World.Channel.ChannelId, position.TownId, position.AreaId),
             position,
-            result.World.Channel.Spawn.SharesTownPresence));
+            result.World.Channel.Spawn.SharesTownPresence,
+            checked((byte)Math.Clamp(result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent, 0, 100)));
     }
 
     public void MarkPvpReady(SelectedSessionIdentity session, SelectCharacterResult result)

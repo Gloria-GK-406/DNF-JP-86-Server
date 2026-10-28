@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
@@ -608,13 +609,15 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                         PvpSkillProfileApplies: false),
                 },
             });
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System);
+            var areas = new SessionPresenceDomainService();
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
             positions.Begin(party.First, new CharacterPositionState(1, 1, 100, 100, 0), 100);
+            positions.LeaveTown(party.First, TownAreaDepartureReason.DungeonEntry);
             var sender = new GiveUpOwnerSender(party.First.ConnectionId);
 
             await new GiveUpDriver(party.Sessions, views, positions,
                     TestParties.Runs(parties: party.Parties), new DungeonRunDeliveryRegistry(), sender,
-                    TownAreaProjectionTestFactory.Create(party.Sessions, views, sender),
+                    TownAreaProjectionTestFactory.Create(party.Sessions, views, sender, areas),
                     NullLogger<GiveUpGameHandler>.Instance, bossParties: party.Coordinator)
                 .HandleAsync(Dispatch(party.First), new GiveUpGameRequest(GameMessageMetadata.Empty),
                     CancellationToken.None);
@@ -1034,10 +1037,6 @@ public sealed partial class BossTowerProjectionConcurrencyTests
 
     private sealed class NoTown : ITownAreaDomainService
     {
-        public TownAreaMembershipChange Enter(TownAreaMember member) => throw new NotSupportedException();
-        public TownAreaMembershipChange? LeaveExact(CharacterId characterId, TownAreaMembershipLease lease, TownAreaDepartureReason reason) => null;
-        public TownAreaMembershipChange? TransferExact(CharacterId characterId, TownAreaMembershipLease lease, TownAreaKey destination, CharacterPositionState position, bool sharesTownPresence) => null;
-        public TownAreaMovement? MoveExact(CharacterId characterId, TownAreaMembershipLease lease, CharacterPositionState position) => null;
         public TownAreaMember? Find(CharacterId characterId) => null;
         public TownAreaSnapshot? Find(TownAreaKey key) => null;
         public IReadOnlyList<TownAreaSnapshot> Query(TownAreaFilter filter) => [];
