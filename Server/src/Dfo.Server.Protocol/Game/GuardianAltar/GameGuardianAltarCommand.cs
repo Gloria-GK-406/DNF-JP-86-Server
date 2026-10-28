@@ -32,7 +32,7 @@ internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainServic
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameGuardianAltarCommand command, CancellationToken ct)
     {
-        if (TowerProtocol.IsStale(command.Input.Metadata)) return true;
+        if (GameRequestFreshness.IsStale(command.Input.Metadata)) return true;
         var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
         if (session is null || !sessions.IsInWorld(session)) return true;
         var input = command.Input;

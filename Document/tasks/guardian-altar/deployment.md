@@ -3,7 +3,7 @@
 状态：按用户授权维护实机验收候选，版本0.2.10，分支`codex/168-guardian-altar`。
 初版基线为`21c1dfd78f0e7866eb40e878305dcd019ea99f5e`；入图修复后实际运行提交和PID以
 `artifacts/guardian-altar/active-deployment.json`所指目录的`running-process.json`及`readiness.json`为准。
-并行功能合并前须核对主干实际版本及PATCH，不自动升MINOR或创建Release。
+源码版本沿用最新主干，功能PR不修改VersionPrefix；版本授权与发布规则见[开发与发布约定](../../server-ci-release.md#版本规则)。
 
 ## 当前默认端口验收
 

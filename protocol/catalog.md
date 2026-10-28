@@ -22,9 +22,9 @@ ACT读取其状态；未引入新opcode或升级实帧、实机证据。
 worldmap98及任务20720–20735为用户授权的本服资源恢复，见
 [规则与验证边界](../Document/tasks/giant-dragon/README.md)。
 
-## 2026-10-27 守护者祭坛（实现候选，待实机验收）
+## 守护者祭坛实现与实机范围
 
-CurrentImplementation / ClientStatic / 70Reference：入口4／10、0392–039A请求与响应、035B/C/D/0360/1/2通知已注册，独立玩法接入执行器、事务、持久化与结果回城。035E没有虚构推送，035F为原生测试路径，不作为常规流程依赖。没有WireCaptured／ClientVerified。[流程](patterns/flow-guardian-altar.md)、[实现及验证](../Document/tasks/guardian-altar/README.md)。
+CurrentImplementation / ClientStatic / 70Reference：入口4／10、0392–039A请求与响应、035B/C/D/0360/1/2通知已注册，独立玩法接入执行器、事务、持久化与结果回城。035E没有虚构推送，035F为原生测试路径，不作为常规流程依赖。没有完整WireCaptured；入口、首关简单／中等出怪与召唤已有有限ClientVerified，玩家接受原生死亡倒计时并授权PR收尾。未逐项实测条件保留在[验收记录](../Document/tasks/guardian-altar/acceptance.md)。[流程](patterns/flow-guardian-altar.md)、[实现及验证](../Document/tasks/guardian-altar/README.md)。
 
 | 族 | Type | 实现 | 边界 | 文档 |
 |---|---|---|---|---|

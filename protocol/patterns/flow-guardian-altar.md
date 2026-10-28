@@ -1,7 +1,7 @@
 # 守护者祭坛原生流程
 
 适用A21，DGN3511–3523。当前为ClientStatic、70Reference与CurrentImplementation交叉映射；
-没有本任务完整WireCaptured；入口和首关简单已有有限ClientVerified，完整玩法仍待验收。输入哈希、原始摘录及领域规则见
+没有本任务完整WireCaptured；入口、首关简单／中等出怪及召唤已有有限ClientVerified，玩家接受原生死亡倒计时并授权PR收尾。未逐项实测条件保留在验收记录。输入哈希、原始摘录及领域规则见
 [实现说明](../../Document/tasks/guardian-altar/README.md)。这里维护协议编排，单包字段以链接页为准。
 
 1. 选角与活动在线更新发送[033F](../game/server-to-client/NOTI-0x033F.md#守护者祭坛通用调度)，
