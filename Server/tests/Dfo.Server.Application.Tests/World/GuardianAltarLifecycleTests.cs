@@ -147,6 +147,7 @@ public sealed class GuardianAltarLifecycleTests
                 var context = Entry with { DungeonId = stage.DungeonId, Facts = DungeonEntryFacts.None with { Difficulty = (Dfo.Server.Data.World.DungeonDifficulty)difficulty } };
                 await using (var tx = f.Scope.Begin()) { Assert.NotNull((await altar.EnterAsync(context, default)).Entry); await tx.CommitAsync(default); }
                 var run = runs.Find(new CharacterId(71))!; runs.TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);
+                Assert.Equal((ushort)0, run.CurrentCellState.Actors[0].Sequence);
                 await using (var tx = f.Scope.Begin()) { await altar.ReadyAsync(f.Session, run.RunId, default); await tx.CommitAsync(default); }
                 var ticks = 0;
                 while (altar.Find(run.RunId) is { Status: GuardianAltarStatus.Fighting } state)
@@ -159,6 +160,8 @@ public sealed class GuardianAltarLifecycleTests
                     }
                     clock.At = clock.At.AddMilliseconds(state.Admission.Map.Phases.Sum(x => x.DurationMilliseconds) + 1000);
                     await using (var tx = f.Scope.Begin()) { Assert.NotNull(await altar.AdvanceAsync(run.RunId, state.Generation, clock.At, default)); await tx.CommitAsync(default); }
+                    var actors = runs.Find(run.RunId)!.CurrentCellState.Actors;
+                    Assert.Equal(Enumerable.Range(0, actors.Count).Select(x => (ushort)x), actors.Select(x => x.Sequence));
                 }
                 Assert.Equal(GuardianAltarStatus.Won, altar.Find(run.RunId)!.Status);
                 Assert.True(await runs.EndAsync(new(71), run.RunId));
@@ -260,6 +263,7 @@ public sealed class GuardianAltarLifecycleTests
             var run = runs.Find(new CharacterId(71))!; runs.TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);
             await using (var tx = f.Scope.Begin()) { await altar.ReadyAsync(f.Session, run.RunId, default); await tx.CommitAsync(default); }
             var center = run.CurrentCellState.Actors.Single(x => x.Actor.Code == 64597);
+            Assert.Equal((ushort)0, center.Sequence);
             await using (var tx = f.Scope.Begin()) Assert.True(await altar.ReportDeathAsync(f.Session, run.RunId, run.RoomVersion, center.Sequence, default));
             Assert.False(runs.Find(run.RunId)!.CurrentCellState.FindActor(center.Sequence)!.IsDead);
             Assert.Equal(GuardianAltarStatus.Fighting, altar.Find(run.RunId)!.Status);
@@ -296,6 +300,7 @@ public sealed class GuardianAltarLifecycleTests
             { Assert.NotNull((await altar.EnterAsync(Entry with { DungeonId = 3523 }, default)).Entry); await tx.CommitAsync(default); }
             var initial = runs.Find(new CharacterId(71))!;
             var center = initial.CurrentCellState.Actors.Single(x => x.Actor.Code == 64597).Sequence;
+            Assert.Equal((ushort)0, center);
             runs.TryMarkParticipantReady(new(71), initial.RunId, initial.RoomVersion);
             await using (var tx = f.Scope.Begin()) { await altar.ReadyAsync(f.Session, initial.RunId, default); await tx.CommitAsync(default); }
             var iterations = 0;
@@ -313,6 +318,8 @@ public sealed class GuardianAltarLifecycleTests
                     await tx.CommitAsync(default);
                 }
                 var current = runs.Find(initial.RunId)!;
+                Assert.Equal(Enumerable.Range(0, current.CurrentCellState.Actors.Count).Select(x => (ushort)x),
+                    current.CurrentCellState.Actors.Select(x => x.Sequence));
                 Assert.Equal(initial.RoomVersion, current.RoomVersion);
                 Assert.False(current.CurrentCellState.FindActor(center)!.IsDead);
                 foreach (var enemy in current.CurrentCellState.Actors.Where(x => x.BlocksClear && !x.IsDead))

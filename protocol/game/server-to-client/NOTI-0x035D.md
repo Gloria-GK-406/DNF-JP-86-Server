@@ -53,6 +53,13 @@ BodyLength = 未知（字段集合已知不完整）
 
 ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation为本工作区代码及自动测试；没有WireCaptured或ClientVerified。
 
-固定38B：sequence:u16；再36B SummonObject：id:i32、enemy:u8及3B padding、rank:i32（0/1/2）、monsterCode:i32、level:i16及2B padding、maximumLevel:i32、x/y/z:i32各。A21读取VA0114BCC0并交给01864750。字段语义结合70 _SummonObject。当前只投影敌方；0396成功的友方效果走客户端STK。
+固定38B：sequence:16位；再36B SummonObject：id:i32、enemy:u8及3B padding、rank:i32（0/1/2）、monsterCode:i32、level:i16及2B padding、maximumLevel:i32、x/y/z:i32各。A21读取VA0114BCC0并交给01464750。字段语义结合70 _SummonObject。当前只投影敌方；0396成功的友方效果走客户端STK。
+
+序号的客户端解释有符号：`VA0114BDE2`用`movsx`扩展后传入生成函数；035C初始对象则用无符号扩展。
+70Reference的`ProcStage::reset`（0812DE3B）将序号计数器清零，初始对象（0812E177–0812E18E）
+和后续召唤（0812EF9C–0812EFB0）共用递增计数器。祭坛不能直接沿用普通房间随机基址。
+CurrentImplementation由祭坛Cell从0分配，后续035D继续递增，生存换轮不重置；普通副本的编号规则保持独立。
+这是已核实的协议适配差异；自动编号与生命周期回归通过不代表已证明所有无怪现象的根因。
+原始依据：[70序号计数器](../../../Document/tasks/guardian-altar/70-actor-sequences.txt)。
 
 原始摘录：[client-spawn-info.txt](../../../Document/tasks/guardian-altar/client-spawn-info.txt)。当前encoder与对应强类型消息已注册，自动codec测试核对完整读取边界。发送顺序见[祭坛流程](../../patterns/flow-guardian-altar.md)。

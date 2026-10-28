@@ -72,7 +72,7 @@ public sealed class GuardianAltarProtocolTests
         var layout = new DungeonLayout(3511, 0, 1, 1, cell, cell, 25081, 42,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(25081) });
         var run = new DungeonRunState(layout, cell, 25081, new HashSet<MazeCell> { cell }, DateTimeOffset.UnixEpoch,
-            CurrentCellState: new(cell, 25081, 0, 1, [new(1, new(64597, 1, 0) { IsHostile = false }, false, false, [])], []));
+            CurrentCellState: new(cell, 25081, 0, 1, [new(0, new(64597, 1, 0) { IsHostile = false }, false, false, [])], []));
         var body = GuardianAltarPayloadCodec.Map(run, a);
         Assert.Equal(65, body.Length);
         Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(4)));
@@ -81,7 +81,7 @@ public sealed class GuardianAltarProtocolTests
         Assert.Equal(145000, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(12)));
         Assert.Equal(2u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(20)));
         Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(48)));
-        Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(56)));
+        Assert.Equal((ushort)0, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(56)));
         Assert.Equal((ushort)64597, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(58)));
     }
     [Fact]
