@@ -10,9 +10,15 @@ const identity = { id: 1, loginName: '配置管理员', permissions: ['QueryPlay
 let data: InitializationViewData;
 const open = () => renderApp('/initialization');
 const panel = (name: '账号初始化' | '角色初始化') => screen.getByRole('region', { name });
+// The panel's mount effect clears the draft while not editing; on a slow runner a click can land before that
+// effect runs and be undone, so keep clicking until the editor opens (the button disappears once it does).
 async function edit(kind: '账号' | '角色') {
-  const button = await screen.findByRole('button', { name: new RegExp(`编辑${kind}配置`) });
-  fireEvent.click(button);
+  const name = new RegExp(`编辑${kind}配置`);
+  await waitFor(() => {
+    const button = screen.queryByRole('button', { name });
+    if (button) fireEvent.click(button);
+    expect(within(panel(`${kind}初始化`)).getByRole('button', { name: '保存并生效' })).toBeTruthy();
+  });
 }
 async function save() {
   fireEvent.click(screen.getByRole('button', { name: '保存并生效' }));

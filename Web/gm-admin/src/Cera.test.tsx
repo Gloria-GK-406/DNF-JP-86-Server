@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, expect, it, vi } from 'vitest';
 import { api, ApiError } from './api';
 import type { CeraInput, PendingCera } from './cera';
-import { logout, renderApp } from './test-utils';
+import { clickWhenIdle, logout, renderApp } from './test-utils';
 vi.mock('./api', async original => ({ ...await original<typeof import('./api')>(), api: vi.fn() }));
 const mocked = vi.mocked(api);
 const identity = { id: 1, loginName: '点券管理员', permissions: ['GrantCera'], expiresAt: '2030-01-01T00:00:00Z' };
@@ -83,7 +83,7 @@ it('未知结果查询404保留冻结请求，后续查询恢复持久结果', a
   sessionStorage.setItem(key, JSON.stringify(pending)); const original = mocked.getMockImplementation()!; let found = false;
   mocked.mockImplementation(async (path, payload) => { if (path === `cera/operations/${pending.requestId}`) { if (!found) throw new ApiError(404, '未找到已提交记录，请保留原编号'); return receipt(pending.requestId); } return original(path, payload); });
   open(); await banner(); fireEvent.click(screen.getByRole('button', { name: '查询原编号结果' })); await screen.findByText('未找到已提交记录，请保留原编号');
-  expect(sessionStorage.getItem(key)).not.toBeNull(); found = true; fireEvent.click(screen.getByRole('button', { name: '查询原编号结果' }));
+  expect(sessionStorage.getItem(key)).not.toBeNull(); found = true; await clickWhenIdle(() => screen.getByRole('button', { name: '查询原编号结果' }));
   await screen.findByRole('dialog', { name: '点券发放回执' }); expect(sessionStorage.getItem(key)).toBeNull(); expect(grants()).toHaveLength(0);
 });
 it.each([[400, 'rejected'], [409, 'rolledBack'], [500, 'rolledBack']])('明确错误%s释放冻结内容供重新核对', async (status, outcome) => {
