@@ -46,7 +46,7 @@ public sealed partial class BossTowerDomainServiceTests
                 {
                     var result = await TowerTestAlgorithms.BossParty(f).TryLeaveAsync(
                         f.Session, false, null, default);
-                    Assert.True(result.Handled); Assert.True(result.Result.Succeeded);
+                    Assert.NotNull(result); Assert.True(result.Result.Succeeded);
                 }));
         else
             await f.Services.GetRequiredService<LeavePartyHandler>().HandleAsync(new(f.Connection), new LeavePartyRequest(GameMessageMetadata.Empty), default);
@@ -223,7 +223,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 {
                     var result = await TowerTestAlgorithms.IllusionParty(f).TryLeaveAsync(
                         f.Session, false, null, default);
-                    Assert.True(result.Handled); Assert.True(result.Result.Succeeded);
+                    Assert.NotNull(result); Assert.True(result.Result.Succeeded);
                 }));
         else
             await f.Services.GetRequiredService<LeavePartyHandler>().HandleAsync(new(f.Connection), new LeavePartyRequest(GameMessageMetadata.Empty), default);

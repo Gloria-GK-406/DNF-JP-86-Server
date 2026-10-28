@@ -237,7 +237,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             return IllusionTowerRejected(observed.Target, validation.Value);
 
         if (change == PartyChange.Transfer && observed.Target == caller)
-            return new(true, PartyOperationResult.Success(), caller);
+            return new(PartyOperationResult.Success(), caller);
 
         TowerActionResult? departure = null;
         IllusionTowerSnapshot projectionRun = observed.Runs[0];
@@ -319,7 +319,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 "Party mutation failed after tower work for run {RunId}; isolating exact sessions",
                 run.RunId);
             await IllusionTowerCloseExactAsync(affected).ConfigureAwait(false);
-            return new(true, partyResult, observed.Target);
+            return new(partyResult, observed.Target);
         }
 
         try
@@ -351,7 +351,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             await IllusionTowerCloseExactAsync(affected).ConfigureAwait(false);
         }
 
-        return new(true, partyResult, observed.Target);
+        return new(partyResult, observed.Target);
     }
 
     private SelectedSessionIdentity? IllusionTowerLeaderToSynchronize(
@@ -434,7 +434,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
 
     private static IllusionTowerPartyAttempt IllusionTowerRejected(
         SelectedSessionIdentity? target, PartyFailureReason reason) =>
-        new(true, PartyOperationResult.Reject(reason), target);
+        new(PartyOperationResult.Reject(reason), target);
 
     internal ValueTask<int> TownEnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) =>
         TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, currentViews, outbox,
@@ -481,7 +481,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             return BossTowerRejected(observed.Target, validation.Value);
 
         if (change == PartyChange.Transfer && observed.Target == caller)
-            return new(true, PartyOperationResult.Success(), caller);
+            return new(PartyOperationResult.Success(), caller);
 
         BossTowerActionResult? departure = null;
         BossTowerSnapshot projectionRun = observed.Runs[0];
@@ -563,7 +563,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 "Party mutation failed after tower work for run {RunId}; isolating exact sessions",
                 run.RunId);
             await BossTowerCloseExactAsync(affected).ConfigureAwait(false);
-            return new(true, partyResult, observed.Target);
+            return new(partyResult, observed.Target);
         }
 
         try
@@ -595,7 +595,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             await BossTowerCloseExactAsync(affected).ConfigureAwait(false);
         }
 
-        return new(true, partyResult, observed.Target);
+        return new(partyResult, observed.Target);
     }
 
     private SelectedSessionIdentity? BossTowerLeaderToSynchronize(
@@ -678,7 +678,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
 
     private static BossTowerPartyAttempt BossTowerRejected(
         SelectedSessionIdentity? target, PartyFailureReason reason) =>
-        new(true, PartyOperationResult.Reject(reason), target);
+        new(PartyOperationResult.Reject(reason), target);
 
     /// <summary>The party a party command speaks for, and the sessions its place is judged over.</summary>
     /// <param name="Candidates">The caller, the target if any, then every online member whose session matches its roster identity, in that order.</param>
