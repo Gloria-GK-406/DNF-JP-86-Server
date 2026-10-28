@@ -19,7 +19,7 @@ SQL NULL 表示没有装扮事实，与期限无关。
 
 ## 线上编码
 
-背包快照／增量、角色穿戴与装扮合成回执的剩余时间统一由 `ItemLifetime.RemainingSeconds` 计算：
+背包快照／增量、角色穿戴与装扮合成回执的剩余时间是 A21 线上编码，由 Protocol 层的 `ItemLifetimeOnTheWire.RemainingSeconds` 从 `ItemLifetime` 统一换算；`ItemLifetime` 本身只回答期限、永久与过期：
 
 | 存储值 | 线上值 |
 |---|---|

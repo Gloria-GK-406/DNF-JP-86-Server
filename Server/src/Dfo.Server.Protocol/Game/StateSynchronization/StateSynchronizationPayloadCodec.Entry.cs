@@ -124,7 +124,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((byte)item.SlotIndex));
         writer.Write(core.ItemId);
         writer.Write(unchecked((uint)(core.ItemKind == avatarKind
-            ? ItemLifetime.At(item.AvatarDetail!.ExpireDate).RemainingSeconds(preparedAt)
+            ? ItemLifetimeOnTheWire.RemainingSeconds(ItemLifetime.At(item.AvatarDetail!.ExpireDate), preparedAt)
             : core.Value)));
         writer.Write(core.Attribute);
         writer.Write(core.Durability);

@@ -17,7 +17,6 @@ public sealed class ItemLifetimeTests
         Assert.Equal(ItemLifetime.Permanent, lifetime);
         Assert.False(lifetime.IsExpired(At));
         Assert.False(lifetime.IsExpired(DateTimeOffset.MaxValue));
-        Assert.Equal(0, lifetime.RemainingSeconds(At));
     }
 
     [Fact]
@@ -28,7 +27,6 @@ public sealed class ItemLifetimeTests
         Assert.False(lifetime.IsPermanent);
         Assert.False(lifetime.IsExpired(At));
         Assert.True(lifetime.IsExpired(DateTimeOffset.FromUnixTimeSeconds(int.MaxValue)));
-        Assert.Equal(int.MaxValue - Now, lifetime.RemainingSeconds(At));
     }
 
     [Theory]
@@ -40,21 +38,19 @@ public sealed class ItemLifetimeTests
 
         Assert.False(lifetime.IsPermanent);
         Assert.True(lifetime.IsExpired(At));
-        Assert.Equal(-1, lifetime.RemainingSeconds(At));
     }
 
     [Theory]
-    [InlineData(-3600, true, -1)]
-    [InlineData(0, true, -1)]
-    [InlineData(1, false, 1)]
-    [InlineData(86400, false, 86400)]
-    public void A_positive_deadline_ends_at_its_own_second(int offset, bool expired, int remaining)
+    [InlineData(-3600, true)]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(86400, false)]
+    public void A_positive_deadline_ends_at_its_own_second(int offset, bool expired)
     {
         var lifetime = ItemLifetime.At(Now + offset);
 
         Assert.False(lifetime.IsPermanent);
         Assert.Equal(expired, lifetime.IsExpired(At));
-        Assert.Equal(remaining, lifetime.RemainingSeconds(At));
     }
 
     [Fact]

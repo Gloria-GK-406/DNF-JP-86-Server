@@ -28,12 +28,4 @@ public readonly record struct ItemLifetime
         new(legacyKind == AvatarLegacyKind ? avatarExpireDate ?? 0 : expireTime);
 
     public bool IsExpired(DateTimeOffset at) => !IsPermanent && Deadline <= at.ToUnixTimeSeconds();
-
-    /// <summary>A21 remaining-time encoding: zero permanent, positive seconds left, -1 once ended.</summary>
-    public int RemainingSeconds(DateTimeOffset at)
-    {
-        if (IsPermanent) return 0;
-        var remaining = (long)Deadline - at.ToUnixTimeSeconds();
-        return remaining <= 0 ? -1 : checked((int)remaining);
-    }
 }
