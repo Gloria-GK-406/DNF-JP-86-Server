@@ -1,0 +1,31 @@
+id 490000338 -> event/chn_event_20160114_kurunmoon_event/chn_hell_party_free_pass_490000338.stk
+=== stackable/event/chn_event_20160114_kurunmoon_event/chn_hell_party_free_pass_490000338.stk ===
+[name]
+深渊派对通行证
+[explain]
+拥有它， 可以挑战任何地区的深渊派对； 入场时需消耗一个道具。
+[grade]
+1
+[attach type]
+[trade]
+[rarity]
+2
+[stack limit]
+30
+[usable job]
+[all]
+[/usable job]
+[minimum level]
+1
+[weight]
+1
+[price]
+0
+[icon]
+Item/stackable/material.img 553
+[field image]
+Item/FieldImage.img 24
+[stackable type]
+[quest] 0
+[move wav]
+BONE_TOUCH

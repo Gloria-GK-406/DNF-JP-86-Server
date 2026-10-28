@@ -28,15 +28,15 @@ internal sealed class GiantDragonRuleService(IDungeonDefinitionSource dungeons, 
         GiantDragonTimeRewardPlan? reward = null;
         if (!restored)
         {
-            var material = await items.FindAsync(3326, ct).ConfigureAwait(false);
-            if (material is not { ItemId: 3326, Category: "material", EquipmentType: null }
+            var material = await items.FindAsync(10094602, ct).ConfigureAwait(false);
+            if (material is not { ItemId: 10094602, Category: "material", EquipmentType: null }
                 || !Enum.IsDefined((DropRarity)(material.Rarity ?? 0)))
-                throw new InvalidDataException("Giant dragon breath material is missing/incompatible.");
-            // User-approved approximation: nearest HUD tick, with ties taking the lower award.
-            // The 100-second green gauge has eight equal intervals; this is not the native award algorithm.
+                throw new InvalidDataException("Giant dragon unrefined crystal is missing/incompatible.");
+            // Native time attack rewards unrefined crystals, not the independently rolled breath.
+            // The blue gauge starts after 100 seconds; full 45-second steps are the local integer policy.
             // See Document/tasks/giant-dragon/TimeAttackReward.md.
-            reward = new(new(3326, 1, (DropRarity)(material.Rarity ?? 0), DropItemKind.Stackable),
-                9, 3, TimeSpan.FromMilliseconds(18750), TimeSpan.FromMilliseconds(12500));
+            reward = new(new(10094602, 1, (DropRarity)(material.Rarity ?? 0), DropItemKind.Stackable),
+                9, 2, TimeSpan.FromSeconds(145), TimeSpan.FromSeconds(45));
         }
         return new(definition, townId, areaId, quest, id == 3538) { TimeReward = reward };
     }

@@ -12,6 +12,7 @@ namespace Dfo.Server.Application.Settlement;
 
 internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainService completion,
     IQuestDefinitionDomainService definitions, IApplyEffectsDomainService apply, IEventService events,
+    IGiantDragonCrystalExchangeDomainService crystalExchange,
     IMirrorAradQuestDomainService mirror, Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService? southern = null) : IQuestCompletionSettlementDomainService
 {
     public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
@@ -38,12 +39,17 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
         }
         if (quest == Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId && count != 1)
             return new(false, quest, null, null, null, null, null);
+        if (quest == IGiantDragonCrystalExchangeDomainService.QuestId && count != 1)
+            return new(false, quest, null, null, null, null, null);
         var ordinary = await completion.PrepareAsync(account, character, quest, selection, count, at, footprint, ct, session).ConfigureAwait(false);
         if (!ordinary.Prepared) return new(false, quest, null, null, null, ordinary.Projection, null);
         var plan = ordinary.Plan ?? throw new InvalidOperationException("Missing prepared quest plan.");
         footprint.DemandEffects(context.Owner);
         if (quest == Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId
             && (southern is null || !await southern.TryCompleteAsync(character, ct).ConfigureAwait(false)))
+            return new(false, quest, null, null, null, ordinary.Projection, null);
+        if (quest == IGiantDragonCrystalExchangeDomainService.QuestId
+            && !await crystalExchange.TryCompleteAsync(character, ct).ConfigureAwait(false))
             return new(false, quest, null, null, null, ordinary.Projection, null);
         var result = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         footprint.DemandEffects(context.Owner);

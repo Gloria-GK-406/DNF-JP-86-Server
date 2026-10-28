@@ -393,7 +393,8 @@ public sealed class MirrorAradQuestTests
             fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), fixture.Services.GetRequiredService<ICharacterDomainService>(),
             preview, new Clock { Now = Now }, fixture.Services.GetRequiredService<IEventService>(), fixture.Services.GetRequiredService<IUsageQuotaDomainService>());
         var settlement = new QuestCompletionSettlementService(null!, new DefinitionDomain(), effects,
-            fixture.Services.GetRequiredService<IEventService>(), service);
+            fixture.Services.GetRequiredService<IEventService>(),
+            fixture.Services.GetRequiredService<IGiantDragonCrystalExchangeDomainService>(), service);
         return (service, store, preview, effects, settlement);
     }
     private static ValueTask<QuestCompletionReceipt> Finish(IQuestCompletionSettlementDomainService service) =>

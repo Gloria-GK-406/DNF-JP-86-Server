@@ -281,6 +281,7 @@ public sealed class ApplicationModule : IServerModule
         // out from. One reader for both, because no quest outcome is decided without both.
         services.TryAddSingleton<IQuestContentRuleService, QuestContentRuleService>();
         services.TryAddSingleton<IQuestStateRuleService, QuestStateRuleService>();
+        services.TryAddSingleton<IGiantDragonCrystalExchangeDomainService, GiantDragonCrystalExchangeDomainService>();
         services.TryAddSingleton<IQuestAvailabilityRuleService, QuestAvailabilityRuleService>();
         services.TryAddSingleton<IQuestFactsDomainService, QuestFactsDomainService>();
         services.TryAddSingleton<IQuestQueryDomainService, QuestQueryDomainService>();

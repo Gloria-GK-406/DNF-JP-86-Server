@@ -35,7 +35,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IEpicBookDomainService? epicBook = null,
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null, ICollectionBoxDomainService? collections = null,
-    ISouthernDaleQuestDomainService? southern = null) : ICharacterCurrentStateQueryDomainService
+    ISouthernDaleQuestDomainService? southern = null,
+    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService? crystalExchange = null) : ICharacterCurrentStateQueryDomainService
 {
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -81,6 +82,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             equippedCreature, character, characterEntry, characterInventory);
         if (southern is not null)
             contentSubject = contentSubject with { SouthernDaleQuestAvailable = await southern.CanAcceptAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
+        contentSubject = contentSubject with { GiantDragonCrystalExchangeAvailable = crystalExchange is not null
+            && await crystalExchange.CanAcceptAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken).ConfigureAwait(false);
         // Channel flags are independent of login placement. No arrival gate is needed to query
         // a character already standing in a declared town area, such as Time Gate (town 12).
