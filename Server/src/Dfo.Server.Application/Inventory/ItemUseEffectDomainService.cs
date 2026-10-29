@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class ItemUseEffectDomainService(ICharacterDomainService characters,
+internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService itemUse,
     IItemUseEffectRuleService rules, IApplyEffectsDomainService effects,
     ICreatureInstanceDomainService creatures, TimeProvider clock,
     Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
@@ -41,8 +41,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterDomainService charact
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         if (rule?.SummonsApc == true && participation?.Find(session.CharacterId)?.Mode == DungeonParticipationMode.BossTower)
             return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
-        var facts = rule is null || !rule.IsReadable ? null : await characters.Get(session.CharacterId)
-            .ItemUseFactsAsync(rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
+        var facts = rule is null || !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
+            rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;
         var at = clock.GetUtcNow();
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);

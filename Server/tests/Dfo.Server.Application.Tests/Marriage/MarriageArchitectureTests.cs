@@ -4,10 +4,7 @@ using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Marriage;
 using Dfo.Server.Application.Quests;
-using Dfo.Server.Infrastructure;
-using Dfo.Server.Persistence;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Configuration;
+using Dfo.Server.Application.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Marriage;
@@ -36,9 +33,7 @@ public sealed class MarriageArchitectureTests
         .Where(x => x.Namespace == typeof(MarriageDomainService).Namespace && !x.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute)))
         .ToArray();
 
-    private static IEnumerable<Type> Parameters(Type type) =>
-        type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-            .SelectMany(x => x.GetParameters()).Select(x => x.ParameterType).Distinct();
+    private static IEnumerable<Type> Parameters(Type type) => ServiceGraph.Parameters(type);
 
     private static IReadOnlyList<string> StoreViolations(IReadOnlyCollection<Type> types, Type relationOwner, Type useCases)
     {
@@ -90,68 +85,6 @@ public sealed class MarriageArchitectureTests
                 || g.FullName!.StartsWith("System.Func`", StringComparison.Ordinal)))
             .Select(x => $"{type.Name} defers {x.Name}"))
             .ToArray();
-
-    /// <summary>Every type the container would build for <paramref name="root"/>, following registrations as the container does.</summary>
-    /// <remarks>
-    /// An interface expands to every type registered for it; a factory registration is opened by resolving it and taking
-    /// the instance's type, so a factory cannot hide an edge. <c>Func</c> and <c>Lazy</c> expand to what they would produce.
-    /// Constructors are only walked for this server's own types.
-    /// </remarks>
-    private static HashSet<Type> Reach(IServiceCollection services, IServiceProvider provider, Type root)
-    {
-        var seen = new HashSet<Type>();
-        var queue = new Queue<Type>([root]);
-        while (queue.TryDequeue(out var type))
-        {
-            if (!seen.Add(type)) continue;
-            foreach (var next in Expand(services, provider, type)) queue.Enqueue(next);
-        }
-        return seen;
-    }
-
-    private static IEnumerable<Type> Expand(IServiceCollection services, IServiceProvider provider, Type type)
-    {
-        if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(Lazy<>) || type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
-            || type.GetGenericTypeDefinition().FullName!.StartsWith("System.Func`", StringComparison.Ordinal)))
-            return [type.GetGenericArguments()[^1]];
-        var registered = services.Where(x => !x.IsKeyedService && x.ServiceType == type).ToArray();
-        var built = registered.Select(x => x.ImplementationType ?? x.ImplementationInstance?.GetType()).OfType<Type>().Where(x => x != type);
-        if (registered.Any(x => x.ImplementationFactory is not null))
-            built = built.Concat(provider.GetServices(type).OfType<object>().Select(x => x.GetType()).Where(x => x != type));
-        var parameters = !type.IsInterface && !type.IsAbstract && type.Assembly.GetName().Name!.StartsWith("Dfo.", StringComparison.Ordinal)
-            ? Parameters(type) : [];
-        return built.Concat(parameters).ToArray();
-    }
-
-    private static IReadOnlyList<string> ReachViolations(IServiceCollection services, IServiceProvider provider, Type root, IEnumerable<Type> forbidden)
-    {
-        var reached = Reach(services, provider, root);
-        return forbidden.Where(reached.Contains).Select(x => $"{root.Name} reaches {x.Name}").ToArray();
-    }
-
-    /// <summary>The modules production composes, over a throwaway database.</summary>
-    private sealed class Production : IDisposable
-    {
-        private readonly string path = Path.Combine(Path.GetTempPath(), $"marriage-graph-{Guid.NewGuid():N}.db");
-        public IServiceCollection Services { get; } = new ServiceCollection().AddLogging();
-        public ServiceProvider Provider { get; }
-
-        public Production()
-        {
-            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Database:Path"] = path }).Build();
-            new PersistenceModule().ConfigureServices(Services, configuration);
-            new InfrastructureModule().ConfigureServices(Services, configuration);
-            new ApplicationModule().ConfigureServices(Services, configuration);
-            Provider = Services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = false, ValidateScopes = false });
-        }
-
-        public void Dispose()
-        {
-            Provider.Dispose();
-            SqliteTestPools.ClearOwned(path);
-            File.Delete(path);
-        }
-    }
 
     [Fact]
     public void Each_marriage_store_has_one_owner_and_the_use_cases_take_none()
@@ -215,18 +148,18 @@ public sealed class MarriageArchitectureTests
     [Fact]
     public void Neither_the_quests_nor_the_relations_reach_the_use_cases_or_the_effects()
     {
-        using var production = new Production();
-        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageQuestDomainService),
+        using var production = new ServiceGraph.Production();
+        Assert.Empty(production.Graph.ReachViolations(typeof(IMarriageQuestDomainService),
             [.. Upward, typeof(QuestFactsDomainService), typeof(IQuestFactsDomainService), typeof(IMarriageRelationWriter)]));
-        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(MarriageTrialClearSubscriber), Upward));
-        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageRelations),
+        Assert.Empty(production.Graph.ReachViolations(typeof(MarriageTrialClearSubscriber), Upward));
+        Assert.Empty(production.Graph.ReachViolations(typeof(IMarriageRelations),
             [.. Upward, typeof(MarriageQuestDomainService), typeof(IMarriageQuestDomainService)]));
-        Assert.Contains(typeof(CoupleLedger), Reach(production.Services, production.Provider, typeof(IMarriageQuestDomainService)));
-        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageHousingQueryDomainService),
+        Assert.Contains(typeof(CoupleLedger), production.Graph.Reach(typeof(IMarriageQuestDomainService)));
+        Assert.Empty(production.Graph.ReachViolations(typeof(IMarriageHousingQueryDomainService),
             [.. Upward, typeof(IMarriageHousingDomainService), typeof(IMarriageRelationWriter)]));
-        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(IMarriageCapsuleQueryDomainService),
+        Assert.Empty(production.Graph.ReachViolations(typeof(IMarriageCapsuleQueryDomainService),
             [.. Upward, typeof(IMarriageCapsuleDomainService), typeof(IMarriageRelationWriter)]));
-        Assert.Empty(ReachViolations(production.Services, production.Provider, typeof(CapsuleClearSubscriber),
+        Assert.Empty(production.Graph.ReachViolations(typeof(CapsuleClearSubscriber),
             [.. Upward, typeof(IMarriageCapsuleDomainService), typeof(IMarriageRelationWriter)]));
     }
 
@@ -238,13 +171,13 @@ public sealed class MarriageArchitectureTests
         services.AddSingleton<IFactoryRelay>(_ => new QueryRelay(null!));
         using var provider = services.BuildServiceProvider();
         Assert.Equal(["LeakyQuests reaches IApplyEffectsDomainService", "LeakyQuests reaches IMarriageQueryDomainService"],
-            ReachViolations(services, provider, typeof(LeakyQuests), Upward));
+            new ServiceGraph(services, provider).ReachViolations(typeof(LeakyQuests), Upward));
     }
 
     [Fact]
     public void The_production_modules_resolve_every_marriage_face_and_one_relation_instance()
     {
-        using var production = new Production();
+        using var production = new ServiceGraph.Production();
         var provider = production.Provider;
         Assert.IsType<MarriageQuestDomainService>(provider.GetRequiredService<IMarriageQuestDomainService>());
         var useCases = Assert.IsType<MarriageDomainService>(provider.GetRequiredService<IMarriageQueryDomainService>());

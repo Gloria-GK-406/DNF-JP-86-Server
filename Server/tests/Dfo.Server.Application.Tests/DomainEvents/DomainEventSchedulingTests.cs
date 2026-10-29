@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Application.DomainEvents;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.DomainEvents;
 
@@ -16,7 +17,7 @@ public sealed class DomainEventSchedulingTests
         services.AddDomainSubscriber<Work, BusySubscriber>("busy", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<Work, OtherSubscriber>("other", DomainEventDeliveryPolicy.Reliable);
         services.AddSingleton<IDomainEventPersistence, SynchronousBacklog>();
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         // Run the adversarial fully synchronous loop on a test task so cancellation can diagnose starvation.
         var worker = Task.Run(() => provider.GetRequiredService<DomainEventDispatcher>().RunAsync(stop.Token));

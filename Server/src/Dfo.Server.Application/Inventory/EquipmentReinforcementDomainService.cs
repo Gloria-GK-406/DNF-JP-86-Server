@@ -18,7 +18,7 @@ internal sealed class EquipmentReinforcementDomainService(
     IEquipmentEffectPlanRuleService plans,
     IApplyEffectsDomainService effects,
     IInventoryEffectPreflightDomainService preflight,
-    ICharacterDomainService characters,
+    ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IEquipmentReinforcementRollSource rolls,
     TimeProvider timeProvider) : IEquipmentReinforcementDomainService
 {
@@ -59,7 +59,7 @@ internal sealed class EquipmentReinforcementDomainService(
         if (quote.IsTicket && (source is null || source.Count < 1 || source.Snapshot.SortLockFlag != 0
             || source.Snapshot.EquipmentLockId != 0 || protectionSlot is not null
             || source.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow())
-            || await characters.Get(session.CharacterId).CanUseAsync(source.ItemId, ct).ConfigureAwait(false) != ItemUsability.Allowed))
+            || await itemUse.CanUseAsync(session.CharacterId, source.ItemId, ct).ConfigureAwait(false) != ItemUsability.Allowed))
             return new(EquipmentReinforcementRejection.InvalidRequest);
 
         BusinessSlot materialLocation;

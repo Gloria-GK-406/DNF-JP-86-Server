@@ -19,7 +19,7 @@ public sealed record GameDeleteCharacterCommand(NetworkDispatchContext Dispatch,
 public sealed class GameDeleteCharacterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    ICharacterDomainService characters,
+    ICharacterRosterDomainService characters,
     IGameCommandOutbox outbox,
     ICommandWorkUnits workUnits,
     ILogger<GameDeleteCharacterCommandHandler> logger) : ICommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult>

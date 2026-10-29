@@ -146,7 +146,7 @@ public sealed partial class SelectCharacterLifecycleTests
     private static CommandExecutionContext ReturnContext() => new(Guid.NewGuid(),
         typeof(PrepareReturnToSelectionStage), typeof(PrepareReturnToSelectionStageHandler));
 
-    private sealed class RosterCharacters(SelectCharacterResult state) : ICharacterDomainService
+    private sealed class RosterCharacters(SelectCharacterResult state) : ICharacterDomainService, ICharacterRosterDomainService
     {
         // This fresh roster differs from the entry snapshot. The return command must query it.
         public AccountCharacterRoster Latest { get; } = new(state.Account.AccountId, 24,

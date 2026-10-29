@@ -1097,7 +1097,7 @@ public sealed class MonsterDeathHandlerTests
         services.AddCommandDispatching();
         Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<ISelectedSessionDomainService>(services,sessions);
         Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services,users);
-        using var provider = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services);
+        using var provider = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services.AddSessionSafetyStandIns());
         var safety = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<SelectedSessionSafety>(provider);
         await TestGameplay.RunAsync(provider, async () =>
         {
@@ -1138,7 +1138,7 @@ public sealed class MonsterDeathHandlerTests
         });
         outbound.Connect(leader, member);
         outbound.Transport.Fail(member.ConnectionId);
-        var safety = new SelectedSessionSafety(outbound.Services, NullLogger<SelectedSessionSafety>.Instance);
+        var safety = Dfo.Server.Testing.TestSessionSafety.Create(outbound.Services);
 
         await outbound.RunFromAsync(leader.ConnectionId, async () =>
         {

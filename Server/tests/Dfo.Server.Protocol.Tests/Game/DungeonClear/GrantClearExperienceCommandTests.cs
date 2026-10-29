@@ -159,13 +159,16 @@ public sealed class GrantClearExperienceCommandTests
     }
 
     private static ClearExperienceAlgorithmDriver Handler(ICharacterDungeonDifficultyDomainService? difficulties = null) =>
-        new(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
+        Handler(new PricingGrant(new ExperienceCalculationDomainService(new ExperienceValuationDomainService(new ExperienceRuleService(
                 new ArchiveRates(),
                 new ArchiveGrades(),
                 new NoProgression(),
                 new NoChannelExperience(),
                 ExperienceTuning.Default,
-                ExperienceEntitlementPolicy.None)), new NoBonuses())), TimeProvider.System, difficulties ?? new RecordingDifficulty());
+                ExperienceEntitlementPolicy.None)), new NoBonuses())), difficulties ?? new RecordingDifficulty());
+
+    private static ClearExperienceAlgorithmDriver Handler(PricingGrant grant, ICharacterDungeonDifficultyDomainService difficulties) =>
+        new(grant, grant, TimeProvider.System, difficulties);
 
     private sealed class RecordingDifficulty : ICharacterDungeonDifficultyDomainService
     {

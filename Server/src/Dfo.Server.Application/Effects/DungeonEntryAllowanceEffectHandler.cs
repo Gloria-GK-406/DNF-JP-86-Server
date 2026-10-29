@@ -3,7 +3,7 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Effects;
 
-internal sealed class DungeonEntryAllowanceEffectHandler(IHerasDungeonDomainService heras) : EffectHandler<AddDungeonEntryAllowanceEffect>
+internal sealed class DungeonEntryAllowanceEffectHandler(IHerasQuotaDomainService heras) : EffectHandler<AddDungeonEntryAllowanceEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, AddDungeonEntryAllowanceEffect effect, CancellationToken ct) => heras.ValidateAllowanceAsync(context, effect, ct);
     public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, AddDungeonEntryAllowanceEffect effect, CancellationToken ct)

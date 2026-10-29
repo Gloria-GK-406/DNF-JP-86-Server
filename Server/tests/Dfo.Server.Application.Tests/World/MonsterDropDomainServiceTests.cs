@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -29,7 +30,7 @@ public sealed class MonsterDropDomainServiceTests
         var independent = new RecordingIndependent();
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), independent, premiums);
+            new NoExtraDrops(), independent, premiums, CurrentCharacterStub.Domain());
         await service.GenerateGroundAsync(17, Kill(Run(), rank:3), default);
         Assert.Equal(27, independent.Bonus);
         await service.GenerateGroundAsync(17, Kill(Run(), rank:0), default);
@@ -38,14 +39,47 @@ public sealed class MonsterDropDomainServiceTests
         Assert.Equal(0, independent.Bonus);
         Assert.Equal(1, premiums.Queries);
     }
+    [Fact]
+    public async Task Independent_level_is_read_per_generation_and_only_for_a_declared_source()
+    {
+        var reads = 0;
+        var character = new CurrentCharacterStub
+        {
+            ProgressReader = () => { reads++; return ValueTask.FromResult<CharacterProgressionState?>(new(20, 0)); },
+        };
+        var independent = new LevelRecordingIndependent();
+        var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
+            new NoExtraDrops(), independent, new NoGrowthPremiums(), CurrentCharacterStub.Domain(character));
+        await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
+        Assert.Equal((1, 20), (reads, independent.Level));
+        await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
+        Assert.Equal(2, reads);
+        independent.Covered = false;
+        await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
+        Assert.Equal(2, reads);
+    }
+    private sealed class LevelRecordingIndependent : IIndependentDropRuleService
+    {
+        public bool Covered { get; set; } = true;
+        public int Level { get; private set; }
+        public int Initialize() => 0;
+        public bool Covers(MonsterDropRequest request) => Covered;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent)
+        {
+            Level = playerLevel;
+            return [];
+        }
+    }
     private sealed class RecordingIndependent : IIndependentDropRuleService
     {
         public int Bonus { get; private set; }
         public int Initialize() => 0;
-        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken token, int growthBonusPercent=0)
+        public bool Covers(MonsterDropRequest request) => true;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent)
         {
             Bonus = growthBonusPercent;
-            return ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
+            return [];
         }
     }
     private const int Basis = 10000;
@@ -58,7 +92,7 @@ public sealed class MonsterDropDomainServiceTests
     {
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(),
+            new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(),
             new DimensionDungeonRuleService(new DimensionSource()));
         for (var seed = 0; seed < 128; seed++)
         {
@@ -139,7 +173,7 @@ public sealed class MonsterDropDomainServiceTests
             new DropRateOptions { RateBasis = Basis }),
         new NoDropRateAdjustment(),
         quests ?? new NoQuestDrops(),
-        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops(), independent ?? new NoIndependentDrops(), new NoGrowthPremiums());
+        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops(), independent ?? new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain());
 
     private static DungeonCellCreationContext Run() => new(
         DungeonRunId.New(),
@@ -170,7 +204,7 @@ public sealed class MonsterDropDomainServiceTests
             rules,
             new NoDropRateAdjustment(),
             new NoQuestDrops(),
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums());
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain());
 
         await service.GenerateGroundAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
@@ -332,7 +366,7 @@ public sealed class MonsterDropDomainServiceTests
     {
         var rules = new RecordingDropRules();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(),
-            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums());
+            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain());
         var context = Kill(Run());
         MonsterDropParticipant participant = new(new AccountId(1), Character);
         foreach (var invalid in new[]
@@ -361,7 +395,7 @@ public sealed class MonsterDropDomainServiceTests
         var rules = new RecordingDropRules();
         var quests = new RecordingQuestDrops();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(), quests,
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums());
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain());
         await service.GeneratePersonalAsync(65601, new CharacterId(2),
             Kill(Run(), partyMemberCount: 2), CancellationToken.None);
         Assert.Null(rules.Asked);
@@ -497,8 +531,8 @@ public sealed class MonsterDropDomainServiceTests
     private sealed class NoIndependentDrops : IIndependentDropRuleService
     {
         public int Initialize() => 0;
-        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken token, int growthBonusPercent = 0) =>
-            ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
+        public bool Covers(MonsterDropRequest request) => false;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent) => [];
     }
     [Theory]
     [InlineData(IndependentDropSourceType.Monster, 3)]
@@ -514,7 +548,8 @@ public sealed class MonsterDropDomainServiceTests
     private sealed class CertainIndependent : IIndependentDropRuleService
     {
         public int Initialize() => 1;
-        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken token, int growthBonusPercent = 0) =>
-            ValueTask.FromResult<IReadOnlyList<RolledDrop>>([new(998, 1, DropRarity.Common, DropItemKind.Stackable)]);
+        public bool Covers(MonsterDropRequest request) => true;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent) =>
+            [new(998, 1, DropRarity.Common, DropItemKind.Stackable)];
     }
 }

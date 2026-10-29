@@ -37,13 +37,13 @@ internal sealed record ClearExperienceAlgorithmInput(AccountId AccountId,Charact
     ClearCircumstances Clear, SelectedSessionIdentity? Session=null,Guid RunId=default,int SettlementLevel=0,DateTimeOffset? SettledAt=null, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder? Footprint=null)
      : ICommand<ClearExperienceResult>,IDomainFixtureParticipants
 {public IReadOnlyList<SelectedSessionIdentity> Participants=>Session is {} session?[session]:[];}
-internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,TimeProvider clock,ICharacterDungeonDifficultyDomainService difficulties,
+internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,ICharacterExperienceAwardDomainService award,TimeProvider clock,ICharacterDungeonDifficultyDomainService difficulties,
     Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance=null,IQuestProgressDomainService? quests=null,
     IDungeonRunDomainService? runs=null,IDespairTowerDomainService? despair=null,Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars=null)
     : ICommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult>
 {
     private readonly GameSetPlayResultCommandHandler command = ProtocolAlgorithmFixture.Create<GameSetPlayResultCommandHandler>(
-        grant, runs, difficulties, clock, attendance, quests, despair, luckyStars);
+        grant, award, runs, difficulties, clock, attendance, quests, despair, luckyStars);
     public ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext c,ClearExperienceAlgorithmInput q,CancellationToken ct)
     {
         if(DomainCommandFixture.Kind(c)!=FixtureUnitKind.Transactional)throw new InvalidOperationException("Awarding experience requires a transaction.");

@@ -403,7 +403,7 @@ public sealed class SelectCharacterProductionStateTests
     private sealed class Sources(
         SelectCharacterResult seed,
         IReadOnlyList<CharacterRosterAppearanceState>? appearances = null) :
-        ICharacterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
+        ICharacterDomainService, ICharacterRosterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
         ICharacterEntryStateDomainService, IAccountEntryStateDomainService, IEquippedCreatureQuery,
         IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryDomainService,
         ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,

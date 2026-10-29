@@ -710,7 +710,8 @@ public sealed class SelectCharacterPayloadCodecTests
             new ApplicationModule().ConfigureServices(
                 services, new ConfigurationBuilder().Build());
             // This profile/quest fixture does not register dungeon or account-settings storage.
-            services.RemoveAll<Dfo.Server.Abstractions.World.IHerasDungeonDomainService>();
+            services.Replace(ServiceDescriptor.Singleton<Dfo.Server.Abstractions.World.IHerasQuotaDomainService>(
+                new Dfo.Server.Application.Tests.Support.NoHerasEntries()));
             services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>();
             services.RemoveAll<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>();

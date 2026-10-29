@@ -14,6 +14,12 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 这些查询不要求角色在线。角色实例只保留 ID 和取数服务，不缓存等级、技能组合或查询结果；
 数据库读取复用当前命令的 SQLite 事务，提交、回滚之后再问仍从当前事实作答。
 
+角色实体位于世界与效果之下：`ICharacterDomainService` 只提供 `Get(id)`，实例只依赖角色存储、规则服务、
+胶囊与事件。要问副本、塔或效果的能力放在实体之上，经实体读取角色：花名册、选角读取、起名、建角与删角归
+`ICharacterRosterDomainService`（建角在同一事务内应用初始化），物品可否使用归 `ICharacterItemUseDomainService`
+（是否在副本中问副本占位登记 `IDungeonParticipationDomainService`），按场合定价的经验归
+`ICharacterExperienceAwardDomainService`。实体若反向依赖它们，会经初始化、外观或效果绕回自身。
+
 静态规则由共享规则服务持有。`ICharacterStatRuleService` 准备职业与 1—86 级的不可变基础属性，
 `ICharacterSkillRuleService` 返回按职业/技能共享的不可变规则，显式接收职业、等级和已学事实。
 规则可以持有不可变静态声明与预计算表，但不能查询角色存储或缓存角色状态。职业拆装集中在

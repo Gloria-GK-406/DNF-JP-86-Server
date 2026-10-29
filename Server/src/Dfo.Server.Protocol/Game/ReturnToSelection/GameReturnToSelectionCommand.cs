@@ -55,7 +55,7 @@ public sealed record GameReturnToSelectionCommand(NetworkDispatchContext Dispatc
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQueryDomainService users,
-    ISelectedSessionDomainService sessions, ICharacterDomainService rosterCharacters,
+    ISelectedSessionDomainService sessions, ICharacterRosterDomainService rosterCharacters,
     ICommandWorkUnits units, ICommandSelectedSessionCleanup cleanup, IGameCommandOutbox outbox,
     ICommandProjections projections, ICommandConnectionClosures closures, IPartyService parties,
     IPartyProjectionStateDomainService projectionState,

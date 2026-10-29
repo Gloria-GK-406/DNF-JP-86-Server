@@ -25,7 +25,7 @@ namespace Dfo.Server.Protocol.Game.DungeonClear;
 internal sealed partial class GameSetPlayResultCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterDomainService characters,
+    ICharacterDomainService characters, ICharacterExperienceAwardDomainService experience,
     IDungeonRunDomainService runs,
     ICardRewardDomainService cardRewards,
     ICommandWorkUnits units,

@@ -25,7 +25,7 @@ internal sealed class BossTowerDomainService(
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionRuleService materialRules,
     IDungeonAdmissionDomainService admission, IEventManagementDomainService activities,
-    IIndependentDropRuleService independent, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
+    IMonsterDropDomainService monsterDrops, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     IDungeonRunDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
     IBossTowerRewardDomainService? rewards = null,
     IEventService? events = null, IDungeonParticipationDomainService? participation = null,
@@ -367,7 +367,7 @@ internal sealed class BossTowerDomainService(
                     killed.Uid, killed.Seed.Level, killed.Seed.ActorType, leader.Session.CharacterId,
                     next.Members.Select(x => new MonsterDropParticipant(x.Session.AccountId, x.Session.CharacterId)).ToImmutableArray())
                     { SourceType = killed.Seed.ActorType is >= 5 and <= 8 ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster };
-                var drops = await independent.DrawAsync(new(killed.Seed.TemplateId, dropContext), token, growthBonusPercent: 0).ConfigureAwait(false);
+                var drops = await monsterDrops.GenerateIndependentAsync(killed.Seed.TemplateId, dropContext, 0, token).ConfigureAwait(false);
                 var definition = await rules.DefinitionAsync(token).ConfigureAwait(false);
                 foreach (var drop in drops)
                     if (definition.AutoRootItemIds.Contains(drop.ItemId))

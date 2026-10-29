@@ -377,11 +377,11 @@ public sealed class ExplicitEffectExecutionTests
             var scope = f.Services.GetRequiredService<DomainTransactionScope>();
             await using var tx = scope.Begin();
             using var cap = new TestEffectFootprints.Lease(f.Session);
-            var current = await f.Services.GetRequiredService<IHerasDungeonDomainService>()
+            var current = await f.Services.GetRequiredService<IHerasQuotaDomainService>()
                 .ReadQuotaAtAsync(f.Session.CharacterId, f.Clock.GetUtcNow(), default);
             var quota = new QuotaGate(f.Services.GetRequiredService<IUsageQuotaDomainService>());
             var events = new HerasEvents(f.Services.GetRequiredService<IEventService>());
-            var heras = ActivatorUtilities.CreateInstance<Dfo.Server.Application.World.HerasDungeonDomainService>(f.Services, quota, events);
+            var heras = ActivatorUtilities.CreateInstance<Dfo.Server.Application.World.HerasQuotaDomainService>(f.Services, quota, events);
             var executor = new ApplyEffectsDomainService([new DungeonEntryAllowanceEffectHandler(heras)], scope,
                 f.Services.GetRequiredService<ICharacterDomainStore>(), f.Services.GetRequiredService<ISelectedSessionDomainService>(),
                 f.Services.GetRequiredService<IInventoryEffectPreflightDomainService>());

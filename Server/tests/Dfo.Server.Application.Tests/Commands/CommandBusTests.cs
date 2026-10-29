@@ -49,7 +49,7 @@ public sealed class CommandBusTests
             FixtureUnitKind.Direct);
         services.AddFixtureCommand<TestCommand, TestResult, OtherHandler>(
             FixtureUnitKind.Workflow);
-        using var provider = services.BuildServiceProvider();
+        using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => provider.GetRequiredService<CommandHandlerRegistry>());
@@ -133,7 +133,7 @@ public sealed class CommandBusTests
     {
         var services = CreateServices();
         configure(services);
-        return services.BuildServiceProvider();
+        return services.AddSessionSafetyStandIns().BuildServiceProvider();
     }
 
     private static ServiceCollection CreateServices()

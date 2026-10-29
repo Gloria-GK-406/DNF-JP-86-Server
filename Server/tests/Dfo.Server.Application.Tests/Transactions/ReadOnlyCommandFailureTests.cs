@@ -15,7 +15,7 @@ public sealed class ReadOnlyCommandFailureTests
         var services = new ServiceCollection().AddLogging().AddCommandDispatching();
         services.AddSingleton(probe);
         services.AddFixtureCommand<QueryCommand, long, QueryHandler>(FixtureUnitKind.ReadOnly);
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
         var failure = await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(async () =>
             await DomainCommandFixture.Bus(provider).SendAsync(new QueryCommand()));

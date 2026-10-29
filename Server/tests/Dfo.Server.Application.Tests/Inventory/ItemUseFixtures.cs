@@ -242,44 +242,10 @@ internal abstract class FakeMainInventory(int characterId = 60)
     }
 }
 
-/// <summary>
-/// A character repository that knows exactly one character and answers nothing else.
-/// </summary>
-/// <remarks>
-/// The handler under test asks the repository for the character and then asks the character. What
-/// the rest of the repository does -- rosters, creation, deletion -- is its own subject and is
-/// covered where it lives, so a fixture that filled those in would hide the day one of them starts
-/// being read here.
-/// </remarks>
+/// <summary>The entity gateway for exactly one character.</summary>
 internal sealed class OneCharacter(ICharacter character) : ICharacterDomainService
 {
     public ICharacter Get(CharacterId characterId) => character;
-
-    public ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
-        AccountId accountId, CancellationToken cancellationToken) => throw Unused();
-
-    public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
-        AccountId accountId, CancellationToken cancellationToken) => throw Unused();
-
-    public ValueTask<ActiveCharacterState> LoadForSelectionAsync(
-        AccountId accountId, ushort slotIndex, CancellationToken cancellationToken) => throw Unused();
-
-    public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(
-        AccountId accountId, ushort rosterIndex, CancellationToken cancellationToken) => throw Unused();
-
-    public ValueTask<CharacterNameStatus> CheckNameAsync(
-        byte[] rawName, CancellationToken cancellationToken) => throw Unused();
-
-    public ValueTask<CharacterCreationResult> CreateCharacterAsync(
-        AccountId accountId, byte job, byte[] rawName, CancellationToken cancellationToken) =>
-        throw Unused();
-
-    public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
-        AccountId accountId, ushort slotIndex, byte[] rawName, CancellationToken cancellationToken) =>
-        throw Unused();
-
-    private static NotSupportedException Unused() =>
-        new("This repository knows one character and nothing else about characters.");
 }
 
 /// <summary>Builds a complete fresh transport input for the actual protocol command.</summary>

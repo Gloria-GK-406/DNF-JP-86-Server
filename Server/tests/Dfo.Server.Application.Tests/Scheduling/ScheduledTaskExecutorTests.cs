@@ -8,6 +8,7 @@ using Dfo.Server.Application.Scheduling;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Scheduling;
 
@@ -43,7 +44,7 @@ public sealed class ScheduledTaskExecutorTests
                 return ValueTask.CompletedTask;
             })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce, RetryDelay = TimeSpan.FromMinutes(2) });
-        await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
         var scheduler = provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>().Single();
 
         await scheduler.StartAsync(CancellationToken.None);
@@ -92,7 +93,7 @@ public sealed class ScheduledTaskExecutorTests
         services.AddTestScheduledTask(new ScheduledTaskRegistration("probe.last-attempt", new IntervalTaskSchedule(TimeSpan.FromDays(1)),
             (_, _) => throw new InvalidOperationException("the only attempt fails"))
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce, MaximumAttempts = 1 });
-        await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
         var scheduler = provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>().Single();
 
         await scheduler.StartAsync(CancellationToken.None);

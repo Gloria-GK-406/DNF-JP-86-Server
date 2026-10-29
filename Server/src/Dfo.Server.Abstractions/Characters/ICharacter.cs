@@ -1,4 +1,3 @@
-using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
@@ -46,9 +45,6 @@ public interface ICharacter
     async ValueTask<CharacterCareer?> GetAwakeningAvatarAsync(CancellationToken ct) =>
         (await GetAvatarCandidatesAsync(ct).ConfigureAwait(false))?.Awakening;
 
-    /// <summary>Price and settle a reward in the caller's transaction, including max-level overflow.</summary>
-    ValueTask<ExperienceAward?> AddExpAsync(ExperienceCalculationContext source, DateTimeOffset at,
-        Dfo.Server.Data.World.SelectedSessionIdentity? session, IEffectFootprintRecorder footprint, CancellationToken ct);
     /// <summary>Settle an already priced reward; an expected state rejects stale quest decisions.</summary>
     ValueTask<ExperienceAward> AddExpAsync(ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct);
     /// <summary>Clamp experience and derive level. This is a setter, so it never fills a capsule.</summary>
@@ -62,17 +58,6 @@ public interface ICharacter
     ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken cancellationToken);
     ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Whether this character may use the item, from the archive's own declaration.
-    /// </summary>
-    /// <remarks>
-    /// A question, and only a question: nothing here starts a cooldown, so asking twice is the same
-    /// as asking once. Starting one belongs to the effects, which run after a use succeeds.
-    /// </remarks>
-    ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken);
-
-    ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken);
 
     /// <summary>
     /// Which slot this character sits in, what it is called, what it took up and how it grew.
@@ -171,6 +156,26 @@ public sealed record ItemUseCandidate(
     QuestJobRequirement JobFamily,
     ItemUsePlace Place,
     bool IsCoolingDown);
+
+/// <summary>Whether a character may use an item: the character, where it stands and its cooldowns, judged.</summary>
+/// <remarks>
+/// Above the character rather than on it. Where a character stands is asked of the town, the dungeon
+/// runs and the towers, and those reach the character; a character that asked them would close the loop.
+/// </remarks>
+public interface ICharacterItemUseDomainService
+{
+    /// <summary>
+    /// Whether this character may use the item, from the archive's own declaration.
+    /// </summary>
+    /// <remarks>
+    /// A question, and only a question: nothing here starts a cooldown, so asking twice is the same
+    /// as asking once. Starting one belongs to the effects, which run after a use succeeds.
+    /// </remarks>
+    ValueTask<ItemUsability> CanUseAsync(CharacterId character, int itemId, CancellationToken cancellationToken);
+
+    /// <summary>What the character is and where it stands, or null when it is neither standing anywhere nor readable.</summary>
+    ValueTask<ItemUseCandidate?> FactsAsync(CharacterId character, ItemCooldownKey cooldown, CancellationToken cancellationToken);
+}
 
 /// <summary>
 /// Judges the archive's declaration against a candidate. Knows how to find nothing.

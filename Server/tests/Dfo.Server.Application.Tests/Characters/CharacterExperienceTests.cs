@@ -282,8 +282,8 @@ public sealed class CharacterExperienceTests
     {
         var row = new RecordingCharacterTable(level: 5, experience: 700);
         var characters =
-            new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, id =>
-                new Dfo.Server.Application.Characters.PlayingCharacter(id, null!, null!, null!, null!, null!, row, null!, null!, null!, experienceRules: new FixedProgression(Thresholds)), null!);
+            new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, row, null!, null!, null!,
+                new FixedProgression(Thresholds), null!, null!, null!);
         var result = await Dfo.Server.Application.Tests.Support.TutorialGrantDriver.Grant(characters,Character,CancellationToken.None);
         Assert.Equal(Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpStatus.AlreadyPast, result.Status);
         Assert.Equal(5, (await row.FindProgressAsync(Character, CancellationToken.None))!.Level);
@@ -437,7 +437,7 @@ public sealed class CharacterExperienceTests
         {
             price = valuation;
             await using var tx = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
-            var award = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null), cap => shop.Services.GetRequiredService<ICharacterDomainService>().Get(new(1)).AddExpAsync(
+            var award = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1), new(1), null), cap => shop.Services.GetRequiredService<ICharacterExperienceAwardDomainService>().AwardAsync(
                 new QuestExperienceContext(new(ExperienceEvent.QuestCompletion, new(1), new(1), 0), 0),
                 shop.Clock.GetUtcNow(), null, cap, ct));
             await tx.CommitAsync(ct);

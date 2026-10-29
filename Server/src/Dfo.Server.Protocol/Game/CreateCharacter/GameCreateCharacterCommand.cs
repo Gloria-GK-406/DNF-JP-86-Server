@@ -18,7 +18,7 @@ public sealed record GameCreateCharacterCommand(NetworkDispatchContext Dispatch,
 
 public sealed class GameCreateCharacterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
-    ICharacterDomainService characters,
+    ICharacterRosterDomainService characters,
     IGameCommandOutbox outbox,
     ICommandWorkUnits workUnits,
     ILogger<GameCreateCharacterCommandHandler> logger) : ICommandHandler<GameCreateCharacterCommand, CharacterCreationResult>

@@ -5,15 +5,15 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.World;
 
 internal sealed class HellRewardDomainService(IHellRewardRuleService rules,
-    IIndependentDropRuleService independent, IMonsterDropDomainService personal,
+    IMonsterDropDomainService drops,
     ILogger<HellRewardDomainService> logger) : IHellRewardDomainService
 {
     public async ValueTask<HellActorReward> FreezeActorAsync(int code, MonsterDropContext context, CancellationToken token)
     {
         var eligible = rules.EligibleForGroupReward(code, context.SourceType == Dfo.Server.Abstractions.Content.IndependentDropSourceType.APC);
-        var loot = new List<RolledDrop>(await independent.DrawAsync(new(code, context), token).ConfigureAwait(false));
+        var loot = new List<RolledDrop>(await drops.GenerateIndependentAsync(code, context, 0, token).ConfigureAwait(false));
         foreach (var participant in context.Participants)
-            loot.AddRange(await personal.GeneratePersonalAsync(code, participant.CharacterId, context, token).ConfigureAwait(false));
+            loot.AddRange(await drops.GeneratePersonalAsync(code, participant.CharacterId, context, token).ConfigureAwait(false));
         return new(loot.ToArray(), eligible);
     }
 

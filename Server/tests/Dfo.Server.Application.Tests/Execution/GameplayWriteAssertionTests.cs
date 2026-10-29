@@ -515,7 +515,7 @@ public sealed class GameplayWriteAssertionTests
     public async Task WeaknessDomainService_refuses_a_write_through_its_handle_off_the_executor_and_reads_anywhere()
     {
         // The writes are on the private handle For returns; the classification table lists its members too.
-        var weakness = new WeaknessDomainService(() => null!, null!);
+        var weakness = new WeaknessDomainService(null!, null!);
         var seen = ViolationCapture.Attach();
 
         Assert.Throws<GameplayOffExecutorException>(() => weakness.For(Character).Recover());
@@ -615,9 +615,8 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task SelectedSessionSafety_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var safety = new Dfo.Server.Application.Commands.SelectedSessionSafety(
-            Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(new Microsoft.Extensions.DependencyInjection.ServiceCollection()),
-            NullLogger<Dfo.Server.Application.Commands.SelectedSessionSafety>.Instance);
+        var safety = Dfo.Server.Testing.TestSessionSafety.Create(
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(new Microsoft.Extensions.DependencyInjection.ServiceCollection()));
         var connection = new NetworkConnectionContext(new NetworkConnectionId("write-assertion"), NetworkEndpointKind.Game, 10011);
         var recipient = new Dfo.Server.Application.Commands.SelectedSessionRecipient(Session(), connection);
         var seen = ViolationCapture.Attach();

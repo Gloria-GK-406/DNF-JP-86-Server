@@ -9,6 +9,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
@@ -136,33 +137,32 @@ public sealed class CharacterIdentityTests
         await TestGameplay.RunAsync(async () =>
         {
             var row = new MovableIdentityRow();
-            var character = Character(
+            var itemUse = ItemUse(
                 row, (8474, ItemUseRules.RequiringJob(QuestJobRequirement.Swordman)));
 
             Assert.Equal(
                 ItemUsability.JobMismatch,
-                await character.CanUseAsync(8474, CancellationToken.None));
+                await itemUse.CanUseAsync(Who, 8474, CancellationToken.None));
 
             row.Job = 0;
 
             Assert.Equal(
                 ItemUsability.Allowed,
-                await character.CanUseAsync(8474, CancellationToken.None));
+                await itemUse.CanUseAsync(Who, 8474, CancellationToken.None));
         });
     }
 
-    private static ICharacter Character(
+    private static ICharacter Character(MovableIdentityRow row) =>
+        new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
+            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!);
+
+    private static ICharacterItemUseDomainService ItemUse(
         MovableIdentityRow row,
         params (int ItemId, ItemUseRule Rule)[] rules) =>
-        new PlayingCharacter(
-            Who,
+        new CharacterItemUseDomainService(new CharacterDomainStub(_ => Character(row)),
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
             new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
-            PresentCharacters.StandingInTown(Who),
-            new NoCarriedGold(),
-            new StoredCarryLimitOnly(),
-            row,
-            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+            PresentCharacters.StandingInTown(Who), NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
 
     /// <summary>One character's row, whose identity can be moved between questions.</summary>
     /// <remarks>

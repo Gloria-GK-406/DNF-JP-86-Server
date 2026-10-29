@@ -443,7 +443,8 @@ public sealed partial class BossTowerDomainServiceTests
     internal sealed class Drops(IReadOnlyList<RolledDrop> drops) : IIndependentDropRuleService
     {
         public int Initialize() => 1;
-        public ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken ct, int growthBonusPercent = 0) => ValueTask.FromResult(drops);
+        public bool Covers(MonsterDropRequest request) => true;
+        public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent) => drops;
     }
     private sealed class NoQuestDrops : IQuestEnemyDropDomainService
     {

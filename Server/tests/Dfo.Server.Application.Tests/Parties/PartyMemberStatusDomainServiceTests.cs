@@ -55,7 +55,7 @@ public sealed class PartyMemberStatusDomainServiceTests
             var sessions = Dfo.Server.Testing.TestSessions.Directory();
             sessions.Select(session);
             var service = new PartyMemberStatusDomainService(
-                () => new FixedInventory(inventory),
+                new FixedInventory(inventory),
                 new FixedFatigue(new CharacterFatigueBalance(188, 31)),
                 vitals);
 
@@ -98,7 +98,7 @@ public sealed class PartyMemberStatusDomainServiceTests
             var sessions = Dfo.Server.Testing.TestSessions.Directory();
             sessions.Select(session);
             var service = new PartyMemberStatusDomainService(
-                () => new FixedInventory(result.CharacterInventory with { VirtualResources = [] }),
+                new FixedInventory(result.CharacterInventory with { VirtualResources = [] }),
                 new FixedFatigue(new CharacterFatigueBalance(0, 0)),
                 vitals);
 

@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainService sessions,
     IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
-    IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
+    IBusinessInventorySlotDomainService slots, ICharacterItemUseDomainService itemUse,
     ITeleportConsumableRuleService rules, IItemUseJudgementService judgement,
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService
 {
@@ -28,8 +28,8 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
         if (item is null || item.ItemId != expectedItemId) return new(ItemUsability.NotAUsableItem);
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         if (rule is null) return new(ItemUsability.NotAUsableItem);
-        var facts = await characters.Get(session.CharacterId)
-            .ItemUseFactsAsync(judgement.CooldownKeyFor(item.ItemId, rule.Use), ct).ConfigureAwait(false);
+        var facts = await itemUse.FactsAsync(session.CharacterId,
+            judgement.CooldownKeyFor(item.ItemId, rule.Use), ct).ConfigureAwait(false);
         if (facts is null) return new(ItemUsability.CharacterStateUnavailable);
         var at = clock.GetUtcNow();
         var plan = await rules.BuildAsync(rule, source, item, facts, standing, townId, channel, member.Area, at, ct).ConfigureAwait(false);

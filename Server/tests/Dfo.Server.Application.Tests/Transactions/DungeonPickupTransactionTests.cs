@@ -56,7 +56,7 @@ public sealed class DungeonPickupTransactionTests
             services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path));
             services.AddFixtureCommand<StaleQuestPickupCommand, PickupReceipt,
                 StaleQuestPickupHandler>(FixtureUnitKind.Transactional);
-            await using var provider = services.BuildServiceProvider();
+            await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
             var drop = new DungeonGroundItem(

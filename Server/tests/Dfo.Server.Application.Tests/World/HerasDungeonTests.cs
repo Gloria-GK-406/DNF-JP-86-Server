@@ -96,7 +96,7 @@ public sealed class HerasDungeonTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         await using var f = await Fixture(49);
-        var heras = f.Services.GetRequiredService<IHerasDungeonDomainService>();
+        var heras = f.Services.GetRequiredService<IHerasQuotaDomainService>();
         Assert.Equal(DungeonEntryFailure.LevelTooLow, (await DungeonEntryRouteDriver.EnterAsync(f.Services, Entry())).Failure);
         await TestGameplay.RunAsync(f.Services, async () =>
         {
@@ -128,11 +128,11 @@ public sealed class HerasDungeonTests
                 var result = await f.Services.GetRequiredService<IDungeonAdmissionDomainService>().ExecuteAsync(Entry() with { Facts = DungeonEntryFacts.None with { Difficulty = (DungeonDifficulty)1 } },
                     new() { RequireMinimumLevel = true, ConsumesFatigue = false, RequiredItemsOverride = [],
                         Quota = new(Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon,
-                            (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Period, 3, 3900) },
+                            (await f.Services.GetRequiredService<IHerasQuotaDomainService>().ReadQuotaAsync(new(71), default)).Period, 3, 3900) },
                     (_, _) => ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid)), default);
                 Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, result.Failure);
             }
-            Assert.Equal(3, (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
+            Assert.Equal(3, (await f.Services.GetRequiredService<IHerasQuotaDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
             Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
         });
     }
@@ -154,6 +154,6 @@ public sealed class HerasDungeonTests
         Assert.False(Assert.Single(snapshot.ScheduledDungeons, x => x.DungeonId == 3900).Open);
         Assert.DoesNotContain(snapshot.Information, x => x.EventId == 2367);
         Assert.Equal(DungeonEntryFailure.OutsideOpeningHours, (await DungeonEntryRouteDriver.EnterAsync(f.Services, Entry())).Failure);
-        Assert.Equal(3, (await f.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
+        Assert.Equal(3, (await f.Services.GetRequiredService<IHerasQuotaDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
     }
 }

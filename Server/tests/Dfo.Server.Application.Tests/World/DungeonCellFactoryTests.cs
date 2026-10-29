@@ -325,6 +325,8 @@ public sealed class DungeonCellFactoryTests
 
     private sealed class RecordingLoot : IMonsterDropDomainService
     {
+        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
+            int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken ct) => throw new NotSupportedException();
         public int CallCount { get; private set; }
         public List<CharacterId> PersonalCalls { get; } = [];
         public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(

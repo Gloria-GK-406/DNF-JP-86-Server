@@ -15,7 +15,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterCurrentStateQueryDomainService(
-    ICharacterDomainService characters,
+    ICharacterRosterDomainService rosters,
     ICharacterInventoryEntryDomainService inventories,
     IAccountInventoryEntryDomainService accountInventories,
     ICharacterEntryStateDomainService entries,
@@ -43,13 +43,13 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     {
         var position = onlineCharacters.PositionOf(session)
             ?? throw new InvalidDataException("The selected character has no live position.");
-        var roster = await characters.GetAccountRosterAsync(session.AccountId, cancellationToken)
+        var roster = await rosters.GetAccountRosterAsync(session.AccountId, cancellationToken)
             .ConfigureAwait(false);
         if (roster.AccountId != session.AccountId)
             throw new InvalidDataException("The account roster belongs to another account.");
         var member = roster.Characters.SingleOrDefault(value => value.CharacterId == session.CharacterId)
             ?? throw new InvalidDataException("Selected character is absent from the account roster.");
-        var character = await characters.LoadForSelectionAsync(
+        var character = await rosters.LoadForSelectionAsync(
             session.AccountId, member.SlotIndex, cancellationToken).ConfigureAwait(false);
         if (character.Identity.CharacterId != session.CharacterId)
             throw new InvalidDataException("The selected character no longer occupies its roster slot.");
@@ -66,7 +66,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
         characterInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             characterInventory, rules, readAt, cancellationToken).ConfigureAwait(false);
         accountEntry = await CharacterStateProjection.CompleteSupportCharacterProjectionAsync(
-            session.AccountId, character, roster, accountEntry, characters, inventories.ReadCurrentAsync,
+            session.AccountId, character, roster, accountEntry, rosters, inventories.ReadCurrentAsync,
             entries, rules, readAt, cancellationToken).ConfigureAwait(false);
 
         characterEntry = CharacterStateProjection.CompleteAppearanceProjection(character, characterEntry, characterInventory);
@@ -111,7 +111,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             new SessionAdjacentSubject(session.CharacterId, session.AccountId, channel,
                 position.TownId, position.AreaId), cancellationToken).ConfigureAwait(false);
         characterEntry = CharacterStateProjection.CompleteCollectionBoxProjection(characterEntry, content, readAt);
-        var drawnRoster = await characters.GetAccountRosterWithAppearanceAsync(
+        var drawnRoster = await rosters.GetAccountRosterWithAppearanceAsync(
             session.AccountId, cancellationToken).ConfigureAwait(false);
         var rosterEntry = await CharacterStateProjection.BuildRosterEntryAsync(
             session.AccountId, drawnRoster, session.CharacterId, characterEntry, entries, cancellationToken)

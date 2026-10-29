@@ -121,7 +121,7 @@ public sealed class UnitOfWorkBehaviorTests
         services.AddSingleton(probe);
         services.AddFixtureCommand<TestCommand, TestResult, EnlistingHandler>(executionKind);
         services.AddFixtureCommand<AmbientProbeCommand, TestResult, AmbientProbeHandler>(executionKind);
-        return services.BuildServiceProvider();
+        return services.AddSessionSafetyStandIns().BuildServiceProvider();
     }
 
     private sealed record TestResult;

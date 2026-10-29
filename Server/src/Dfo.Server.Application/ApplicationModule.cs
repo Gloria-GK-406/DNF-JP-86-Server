@@ -187,6 +187,7 @@ public sealed class ApplicationModule : IServerModule
             "quest.wedding-trial", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<IHerasRuleService, HerasRuleService>();
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
+        services.TryAddSingleton<IHerasQuotaDomainService, HerasQuotaDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IGiantDragonRuleService, GiantDragonRuleService>();
@@ -449,11 +450,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IWeaknessRuleService>(_ => new WeaknessRuleService(configuration));
-        services.TryAddSingleton<IWeaknessDomainService>(provider => new WeaknessDomainService(
-            () => provider.GetRequiredService<ICharacterDomainService>(),
-            provider.GetRequiredService<IWeaknessRuleService>(),
-            provider.GetService<Microsoft.Extensions.Logging.ILogger<WeaknessDomainService>>(),
-            provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>()));
+        services.TryAddSingleton<IWeaknessDomainService, WeaknessDomainService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
         services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
 
@@ -464,11 +461,7 @@ public sealed class ApplicationModule : IServerModule
         // DropRules. The compensation seam below stays outside it, because what a character is
         // owed is state that crosses runs.
         services.TryAddSingleton<IDropRuleService, DropRuleService>();
-        services.TryAddSingleton<IIndependentDropRuleService>(provider => new IndependentDropRuleService(
-            provider.GetRequiredService<IIndependentDropTableSource>(),
-            () => provider.GetRequiredService<ICharacterDomainService>(),
-            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<IndependentDropRuleService>>(),
-            provider.GetRequiredService<IndependentDropOptions>()));
+        services.TryAddSingleton<IIndependentDropRuleService, IndependentDropRuleService>();
         services.TryAddSingleton(new IndependentDropOptions
         {
             DebugGuaranteeGrowthBossEquipment = bool.Parse(configuration["IndependentDrops:DebugGuaranteeGrowthBossEquipment"] ?? "false"),
@@ -652,36 +645,15 @@ public sealed class ApplicationModule : IServerModule
         // Configured allowance plus persistent, business-day usage accounting.
         services.TryAddSingleton<
             ICharacterFatigueDomainService, CharacterFatigueDomainService>();
-        services.TryAddSingleton(
-            provider => new CharacterDomainService(
-                () => provider.GetRequiredService<ICharacterRepository>(),
-                provider.GetRequiredService<ICharacterCreationRuleService>(),
-                characterId => new PlayingCharacter(
-                    characterId,
-                    provider.GetRequiredService<IItemUseJudgementService>(),
-                    provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>(),
-                    provider.GetRequiredService<ITownAreaDomainService>(),
-                    provider.GetRequiredService<ICharacterCarriedGoldTable>(),
-                    provider.GetRequiredService<ICarriedGoldRuleService>(),
-                    provider.GetRequiredService<ICharacterTable>(),
-                    provider.GetRequiredService<ICharacterSkillPointDomainService>(),
-                    provider.GetRequiredService<ICharacterStatRuleService>(),
-                    provider.GetRequiredService<ICharacterSkillStateDomainService>(),
-                    provider.GetRequiredService<IDungeonRunDomainService>(),
-                    () => provider.GetRequiredService<IIllusionTowerDomainService>(),
-                    provider.GetRequiredService<IExperienceRuleService>(),
-                    provider.GetRequiredService<IExperienceCalculationDomainService>(),
-                    provider.GetRequiredService<IExperienceCapsuleDomainService>(),
-                    provider.GetRequiredService<IDomainTransactionAccessor>(),
-                    () => provider.GetRequiredService<IApplyEffectsDomainService>(),
-                    provider.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(),
-                    provider.GetRequiredService<IDungeonParticipationDomainService>()),
-                () => provider.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>()));
+        // The character entity sits below the world and the effects; the roster, which creates and draws
+        // characters, sits above initialization and appearance, which both reach the entity.
+        services.TryAddSingleton<ICharacterDomainService, CharacterDomainService>();
+        services.TryAddSingleton<ICharacterRosterDomainService, CharacterRosterDomainService>();
+        services.TryAddSingleton<ICharacterItemUseDomainService, CharacterItemUseDomainService>();
+        services.TryAddSingleton<ICharacterExperienceAwardDomainService, CharacterExperienceAwardDomainService>();
         services.TryAddSingleton<ICharacterExperienceInitializationDomainService, CharacterExperienceInitializationDomainService>();
         services.AddInternalCommandHandler<InitializeCharacterExperienceStorageCommand, CharacterExperienceScale, InitializeCharacterExperienceStorageCommandHandler>();
         services.AddInternalCommandHandler<InitializeEpicBookCommand, bool, InitializeEpicBookCommandHandler>();
-        services.TryAddSingleton<ICharacterDomainService>(
-            provider => provider.GetRequiredService<CharacterDomainService>());
         services.TryAddSingleton<ISelectCharacterPreparationDomainService, SelectCharacterPreparationService>();
         services.TryAddSingleton<ICharacterCurrentStateQueryDomainService, CharacterCurrentStateQueryDomainService>();
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
@@ -811,14 +783,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             IOtherCharacterDetailQueryDomainService,
             OtherCharacterDetailQueryDomainService>();
-        // Network-only test hosts deliberately assemble Application without persistence. Party
-        // handlers are discovered eagerly at listener startup, while inventory is only needed if
-        // a real invite is requested, so defer that dependency to the command invocation.
-        services.TryAddSingleton<IPartyMemberStatusDomainService>(provider =>
-            new PartyMemberStatusDomainService(
-                () => provider.GetRequiredService<ICharacterInventoryEntryDomainService>(),
-                provider.GetRequiredService<ICharacterFatigueDomainService>(),
-                provider.GetRequiredService<IOnlineCharacterRuntimeDomainService>()));
+        services.TryAddSingleton<IPartyMemberStatusDomainService, PartyMemberStatusDomainService>();
         services.TryAddSingleton<IPartyModeRuleService, PartyModeRuleService>();
         services.TryAddSingleton<IPartyMemberSessionEndpointSource,
             PartyMemberSessionEndpointSource>();
@@ -851,9 +816,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmDailyRefillDomainService, Dfo.Server.Application.Administration.GmDailyRefillDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationRuleService, Dfo.Server.Application.Initialization.InitializationRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Initialization.InitializationAssetGrants>();
-        services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>(p => new Dfo.Server.Application.Initialization.InitializationDomainService(
-            p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationPersistence>(), () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationRuleService>(),
-            () => p.GetRequiredService<Dfo.Server.Application.Initialization.InitializationAssetGrants>(), p.GetRequiredService<IDomainTransactionAccessor>(), p.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationDomainService, Dfo.Server.Application.Initialization.InitializationDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmInitializationDomainService, Dfo.Server.Application.Administration.GmInitializationDomainService>();
         services.TryAddSingleton<IPasswordCredentialRuleService, PasswordCredentialService>();
         services.TryAddSingleton<PasswordComputationLimiter>();
@@ -864,7 +827,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<LoginSessionRegistry>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, LoginSessionConnectionObserver>());
         services.AddTypedGameplayTimer<LoginSessionMaintenanceService>();
-        services.TryAddSingleton<Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>>(p => () => p.GetRequiredService<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>());
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
         services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();
         services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>();

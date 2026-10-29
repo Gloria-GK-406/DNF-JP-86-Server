@@ -58,7 +58,7 @@ public sealed class TransactionalCommandSerializationTests
         services.AddCommandDispatching();
         services.AddSingleton(probe);
         services.AddFixtureCommand<ProbeCommand, ProbeResult, ProbeHandler>(executionKind);
-        return services.BuildServiceProvider();
+        return services.AddSessionSafetyStandIns().BuildServiceProvider();
     }
 
     private sealed record ProbeCommand(bool Block) : ICommand<ProbeResult>;

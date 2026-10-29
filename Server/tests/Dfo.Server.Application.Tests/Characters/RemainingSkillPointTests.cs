@@ -150,15 +150,8 @@ public sealed class RemainingSkillPointTests
             new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(), new BuildTable(), null!, null!),
             archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
-            new PlayingCharacter(
-                Who,
-                new ItemUseJudgementService(new FakeItemUseRules()),
-                new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
-                new SessionPresenceDomainService(),
-                new NoCarriedGold(),
-                new StoredCarryLimitOnly(),
-                row,
-                points, null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()),
+            new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
+                points, null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!),
             archive);
     }
 

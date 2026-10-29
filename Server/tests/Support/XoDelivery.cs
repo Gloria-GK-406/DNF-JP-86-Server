@@ -9,6 +9,7 @@ using Dfo.Server.Networking.Outbound;
 using Dfo.Server.Protocol.Game;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Outbox;
 
@@ -41,7 +42,7 @@ internal sealed class XoDelivery : IAsyncDisposable
         services.AddSingleton<IOutboundSender>(Recorder);
         services.AddGameplayExecution();
         configure?.Invoke(services);
-        provider = services.BuildServiceProvider();
+        provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         // The protocol's CMD/NOTI sender over the registration adapter; created by name because it is internal to
         // Dfo.Server.Protocol and this file is linked into test projects that cannot see it.
         Game = (IGameMessageSender)Activator.CreateInstance(

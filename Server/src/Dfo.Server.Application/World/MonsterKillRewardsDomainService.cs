@@ -16,7 +16,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 /// <summary>All durable effects of a participant's verified kill, inside the caller's transaction.</summary>
-public sealed class MonsterKillRewardsDomainService(ICharacterDomainService characters,
+public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDomainService experience,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService quests,
     IPartyService? parties = null, TimeProvider? clock = null, ICharacterGameplayFactDomainService? gameplay = null)
     : IMonsterKillRewardsDomainService
@@ -28,7 +28,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
         int? worldMapId, IReadOnlyList<RolledDrop>? loot, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandEffects(new(accountId, characterId, session));
-        var award = kill.IsMonster ? await characters.Get(characterId).AddExpAsync(
+        var award = kill.IsMonster ? await experience.AwardAsync(
             new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill, accountId, characterId, dungeonId),
                 kill.Level, kill.Rank, difficulty, weight, partyMemberCount, kill.IsNamedMonster),
             (clock ?? TimeProvider.System).GetUtcNow(), session, footprint, ct).ConfigureAwait(false) : null;

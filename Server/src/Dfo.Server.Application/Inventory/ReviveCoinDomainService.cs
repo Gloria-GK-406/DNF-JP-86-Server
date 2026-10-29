@@ -26,7 +26,7 @@ internal sealed class ReviveCoinQueryDomainService(IReviveCoinRuleService rules,
 }
 
 internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IItemUseEffectRuleService uses,
-    ICharacterDomainService characters, IOpeningInventoryDomainService inventory,
+    ICharacterItemUseDomainService itemUse, IOpeningInventoryDomainService inventory,
     ICharacterContainerDomainService containers, IUsageQuotaDomainService quotas,
     ISelectedSessionDomainService sessions, IEventService events, TimeProvider clock, IReviveCoinQueryDomainService query) : IReviveCoinDomainService
 {
@@ -36,8 +36,8 @@ internal sealed class ReviveCoinDomainService(IReviveCoinRuleService rules, IIte
         if (!rules.SupportsConsumable(item.ItemId)) return null;
         var rule = await uses.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         var at = clock.GetUtcNow();
-        var facts = rule is null || !rule.IsReadable ? null : await characters.Get(session.CharacterId)
-            .ItemUseFactsAsync(uses.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
+        var facts = rule is null || !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
+            uses.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
         var plan = uses.Build(rule, source, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
         if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)

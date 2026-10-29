@@ -47,7 +47,7 @@ public sealed class CouponProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.Equal(Convert.FromHexString(branch==0?"014500002A000000":branch==1?"014500003A000000":"014500004D000000"),frames[0][15..]);
         Assert.Equal(branch==0 ? new ushort[]{0x204,0x0E,0x227} : branch==1 ? new ushort[]{0x204,0x0E,0x24,0x21E,0x21E,0xAC} : new ushort[]{0x204,0x0E,0x164,0x23F,0x15}, types);
         Assert.Equal(1, f.Host.Count(f.Item)); Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(f.Trace.Attempts).Transaction.Completion);
-        if (branch == 0) Assert.Equal(4, (await f.Host.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(f.Host.Session.CharacterId, default)).Remaining);
+        if (branch == 0) Assert.Equal(4, (await f.Host.Services.GetRequiredService<IHerasQuotaDomainService>().ReadQuotaAsync(f.Host.Session.CharacterId, default)).Remaining);
         if (branch == 1) Assert.Equal(20, (await f.Host.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(f.Host.Session.CharacterId, default)).Used);
         if (branch == 2) Assert.Equal(1, f.Host.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=101"));
         if(Modern)

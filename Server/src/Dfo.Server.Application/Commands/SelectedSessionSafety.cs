@@ -7,7 +7,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Commands;
@@ -15,7 +14,8 @@ namespace Dfo.Server.Application.Commands;
 public sealed record SelectedSessionRecipient(SelectedSessionIdentity Session, NetworkConnectionContext? Connection, GameMessageMetadata? Metadata = null);
 
 /// <summary>Unknown settlement outcomes survive retries and session/cache rebinding.</summary>
-public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<SelectedSessionSafety> logger)
+public sealed class SelectedSessionSafety(IOnlineUserQueryDomainService users, ISelectedSessionDomainService sessions,
+    ICreatureRuntimeDomainService creatures, INetworkConnectionCloser closer, ILogger<SelectedSessionSafety> logger)
 {
     // The connection fence outlives the online user: dispatch consults it before any session is
     // resolved, and the connection is only asked to close after it is raised. Whether a session
@@ -29,9 +29,8 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     public SelectedSessionRecipient Capture(SelectedSessionIdentity session, GameMessageMetadata? metadata)
     {
         DemandCurrent(session);
-        var users = services.GetService<IOnlineUserQueryDomainService>();
         NetworkConnectionContext? connection = null;
-        if (users?.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null)
+        if (users.TryGetByConnection(session.ConnectionId, out var user) && user is not null)
         {
             if (user.AccountId != session.AccountId || user.CurrentCharacterId != session.CharacterId)
                 throw new InvalidOperationException("The recipient connection no longer owns the selected character.");
@@ -42,15 +41,14 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     }
     public void DemandCurrent(SelectedSessionIdentity session)
     {
-        if (services.GetService<ISelectedSessionDomainService>()?.StandingOf(session) is not { Fenced: false })
+        if (sessions.StandingOf(session) is not { Fenced: false })
             throw new InvalidOperationException("The selected session is stale or has an unknown settlement outcome.");
     }
     public void DemandCurrent(SelectedSessionRecipient recipient)
     {
         DemandCurrent(recipient.Session);
         if (recipient.Connection is not { } connection) return;
-        var users = services.GetService<IOnlineUserQueryDomainService>();
-        if (IsBlocked(connection) || users?.TryGetByConnection(recipient.Session.ConnectionId, out var user) != true
+        if (IsBlocked(connection) || !users.TryGetByConnection(recipient.Session.ConnectionId, out var user)
             || user is null || !ReferenceEquals(user.Connection, connection)
             || user.AccountId != recipient.Session.AccountId || user.CurrentCharacterId != recipient.Session.CharacterId)
             throw new InvalidOperationException("The captured recipient connection was replaced or blocked.");
@@ -58,15 +56,15 @@ public sealed class SelectedSessionSafety(IServiceProvider services, ILogger<Sel
     public async ValueTask BlockAsync(SelectedSessionRecipient recipient, Exception error, string operation)
     {
         GameplayWriteAssertion.Writing(nameof(SelectedSessionSafety) + "." + nameof(BlockAsync));
-        services.GetService<ISelectedSessionDomainService>()?.Fence(recipient.Session);
+        sessions.Fence(recipient.Session);
         if (recipient.Connection is { } connection)
             lock (gate) connections.GetValue(connection, _ => new());
-        try { services.GetService<ICreatureRuntimeDomainService>()?.DiscardExact(recipient.Session); }
+        try { creatures.DiscardExact(recipient.Session); }
         catch (Exception cleanup) { TryLog(() => logger.LogError(cleanup, "Discard of uncertain creature runtime failed")); }
         TryLog(() => logger.LogWarning("Unknown settlement blocked operation={Operation} reason={Reason} account={Account} character={Character} connection={Connection} generation={Generation} sequence={Sequence} ordinal={Ordinal}",
             operation, TransactionOutcomeUncertainException.Find(error)?.Reason, recipient.Session.AccountId,
             recipient.Session.CharacterId, recipient.Session.ConnectionId, recipient.Session.ConnectionGeneration, recipient.Metadata?.Sequence, recipient.Metadata?.InboundOrdinal));
-        if (recipient.Connection is { } original && services.GetService<INetworkConnectionCloser>() is { } closer)
+        if (recipient.Connection is { } original)
             await closer.RequestCloseExactAsync(original, CancellationToken.None).ConfigureAwait(false);
     }
     private static void TryLog(Action log) { try { log(); } catch { /* Preserve settlement cause and continue exact close. */ } }

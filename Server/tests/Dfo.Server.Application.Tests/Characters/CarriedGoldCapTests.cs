@@ -139,15 +139,8 @@ public sealed class CarriedGoldCapTests
     {
         var archive = new FlatFloor();
         return (
-            new PlayingCharacter(
-                Who,
-                new ItemUseJudgementService(new FakeItemUseRules()),
-                new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
-                new SessionPresenceDomainService(),
-                gold,
-                new CarriedGoldRuleService(archive),
-                CharacterRow.None,
-                new NoSkillPointLedger(), null!, null!),
+            new PlayingCharacter(Who, gold, new CarriedGoldRuleService(archive), CharacterRow.None,
+                new NoSkillPointLedger(), null!, null!, null!, null!, null!, null!),
             archive);
     }
 

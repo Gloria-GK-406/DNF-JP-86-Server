@@ -311,7 +311,7 @@ public sealed partial class DomainEventDispatchTests
     {
         var services = new ServiceCollection().AddLogging();
         services.AddEventDispatching();
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var hosted = provider.GetServices<IHostedService>().OfType<DomainEventHostedService>().Single();
         await hosted.StartAsync(default);
         await hosted.StopAsync(default);
@@ -541,7 +541,7 @@ public sealed partial class DomainEventDispatchTests
                 services.AddDomainSubscriber<Relayed, RelayedSubscriber>("relayed", DomainEventDeliveryPolicy.Reliable);
             }
             if (queue is not null) services.AddSingleton<IGameplayQueue>(queue);
-            Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+            Services = services.AddSessionSafetyStandIns().BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             _ = Services.GetRequiredService<SqliteDatabase>();
             Sql("CREATE TABLE IF NOT EXISTS event_test_counter(owner TEXT PRIMARY KEY,amount INTEGER NOT NULL)");
         }

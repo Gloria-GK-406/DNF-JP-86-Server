@@ -3,6 +3,8 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
+
 namespace Dfo.Server.Application.Tests.Commands;
 public sealed class TimerReadOnlyCancellationTests
 {
@@ -22,7 +24,7 @@ public sealed class TimerReadOnlyCancellationTests
         services.AddCommandDispatching(); services.AddSingleton(state);
         services.AddSingleton<ILogger<GameplayExecutor>>(log); services.AddScoped<Resource>();
         services.AddInternalCommandHandler<Snapshot, bool, Handler>(capability);
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var error = await Record.ExceptionAsync(async () => await provider.GetRequiredService<ICommandBus>().SendInternalAsync(
             new Snapshot(), new(source, GameplayCallChain.NewRoot(source), "timer:test-snapshot", InternalCommandCancellation.BodyOnly), cancellation.Token));
         Assert.NotNull(error);

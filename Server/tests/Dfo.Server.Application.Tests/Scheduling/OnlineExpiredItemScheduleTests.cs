@@ -36,6 +36,8 @@ public sealed class OnlineExpiredItemScheduleTests
         services.AddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleDomainService>(DomainProbe<Dfo.Server.Abstractions.World.ISouthernDaleDomainService>.For(commands.SouthernAccounts));
         services.AddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerTicketDomainService>(DomainProbe<Dfo.Server.Abstractions.World.BossTower.IBossTowerTicketDomainService>.For(commands.BossAccounts));
         services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>(DomainProbe<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>.For(new()));
+        // Without persistence the creature store cannot be built; this schedule never fences a session.
+        services.AddSingleton<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(new NoCreatureRuntime());
         await using var provider = services.BuildServiceProvider();
         var registrations = provider.GetServices<ScheduledTaskRegistration>().ToArray();
         var registration = Assert.Single(registrations, x => x.Id == "inventory.expiration.online");

@@ -379,8 +379,7 @@ public sealed class EffectOperationReplayTests
         using var services = new ServiceCollection()
             .AddSingleton(f.Services.GetRequiredService<ISelectedSessionDomainService>())
             .AddSingleton<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(users).BuildServiceProvider();
-        var safety = new SelectedSessionSafety(services,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionSafety>.Instance);
+        var safety = Dfo.Server.Testing.TestSessionSafety.Create(services);
         var ledger = new EffectOperationLedger(safety, f.Services.GetRequiredService<ISelectedSessionDomainService>());
         var request = new Stream().Request(1);
         var calls = 0;

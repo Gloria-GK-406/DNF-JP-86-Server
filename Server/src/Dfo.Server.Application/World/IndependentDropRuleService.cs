@@ -1,14 +1,13 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Logging;
-using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
-/// <summary>Cached independent rows; character facts are resolved only for a matching source.</summary>
+/// <summary>Cached independent rows, drawn against the level the caller read.</summary>
 internal sealed class IndependentDropRuleService(
-    IIndependentDropTableSource source, Func<ICharacterDomainService> characters,
+    IIndependentDropTableSource source,
     ILogger<IndependentDropRuleService> logger, IndependentDropOptions? options = null) : IIndependentDropRuleService
 {
     private sealed record Prepared(IndependentDropRow Row, ImmutableArray<int> Ends, bool BossEquipment);
@@ -24,21 +23,11 @@ internal sealed class IndependentDropRuleService(
         return count;
     }
 
-    public async ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
-        MonsterDropRequest request, CancellationToken cancellationToken, int growthBonusPercent = 0)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!cache.Value.Rows.ContainsKey((request.Context.SourceType, request.MonsterCode)))
-            return [];
-        // Shared ground loot uses the generating character (the run leader), not monster level.
-        // Party trial counts are applied once, never once per member.
-        var progress = await characters().Get(request.CharacterId).ProgressAsync(cancellationToken)
-            .ConfigureAwait(false) ?? throw new InvalidOperationException(
-                $"Independent drops: missing character {request.CharacterId}.");
-        return this.Draw(request, progress.Level, growthBonusPercent);
-    }
+    public bool Covers(MonsterDropRequest request) =>
+        cache.Value.Rows.ContainsKey((request.Context.SourceType, request.MonsterCode));
 
-    internal IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent = 0)
+    /// <remarks>Party trial counts are applied once, never once per member.</remarks>
+    public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(growthBonusPercent);
         if (request.PartyMemberCount is < 1 or > 4 || (int)request.Context.Difficulty > 4)

@@ -27,7 +27,7 @@ public sealed class InternalWriteResultCancellationTests
         services.AddSingleton<ILogger<GameplayExecutor>>(log);
         services.AddInternalCommandHandler<Probe, bool, Handler>(internalActionCancellation: declared
             ? InternalActionCancellationCapability.ConfirmedRollbackWriteResult : InternalActionCancellationCapability.None);
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var error = await Record.ExceptionAsync(() => provider.GetRequiredService<ICommandBus>().SendInternalAsync(new Probe(),
             new(source, GameplayCallChain.NewRoot(source), "test:write-result-cancellation", InternalCommandCancellation.BodyOnly), state.Cancellation.Token).AsTask());
         Assert.NotNull(error); Assert.Equal(errors, log.Errors);

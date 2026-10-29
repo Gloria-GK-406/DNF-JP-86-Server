@@ -27,7 +27,7 @@ namespace Dfo.Server.Application.Tests.Support;
 internal static class EntryServices
 {
     public static SelectCharacterPreparationService Create(
-        ICharacterDomainService characters,
+        ICharacterRosterDomainService characters,
         ITestInventoryEntryServices inventory,
         ICharacterEntryStateDomainService characterEntries,
         IAccountEntryStateDomainService accountEntries,

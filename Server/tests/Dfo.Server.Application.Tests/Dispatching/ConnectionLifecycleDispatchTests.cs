@@ -136,7 +136,7 @@ public sealed class ConnectionLifecycleDispatchTests
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
         configure(services);
-        return services.BuildServiceProvider();
+        return services.AddSessionSafetyStandIns().BuildServiceProvider();
     }
 
     private static NetworkConnectionContext Connection(string id) =>

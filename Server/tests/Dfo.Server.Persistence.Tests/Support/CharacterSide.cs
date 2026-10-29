@@ -131,11 +131,9 @@ internal sealed class CharacterSide
             new SqliteDungeonEffectOutboxTable(this.database),
             new SqliteAccountTable(this.database),
             new SqliteCharacterTable(this.database),
-            experienceRules, rules, new CharacterDomainService(null!, null!, id => new PlayingCharacter(id,
-                null!, null!, null!, null!, null!, new SqliteCharacterTable(database), null!, null!, null!,
-                experienceRules: experienceRules,
-                capsules: new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
-                transactions: Scope), null!),
+            experienceRules, rules, new CharacterDomainService(null!, null!, new SqliteCharacterTable(database), null!, null!, null!,
+                experienceRules, new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
+                Scope, new Dfo.Server.Testing.DiscardingEventService()),
             new Dfo.Server.Application.Rental.AccountLuckyStarDomainService(new SqliteLuckyStarDomainStore(database),
                 new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,Scope));
 

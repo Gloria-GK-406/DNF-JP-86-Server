@@ -7,11 +7,11 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class WeaknessDomainService(
-    Func<ICharacterDomainService> characters, IWeaknessRuleService rules,
+    ICharacterDomainService characters, IWeaknessRuleService rules,
     ILogger<WeaknessDomainService>? logger = null,
     IDomainTransactionAccessor? transactions = null) : IWeaknessDomainService
 {
-    private readonly Func<ICharacterDomainService> characterSource = characters;
+    private readonly ICharacterDomainService characterSource = characters;
     private readonly IWeaknessRuleService ruleSource = rules;
     private readonly IDomainTransactionAccessor? transactionSource = transactions;
     private readonly object gate = new();
@@ -35,7 +35,7 @@ internal sealed class WeaknessDomainService(
         byte? initial;
         try
         {
-            var progress = await characterSource().Get(id).ProgressAsync(token).ConfigureAwait(false);
+            var progress = await characterSource.Get(id).ProgressAsync(token).ConfigureAwait(false);
             initial = progress is null ? null : ruleSource.InitialValue(progress.Level);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
@@ -116,7 +116,7 @@ internal sealed class WeaknessDomainService(
             if (Value == 100) return 0;
             // Free-recovery entitlement belongs here when the bonus-service domain is added.
             // Neither the caller nor the wire request can claim that entitlement.
-            var progress = await owner.characterSource().Get(id).ProgressAsync(cancellationToken).ConfigureAwait(false)
+            var progress = await owner.characterSource.Get(id).ProgressAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("Cannot quote weakness recovery without character progression.");
             return owner.ruleSource.RecoveryGoldCost(progress.Level, Value);
         }

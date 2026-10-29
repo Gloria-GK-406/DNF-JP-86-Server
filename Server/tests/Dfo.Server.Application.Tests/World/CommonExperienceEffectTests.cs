@@ -336,7 +336,7 @@ public sealed class CommonExperienceEffectTests
             MonsterRewardResult result;
             if(experienceOnly)
             {
-                var award=await TestEffectFootprints.Run(shop.Session,cap=>shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDomainService>().Get(new(1)).AddExpAsync(
+                var award=await TestEffectFootprints.Run(shop.Session,cap=>shop.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterExperienceAwardDomainService>().AwardAsync(
                     new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill,new(1),new(1),144),5,MonsterRank.Ordinary,0,1,1),shop.Clock.GetUtcNow(),shop.Session,cap,default));
                 result=new(award,[]);
             }

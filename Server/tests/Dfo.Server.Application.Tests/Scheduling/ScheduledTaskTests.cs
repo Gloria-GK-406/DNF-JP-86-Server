@@ -6,6 +6,7 @@ using Dfo.Server.Application.Scheduling;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Scheduling;
 
@@ -36,7 +37,7 @@ public sealed class ScheduledTaskTests
             services.AddTaskScheduling();
             foreach (var job in jobs) services.AddTestScheduledTask(job);
             configure?.Invoke(services);
-            Provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+            Provider = services.AddSessionSafetyStandIns().BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
             Worker = Assert.Single(Provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         }
         public async Task Start() { await Worker.StartAsync(default); await Until(() => Clock.ActiveTimers > 0); }
@@ -279,7 +280,7 @@ public sealed class ScheduledTaskTests
             (_, _) => { called.SetResult(); return ValueTask.CompletedTask; })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce });
         services.AddTaskScheduling();
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var worker = Assert.Single(provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         try { await worker.StartAsync(default); await called.Task.WaitAsync(Budget); }
         finally { await worker.StopAsync(default); }
@@ -313,7 +314,7 @@ public sealed class ScheduledTaskTests
         services.AddTestScheduledTask(new("test.startup", new DailyTaskSchedule(new(6, 0), TimeSpan.FromHours(8)),
             (context, ct) => { called.SetResult(context); return ValueTask.CompletedTask; })
         { MissedRun = ScheduledTaskMissedRunPolicy.RunOnce });
-        await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
         var worker = Assert.Single(provider.GetServices<IHostedService>().OfType<ScheduledTaskHostedService>());
         try
         {
