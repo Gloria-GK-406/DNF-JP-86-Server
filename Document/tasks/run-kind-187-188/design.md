@@ -232,3 +232,16 @@ public sealed record DungeonRunCapabilities(
 - `GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy`：3536–3540 共 5 个，`InvalidDataException: Giant dragon dungeon or native entrance is missing/incompatible`；
 - `DimensionDungeonTests` 的 2 个：`Dungeon '7100' maze '0': cell (1,0) has no compatible map`；
 - `AvatarCompoundTests.Rejections_leave_all_inputs_unchanged(reason: "expire")`：拒绝分支返回了收据。
+
+## 8. 实施结果与偏差（PR2）
+
+- 金样本：新增 Boss 塔（3505）与死亡之塔（11000）的两人组队金样本，各两个场景：击杀后全员阵亡结算再离队；队长中途离队、成员接任主机。
+  `DeterministicTowers` 固定房间、结算奖励和 Boss 塔击杀掉落的种子。两塔地图里没有可拾取的地面掉落，拾取仍只由单元测试覆盖。
+- 合并：`BossTowerActionContext` 并入 `TowerActionContext`；两份 ActionProjection、六份 `Project*Departure`、两份换主机投影、
+  两份离队队列与 sink、两份 `Coordinate*` 各合成一份，分歧点由 `ITowerRunKind` 承接（见 [DungeonRunKinds.md](../../DungeonRunKinds.md)）。
+  路由守护测试把经 `ITowerRunKind` 的查塔也计入。
+- 未合并：入场阶段（扣料回包、拒绝码映射）、拾取处理、定时回城仍按塔分开，它们的差异不止类型。
+- `TowerMember.IsLeader` 未删除（用户裁定本 PR 不动，以后再定）：它表示塔内主机。队长不在塔内，或者转给了塔外成员时，
+  塔保留原主机，这在现有测试中有钉住，并不是队长的单纯副本。
+- 保留的分歧：踢人被拒时，只有幻影塔回 `RemovePartyMemberRefusal` 并记录队伍变更日志，Boss 塔静默。本 PR 保持原样。
+
