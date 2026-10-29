@@ -7,10 +7,18 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfLostLandConsumableDefinitionSource(PvfArchiveProvider provider)
-    : ILostLandConsumableDefinitionSource
+    : ILostLandConsumableDefinitionSource, IContentWarmup
 {
     private readonly Lazy<IReadOnlyDictionary<int, string>> paths = new(() =>
         PvfListFile.Read(provider.Archive, "stackable/stackable.lst").ToDictionary(row => row.Id, row => row.RelativePath));
+    public string Name => "lost-land-consumable-index";
+
+    public ValueTask<int> WarmAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(paths.Value.Count);
+    }
+
     public ValueTask<LostLandConsumableDefinition?> GetAsync(int itemId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
