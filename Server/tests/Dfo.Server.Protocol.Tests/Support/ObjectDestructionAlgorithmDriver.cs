@@ -16,7 +16,7 @@ using Dfo.Server.Protocol.Game.MonsterDeath;
 using Microsoft.Extensions.Logging.Abstractions;
 namespace Dfo.Server.Protocol.Tests.Support;
 internal sealed record ObjectDestructionFacts(SelectedSessionIdentity Session,DungeonRunId RunId,long RoomVersion,int ObjectCode,
-    IReadOnlyList<SelectedSessionIdentity>? Recipients=null) : ICommand<ObjectDestructionResult>
+    IReadOnlyList<SelectedSessionIdentity>? Recipients=null) : ICommand<ObjectDestructionEffects>
 {
     public IReadOnlyList<SelectedSessionIdentity> Recipients {get;init;}=Recipients??[Session];
 }
@@ -27,8 +27,9 @@ internal sealed class ObjectDestructionAlgorithmDriver(IDungeonRunDomainService 
     IQuestProgressDomainService progress)
 {
     private readonly GameMonsterDeathCommandHandler command = ProtocolAlgorithmFixture.Create<GameMonsterDeathCommandHandler>(
-        sessions, runs, logs, containers, items, progress, new NoProjectionOutbox());
+        sessions, runs, new NoProjectionOutbox(), TimeProvider.System, ProtocolAlgorithmFixture.Create<Dfo.Server.Application.World.MonsterDeathDomainService>(
+            sessions, runs, new Dfo.Server.Application.World.QuestItemDropDomainService(logs, containers, items), progress));
 
-    internal ValueTask<ObjectDestructionResult> HandleAsync(CommandExecutionContext unused,ObjectDestructionFacts input,CancellationToken ct)=>
+    internal ValueTask<ObjectDestructionEffects> HandleAsync(CommandExecutionContext unused,ObjectDestructionFacts input,CancellationToken ct)=>
         command.DestroyObjectAsync(input.Session,input.RunId,input.RoomVersion,input.ObjectCode,input.Recipients,ct);
 }

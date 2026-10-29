@@ -24,46 +24,31 @@ using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game;
+/// <param name="Rewards">Null when the destruction was refused or already claimed.</param>
+internal sealed record ObjectDestructionEffects(IReadOnlyList<ObjectRewardEffects>? Rewards);
+
+internal sealed record ObjectRewardEffects(SelectedSessionIdentity Session, MonsterKillEffects Effects);
+
 internal sealed partial class GameMonsterDeathCommandHandler
 {
-    private ValueTask<ObjectDestructionResult> DestroyObjectAsync(CommandExecutionContext execution,
+    private ValueTask<ObjectDestructionEffects> DestroyObjectAsync(CommandExecutionContext execution,
         SelectedSessionIdentity session, DungeonRunId runId, long roomVersion, int objectCode,
         IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct) =>
         workUnits.WriteAsync(execution, new("destroy-dungeon-object", []),
             (_, token) => DestroyObjectAsync(session, runId, roomVersion, objectCode, recipients, token), ct);
-    internal async ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity session,
+    // Projects inside the write unit: the touched slots are read as they stand before commit.
+    internal async ValueTask<ObjectDestructionEffects> DestroyObjectAsync(SelectedSessionIdentity session,
         DungeonRunId runId, long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct)
     {
-        if (!sessions.IsInWorld(session))
-            return new(null);
-        var run = runs.Find(session.CharacterId);
-        if (run is null || run.RunId != runId || run.RoomVersion != roomVersion)
-            return new(null);
-        // A reporting client is not the loot owner. Freeze exact sessions at the protocol
-        // boundary, then revalidate them here, inside the command's transaction.
-        if (!recipients.Contains(session)
-            || recipients.Count != run.Participants.Count
-            || recipients.Select(value => value.CharacterId).Distinct().Count() != recipients.Count
-            || recipients.Any(recipient => !sessions.IsInWorld(recipient)
-                || runs.Find(recipient.CharacterId) is not { } memberRun
-                || memberRun.RunId != runId || memberRun.RoomVersion != roomVersion
-                || !run.Participants.Any(member => member.CharacterId == recipient.CharacterId
-                    && member.AccountId == recipient.AccountId)))
-            return new(null);
-        var claim = runs.ClaimObjectDestruction(session.CharacterId, runId,
-            roomVersion, objectCode);
-        if (claim is null) return new(null);
-        var rewards = new List<ObjectQuestReward>();
-        foreach (var recipient in recipients)
+        var destroyed = await deaths.DestroyObjectAsync(session, runId, roomVersion, objectCode, recipients, ct)
+            .ConfigureAwait(false);
+        if (destroyed.Rewards is null) return new(null);
+        var rewards = new List<ObjectRewardEffects>(destroyed.Rewards.Count);
+        foreach (var reward in destroyed.Rewards)
         {
-            var granted = await PendingQuestItemGrants.GrantAsync(recipient.AccountId, recipient.CharacterId,
-                claim.PendingLoot, default, questLogs, containers, items, null, ct, failIfFull: true)
+            var (items, shared) = await ItemGrantWireProjection.QuestItemsAsync(reward.Items, clock.GetUtcNow(), ct)
                 .ConfigureAwait(false);
-            var updated = granted.HasChanges
-                ? await progress.ReportAsync(recipient.AccountId, recipient.CharacterId,
-                    [new QuestHoldingsChanged()], ct).ConfigureAwait(false)
-                : null;
-            rewards.Add(new(recipient, new MonsterKillEffects(null, updated?.NotificationSnapshot, granted.CharacterItems, granted.AccountMaterials)));
+            rewards.Add(new(reward.Session, new MonsterKillEffects(null, reward.QuestProgress, items, shared)));
         }
         return new(rewards);
     }

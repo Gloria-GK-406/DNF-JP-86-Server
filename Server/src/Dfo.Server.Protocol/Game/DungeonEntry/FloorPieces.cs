@@ -64,7 +64,7 @@ internal static class FloorPieceValues
                 drop.Number,
                 drop.Drop,
                 described.IsEquipment
-                    ? GameDropIdentity.ForDeclaredObject(run, drop.Drop.ObjectIndex)
+                    ? GroundDropInstance.ForDeclaredObject(run, drop.Drop.ObjectIndex)
                     : checked((uint)Math.Max(1, drop.Drop.Count))));
         }
 

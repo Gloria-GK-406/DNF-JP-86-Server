@@ -71,7 +71,7 @@ internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars,
                 var owners = drops.Where(x => x.Rolled.OwnerCharacterId.HasValue).ToDictionary(x => x.Number,
                     x => SelectedSessionIdentity.ToWireUserId(x.Rolled.OwnerCharacterId!.Value));
                 var death = new MonsterDeathNotification(change.Actor.Sequence, drops, reporter.WireUserId,
-                    GameDropIdentity.ForKill(change.Run, change.Actor.Sequence), owners);
+                    GroundDropInstance.ForKill(change.Run, change.Actor.Sequence), owners);
                 var targets = result.Participants.Where(x => sessions.IsInWorld(x.Session))
                     .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, KillFrames(x, death))).ToArray();
                 await outbox.RegisterExplicitAsync(reporter.ConnectionId, new(

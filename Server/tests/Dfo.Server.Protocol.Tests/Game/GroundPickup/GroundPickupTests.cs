@@ -65,7 +65,6 @@ public sealed class GroundPickupTests
         var carried = new CarriedGold(0);
         var handler = new GroundPickupAlgorithmDriver(
             runs,
-            new GroundPickupDomainService(),
             new StubContainers(bag),
             new OnePlayingCharacter(carried),
             new QuestProgressFromSeeking(seeking),
@@ -407,7 +406,7 @@ public sealed class GroundPickupTests
 
             Assert.Equal(GroundPickupStatus.PickedUp, result.Status);
             Assert.Equal(
-                (int)GameDropIdentity.ForKill(run, Actor),
+                (int)GroundDropInstance.ForKill(run, Actor),
                 bag.Slots[result.SlotIndex].Value);
         });
     }
@@ -474,8 +473,7 @@ public sealed class GroundPickupTests
             var physical = new Dfo.Server.Protocol.Tests.Support.LifecycleTestContainer(InventoryContainerType.Pet, Character, fixture);
             var bag = new BusinessItemContainer(BusinessInventorySpace.CreatureInventory, physical);
             var runs = TestParties.Runs();
-            var handler = new GroundPickupAlgorithmDriver(runs, new GroundPickupDomainService(),
-                new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
+            var handler = new GroundPickupAlgorithmDriver(runs, new StubContainers(physical), new OnePlayingCharacter(new CarriedGold(0)),
                 new QuestProgressFromSeeking(new NoSeekingProgress()), new CreatureDropGrant(fixture, bag));
             const ushort actor = 30001;
             var run = BeginWithItems(runs, [MonsterItem(1, actor, new RolledDrop(600, 1,
@@ -487,7 +485,7 @@ public sealed class GroundPickupTests
             });
             Assert.NotNull(item.ItemUid);
             Assert.Equal(item.ItemUid.Value.Value, item.InstanceValue);
-            Assert.NotEqual(checked((int)GameDropIdentity.ForKill(run, actor)), item.InstanceValue);
+            Assert.NotEqual(checked((int)GroundDropInstance.ForKill(run, actor)), item.InstanceValue);
             Assert.Equal(17, item.Durability);
             Assert.Equal(27, item.CreatureDetail!.ProgressValue);
             Assert.Equal(3, item.CreatureDetail.FieldAfterValue);
@@ -527,7 +525,7 @@ public sealed class GroundPickupTests
                 }
                 var runs = TestParties.Runs(scope);
                 var bag = new FakeContainer { IsFull = true };
-                var handler = new GroundPickupAlgorithmDriver(runs, new GroundPickupDomainService(), new StubContainers(bag),
+                var handler = new GroundPickupAlgorithmDriver(runs, new StubContainers(bag),
                     new OnePlayingCharacter(new CarriedGold(0)), new QuestProgressFromSeeking(new NoSeekingProgress()),
                     new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), book);
                 BeginWithItems(runs, [MonsterItem(1, 30001, new(piece, 3, DropRarity.Epic, DropItemKind.Stackable, 0)),

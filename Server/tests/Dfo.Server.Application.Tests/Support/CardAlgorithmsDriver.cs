@@ -27,7 +27,7 @@ internal class CardAwardAlgorithmDriver(ICardRewardDomainService cards, IDungeon
     : ICommandHandler<CardAwardAlgorithmInput, SelectCardResult>
 {
     private readonly GameCardCommandHandler command = ProtocolAlgorithmFixture.Create<GameCardCommandHandler>(
-        runs, cards, characters, itemDelivery, flipCosts, new Slots(), clock);
+        runs, new Dfo.Server.Application.World.CardFlipDomainService(runs, cards, characters, itemDelivery, flipCosts), new Slots(), clock);
     public ValueTask<SelectCardResult> HandleAsync(CommandExecutionContext c,CardAwardAlgorithmInput q,CancellationToken ct) =>
         command.AwardBodyAsync(q.AccountId,q.CharacterId,q.Kind,q.Index,q.ExpectedRunId,ct);
     private sealed class Slots : IInventorySlotProjectionDomainService

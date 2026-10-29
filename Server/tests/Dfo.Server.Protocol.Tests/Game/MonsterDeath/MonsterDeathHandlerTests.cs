@@ -63,7 +63,10 @@ public sealed class MonsterDeathHandlerTests
         _ = unusedView;
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
         var service = new MonsterDeathDomainService(scope, sessions, characters,
-            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
+            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers),
+            Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IQuestItemDropDomainService>(),
+            Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestProgressDomainService>(),
+            NullLogger<MonsterDeathDomainService>.Instance,
             events: new DeathEvents(scope));
         return new DeathAlgorithmDriver(sessions, runs, clear, clearProjection, scope, service, rewards,
             registry, sender, diagnostics, partyRecipients, creatures, safety);
@@ -143,7 +146,7 @@ public sealed class MonsterDeathHandlerTests
         public async ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
             Func<CommandWorkUnit, CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
         {
-            if (declaration.Name == "destroy-dungeon-object" && typeof(T) == typeof(ObjectDestructionResult)
+            if (declaration.Name == "destroy-dungeon-object" && typeof(T) == typeof(ObjectDestructionEffects)
                 && context.Request is CommandRequestContext.ProtocolNonEffect { Message: MonsterDeathRequest { ObjectCode: { } code } } request)
             {
                 var session = sessions.FindByConnection(request.Dispatch.Connection.ConnectionId)!;
@@ -589,14 +592,14 @@ public sealed class MonsterDeathHandlerTests
             where TResult : notnull
         {
             this.Command = Assert.IsType<ObjectDestructionFacts>(command);
-            var rewards = this.Command.Recipients.Select(session => new ObjectQuestReward(session,
+            var rewards = this.Command.Recipients.Select(session => new ObjectRewardEffects(session,
                 new MonsterKillEffects(null, new QuestProgressSnapshot([new CarriedQuest(0, 2201, 8)]), new CommittedInventoryUpdateState(
                     InventoryContainerType.Main,
                     [new InventoryItemState(null, 0,
                         StackableItemCore.Create(6, 10149163, session.CharacterId.Value))], DateTimeOffset.UtcNow),
                     []))).ToArray();
             afterCommit();
-            return ValueTask.FromResult((TResult)(object)new ObjectDestructionResult(rewards));
+            return ValueTask.FromResult((TResult)(object)new ObjectDestructionEffects(rewards));
         }
     }
 

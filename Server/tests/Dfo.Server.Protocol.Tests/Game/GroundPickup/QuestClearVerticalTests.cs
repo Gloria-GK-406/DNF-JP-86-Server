@@ -98,7 +98,7 @@ public sealed class QuestClearVerticalTests
             services.AddSingleton<IQuestProgressDomainService>(provider =>
                 new SeekingFactAdapter(
                     provider.GetRequiredService<ISeekingQuestProgressDomainService>()));
-            services.AddSingleton<IGroundPickupDomainService>(new GroundPickupDomainService());
+            services.AddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
             services.AddSingleton<IItemGrantDomainService>(provider =>
                 new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(PlacementRules(),
                     new ItemLifecycleDomainService(itemStore,

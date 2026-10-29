@@ -134,6 +134,9 @@ public sealed partial class BossTowerDomainServiceTests
         }
         private sealed class TracedDeaths(IMonsterDeathDomainService actual, IServiceProvider p, AltarProtocolTrace trace) : IMonsterDeathDomainService
         {
+            public ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity reporter, DungeonRunId runId, long roomVersion,
+                int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct) =>
+                actual.DestroyObjectAsync(reporter, runId, roomVersion, objectCode, recipients, ct);
             public ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, IEffectFootprintRecorder footprint, CancellationToken ct)
             {
                 trace.Actors.Add(request.Actor);

@@ -32,9 +32,28 @@ public sealed record MonsterDeathSettlementResult(IReadOnlyList<MonsterDeathPart
     public TournamentActionResult? Tournament { get; init; }
 }
 
+/// <param name="Items">The business slots the grant touched; the protocol projects them to wire slots.</param>
+/// <param name="QuestProgress">Null when nothing was granted.</param>
+public sealed record ObjectQuestReward(SelectedSessionIdentity Session,
+    IReadOnlyList<Dfo.Server.Abstractions.Inventory.ItemDeliveryAddition> Items, QuestProgressSnapshot? QuestProgress);
+
+/// <param name="Rewards">Null when the destruction was refused or already claimed.</param>
+public sealed record ObjectDestructionResult(IReadOnlyList<ObjectQuestReward>? Rewards);
+
 public interface IMonsterDeathDomainService
 {
     ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, IEffectFootprintRecorder footprint, CancellationToken ct);
+
+    /// <summary>
+    /// Claims one breakable object of the current room and hands each recipient the quest items it
+    /// rolled them. Runs inside the caller's write unit.
+    /// </summary>
+    /// <param name="recipients">
+    /// The exact sessions frozen at the protocol boundary; every run participant, the reporter
+    /// among them. They are revalidated here.
+    /// </param>
+    ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity reporter, DungeonRunId runId,
+        long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct);
 }
 
 public interface IMonsterKillRewardsDomainService

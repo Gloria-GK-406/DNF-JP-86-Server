@@ -14,13 +14,14 @@ using Dfo.Server.Protocol.Game.GroundPickup;
 using Microsoft.Extensions.Logging.Abstractions;
 namespace Dfo.Server.Application.Tests.Support;
 // Domain fixture only: the exact private whole pickup algorithm, without production request lifecycle.
-internal sealed class GroundPickupAlgorithmDriver(IDungeonRunDomainService runs,IGroundPickupDomainService floor,
+internal sealed class GroundPickupAlgorithmDriver(IDungeonRunDomainService runs,
     ICharacterContainerDomainService containers,ICharacterDomainService characters,IQuestProgressDomainService progress,
     IItemGrantDomainService grants,IEpicBookDomainService? epicBook=null)
 {
     private readonly GameGetItemCommandHandler command = ProtocolAlgorithmFixture.Create<GameGetItemCommandHandler>(
-        runs, floor, containers, characters, progress, grants,
-        epicBook ?? ProtocolAlgorithmFixture.Default<IEpicBookDomainService>(), new NoProjectionOutbox());
+        runs, new Dfo.Server.Application.World.GroundPickupDomainService(runs, characters,
+            epicBook ?? ProtocolAlgorithmFixture.Default<IEpicBookDomainService>(), containers, grants, progress),
+        new NoProjectionOutbox());
     internal ValueTask<GroundPickupResult> PickUpAsync(GroundPickupInput input, CancellationToken ct) =>
         command.PickUpAsync(input, ct);
 }
