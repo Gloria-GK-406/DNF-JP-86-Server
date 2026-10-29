@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Inventory;
 
@@ -16,7 +17,17 @@ public interface ILostLandConsumableDefinitionSource
 }
 public interface ILostLandConsumableRuleService
 {
-    ValueTask<LostLandConsumableDefinition?> DefinitionAsync(int itemId, CancellationToken token);
+    ValueTask<bool> SupportsAsync(int itemId, CancellationToken token);
+    ValueTask<ILostLandConsumableRule?> PrepareAsync(int itemId, LostLandConsumableKind kind, MazeCell? origin,
+        LostLandConsumableRoomFacts room, CancellationToken token);
+}
+public sealed record LostLandConsumableRoomFacts(int MapId, MazeCell Cell,
+    IReadOnlyDictionary<MazeCell, DungeonCellDefinition> Cells);
+public interface ILostLandConsumableRule
+{
+    ItemCooldownKey CooldownKey { get; }
+    MazeCell? Destination { get; }
+    ItemUsePlan? Build(BusinessSlot source, ItemReference item, ItemUseCandidate? character, DateTimeOffset at);
 }
 public interface ILostLandConsumableDomainService
 {
