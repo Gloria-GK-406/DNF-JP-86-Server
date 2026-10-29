@@ -117,10 +117,16 @@ public sealed class GameFinishQuestCommandHandler(
             outcome.NewLevel,
             outcome.NewExperience, outcome.GrowType, outcome.Awakening);
 
+        // Every later frame reads the character and the offer list from this view, so it is read
+        // again once the settlement has committed rather than edited into what the settlement
+        // should have produced. A view still holding the entry-time list re-sends the finished
+        // quest as offerable, and one holding the entry-time experience prices the next completion
+        // at the wrong level -- both seen on 2026-08-27.
+        if (outcome.Finished && (outcome.GrowType is not null || !outcome.MirrorCompletion))
+            result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Character left before the completion could be projected.");
         if (outcome.Finished && outcome.GrowType is not null)
         {
-            result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidOperationException("Character left before advancement could be projected.");
             await outbox.RegisterExplicitAsync(context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery([new SkillStateMessage(result.CharacterEntry.Skills)], []),
                 cancellationToken).ConfigureAwait(false);
@@ -163,31 +169,6 @@ public sealed class GameFinishQuestCommandHandler(
             return outcome;
         }
 
-        // The session is corrected before the frames go out, and the correction is the fix for a
-        // real defect rather than tidiness. Every later frame reads the character and the offer
-        // list from here: a session still holding the entry-time list re-sends the finished quest
-        // as offerable the next time anything refreshes it, and a session still holding the
-        // entry-time experience prices the next completion at the wrong level. Both were seen on
-        // 2026-08-27 -- 与赛丽亚的初次见面 was offered again after being handed in, and the
-        // second completion wrote the same total as the first.
-        result = result with
-        {
-            Character = result.Character with
-            {
-                Progression = new CharacterProgressionState(
-                    outcome.NewLevel, outcome.NewExperience),
-            },
-            CharacterEntry = result.CharacterEntry with
-            {
-                Public = result.CharacterEntry.Public with
-                {
-                    Extras = result.CharacterEntry.Public.Extras with
-                    {
-                        CharacterExperience = outcome.NewExperience,
-                    },
-                },
-            },
-        };
         // Worked out again rather than edited. Handing a quest in can satisfy another quest's
         // prerequisite, and the quest that becomes offerable because of it has to APPEAR -- an
         // edited list can only shrink. Quest 1776 declares [pre required quest] 101, so finishing
