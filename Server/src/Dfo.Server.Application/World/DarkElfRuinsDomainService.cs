@@ -68,18 +68,19 @@ internal sealed class DarkElfRuinsDomainService(IDarkElfRuinsRuleService rules, 
             level = Math.Max(level, (await characters.Get(member.CharacterId).ProgressAsync(ct).ConfigureAwait(false))?.Level ?? 1);
         }
         // The shared daily quota remains the actionable refusal after a clear changes the tier.
-        if ((byte)context.Facts.Difficulty != rule.Difficulty || active.Values.Any(x => x.License < rule.Directory.License))
+        if (!Enum.IsDefined(context.Facts.Difficulty) || active.Values.Any(x => x.License < rule.Directory.License))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
         var maze = rules.ChooseMaze(rule, active.Values.ToArray(), Random.Shared.Next());
         var guardian = maze.Guardian;
-        var facts = context.Facts with { RequiredMazeIndex = maze.Index };
+        // License fixes this activity's combat tier; the ordinary selection byte may be stale.
+        var facts = context.Facts with { Difficulty = (Dfo.Server.Data.World.DungeonDifficulty)rule.Difficulty, RequiredMazeIndex = maze.Index };
         DungeonLayout? layout;
         try { layout = await layouts.ResolveAsync(context.DungeonId, facts, Random.Shared.Next(), ct).ConfigureAwait(false); }
         catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
         if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
         layout = rules.PrepareLayout(layout, checked((byte)level), new(day, guardian, rule.Directory.License));
         var frozen = layout;
-        return await admission.ExecuteAsync(context, new()
+        return await admission.ExecuteAsync(context with { Facts = facts }, new()
         {
             RequireMinimumLevel = true, ConsumesFatigue = false,
             RequiredQuestIds = [rules.EntryQuestId], EnforceOrdinaryDifficulty = false,

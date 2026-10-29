@@ -81,8 +81,8 @@ internal sealed partial class GameSelectDungeonCommandHandler
                 var error = mirror ? DungeonEntryRefusalCodes.ForMirror(attempt.Failure.Value)
                     : DungeonEntryRefusalCodes.For(attempt.Failure.Value, message.RequestMode == 1);
                 logger.Log(attempt.Failure is DungeonEntryFailure.ConfigurationInvalid or DungeonEntryFailure.HellConfigurationInvalid
-                        ? LogLevel.Warning : LogLevel.Debug, "Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, detail={Detail}",
-                    message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0, attempt.Detail);
+                        ? LogLevel.Warning : LogLevel.Debug, "Dungeon {DungeonId} entry refused: {Failure}, code=0x{ErrorCode:X2}, memberSlot={BlockedSlot}, requestedDifficulty={RequestedDifficulty}, detail={Detail}",
+                    message.DungeonId, attempt.Failure, error, attempt.BlockedSlot ?? 0, message.Difficulty, attempt.Detail);
                 await RefuseAsync(requesterConnection, error, attempt.BlockedSlot ?? 0, cancellationToken).ConfigureAwait(false);
                 return;
             }
@@ -353,7 +353,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
         logger.LogInformation(
             "Select dungeon {ConnectionId}: projected run={RunId} revision={Revision} "
-                + "participants={ParticipantCount} dungeon={DungeonId} difficulty={Difficulty} intent={Intent} "
+                + "participants={ParticipantCount} dungeon={DungeonId} difficulty={Difficulty} requestedDifficulty={RequestedDifficulty} intent={Intent} "
                 + "maze={MazeIndex} size={Width}x{Height} startMap={StartMap} purpose={Purpose} quest={QuestId}",
             requesterConnection,
             runId.Value,
@@ -361,7 +361,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
             participants.Length,
             layout.DungeonId,
             leaderVisit.Run.Difficulty,
-            intent, layout.MazeIndex, layout.Width, layout.Height, layout.StartRoomMapId,
+            message.Difficulty, intent, layout.MazeIndex, layout.Width, layout.Height, layout.StartRoomMapId,
             layout.Purpose.Kind, layout.Purpose.QuestId);
         if (layout.Mode is DungeonRunMode.LostLand && logger.IsEnabled(LogLevel.Debug))
         {

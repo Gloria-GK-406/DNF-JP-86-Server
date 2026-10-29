@@ -62,3 +62,16 @@ GM源码在本次两个主干基点之间没有变化。协议入场测试夹具
 修正后真实PVF遗迹与复活领域24项、协议及相关通知／入场／商店获得提示回归125项通过，均0失败/0跳过。
 证据位于 `artifacts/darkelf-feedback-20261029/` 的 `quota-red.log`、`gain-red.log`、`application-green.log`、`protocol-green.log`。
 服务端新增回归不等价于本次A21界面效果已验收；修复包部署与重启记录见该目录 `deployment/`。
+
+## 已解锁高星的入场难度
+
+恢复测试次数后，角色共享二星且当日已用0次，DGN5007请求仍返回DifficultyNotUnlocked。
+根因为服务端额外要求客户端普通难度字段等于PVF星级难度；历史上游在同一位置校正该字段。
+现在由遗迹领域按已解锁的所选星级决定实际难度，准入、迷宫与运行实例共用校正后的facts；
+仍检查合法难度枚举、星级权限、开放日期、次数、前置任务、材料和模式。
+成功与拒绝日志同时保留请求难度，成功日志另记实际难度。限定运行观察见[遗迹协议流程](../../../protocol/patterns/flow-darkelf-ruins.md)。
+
+二至四星以残留普通难度请求的4个真实PVF临时库用例修正前均被DifficultyNotUnlocked拒绝，
+修正后含这些用例的领域回归38项、协议回归160项通过，均0失败/0跳过。
+日志为 `artifacts/darkelf-star-entry-20261029/red.log`、`application-green.log`、`protocol-green.log`。
+该目录 `deployment/` 保留发布、备份、副本冒烟及默认端口切换结果；本次高星客户端入场仍待用户复测。

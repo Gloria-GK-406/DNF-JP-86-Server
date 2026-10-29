@@ -270,6 +270,41 @@ public sealed class DarkElfRuinsTests
         });
     }
 
+    [SkippableTheory]
+    [InlineData(2, 0, 20)]
+    [InlineData(2, 4, 20)]
+    [InlineData(3, 0, 40)]
+    [InlineData(4, 0, 80)]
+    public async Task Licensed_star_selects_effective_difficulty_even_when_client_keeps_another_ordinary_tier(int license, byte requested, int cost)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        var clock = new Clock { Now = new(2026, 10, 26, 23, 0, 0, TimeSpan.FromHours(8)) };
+        await using var f = await Fixture(clock);
+        f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,2656,1)");
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var store = f.Services.GetRequiredService<IDarkElfRuinsDomainStore>();
+            var domain = f.Services.GetRequiredService<IDarkElfRuinsDomainService>();
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True(await store.CompareExchangeAsync(Character, new(),
+                    new(license, 0, new(2026, 10, 26), 0, new(2026, 10, 1), 0, 0, 1), default));
+                await tx.CommitAsync(default);
+            }
+            await using (var tx = f.Scope.Begin())
+            {
+                var attempt = await domain.EnterAsync(Entry(5005 + license, (DungeonDifficulty)requested), default);
+                Assert.True(attempt.Entry is not null, attempt.ToString());
+                var run = attempt.Entry!.Visits[Character].Run;
+                Assert.Equal((DungeonDifficulty)(license - 1), run.Difficulty);
+                Assert.Equal(license, Assert.IsType<DungeonRunMode.DarkElfRuins>(run.Layout.Mode).Plan.License);
+                await tx.CommitAsync(default);
+            }
+            Assert.Equal(1000 - cost, await Cubes(f));
+            Assert.Equal(1, (await domain.SelectionAsync(Character, default)).Remaining);
+        });
+    }
+
     [SkippableFact]
     public async Task Exhausted_daily_quota_takes_precedence_over_tier_and_difficulty_without_charging()
     {
