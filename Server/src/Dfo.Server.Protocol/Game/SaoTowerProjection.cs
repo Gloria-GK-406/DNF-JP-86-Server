@@ -38,7 +38,7 @@ internal sealed class SaoTowerNotificationSubscriber(IEventService events) : IDo
 }
 
 internal sealed class SaoTowerRefreshHandler(ISaoTowerDomainService sao, ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs, ICharacterInventoryEntryDomainService inventories,
+    IDungeonRunQueryDomainService runs, ICharacterInventoryEntryDomainService inventories,
     IAccountInventoryEntryDomainService accounts, IInventorySlotProjectionDomainService slots)
     : INotificationHandler<SaoTowerRefresh>
 {

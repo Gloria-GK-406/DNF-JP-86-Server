@@ -20,7 +20,7 @@ namespace Dfo.Server.Application.World;
 /// </remarks>
 internal sealed class DungeonVisitDomainService(
     IDungeonStructureRuleService layouts,
-    IDungeonRunDomainService runs,
+    IDungeonRunEntryDomainService runs,
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterFatigueDomainService fatigue, IDungeonAdmissionDomainService admission,

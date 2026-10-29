@@ -26,7 +26,7 @@ internal sealed class BossTowerDomainService(
     IMaterialConsumptionRuleService materialRules,
     IDungeonAdmissionDomainService admission, IEventManagementDomainService activities,
     IMonsterDropDomainService monsterDrops, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
-    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
+    IDungeonRunQueryDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
     IBossTowerRewardDomainService? rewards = null,
     IEventService? events = null, IDungeonParticipationDomainService? participation = null,
     ILogger<BossTowerDomainService>? logger = null)

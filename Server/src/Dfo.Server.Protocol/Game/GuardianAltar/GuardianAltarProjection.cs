@@ -28,7 +28,7 @@ internal static class GuardianAltarProjection
             group.GroupBy(x => x.Slot).Select(x => { var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(
                 null, slots.Project(last.Slot).Index, last.Snapshot.ToCore()); }).ToArray(), clock.GetUtcNow())).ToArray();
     public static async ValueTask PublishAsync(GuardianAltarActionResult action, IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
-        IDungeonRunDomainService runs, IGameCommandOutbox outbox, IInventorySlotProjectionDomainService slots, TimeProvider clock, CancellationToken ct)
+        IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, IInventorySlotProjectionDomainService slots, TimeProvider clock, CancellationToken ct)
     {
         var state = action.State; var session = state.Session;
         if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId)?.RunId != state.RunId

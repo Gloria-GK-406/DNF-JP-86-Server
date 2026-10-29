@@ -26,7 +26,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters, ICharacterExperienceAwardDomainService experience,
-    IDungeonRunDomainService runs,
+    IDungeonRunSettlementDomainService runs,
     ICardRewardDomainService cardRewards,
     ICommandWorkUnits units,
     ICharacterDungeonDifficultyDomainService difficulties, TimeProvider clock,

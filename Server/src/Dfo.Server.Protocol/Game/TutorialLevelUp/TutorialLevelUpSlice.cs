@@ -108,7 +108,7 @@ public sealed class GameTutorialLevelUpCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
-    IDungeonRunDomainService runs,
+    IDungeonRunQueryDomainService runs,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
     IQuestOfferRefreshDomainService offers,

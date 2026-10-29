@@ -10,7 +10,7 @@ using Dfo.Server.Protocol.Game.DungeonClear;
 namespace Dfo.Server.Protocol.Game;
 internal static class DungeonClearCommandProjection
 {
-    internal static async ValueTask<int> DeliverAsync(ISelectedSessionDomainService selectedSessions, IDungeonRunDomainService runs,
+    internal static async ValueTask<int> DeliverAsync(ISelectedSessionDomainService selectedSessions, IDungeonRunQueryDomainService runs,
         IReadOnlyList<SelectedSessionIdentity> candidates, IQuestQueryDomainService quests,
         IGameCommandOutbox outbox,
         SelectedSessionIdentity requester, DungeonClearChange change, CancellationToken cancellationToken)

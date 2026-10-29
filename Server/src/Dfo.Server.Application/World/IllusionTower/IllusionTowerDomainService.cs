@@ -19,7 +19,7 @@ internal sealed class IllusionTowerDomainService(
     IIllusionTowerRuleService rules, ISelectedSessionDomainService sessions,
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
-    IDungeonRunDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
+    IDungeonRunQueryDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
     IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null,
     IEventService? events = null, IDungeonParticipationDomainService? participation = null)
     : IIllusionTowerDomainService

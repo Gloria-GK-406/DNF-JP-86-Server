@@ -438,77 +438,21 @@ public sealed record GroundDrop(ushort Number, DungeonRoomDrop Drop);
 /// </remarks>
 public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 
-/// <summary>The dungeon runs the server currently has going, and who is in them.</summary>
-/// <remarks>
-/// This is the process-local dungeon-instance boundary. It owns the entry roster, layout,
-/// current Cell reference and the set of already-created Cells. Each Cell exclusively owns its
-/// Actors, pending loot, ground items, clear state and Cell revision; the Run does not rebuild
-/// those facts in parallel collections.
-/// <para>
-/// In memory only. There is no reconnect in this game -- a character who drops in a dungeon
-/// reappears in town -- so a run has nothing to survive and nothing to restore.
-/// </para>
-/// <para>
-/// A run belongs to one party, real or a character's virtual one, by its <c>PartyKey</c>, and has its
-/// own identifier. Who is in it is the party's answer: its members are the party's current members
-/// who are on the entry roster, and slots and leader are the party's. The run keeps no roster of its
-/// own beyond that entry roster and each entrant's state in the run. A character reaches a run
-/// through the party they belong to; leaving the run means leaving that party first, and a party
-/// bound to a run takes no new members.
-/// </para>
-/// </remarks>
-public interface IDungeonRunDomainService
+/// <summary>Reads which run a character or run identity names; every narrower dungeon run service starts here.</summary>
+public interface IDungeonRunQueryDomainService
 {
-    ValueTask<DungeonSettlementRules> SettlementRulesForAsync(Dfo.Server.Data.Accounts.AccountId account, CharacterId character,
-        DungeonRunState run, CancellationToken token) => throw new NotSupportedException("Settlement rules are unavailable.");
+    /// <summary>The run this character is in, or null when they are not in one.</summary>
+    DungeonRunState? Find(CharacterId characterId);
 
-    IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
-    IReadOnlyList<LostLandCompletion> FindDueLostLandCompletions(DateTimeOffset now) => [];
-    bool StageLostLandCompletion(LostLandCompletion completion, DateTimeOffset now, bool notifyReady) => false;
-    IReadOnlyList<LostLandFeverExpiry> FindExpiredLostLandFevers(DateTimeOffset now) => [];
-    bool StageLostLandFeverExpiry(LostLandFeverExpiry expiry, DateTimeOffset now) => false;
+    /// <summary>Finds one active participant view of an exact shared run.</summary>
+    DungeonRunState? Find(DungeonRunId runId) => null;
+}
+
+/// <summary>Starts a party's run, follows its members through loading, and moves the run between rooms.</summary>
+public interface IDungeonRunEntryDomainService : IDungeonRunQueryDomainService
+{
     DungeonRunState? TryMoveByLostLandItem(CharacterId character, DungeonRunId run, long version,
         MazeCell target, DungeonCellSeed? preparedCell) => throw new NotSupportedException();
-
-    /// <summary>
-    /// One character's departure from the named run: releases what the run holds for them, records
-    /// the departure, and applies failure weakness when the run was not cleared and its layout
-    /// applies it. The character must already have stopped being a member (left or been removed
-    /// from the party); while they are still a member beside others this is refused and returns
-    /// false. When they are, or were, the run's last member, the whole run ends with them.
-    /// </summary>
-    /// <returns>False when refused, or when the run is gone or the character already departed it.</returns>
-    ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>
-        ValueTask.FromResult(End(characterId, expectedRunId));
-
-    /// <summary>
-    /// Ends the named run for all its members at once, each departing as through
-    /// <see cref="EndAsync"/>, and removes the run. The party itself is left unchanged.
-    /// </summary>
-    /// <returns>The characters who departed, by slot; empty when the run is gone.</returns>
-    ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId) =>
-        throw new NotSupportedException("This dungeon-run service does not end whole runs.");
-
-    ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now) =>
-        ValueTask.FromResult(TryEndPartyWipe(runId, now));
-
-    bool HasUsedDungeonBuff(CharacterId characterId, DungeonRunId runId) => true;
-    bool StageDungeonBuff(CharacterId characterId, DungeonRunId runId) => false;
-
-    bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId) => false;
-
-    void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }
-    IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now) => [];
-    DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now) => null;
-    ValueTask<DungeonRunState?> TryEndClearReturnAsync(DungeonRunId runId, DateTimeOffset now) =>
-        ValueTask.FromResult(TryEndClearReturn(runId, now));
-
-    IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now) => [];
-    DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now) => null;
-
-    /// <summary>Commits one current member death; stale and duplicate reports return null.</summary>
-    DungeonRunState? TryMarkParticipantDead(
-        CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion) => null;
 
     /// <summary>Publishes a shared run together with its already-complete initial cell.</summary>
     DungeonEntryChange PreparePartyEntry(
@@ -548,16 +492,6 @@ public interface IDungeonRunDomainService
         long expectedEntryRevision,
         IReadOnlyList<CharacterId> expectedRecipients) => false;
 
-    /// <summary>The run this character is in, or null when they are not in one.</summary>
-    DungeonRunState? Find(CharacterId characterId);
-
-    /// <summary>Finds one active participant view of an exact shared run.</summary>
-    DungeonRunState? Find(DungeonRunId runId) => null;
-
-    /// <summary>Stages a versioned dynamic-actor batch and clear gate in the current transaction.</summary>
-    bool StageDynamicCell(DungeonRunId runId, long roomVersion, long cellRevision,
-        IReadOnlyList<DungeonCellActorState> actors, bool mechanismBlocksClear) => false;
-
     /// <summary>
     /// Moves the character into an adjoining cell, or answers null when the maze declares no room
     /// there.
@@ -595,71 +529,14 @@ public interface IDungeonRunDomainService
         MazeCell target,
         DungeonCellSeed? preparedCell) =>
         TryMove(characterId, expectedRunId, expectedRoomVersion, target);
+}
 
-    /// <summary>
-    /// Reserves one drop from the exact run room without consuming it until durable delivery
-    /// succeeds.
-    /// </summary>
-    DungeonGroundDropClaim? TryClaimGroundDrop(
-        CharacterId characterId,
-        DungeonRunId expectedRunId,
-        long expectedRoomVersion,
-        ushort groundDropNumber) => null;
-
-    /// <summary>
-    /// Consumes an exact drop reservation after durable delivery succeeds and publishes the
-    /// shared runtime fact to the run's active semantic participants.
-    /// </summary>
-    DungeonPickupChange? CommitGroundDrop(
-        DungeonGroundDropClaim claim,
-        DungeonPickupKind kind) =>
-        new(
-            claim.RunId,
-            0,
-            claim.CharacterId,
-            claim.Drop,
-            kind,
-            claim.Run.Participants.Select(value => value.CharacterId).ToArray());
-
-    /// <summary>
-    /// Stages consumption of a reserved floor piece. Production applies it only after durable
-    /// transaction participants commit; simple domain doubles may use the completed default.
-    /// </summary>
-    DungeonPickupCommit StageGroundDrop(
-        DungeonGroundDropClaim claim,
-        DungeonPickupKind kind) =>
-        DungeonPickupCommit.Completed(CommitGroundDrop(claim, kind));
-
-    /// <summary>Adds source-neutral ground items to the current Cell at an exact revision.</summary>
-    DungeonGroundItemsAddedChange? TryAddGroundItems(
-        CharacterId characterId,
-        DungeonRunId expectedRunId,
-        long expectedRoomVersion,
-        long expectedCellRevision,
-        IReadOnlyList<DungeonGroundItemDraft> items) => null;
-
-    /// <summary>
-    /// Opens the exact run room's clear exit once after authoritative rules have approved it.
-    /// </summary>
-    DungeonClearChange? TryOpenClear(
-        CharacterId characterId,
-        DungeonRunId expectedRunId,
-        long expectedRoomVersion)
-    {
-        var run = Find(characterId);
-        return run is null
-            || run.RunId != expectedRunId
-            || run.RoomVersion != expectedRoomVersion
-            || run.ClearOpen
-                ? null
-                : new DungeonClearChange(
-                    run.RunId,
-                    run.RuntimeRevision + 1,
-                    run.Participants.Select(value => value.CharacterId).ToArray());
-    }
-
-    /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
-    bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;
+/// <summary>Claims and commits what happens to a room's actors and objects: deaths, kill effects, destructions and summoned cells.</summary>
+public interface IDungeonRunCombatDomainService : IDungeonRunQueryDomainService
+{
+    /// <summary>Stages a versioned dynamic-actor batch and clear gate in the current transaction.</summary>
+    bool StageDynamicCell(DungeonRunId runId, long roomVersion, long cellRevision,
+        IReadOnlyList<DungeonCellActorState> actors, bool mechanismBlocksClear) => false;
 
     /// <summary>
     /// Claims one actor death before its durable effects are attempted. A duplicate or pending
@@ -726,6 +603,95 @@ public interface IDungeonRunDomainService
 
     /// <summary>Releases exactly one failed participant-effect attempt for retry.</summary>
     bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim) => false;
+}
+
+/// <summary>Keeps each entrant's own state in the run: death, revival and the once-per-run buff.</summary>
+public interface IDungeonRunParticipantDomainService : IDungeonRunQueryDomainService
+{
+    bool HasUsedDungeonBuff(CharacterId characterId, DungeonRunId runId) => true;
+    bool StageDungeonBuff(CharacterId characterId, DungeonRunId runId) => false;
+
+    bool StageRevival(CharacterId payer, CharacterId target, DungeonRunId runId) => false;
+
+    /// <summary>Commits one current member death; stale and duplicate reports return null.</summary>
+    DungeonRunState? TryMarkParticipantDead(
+        CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion) => null;
+}
+
+/// <summary>Claims, stages and releases the items lying on a room's floor.</summary>
+public interface IDungeonRunGroundDropDomainService : IDungeonRunQueryDomainService
+{
+    /// <summary>
+    /// Reserves one drop from the exact run room without consuming it until durable delivery
+    /// succeeds.
+    /// </summary>
+    DungeonGroundDropClaim? TryClaimGroundDrop(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        ushort groundDropNumber) => null;
+
+    /// <summary>
+    /// Consumes an exact drop reservation after durable delivery succeeds and publishes the
+    /// shared runtime fact to the run's active semantic participants.
+    /// </summary>
+    DungeonPickupChange? CommitGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind) =>
+        new(
+            claim.RunId,
+            0,
+            claim.CharacterId,
+            claim.Drop,
+            kind,
+            claim.Run.Participants.Select(value => value.CharacterId).ToArray());
+
+    /// <summary>
+    /// Stages consumption of a reserved floor piece. Production applies it only after durable
+    /// transaction participants commit; simple domain doubles may use the completed default.
+    /// </summary>
+    DungeonPickupCommit StageGroundDrop(
+        DungeonGroundDropClaim claim,
+        DungeonPickupKind kind) =>
+        DungeonPickupCommit.Completed(CommitGroundDrop(claim, kind));
+
+    /// <summary>Adds source-neutral ground items to the current Cell at an exact revision.</summary>
+    DungeonGroundItemsAddedChange? TryAddGroundItems(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion,
+        long expectedCellRevision,
+        IReadOnlyList<DungeonGroundItemDraft> items) => null;
+
+    /// <summary>Releases an exact drop reservation after a refused or failed delivery.</summary>
+    bool ReleaseGroundDrop(DungeonGroundDropClaim claim) => false;
+}
+
+/// <summary>Opens a run's clear and settles each entrant's result.</summary>
+public interface IDungeonRunSettlementDomainService : IDungeonRunQueryDomainService
+{
+    ValueTask<DungeonSettlementRules> SettlementRulesForAsync(Dfo.Server.Data.Accounts.AccountId account, CharacterId character,
+        DungeonRunState run, CancellationToken token) => throw new NotSupportedException("Settlement rules are unavailable.");
+
+    /// <summary>
+    /// Opens the exact run room's clear exit once after authoritative rules have approved it.
+    /// </summary>
+    DungeonClearChange? TryOpenClear(
+        CharacterId characterId,
+        DungeonRunId expectedRunId,
+        long expectedRoomVersion)
+    {
+        var run = Find(characterId);
+        return run is null
+            || run.RunId != expectedRunId
+            || run.RoomVersion != expectedRoomVersion
+            || run.ClearOpen
+                ? null
+                : new DungeonClearChange(
+                    run.RunId,
+                    run.RuntimeRevision + 1,
+                    run.Participants.Select(value => value.CharacterId).ToArray());
+    }
 
     /// <summary>
     /// Records that this run has been settled.
@@ -765,7 +731,11 @@ public interface IDungeonRunDomainService
 
     /// <summary>Releases exactly this failed settlement attempt for retry.</summary>
     bool ReleaseSettlement(DungeonSettlementClaim claim) => false;
+}
 
+/// <summary>Lays out a clear's reward cards and claims their positions.</summary>
+public interface IDungeonRunCardDomainService : IDungeonRunQueryDomainService
+{
     /// <summary>Opens one settled participant's card panel on the named run exactly once.</summary>
     DungeonCardLayoutChange? TryOpenCardLayout(
         CharacterId characterId,
@@ -866,6 +836,51 @@ public interface IDungeonRunDomainService
 
     /// <summary>Releases a reserved clear-card position after durable delivery fails.</summary>
     bool ReleaseClearRewardCard(DungeonClearRewardCardClaim claim) => false;
+}
+
+/// <summary>The run's deadlines: the return after a clear, the return after a party wipe, Forgotten Land's exploration and fever limits, and timed room mechanisms.</summary>
+public interface IDungeonRunTimerDomainService : IDungeonRunQueryDomainService
+{
+    IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
+    IReadOnlyList<LostLandCompletion> FindDueLostLandCompletions(DateTimeOffset now) => [];
+    bool StageLostLandCompletion(LostLandCompletion completion, DateTimeOffset now, bool notifyReady) => false;
+    IReadOnlyList<LostLandFeverExpiry> FindExpiredLostLandFevers(DateTimeOffset now) => [];
+    bool StageLostLandFeverExpiry(LostLandFeverExpiry expiry, DateTimeOffset now) => false;
+
+    ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now) =>
+        ValueTask.FromResult(TryEndPartyWipe(runId, now));
+
+    void ScheduleClearReturn(CharacterId characterId, DungeonRunId runId, DateTimeOffset now) { }
+    IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now) => [];
+    DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now) => null;
+    ValueTask<DungeonRunState?> TryEndClearReturnAsync(DungeonRunId runId, DateTimeOffset now) =>
+        ValueTask.FromResult(TryEndClearReturn(runId, now));
+
+    IReadOnlyList<DungeonRunId> FindExpiredPartyWipes(DateTimeOffset now) => [];
+    DungeonRunState? TryEndPartyWipe(DungeonRunId runId, DateTimeOffset now) => null;
+}
+
+/// <summary>Ends a run for one departing character or for its whole party.</summary>
+public interface IDungeonRunDepartureDomainService : IDungeonRunQueryDomainService
+{
+    /// <summary>
+    /// One character's departure from the named run: releases what the run holds for them, records
+    /// the departure, and applies failure weakness when the run was not cleared and its layout
+    /// applies it. The character must already have stopped being a member (left or been removed
+    /// from the party); while they are still a member beside others this is refused and returns
+    /// false. When they are, or were, the run's last member, the whole run ends with them.
+    /// </summary>
+    /// <returns>False when refused, or when the run is gone or the character already departed it.</returns>
+    ValueTask<bool> EndAsync(CharacterId characterId, DungeonRunId expectedRunId) =>
+        ValueTask.FromResult(End(characterId, expectedRunId));
+
+    /// <summary>
+    /// Ends the named run for all its members at once, each departing as through
+    /// <see cref="EndAsync"/>, and removes the run. The party itself is left unchanged.
+    /// </summary>
+    /// <returns>The characters who departed, by slot; empty when the run is gone.</returns>
+    ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId) =>
+        throw new NotSupportedException("This dungeon-run service does not end whole runs.");
 
     /// <summary>The synchronous <see cref="EndAsync"/> without lifecycle or failure weakness. False when refused or not in a run.</summary>
     bool End(CharacterId characterId);
@@ -876,3 +891,34 @@ public interface IDungeonRunDomainService
         && current.RunId == expectedRunId
         && End(characterId);
 }
+
+/// <summary>The dungeon runs the server currently has going, and who is in them.</summary>
+/// <remarks>
+/// This is the process-local dungeon-instance boundary. It owns the entry roster, layout,
+/// current Cell reference and the set of already-created Cells. Each Cell exclusively owns its
+/// Actors, pending loot, ground items, clear state and Cell revision; the Run does not rebuild
+/// those facts in parallel collections.
+/// <para>
+/// In memory only. There is no reconnect in this game -- a character who drops in a dungeon
+/// reappears in town -- so a run has nothing to survive and nothing to restore.
+/// </para>
+/// <para>
+/// A run belongs to one party, real or a character's virtual one, by its <c>PartyKey</c>, and has its
+/// own identifier. Who is in it is the party's answer: its members are the party's current members
+/// who are on the entry roster, and slots and leader are the party's. The run keeps no roster of its
+/// own beyond that entry roster and each entrant's state in the run. A character reaches a run
+/// through the party they belong to; leaving the run means leaving that party first, and a party
+/// bound to a run takes no new members.
+/// </para>
+/// </remarks>
+public interface IDungeonRunDomainService :
+    IDungeonRunQueryDomainService,
+    IDungeonRunEntryDomainService,
+    IDungeonRunCombatDomainService,
+    IDungeonRunParticipantDomainService,
+    IDungeonRunGroundDropDomainService,
+    IDungeonRunSettlementDomainService,
+    IDungeonRunCardDomainService,
+    IDungeonRunTimerDomainService,
+    IDungeonRunDepartureDomainService;
+

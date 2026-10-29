@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Characters;
@@ -34,6 +35,7 @@ public sealed class MirrorAradQuestTests
         await using var f = new LearningFixture(configure: services =>
         {
             services.AddSingleton<IDungeonRunDomainService>(runtime);
+            services.AddDungeonRunViews();
             services.AddSingleton<IQuestContentRuleService>(new Definitions { Value = Quest("clear map", null, 4403) });
             services.AddSingleton<IMirrorDungeonRuleService>(new MirrorRules());
             services.AddSingleton<IItemPlacementRuleService>(new Placements());
@@ -249,6 +251,7 @@ public sealed class MirrorAradQuestTests
         await using var fixture = new LearningFixture(configure: services =>
         {
             services.AddSingleton<IDungeonRunDomainService>(runtime);
+            services.AddDungeonRunViews();
             services.AddSingleton<IQuestContentRuleService>(new Definitions());
             services.AddSingleton<IMirrorDungeonRuleService>(new MirrorRules());
             services.AddSingleton<IItemPlacementRuleService>(new Placements());

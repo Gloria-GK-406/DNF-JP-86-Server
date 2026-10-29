@@ -11,7 +11,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeonAdmissionDomainService admission,
-    IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
+    IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits, IDungeonRunQueryDomainService runs,
     ICharacterDomainService characters, IEventManagementDomainService activities, IHerasQuotaDomainService quotas,
     TimeProvider clock) : IHerasDungeonDomainService
 {

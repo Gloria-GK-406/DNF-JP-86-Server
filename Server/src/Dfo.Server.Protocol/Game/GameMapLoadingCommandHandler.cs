@@ -65,7 +65,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly IOnlineUserQueryDomainService onlineUsers;
     private readonly IPartyService parties;
 
-    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonRunEntryDomainService runs;
     private readonly IDungeonVisitDomainService visits;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly ICharacterFatigueDomainService fatigue;
@@ -74,7 +74,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly IGameCommandOutbox mapOutbox;
     private readonly IGuardianAltarDomainService guardian;
     private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
-    public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunEntryDomainService runs,
         IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,

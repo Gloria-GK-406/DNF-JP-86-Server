@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
     IDungeonAdmissionDomainService admission, IDungeonStructureRuleService layouts,
-    IDungeonVisitDomainService visits, IDungeonRunDomainService runs, IEventManagementDomainService activities,
+    IDungeonVisitDomainService visits, IDungeonRunCombatDomainService runs, IEventManagementDomainService activities,
     ISouthernDaleDomainStore store, IItemDeliveryDomainService delivery,
     IDailyRefillConfigurationDomainService refills, IDailyRefillDomainService refill,
     ISelectedSessionDomainService sessions,

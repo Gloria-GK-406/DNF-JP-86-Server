@@ -13,7 +13,7 @@ namespace Dfo.Server.Application.World;
 
 public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transactions,
     ISelectedSessionDomainService sessions,
-    ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
+    ICharacterDomainService characters, IDungeonRunCombatDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService progress,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService tournaments,
@@ -143,7 +143,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         return new(result, pending) { Tournament = tournament };
     }
 
-    private sealed class DeathCommit(IDungeonRunDomainService runs, DungeonActorDeathClaim death, bool clearsMap)
+    private sealed class DeathCommit(IDungeonRunCombatDomainService runs, DungeonActorDeathClaim death, bool clearsMap)
         : ITransactionParticipant, ICommittedActorDeath
     {
         private readonly List<DungeonParticipantKillEffectClaim> effects = [];

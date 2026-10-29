@@ -48,7 +48,7 @@ internal sealed class UltimateAltarDomainService(AltarDungeonEngine engine) : IA
 
 /// <summary>Transport-neutral routing facade; contains no gameplay state.</summary>
 internal sealed class AltarDungeonDomainService(EndlessAltarDomainService endless, UltimateAltarDomainService ultimate,
-    IDungeonRunDomainService runs) : IAltarDungeonDomainService,
+    IDungeonRunQueryDomainService runs) : IAltarDungeonDomainService,
     IDomainEventSubscriber<DungeonParticipantLeft>
 {
     public bool Supports(int dungeonId) => dungeonId is 11006 or 11007;

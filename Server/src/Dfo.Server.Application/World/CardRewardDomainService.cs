@@ -15,7 +15,7 @@ namespace Dfo.Server.Application.World;
 /// </remarks>
 internal sealed class CardRewardDomainService(
     IClearRewardRuleService cardRules,
-    IDungeonRunDomainService runs,
+    IDungeonRunCardDomainService runs,
     IPremiumServiceDomainService premiums, IDimensionDungeonRuleService? dimensions = null) : ICardRewardDomainService
 {
     public async ValueTask<ClearRewardSettlementResult?> SettleAsync(

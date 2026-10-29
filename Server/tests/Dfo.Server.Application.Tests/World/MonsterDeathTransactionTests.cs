@@ -44,6 +44,7 @@ public sealed class MonsterDeathTransactionTests
             quests.Quest = quests.Quest with { ObjectiveTypeCode = "clear map", ObjectiveArguments = [61000], InitialTrigger = 1 };
             s.AddSingleton<IQuestContentRuleService>(quests);
             s.AddSingleton<IDungeonRunDomainService>(TestParties.Runs());
+            s.AddDungeonRunViews();
         });
         fixture.Sql("INSERT INTO accounts(account_id,m_id) VALUES(2,'death'); INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'death',12,1,0); INSERT INTO character_stats(character_id,carried_gold) VALUES(3,100000)");
         fixture.Sql("INSERT INTO character_active_quests VALUES(1,0,2001,1),(3,0,2001,1)");

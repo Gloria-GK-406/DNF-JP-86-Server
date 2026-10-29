@@ -3,7 +3,7 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.World;
-internal sealed class RoomMechanismMaintenanceDomainService(IDungeonRunDomainService runs, IDungeonRoomMechanismRuleService rules, IEventService events, ILogger<RoomMechanismMaintenanceDomainService> logger)
+internal sealed class RoomMechanismMaintenanceDomainService(IDungeonRunTimerDomainService runs, IDungeonRoomMechanismRuleService rules, IEventService events, ILogger<RoomMechanismMaintenanceDomainService> logger)
     : IRoomMechanismMaintenanceDomainService
 {
     private readonly Dictionary<(DungeonRunId, long), DungeonRoomMechanismState[]> delivered = [];

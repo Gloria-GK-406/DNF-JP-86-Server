@@ -86,7 +86,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private readonly IWeaknessDomainService weaknessState;
     private readonly ICommandWorkUnits workUnits;
     private readonly IOnlineUserQueryDomainService onlineUsers;
-    private readonly IDungeonRunDomainService dungeonRuns;
+    private readonly IDungeonRunDepartureDomainService dungeonRuns;
     private readonly IDungeonRunProjectionDomainService departureSink;
     private readonly IPartyService parties;
     private const bool projectWeakness = true;
@@ -101,7 +101,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ICharacterStateProjectionDomainService currentState,
         ICharacterDomainService characters, ITownMovementDomainService towns, IDungeonVisitDomainService visits,
-        IDungeonRunDomainService runs, IDungeonRunProjectionDomainService departureSink, ICommandProjections projections,
+        IDungeonRunDepartureDomainService runs, IDungeonRunProjectionDomainService departureSink, ICommandProjections projections,
         IGameCommandOutbox outbox, ICommandWorkUnits units, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
         ILogger<GameDungeonSelectionCommandHandler> logger, IDungeonEntryIntentDomainService entryIntents,
         IMarriageHousingQueryDomainService housing, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,

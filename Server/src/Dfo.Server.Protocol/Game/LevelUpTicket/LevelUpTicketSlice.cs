@@ -70,7 +70,7 @@ public sealed record GameLevelUpTicketCommand(NetworkDispatchContext Dispatch,Le
 public sealed class GameLevelUpTicketCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ILevelUpTicketDomainService tickets, TimeProvider clock, ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
-    ICharacterQuestLogDomainService quests, IDungeonRunDomainService runs, ILogger<GameLevelUpTicketCommandHandler> logger,
+    ICharacterQuestLogDomainService quests, IDungeonRunQueryDomainService runs, ILogger<GameLevelUpTicketCommandHandler> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
     : ICommandHandler<GameLevelUpTicketCommand,bool>
 {

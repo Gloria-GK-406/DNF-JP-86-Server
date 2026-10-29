@@ -11,7 +11,7 @@ namespace Dfo.Server.Protocol.Game;
 
 internal static class AltarTransitionProjection
 {
-    internal static IReadOnlyList<SelectedSessionIdentity> Participants(IDungeonRunDomainService runs,
+    internal static IReadOnlyList<SelectedSessionIdentity> Participants(IDungeonRunQueryDomainService runs,
         ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry, DungeonRunId runId) =>
         registry.Find(runId).Where(x => sessions.IsInWorld(x) && runs.Find(x.CharacterId)?.RunId == runId).ToArray();
 

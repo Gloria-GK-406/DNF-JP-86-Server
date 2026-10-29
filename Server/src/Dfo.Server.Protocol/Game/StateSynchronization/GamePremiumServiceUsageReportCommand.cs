@@ -15,7 +15,7 @@ public sealed record GamePremiumServiceUsageReportCommand(NetworkDispatchContext
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 public sealed class GamePremiumServiceUsageReportCommandHandler(ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs, IPremiumServiceDomainService premiums,
+    IDungeonRunQueryDomainService runs, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService usage, IDungeonPremiumBuffDomainService buffs, TimeProvider clock,
     ICommandWorkUnits units, IGameCommandOutbox sender, ILogger<PremiumServiceUsageReportHandler> logger)
     : ICommandHandler<GamePremiumServiceUsageReportCommand, bool>

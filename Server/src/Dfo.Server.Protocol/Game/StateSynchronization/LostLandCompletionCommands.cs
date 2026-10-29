@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.StateSynchronization;
 internal sealed record CaptureLostLandCompletionsCommand : ICommand<IReadOnlyList<LostLandCompletion>>;
 internal sealed record CompleteLostLandCommand(LostLandCompletion Completion) : ICommand<bool>;
 
-internal sealed class LostLandCompletionCommandHandler(IDungeonRunDomainService runs,
+internal sealed class LostLandCompletionCommandHandler(IDungeonRunTimerDomainService runs,
     IDungeonRunProjectionDomainService registry, ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService users, ICommandWorkUnits units, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<LostLandCompletionCommandHandler> logger)

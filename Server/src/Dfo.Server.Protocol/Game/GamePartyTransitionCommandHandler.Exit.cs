@@ -20,7 +20,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
 
     /// <summary>The whole party leaves together: the run ends for every member at once.</summary>
     internal static async ValueTask<IReadOnlyList<CharacterId>> EndOrdinaryRunCoreAsync(
-        IDungeonRunDomainService runs, DungeonRunId runId, CancellationToken token)
+        IDungeonRunDepartureDomainService runs, DungeonRunId runId, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         return await runs.EndRunAsync(runId).ConfigureAwait(false);

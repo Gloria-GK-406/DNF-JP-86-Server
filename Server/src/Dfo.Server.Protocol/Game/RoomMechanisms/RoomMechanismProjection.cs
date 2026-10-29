@@ -25,7 +25,7 @@ internal sealed class ElevatorStateEncoder : GameNotiMessageEncoder<ElevatorStat
         OnePayload(0x00FE, new byte[] { message.Stage, (byte)message.Outcome });
 }
 
-internal sealed class RoomMechanismNotificationHandler(IDungeonRunDomainService runs,
+internal sealed class RoomMechanismNotificationHandler(IDungeonRunQueryDomainService runs,
     ISelectedSessionDomainService sessions) : INotificationHandler<DungeonRoomMechanismsNotification>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,

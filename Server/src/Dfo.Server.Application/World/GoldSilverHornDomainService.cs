@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class GoldSilverHornDomainService(IGoldSilverHornRuleService rules,
     IDungeonAdmissionDomainService admission, IDungeonStructureRuleService layouts,
-    IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
+    IDungeonVisitDomainService visits, IDungeonRunQueryDomainService runs,
     IEventManagementDomainService activities, IUsageQuotaDomainService quotas,
     IDailyResetRuleService daily, TimeProvider clock) : IGoldSilverHornDomainService
 {

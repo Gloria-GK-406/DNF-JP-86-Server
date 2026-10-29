@@ -62,7 +62,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly IOnlineUserQueryDomainService onlineUsers;
     private readonly IPartyService parties;
 
-    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonRunQueryDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly IDungeonClearDomainService clearEvaluator;
     private readonly IMonsterDeathDomainService deaths;
@@ -73,7 +73,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly IAltarSchedulerWakeSignal altarWake;
     private readonly IGuardianAltarDomainService guardian;
     private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
-    public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IMonsterDeathDomainService deaths, ICreatureRuntimeDomainService creatures, IQuestQueryDomainService quests,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,

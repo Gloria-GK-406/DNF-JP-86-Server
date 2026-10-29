@@ -61,7 +61,7 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
     private readonly IOnlineUserQueryDomainService onlineUsers;
     private readonly IPartyService parties;
 
-    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonRunQueryDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly IDungeonClearDomainService clearEvaluator;
     private readonly IQuestQueryDomainService quests;
@@ -69,7 +69,7 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
     private readonly ICommandConnectionClosures closures;
     private readonly IInventorySlotProjectionDomainService slots;
 
-    public GameGetItemCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    public GameGetItemCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IGroundPickupDomainService floor, IQuestQueryDomainService quests, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,

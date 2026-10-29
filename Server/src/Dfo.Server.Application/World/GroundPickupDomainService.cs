@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.World;
 /// refusal or exception releases it.
 /// </remarks>
 internal sealed class GroundPickupDomainService(
-    IDungeonRunDomainService runs,
+    IDungeonRunGroundDropDomainService runs,
     ICharacterDomainService characters,
     IEpicBookDomainService epicBook,
     ICharacterContainerDomainService containers,

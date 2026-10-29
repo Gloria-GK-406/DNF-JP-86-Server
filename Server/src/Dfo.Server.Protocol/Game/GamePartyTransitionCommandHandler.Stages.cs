@@ -60,7 +60,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
         MutatePartyStateAsync(parties!, runs, change, caller.CharacterId, target?.CharacterId, token);
 
     internal static async ValueTask<PartyOperationResult> MutatePartyStateAsync(Dfo.Server.Abstractions.Parties.IPartyService parties,
-        IDungeonRunDomainService runs, PartyChange change, Dfo.Server.Data.Characters.CharacterId caller,
+        IDungeonRunDepartureDomainService runs, PartyChange change, Dfo.Server.Data.Characters.CharacterId caller,
         Dfo.Server.Data.Characters.CharacterId? target, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();

@@ -33,7 +33,7 @@ public sealed record AdvanceGuardianAltarCommand(GuardianAltarRunState Expected)
 public sealed record ReturnGuardianAltarCommand(GuardianAltarRunState Expected) : ICommand<ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>>;
 public sealed record GuardianAltarSchedule(DateTimeOffset? Next, IReadOnlyList<GuardianAltarRunState> Due);
 
-internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainService altar, IDungeonRunDomainService runs,
+internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainService altar, IDungeonRunDepartureDomainService runs,
     ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry, TimeProvider clock,
     ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState, IGameCommandOutbox outbox)
     : ICommandHandler<ReturnGuardianAltarCommand, ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>>
@@ -54,7 +54,7 @@ internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainServ
 }
 
 internal sealed class GuardianAltarTimerCommandHandler(IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService users, ICommandWorkUnits units, IDungeonRunDomainService runs, IGameCommandOutbox outbox, IInventorySlotProjectionDomainService slots, TimeProvider clock,
+    IOnlineUserQueryDomainService users, ICommandWorkUnits units, IDungeonRunDepartureDomainService runs, IGameCommandOutbox outbox, IInventorySlotProjectionDomainService slots, TimeProvider clock,
     ILogger<GuardianAltarTimerCommandHandler> logger) : ICommandHandler<MaintainGuardianAltarCommand, GuardianAltarSchedule>,
     ICommandHandler<AdvanceGuardianAltarCommand, bool>
 {

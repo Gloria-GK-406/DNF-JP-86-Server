@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Quests;
 /// </summary>
 internal sealed class QuestTriggerDomainService(
     ICharacterQuestLogDomainService logs,
-    IDungeonRunDomainService runs) : IQuestTriggerDomainService
+    IDungeonRunQueryDomainService runs) : IQuestTriggerDomainService
 {
     public ValueTask<QuestAdvance> ApplyClientReportAsync(
         AccountId accountId,

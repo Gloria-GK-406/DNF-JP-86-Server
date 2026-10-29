@@ -12,7 +12,7 @@ namespace Dfo.Server.Protocol.Game.Dungeons;
 public sealed class DungeonPartyRecipients(
     IPartyService parties,
     ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs,
+    IDungeonRunQueryDomainService runs,
     DungeonRunDeliveryRegistry runGenerations)
 {
     public IReadOnlyList<SelectedSessionIdentity> Find(
@@ -20,7 +20,7 @@ public sealed class DungeonPartyRecipients(
         DungeonRunId runId) => FindCurrent(parties, sessions, runs, runGenerations, actor, runId);
 
     internal static IReadOnlyList<SelectedSessionIdentity> FindCurrent(
-        IPartyService parties, ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+        IPartyService parties, ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService runGenerations,
         SelectedSessionIdentity actor, DungeonRunId runId)
     {

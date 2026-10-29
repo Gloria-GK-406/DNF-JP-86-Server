@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class GiantDragonDomainService(IGiantDragonRuleService rules, IDungeonAdmissionDomainService admission,
-    IDungeonStructureRuleService structures, IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
+    IDungeonStructureRuleService structures, IDungeonVisitDomainService visits, IDungeonRunQueryDomainService runs,
     ISelectedSessionDomainService sessions, IOnlineCharacterRuntimeDomainService runtime,
     ICharacterQuestLogDomainService quests) : IGiantDragonDomainService
 {

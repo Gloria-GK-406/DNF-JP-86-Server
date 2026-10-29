@@ -10,7 +10,7 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Rental;
 
 internal sealed class AccountLuckyStarDomainService(ILuckyStarDomainStore store, ILuckyStarRuleService rules,
-    ICharacterDomainService characters, IDungeonRunDomainService runs,
+    ICharacterDomainService characters, IDungeonRunQueryDomainService runs,
     IDomainTransactionAccessor transactions, IEventService? events = null) : IAccountLuckyStarDomainService
 {
     public async ValueTask<int> BalanceAsync(AccountId account,CancellationToken ct) =>

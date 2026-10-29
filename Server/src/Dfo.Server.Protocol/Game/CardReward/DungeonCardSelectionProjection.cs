@@ -14,7 +14,7 @@ namespace Dfo.Server.Protocol.Game.CardReward;
 internal static class DungeonCardSelectionProjection
 {
     internal static GameExplicitMessageDelivery? CreateDelivery(ISelectedSessionDomainService selectedSessions,
-        IDungeonRunDomainService runs, IReadOnlyList<SelectedSessionIdentity> candidates, SelectedSessionIdentity actor, SelectCardResult result, DateTimeOffset preparedAt, out int recipientCount)
+        IDungeonRunQueryDomainService runs, IReadOnlyList<SelectedSessionIdentity> candidates, SelectedSessionIdentity actor, SelectCardResult result, DateTimeOffset preparedAt, out int recipientCount)
     {
         recipientCount = 0;
         ArgumentNullException.ThrowIfNull(actor);

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -225,6 +226,7 @@ public sealed class LeaveDungeonTests
         services.AddCommandDispatching();
         var runs = new OneRun();
         services.AddSingleton<IDungeonRunDomainService>(runs);
+        services.AddDungeonRunViews();
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
         services.AddFixtureCommand<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
             FixtureUnitKind.Direct);

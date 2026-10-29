@@ -67,6 +67,7 @@ public sealed class QuestClearVerticalTests
             var parties = TestParties.Create();
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(parties);
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+            services.AddDungeonRunViews();
             services.AddSingleton<IQuestDomainStore>(questStore);
             services.AddSingleton<IItemDomainStore>(itemStore);
             services.AddSingleton<IQuestContentRuleService>(

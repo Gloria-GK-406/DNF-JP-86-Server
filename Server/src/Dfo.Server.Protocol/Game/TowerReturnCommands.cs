@@ -104,7 +104,7 @@ internal sealed partial class TowerReturnCommandHandler :
         IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, IBossTowerDepartureProjectionDomainService bossDepartures,
         IIllusionTowerDepartureProjectionDomainService illusionDepartures, TimeProvider clock,
-        ILogger<TowerReturnCommandHandler> logger, IDungeonRunDomainService wipeRuns,
+        ILogger<TowerReturnCommandHandler> logger, IDungeonRunTimerDomainService wipeRuns,
         IDungeonRunProjectionDomainService wipeRegistry, Dfo.Server.Abstractions.World.IDungeonCardPresentationControl cards,
         IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments,
         Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal wake,

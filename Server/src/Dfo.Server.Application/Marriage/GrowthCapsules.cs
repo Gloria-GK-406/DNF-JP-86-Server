@@ -11,7 +11,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleContentSource content, IItemDeliveryDomainService delivery,
-    IOnlineCharacterRuntimeDomainService onlineCharacters, HousingState housing, IDungeonRunDomainService runs, IEventService events)
+    IOnlineCharacterRuntimeDomainService onlineCharacters, HousingState housing, IDungeonRunQueryDomainService runs, IEventService events)
 {
     public async ValueTask<MarriageCapsuleResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation, MarriageCapsuleAction action, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
