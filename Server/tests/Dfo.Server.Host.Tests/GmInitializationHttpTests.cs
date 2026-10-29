@@ -133,7 +133,7 @@ public sealed class GmInitializationHttpTests
             var registration = services.Last(d => d.ServiceType == typeof(IInitializationDomainService));
             services.Remove(registration);
             services.AddSingleton<IInitializationDomainService>(p => new FailingInitialization(
-                (IInitializationDomainService)registration.ImplementationFactory!(p), fault));
+                (IInitializationDomainService)ActivatorUtilities.CreateInstance(p, registration.ImplementationType!), fault));
         });
         var csrf = await GmCeraHttpTests.Login(host);
         Assert.Equal(HttpStatusCode.OK, (await host.PostAsync(Prefix + "/account", csrf,
@@ -166,10 +166,11 @@ public sealed class GmInitializationHttpTests
         CreationAppearanceFault? fault = null;
         await using var host = await GmTestHost.StartAsync(realContent: true, configureServices: services =>
         {
-            var registration = services.Last(d => d.ServiceType == typeof(ICharacterDomainService));
+            var registration = services.Last(d => d.ServiceType == typeof(ICharacterRosterDomainService));
             services.Remove(registration);
-            services.AddSingleton<ICharacterDomainService>(p => fault = new CreationAppearanceFault(
-                (ICharacterDomainService)registration.ImplementationFactory!(p), p.GetRequiredService<IDomainTransactionAccessor>()));
+            services.AddSingleton<ICharacterRosterDomainService>(p => fault = new CreationAppearanceFault(
+                (ICharacterRosterDomainService)ActivatorUtilities.CreateInstance(p, registration.ImplementationType!),
+                p.GetRequiredService<IDomainTransactionAccessor>()));
         });
         var csrf = await GmCeraHttpTests.Login(host);
         var catalog = (await host.Client.GetFromJsonAsync<ItemCatalogPage>(Prefix + "/items?category=consumable&pageSize=15"))!;
@@ -220,7 +221,7 @@ public sealed class GmInitializationHttpTests
         return new(user.Connection);
     }
 
-    private sealed class CreationAppearanceFault(ICharacterDomainService inner, IDomainTransactionAccessor transactions) : ICharacterDomainService
+    private sealed class CreationAppearanceFault(ICharacterRosterDomainService inner, IDomainTransactionAccessor transactions) : ICharacterRosterDomainService
     {
         public IOException Failure { get; } = new("Injected post-commit appearance failure.");
         public int CreationCalls, AppearanceCalls;
@@ -234,7 +235,6 @@ public sealed class GmInitializationHttpTests
         public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(AccountId account, ushort index, CancellationToken ct) => inner.LoadByRosterPositionAsync(account, index, ct);
         public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) => inner.CheckNameAsync(name, ct);
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(AccountId account, ushort index, byte[] name, CancellationToken ct) => inner.DeleteCharacterAsync(account, index, name, ct);
-        public ICharacter Get(CharacterId id) => inner.Get(id);
     }
 
     private sealed class InitializationFault { public bool Account { get; set; } public bool Character { get; set; } }

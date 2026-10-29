@@ -889,7 +889,7 @@ public sealed class UserServiceTests
             throw new InvalidOperationException("Account settings must not load when character resolution fails.");
     }
 
-    private sealed class MissingCharacterDomainService : ICharacterDomainService
+    private sealed class MissingCharacterDomainService : ICharacterDomainService, ICharacterRosterDomainService
     {
 
         public ICharacter Get(CharacterId characterId) =>

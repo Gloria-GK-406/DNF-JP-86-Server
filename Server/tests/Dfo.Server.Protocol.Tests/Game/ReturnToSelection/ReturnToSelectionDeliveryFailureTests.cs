@@ -99,7 +99,7 @@ public sealed class ReturnToSelectionDeliveryFailureTests
             return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session));
         }
     }
-    private sealed class Roster : ICharacterDomainService
+    private sealed class Roster : ICharacterRosterDomainService
     {
         public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(AccountId account, CancellationToken ct) =>
             ValueTask.FromResult(new AccountCharacterRoster(account, 8, []));
@@ -108,7 +108,6 @@ public sealed class ReturnToSelectionDeliveryFailureTests
         public ValueTask<ActiveCharacterState> LoadByRosterPositionAsync(AccountId account, ushort index, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterNameStatus> CheckNameAsync(byte[] name, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<CharacterCreationResult> CreateCharacterAsync(AccountId account, byte job, byte[] name, CancellationToken ct) => throw new NotSupportedException();
-        public ICharacter Get(CharacterId id) => throw new NotSupportedException();
         public ValueTask<CharacterDeletionResult> DeleteCharacterAsync(AccountId account, ushort slot, byte[] name, CancellationToken ct) => throw new NotSupportedException();
     }
 

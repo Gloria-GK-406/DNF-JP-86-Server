@@ -40,6 +40,8 @@ public enum IndependentDropSourceType { Monster = 0, APC = 1 }
 public interface IIndependentDropRuleService
 {
     int Initialize();
-    ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(MonsterDropRequest request, CancellationToken cancellationToken,
-        int growthBonusPercent = 0);
+    /// <summary>Whether any row is declared for this source; the generating character's level is only worth reading when one is.</summary>
+    bool Covers(MonsterDropRequest request);
+    /// <param name="playerLevel">The generating character's level (the run leader for shared ground loot), read by the caller.</param>
+    IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent);
 }

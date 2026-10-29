@@ -18,7 +18,7 @@ public sealed class WeaknessTests
         await TestGameplay.RunAsync(async () =>
         {
             var character = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
-            var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
+            var weakness = new WeaknessDomainService(CurrentCharacterStub.Domain(character),
                 new WeaknessRuleService(new ConfigurationBuilder().Build()));
             var runs = TestParties.Runs(weakness: weakness);
             var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
@@ -44,7 +44,7 @@ public sealed class WeaknessTests
         {
             var read = new TaskCompletionSource<CharacterProgressionState?>();
             var character = new CurrentCharacterStub { ProgressReader = () => new(read.Task) };
-            var weakness = new WeaknessDomainService(() => CurrentCharacterStub.Domain(character),
+            var weakness = new WeaknessDomainService(CurrentCharacterStub.Domain(character),
                 new WeaknessRuleService(new ConfigurationBuilder().Build()));
             var pending = weakness.For(Id).SetWeakness().AsTask();
             character.ProgressReader = null;
@@ -67,8 +67,7 @@ public sealed class WeaknessTests
         await TestGameplay.RunAsync(async () =>
         {
             var second = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
-            var weakness = new WeaknessDomainService(() => new CharacterDomainService(null!, null!,
-                    id => id == Id ? new CurrentCharacterStub() : second, null!),
+            var weakness = new WeaknessDomainService(new CharacterDomainStub(id => id == Id ? new CurrentCharacterStub() : second),
                 new WeaknessRuleService(new ConfigurationBuilder().Build()));
             var runs = TestParties.Runs(weakness: weakness);
             DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
@@ -96,7 +95,7 @@ public sealed class WeaknessTests
 
     private static readonly CharacterId Id = new(1);
     private static WeaknessDomainService Create(byte level = 20, Dictionary<string, string?>? config = null) =>
-        new(() => CurrentCharacterStub.Domain(new() { Id = Id, Progress = new(level, 0) }),
+        new(CurrentCharacterStub.Domain(new() { Id = Id, Progress = new(level, 0) }),
             new WeaknessRuleService(new ConfigurationBuilder().AddInMemoryCollection(config ?? []).Build()));
 
     [Theory]

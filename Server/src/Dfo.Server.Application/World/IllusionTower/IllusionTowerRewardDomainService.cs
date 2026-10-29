@@ -13,7 +13,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World.IllusionTower;
 
 internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleService rules,
-    ICharacterDomainService characters,
+    ICharacterDomainService characters, ICharacterExperienceAwardDomainService experience,
     IItemDeliveryDomainService delivery,
     IQuestProgressDomainService quests, IQuestEnemyDropDomainService questDrops,
     IQuestItemDropDomainService questItems,
@@ -33,7 +33,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
         {
             var session = member.Session;
             footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
-            var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerKillExperienceContext(
+            var award = await experience.AwardAsync(new TowerKillExperienceContext(
                 new(ExperienceEvent.TowerKill, session.AccountId, session.CharacterId, run.DungeonId), DungeonParticipationMode.IllusionTower, actor.Seed.ActorType),
                 clock.GetUtcNow(), session, footprint, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
@@ -110,7 +110,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 delivered.Add(new(candidate.ItemId, 1));
                 updates.AddRange(receipt.Inventory.Select(x => new TowerInventoryUpdate(x.Slot, x.Snapshot)));
             }
-            var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerClearExperienceContext(
+            var award = await experience.AwardAsync(new TowerClearExperienceContext(
                 new(ExperienceEvent.TowerClear, session.AccountId, session.CharacterId, run.DungeonId), DungeonParticipationMode.IllusionTower, completion.RewardLevel),
                 clock.GetUtcNow(), session, footprint, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");

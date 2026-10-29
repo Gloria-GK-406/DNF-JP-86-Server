@@ -228,7 +228,7 @@ public sealed class LeaveDungeonTests
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
         services.AddFixtureCommand<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
             FixtureUnitKind.Direct);
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var result = await DomainCommandFixture.Bus(provider).SendAsync(
             new LeaveDungeonAlgorithmCommand(Identity, [Identity], runs.RunId)).AsTask().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal([Identity.CharacterId], result.EndedCharacters);
@@ -504,7 +504,7 @@ public sealed class LeaveDungeonTests
             new TracedAltar(runs.RunId, trace, provider.GetRequiredService<IDomainTransactionAccessor>())));
         services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, ExitBusHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
         services.AddScoped<ICommandHandler<GameGiveUpGameCommand, bool>>(p => p.GetRequiredService<ExitBusHandler>());
-        using var provider = services.BuildServiceProvider();
+        using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var commands = DomainCommandFixture.Bus(provider);
         runs.BeforeEnd = () =>
         {

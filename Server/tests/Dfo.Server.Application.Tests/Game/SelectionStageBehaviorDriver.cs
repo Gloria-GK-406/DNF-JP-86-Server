@@ -122,7 +122,7 @@ internal sealed class CompensateSelectedCharacterSessionStageHandler(ISelectedSe
     public async ValueTask<CompensatedSelectedCharacterSession> HandleAsync(CommandExecutionContext context,CompensateSelectedCharacterSessionStage stage,CancellationToken ct) =>
         new(stage.Session.ConnectionId,await ProductionSelectionStages.Select(sessions:sessions,cleanup:cleanup).CompensateAsync(context,stage.Session,ct));
 }
-internal sealed class PrepareReturnToSelectionStageHandler(IOnlineUserQueryDomainService users,ISelectedSessionDomainService sessions,ICharacterDomainService characters) : ISelectionStageHandler<PrepareReturnToSelectionStage,PreparedReturnToSelection>
+internal sealed class PrepareReturnToSelectionStageHandler(IOnlineUserQueryDomainService users,ISelectedSessionDomainService sessions,ICharacterRosterDomainService characters) : ISelectionStageHandler<PrepareReturnToSelectionStage,PreparedReturnToSelection>
 {
     public ValueTask<PreparedReturnToSelection> HandleAsync(CommandExecutionContext context,PrepareReturnToSelectionStage stage,CancellationToken ct) =>
         ProductionSelectionStages.Return(users,sessions,characters,null!).PrepareCoreAsync(stage.AccountId,stage.ConnectionId,stage.Generation,ct);
@@ -144,7 +144,7 @@ internal static class ProductionSelectionStages
             inventory!,entry!,quests!,pets!,expiredItems!,null!,null!,null!,new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry(),null!,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<GameSelectCharacterCommandHandler>.Instance,SelectCharacterDeliveryOptions.Everything,TimeProvider.System, lotteryCounterExperiment: ProtocolAlgorithmFixture.Default<LotteryCounterExperimentOptions>(), weaknessState: ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), itemUsage: ProtocolAlgorithmFixture.Default<IItemUsageDomainService>(), clientSettings: ProtocolAlgorithmFixture.Default<IClientSettingsDomainService>(), sao: ProtocolAlgorithmFixture.Default<ISaoTowerDomainService>(), tau: ProtocolAlgorithmFixture.Default<ITauKingdomDomainService>(), southern: ProtocolAlgorithmFixture.Default<ISouthernDaleDomainService>(), bossTickets: ProtocolAlgorithmFixture.Default<IBossTowerTicketDomainService>(), ordering: ProtocolAlgorithmFixture.Default<IOutboundOrdering>());
     internal static GameReturnToSelectionCommandHandler Return(IOnlineUserQueryDomainService users,ISelectedSessionDomainService sessions,
-        ICharacterDomainService characters,ISelectedSessionCleanupDomainService cleanup) =>
+        ICharacterRosterDomainService characters,ISelectedSessionCleanupDomainService cleanup) =>
         new(users,sessions,characters,null!,new CleanupAdapter(cleanup),null!,null!,null!,null!,
             new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry(),(Dfo.Server.Abstractions.Execution.IOutboundOrdering)ProtocolAlgorithmFixture.Default(typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)));
     private sealed class InlineUnits : ICommandWorkUnits

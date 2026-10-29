@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.HttpApi.Tests;
 
@@ -25,7 +26,7 @@ public sealed class HttpGameplayTests
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.AddProvider(logs))
             .AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>()
-            .BuildServiceProvider();
+            .AddSessionSafetyStandIns().BuildServiceProvider();
         var queue = services.GetRequiredService<IGameplayQueue>();
         var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var holding = queue.RunAsync(new GameplayWork(GameplayShardKey.World,
@@ -70,7 +71,7 @@ public sealed class HttpGameplayTests
         await using var services = new ServiceCollection()
             .AddLogging(builder => builder.AddProvider(logs).SetMinimumLevel(LogLevel.Trace))
             .AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>()
-            .BuildServiceProvider();
+            .AddSessionSafetyStandIns().BuildServiceProvider();
         var context = new DefaultHttpContext { RequestServices = services };
         context.Response.Body = new MemoryStream();
         context.SetEndpoint(Probe());
@@ -119,7 +120,7 @@ public sealed class HttpGameplayTests
     public async Task A_parser_failure_still_waits_in_the_same_queue_and_carries_the_original_cause(bool cancelled)
     {
         await using var services = new ServiceCollection().AddLogging().AddCommandDispatching()
-            .AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>().BuildServiceProvider();
+            .AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>().AddSessionSafetyStandIns().BuildServiceProvider();
         var queue = services.GetRequiredService<IGameplayQueue>();
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var holding = queue.RunAsync(new GameplayWork(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.Gm),
@@ -164,7 +165,7 @@ public sealed class HttpGameplayTests
     /// <summary>Runs a chunked JSON request through the filter that <see cref="HttpGameplay.RunsOnGameplay{TBuilder}"/> adds.</summary>
     private static async Task<(byte[] Read, long Position)> ReadThroughTheFilterAsync(byte[] body, IHttpMaxRequestBodySizeFeature? size)
     {
-        await using var services = new ServiceCollection().AddLogging().AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>().BuildServiceProvider();
+        await using var services = new ServiceCollection().AddLogging().AddCommandDispatching().AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, ProbeHandler>().AddSingleton<ProbeState>().AddSessionSafetyStandIns().BuildServiceProvider();
         var context = new DefaultHttpContext { RequestServices = services };
         context.Request.Method = "POST";
         context.Request.ContentType = "application/json";

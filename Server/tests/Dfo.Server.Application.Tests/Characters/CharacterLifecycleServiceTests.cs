@@ -20,10 +20,10 @@ public sealed class CharacterLifecycleServiceTests
 
     private static readonly AccountId Account = new(1);
 
-    private static (ICharacterDomainService Service, FakeRepository Repository) Build(
+    private static (ICharacterRosterDomainService Service, FakeRepository Repository) Build(
         params CharacterSummary[] existing) => BuildWith(new FakeStatSource(), existing);
 
-    private static (ICharacterDomainService Service, FakeRepository Repository) BuildWith(
+    private static (ICharacterRosterDomainService Service, FakeRepository Repository) BuildWith(
         ICharacterStatRuleService stats,
         params CharacterSummary[] existing)
     {
@@ -37,7 +37,7 @@ public sealed class CharacterLifecycleServiceTests
         new ApplicationModule().ConfigureServices(
             services,
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
-        return (services.BuildServiceProvider().GetRequiredService<ICharacterDomainService>(), repository);
+        return (services.BuildServiceProvider().GetRequiredService<ICharacterRosterDomainService>(), repository);
     }
 
     [Fact]

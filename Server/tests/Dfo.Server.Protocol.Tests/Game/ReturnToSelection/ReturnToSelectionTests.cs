@@ -44,8 +44,8 @@ public sealed class ReturnToSelectionTests
         var session = sessions.InWorld(state, new AccountId(1), new CharacterId(1), "return");
         var roster = new AccountCharacterRoster(session.AccountId, 24,
             knight ? [new CharacterSummary(session.CharacterId, 0, new byte[20], 12, 0, 1, 0, [])] : []);
-        var characters = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),
-            (method, _) => method.Name == nameof(ICharacterDomainService.GetAccountRosterWithAppearanceAsync)
+        var characters = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICharacterRosterDomainService>(),
+            (method, _) => method.Name == nameof(ICharacterRosterDomainService.GetAccountRosterWithAppearanceAsync)
                 ? (true, (object)ValueTask.FromResult(roster)) : (false, null));
         var cleanup = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICommandSelectedSessionCleanup>(),
             (method, _) => method.Name == nameof(ICommandSelectedSessionCleanup.CleanupAsync)

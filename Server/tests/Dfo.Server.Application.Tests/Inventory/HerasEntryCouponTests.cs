@@ -39,7 +39,7 @@ public sealed class HerasEntryCouponTests
         f.Content.Placements[Coupon] = new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55));
         return f;
     }
-    private static ValueTask<HerasQuotaSnapshot> Quota(CeraShopFixture f) => f.Host.Services.GetRequiredService<IHerasDungeonDomainService>().ReadQuotaAsync(f.Host.Session.CharacterId, default);
+    private static ValueTask<HerasQuotaSnapshot> Quota(CeraShopFixture f) => f.Host.Services.GetRequiredService<IHerasQuotaDomainService>().ReadQuotaAsync(f.Host.Session.CharacterId, default);
     private static Task<ItemUseResult> Use(CeraShopFixture f) => f.Host.Services.GetRequiredService<ICommandBus>()
         .SendAsync(WholeUse.Command(f.Host.Services, f.Host.Session, Source, Coupon)).AsTask();
 

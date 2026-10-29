@@ -16,7 +16,7 @@ using Dfo.Server.Application.Inventory;
 namespace Dfo.Server.Application.Characters;
 
 public sealed class SelectCharacterPreparationService(
-    ICharacterDomainService characters,
+    ICharacterRosterDomainService rosters,
     ICharacterInventoryEntryDomainService characterInventoryEntries,
     IAccountInventoryEntryDomainService accountInventoryEntries,
     ICharacterEntryStateDomainService characterEntries,
@@ -79,7 +79,7 @@ public sealed class SelectCharacterPreparationService(
         ArgumentNullException.ThrowIfNull(channel);
 
         // The wire index is a position in the roster the client was sent, not a slot.
-        var character = await characters.LoadByRosterPositionAsync(
+        var character = await rosters.LoadByRosterPositionAsync(
             accountId,
             rosterIndex,
             cancellationToken).ConfigureAwait(false);
@@ -108,10 +108,10 @@ public sealed class SelectCharacterPreparationService(
         if (recovery.FailedCount > 0 || recovery.RemainingCount > 0)
             throw new InvalidDataException("Dungeon persistent effects were not completely recovered.");
         if (recovery.RequiresReload)
-            character = await characters.LoadForSelectionAsync(
+            character = await rosters.LoadForSelectionAsync(
                 accountId, character.Identity.SlotIndex, cancellationToken).ConfigureAwait(false);
 
-        var roster = await characters.GetAccountRosterAsync(
+        var roster = await rosters.GetAccountRosterAsync(
             accountId,
             cancellationToken).ConfigureAwait(false);
         if (roster.AccountId != accountId
@@ -158,7 +158,7 @@ public sealed class SelectCharacterPreparationService(
             characterInventory, preparationRules, preparedAt, cancellationToken).ConfigureAwait(false);
         accountEntry = await CharacterStateProjection.CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
-            characters, characterInventoryEntries.LoadAsync, characterEntries,
+            rosters, characterInventoryEntries.LoadAsync, characterEntries,
             preparationRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
@@ -215,7 +215,7 @@ public sealed class SelectCharacterPreparationService(
         // which is one of the four call sites that listing was split off for. The frame below does
         // need them, so it takes the listing that has them. Two reads of the same summaries is the
         // price of not putting an equipment read behind a membership check.
-        var drawnRoster = await characters.GetAccountRosterWithAppearanceAsync(
+        var drawnRoster = await rosters.GetAccountRosterWithAppearanceAsync(
             accountId, cancellationToken).ConfigureAwait(false);
         var rosterEntry = await CharacterStateProjection.BuildRosterEntryAsync(
             accountId, drawnRoster, character.Identity.CharacterId, characterEntry,

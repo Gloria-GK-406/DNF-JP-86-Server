@@ -30,7 +30,7 @@ internal sealed partial class GameSetPlayResultCommandHandler
                 [new QuestDungeonCleared(dungeonId, mirror.Difficulty, mirror.RunId, mirror.ClearedAt ?? now)], cancellationToken).ConfigureAwait(false);
         if (runId != Guid.Empty)
             await luckyStars.GrantForClearAsync(accountId, characterId, new(runId), cancellationToken).ConfigureAwait(false);
-        var award = await characters.Get(characterId).AddExpAsync(new ClearExperienceContext(
+        var award = await experience.AwardAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, accountId,
                     characterId, dungeonId), clear), now, session,
             footprint, cancellationToken).ConfigureAwait(false);

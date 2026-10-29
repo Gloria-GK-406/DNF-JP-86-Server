@@ -243,7 +243,7 @@ public sealed class SkillGrowthProtocolCommandFlowTests(ITestOutputHelper output
         public ValueTask<IReadOnlyList<TrainingQuestAvailability>> TrainingAvailabilityAsync(CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
         public QuestParameters Parameters()=>new([],new Dictionary<char,int>(),100,100,100,100);
     }
-    private sealed class PublishedView(ICharacterDomainService characters,ICharacterEntryStateDomainService entries,ICharacterInventoryEntryDomainService inventory,ICharacterSkillPointDomainService points):ISelectedCharacterCurrentViewDomainService {
+    private sealed class PublishedView(ICharacterRosterDomainService characters,ICharacterEntryStateDomainService entries,ICharacterInventoryEntryDomainService inventory,ICharacterSkillPointDomainService points):ISelectedCharacterCurrentViewDomainService {
         public async ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity s,CancellationToken ct) {
             var entry=await entries.LoadAsync(s.AccountId,s.CharacterId,ct);
             entry=entry with {Skills=entry.Skills with {ProtocolMirror=await points.RemainingAsync(s.CharacterId,ct)}};

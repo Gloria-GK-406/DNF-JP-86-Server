@@ -22,7 +22,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     IBusinessInventorySlotDomainService slots,
     IDomainTransactionAccessor transactions, ICharacterInventoryEntryDomainService inventory,
     IPremiumServiceDomainService premiums, ICharacterCreatureTable creatures,
-    ICharacterDomainService characterDomain, IApplyEffectsDomainService effects,
+    ICharacterItemUseDomainService itemUse, IApplyEffectsDomainService effects,
     ICreatureDomainService? creatureDomains = null) : IOpeningInventoryDomainService
 {
     public async ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
@@ -37,7 +37,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         if (item is null || !item.IsPile || item.Count <= 0
             || item.Snapshot.Lifetime.IsExpired(now))
             throw new OpeningRejectedException(OpeningRejection.WrongItem, "Missing, expired or nonstackable source.");
-        var usability = await characterDomain.Get(session.CharacterId).CanUseAsync(item.ItemId, ct).ConfigureAwait(false);
+        var usability = await itemUse.CanUseAsync(session.CharacterId, item.ItemId, ct).ConfigureAwait(false);
         if (usability != ItemUsability.Allowed)
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Opening source is unusable: {usability}.");
         return item;

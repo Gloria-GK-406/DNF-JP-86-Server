@@ -18,7 +18,7 @@ public sealed class ReadOnlyCommandTransactionTests : IAsyncDisposable
         var services = new ServiceCollection().AddLogging().AddCommandDispatching();
         services.AddSingleton(sp => new SqliteDatabase(path, sp.GetRequiredService<IDomainTransactionAccessor>()));
         services.AddFixtureCommand<QueryCommand, long, QueryHandler>(FixtureUnitKind.ReadOnly);
-        provider = services.BuildServiceProvider();
+        provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         database = provider.GetRequiredService<SqliteDatabase>();
         Execute("CREATE TABLE read_only_probe(id INTEGER PRIMARY KEY, value INTEGER NOT NULL); "
             + "INSERT INTO read_only_probe VALUES(1,10),(2,20)");

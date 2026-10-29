@@ -36,6 +36,9 @@ internal sealed class AuthenticationFixture : IDisposable
         services.AddSingleton<IPasswordCredentialRuleService>(passwords ?? new PasswordCredentialService(100));
         new ApplicationModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
+        // Without the content sources the real initialization cannot be built; registration here applies the defaults,
+        // which grant nothing.
+        services.AddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationDomainService>(new DefaultInitialization());
         configure?.Invoke(services);
         Services = services.BuildServiceProvider();
         _ = Store;
@@ -104,5 +107,16 @@ internal sealed class AuthenticationFixture : IDisposable
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
                 messages.Enqueue(formatter(state, exception) + exception);
         }
+    }
+
+    private sealed class DefaultInitialization : Dfo.Server.Abstractions.Initialization.IInitializationDomainService
+    {
+        public ValueTask<Dfo.Server.Data.Initialization.InitializationDocument<Dfo.Server.Data.Initialization.AccountInitialization>> AccountAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Data.Initialization.InitializationDocument<Dfo.Server.Data.Initialization.CharacterInitialization>> CharacterAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Data.Initialization.InitializationOptions> OptionsAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Data.Initialization.InitializationDocument<Dfo.Server.Data.Initialization.AccountInitialization>> SaveAsync(Dfo.Server.Data.Initialization.SaveInitializationRequest<Dfo.Server.Data.Initialization.AccountInitialization> request, string actor, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Data.Initialization.InitializationDocument<Dfo.Server.Data.Initialization.CharacterInitialization>> SaveAsync(Dfo.Server.Data.Initialization.SaveInitializationRequest<Dfo.Server.Data.Initialization.CharacterInitialization> request, string actor, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask ApplyAccountAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask ApplyCharacterAsync(Dfo.Server.Data.Characters.CharacterId character, CancellationToken ct) => ValueTask.CompletedTask;
     }
 }

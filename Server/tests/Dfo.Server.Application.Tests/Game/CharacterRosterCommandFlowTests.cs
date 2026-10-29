@@ -23,6 +23,7 @@ using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
 using Dfo.Server.Protocol.Game.HonorLevel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Game;
 
@@ -232,6 +233,7 @@ public sealed class CharacterRosterCommandFlowTests
             ((Sessions)(object)sessions).Find = account => Selected is { } held && held.AccountId == account ? held : null;
             services.AddSingleton(sessions);
             services.AddSingleton<ICharacterDomainService>(p => Characters = new(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
+            services.AddSingleton<ICharacterRosterDomainService>(p => (Characters)p.GetRequiredService<ICharacterDomainService>());
             services.AddSingleton<INetworkConnectionContexts>(new Connections(Connection));
             services.AddSingleton<IOutboundMessageEncoder>(p => new Encoder(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             Output = new(Trace);
@@ -249,7 +251,7 @@ public sealed class CharacterRosterCommandFlowTests
             services.RegisterProtocolMessageHandler<CheckCharacterNameHandler, CheckCharacterNameRequest, GameCheckCharacterNameCommand>(ClientMessageType.GameCheckCharacterName);
             services.RegisterProtocolMessageHandler<CreateCharacterHandler, CreateCharacterRequest, GameCreateCharacterCommand>(ClientMessageType.GameCreateCharacter);
             services.RegisterProtocolMessageHandler<DeleteCharacterHandler, DeleteCharacterRequest, GameDeleteCharacterCommand>(ClientMessageType.GameDeleteCharacter);
-            Services = services.BuildServiceProvider();
+            Services = services.AddSessionSafetyStandIns().BuildServiceProvider();
             Characters = (Characters)Services.GetRequiredService<ICharacterDomainService>();
         }
         public Task DispatchAsync(int kind) => Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(Connection), Request(kind), default).AsTask();
@@ -274,7 +276,7 @@ public sealed class CharacterRosterCommandFlowTests
         { user = id == connection.ConnectionId ? GetRequired(new(Guid.Empty)) : null; return user is not null; }
     }
 
-    private sealed class Characters(IDomainTransactionAccessor transactions, List<string> trace) : ICharacterDomainService
+    private sealed class Characters(IDomainTransactionAccessor transactions, List<string> trace) : ICharacterDomainService, ICharacterRosterDomainService
     {
         public AccountCharacterRoster Roster { get; } = new(new(19), 12, []);
         public CharacterCreationResult Creation { get; set; } = new(CharacterCreationStatus.Created, new(71));

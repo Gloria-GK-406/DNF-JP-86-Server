@@ -4,8 +4,10 @@
 
 ## 入口与权威状态
 
-命令通过 `ICharacterDomainService.Get(id)` 获取无缓存的角色实例。
-`PlayingCharacter.AddExpAsync` 负责奖励计算与结算；任务的已定价经验效果也进入同一实例。
+命令通过 `ICharacterDomainService.Get(id)` 获取无缓存的角色实例。按场合发放的经验经
+`ICharacterExperienceAwardDomainService.AwardAsync`：读取当前等级、由计算服务定价，再以经验效果交给
+实例的 `AddExpAsync(breakdown, expected)` 结算；任务的已定价经验效果也进入同一入口。发放服务位于角色之上，
+因为效果层会到达角色。
 `ICharacterExperienceDomainService` 和 `ICharacterProgressionDomainService` 已移除。
 经验估值、加成和 PVF 读取仍由原有规则与计算服务负责。
 

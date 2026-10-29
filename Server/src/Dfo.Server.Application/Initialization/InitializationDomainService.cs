@@ -11,12 +11,12 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Initialization;
 
-internal sealed class InitializationDomainService(IInitializationPersistence persistence, Func<IInitializationRuleService> rules,
-    Func<InitializationAssetGrants> grants, IDomainTransactionAccessor transactions, TimeProvider clock) : IInitializationDomainService
+internal sealed class InitializationDomainService(IInitializationPersistence persistence, IInitializationRuleService rules,
+    InitializationAssetGrants grants, IDomainTransactionAccessor transactions, TimeProvider clock) : IInitializationDomainService
 {
     public ValueTask<InitializationDocument<AccountInitialization>> AccountAsync(CancellationToken ct) => ReadAsync("account", InitializationRuleService.DefaultAccount(), ct);
     public ValueTask<InitializationDocument<CharacterInitialization>> CharacterAsync(CancellationToken ct) => ReadAsync("character", InitializationRuleService.DefaultCharacter(), ct);
-    public ValueTask<InitializationOptions> OptionsAsync(CancellationToken ct) => rules().OptionsAsync(ct);
+    public ValueTask<InitializationOptions> OptionsAsync(CancellationToken ct) => rules.OptionsAsync(ct);
     private async ValueTask<InitializationDocument<T>> ReadAsync<T>(string kind, T fallback, CancellationToken ct)
     {
         var row = await persistence.ReadAsync(kind, ct);
@@ -26,13 +26,13 @@ internal sealed class InitializationDomainService(IInitializationPersistence per
     public async ValueTask<InitializationDocument<AccountInitialization>> SaveAsync(SaveInitializationRequest<AccountInitialization> request, string actor, CancellationToken ct)
     {
         RequireTransaction();
-        await rules().ValidateAsync(request.Input, ct);
+        await rules.ValidateAsync(request.Input, ct);
         return await SaveAsync("account", request.ExpectedRevision, request.Input with { Contracts = [.. request.Input.Contracts.OrderBy(c => c.Type)] }, actor, ct);
     }
     public async ValueTask<InitializationDocument<CharacterInitialization>> SaveAsync(SaveInitializationRequest<CharacterInitialization> request, string actor, CancellationToken ct)
     {
         RequireTransaction();
-        await rules().ValidateAsync(request.Input, ct);
+        await rules.ValidateAsync(request.Input, ct);
         return await SaveAsync("character", request.ExpectedRevision, request.Input with { Items = [.. request.Input.Items] }, actor, ct);
     }
     private async ValueTask<InitializationDocument<T>> SaveAsync<T>(string kind, long revision, T input, string actor, CancellationToken ct)
@@ -49,13 +49,13 @@ internal sealed class InitializationDomainService(IInitializationPersistence per
         RequireTransaction();
         var input = (await AccountAsync(ct)).Input;
         if (input.Cera != 0 || input.TokenCera != 0 || input.HappyTokenCera != 0 || input.Contracts.Any(c => c.Days > 0) || input.AccountCargoLevel != 0)
-            await grants().AccountAsync(account, input, ct);
+            await grants.AccountAsync(account, input, ct);
     }
     public async ValueTask ApplyCharacterAsync(CharacterId character, CancellationToken ct)
     {
         RequireTransaction();
         var input = (await CharacterAsync(ct)).Input;
-        if (input.Level != 1 || input.PersonalCargoLevel != 8 || input.Items.Length != 0) await grants().CharacterAsync(character, input, ct);
+        if (input.Level != 1 || input.PersonalCargoLevel != 8 || input.Items.Length != 0) await grants.CharacterAsync(character, input, ct);
     }
     private void RequireTransaction()
     { if (transactions.Current is null) throw new InvalidOperationException("Initialization requires a domain transaction."); }

@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Characters;
 
 namespace Dfo.Server.Application.World;
 
@@ -22,7 +23,8 @@ internal sealed partial class MonsterDropDomainService(
     IMonsterDeclaredDropRuleService declaredDrops,
     IExtraDropRuleService extraDrops,
     IIndependentDropRuleService independentDrops,
-    IPremiumServiceDomainService premiums, IDimensionDungeonRuleService? dimensions = null) : IMonsterDropDomainService
+    IPremiumServiceDomainService premiums, ICharacterDomainService characters,
+    IDimensionDungeonRuleService? dimensions = null) : IMonsterDropDomainService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -31,14 +33,14 @@ internal sealed partial class MonsterDropDomainService(
         var request = new MonsterDropRequest(monsterId, context);
         var result = new List<RolledDrop>();
         if (context.SourceType == IndependentDropSourceType.APC)
-            return await independentDrops.DrawAsync(request, cancellationToken).ConfigureAwait(false);
+            return await IndependentAsync(request, 0, cancellationToken).ConfigureAwait(false);
         result.AddRange(this.GenerateRandomDrops(request));
         result.AddRange(GenerateMonsterDeclared(request));
         var growthBonus = context.MonsterRank == 3
             ? await premiums.GetBossEquipmentDropBonusPercentAsync(
                 context.Participants.Select(p => p.AccountId).ToArray(), cancellationToken).ConfigureAwait(false)
             : 0;
-        result.AddRange(await independentDrops.DrawAsync(request, cancellationToken, growthBonus).ConfigureAwait(false));
+        result.AddRange(await IndependentAsync(request, growthBonus, cancellationToken).ConfigureAwait(false));
         result.AddRange(worldDrops.Draw(request));
         result.AddRange(GenerateSpecialMode(request));
         return result;
@@ -62,6 +64,27 @@ internal sealed partial class MonsterDropDomainService(
                 .Select(item => item with { OwnerCharacterId = characterId }));
         }
         return result;
+    }
+
+    public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
+        int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken cancellationToken)
+    {
+        Validate(context, cancellationToken);
+        return IndependentAsync(new(monsterId, context), growthBonusPercent, cancellationToken);
+    }
+
+    /// <remarks>
+    /// The level is that of the generating character (the run leader for shared ground loot), not the
+    /// monster's, and it is read only when the table declares a row for this source.
+    /// </remarks>
+    private async ValueTask<IReadOnlyList<RolledDrop>> IndependentAsync(
+        MonsterDropRequest request, int growthBonusPercent, CancellationToken cancellationToken)
+    {
+        if (!independentDrops.Covers(request)) return [];
+        var progress = await characters.Get(request.CharacterId).ProgressAsync(cancellationToken)
+            .ConfigureAwait(false) ?? throw new InvalidOperationException(
+                $"Independent drops: missing character {request.CharacterId}.");
+        return independentDrops.Draw(request, progress.Level, growthBonusPercent);
     }
 
     private static void Validate(MonsterDropContext context, CancellationToken cancellationToken)

@@ -97,7 +97,7 @@ public sealed class GrantKillExperienceCommandTests
                 new FixedChannelBonus(channelRate)), characterLevel: 3);
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1),new(60),null),
-                cap => handler.Get(new(60)).AddExpAsync(new KillExperienceContext(
+                cap => handler.AwardAsync(new KillExperienceContext(
                     new ExperienceOccasion(ExperienceEvent.MonsterKill,new(1),new(60),CapturedDungeon),
                     monsterLevel,rank,0,CapturedDungeonWeight,1,named),DateTimeOffset.UtcNow,null,cap,default));
 

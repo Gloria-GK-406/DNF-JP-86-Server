@@ -49,7 +49,7 @@ public sealed class NetworkMessageDispatcherTests
         services.AddNetworkMessageDispatching();
         services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
         services.RegisterFixtureMessageHandler<OtherHandler>(ClientMessageType.ChannelConnect);
-        using var provider = services.BuildServiceProvider();
+        using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => provider.GetRequiredService<MessageHandlerRegistry>());
@@ -69,7 +69,7 @@ public sealed class NetworkMessageDispatcherTests
         services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
         services.AddSingleton(new ClientMessageProductionRegistration(
             ClientMessageType.ChannelConnect, typeof(StubDecoder)));
-        using var provider = services.BuildServiceProvider();
+        using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
         var registry = provider.GetRequiredService<MessageHandlerRegistry>();
 
@@ -85,7 +85,7 @@ public sealed class NetworkMessageDispatcherTests
         services.RegisterFixtureMessageHandler<CountingHandler>(ClientMessageType.ChannelConnect);
         services.AddSingleton(new ClientMessageProductionRegistration(
             ClientMessageType.GameLogin, typeof(StubDecoder)));
-        using var provider = services.BuildServiceProvider();
+        using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => provider.GetRequiredService<MessageHandlerRegistry>());
@@ -99,7 +99,7 @@ public sealed class NetworkMessageDispatcherTests
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
         configure(services);
-        return services.BuildServiceProvider();
+        return services.AddSessionSafetyStandIns().BuildServiceProvider();
     }
 
     [Fact]

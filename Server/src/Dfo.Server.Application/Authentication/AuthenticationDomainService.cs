@@ -8,7 +8,7 @@ namespace Dfo.Server.Application.Authentication;
 
 internal sealed class AuthenticationDomainService(
     IAuthenticationPersistence persistence, TimeProvider clock,
-    LoginSessionRegistry sessions, LoginSessionOptions sessionOptions, Func<Dfo.Server.Abstractions.Initialization.IInitializationDomainService> initialization) : IAuthenticationDomainService
+    LoginSessionRegistry sessions, LoginSessionOptions sessionOptions, Dfo.Server.Abstractions.Initialization.IInitializationDomainService initialization) : IAuthenticationDomainService
 {
     private const int MIdEncodedLength = 6;
     private const int TicketEncodedLength = 32;
@@ -16,7 +16,7 @@ internal sealed class AuthenticationDomainService(
     public async ValueTask<RegistrationResult> RegisterAsync(PreparedRegistration registration, CancellationToken cancellationToken)
     {
         var accountId = await persistence.TryCreateAsync(registration.LoginId, registration.PasswordRecord, cancellationToken);
-        if (accountId.HasValue) await initialization().ApplyAccountAsync(accountId.Value, cancellationToken);
+        if (accountId.HasValue) await initialization.ApplyAccountAsync(accountId.Value, cancellationToken);
         return accountId.HasValue ? new(AuthenticationStatus.Success, registration.LoginId) : new(AuthenticationStatus.AccountExists);
     }
 

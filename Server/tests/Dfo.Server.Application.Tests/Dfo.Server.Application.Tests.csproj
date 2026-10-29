@@ -56,6 +56,8 @@
     <Compile Include="../Support/GameplayAssertionRecorderControlTests.cs" Link="Support/GameplayAssertionRecorderControlTests.cs" />
     <Compile Include="../Support/TestCredentials.cs" Link="Support/TestCredentials.cs" />
     <Compile Include="../Support/ProjectionEventService.cs" Link="Support/ProjectionEventService.cs" />
+    <Compile Include="../Support/CharacterDoubles.cs" Link="Support/CharacterDoubles.cs" />
+    <Compile Include="../Support/SessionSafetyDoubles.cs" Link="Support/SessionSafetyDoubles.cs" />
     <Compile Include="../Support/XoDelivery.cs" Link="Support/XoDelivery.cs" />
     <Compile Include="../Support/OutboundRegistrationParts.cs" Link="Support/OutboundRegistrationParts.cs" />
     <Compile Include="../Support/RecordedOutbound.cs" Link="Support/RecordedOutbound.cs" />

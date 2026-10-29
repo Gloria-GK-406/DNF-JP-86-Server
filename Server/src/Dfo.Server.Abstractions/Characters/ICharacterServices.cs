@@ -62,7 +62,29 @@ public interface ICharacterRepository
     ValueTask<bool> SoftDeleteAsync(CharacterId characterId, CancellationToken cancellationToken);
 }
 
+/// <summary>The character as an entity, addressed by identity.</summary>
+/// <remarks>
+/// Kept apart from <see cref="ICharacterRosterDomainService"/> so it sits below everything that acts
+/// on a character: creation applies initialization, which levels the new character through this, and
+/// the drawn roster asks appearance, which reads the character through this. Neither may reach back.
+/// </remarks>
 public interface ICharacterDomainService
+{
+    /// <summary>
+    /// The character as something to ask, rather than as the snapshot everything above reads.
+    /// </summary>
+    /// <remarks>
+    /// The two products of this repository. A snapshot is a set of records taken at one moment and
+    /// is what initialisation reads out; the character is what business acts through, and it holds
+    /// nothing, so it can be built when it is asked for. Nothing is prepared for it at selection
+    /// and nothing released afterwards -- what it reads exists only while the character is being
+    /// played, and it answers accordingly.
+    /// </remarks>
+    ICharacter Get(CharacterId characterId);
+}
+
+/// <summary>An account's characters: the roster, selecting from it, naming, creating and deleting.</summary>
+public interface ICharacterRosterDomainService
 {
     /// <summary>The roster, for callers that need to know who is on it and not how they look.</summary>
     ValueTask<AccountCharacterRoster> GetAccountRosterAsync(
@@ -105,18 +127,6 @@ public interface ICharacterDomainService
         byte job,
         byte[] rawName,
         CancellationToken cancellationToken);
-
-    /// <summary>
-    /// The character as something to ask, rather than as the snapshot everything above reads.
-    /// </summary>
-    /// <remarks>
-    /// The two products of this repository. A snapshot is a set of records taken at one moment and
-    /// is what initialisation reads out; the character is what business acts through, and it holds
-    /// nothing, so it can be built when it is asked for. Nothing is prepared for it at selection
-    /// and nothing released afterwards -- what it reads exists only while the character is being
-    /// played, and it answers accordingly.
-    /// </remarks>
-    ICharacter Get(CharacterId characterId);
 
     ValueTask<CharacterDeletionResult> DeleteCharacterAsync(
         AccountId accountId,

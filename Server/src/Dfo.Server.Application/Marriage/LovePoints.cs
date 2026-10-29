@@ -24,7 +24,7 @@ internal sealed record LovePointSpend(int Amount, int Maximum, BoundInventorySlo
 
 /// <summary>Love point coupons: which item counts, the point ceiling, and consuming the coupon.</summary>
 internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessInventorySlotDomainService inventory,
-    IItemUseEffectRuleService useRules, ICharacterDomainService characters, IApplyEffectsDomainService effects, TimeProvider clock)
+    IItemUseEffectRuleService useRules, ICharacterItemUseDomainService itemUse, IApplyEffectsDomainService effects, TimeProvider clock)
 {
     public static bool Carries(BusinessSlot slot) => slot.Space.IsCarriedItemSpace();
 
@@ -39,7 +39,7 @@ internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessI
         if (item is null) return (-1, null);
         if (await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false) is not { } rule) return (-1, null);
         if (points > rule.Maximum - rule.Amount) return (-2, null);
-        var facts = await characters.Get(actor.CharacterId).ItemUseFactsAsync(useRules.CooldownKeyFor(item.ItemId, rule.Use), ct).ConfigureAwait(false);
+        var facts = await itemUse.FactsAsync(actor.CharacterId, useRules.CooldownKeyFor(item.ItemId, rule.Use), ct).ConfigureAwait(false);
         var at = clock.GetUtcNow();
         var plan = useRules.Build(rule.Use, slot, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return (-1, null);

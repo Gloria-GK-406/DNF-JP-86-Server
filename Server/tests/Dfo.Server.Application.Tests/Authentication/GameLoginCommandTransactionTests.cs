@@ -155,6 +155,12 @@ public sealed class GameLoginCommandTransactionTests
         if (includePersistence)
         {
             new PersistenceModule().ConfigureServices(services, configuration);
+            new Dfo.Server.Infrastructure.InfrastructureModule().ConfigureServices(services, configuration);
+        }
+        else
+        {
+            // Without persistence the creature store cannot be built; these logins never fence a session.
+            services.AddSingleton<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(new Dfo.Server.Testing.NoCreatureRuntime());
         }
         new ProtocolModule().ConfigureServices(services, configuration);
         services.AddInternalCommandHandler<RedemptionProbe, RedemptionResult, RedemptionProbeHandler>();

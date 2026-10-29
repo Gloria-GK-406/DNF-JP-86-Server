@@ -15,7 +15,7 @@ internal sealed class EntryAllowanceItemRuleService(IStackableActionDefinitionSo
         Supports(itemId) ? actions.GetAsync(itemId, ct) : ValueTask.FromResult<StackableActionDefinition?>(null);
 }
 internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleService definitions,
-    IItemUseEffectRuleService uses, ICharacterDomainService characters, IHerasDungeonDomainService heras,
+    IItemUseEffectRuleService uses, ICharacterDomainService characters, ICharacterItemUseDomainService itemUse, IHerasDungeonDomainService heras, IHerasQuotaDomainService herasQuotas,
     IOpeningInventoryDomainService inventory, TimeProvider clock) : IEntryAllowanceItemDomainService
 {
     public bool Supports(int itemId) => definitions.Supports(itemId);
@@ -31,8 +31,8 @@ internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleSer
             return Refuse(ItemUsability.NotAUsableItem);
         var rule = await uses.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         var at = clock.GetUtcNow();
-        var facts = rule is null || !rule.IsReadable ? null : await characters.Get(session.CharacterId)
-            .ItemUseFactsAsync(uses.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
+        var facts = rule is null || !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
+            uses.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
         var plan = uses.Build(rule, source, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return Refuse(plan.Status);
         if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
@@ -42,7 +42,7 @@ internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleSer
         if (progress.Level < definition.MinimumLevel) return Refuse(ItemUsability.LevelTooLow);
         if (progress.Level > definition.MaximumLevel || definition.ExpiresAtUnixSeconds > 0 && definition.ExpiresAtUnixSeconds <= at.ToUnixTimeSeconds())
             return Refuse(ItemUsability.NotAUsableItem);
-        var quota = await heras.ReadQuotaAtAsync(session.CharacterId, at, ct).ConfigureAwait(false);
+        var quota = await herasQuotas.ReadQuotaAtAsync(session.CharacterId, at, ct).ConfigureAwait(false);
         if (quota.Remaining >= byte.MaxValue) return Refuse(ItemUsability.NotAUsableItem);
         var settlement = await inventory.ApplyAsync(session,
             plan.Effects.Append(new AddDungeonEntryAllowanceEffect(definition.EntryDungeonId, 1, quota.Period, quota.Bonus, quota.Used)).ToArray(), at, footprint, ct).ConfigureAwait(false);

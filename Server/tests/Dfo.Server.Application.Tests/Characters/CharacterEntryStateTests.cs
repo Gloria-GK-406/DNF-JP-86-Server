@@ -26,7 +26,7 @@ public sealed class CharacterEntryStateTests
             new CharacterFeatureEntryProjection(),
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
                 new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }), new Dfo.Server.Application.Tests.Support.NoticeStateStub(),
-            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond });
+            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond }, new Dfo.Server.Application.Tests.Support.NoHerasEntries());
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 
@@ -39,7 +39,8 @@ public sealed class CharacterEntryStateTests
         Assert.Equal(new CharacterPvpResultStorageRow(101, 102, 103),
             Assert.Single(result.Public.Pvp.Results));
         Assert.Equal([200], result.Public.Extras.SpecialRewardQuestIds);
-        Assert.Equal(9L, Assert.Single(result.Public.Extras.Dimensions).Key);
+        // The stored dimension, then Heras' daily count, which the entry always carries.
+        Assert.Equal(new long[] { 9, 3900 }, result.Public.Extras.Dimensions.Select(value => (long)value.Key));
         Assert.Equal(4, result.Public.Extras.DimensionFlags.Flag4);
         Assert.Equal([20, 10], result.Settings.HotkeySlots);
         var skill = Assert.Single(Assert.Single(result.Skills.Pages).Skills);

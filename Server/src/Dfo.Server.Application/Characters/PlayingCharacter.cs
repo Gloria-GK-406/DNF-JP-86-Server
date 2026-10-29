@@ -2,10 +2,8 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
-using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Abstractions.World.IllusionTower;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -17,30 +15,24 @@ namespace Dfo.Server.Application.Characters;
 /// reads what is there when it is asked, so there is no copy of the character here to fall out of
 /// step with a use case that was taken back.
 ///
-/// What it supplies to a judgement is the identity work: which character, what it is, where it
-/// stands, and whether it is waiting on a cooldown. What the judgement does with those is the
-/// archive's business and lives in a service that could not find a character if it wanted to.
+/// It answers only for the character's own body and so sits below the world: where the character
+/// stands, whether it may use an item, and experience priced from an occasion and settled as an
+/// effect are asked of the services above it, which reach the character through
+/// <see cref="ICharacterDomainService"/>. Anything here that reached a dungeon, a tower or the
+/// effects would close a loop through every one of them.
 /// </remarks>
 internal sealed partial class PlayingCharacter(
     CharacterId characterId,
-    IItemUseJudgementService judgement,
-    IOnlineCharacterRuntimeDomainService onlineCharacters,
-    ITownAreaDomainService townAreas,
     ICharacterCarriedGoldTable carriedGold,
     ICarriedGoldRuleService goldRules,
     ICharacterTable characters,
     ICharacterSkillPointDomainService skillPoints,
     ICharacterStatRuleService statRules,
     ICharacterSkillStateDomainService skillState,
-    IDungeonRunDomainService? dungeonRuns = null,
-    Func<IIllusionTowerDomainService>? towers = null,
-    IExperienceRuleService? experienceRules = null,
-    IExperienceCalculationDomainService? experienceCalculation = null,
-    IExperienceCapsuleDomainService? capsules = null,
-    Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor? transactions = null,
-    Func<Dfo.Server.Abstractions.Effects.IApplyEffectsDomainService>? experienceEffects = null,
-    Dfo.Server.Abstractions.DomainEvents.IEventService? events = null,
-    IDungeonParticipationDomainService? participation = null) : ICharacter
+    IExperienceRuleService experienceRules,
+    IExperienceCapsuleDomainService capsules,
+    Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor transactions,
+    Dfo.Server.Abstractions.DomainEvents.IEventService events) : ICharacter
 {
     public CharacterId Id => characterId;
 
@@ -93,7 +85,7 @@ internal sealed partial class PlayingCharacter(
         CancellationToken cancellationToken) =>
         await characters.FindProgressAsync(characterId, cancellationToken).ConfigureAwait(false)
             is { } progress
-            ? ExperienceRules.CharacterScale().ProgressFor(progress.Experience)
+            ? experienceRules.CharacterScale().ProgressFor(progress.Experience)
             : null;
 
     /// <remarks>
@@ -141,60 +133,6 @@ internal sealed partial class PlayingCharacter(
     /// </remarks>
     public ValueTask<int?> TrySpendGoldAsync(int amount, CancellationToken cancellationToken) =>
         carriedGold.TryTakeAsync(characterId, amount, cancellationToken);
-
-    public async ValueTask<ItemUsability> CanUseAsync(
-        int itemId, CancellationToken cancellationToken)
-    {
-        var rule = await judgement.RuleForAsync(itemId, cancellationToken)
-            .ConfigureAwait(false);
-
-        // An unreadable declaration is refused rather than waved through. The archive names job
-        // families and places this contract does not model -- a misspelt [prist], a [seria room] --
-        // and reading "restriction I do not understand" as "no restriction" hands out exactly the
-        // items the archive meant to withhold.
-        if (rule is null || !rule.IsReadable)
-        {
-            return ItemUsability.NotAUsableItem;
-        }
-
-        var facts = await ItemUseFactsAsync(judgement.CooldownKeyFor(itemId, rule), cancellationToken)
-            .ConfigureAwait(false);
-        return facts is null ? ItemUsability.CharacterStateUnavailable : judgement.Judge(rule, facts);
-    }
-
-    public async ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey cooldown, CancellationToken cancellationToken)
-    {
-        if (townAreas.Find(characterId) is null && dungeonRuns?.Find(characterId) is null
-            && towers?.Invoke().IsInTower(characterId) != true && participation?.Find(characterId) is null
-            || await IdentityAsync(cancellationToken).ConfigureAwait(false) is not { } identity
-            || await ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
-            return null;
-        return new(progress.Level, CharacterJobFamilies.Resolve(identity.Job), Place(),
-            onlineCharacters.IsCoolingDown(characterId, cooldown));
-    }
-    /// <summary>
-    /// Where the character is, as far as the archive's vocabulary goes.
-    /// </summary>
-    /// <remarks>
-    /// A dungeon is the only other place this server could put anyone, and dungeons are not served
-    /// yet, so a character who is playing is in a town whether or not anyone recorded them there.
-    /// <para>
-    /// The default therefore reads as "town" rather than "unknown". That is the permissive
-    /// direction, and it stops being safe the day dungeons are served: a character inside one whose
-    /// presence record is missing would be allowed a village-only item. The place to fix it is the
-    /// same change that starts serving dungeons, which is where the fact becomes real.
-    /// </para>
-    /// <para>
-    /// The one caller there is refuses a character with no record of its own before reaching here,
-    /// so along that path the default only ever covers a record that says the character is standing
-    /// in a town. The missing-record case is written out because it is what this method means, not
-    /// because anything reaches it today.
-    /// </para>
-    /// </remarks>
-    private ItemUsePlace Place() =>
-        dungeonRuns?.Find(characterId) is not null || towers?.Invoke().IsInTower(characterId) == true || participation?.Find(characterId) is not null
-            ? ItemUsePlace.Dungeon
-            : ItemUsePlace.Village;
 }
 
 /// <summary>

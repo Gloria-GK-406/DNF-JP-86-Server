@@ -14,7 +14,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService sessions,
-    ICharacterDomainService characters,
+    ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IBusinessInventorySlotDomainService slots, IAvatarCompoundRuleService rules,
     IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions,
     IEventService events, TimeProvider clock) : IAvatarCompoundDomainService
@@ -53,7 +53,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
         if (identity is null) return new(AvatarCompoundRejection.NoSession);
-        if (await character.CanUseAsync(box.ItemId, ct) != ItemUsability.Allowed)
+        if (await itemUse.CanUseAsync(session.CharacterId, box.ItemId, ct) != ItemUsability.Allowed)
             return new(AvatarCompoundRejection.InvalidAvatar);
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         if (progress is null) return new(AvatarCompoundRejection.NoSession);

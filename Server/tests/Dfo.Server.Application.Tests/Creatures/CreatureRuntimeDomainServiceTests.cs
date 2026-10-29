@@ -156,7 +156,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             registrations.AddSingleton<ISelectedSessionDomainService>(f.Sessions);
             registrations.AddSingleton<ICreatureRuntimeDomainService>(f.Runtime);
             registrations.AddInternalCommandHandler<DiscardProbe,bool,DiscardProbeHandler>();
-            await using var services=registrations.BuildServiceProvider();
+            await using var services=registrations.AddSessionSafetyStandIns().BuildServiceProvider();
             var safety=services.GetRequiredService<SelectedSessionSafety>();
             var failure=new IOException("uncertain commit");
             var thrown=await Assert.ThrowsAsync<TransactionOutcomeUncertainException>(()=>GameplayJob.RunDetachedAsync(()=>

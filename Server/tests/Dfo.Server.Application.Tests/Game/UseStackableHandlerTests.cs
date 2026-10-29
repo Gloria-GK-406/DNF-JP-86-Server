@@ -625,11 +625,13 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers();
         var slots = new BusinessInventorySlotDomainService(containers, mappings);
-        var characters = new OneCharacter(new PlayingCharacter(
-            new CharacterId(60), judgement, cooldowns,
-            TestGameplay.Run(() => PresentCharacters.StandingInTown(new CharacterId(60))), new NoCarriedGold(),
-            new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
-            new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()));
+        var characters = new CharacterItemUseDomainService(new OneCharacter(new PlayingCharacter(
+            new CharacterId(60), new NoCarriedGold(), new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
+            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
+            judgement, cooldowns, TestGameplay.Run(() => PresentCharacters.StandingInTown(new CharacterId(60))),
+            NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(),
+            NobodyThere.Create<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(),
+            NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
             new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots, inventory.Lifecycle),
             new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, inventory.Scope),
@@ -665,7 +667,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             .Select(row => ((ServerMessageEncoderRegistration)row.ImplementationInstance!).EncoderType).ToHashSet();
         foreach (var row in protocolServices.Where(row => row.ServiceType == typeof(ServerMessageEncoderRegistration) || encoderTypes.Contains(row.ServiceType)))
             ((IServiceCollection)services).Add(row);
-        var provider = services.BuildServiceProvider();
+        var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         providers.Add(provider);
         sender.Use(outbound);
         return (new UseStackableHandler(provider.GetRequiredService<ICommandBus>()), sender, useEffects, slots, potion, sessions, shared);

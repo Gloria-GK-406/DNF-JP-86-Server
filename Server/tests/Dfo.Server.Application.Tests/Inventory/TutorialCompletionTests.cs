@@ -98,7 +98,7 @@ public sealed class TutorialCompletionTests
 
     private static async Task<byte[]> Entry(ShopFixture host, ushort slot)
     {
-        var character = await host.Services.GetRequiredService<ICharacterDomainService>()
+        var character = await host.Services.GetRequiredService<ICharacterRosterDomainService>()
             .LoadByRosterPositionAsync(new(1), slot, default);
         var account = new AccountEntryState(new(1), new([], [], [], 0, null), new(0, 0, 0, 0), new([]), new(0, 0, new([]), []), new([], [], [], 0));
         var codec = typeof(TaggedIdReportHandler).Assembly.GetType(

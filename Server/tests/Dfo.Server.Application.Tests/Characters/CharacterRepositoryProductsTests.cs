@@ -11,6 +11,7 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Characters;
@@ -39,14 +40,14 @@ public sealed class CharacterRepositoryProductsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var characters = Build();
+            var itemUse = ItemUse();
 
             Assert.Equal(
                 ItemUsability.Allowed,
-                await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None));
+                await itemUse.CanUseAsync(new CharacterId(60), Potion, CancellationToken.None));
             Assert.Equal(
                 ItemUsability.CharacterStateUnavailable,
-                await characters.Get(new CharacterId(61)).CanUseAsync(Potion, CancellationToken.None));
+                await itemUse.CanUseAsync(new CharacterId(61), Potion, CancellationToken.None));
         });
     }
 
@@ -74,11 +75,11 @@ public sealed class CharacterRepositoryProductsTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var characters = Build();
+            var itemUse = ItemUse();
 
             Assert.Equal(
-                await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None),
-                await characters.Get(new CharacterId(60)).CanUseAsync(Potion, CancellationToken.None));
+                await itemUse.CanUseAsync(new CharacterId(60), Potion, CancellationToken.None),
+                await itemUse.CanUseAsync(new CharacterId(60), Potion, CancellationToken.None));
         });
     }
 
@@ -86,10 +87,10 @@ public sealed class CharacterRepositoryProductsTests
     /// The repository the composition root installs, built the way it installs it.
     /// </summary>
     /// <remarks>
-    /// The factory is the point. Passing a ready-made instance would test the field it was stored
-    /// in; passing the factory tests that `Get` runs it and runs it with the identity it was given.
+    /// Built per call, so these test that `Get` builds a character with the identity it was given.
     /// </remarks>
-    private static ICharacterDomainService Build()
+    private static (ICharacterDomainService Characters, ItemUseJudgementService Judgement, OnlineCharacterRuntimeDomainService Cooldowns,
+        Dfo.Server.Abstractions.World.ITownAreaDomainService Presence) Parts()
     {
         var clock = new AdvanceableTimeProvider(
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
@@ -102,16 +103,17 @@ public sealed class CharacterRepositoryProductsTests
         // then pass without the repository having handed back anything in particular.
         var presence = PresentCharacters.StandingInTown(new CharacterId(60), new CharacterId(61));
 
-        return new CharacterDomainService(
-            () => throw new NotSupportedException("No test here reaches the roster."),
-            new CharacterCreationRuleService(
-                new UnusedStats(),
-                new UnusedInitialSkills(),
-                new UnusedInitialEquipment()),
-            characterId => new PlayingCharacter(
-                characterId, judgement, cooldowns, presence, new NoCarriedGold(),
-                new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
-                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules()), null!);
+        return (new CharacterDomainService(new NoCarriedGold(), new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
+            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!), judgement, cooldowns, presence);
+    }
+
+    private static ICharacterDomainService Build() => Parts().Characters;
+
+    /// <summary>Whether the characters the repository hands back may use an item, asked through the item-use service.</summary>
+    private static ICharacterItemUseDomainService ItemUse()
+    {
+        var (characters, judgement, cooldowns, presence) = Parts();
+        return new CharacterItemUseDomainService(characters, judgement, cooldowns, presence, NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), NobodyThere.Create<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
     }
 
     /// <summary>A table holding a row for character 60 and for nobody else.</summary>

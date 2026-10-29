@@ -18,7 +18,7 @@ public sealed record GameCheckCharacterNameCommand(NetworkDispatchContext Dispat
 
 public sealed class GameCheckCharacterNameCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
-    ICharacterDomainService characters,
+    ICharacterRosterDomainService characters,
     IGameCommandOutbox outbox,
     ILogger<GameCheckCharacterNameCommandHandler> logger) : ICommandHandler<GameCheckCharacterNameCommand, CharacterNameStatus>
 {

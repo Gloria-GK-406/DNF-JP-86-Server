@@ -298,8 +298,7 @@ public sealed class OnlineIdentityTests
             var services = new ServiceCollection()
                 .AddSingleton<ISelectedSessionDomainService>(Sessions)
                 .BuildServiceProvider();
-            return new SelectedSessionSafety(
-                services, NullLogger<SelectedSessionSafety>.Instance);
+            return Dfo.Server.Testing.TestSessionSafety.Create(services);
         }
     }
 }

@@ -12,6 +12,8 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.DependencyInjection;
+using Dfo.Server.Testing;
+
 namespace Dfo.Server.Protocol.Tests.Support;
 // Controlled domain collaborators preserve the original projection oracles; the production timer tests cover scope/FIFO/registration.
 internal sealed class TimerRefreshFixture : IDisposable
@@ -36,7 +38,7 @@ internal sealed class TimerRefreshFixture : IDisposable
         services.AddInternalCommandHandler<CaptureSelectedSessionRefreshCommand, SelectedSessionRefreshScan, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshQuotaSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(TimerReadOnlyCancellationCapability.ItemUsageSnapshot);
-        provider = services.BuildServiceProvider();
+        provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var type = topic switch
         {
             SelectedSessionRefreshTopic.Altar => typeof(Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService),

@@ -311,7 +311,7 @@ public sealed class CommandBusExecutorTests
                 new CountingQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>())));
             services.AddCommandDispatching();
             services.AddFixtureCommand<Probe, ProbeResult, ProbeHandler>(FixtureUnitKind.Direct);
-            return new World(services.BuildServiceProvider());
+            return new World(services.AddSessionSafetyStandIns().BuildServiceProvider());
         }
 
         public ValueTask DisposeAsync() => Services.DisposeAsync();

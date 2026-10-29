@@ -30,6 +30,14 @@ public interface IHerasDungeonDomainService
 {
     bool Supports(int dungeonId);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);
+}
+/// <summary>A character's daily Heras entries and the allowances coupons add to them.</summary>
+/// <remarks>
+/// Apart from entering the dungeon because the allowance is an effect, and entering reaches dungeon admission, which
+/// reaches the towers and their rewards, which apply effects; an allowance that reached entering would close that loop.
+/// </remarks>
+public interface IHerasQuotaDomainService
+{
     ValueTask<HerasQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken ct);
     ValueTask<HerasQuotaSnapshot> ReadQuotaAtAsync(CharacterId character, DateTimeOffset at, CancellationToken ct);
     ValueTask ValidateAllowanceAsync(EffectExecutionContext context, AddDungeonEntryAllowanceEffect effect, CancellationToken ct);

@@ -8,7 +8,6 @@ internal sealed class CurrentCharacterStub : ICharacter
 {
     public CharacterId Id { get; init; } = new(60);
 
-    public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward?> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceCalculationContext source, DateTimeOffset at, Dfo.Server.Data.World.SelectedSessionIdentity? session, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<Dfo.Server.Abstractions.World.ExperienceAward> AddExpAsync(Dfo.Server.Abstractions.World.ExperienceBreakdown reward, CharacterProgressionState? expected, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<CharacterProgressionState> SetExpAsync(long experience, CancellationToken ct) => throw new NotSupportedException();
     public ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct) => throw new NotSupportedException();
@@ -19,15 +18,13 @@ internal sealed class CurrentCharacterStub : ICharacter
     public int Gold { get; set; }
     public Func<ValueTask<CharacterProgressionState?>>? ProgressReader { get; set; }
     public static ICharacterDomainService Domain(CurrentCharacterStub? character = null) =>
-        new CharacterDomainService(null!, null!, _ => character ?? new CurrentCharacterStub(), null!);
+        new Dfo.Server.Testing.CharacterDomainStub(_ => character ?? new CurrentCharacterStub());
     public ValueTask<CharacterBaseStats?> BaseStatsAsync(CancellationToken token) => ValueTask.FromResult(Stats);
     public ValueTask<CharacterProgressionState?> ProgressAsync(CancellationToken token) => ProgressReader?.Invoke() ?? ValueTask.FromResult(Progress);
     public ValueTask<CharacterIdentityState?> IdentityAsync(CancellationToken token) => ValueTask.FromResult(Identity);
     public ValueTask<IReadOnlyList<CharacterLearnedSkillPage>?> LearnedSkillsAsync(CancellationToken token) => throw new NotSupportedException();
     public ValueTask<CharacterSkillPointLedger?> SkillPointLedgerAsync(CancellationToken token) => throw new NotSupportedException();
     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingSkillPointsAsync(CancellationToken token) => throw new NotSupportedException();
-    public ValueTask<ItemUseCandidate?> ItemUseFactsAsync(ItemCooldownKey key, CancellationToken token) => throw new NotSupportedException();
-    public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken token) => throw new NotSupportedException();
     public ValueTask<int> GoldAsync(CancellationToken token) => ValueTask.FromResult(this.Gold);
     public ValueTask<int> AddGoldAsync(int amount, CancellationToken token)
     {

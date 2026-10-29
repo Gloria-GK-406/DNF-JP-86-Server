@@ -23,16 +23,17 @@ public sealed class HerasDropTests
         await f.SeedAsync();
         var drops = f.Services.GetRequiredService<IIndependentDropRuleService>();
         drops.Initialize();
+        var monsterDrops = f.Services.GetRequiredService<IMonsterDropDomainService>();
         var optional = 0;
         for (var seed = 1; seed <= 100; seed++)
         {
             var context = new MonsterDropContext(DungeonRunId.New(), 3900, seed, new(1, 1), 27116,
                 (DungeonDifficulty)1, 1, 85, 3, new(71), [new(new(1), new(71))]);
-            var items = await drops.DrawAsync(new(monster, context), default);
+            var items = await monsterDrops.GenerateIndependentAsync(monster, context, 0, default);
             var count = items.Where(x => x.ItemId == 490002846).Sum(x => x.Count);
             Assert.InRange(count, guaranteed, guaranteed + 1);
             optional += count - guaranteed;
-            Assert.DoesNotContain(await drops.DrawAsync(new(monster, context with { SourceType = IndependentDropSourceType.APC }), default), x => x.ItemId == 490002846);
+            Assert.DoesNotContain(await monsterDrops.GenerateIndependentAsync(monster, context with { SourceType = IndependentDropSourceType.APC }, 0, default), x => x.ItemId == 490002846);
         }
         Assert.InRange(optional, 30, 85);
     }

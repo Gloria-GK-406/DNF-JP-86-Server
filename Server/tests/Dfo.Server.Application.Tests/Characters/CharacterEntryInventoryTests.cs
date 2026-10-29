@@ -692,7 +692,7 @@ public sealed class CharacterEntryInventoryTests
             CancellationToken cancellationToken) => ValueTask.FromResult(accountRecord);
     }
 
-    private sealed class StubCharacterDomainService(ActiveCharacterState state) : ICharacterDomainService
+    private sealed class StubCharacterDomainService(ActiveCharacterState state) : ICharacterDomainService, ICharacterRosterDomainService
     {
 
         public ICharacter Get(CharacterId characterId) =>

@@ -83,7 +83,7 @@ internal sealed class QuestTestCommands
         var result=command.GetInterfaces().Single(x=>x.IsGenericType&&x.GetGenericTypeDefinition()==typeof(ICommand<>)).GenericTypeArguments[0];
         typeof(CommandDispatchingExtensions).GetMethods().Single(x=>x.Name=="AddCommandHandler"&&x.GetGenericArguments().Length==3).MakeGenericMethod(command,result,handler).Invoke(null,[services,FixtureUnitKind.Transactional]);
     }
-    internal sealed class PublishedView(ICharacterDomainService characters,ICharacterEntryStateDomainService entries,ICharacterInventoryEntryDomainService inventory,ICharacterSkillPointDomainService points):ISelectedCharacterCurrentViewDomainService
+    internal sealed class PublishedView(ICharacterRosterDomainService characters,ICharacterEntryStateDomainService entries,ICharacterInventoryEntryDomainService inventory,ICharacterSkillPointDomainService points):ISelectedCharacterCurrentViewDomainService
     {
         public async ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity s,CancellationToken ct){
             var entry=await entries.LoadAsync(s.AccountId,s.CharacterId,ct);entry=entry with {Skills=entry.Skills with {ProtocolMirror=await points.RemainingAsync(s.CharacterId,ct)}};

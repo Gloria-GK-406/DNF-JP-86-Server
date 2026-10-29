@@ -23,7 +23,7 @@ public sealed class RememberedTownTests
             await shop.Services.GetRequiredService<ISelectedSessionPositionPersistence>()
                 .PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, saved, default);
             // Reads through the actual repository, not the in-memory selected-session position.
-            var loaded = await shop.Services.GetRequiredService<ICharacterDomainService>()
+            var loaded = await shop.Services.GetRequiredService<ICharacterRosterDomainService>()
                 .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default);
             Assert.Equal(saved, loaded.Position);
             Assert.Equal(town, loaded.LastInnTownId);
@@ -35,7 +35,7 @@ public sealed class RememberedTownTests
             Assert.Equal(gate.Operand1, placement.Spawn.X);
             Assert.Equal(gate.Operand2, placement.Spawn.Y);
             Assert.False(placement.Spawn.SharesTownPresence);
-            var other = await shop.Services.GetRequiredService<ICharacterDomainService>()
+            var other = await shop.Services.GetRequiredService<ICharacterRosterDomainService>()
                 .LoadByRosterPositionAsync(shop.Session.AccountId, 1, default);
             Assert.Equal(0, other.Position.TownId);
             Assert.Equal(0, other.LastInnTownId);
@@ -55,7 +55,7 @@ public sealed class RememberedTownTests
             await persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, new(11, 0, 100, 200, 5), default);
             var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
             await persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, timeGate, default);
-            var loaded = await shop.Services.GetRequiredService<ICharacterDomainService>()
+            var loaded = await shop.Services.GetRequiredService<ICharacterRosterDomainService>()
                 .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default);
             Assert.Equal(timeGate, loaded.Position);
             Assert.Equal(11, loaded.LastInnTownId);
@@ -64,7 +64,7 @@ public sealed class RememberedTownTests
             var restricted = await placement.ResolveAsync(new(100, 10100, ChannelEntryKind.SaintHorn), loaded.LastInnTownId, default);
             Assert.Equal(17, restricted.Spawn.TownId);
             Assert.False(restricted.PersistsPosition);
-            Assert.Equal(11, (await shop.Services.GetRequiredService<ICharacterDomainService>()
+            Assert.Equal(11, (await shop.Services.GetRequiredService<ICharacterRosterDomainService>()
                 .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default)).LastInnTownId);
         });
     }

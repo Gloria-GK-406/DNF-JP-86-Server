@@ -206,7 +206,7 @@ public sealed class OtherCharacterDetailFlowTests
             services.Remove(projectionDescriptor);
             services.AddSingleton<ICommandProjections>(provider => Projections = new(
                 (ICommandProjections)projectionDescriptor.ImplementationFactory!(provider), provider.GetRequiredService<IDomainTransactionAccessor>()));
-            Services = services.BuildServiceProvider();
+            Services = services.AddSessionSafetyStandIns().BuildServiceProvider();
             Query.Transactions = Services.GetRequiredService<IDomainTransactionAccessor>();
             Projections = (ProjectionSpy)Services.GetRequiredService<ICommandProjections>();
         }

@@ -148,7 +148,7 @@ public sealed class GameplayDispatchTests
         services.RegisterTelemetryMessageHandler<TelemetryHandler>(ClientMessageType.GamePi);
         services.RegisterTelemetryMessageHandler<StatefulTelemetryHandler>(ClientMessageType.GameLagStatistics);
         services.RegisterTelemetryMessageHandler<StatefulTelemetryHandler>(ClientMessageType.GameUseSkill);
-        using var provider = services.BuildServiceProvider();
+        using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => provider.GetRequiredService<MessageHandlerRegistry>());
@@ -165,7 +165,7 @@ public sealed class GameplayDispatchTests
         var services = new ServiceCollection();
         services.AddNetworkMessageDispatching();
         configure(services);
-        return services.BuildServiceProvider();
+        return services.AddSessionSafetyStandIns().BuildServiceProvider();
     }
 
     private static NetworkConnectionContext Connection(string id,NetworkEndpointKind kind=NetworkEndpointKind.Game) =>

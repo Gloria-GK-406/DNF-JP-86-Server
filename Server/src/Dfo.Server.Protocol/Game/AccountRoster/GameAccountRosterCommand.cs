@@ -19,7 +19,7 @@ public sealed record GameAccountRosterCommand(NetworkDispatchContext Dispatch, G
 
 public sealed class GameAccountRosterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
-    ICharacterDomainService characters,
+    ICharacterRosterDomainService characters,
     IGameCommandOutbox outbox) : ICommandHandler<GameAccountRosterCommand, AccountCharacterRoster>
 {
     public async ValueTask<AccountCharacterRoster> HandleAsync(CommandExecutionContext context,

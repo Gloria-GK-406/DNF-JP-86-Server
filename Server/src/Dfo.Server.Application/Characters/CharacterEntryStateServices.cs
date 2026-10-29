@@ -233,10 +233,10 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterProgressionEntryProjection progression,
     ICharacterFeatureEntryProjection features,
     ICharacterDomainService characters, INoticeStateDomainService notices,
-    IPremiumServiceDomainService premiums,
+    IPremiumServiceDomainService premiums, IHerasQuotaDomainService heras,
     ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
     IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null,
-    IClientSettingsDomainService? clientSettings = null, IHerasDungeonDomainService? heras = null,
+    IClientSettingsDomainService? clientSettings = null,
     IGoldSilverHornDomainService? goldSilverHorn = null, ICharacterNameTagDomainService? nameTags = null) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
@@ -294,11 +294,8 @@ internal sealed class CharacterEntryStateDomainService(
         if (tournaments is not null)
             remainingEntries.AddRange((await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
                 .Select(value => (value.DungeonId, value.Remaining)));
-        if (heras is not null)
-        {
-            var quota = await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
-            remainingEntries.Add((quota.DungeonId, quota.Remaining));
-        }
+        var herasQuota = await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
+        remainingEntries.Add((herasQuota.DungeonId, herasQuota.Remaining));
         if (goldSilverHorn is not null)
         {
             var quota = await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);

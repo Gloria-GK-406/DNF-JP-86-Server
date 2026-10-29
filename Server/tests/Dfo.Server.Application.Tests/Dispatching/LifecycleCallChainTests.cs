@@ -6,6 +6,7 @@ using Dfo.Server.Application.Execution.Outbox;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Dispatching;
 
@@ -166,7 +167,7 @@ public sealed class LifecycleCallChainTests
             services.AddSingleton<IOutboundSender>(sender);
             services.AddSingleton<INetworkConnectionContexts>(contexts);
             services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(new Observer(seen));
-            return new World(services.BuildServiceProvider(), sender, contexts, seen, logs);
+            return new World(services.AddSessionSafetyStandIns().BuildServiceProvider(), sender, contexts, seen, logs);
         }
 
         /// <summary>Runs <paramref name="body"/> as one job of <paramref name="chain"/>; returns the job's chain.</summary>

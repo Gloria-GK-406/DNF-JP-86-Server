@@ -148,7 +148,7 @@ internal static class CharacterStateProjection
         ActiveCharacterState selected,
         AccountCharacterRoster roster,
         AccountEntryState account,
-        ICharacterDomainService characters,
+        ICharacterRosterDomainService characters,
         Func<AccountId, CharacterId, CancellationToken, ValueTask<CharacterInventoryEntryState>> readInventory,
         ICharacterEntryStateDomainService entries,
         ICharacterEntryPreparationRuleService preparationRules,

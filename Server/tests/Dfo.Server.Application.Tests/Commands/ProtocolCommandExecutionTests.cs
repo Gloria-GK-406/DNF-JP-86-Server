@@ -446,7 +446,7 @@ public sealed class ProtocolCommandExecutionTests
                 services.RegisterProtocolMessageHandler<ChannelScriptVersionHandler, ChannelScriptVersionRequest, ChannelScriptVersionCommand>(ClientMessageType.ChannelScriptVersion);
             }
             configure?.Invoke(services);
-            Services = services.BuildServiceProvider();
+            Services = services.AddSessionSafetyStandIns().BuildServiceProvider();
         }
         public ValueTask<int> Internal(InternalProbe command) => Bus.SendInternalAsync(command, Origin());
         public ValueTask DisposeAsync() => Services.DisposeAsync();

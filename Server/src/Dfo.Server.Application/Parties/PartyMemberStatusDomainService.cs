@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.Parties;
 /// and anti-magic deliberately remain zero until their gameplay models have authoritative writers.
 /// </remarks>
 internal sealed class PartyMemberStatusDomainService(
-    Func<ICharacterInventoryEntryDomainService> inventories,
+    ICharacterInventoryEntryDomainService inventories,
     ICharacterFatigueDomainService fatigue,
     IOnlineCharacterRuntimeDomainService onlineCharacters) : IPartyMemberStatusDomainService
 {
@@ -28,7 +28,7 @@ internal sealed class PartyMemberStatusDomainService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(character);
-        var inventory = await inventories().LoadAsync(
+        var inventory = await inventories.LoadAsync(
                 character.AccountId, character.CharacterId, cancellationToken)
             .ConfigureAwait(false);
         var reviveCoins = inventory.VirtualResources.SingleOrDefault(

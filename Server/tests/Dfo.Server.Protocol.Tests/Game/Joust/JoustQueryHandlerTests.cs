@@ -139,7 +139,7 @@ public sealed class JoustQueryHandlerTests
             .AddSingleton<ICommandBus>(sp => new Commands(sp, state, history ?? []))
             .AddSingleton<IGameMessageSender>(sender)
             .AddSingleton<IEventService>(new Notices())
-            .AddSingleton(sp => new SelectedSessionSafety(sp, NullLogger<SelectedSessionSafety>.Instance))
+            .AddSingleton(sp => Dfo.Server.Testing.TestSessionSafety.Create(sp))
             .BuildServiceProvider();
         var replies = await TestGameplay.RunAsync(services, async () =>
         {

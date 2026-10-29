@@ -1,8 +1,10 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Tests.Inventory;
@@ -22,7 +24,7 @@ using Dfo.Server.Testing;
 namespace Dfo.Server.Application.Tests.Characters;
 
 /// <summary>
-/// Whether a character may use an item, asked of the character itself.
+/// Whether a character may use an item, asked of the item-use service over the character.
 /// </summary>
 /// <remarks>
 /// The archive declares four restrictions for a stackable item -- who, what level, where, and how
@@ -361,15 +363,9 @@ public sealed class CharacterItemUseTests
         await TestGameplay.RunAsync(async () =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-            var usability = new PlayingCharacter(
-                Character,
-                new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            var usability = ItemUse(CharacterRow.At(level: 50), new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
                 new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
-                new SessionPresenceDomainService(),
-                new NoCarriedGold(),
-                new StoredCarryLimitOnly(),
-                CharacterRow.At(level: 50),
-                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+                new SessionPresenceDomainService());
 
             Assert.Equal(
                 ItemUsability.CharacterStateUnavailable,
@@ -393,15 +389,9 @@ public sealed class CharacterItemUseTests
         await TestGameplay.RunAsync(async () =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-            var usability = new PlayingCharacter(
-                Character,
-                new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            var usability = ItemUse(CharacterRow.None, new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
                 new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
-                PresentCharacters.StandingInTown(Character),
-                new NoCarriedGold(),
-                new StoredCarryLimitOnly(),
-                CharacterRow.None,
-                new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+                PresentCharacters.StandingInTown(Character));
 
             Assert.Equal(
                 ItemUsability.CharacterStateUnavailable,
@@ -453,17 +443,11 @@ public sealed class CharacterItemUseTests
                     Assert.Equal(1, await insert.ExecuteNonQueryAsync(CancellationToken.None));
                 }
 
-                var usability = new PlayingCharacter(
-                    Character,
-                    new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
-                    new OnlineCharacterRuntimeDomainService(
+                var usability = ItemUse(new SqliteCharacterTable(database), new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                new OnlineCharacterRuntimeDomainService(
                         new AdvanceableTimeProvider(
                             new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero)), new OnlineCharacterLocationDomainService()),
-                    PresentCharacters.StandingInTown(Character),
-                    new NoCarriedGold(),
-                    new StoredCarryLimitOnly(),
-                    new SqliteCharacterTable(database),
-                    new NoSkillPointLedger(), null!, null!, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+                PresentCharacters.StandingInTown(Character));
 
                 Assert.Equal(
                     ItemUsability.Allowed,
@@ -530,21 +514,21 @@ public sealed class CharacterItemUseTests
         OnlineCharacterRuntimeDomainService Cooldowns,
         Dfo.Server.Data.World.SelectedSessionIdentity Session);
 
-    private static ICharacter Build(
+    private static Usability Build(
         out Fixture fixture,
         byte level,
         byte job,
         params (int ItemId, ItemUseRule Rule)[] rules)
         => Build(out fixture, level, job, false, rules);
 
-    private static ICharacter BuildInTower(
+    private static Usability BuildInTower(
         out Fixture fixture,
         byte level,
         byte job,
         params (int ItemId, ItemUseRule Rule)[] rules)
         => Build(out fixture, level, job, true, rules);
 
-    private static ICharacter Build(
+    private static Usability Build(
         out Fixture fixture,
         byte level,
         byte job,
@@ -560,18 +544,26 @@ public sealed class CharacterItemUseTests
         fixture = new Fixture(clock, cooldowns, session);
         var tower = TowerPresenceProxy.Create(out var presence);
         if (inTower) presence.Members.Add(Character);
-        return new PlayingCharacter(
-            Character,
-            new ItemUseJudgementService(new FakeItemUseRules(rules)),
-            cooldowns,
-            PresentCharacters.StandingInTown(Character),
-            new NoCarriedGold(),
-            new StoredCarryLimitOnly(),
-            CharacterRow.At(level, job),
-            new NoSkillPointLedger(), null!, null!, null, () => tower, experienceRules: new Dfo.Server.Application.Tests.Support.TestExperienceRules());
+        return ItemUse(CharacterRow.At(level, job), new ItemUseJudgementService(new FakeItemUseRules(rules)),
+            cooldowns, PresentCharacters.StandingInTown(Character), tower);
     }
 
-    private static ICharacter Build(
+    /// <summary>What the cases ask: whether this one character may use an item, through the item-use service.</summary>
+    private sealed class Usability(ICharacterItemUseDomainService service)
+    {
+        public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken) =>
+            service.CanUseAsync(Character, itemId, cancellationToken);
+    }
+
+    private static Usability ItemUse(ICharacterTable row, IItemUseJudgementService judgement,
+        IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IIllusionTowerDomainService? towers = null) =>
+        new(new CharacterItemUseDomainService(
+            new CharacterDomainStub(id => new PlayingCharacter(id, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
+                new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
+            judgement, runtime, town, NobodyThere.Create<IDungeonRunDomainService>(),
+            towers ?? NobodyThere.Create<IIllusionTowerDomainService>(), NobodyThere.Create<IDungeonParticipationDomainService>()));
+
+    private static Usability Build(
         out Fixture fixture,
         params (int ItemId, ItemUseRule Rule)[] rules) =>
         Build(out fixture, level: 50, job: 0, rules);

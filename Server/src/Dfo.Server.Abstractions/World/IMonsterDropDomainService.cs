@@ -107,4 +107,8 @@ public interface IMonsterDropDomainService
     ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(
         int monsterId, CharacterId characterId, MonsterDropContext context,
         CancellationToken cancellationToken);
+
+    /// <summary>Only the independent table's ground outcomes, priced at the generating character's current level.</summary>
+    ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
+        int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken cancellationToken);
 }

@@ -141,8 +141,7 @@ public sealed class TauKingdomTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var content = ContentArchive.CreateContentProvider();
-        var drops = new IndependentDropRuleService(content.GetRequiredService<IIndependentDropTableSource>(),
-            () => throw new InvalidOperationException(), NullLogger<IndependentDropRuleService>.Instance);
+        var drops = new IndependentDropRuleService(content.GetRequiredService<IIndependentDropTableSource>(), NullLogger<IndependentDropRuleService>.Instance);
         var request = new MonsterDropRequest(62040, new(DungeonRunId.New(), 3700, 123,
             new(2, 0), 26009, DungeonDifficulty.Normal, 101, 70, 3, new CharacterId(71), [new(new(1), new(71))]));
         Assert.Equal(3, drops.Draw(request, 70).Where(x => x.ItemId == 690001555).Sum(x => x.Count));

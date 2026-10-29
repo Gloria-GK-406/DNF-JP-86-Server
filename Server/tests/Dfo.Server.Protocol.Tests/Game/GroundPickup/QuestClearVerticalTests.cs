@@ -107,7 +107,7 @@ public sealed class QuestClearVerticalTests
                 GroundPickupDomainCommand,
                 GroundPickupResult,
                 GroundPickupDomainCommandHandler>(FixtureUnitKind.Transactional);
-            await using var provider = services.BuildServiceProvider();
+            await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
             var runs = provider.GetRequiredService<IDungeonRunDomainService>();
             var (run, afterDeath, clear, bossClear) = await TestGameplay.RunAsync(provider, async () =>

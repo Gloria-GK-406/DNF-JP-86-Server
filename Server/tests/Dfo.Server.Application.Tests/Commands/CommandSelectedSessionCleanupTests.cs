@@ -32,7 +32,7 @@ public sealed class CommandSelectedSessionCleanupTests
         return new(Guid.NewGuid(), typeof(CommandSelectedSessionCleanupTests), typeof(CommandSelectedSessionCleanupTests)) { Request = request };
     }
     private static ICommandWorkUnits Units() => new CommandWorkUnits(new DomainTransactionScope(),
-        new SelectedSessionSafety(new ServiceCollection().BuildServiceProvider(), NullLogger<SelectedSessionSafety>.Instance));
+        Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider()));
 
     [Fact]
     public async Task Sticky_failure_still_allows_only_fixed_cleanup_and_its_independent_commit()
@@ -106,7 +106,7 @@ public sealed class CommandSelectedSessionCleanupTests
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(async () =>
         {
-            var ctx=Context(); var scope=new DomainTransactionScope(); var safety=new SelectedSessionSafety(new ServiceCollection().BuildServiceProvider(),NullLogger<SelectedSessionSafety>.Instance);
+            var ctx=Context(); var scope=new DomainTransactionScope(); var safety=Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider());
             var units=new CommandWorkUnits(scope,safety); var calls=0;
             var cap=new CommandSelectedSessionCleanup(new Cleanup((_,_) => { calls++; return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(Actor)); }));
             await Assert.ThrowsAnyAsync<Exception>(() => units.WriteAsync(ctx,new("prepare",[]),(unit,_) =>
@@ -124,7 +124,7 @@ public sealed class CommandSelectedSessionCleanupTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(async () =>
         {
             var ctx=Context(); var scope=new DomainTransactionScope();
-            var units=new CommandWorkUnits(scope,new SelectedSessionSafety(new ServiceCollection().BuildServiceProvider(),NullLogger<SelectedSessionSafety>.Instance));
+            var units=new CommandWorkUnits(scope,Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider()));
             var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var began=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var ended=false; var marker=new Marker();

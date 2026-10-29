@@ -7,7 +7,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ExperienceItemDomainService(
-    ICharacterDomainService characters,
+    ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IExperienceItemRuleService rules,
     IItemUseEffectRuleService itemUseRules,
     IApplyEffectsDomainService effects,
@@ -30,7 +30,7 @@ internal sealed class ExperienceItemDomainService(
         var character = characters.Get(session.CharacterId);
         var facts = ordinaryRule is null || !ordinaryRule.IsReadable
             ? null
-            : await character.ItemUseFactsAsync(
+            : await itemUse.FactsAsync(session.CharacterId,
                 itemUseRules.CooldownKeyFor(item.ItemId, ordinaryRule), cancellationToken)
                 .ConfigureAwait(false);
         var at = clock.GetUtcNow();
