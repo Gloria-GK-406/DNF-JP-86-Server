@@ -315,10 +315,10 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     UNIQUE(message_id,character_id,folder));
                 """);
 
-            // Twice, because bringing the database into shape has to be able to happen again
-            // over a database already in it.
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            // Twice, because migrating has to be able to happen again over a database already
+            // at the current version.
+            HandWrittenShape.Adopt(path);
+            HandWrittenShape.Adopt(path);
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(25,15,'upgrade',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(25,0);

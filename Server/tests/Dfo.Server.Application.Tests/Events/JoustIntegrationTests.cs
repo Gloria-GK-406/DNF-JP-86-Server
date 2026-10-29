@@ -377,13 +377,15 @@ public sealed class JoustIntegrationTests
             UPDATE event_joust_statistics_round SET round_id='{legacy}' WHERE round_id='{id}';
             UPDATE event_joust_result SET round_id='{legacy}' WHERE round_id='{id}';
             COMMIT;
+            PRAGMA user_version=0;
             """);
         f.Sql("CREATE TRIGGER fail_joust_id_migration BEFORE UPDATE ON event_joust_statistics_round BEGIN SELECT RAISE(ABORT,'identity migration fault'); END;");
-        Assert.Throws<SqliteException>(()=>f.Reopen());
+        Assert.Throws<SqliteException>(()=>DbMigrate.Migrator.Migrate(f.Path,backup:false));
         Assert.Equal(1,f.Scalar($"SELECT COUNT(*) FROM event_joust_round WHERE round_id='{legacy}'"));
         Assert.Equal(0,f.Scalar($"SELECT COUNT(*) FROM event_joust_round WHERE round_id='{id}'"));
         Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM pragma_foreign_key_check"));
         f.Sql("DROP TRIGGER fail_joust_id_migration;");
+        DbMigrate.Migrator.Migrate(f.Path,backup:false);
         using var migrated=f.Reopen();var store=migrated.Services.GetRequiredService<IJoustPersistence>();
         Assert.Null(await store.RoundAsync(legacy,default));Assert.NotNull(await store.RoundAsync(id,default));
         Assert.Equal(id,(await store.RequestAsync(new(1),"legacy-id",default))!.RoundId);
@@ -1098,7 +1100,7 @@ public sealed class JoustIntegrationTests
     private sealed class Fixture : IDisposable
     {
         private readonly string directory;private readonly bool owns;private readonly bool useArchive;private readonly ServiceProvider provider;private readonly Clock clock;
-        private string Path=>System.IO.Path.Combine(directory,"joust.db");
+        public string Path=>System.IO.Path.Combine(directory,"joust.db");
         public DateTimeOffset Now {get=>clock.Now;set=>clock.Now=value;}
         public IServiceProvider Services=>provider;public IJoustDomainService Joust=>provider.GetRequiredService<IJoustDomainService>();
         public IManagedEventDomainService Managed=>provider.GetServices<IManagedEventDomainService>().Single(e=>e.EventId==2365);

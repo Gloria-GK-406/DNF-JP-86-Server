@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="../../Server/tests/Directory.Build.props" />
+</Project>

@@ -18,5 +18,8 @@
     <InternalsVisibleTo Include="Dfo.Server.Persistence.Tests" />
     <InternalsVisibleTo Include="Dfo.Server.Application.Tests" />
     <InternalsVisibleTo Include="Dfo.Server.Protocol.Tests" />
+    <!-- The migration tool builds on the declared shape and the item core encoding. -->
+    <InternalsVisibleTo Include="DbMigrate" />
+    <InternalsVisibleTo Include="DbMigrate.Tests" />
   </ItemGroup>
 </Project>

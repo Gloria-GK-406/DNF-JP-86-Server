@@ -4,7 +4,7 @@ using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Tests.Schema;
+namespace DbMigrate.Tests;
 
 public sealed class RetiredColumnMigrationTests
 {
@@ -54,8 +54,8 @@ public sealed class RetiredColumnMigrationTests
             """);
         Assert.Equal(Retired.Length, db.RetiredColumnCount);
 
-        db.Open();
-        db.Open();
+        Unversioned.Migrate(db.Path);
+        Unversioned.Migrate(db.Path);
 
         Assert.Equal(0, db.RetiredColumnCount);
         Assert.Equal(1, db.Scalar("SELECT COUNT(*) FROM characters WHERE character_id=10 AND name='old'"));
@@ -86,7 +86,7 @@ public sealed class RetiredColumnMigrationTests
             INSERT INTO character_skill_builds VALUES(14,0,1),(14,1,1);
             """);
 
-        db.Open();
+        Unversioned.Migrate(db.Path);
 
         Assert.Equal(0, db.RetiredColumnCount);
         Assert.Equal(
@@ -96,20 +96,20 @@ public sealed class RetiredColumnMigrationTests
 
     private sealed class Database : IDisposable
     {
-        private readonly string path = Path.Combine(Path.GetTempPath(), $"retired-columns-{Guid.NewGuid():N}.db");
+        private readonly string path = Unversioned.NewPath("retired-columns");
 
-        public Database() => Open();
+        public Database() => _ = new SqliteDatabase(path, new DomainTransactionScope());
 
-        /// <summary>A database carrying every retired column, as one built before they were retired would.</summary>
+        public string Path => path;
+
+        /// <summary>An unversioned database carrying every retired column, as one built before they were retired would.</summary>
         public static Database Legacy()
         {
             var db = new Database();
-            db.Sql(string.Concat(Retired.Select(column =>
+            db.Sql("PRAGMA user_version=0;" + string.Concat(Retired.Select(column =>
                 $"ALTER TABLE {column.Table} ADD COLUMN {column.Column} {column.Declaration};")));
             return db;
         }
-
-        public void Open() => _ = new SqliteDatabase(path, new DomainTransactionScope());
 
         public long RetiredColumnCount => Retired.Sum(column => Scalar(
             $"SELECT COUNT(*) FROM pragma_table_info('{column.Table}') WHERE name='{column.Column}'"));

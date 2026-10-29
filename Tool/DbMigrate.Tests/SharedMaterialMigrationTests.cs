@@ -6,7 +6,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Tests.Inventory;
+namespace DbMigrate.Tests;
 
 public sealed class SharedMaterialMigrationTests
 {
@@ -94,7 +94,7 @@ public sealed class SharedMaterialMigrationTests
         db.Ensure();
         Assert.Equal(2, db.Scalar("SELECT COUNT(*) FROM item_slots"));
         Assert.Equal(2, db.Scalar("SELECT COUNT(*) FROM items"));
-        Assert.Equal(1, db.MarkerCount);
+        Assert.Equal(1, db.Scalar("PRAGMA user_version"));
     }
 
     [Theory]
@@ -134,15 +134,15 @@ public sealed class SharedMaterialMigrationTests
         public SqliteConnection Connection { get; }
         public LegacyDatabase()
         {
-            Ensure();
+            Unversioned.CreateUnstamped(path);
             Connection = new SqliteConnection($"Data Source={path}");
             Connection.Open();
-            Sql("DROP TABLE IF EXISTS schema_migrations;" + string.Concat(LegacyColumns.Select(
+            Sql(string.Concat(LegacyColumns.Select(
                 column => $"ALTER TABLE accounts ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0;")));
         }
         public long LegacyColumnCount => Scalar("SELECT COUNT(*) FROM pragma_table_info('accounts') WHERE name IN ("
             + string.Join(',', LegacyColumns.Select(column => $"'{column}'")) + ")");
-        public void Ensure() => _ = new SqliteDatabase(path, new DomainTransactionScope());
+        public void Ensure() => Unversioned.Migrate(path);
         public long MarkerCount => Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name='schema_migrations'") == 0
             ? 0 : Scalar("SELECT COUNT(*) FROM schema_migrations WHERE name='account-shared-material-v1'");
         public void Sql(string sql) { using var command = Connection.CreateCommand(); command.CommandText = sql; command.ExecuteNonQuery(); }

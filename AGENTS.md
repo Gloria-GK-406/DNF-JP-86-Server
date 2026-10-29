@@ -37,6 +37,7 @@ CMD 在唯一玩法执行器中划分事务并登记投影，作业结束后由�
 | 新增或修改特殊地下城玩法、塔与活动副本 | [地下城玩法种类](Document/DungeonRunKinds.md) |
 | 修改领域事件、通知或多人投影 | [事件与通知](Document/EventsAndNotifications.md) |
 | 修改宿主、组件开关或启动顺序 | [组件组合](Document/host-component-composition.md) |
+| 修改数据库表结构、迁移旧库或部署升级 | [数据库结构版本与迁移](Document/DatabaseSchemaMigration.md) |
 | 构建、运行、测试与失败排查 | [构建与测试](Document/BuildAndTest.md) |
 | 提交、创建 PR、分支收尾或发布 | [开发与发布约定](Document/server-ci-release.md) |
 | 编写或整理文档、注释、证据 | [文档维护规范](Document/DocumentationGuidelines.md) |

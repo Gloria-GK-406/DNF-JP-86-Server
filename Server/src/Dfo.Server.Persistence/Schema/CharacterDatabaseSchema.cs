@@ -6,55 +6,28 @@ namespace Dfo.Server.Persistence.Schema;
 /// The one place the character database's shape is declared.
 /// </summary>
 /// <remarks>
-/// Before this, every repository declared the tables it happened to read, several declared the
-/// same table differently, and <c>CREATE TABLE IF NOT EXISTS</c> meant the first declaration to
-/// run won while the rest were silently ignored. The shape of the database was therefore decided
-/// by which components a given run happened to build first -- and one order left it broken
-/// outright, because a partial declaration of <c>characters</c> could win and then fail the index
-/// that names a column it omits.
+/// The server supports exactly one shape, the one written below, and stamps it with
+/// <see cref="Version"/> in the database's <c>user_version</c>. A database with no tables is
+/// built in that shape and stamped; one stamped with <see cref="Version"/> is used as it is; any
+/// other is refused. Bringing an older database up to this shape is not the server's work: it is
+/// <c>Tool/DbMigrate</c>, run while the server is stopped, which keeps every step from an older
+/// shape to this one. Changing anything declared here therefore means raising
+/// <see cref="Version"/> and giving that tool the step that gets there.
 ///
-/// What is written below is the shape that arrangement actually produced, read back out of a
-/// database built the way the composition root builds one. It is a transcription, not a redesign:
-/// every column, type and default is what the server already had, including the ones that used to
-/// arrive by <c>ALTER TABLE</c> after the fact.
-///
-/// Reconciling columns is kept, because it was never only a workaround for ordering: a database
-/// that already holds a table from an earlier shape is brought up to this one. What was scattered
-/// across five hand-written patchers is one pass over what is declared here, so a column can no
-/// longer be declared in one place and forgotten in another.
-///
-/// Applying it is idempotent, so any number of components may ask for it and the first to do so
-/// settles the shape for all of them. Nothing else declares a table.
-///
-/// One table is deliberately absent from it: <c>character_skills</c>. Its <c>mode</c> column is
-/// <c>NOT NULL</c> with no default, and there is no value the reconciler could put in it for rows
-/// that predate it -- the whole point of the column is that a row's mode is not derivable from the
-/// row. A database carrying the older two-table shape is therefore not reconciled into this one; it
-/// is replaced, which is what this stage of the project does with databases anyway.
-///
-/// One column here could not have been found by reading a database back. <c>character_gold_limits</c>
-/// was once declared in two places with different shapes and, alone among such tables, had no
-/// patcher reconciling them -- so the shape a database ended up with was whichever declaration ran
-/// first, and the column the other one declared was simply absent. Reading back a database gives
-/// what won, not what was meant, so the union of both was taken. That table has since been folded
-/// into <c>character_stats</c>, which is where its two caps live now; the union survives as those
-/// columns.
+/// Nothing else declares a table.
 /// </remarks>
 internal static class CharacterDatabaseSchema
 {
+    /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
+    public const int Version = 1;
+
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static readonly string[] Indexes = IndexDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static readonly (string Table, string Column, string Declaration)[] Columns =
-        [.. ReconcilableColumns
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(line => line.Split('|'))
-            .Select(parts => (parts[0], parts[1], parts[2]))];
-
-    /// <summary>Puts the database in the shape everything here expects, if it is not already.</summary>
+    /// <summary>Builds an empty database, or checks that an existing one is in this shape.</summary>
     public static void Ensure(string connectionString)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
@@ -64,69 +37,73 @@ internal static class CharacterDatabaseSchema
     }
 
     /// <summary>The same, on a connection the caller already holds.</summary>
-    /// <remarks>
-    /// Tables, then the columns a table carried over from an earlier shape is missing, then the
-    /// indexes. The middle step has to come before the last: an index names columns, and the very
-    /// failure this whole move removes was an index meeting a table that did not have them yet.
-    /// </remarks>
     public static void Ensure(SqliteConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
         KeepWritersAndReadersApart(connection);
-        RetireRuntimeTables(connection);
-        Apply(connection, Tables);
-        EnsureRentalItemCleanup(connection);
-        Reconcile(connection);
-        AvatarAppearanceMigration.Apply(connection);
-        MigrateMailboxGold(connection);
-        MarriageRelationMigration.Apply(connection);
-        MarriageHousingMigration.Apply(connection);
-        Apply(connection, Indexes);
-        SharedMaterialMigration.Apply(connection);
-        JoustRoundIdentityMigration.Apply(connection);
-        RetiredColumnMigration.Apply(connection);
+        if (VersionOf(connection) == Version) return;
+
+        using var transaction = connection.BeginTransaction(deferred: false);
+        var version = VersionOf(connection, transaction);
+        if (version == Version)
+        {
+            transaction.Commit();
+            return;
+        }
+
+        if (version != 0 || !IsEmpty(connection, transaction))
+        {
+            throw new InvalidOperationException(
+                $"The database is at schema version {version} and this server needs {Version}. "
+                + "Stop the server, back the database up and run Tool/DbMigrate on it.");
+        }
+
+        DeclareTables(connection, transaction);
+        DeclareIndexes(connection, transaction);
+        Stamp(connection, transaction, Version);
+        transaction.Commit();
     }
 
-    private static void EnsureRentalItemCleanup(SqliteConnection connection)
+    /// <summary>Creates every declared table and trigger that does not exist yet.</summary>
+    /// <remarks>Also the migration tool's way of giving an older database the tables it lacks.</remarks>
+    internal static void DeclareTables(SqliteConnection connection, SqliteTransaction? transaction)
     {
-        using var command=connection.CreateCommand();
-        command.CommandText="CREATE TRIGGER IF NOT EXISTS equipment_rental_item_deleted AFTER DELETE ON items BEGIN DELETE FROM equipment_rental_instances WHERE item_uid=OLD.item_uid; END;";
-        command.ExecuteNonQuery();
+        Apply(connection, transaction, Tables);
+        Apply(connection, transaction,
+            ["CREATE TRIGGER IF NOT EXISTS equipment_rental_item_deleted AFTER DELETE ON items BEGIN DELETE FROM equipment_rental_instances WHERE item_uid=OLD.item_uid; END"]);
     }
 
-    // Message-level gold predates gold attachments. A database that still has the column gets
-    // each such amount as one attachment, claimed if the old flag said it was received, before
-    // RetiredColumnMigration drops both columns.
-    private static void MigrateMailboxGold(SqliteConnection connection)
-    {
-        if (!RetiredColumnMigration.IsPresent(connection, null, "mailbox_messages", "gold")) return;
-        var claimed = RetiredColumnMigration.IsPresent(connection, null, "mailbox_recipients", "received_gold_flag")
-            ? """
-              CASE WHEN EXISTS (SELECT 1 FROM mailbox_recipients r
-                  WHERE r.message_id=m.message_id AND r.character_id=m.receiver_character_id
-                    AND r.received_gold_flag<>0) THEN 1 ELSE 0 END
-              """
-            : "0";
-        using var command = connection.CreateCommand();
-        command.CommandText = $"""
-            INSERT INTO mailbox_attachments
-                (message_id, ordinal, item_template_id, asset_kind, gold_amount, claimed_flag)
-            SELECT m.message_id, COALESCE((SELECT MAX(a.ordinal) + 1 FROM mailbox_attachments a
-                    WHERE a.message_id = m.message_id), 0), 0, 'gold', m.gold,
-                   {claimed}
-            FROM mailbox_messages m
-            WHERE m.gold > 0 AND NOT EXISTS
-                (SELECT 1 FROM mailbox_attachments a
-                 WHERE a.message_id=m.message_id AND a.asset_kind='gold');
-            """;
-        command.ExecuteNonQuery();
-    }
+    /// <summary>Creates every declared index that does not exist yet.</summary>
+    /// <remarks>
+    /// Separate from the tables because an index names columns, and on an older database the
+    /// migration tool has to add those columns before the index can be made.
+    /// </remarks>
+    internal static void DeclareIndexes(SqliteConnection connection, SqliteTransaction? transaction) =>
+        Apply(connection, transaction, Indexes);
 
-    private static void RetireRuntimeTables(SqliteConnection connection)
+    /// <summary>The shape a database says it is in; zero for one never stamped.</summary>
+    internal static long VersionOf(SqliteConnection connection, SqliteTransaction? transaction = null)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "DROP TABLE IF EXISTS login_tickets;";
+        command.Transaction = transaction;
+        command.CommandText = "PRAGMA user_version;";
+        return (long)command.ExecuteScalar()!;
+    }
+
+    internal static void Stamp(SqliteConnection connection, SqliteTransaction? transaction, int version)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"PRAGMA user_version={version};";
         command.ExecuteNonQuery();
+    }
+
+    private static bool IsEmpty(SqliteConnection connection, SqliteTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';";
+        return (long)command.ExecuteScalar()! == 0;
     }
 
     /// <summary>
@@ -160,56 +137,14 @@ internal static class CharacterDatabaseSchema
         }
     }
 
-    private static void Apply(SqliteConnection connection, string[] statements)
+    private static void Apply(SqliteConnection connection, SqliteTransaction? transaction, string[] statements)
     {
         foreach (var statement in statements)
         {
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText = statement;
             command.ExecuteNonQuery();
-        }
-    }
-
-    /// <summary>
-    /// Brings a table that already existed in an earlier shape up to the one declared here.
-    /// </summary>
-    /// <remarks>
-    /// Only columns that can be added to a table that already holds rows are considered: a key, a
-    /// uniqueness constraint or a reference cannot be introduced this way, and neither can a
-    /// column that forbids nothing without saying what nothing means. Anything left out is a
-    /// column a table has to be created with, which is what the declarations above do.
-    /// </remarks>
-    private static void Reconcile(SqliteConnection connection)
-    {
-        foreach (var group in Columns.GroupBy(column => column.Table))
-        {
-            var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            using (var inspect = connection.CreateCommand())
-            {
-                inspect.CommandText = $"PRAGMA table_info('{group.Key}');";
-                using var reader = inspect.ExecuteReader();
-                while (reader.Read())
-                {
-                    present.Add(reader.GetString(1));
-                }
-            }
-
-            if (present.Count == 0)
-            {
-                continue;
-            }
-
-            foreach (var (table, column, declaration) in group)
-            {
-                if (present.Contains(column))
-                {
-                    continue;
-                }
-
-                using var alter = connection.CreateCommand();
-                alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {declaration};";
-                alter.ExecuteNonQuery();
-            }
         }
     }
 
@@ -338,7 +273,6 @@ internal static class CharacterDatabaseSchema
             married_at INTEGER,
             CHECK((stage IN (2,3,4)) = (ceremony_id IS NOT NULL))
         );
-        CREATE TABLE IF NOT EXISTS marriage_housing_migrations(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS marriage_points_migration_audit(relation_id TEXT PRIMARY KEY,shared_points INTEGER NOT NULL,first_points INTEGER NOT NULL,second_points INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS marriage_personal_points(relation_id TEXT NOT NULL REFERENCES marriage_relations(id),character_id INTEGER NOT NULL,points INTEGER NOT NULL CHECK(points BETWEEN 0 AND 999),revision INTEGER NOT NULL DEFAULT 1,PRIMARY KEY(relation_id,character_id));
         CREATE TABLE IF NOT EXISTS marriage_daily_points(character_id INTEGER NOT NULL,period INTEGER NOT NULL,PRIMARY KEY(character_id,period));
@@ -383,7 +317,6 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS achievement_consumed_facts(character_id INTEGER NOT NULL,event_id TEXT NOT NULL,PRIMARY KEY(character_id,event_id));
         CREATE TABLE IF NOT EXISTS title_book_unlocks(character_id INTEGER NOT NULL,category INTEGER NOT NULL,slot_index INTEGER NOT NULL,item_id INTEGER NOT NULL,PRIMARY KEY(character_id,category,slot_index));
         CREATE TABLE IF NOT EXISTS account_epic_pieces(account_id INTEGER NOT NULL REFERENCES accounts(account_id),piece_id INTEGER NOT NULL CHECK(piece_id>0),count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 2147483647),PRIMARY KEY(account_id,piece_id));
-        CREATE TABLE IF NOT EXISTS schema_migrations(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS domain_events(sequence INTEGER PRIMARY KEY AUTOINCREMENT,event_id TEXT NOT NULL UNIQUE,batch_id TEXT NOT NULL,occurred_at INTEGER NOT NULL,origin_instance_id TEXT NOT NULL,event_type TEXT NOT NULL,schema_version INTEGER NOT NULL CHECK(schema_version>0),payload_json TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS domain_event_deliveries(event_id TEXT NOT NULL REFERENCES domain_events(event_id),subscriber_id TEXT NOT NULL,coalescing_key TEXT,state INTEGER NOT NULL DEFAULT 0 CHECK(state IN(0,1,2)),attempt_count INTEGER NOT NULL DEFAULT 0,next_attempt_at INTEGER NOT NULL,processed_at INTEGER,last_error TEXT NOT NULL DEFAULT '',PRIMARY KEY(event_id,subscriber_id));
         CREATE TABLE IF NOT EXISTS gm_administrators (id INTEGER PRIMARY KEY AUTOINCREMENT,login_name TEXT NOT NULL UNIQUE,password_record TEXT NOT NULL,enabled INTEGER NOT NULL,permissions INTEGER NOT NULL);
@@ -445,7 +378,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS account_purchase_restrictions(account_id INTEGER NOT NULL,restriction_id INTEGER NOT NULL CHECK(restriction_id>0),end_time INTEGER NOT NULL CHECK(end_time BETWEEN 1 AND 2147439600),PRIMARY KEY(account_id,restriction_id));
         CREATE TABLE IF NOT EXISTS account_hotkey_options(account_id INTEGER NOT NULL,key_type INTEGER NOT NULL CHECK(key_type BETWEEN 0 AND 255),payload BLOB NOT NULL CHECK(length(payload)<=65536),PRIMARY KEY(account_id,key_type));
         CREATE TABLE IF NOT EXISTS account_settings(account_id INTEGER PRIMARY KEY,main_game_option BLOB,quickchat_bank0 BLOB,quickchat_bank1 BLOB,hotkey_key_type INTEGER NOT NULL DEFAULT 0,hotkey_slots BLOB);
-        CREATE TABLE IF NOT EXISTS accounts ( account_id INTEGER PRIMARY KEY AUTOINCREMENT, m_id TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL DEFAULT '', last_login_ip TEXT NOT NULL DEFAULT '', last_login_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP , cera INTEGER NOT NULL DEFAULT 0, token_cera INTEGER NOT NULL DEFAULT 0, happy_token_cera INTEGER NOT NULL DEFAULT 0, lucky_star INTEGER NOT NULL DEFAULT 0, honor_exp INTEGER NOT NULL DEFAULT 0, growth_capsule_exp INTEGER NOT NULL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS accounts ( account_id INTEGER PRIMARY KEY AUTOINCREMENT, m_id TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL DEFAULT '', last_login_ip TEXT NOT NULL DEFAULT '', last_login_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP , cera INTEGER NOT NULL DEFAULT 0, token_cera INTEGER NOT NULL DEFAULT 0, happy_token_cera INTEGER NOT NULL DEFAULT 0, lucky_star INTEGER NOT NULL DEFAULT 0, honor_exp INTEGER NOT NULL DEFAULT 0, growth_capsule_exp INTEGER NOT NULL DEFAULT 0, seria_luck_value INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS character_achievement_complete(character_id INTEGER, sort_order INTEGER, achievement_id INTEGER, p1 INTEGER, p2 INTEGER, p3 INTEGER, p4 INTEGER, PRIMARY KEY(character_id,achievement_id));
         CREATE TABLE IF NOT EXISTS character_active_quests(character_id INTEGER, slot INTEGER, quest_id INTEGER, trigger_value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(character_id,slot));
         CREATE TABLE IF NOT EXISTS character_quest_acceptance_times(character_id INTEGER NOT NULL,slot INTEGER NOT NULL,accepted_at_ticks INTEGER NOT NULL,PRIMARY KEY(character_id,slot));
@@ -479,10 +412,10 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_quest_notify_selections(character_id INTEGER, slot_index INTEGER, quest_id INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_settings ( character_id INTEGER PRIMARY KEY, character_option_blob BLOB, user_state_bits INTEGER NOT NULL DEFAULT 3 );
         CREATE TABLE IF NOT EXISTS character_stats ( auction_gold_limit INTEGER NOT NULL DEFAULT 0, carried_gold INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, current_hp_mp_percent INTEGER NOT NULL DEFAULT 0, equip_list_trailing INTEGER NOT NULL DEFAULT 0, equipped_creature_level INTEGER NOT NULL DEFAULT 0, flag_byte INTEGER NOT NULL DEFAULT 0, gold_carry_limit INTEGER NOT NULL DEFAULT 0, progress1 INTEGER NOT NULL DEFAULT 0, progress2 INTEGER NOT NULL DEFAULT 0, quest_shop_count INTEGER NOT NULL DEFAULT 0, server_timestamp INTEGER NOT NULL DEFAULT 0, stat_attack_speed INTEGER NOT NULL DEFAULT 0, stat_cast_speed INTEGER NOT NULL DEFAULT 0, stat_dark_resistance INTEGER NOT NULL DEFAULT 0, stat_fire_resistance INTEGER NOT NULL DEFAULT 0, stat_hit_recovery INTEGER NOT NULL DEFAULT 0, stat_hp_max INTEGER NOT NULL DEFAULT 0, stat_hp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_inventory_limit INTEGER NOT NULL DEFAULT 0, stat_jump_power INTEGER NOT NULL DEFAULT 0, stat_light_resistance INTEGER NOT NULL DEFAULT 0, stat_magical_attack INTEGER NOT NULL DEFAULT 0, stat_magical_defense INTEGER NOT NULL DEFAULT 0, stat_move_speed INTEGER NOT NULL DEFAULT 0, stat_mp_max INTEGER NOT NULL DEFAULT 0, stat_mp_regen_speed INTEGER NOT NULL DEFAULT 0, stat_physical_attack INTEGER NOT NULL DEFAULT 0, stat_physical_defense INTEGER NOT NULL DEFAULT 0, stat_water_resistance INTEGER NOT NULL DEFAULT 0, stat_weight INTEGER NOT NULL DEFAULT 0 );
-        CREATE TABLE IF NOT EXISTS characters ( account_id INTEGER NOT NULL, area_id INTEGER NOT NULL DEFAULT 0, area_state INTEGER NOT NULL DEFAULT 3, bonus_sp INTEGER NOT NULL DEFAULT 0, bonus_tp INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, clone_title_item_id INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, delete_flag INTEGER NOT NULL DEFAULT 0, direction INTEGER NOT NULL DEFAULT 5, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0, exp INTEGER NOT NULL DEFAULT 0, grow_type INTEGER NOT NULL DEFAULT 0, guild_level INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0, job INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 1, manage_level INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL, name_bytes BLOB, name_tag_expire_time INTEGER NOT NULL DEFAULT 0, name_tag_item_id INTEGER NOT NULL DEFAULT 0, pos_x INTEGER NOT NULL DEFAULT 0, pos_y INTEGER NOT NULL DEFAULT 0, slot_index INTEGER NOT NULL DEFAULT 0, town_id INTEGER NOT NULL DEFAULT 0, user_state INTEGER NOT NULL DEFAULT 0, tutorial_completed INTEGER NOT NULL DEFAULT 0, last_inn_town_id INTEGER NOT NULL DEFAULT 0 );
+        CREATE TABLE IF NOT EXISTS characters ( account_id INTEGER NOT NULL, area_id INTEGER NOT NULL DEFAULT 0, area_state INTEGER NOT NULL DEFAULT 3, bonus_sp INTEGER NOT NULL DEFAULT 0, bonus_tp INTEGER NOT NULL DEFAULT 0, character_id INTEGER PRIMARY KEY, clone_title_item_id INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, delete_flag INTEGER NOT NULL DEFAULT 0, direction INTEGER NOT NULL DEFAULT 5, ex_equip_slot_stat INTEGER NOT NULL DEFAULT 0, exp INTEGER NOT NULL DEFAULT 0, grow_type INTEGER NOT NULL DEFAULT 0, guild_level INTEGER NOT NULL DEFAULT 0, guild_power_war INTEGER NOT NULL DEFAULT 0, job INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 1, manage_level INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL, name_bytes BLOB, name_tag_expire_time INTEGER NOT NULL DEFAULT 0, name_tag_item_id INTEGER NOT NULL DEFAULT 0, pos_x INTEGER NOT NULL DEFAULT 0, pos_y INTEGER NOT NULL DEFAULT 0, slot_index INTEGER NOT NULL DEFAULT 0, town_id INTEGER NOT NULL DEFAULT 0, user_state INTEGER NOT NULL DEFAULT 0, tutorial_completed INTEGER NOT NULL DEFAULT 0, last_inn_town_id INTEGER NOT NULL DEFAULT 0, active_skill_build INTEGER );
         CREATE TABLE IF NOT EXISTS dungeon_persistent_effect_outbox( source_event_id TEXT NOT NULL, effect_kind TEXT NOT NULL, effect_scope INTEGER NOT NULL, scope_target INTEGER NOT NULL, character_id INTEGER NOT NULL, account_id INTEGER NOT NULL, payload_version INTEGER NOT NULL DEFAULT 1, payload_json TEXT NOT NULL DEFAULT '{}', state INTEGER NOT NULL DEFAULT 0, lease_id TEXT, lease_owner TEXT, lease_expires_at INTEGER NOT NULL DEFAULT 0, attempt_count INTEGER NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '', result_version INTEGER, result_json TEXT, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, committed_at INTEGER, PRIMARY KEY(source_event_id,effect_kind,effect_scope,scope_target));
-        CREATE TABLE IF NOT EXISTS mailbox_attachments( attachment_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, ordinal INTEGER NOT NULL DEFAULT 0, item_type INTEGER NOT NULL DEFAULT 0, source_list_type INTEGER NOT NULL DEFAULT 0, source_slot_index INTEGER NOT NULL DEFAULT 0, source_item_uid INTEGER NOT NULL DEFAULT 0, item_template_id INTEGER NOT NULL, item_kind TEXT NOT NULL DEFAULT 'unknown', item_count INTEGER NOT NULL DEFAULT 1, instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0, seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT -1, pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, item_core BLOB, detail_json TEXT NOT NULL DEFAULT '');
-        CREATE TABLE IF NOT EXISTS mailbox_messages( message_id INTEGER PRIMARY KEY AUTOINCREMENT, sender_character_id INTEGER NOT NULL DEFAULT 0, sender_name TEXT NOT NULL DEFAULT '', receiver_character_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', mail_type INTEGER NOT NULL DEFAULT 0, source_protocol INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, unlimited_flag INTEGER NOT NULL DEFAULT 0, expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59', deleted_by_sender INTEGER NOT NULL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS mailbox_attachments( attachment_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, ordinal INTEGER NOT NULL DEFAULT 0, item_type INTEGER NOT NULL DEFAULT 0, source_list_type INTEGER NOT NULL DEFAULT 0, source_slot_index INTEGER NOT NULL DEFAULT 0, source_item_uid INTEGER NOT NULL DEFAULT 0, item_template_id INTEGER NOT NULL, item_kind TEXT NOT NULL DEFAULT 'unknown', item_count INTEGER NOT NULL DEFAULT 1, instance_value INTEGER NOT NULL DEFAULT 0, durability INTEGER NOT NULL DEFAULT 0, seal_flag INTEGER NOT NULL DEFAULT 0, option_value INTEGER NOT NULL DEFAULT 0, expire_time INTEGER NOT NULL DEFAULT 0, marker_16 INTEGER NOT NULL DEFAULT -1, pet_serial_or_handle INTEGER NOT NULL DEFAULT 0, item_core BLOB, detail_json TEXT NOT NULL DEFAULT '', asset_kind TEXT NOT NULL DEFAULT 'legacy', claimed_flag INTEGER NOT NULL DEFAULT 0, gold_amount INTEGER NOT NULL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS mailbox_messages( message_id INTEGER PRIMARY KEY AUTOINCREMENT, sender_character_id INTEGER NOT NULL DEFAULT 0, sender_name TEXT NOT NULL DEFAULT '', receiver_character_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', mail_type INTEGER NOT NULL DEFAULT 0, source_protocol INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, unlimited_flag INTEGER NOT NULL DEFAULT 0, expire_at TEXT NOT NULL DEFAULT '9999-12-31 23:59:59', deleted_by_sender INTEGER NOT NULL DEFAULT 0, delivery_key TEXT NOT NULL DEFAULT '');
         CREATE TABLE IF NOT EXISTS mailbox_recipients( recipient_id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, character_id INTEGER NOT NULL, folder INTEGER NOT NULL DEFAULT 0, read_flag INTEGER NOT NULL DEFAULT 0, saved_flag INTEGER NOT NULL DEFAULT 0, deleted_flag INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(message_id,character_id,folder));
         """;
 
@@ -496,168 +429,8 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS ix_gm_cera_operations_time ON gm_cera_operations(administrator_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_sessions_expiry ON gm_sessions(expires_at);
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
-        DROP INDEX IF EXISTS idx_item_slots_account_slot;
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_mailbox_pending_equipment_uid ON mailbox_attachments(source_item_uid) WHERE asset_kind='equipment' AND claimed_flag=0 AND source_item_uid>0;
         """;
 
-    /// <summary>Table, column and declaration, one per line.</summary>
-    private const string ReconcilableColumns = """
-        marriage_weddings|completed_at|INTEGER NOT NULL DEFAULT 0
-        items|is_mirror|INTEGER NOT NULL DEFAULT 0 CHECK(is_mirror IN (0,1))
-        items|mirror_source_uid|INTEGER
-        items|appearance_item_id|INTEGER CHECK(appearance_item_id >= 0)
-        character_stats|carried_gold|INTEGER NOT NULL DEFAULT 0
-        account_cargo_state|selection_key|INTEGER NOT NULL DEFAULT 0
-        account_cargo_state|value32|INTEGER NOT NULL DEFAULT 0
-        account_premiums|end_time|INTEGER NOT NULL DEFAULT 0
-        account_settings|main_game_option|BLOB
-        account_settings|quickchat_bank0|BLOB
-        account_settings|quickchat_bank1|BLOB
-        account_settings|hotkey_key_type|INTEGER NOT NULL DEFAULT 0
-        account_settings|hotkey_slots|BLOB
-        accounts|password_hash|TEXT NOT NULL DEFAULT ''
-        accounts|last_login_ip|TEXT NOT NULL DEFAULT ''
-        accounts|last_login_at|TEXT
-        accounts|cera|INTEGER NOT NULL DEFAULT 0
-        accounts|token_cera|INTEGER NOT NULL DEFAULT 0
-        accounts|happy_token_cera|INTEGER NOT NULL DEFAULT 0
-        accounts|lucky_star|INTEGER NOT NULL DEFAULT 0
-        accounts|seria_luck_value|INTEGER NOT NULL DEFAULT 0
-        accounts|honor_exp|INTEGER NOT NULL DEFAULT 0
-        accounts|growth_capsule_exp|INTEGER NOT NULL DEFAULT 0
-        character_achievement_complete|character_id|INTEGER
-        character_achievement_complete|sort_order|INTEGER
-        character_achievement_complete|achievement_id|INTEGER
-        character_achievement_complete|p1|INTEGER
-        character_achievement_complete|p2|INTEGER
-        character_achievement_complete|p3|INTEGER
-        character_achievement_complete|p4|INTEGER
-        character_active_quests|character_id|INTEGER
-        character_active_quests|slot|INTEGER
-        character_active_quests|quest_id|INTEGER
-        character_active_quests|trigger_value|INTEGER NOT NULL DEFAULT 0
-        character_collectbox_slots|character_id|INTEGER
-        character_collectbox_slots|box_index|INTEGER
-        character_collectbox_slots|slot_index|INTEGER
-        character_collectbox_slots|item_id|INTEGER
-        character_container_state|list_param16|INTEGER NOT NULL DEFAULT 0
-        character_daily_challenge_entries|character_id|INTEGER
-        character_daily_challenge_entries|group_index|INTEGER
-        character_daily_challenge_entries|entry_index|INTEGER
-        character_daily_challenge_entries|track_like_id|INTEGER
-        character_daily_challenge_entries|value_a|INTEGER
-        character_daily_challenge_entries|value_b|INTEGER
-        character_daily_challenge_tail_ids|character_id|INTEGER
-        character_daily_challenge_tail_ids|sort_order|INTEGER
-        character_daily_challenge_tail_ids|id_value|INTEGER
-        character_daily_counters|character_id|INTEGER
-        character_daily_counters|counter_key|TEXT
-        character_daily_counters|period|TEXT
-        character_daily_counters|value|INTEGER
-        character_daily_counters|last_consumed_at|INTEGER
-        character_daily_schedule_states|character_id|INTEGER
-        character_daily_schedule_states|sort_order|INTEGER
-        character_daily_schedule_states|param_a|INTEGER
-        character_daily_schedule_states|mode_or_state|INTEGER
-        character_daily_schedule_states|content_id|INTEGER
-        character_daily_schedule_states|param_b|INTEGER
-        character_dark_knight_combo_skill_pages|character_id|INTEGER
-        character_dark_knight_combo_skill_pages|page_index|INTEGER
-        character_dimensions|character_id|INTEGER
-        character_dimensions|sort_order|INTEGER
-        character_dimensions|dim_key|INTEGER
-        character_dimensions|val1|INTEGER
-        character_dimensions|val2|INTEGER
-        character_dungeon_permissions|character_id|INTEGER
-        character_dungeon_permissions|sort_order|INTEGER
-        character_dungeon_permissions|dungeon_id|INTEGER
-        character_dungeon_permissions|clear_state|INTEGER
-        character_expert_job_recipes|character_id|INTEGER
-        character_expert_job_recipes|recipe_id|INTEGER
-        character_growth_weapon_stages|character_id|INTEGER
-        character_growth_weapon_stages|sort_order|INTEGER
-        character_growth_weapon_stages|stage_id|INTEGER
-        character_hotkey_slots|character_id|INTEGER
-        character_hotkey_slots|slot_index|INTEGER
-        character_hotkey_slots|hotkey_value|INTEGER
-        character_item_locks|remaining_seconds|INTEGER
-        character_knight_shield_deck|character_id|INTEGER
-        character_knight_shield_deck|slot_index|INTEGER
-        character_knight_shield_deck|shield_item_id|INTEGER
-        character_mercenary_support|striker_skill_id|INTEGER NOT NULL DEFAULT 0
-        character_pvp_missions|character_id|INTEGER
-        character_pvp_missions|sort_order|INTEGER
-        character_pvp_missions|mission_id|INTEGER
-        character_pvp_missions|progress_value|INTEGER
-        character_quest_notify_selections|character_id|INTEGER
-        character_quest_notify_selections|slot_index|INTEGER
-        character_quest_notify_selections|quest_id|INTEGER
-        mailbox_attachments|ordinal|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|item_type|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|source_list_type|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|source_slot_index|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|source_item_uid|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|item_kind|TEXT NOT NULL DEFAULT 'unknown'
-        mailbox_attachments|item_count|INTEGER NOT NULL DEFAULT 1
-        mailbox_attachments|instance_value|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|durability|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|seal_flag|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|option_value|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|expire_time|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|marker_16|INTEGER NOT NULL DEFAULT -1
-        mailbox_attachments|pet_serial_or_handle|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|item_core|BLOB
-        mailbox_attachments|detail_json|TEXT NOT NULL DEFAULT ''
-        mailbox_attachments|asset_kind|TEXT NOT NULL DEFAULT 'legacy'
-        mailbox_attachments|claimed_flag|INTEGER NOT NULL DEFAULT 0
-        mailbox_attachments|gold_amount|INTEGER NOT NULL DEFAULT 0
-        mailbox_messages|sender_character_id|INTEGER NOT NULL DEFAULT 0
-        mailbox_messages|sender_name|TEXT NOT NULL DEFAULT ''
-        mailbox_messages|title|TEXT NOT NULL DEFAULT ''
-        mailbox_messages|body|TEXT NOT NULL DEFAULT ''
-        mailbox_messages|mail_type|INTEGER NOT NULL DEFAULT 0
-        mailbox_messages|source_protocol|INTEGER NOT NULL DEFAULT 0
-        mailbox_messages|delivery_key|TEXT NOT NULL DEFAULT ''
-        mailbox_messages|unlimited_flag|INTEGER NOT NULL DEFAULT 0
-        mailbox_messages|expire_at|TEXT NOT NULL DEFAULT '9999-12-31 23:59:59'
-        mailbox_messages|deleted_by_sender|INTEGER NOT NULL DEFAULT 0
-        mailbox_recipients|folder|INTEGER NOT NULL DEFAULT 0
-        mailbox_recipients|read_flag|INTEGER NOT NULL DEFAULT 0
-        mailbox_recipients|saved_flag|INTEGER NOT NULL DEFAULT 0
-        mailbox_recipients|deleted_flag|INTEGER NOT NULL DEFAULT 0
-        characters|area_id|INTEGER NOT NULL DEFAULT 0
-        characters|area_state|INTEGER NOT NULL DEFAULT 3
-        characters|bonus_sp|INTEGER NOT NULL DEFAULT 0
-        characters|bonus_tp|INTEGER NOT NULL DEFAULT 0
-        characters|clone_title_item_id|INTEGER NOT NULL DEFAULT 0
-        characters|tutorial_completed|INTEGER NOT NULL DEFAULT 0
-        characters|created_at|INTEGER NOT NULL DEFAULT 0
-        characters|delete_flag|INTEGER NOT NULL DEFAULT 0
-        characters|direction|INTEGER NOT NULL DEFAULT 5
-        characters|ex_equip_slot_stat|INTEGER NOT NULL DEFAULT 0
-        characters|exp|INTEGER NOT NULL DEFAULT 0
-        characters|grow_type|INTEGER NOT NULL DEFAULT 0
-        characters|guild_level|INTEGER NOT NULL DEFAULT 0
-        characters|guild_power_war|INTEGER NOT NULL DEFAULT 0
-        characters|job|INTEGER NOT NULL DEFAULT 0
-        characters|level|INTEGER NOT NULL DEFAULT 1
-        characters|manage_level|INTEGER NOT NULL DEFAULT 0
-        characters|name_bytes|BLOB
-        characters|name_tag_expire_time|INTEGER NOT NULL DEFAULT 0
-        characters|name_tag_item_id|INTEGER NOT NULL DEFAULT 0
-        characters|pos_x|INTEGER NOT NULL DEFAULT 0
-        characters|pos_y|INTEGER NOT NULL DEFAULT 0
-        characters|active_skill_build|INTEGER
-        characters|slot_index|INTEGER NOT NULL DEFAULT 0
-        characters|town_id|INTEGER NOT NULL DEFAULT 0
-        characters|last_inn_town_id|INTEGER NOT NULL DEFAULT 0
-        characters|user_state|INTEGER NOT NULL DEFAULT 0
-        character_expert_job|disjoint_machine_endurance|INTEGER NOT NULL DEFAULT 0
-        character_expert_job|disjoint_machine_grade|INTEGER NOT NULL DEFAULT 0
-        character_expert_job|enchanter_endurance|INTEGER NOT NULL DEFAULT 0
-        character_expert_job|expert_job_exp|INTEGER NOT NULL DEFAULT 0
-        character_expert_job|expert_job_type|INTEGER NOT NULL DEFAULT 0
-        character_expert_job|giveup_count|INTEGER NOT NULL DEFAULT 0
-        """;
 }

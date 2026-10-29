@@ -1,8 +1,7 @@
-using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Marriage;
 using Microsoft.Data.Sqlite;
-namespace Dfo.Server.Persistence.Tests.Schema;
+namespace DbMigrate.Tests;
 public sealed class MarriageRelationMigrationTests
 {
     private const string OldShape = """
@@ -58,7 +57,8 @@ public sealed class MarriageRelationMigrationTests
             q.CommandText = OldShape + Seed(); q.ExecuteNonQuery();
             var legacy = Legacy(q);
             var before = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var database = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
+            var database = Unversioned.Open(path);
             var after = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             Assert.Equal(Expected, Relations(q));
             q.CommandText = "SELECT MIN(stage_since)||':'||MAX(stage_since) FROM marriage_relations";
@@ -69,7 +69,7 @@ public sealed class MarriageRelationMigrationTests
 
             q.CommandText = "UPDATE marriage_relations SET revision=9 WHERE id='p10'"; q.ExecuteNonQuery();
             var settled = Relations(q);
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
             Assert.Equal(settled, Relations(q));
             Assert.Contains("p10|1|||9", settled);
             Assert.Equal(legacy, Legacy(q));
@@ -120,8 +120,8 @@ public sealed class MarriageRelationMigrationTests
                     INSERT INTO marriage_relations VALUES('q1',4,1,0,'q1c',NULL,2),('q3',4,1,0,'q3c',NULL,8);
                     """;
             q.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
+            Unversioned.Migrate(path);
 
             // q1: the wedding's 5 beats the relation's 2. q3: the relation's 8 beats the wedding's 3 when it is there.
             var q3 = relationColumn ? 8 : 3;
@@ -150,7 +150,7 @@ public sealed class MarriageRelationMigrationTests
         {
             using var db = new SqliteConnection($"Data Source={path}"); db.Open(); using var q = db.CreateCommand();
             q.CommandText = OldShape + Seed([("wallet", 1, [("wc", 1, 1, 0, 40)])]); q.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
             q.CommandText = "SELECT name FROM sqlite_master WHERE name='marriage_personal_points'";
             Assert.Equal("marriage_personal_points", q.ExecuteScalar());
             q.CommandText = "SELECT points FROM marriage_personal_points ORDER BY character_id";
@@ -161,7 +161,7 @@ public sealed class MarriageRelationMigrationTests
             }
             q.CommandText = "UPDATE marriage_personal_points SET points=7 WHERE character_id=100";
             q.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
             q.CommandText = "SELECT points FROM marriage_personal_points WHERE character_id=100";
             Assert.Equal(7L, q.ExecuteScalar());
         }

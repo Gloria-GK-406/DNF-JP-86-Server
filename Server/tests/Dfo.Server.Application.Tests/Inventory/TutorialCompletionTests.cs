@@ -84,10 +84,10 @@ public sealed class TutorialCompletionTests
     public async Task Existing_database_gains_the_completion_column_without_changing_characters()
     {
         using var host = new ShopFixture();
-        host.Sql("ALTER TABLE characters DROP COLUMN tutorial_completed");
-        var database = host.Services.GetRequiredService<SqliteDatabase>();
-        CharacterDatabaseSchema.Ensure(database.ConnectionString);
-        CharacterDatabaseSchema.Ensure(database.ConnectionString);
+        host.Sql("ALTER TABLE characters DROP COLUMN tutorial_completed; PRAGMA user_version=0;");
+        var path = new SqliteConnectionStringBuilder(host.Services.GetRequiredService<SqliteDatabase>().ConnectionString).DataSource;
+        DbMigrate.Migrator.Migrate(path, backup: false);
+        DbMigrate.Migrator.Migrate(path, backup: false);
         Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM characters WHERE level=1 AND tutorial_completed=0"));
         Assert.Equal(100000, host.Gold);
         Assert.Equal(0, (await Entry(host, 0))[^25]);

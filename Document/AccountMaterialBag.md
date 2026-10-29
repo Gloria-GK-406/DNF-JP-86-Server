@@ -36,15 +36,15 @@
 
 ## 旧库迁移
 
-启动初始化在自身 SQLite 事务内执行 `account-shared-material-v1`：逐账号读取旧 11 列，非零数量导入固定槽，零数量不创建物品；同事务写入 `schema_migrations` 标记。合法高数量不按普通 PVF 上限截断。负数、非整数、越界数量或非法账号拒绝迁移；插入故障回滚物品、槽及标记。
+迁移工具 `Tool/DbMigrate` 把无版本旧库升到版本 1 时，在自身 SQLite 事务内执行 `account-shared-material-v1`：逐账号读取旧 11 列，非零数量导入固定槽，零数量不创建物品；同事务写入 `schema_migrations` 标记。合法高数量不按普通 PVF 上限截断。负数、非整数、越界数量或非法账号拒绝迁移；插入故障回滚物品、槽及标记。
 
 首次迁移若已有任何 SharedMaterial 槽，或其他 item_slots 中已有这 11 种材料，会报告实际位置并拒绝，不猜测合并。需根据来源处理历史数据后再迁移，不能简单删除冲突行。邮件附件历史托管不在该冲突扫描范围。
 
-迁移完成后，`RetiredColumnMigration` 确认标记存在再删除旧 `cube_* / soul_*` 列；新建库从一开始就没有这些列，迁移在列不存在时只写标记。旧列删除后不能直接回退旧版本，需要回滚时恢复部署前完整备份与匹配程序。部署前应停服备份完整数据库并先检查冲突。
+同一次升级的最后，`RetiredColumnMigration` 确认标记存在再删除旧 `cube_* / soul_*` 列，标记表随后也删除，版本号代替它记录迁移已完成。旧列删除后不能直接回退旧版本，需要回滚时恢复迁移前备份与匹配程序。服务端新建的库从一开始就没有这些列。
 
 账号槽唯一键包含 owner scope、owner id、list type、slot；旧的只按账号与槽号去重的索引已移除。账号金库读取限定 list type 12，不会吸入共享材料 240。
 
-实现锚点：`SharedMaterialMigration`、`CharacterBusinessInventoryDomainService`、`ItemPlacementRuleService`、`CargoTransferDomainService`、`InventoryEntryAssembly`。自动证据与交付状态见 [任务结果](tasks/unify-item-containers/spec-result.md)。
+实现锚点：`Tool/DbMigrate/Legacy/SharedMaterialMigration`、`CharacterBusinessInventoryDomainService`、`ItemPlacementRuleService`、`CargoTransferDomainService`、`InventoryEntryAssembly`。自动证据与交付状态见 [任务结果](tasks/unify-item-containers/spec-result.md)。
 
 ## 2026-09-20 实机验收（原模型历史）
 

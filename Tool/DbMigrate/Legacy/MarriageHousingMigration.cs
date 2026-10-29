@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Schema;
+namespace DbMigrate.Legacy;
 
 internal static class MarriageHousingMigration
 {
@@ -15,8 +15,8 @@ internal static class MarriageHousingMigration
         // Roles provide a deterministic remainder rule for old odd balances; total points are conserved.
         string[] sources =
         [
-            .. RetiredColumnMigration.IsPresent(connection, tx, "marriage_relations", "love_points") ? ["r.love_points"] : Array.Empty<string>(),
-            .. RetiredColumnMigration.IsPresent(connection, tx, "marriage_weddings", "love_points")
+            .. Shape.HasColumn(connection, tx, "marriage_relations", "love_points") ? ["r.love_points"] : Array.Empty<string>(),
+            .. Shape.HasColumn(connection, tx, "marriage_weddings", "love_points")
                 ? ["COALESCE((SELECT MAX(w.love_points) FROM marriage_weddings w WHERE w.relation_id=r.id AND w.phase=1),0)"]
                 : Array.Empty<string>(),
         ];

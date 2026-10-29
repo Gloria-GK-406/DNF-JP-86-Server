@@ -11,6 +11,13 @@ namespace Dfo.Server.Persistence.Tests.Characters;
 
 public sealed class SqliteEntryLifecycleRecoveryTests
 {
+    /// <summary>The side over a database whose tables this case wrote, brought to the current version first.</summary>
+    private static CharacterSide Adopted(string path)
+    {
+        HandWrittenShape.Adopt(path);
+        return new CharacterSide(path);
+    }
+
     [Fact]
     public async Task PvpProfile_DistinguishesMissingFromInitializedAndLoadsBothPages()
     {
@@ -27,7 +34,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 INSERT INTO characters VALUES(7,3,0);
                 INSERT INTO character_pvp(character_id) VALUES(7);
             """);
-            var side = new CharacterSide(path);
+            var side = Adopted(path);
             var empty = new CharacterSkillsEntryState(
                 [new CharacterSkillPageState(0, []), new CharacterSkillPageState(1, [])], [],
                 new CharacterSkillPointBasisState(0, 0), [], null);
@@ -72,7 +79,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 VALUES('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','suitable-dungeon-lucky-star',3,7,7,3,1,
                  '{"characterId":7,"accountId":3,"dungeonId":1,"clearLevel":2,"amount":1}',0,1,1);
                 """);
-            var side = new CharacterSide(path);
+            var side = Adopted(path);
             var outcome = await side.InUseCaseAsync(token => side.DungeonRecovery(
                 new ProgressionPolicy(), new DungeonEffectRuleService())
                 .RecoverAsync(new AccountId(3), new CharacterId(7), token));
@@ -188,7 +195,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 INSERT INTO character_skills VALUES(7,'pve',0,1,100,4,NULL),
                   (7,'pve',0,2,101,1,NULL),(7,'pve',0,3,102,5,NULL),(7,'pve',0,4,103,3,NULL);
                 """);
-            var side = new CharacterSide(path);
+            var side = Adopted(path);
             var repository = side.ExpertContracts(new ExpertSkillContractRuleService());
             var definitions = new Dictionary<int, SkillPointCostDefinition>
             {
@@ -402,7 +409,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
     /// <summary>One recovery, in one use case, the way the entry command runs it.</summary>
     private static Task<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(string path)
     {
-        var side = new CharacterSide(path);
+        var side = Adopted(path);
         return side.InUseCaseAsync(token => side
             .DungeonRecovery(new ProgressionPolicy(), new DungeonEffectRuleService())
             .RecoverAsync(new AccountId(3), new CharacterId(7), token));

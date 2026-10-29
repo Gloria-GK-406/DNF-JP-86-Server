@@ -17,6 +17,8 @@
     <ProjectReference Include="..\..\src\Dfo.Server.Persistence\Dfo.Server.Persistence.csproj" />
     <!-- The rules the repository now asks instead of deciding. -->
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />
+    <!-- Cases that hand-write a relaxed shape bring it to the current version the way an old database is. -->
+    <ProjectReference Include="..\..\..\Tool\DbMigrate\DbMigrate.csproj" />
   </ItemGroup>
 
   <ItemGroup>

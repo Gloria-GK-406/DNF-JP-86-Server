@@ -246,11 +246,12 @@ public sealed class OutsideTransactionTests
         {
             await connection.OpenAsync();
             await using var command = connection.CreateCommand();
-            command.CommandText = "UPDATE characters SET town_id=11; ALTER TABLE characters DROP COLUMN last_inn_town_id;";
+            command.CommandText = "UPDATE characters SET town_id=11; ALTER TABLE characters DROP COLUMN last_inn_town_id; PRAGMA user_version=0;";
             await command.ExecuteNonQueryAsync();
         }
-        _ = new SqliteDatabase(fixture.Path, new DomainTransactionScope());
-        _ = new SqliteDatabase(fixture.Path, new DomainTransactionScope());
+        SqliteConnection.ClearAllPools();
+        DbMigrate.Migrator.Migrate(fixture.Path, backup: false);
+        DbMigrate.Migrator.Migrate(fixture.Path, backup: false);
         Assert.Equal(0, await ReadInnAsync(fixture));
         Assert.Equal(11, (await ReadPositionAsync(fixture))!.TownId);
     }

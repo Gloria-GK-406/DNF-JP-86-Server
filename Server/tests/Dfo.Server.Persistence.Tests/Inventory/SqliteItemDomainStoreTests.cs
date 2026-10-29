@@ -1,3 +1,4 @@
+using Dfo.Server.Persistence.Tests.Support;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -144,13 +145,13 @@ public sealed class SqliteItemDomainStoreTests
         {
             await using var legacy = connection.CreateCommand();
             legacy.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS idx_item_slots_account_slot "
-                + "ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account'";
+                + "ON item_slots(owner_id, slot_index) WHERE owner_scope = 'account'; PRAGMA user_version=0;";
             await legacy.ExecuteNonQueryAsync();
             await InsertAccountItemAsync(connection, 12, 0, Potion(5));
         }
 
-        _ = new SqliteDatabase(store.Path, new DomainTransactionScope());
-        _ = new SqliteDatabase(store.Path, new DomainTransactionScope());
+        HandWrittenShape.Adopt(store.Path);
+        HandWrittenShape.Adopt(store.Path);
         await using var upgraded = Open(store.Path);
         await InsertAccountItemAsync(upgraded, 0, 0, Stone(7));
         var duplicate = await Assert.ThrowsAsync<SqliteException>(

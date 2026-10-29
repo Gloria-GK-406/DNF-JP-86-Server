@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />
+    <!-- Older-shape cases reach the current version the way an old database does. -->
+    <ProjectReference Include="..\..\..\Tool\DbMigrate\DbMigrate.csproj" />
     <ProjectReference Include="..\..\src\Dfo.Server.Protocol\Dfo.Server.Protocol.csproj" />
     <!--
       Infrastructure is referenced so the entry rules can run against the real archive

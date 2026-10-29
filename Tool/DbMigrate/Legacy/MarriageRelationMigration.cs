@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Schema;
+namespace DbMigrate.Legacy;
 
 /// <summary>Gives every proposal that has no relation row the stage its proposal, ceremony and wedding rows imply.</summary>
 /// <remarks>

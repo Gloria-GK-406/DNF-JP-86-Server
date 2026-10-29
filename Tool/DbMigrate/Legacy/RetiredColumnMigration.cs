@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Schema;
+namespace DbMigrate.Legacy;
 
 /// <summary>
 /// Removes columns whose fact now lives elsewhere or that nothing reads, from a database built
@@ -8,7 +8,7 @@ namespace Dfo.Server.Persistence.Schema;
 /// </summary>
 /// <remarks>
 /// The migrations that once moved these columns into their owners still read them on databases
-/// that have not been through this one, so they ask <see cref="IsPresent"/> instead of assuming a
+/// that have not been through this one, so they ask <see cref="Shape.HasColumn"/> instead of assuming a
 /// shape. This runs after all of them: a column is dropped only once its contents are where the
 /// server reads them now. Without the drop, a database built before and one built after would keep
 /// two shapes, and the old one would carry values that look authoritative but are never read.
@@ -40,18 +40,18 @@ internal static class RetiredColumnMigration
     public static void Apply(SqliteConnection connection)
     {
         using var transaction = connection.BeginTransaction();
-        if (IsPresent(connection, transaction, "marriage_relations", "love_points"))
+        if (Present(connection, transaction, column => column.Column == "love_points"))
             Require(connection, transaction, "SELECT 1 FROM marriage_housing_migrations WHERE version=1",
                 "Love points must be split into personal points before their shared column is dropped.");
-        if (IsPresent(connection, transaction, "accounts", "cube_black"))
+        if (Present(connection, transaction, column => column.Table == "accounts"))
             Require(connection, transaction, "SELECT 1 FROM schema_migrations WHERE name='account-shared-material-v1'",
                 "Shared material balances must be moved into their container before their columns are dropped.");
-        if (IsPresent(connection, transaction, "characters", "skill_tree_index"))
+        if (Shape.HasColumn(connection, transaction, "characters", "skill_tree_index"))
             KeepLegacySkillPages(connection, transaction);
 
         foreach (var (table, column) in Retired)
         {
-            if (!IsPresent(connection, transaction, table, column)) continue;
+            if (!Shape.HasColumn(connection, transaction, table, column)) continue;
             using var drop = connection.CreateCommand();
             drop.Transaction = transaction;
             drop.CommandText = $"ALTER TABLE {table} DROP COLUMN {column};";
@@ -59,17 +59,6 @@ internal static class RetiredColumnMigration
         }
 
         transaction.Commit();
-    }
-
-    /// <summary>Whether a table that exists still carries a column.</summary>
-    public static bool IsPresent(SqliteConnection connection, SqliteTransaction? transaction, string table, string column)
-    {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = "SELECT 1 FROM pragma_table_info(@table) WHERE name=@column COLLATE NOCASE";
-        command.Parameters.AddWithValue("@table", table);
-        command.Parameters.AddWithValue("@column", column);
-        return command.ExecuteScalar() is not null;
     }
 
     /// <summary>
@@ -112,6 +101,10 @@ internal static class RetiredColumnMigration
             "UPDATE characters SET active_skill_build=skill_tree_index WHERE active_skill_build IS NULL AND skill_tree_index>=0;";
         command.ExecuteNonQuery();
     }
+
+    private static bool Present(
+        SqliteConnection connection, SqliteTransaction transaction, Func<(string Table, string Column), bool> which) =>
+        Retired.Where(which).Any(column => Shape.HasColumn(connection, transaction, column.Table, column.Column));
 
     private static void Require(SqliteConnection connection, SqliteTransaction transaction, string query, string failure)
     {
