@@ -937,6 +937,24 @@ public sealed class JoustIntegrationTests
         });
     }
     [Fact]
+    public async Task A_bettor_whose_character_was_deleted_is_skipped_and_the_rest_of_the_round_is_paid()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);
+            var state=await f.GetState();var knight=state.Knights[0].Knight.Index;
+            Assert.True((await f.Bet("kept",knight,0,5)).Succeeded);
+            // A bet placed before its character was deleted.
+            f.Sql("INSERT INTO characters(character_id,account_id,name,job,level,slot_index,delete_flag) VALUES(2,1,'gone',0,17,1,1);");
+            var store=f.Services.GetRequiredService<IJoustPersistence>();
+            await f.Run(async()=>{await store.InsertBetAsync(new JoustBet("gone",state.RoundId!,new(2),knight,490002916,5),default);return true;});
+            f.Now=f.Now.AddMinutes(110);await f.AdvanceLifecycle();
+            Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
+            Assert.Single(await f.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+        });
+    }
+    [Fact]
     public async Task Maintenance_projects_phase_changes_and_mail_service_notifies_actual_delivery()
     {
         using var f=new Fixture();await f.Enable();await f.AdvanceLifecycle();await f.Seed(121,490002916,10);var state=await f.GetState();await f.Bet("tick",state.Knights[0].Knight.Index,0,5);

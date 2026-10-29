@@ -13,12 +13,14 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Persistence;
+using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class JoustDomainService(IEventPersistence events, IJoustPersistence store, IJoustRuleService rules,
     ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
     ICharacterBusinessInventoryDomainService inventory, IMaterialConsumptionDomainService materials,
-    IItemDeliveryDomainService delivery, ICharacterTable owners, IDomainTransactionAccessor transactions,TimeProvider clock)
+    IItemDeliveryDomainService delivery, ICharacterTable owners, IDomainTransactionAccessor transactions,TimeProvider clock,
+    ILogger<JoustDomainService> logger)
     : IJoustDomainService, IJoustProjectionDomainService, IManagedEventDomainService
 {
     public int EventId => 2365;
@@ -195,7 +197,13 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
                         ?? throw new InvalidDataException("轮次奖励快照不完整。")));
                 }
                 Add(round.Definition.BettingReward, participation); Add(round.Definition.Reward, prize);
-                var owner = await owners.FindOwnerAsync(group.Key, ct) ?? throw new InvalidDataException("Reward recipient is unavailable.");
+                // A bettor who has since deleted the character has nowhere left to receive it; the
+                // rest of the round is still paid, or one deletion would hold every later round back.
+                if (await owners.FindOwnerAsync(group.Key, ct) is not { } owner)
+                {
+                    logger.LogInformation("Joust round {Round} skips the reward of deleted character {Character}.", round.RoundId, group.Key.Value);
+                    continue;
+                }
                 await delivery.DeliverAsync(owner, group.Key, grants, "骑士马战大竞猜奖励", ct, ItemDeliveryMode.MailOnly);
             }
             // This marker and every attachment join the same ambient SQLite transaction.
