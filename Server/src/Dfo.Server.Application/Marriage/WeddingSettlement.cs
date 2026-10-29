@@ -10,6 +10,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Mail;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Marriage;
 
@@ -17,7 +18,8 @@ namespace Dfo.Server.Application.Marriage;
 internal sealed class WeddingSettlement(IMarriageWeddingDomainStore store, IMarriageChurchRuleService rules, IMarriageProposalRuleService genders,
     ISelectedSessionDomainService sessions, ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService onlineCharacters,
     ISelectedSessionPositionPersistence persistence, IMailboxDomainService mail, IItemDeliveryDomainService delivery,
-    ICharacterTable owners, ICharacterDomainStore characterStore, IDomainTransactionAccessor transactions)
+    ICharacterTable owners, ICharacterDomainStore characterStore, IDomainTransactionAccessor transactions,
+    ILogger<WeddingSettlement> logger)
 {
     public MarriageWeddingRules Rules(int tier) => rules.WeddingRules(tier);
 
@@ -72,8 +74,10 @@ internal sealed class WeddingSettlement(IMarriageWeddingDomainStore store, IMarr
         {
             var bracket = rule.GuestRewards.Where(x => x.MaximumGold >= guest.Gold).OrderBy(x => x.MaximumGold).FirstOrDefault()?.MaximumGold;
             var rewards = rule.GuestRewards.Where(x => x.MaximumGold == bracket).Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray();
-            if (rewards.Length > 0 && await owners.FindOwnerAsync(guest.Guest, ct).ConfigureAwait(false) is { } owner)
+            if (rewards.Length == 0) continue;
+            if (await owners.FindOwnerAsync(guest.Guest, ct).ConfigureAwait(false) is { } owner)
                 await delivery.DeliverAsync(owner, guest.Guest, rewards, "婚礼宾客回礼", ct, ItemDeliveryMode.MailOnly).ConfigureAwait(false);
+            else Skipped("return gift", guest.Guest);
         }
         return standing;
     }
@@ -95,8 +99,17 @@ internal sealed class WeddingSettlement(IMarriageWeddingDomainStore store, IMarr
                 await persistence.PersistAsync(account, character, saved with { TownId = exit.TownId, AreaId = exit.AreaId, X = exit.X, Y = exit.Y }, ct).ConfigureAwait(false);
     }
 
+    /// <remarks>
+    /// A character deleted since paying has nowhere left to receive the refund. The others are
+    /// still refunded, or one deletion would leave the wedding uncancelled for good.
+    /// </remarks>
     private async ValueTask RefundAsync(CharacterId character, int gold, string text, CancellationToken ct)
     {
-        if (gold > 0) await mail.SendAsync(MailBuilder.FromSystem(character).WithText("婚礼退款", text).AddGold(gold).Build(), ct).ConfigureAwait(false);
+        if (gold <= 0) return;
+        if (await owners.FindOwnerAsync(character, ct).ConfigureAwait(false) is null) { Skipped("refund", character); return; }
+        await mail.SendAsync(MailBuilder.FromSystem(character).WithText("婚礼退款", text).AddGold(gold).Build(), ct).ConfigureAwait(false);
     }
+
+    private void Skipped(string what, CharacterId character) =>
+        logger.LogInformation("Wedding {What} skipped for deleted character {Character}.", what, character.Value);
 }

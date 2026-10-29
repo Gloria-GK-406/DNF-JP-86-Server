@@ -425,21 +425,7 @@ public sealed class MarriageChurchTests
         var (f, peer, clock) = await Reserved(); await using var owned = f;
         var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
         var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
-        f.Sql("""
-            INSERT INTO accounts(account_id,m_id) VALUES(3,'guest');
-            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
-            VALUES(73,3,'guest',0,0,85,0,0,0,-1);
-            INSERT INTO character_stats(character_id,carried_gold) VALUES(73,50000);
-            """);
-        var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
-        var connection = new NetworkConnectionContext(new("wedding-guest"), NetworkEndpointKind.Game, 10011);
-        var user = registry.RegisterConnection(connection).OnlineUserId; registry.Authenticate(user, new(3));
-        var guest = SelectedSessionIdentity.Create(new(3), new(73), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
-        registry.Select(guest);
-        registry.EnterWorld(guest);
-        var position = new CharacterPositionState(2, 1, 100, 200, 0);
-        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(guest, position, 100);
-        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(guest, new(1, 2, 1), position, true));
+        var guest = SeatGuest(f);
         Assert.Equal((ushort)10, await f.Services.GetRequiredService<IMarriageQueryDomainService>().RemainingInvitationsAsync(ceremony.Id, f.Session.CharacterId, default));
         var sent = await Flow(f, x => x.InviteAsync(f.Session, 0, 73, default));
         Assert.Equal(0, sent.Status); Assert.Equal((ushort)9, sent.Remaining);
@@ -474,6 +460,48 @@ public sealed class MarriageChurchTests
         Assert.Equal(MarriageWeddingPhase.Cancelled, (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!.Wedding.Phase);
         Assert.Equal(10000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE receiver_character_id=73"));
         });
+    }
+
+    [Fact]
+    public async Task Cancellation_refunds_everyone_still_there_and_skips_a_guest_whose_character_was_deleted()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var (f, peer, clock) = await Reserved(); await using var owned = f;
+            var ceremony = (await f.Services.GetRequiredService<IMarriageCeremonyDomainStore>().FindLatestReceivedAsync(peer.CharacterId, default))!;
+            var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default));
+            var guest = SeatGuest(f);
+            var key = Assert.Single((await Flow(f, x => x.InviteAsync(f.Session, 0, 73, default))).Letters).Key;
+            Assert.Equal(0, await Flow(f, x => x.GiftAsync(guest, key, 10000, default)));
+            f.Sql("UPDATE characters SET delete_flag=1 WHERE character_id=73;");
+            var applicant = $"SELECT COUNT(*) FROM mailbox_messages WHERE receiver_character_id={ceremony.Applicant.CharacterId.Value}";
+            var before = f.Scalar(applicant);
+            clock.Now = entries[0].Church.Room.ReadyUntil;
+            Assert.Equal(MarriageWeddingPhase.Cancelled, (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!.Wedding.Phase);
+            Assert.Equal(before + 1, f.Scalar(applicant));
+            Assert.Equal(0, f.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE receiver_character_id=73"));
+        });
+    }
+
+    /// <summary>A third account's character, online in town with 50000 gold to give.</summary>
+    private static SelectedSessionIdentity SeatGuest(LearningFixture f)
+    {
+        f.Sql("""
+            INSERT INTO accounts(account_id,m_id) VALUES(3,'guest');
+            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
+            VALUES(73,3,'guest',0,0,85,0,0,0,-1);
+            INSERT INTO character_stats(character_id,carried_gold) VALUES(73,50000);
+            """);
+        var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
+        var connection = new NetworkConnectionContext(new("wedding-guest"), NetworkEndpointKind.Game, 10011);
+        var user = registry.RegisterConnection(connection).OnlineUserId; registry.Authenticate(user, new(3));
+        var guest = SelectedSessionIdentity.Create(new(3), new(73), connection.ConnectionId, registry.GetRequiredUser(user).Generation, 10011);
+        registry.Select(guest);
+        registry.EnterWorld(guest);
+        var position = new CharacterPositionState(2, 1, 100, 200, 0);
+        f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().Begin(guest, position, 100);
+        f.Services.GetRequiredService<ITownAreaDomainService>().Enter(new(guest, new(1, 2, 1), position, true));
+        return guest;
     }
 
     [SkippableTheory]
