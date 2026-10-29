@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -542,10 +541,8 @@ public sealed class CharacterItemUseTests
             new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);
         cooldowns.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         fixture = new Fixture(clock, cooldowns, session);
-        var tower = TowerPresenceProxy.Create(out var presence);
-        if (inTower) presence.Members.Add(Character);
         return ItemUse(CharacterRow.At(level, job), new ItemUseJudgementService(new FakeItemUseRules(rules)),
-            cooldowns, PresentCharacters.StandingInTown(Character), tower);
+            cooldowns, PresentCharacters.StandingInTown(Character), inTower ? new TowerSeat() : null);
     }
 
     /// <summary>What the cases ask: whether this one character may use an item, through the item-use service.</summary>
@@ -556,15 +553,24 @@ public sealed class CharacterItemUseTests
     }
 
     private static Usability ItemUse(ICharacterTable row, IItemUseJudgementService judgement,
-        IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IIllusionTowerDomainService? towers = null) =>
+        IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IDungeonParticipationDomainService? seats = null) =>
         new(new CharacterItemUseDomainService(
             new CharacterDomainStub(id => new PlayingCharacter(id, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
                 new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
-            judgement, runtime, town, NobodyThere.Create<IDungeonRunDomainService>(),
-            towers ?? NobodyThere.Create<IIllusionTowerDomainService>(), NobodyThere.Create<IDungeonParticipationDomainService>()));
+            judgement, runtime, town, seats ?? NobodyThere.Create<IDungeonParticipationDomainService>()));
 
     private static Usability Build(
         out Fixture fixture,
         params (int ItemId, ItemUseRule Rule)[] rules) =>
         Build(out fixture, level: 50, job: 0, rules);
+
+    /// <summary>The character holds an illusion tower seat, the way the tower claims it on entry.</summary>
+    private sealed class TowerSeat : IDungeonParticipationDomainService
+    {
+        public DungeonParticipationOwner? Find(CharacterId character) =>
+            character == Character ? new(DungeonParticipationMode.IllusionTower, Guid.Empty) : null;
+        public bool TryClaim(IReadOnlyList<CharacterId> characters, DungeonParticipationOwner owner) => throw new NotSupportedException();
+        public void Release(CharacterId character, DungeonParticipationOwner expected) => throw new NotSupportedException();
+        public void ReleaseCommitted(CharacterId character, DungeonParticipationOwner expected) => throw new NotSupportedException();
+    }
 }

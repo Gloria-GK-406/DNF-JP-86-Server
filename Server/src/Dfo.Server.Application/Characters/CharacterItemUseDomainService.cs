@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Characters;
@@ -14,17 +13,14 @@ namespace Dfo.Server.Application.Characters;
 /// service that could not find a character if it wanted to.
 /// </summary>
 /// <remarks>
-/// Where the character stands is pieced together here from the town, the ordinary dungeon runs, the
-/// illusion tower and the special-dungeon participation, because each keeps its own membership. That is
-/// the one place to change when those memberships become one.
+/// Whether the character is in a dungeon is the participation registry's answer, which ordinary runs and
+/// both towers claim.
 /// </remarks>
 internal sealed class CharacterItemUseDomainService(
     ICharacterDomainService characters,
     IItemUseJudgementService judgement,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownAreaDomainService townAreas,
-    IDungeonRunDomainService dungeonRuns,
-    IIllusionTowerDomainService towers,
     IDungeonParticipationDomainService participation) : ICharacterItemUseDomainService
 {
     public async ValueTask<ItemUsability> CanUseAsync(
@@ -59,15 +55,14 @@ internal sealed class CharacterItemUseDomainService(
             onlineCharacters.IsCoolingDown(character, cooldown));
     }
 
-    private bool InDungeon(CharacterId character) =>
-        dungeonRuns.Find(character) is not null || towers.IsInTower(character) || participation.Find(character) is not null;
+    private bool InDungeon(CharacterId character) => participation.Find(character) is not null;
 
     /// <summary>
     /// Where the character is, as far as the archive's vocabulary goes.
     /// </summary>
     /// <remarks>
     /// A dungeon is the only other place this server could put anyone, so a character who is playing
-    /// and in none of the dungeon memberships is in a town whether or not anyone recorded them there.
+    /// and holds no dungeon seat is in a town whether or not anyone recorded them there.
     /// <para>
     /// The default therefore reads as "town" rather than "unknown". That is the permissive direction:
     /// a character inside a dungeon whose membership record is missing would be allowed a village-only

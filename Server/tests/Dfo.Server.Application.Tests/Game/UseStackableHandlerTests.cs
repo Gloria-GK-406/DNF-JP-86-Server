@@ -629,8 +629,6 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             new CharacterId(60), new NoCarriedGold(), new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
             new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
             judgement, cooldowns, TestGameplay.Run(() => PresentCharacters.StandingInTown(new CharacterId(60))),
-            NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(),
-            NobodyThere.Create<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(),
             NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
             new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots, inventory.Lifecycle),

@@ -162,7 +162,7 @@ public sealed class CharacterIdentityTests
         new CharacterItemUseDomainService(new CharacterDomainStub(_ => Character(row)),
             new ItemUseJudgementService(new FakeItemUseRules(rules)),
             new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
-            PresentCharacters.StandingInTown(Who), NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), NobodyThere.Create<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
+            PresentCharacters.StandingInTown(Who), NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
 
     /// <summary>One character's row, whose identity can be moved between questions.</summary>
     /// <remarks>

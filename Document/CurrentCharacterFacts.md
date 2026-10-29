@@ -17,7 +17,7 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 角色实体位于世界与效果之下：`ICharacterDomainService` 只提供 `Get(id)`，实例只依赖角色存储、规则服务、
 胶囊与事件。要问副本、塔或效果的能力放在实体之上，经实体读取角色：花名册、选角读取、起名、建角与删角归
 `ICharacterRosterDomainService`（建角在同一事务内应用初始化），物品可否使用归 `ICharacterItemUseDomainService`
-（城镇、普通副本、幻影塔与特殊副本参与的所在拼接只在这里），按场合定价的经验归
+（是否在副本中问副本占位登记 `IDungeonParticipationDomainService`），按场合定价的经验归
 `ICharacterExperienceAwardDomainService`。实体若反向依赖它们，会经初始化、外观或效果绕回自身。
 
 静态规则由共享规则服务持有。`ICharacterStatRuleService` 准备职业与 1—86 级的不可变基础属性，
