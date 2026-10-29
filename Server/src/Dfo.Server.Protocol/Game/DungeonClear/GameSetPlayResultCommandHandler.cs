@@ -267,24 +267,6 @@ internal sealed partial class GameSetPlayResultCommandHandler(
             var total = currentProgress.Experience;
             if (award is not null)
             {
-                result = result with
-                {
-                    Character = result.Character with
-                    {
-                        Progression = new CharacterProgressionState(level, total),
-                    },
-                    CharacterEntry = result.CharacterEntry with
-                    {
-                        Public = result.CharacterEntry.Public with
-                        {
-                            Extras = result.CharacterEntry.Public.Extras with
-                            {
-                                CharacterExperience = total,
-                            },
-                        },
-                    },
-                };
-
                 // A level decides which quests are offered, and a clear is as capable of crossing one
                 // as a kill is -- more so, since it pays in one lump. The same refresh, for the same
                 // reason: a quest whose band was just entered would otherwise stay hidden until the
@@ -297,6 +279,9 @@ internal sealed partial class GameSetPlayResultCommandHandler(
                     mirror = await character.RemainingSkillPointsAsync(cancellationToken)
                         .ConfigureAwait(false) ?? mirror;
 
+                    // Read again now the award has committed, rather than edited into what it should be.
+                    result = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false)
+                        ?? throw new InvalidOperationException("Character left before the clear could be projected.");
                     result = await offers
                         .RefreshAsync(result, session.AccountId, session.CharacterId, level,
                             cancellationToken).ConfigureAwait(false);

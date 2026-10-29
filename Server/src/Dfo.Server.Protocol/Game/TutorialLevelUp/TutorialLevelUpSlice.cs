@@ -159,23 +159,9 @@ public sealed class GameTutorialLevelUpCommandHandler(
             return true;
         }
 
-        var updated = result with
-        {
-            Character = result.Character with
-            {
-                Progression = new CharacterProgressionState(granted.Level, granted.Experience),
-            },
-            CharacterEntry = result.CharacterEntry with
-            {
-                Public = result.CharacterEntry.Public with
-                {
-                    Extras = result.CharacterEntry.Public.Extras with
-                    {
-                        CharacterExperience = granted.Experience,
-                    },
-                },
-            },
-        };
+        // Read again now the grant has committed, rather than edited into what it should be.
+        var updated = await currentViews.TryLoadAsync(session, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Character left before the tutorial level could be projected.");
         // The level is one of the offer list's inputs -- a quest whose band the character has just
         // entered becomes offerable at this moment -- and the list's own first byte IS the level,
         // so a session that skips this goes on drawing the old one. Worked out again rather than

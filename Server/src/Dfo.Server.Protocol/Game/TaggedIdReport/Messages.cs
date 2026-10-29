@@ -23,6 +23,11 @@ public sealed record TaggedIdReportRequest(
     byte RewardFlag) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameTaggedIdReport;
+
+    /// <summary>The flag the client reports when the tutorial ends (protocol/game/client-to-server/0x008F.md).</summary>
+    public const uint TutorialCompletedFlag = 31;
+
+    public bool CompletesTutorial => FlagIndex == TutorialCompletedFlag;
 }
 
 /// <summary>

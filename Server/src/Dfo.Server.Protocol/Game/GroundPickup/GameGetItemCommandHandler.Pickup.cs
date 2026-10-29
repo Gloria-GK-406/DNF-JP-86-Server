@@ -344,7 +344,7 @@ internal sealed partial class GameGetItemCommandHandler
         var change = result.CommittedChange;
         return result.Status is GroundPickupStatus.PickedUp && result.QuestProgress is not null
             && change is not null && change.Picker == requester.CharacterId
-                ? clearEvaluator.EvaluateAsync(requester.AccountId, requester.CharacterId,
+                ? clearEvaluator.TryOpenClearAsync(requester.AccountId, requester.CharacterId,
                     change.RunId, change.RoomVersion, CancellationToken.None)
                 : ValueTask.FromResult<DungeonClearChange?>(null);
     }

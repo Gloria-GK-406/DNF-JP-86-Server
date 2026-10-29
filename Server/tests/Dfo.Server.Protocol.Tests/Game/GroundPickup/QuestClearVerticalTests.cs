@@ -153,7 +153,7 @@ public sealed class QuestClearVerticalTests
                 var clear = new DungeonClearDomainService(
                     runs,
                     new ClearedBossRoom());
-                var bossClear = Assert.IsType<DungeonClearChange>(await clear.EvaluateAsync(
+                var bossClear = Assert.IsType<DungeonClearChange>(await clear.TryOpenClearAsync(
                     LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
                 return (run, afterDeath, clear, bossClear);
             });
@@ -204,7 +204,7 @@ public sealed class QuestClearVerticalTests
                 Assert.Equal(0, await TriggerAsync(path));
                 Assert.Equal(transition is PostCommitTransition.None, pickupDelivered);
                 Assert.True(runs.Find(run.RunId)!.ClearOpen);
-                Assert.Null(await clear.EvaluateAsync(
+                Assert.Null(await clear.TryOpenClearAsync(
                     LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
                 Assert.Equal(
                     transition is PostCommitTransition.None ? 1 : 0,

@@ -33,14 +33,14 @@ internal static class DungeonClearCommandProjection
             var run = runs.Find(target.CharacterId);
             List<IGameServerMessage> frames =
             [new EnableClearDungeonNotification(), new SecretShopNpcNotification(GameProtocol.SecretShopNpcId)];
-            if (CycleQuestRechallengeProjection.IsCycleClear(run))
+            if (CycleQuestSubmission.IsCycleClear(run))
             {
                 // The map-clear subscriber is asynchronous. Resynchronize an already-ready
                 // task after the kill frames, which may contain an older trigger snapshot.
                 {
                     var accepted = await quests.ReadAcceptedAsync(target.AccountId, target.CharacterId,
                         cancellationToken).ConfigureAwait(false);
-                    if (CycleQuestRechallengeProjection.IsReady(run, accepted))
+                    if (CycleQuestSubmission.IsReady(run, accepted))
                         frames.Add(CycleQuestRechallengeProjection.Progress(accepted));
                 }
                 frames.Add(CycleQuestRechallengeProjection.Check());

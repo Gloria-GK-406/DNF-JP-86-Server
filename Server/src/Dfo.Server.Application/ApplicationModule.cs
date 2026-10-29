@@ -530,6 +530,8 @@ public sealed class ApplicationModule : IServerModule
         // Recomputing a session's offer list after a level or a quest moved what it is made of.
         services.TryAddSingleton<
             IQuestOfferRefreshDomainService, QuestOfferRefreshDomainService>();
+        services.TryAddSingleton<IQuestAcceptanceDomainService, QuestAcceptanceDomainService>();
+        services.TryAddSingleton<IDungeonPremiumBuffDomainService, DungeonPremiumBuffDomainService>();
         // Whether a character may stand where they say, and what a tutorial step declares.
         services.TryAddSingleton<ITownMovementDomainService, TownMovementDomainService>();
         services.TryAddSingleton<ITutorialRewardDomainService, TutorialRewardDomainService>();

@@ -40,15 +40,7 @@ public sealed class GameAcceptQuestCommandHandler(
     IGameCommandOutbox outbox,
     IQuestOfferRefreshDomainService offers,
     ILogger<GameAcceptQuestCommandHandler> logger,
-    IQuestDefinitionDomainService quests,
-    ICharacterQuestLogDomainService logs,
-    ICharacterContainerDomainService containers,
-    IQuestProgressDomainService questProgress,
-    IItemDeliveryDomainService delivery,
-    ICycleDungeonEntryDomainService cycles,
-    IMirrorAradQuestDomainService mirror,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
-    ISouthernDaleQuestDomainService southern, IGiantDragonCrystalExchangeDomainService crystalExchange)
+    IQuestAcceptanceDomainService acceptance)
     : ICommandHandler<GameAcceptQuestCommand, QuestAcceptOutcome>
 {
     public async ValueTask<QuestAcceptOutcome> HandleAsync(CommandExecutionContext execution, GameAcceptQuestCommand command, CancellationToken cancellationToken)
@@ -178,102 +170,33 @@ public sealed class GameAcceptQuestCommandHandler(
         QuestAcceptanceInput command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+        var accepted = await acceptance.AcceptAsync(
+            command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false);
+        if (accepted.Refusal is { } refusal)
+            return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(refusal));
 
-        var definition = await quests.FindAsync(command.QuestId, cancellationToken)
-            .ConfigureAwait(false);
-        if (definition is null)
-            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-
-        if (definition.Grade == QuestGrade.Crack)
-        {
-            if (mirror is null) return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-            var accepted = await mirror.AcceptAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false);
-            return accepted.Accepted
-                ? new(true, command.QuestId, unchecked((uint)accepted.TriggerValue), [])
-                : QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(accepted.Refusal));
-        }
-        var log = logs.LogOf(command.AccountId, command.CharacterId);
-        if (definition.Grade == QuestGrade.Wedding && (marriage is null
-            || !await marriage.CanAcceptAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false)))
-            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-        if (definition.Grade == QuestGrade.Circle
-            && (cycles is null || !await cycles.CanAcceptAsync(command.AccountId, command.CharacterId,
-                command.QuestId, cancellationToken).ConfigureAwait(false)))
-            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
-        // A21's successful ACK inserts a new client quest; a duplicate returns null and crashes.
-        // CMD001F refusal 00 12 bypasses that insertion (protocol/game/client-to-server/0x001F.md).
-        if (carried.Any(x => x.QuestId == command.QuestId))
-            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.AlreadyActive);
-        if (command.QuestId == ISouthernDaleQuestDomainService.QuestId && (southern is null
-            || !await southern.CanAcceptAsync(command.CharacterId, cancellationToken).ConfigureAwait(false)))
-            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.Unknown);
-        if (command.QuestId == IGiantDragonCrystalExchangeDomainService.QuestId
-            && !await crystalExchange.CanAcceptAsync(command.CharacterId, cancellationToken).ConfigureAwait(false))
-            return QuestAcceptOutcome.Refuse(command.QuestId, QuestAcceptRefusal.AlreadyActive);
-        var taken = await log.AcceptAsync(definition, cancellationToken).ConfigureAwait(false);
-        if (!taken.Accepted)
-            return QuestAcceptOutcome.Refuse(command.QuestId, WireCodeFor(taken.Refusal));
-        if (definition.Grade == QuestGrade.Wedding)
-            await marriage!.BindAsync(command.AccountId, command.CharacterId, command.QuestId, cancellationToken).ConfigureAwait(false);
-
-        var declared = definition.EventItems ?? [];
-        var placed = new List<AcceptedQuestItem>(declared.Count);
+        var placed = new List<AcceptedQuestItem>(accepted.Items.Count);
         var accountChanges = new List<InventoryRuntimeValueState>();
-        if (declared.Count > 0)
+        foreach (var item in accepted.Items)
         {
-            var container = containers.FindContainer(
-                command.CharacterId, InventoryContainerType.Main);
-            if (container is null)
-            {
-                return await this.HandBackAsync(log, command.QuestId, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            var receipt = await delivery.DeliverAsync(command.AccountId, command.CharacterId,
-                declared.Select(x => new ItemDeliveryGrant(x.ItemId, x.Count)).ToArray(), "任务授予物品", cancellationToken, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
-            foreach (var item in receipt.Inventory)
-            {
-                placed.Add(new(checked((ushort)ItemGrantWireProjection.Index(item)), (uint)item.Snapshot.ItemId, (uint)item.Count));
-                if (ItemGrantWireProjection.Shared(item) is { } shared) accountChanges.Add(shared);
-            }
+            placed.Add(new(checked((ushort)ItemGrantWireProjection.Index(item)), (uint)item.Snapshot.ItemId, (uint)item.Count));
+            if (ItemGrantWireProjection.Shared(item) is { } shared) accountChanges.Add(shared);
         }
-
-        var progress = placed.Count > 0 || definition.SeekingItems is { Count: > 0 }
-            ? (await questProgress.ReportAsync(
-                command.AccountId, command.CharacterId,
-                [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false))
-                .NotificationSnapshot
-            : null;
-        if (progress is null && taken.TriggerValue != definition.InitialTrigger)
-        {
-            progress = new QuestProgressSnapshot(await log.CarriedAsync(cancellationToken)
-                .ConfigureAwait(false));
-        }
-        if (progress is not null && mirror is not null)
-            progress = await mirror.MergeAsync(command.CharacterId, progress, cancellationToken).ConfigureAwait(false);
         return new QuestAcceptOutcome(
-            true, command.QuestId, definition.InitialTrigger, placed,
-            QuestProgress: progress,
+            true, command.QuestId, accepted.InitialTrigger, placed,
+            QuestProgress: accepted.QuestProgress,
             AccountMaterials: accountChanges);
     }
 
-    // Missing the main container refuses the acceptance before any item delivery.
-    // Grants themselves are handled by the transactional inventory/mail delivery service.
-    private async ValueTask<QuestAcceptOutcome> HandBackAsync(
-        IQuestLog log, ushort questId, CancellationToken cancellationToken)
+    private static QuestAcceptRefusal WireCodeFor(QuestAcceptanceRefusal refusal) => refusal switch
     {
-        await log.GiveUpAsync(questId, cancellationToken).ConfigureAwait(false);
-        return QuestAcceptOutcome.Refuse(questId, QuestAcceptRefusal.NoRoomForItems);
-    }
-
-    private static QuestAcceptRefusal WireCodeFor(QuestRefusal? refusal) => refusal switch
-    {
-        QuestRefusal.AlreadyCarried => QuestAcceptRefusal.AlreadyActive,
-        QuestRefusal.AlreadyCleared => QuestAcceptRefusal.AlreadyActive,
-        QuestRefusal.NoFreeSlot => QuestAcceptRefusal.ActiveListFull,
-        QuestRefusal.ManagedByAchievement => QuestAcceptRefusal.Unknown,
-        QuestRefusal.UnsupportedObjective => QuestAcceptRefusal.Unknown,
+        QuestAcceptanceRefusal.NotAcceptable => QuestAcceptRefusal.Unknown,
+        QuestAcceptanceRefusal.AlreadyCarried => QuestAcceptRefusal.AlreadyActive,
+        QuestAcceptanceRefusal.AlreadyCleared => QuestAcceptRefusal.AlreadyActive,
+        QuestAcceptanceRefusal.NoFreeSlot => QuestAcceptRefusal.ActiveListFull,
+        QuestAcceptanceRefusal.ManagedByAchievement => QuestAcceptRefusal.Unknown,
+        QuestAcceptanceRefusal.UnsupportedObjective => QuestAcceptRefusal.Unknown,
+        QuestAcceptanceRefusal.NoRoomForItems => QuestAcceptRefusal.NoRoomForItems,
         _ => throw new ArgumentOutOfRangeException(
             nameof(refusal), refusal, "No code was decided for this refusal."),
     };
