@@ -345,10 +345,10 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         switch (place)
         {
             case DungeonPartyPlace.PartyInBossTower boss:
-                _ = await CoordinateBossTowerPartyAsync(execution, PartyChange.Leave, session, candidates, boss, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                _ = await CoordinateTowerPartyAsync(execution, PartyChange.Leave, session, candidates, bossKind, boss.Runs, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
                 return;
             case DungeonPartyPlace.PartyInIllusionTower illusion:
-                _ = await CoordinateIllusionTowerPartyAsync(execution, PartyChange.Leave, session, candidates, illusion, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
+                _ = await CoordinateTowerPartyAsync(execution, PartyChange.Leave, session, candidates, illusionKind, illusion.Runs, true, new GiveUpGameResponse(), cancellationToken).ConfigureAwait(false);
                 return;
             default:
                 await GiveUpOrdinaryAsync(execution, context, session, cancellationToken).ConfigureAwait(false);
