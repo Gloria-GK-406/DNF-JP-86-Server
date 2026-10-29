@@ -299,6 +299,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             var equipment = refreshed.CharacterInventory.Containers
                 .SingleOrDefault(value => value.ContainerType == InventoryContainerType.Equipment)
                 ?.Items ?? [];
+            var deferSelection = visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted);
             List<IGameServerMessage> notifications =
             [
                 new ExtendedUserStateMessage(
@@ -307,16 +308,20 @@ internal sealed partial class GameDungeonSelectionCommandHandler
                     refreshed.CharacterEntry.Skills,
                     equipment,
                     refreshed.World.PreparedAt),
+            ];
+            // Populate the activity cache before USER_STATE and the permission list rebuild selection.
+            if (!deferSelection)
+                notifications.AddRange(Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.Selection(
+                    await ruins.SelectionAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
+            notifications.AddRange([
                 new EnterSelectDungeonAcknowledgement(),
                 new UserStateNotification(member.Session.WireUserId, 0x01),
                 new UdpHostNotification(roster.LeaderMember.Slot),
-            ];
+            ]);
             notifications.AddRange(await HousingCurrentProjection.ReadAsync(housing, member.Session, cancellationToken).ConfigureAwait(false));
-            if (!visits.DefersSelectionState(refreshed.Character.Progression.Level, refreshed.Character.TutorialCompleted))
+            if (!deferSelection)
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
-                notifications.AddRange(Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.Selection(
-                    await ruins.SelectionAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
                 var tower = despair is null ? null
                     : await despair.ReadStatusAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false);
                 if (tower is not null)
