@@ -34,8 +34,7 @@ public sealed class MirrorAradQuestTests
         var runtime = new Runtime { Current = Run() };
         await using var f = new LearningFixture(configure: services =>
         {
-            services.AddSingleton<IDungeonRunDomainService>(runtime);
-            services.AddDungeonRunViews();
+            services.AddSingleton<IDungeonRunQueryDomainService>(runtime);
             services.AddSingleton<IQuestContentRuleService>(new Definitions { Value = Quest("clear map", null, 4403) });
             services.AddSingleton<IMirrorDungeonRuleService>(new MirrorRules());
             services.AddSingleton<IItemPlacementRuleService>(new Placements());
@@ -250,8 +249,7 @@ public sealed class MirrorAradQuestTests
         var runtime = new Runtime { Current = Run() };
         await using var fixture = new LearningFixture(configure: services =>
         {
-            services.AddSingleton<IDungeonRunDomainService>(runtime);
-            services.AddDungeonRunViews();
+            services.AddSingleton<IDungeonRunQueryDomainService>(runtime);
             services.AddSingleton<IQuestContentRuleService>(new Definitions());
             services.AddSingleton<IMirrorDungeonRuleService>(new MirrorRules());
             services.AddSingleton<IItemPlacementRuleService>(new Placements());
@@ -404,15 +402,11 @@ public sealed class MirrorAradQuestTests
         public ValueTask<QuestDefinition?> FindAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(id == 14299 ? Quest() : null);
     }
     private sealed class Clock : TimeProvider { public DateTimeOffset Now { get; set; } public override DateTimeOffset GetUtcNow() => Now; }
-    private sealed class Runtime : IDungeonRunDomainService
+    private sealed class Runtime : IDungeonRunQueryDomainService
     {
         public DungeonRunState? Current { get; set; }
         public DungeonRunState? Find(CharacterId id) => id.Value == 71 ? Current : null;
-        public DungeonRunState? TryMove(CharacterId id, MazeCell target) => throw new NotSupportedException();
-        public DungeonRunState? TrySettle(CharacterId id) => throw new NotSupportedException();
-        public DungeonRunState? FixClearRewardCards(CharacterId id, ClearRewardCardFace free, ClearRewardCardFace paid, int? cost) => throw new NotSupportedException();
-        public ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId id, ClearRewardCardKind kind, int index) => throw new NotSupportedException();
-        public bool End(CharacterId id) { Current = null; return true; }
+        public DungeonRunState? Find(DungeonRunId runId) => Current?.RunId == runId ? Current : null;
     }
     private sealed class Definitions : IQuestContentRuleService
     {

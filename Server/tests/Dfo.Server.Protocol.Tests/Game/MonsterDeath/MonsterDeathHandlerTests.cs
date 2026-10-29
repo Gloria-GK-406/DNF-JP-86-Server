@@ -1371,7 +1371,7 @@ public sealed class MonsterDeathHandlerTests
     /// room opens the exit, which is a different decision with frames of its own; what is checked
     /// here is the kill itself.
     /// </remarks>
-    private sealed class OneRun(bool apcDrop = false) : IDungeonRunDomainService
+    private sealed class OneRun(bool apcDrop = false) : DungeonRunServiceStub
     {
         private bool _reported;
         private bool _committed;
@@ -1395,16 +1395,7 @@ public sealed class MonsterDeathHandlerTests
             BasisLevel: 5,
             ExperienceWeight: 1.45);
 
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence)
-        {
-            if (this._reported)
-                return null;
-
-            this._reported = true;
-            return this.Find(characterId);
-        }
-
-        public DungeonRunState? Find(CharacterId characterId) => new(
+        public override DungeonRunState? Find(CharacterId characterId) => new(
             Layout,
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
@@ -1428,7 +1419,16 @@ public sealed class MonsterDeathHandlerTests
                     ? [new DungeonGroundItem(1, 1001, 1, 0, false, DungeonGroundItemSource.FromActor(DeadActor))]
                     : []));
 
-        public DungeonActorDeathClaim? TryClaimActorDeath(
+        private DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence)
+        {
+            if (this._reported)
+                return null;
+
+            this._reported = true;
+            return this.Find(characterId);
+        }
+
+        public override DungeonActorDeathClaim? TryClaimActorDeath(
             CharacterId characterId,
             ushort actorSequence)
         {
@@ -1442,13 +1442,13 @@ public sealed class MonsterDeathHandlerTests
                     ++this._claimToken);
         }
 
-        public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
+        public override DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
         {
             this._committed = true;
             return this.Find(claim.CharacterId);
         }
 
-        public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
+        public override bool ReleaseActorDeath(DungeonActorDeathClaim claim)
         {
             if (!this._reported || claim.Token != this._claimToken)
                 return false;
@@ -1457,40 +1457,29 @@ public sealed class MonsterDeathHandlerTests
             return true;
         }
 
-        public DungeonRunState? TrySettle(CharacterId characterId) =>
+        public override DungeonRunState? TrySettle(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
 
         public DungeonRunState Begin(
             CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId,
-            int declaredDropCount,
-            ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => [];
-
-        public bool End(CharacterId characterId) =>
+        public override bool End(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public DungeonRunState? TryTakeGroundDrop(
-            CharacterId characterId, ushort groundDropNumber) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId,
             ClearRewardCardFace free,
             ClearRewardCardFace paid,
             int? paidFlipCost) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
+            throw new NotSupportedException("This fixture only answers.");}
 
     private sealed class FixedPartyMemberStatus : IPartyMemberStatusDomainService
     {
@@ -1511,7 +1500,7 @@ public sealed class MonsterDeathHandlerTests
     private sealed class PartyRun(
         IReadOnlyList<DungeonRunParticipant> participants,
         CharacterId? dropOwner = null)
-        : IDungeonRunDomainService
+        : DungeonRunServiceStub
     {
         public bool RejectParticipantPublication { get; init; }
         public CharacterId? RejectParticipantCharacter { get; init; }
@@ -1539,10 +1528,10 @@ public sealed class MonsterDeathHandlerTests
         public int CommitCount { get; private set; }
         public int ReleaseCount { get; private set; }
 
-        public DungeonRunState? Find(DungeonRunId runId) =>
+        public override DungeonRunState? Find(DungeonRunId runId) =>
             runId == this.RunId ? this.Find(participants[0].CharacterId) : null;
 
-        public DungeonRunState? Find(CharacterId characterId)
+        public override DungeonRunState? Find(CharacterId characterId)
         {
             var participant = participants.SingleOrDefault(value => value.CharacterId == characterId);
             return participant is null ? null : new DungeonRunState(
@@ -1584,7 +1573,7 @@ public sealed class MonsterDeathHandlerTests
                         : [])) { PartyKey = this.PartyKey };
         }
 
-        public DungeonActorDeathClaim? TryClaimActorDeath(
+        public override DungeonActorDeathClaim? TryClaimActorDeath(
             CharacterId characterId, ushort actorSequence)
         {
             if (this.claimActive || this.committed || this.Find(characterId) is not { } run)
@@ -1598,7 +1587,7 @@ public sealed class MonsterDeathHandlerTests
                 this.RunId);
         }
 
-        public DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
+        public override DungeonRunState? CommitActorDeath(DungeonActorDeathClaim claim)
         {
             if (ThrowActorPublication) throw new OperationCanceledException("actor publication");
             if (RejectActorPublication) return null;
@@ -1608,14 +1597,14 @@ public sealed class MonsterDeathHandlerTests
             return this.Find(claim.CharacterId);
         }
 
-        public bool ReleaseActorDeath(DungeonActorDeathClaim claim)
+        public override bool ReleaseActorDeath(DungeonActorDeathClaim claim)
         {
             this.ReleaseCount++;
             this.claimActive = false;
             return true;
         }
 
-        public DungeonParticipantKillEffectClaim? TryClaimParticipantKillEffect(
+        public override DungeonParticipantKillEffectClaim? TryClaimParticipantKillEffect(
             DungeonActorDeathClaim death,
             CharacterId characterId)
         {
@@ -1629,7 +1618,7 @@ public sealed class MonsterDeathHandlerTests
             return new DungeonParticipantKillEffectClaim(death, characterId, 1);
         }
 
-        public bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
+        public override bool CommitParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
         {
             if (!this.pendingEffects.Remove(claim.CharacterId))
                 return false;
@@ -1637,7 +1626,7 @@ public sealed class MonsterDeathHandlerTests
             return this.completedEffects.Add(claim.CharacterId);
         }
 
-        public bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
+        public override bool ReleaseParticipantKillEffect(DungeonParticipantKillEffectClaim claim)
         {
             if (!this.pendingEffects.Remove(claim.CharacterId))
                 return false;
@@ -1646,24 +1635,19 @@ public sealed class MonsterDeathHandlerTests
 
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw Unused();
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw Unused();
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort number) => throw Unused();
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw Unused();
         public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) =>
             throw Unused();
-        public DungeonRunState? TrySettle(CharacterId characterId) => throw Unused();
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId, int declaredDropCount, ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => throw Unused();
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? TrySettle(CharacterId characterId) => throw Unused();
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid,
             int? paidFlipCost) => throw Unused();
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) => throw Unused();
-        public bool End(CharacterId characterId) => throw Unused();
+        public override bool End(CharacterId characterId) => throw Unused();
 
         private static NotSupportedException Unused() =>
-            new("This fixture only models shared monster death.");
-    }
+            new("This fixture only models shared monster death.");}
 
     private sealed class PartySessions(IReadOnlyList<SelectedSessionIdentity> sessions)
         : ISelectedSessionDomainService

@@ -823,7 +823,7 @@ public sealed class SetPlayResultHandlerTests
     private sealed class OneRun(
         DungeonRunPurpose purpose,
         DungeonRunParticipant? leader = null,
-        bool includeOnlyLeader = false) : IDungeonRunDomainService
+        bool includeOnlyLeader = false) : DungeonRunServiceStub
     {
         public bool FailPublication { get; init; }
         public bool CancelPublication { get; init; }
@@ -832,7 +832,7 @@ public sealed class SetPlayResultHandlerTests
         private bool _settlementClaimed;
 
         /// <summary>The run, claimed once, exactly as the real service claims it.</summary>
-        public DungeonRunState? TrySettle(CharacterId characterId)
+        public override DungeonRunState? TrySettle(CharacterId characterId)
         {
             if (this._settled)
                 return null;
@@ -841,7 +841,7 @@ public sealed class SetPlayResultHandlerTests
             return this.Find(characterId);
         }
 
-        public DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId)
+        public override DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId)
         {
             if (this._settled || this._settlementClaimed || this.Find(characterId) is not { } run)
                 return null;
@@ -849,7 +849,7 @@ public sealed class SetPlayResultHandlerTests
             return new DungeonSettlementClaim(characterId, run, 1, run.RunId);
         }
 
-        public DungeonRunState? CommitSettlement(DungeonSettlementClaim claim)
+        public override DungeonRunState? CommitSettlement(DungeonSettlementClaim claim)
         {
             if (CancelPublication) throw new OperationCanceledException("after durable award");
             if (FailPublication) return null;
@@ -860,7 +860,7 @@ public sealed class SetPlayResultHandlerTests
             return this.Find(claim.CharacterId);
         }
 
-        public bool ReleaseSettlement(DungeonSettlementClaim claim)
+        public override bool ReleaseSettlement(DungeonSettlementClaim claim)
         {
             ReleaseCount++;
             if (!this._settlementClaimed)
@@ -883,7 +883,7 @@ public sealed class SetPlayResultHandlerTests
             ExperienceWeight: 1.45,
             Purpose: purpose);
 
-        public DungeonRunState? Find(CharacterId characterId) => new(
+        public override DungeonRunState? Find(CharacterId characterId) => new(
             this._layout,
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
@@ -906,39 +906,22 @@ public sealed class SetPlayResultHandlerTests
             CurrentCellState: DungeonCellSeed.CompleteEmpty(
                 new MazeCell(0, 0), 1).Snapshot());
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
+        public override bool End(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId,
-            int declaredDropCount,
-            ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => [];
-
-        public bool End(CharacterId characterId) =>
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId,
             ClearRewardCardFace free,
             ClearRewardCardFace paid,
             int? paidFlipCost) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
+            throw new NotSupportedException("This fixture only answers.");}
 
     private sealed class PurposeSettlementRules(bool canComplete) : IDungeonSettlementRuleService
     {

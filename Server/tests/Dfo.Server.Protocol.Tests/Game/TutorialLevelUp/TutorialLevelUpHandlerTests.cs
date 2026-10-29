@@ -216,7 +216,7 @@ public sealed class TutorialLevelUpHandlerTests
     /// inside its own run, and a request from town is the two sides disagreeing about where the
     /// character is.
     /// </remarks>
-    private sealed class InARun : IDungeonRunDomainService
+    private sealed class InARun : DungeonRunServiceStub
     {
         private static readonly DungeonLayout Layout = new(
             DungeonId: 60,
@@ -231,7 +231,7 @@ public sealed class TutorialLevelUpHandlerTests
             BasisLevel: 1,
             ExperienceWeight: 1.0);
 
-        public DungeonRunState? Find(CharacterId characterId) => new(
+        public override DungeonRunState? Find(CharacterId characterId) => new(
             Layout,
             new MazeCell(0, 0),
             CurrentRoomMapId: 1,
@@ -240,41 +240,23 @@ public sealed class TutorialLevelUpHandlerTests
             CurrentCellState: DungeonCellSeed.CompleteEmpty(
                 new MazeCell(0, 0), 1).Snapshot());
 
-        public DungeonRunState? TrySettle(CharacterId characterId) =>
+        public override DungeonRunState? TrySettle(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public DungeonRunState Begin(
-            CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
+        public override bool End(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId,
-            int declaredDropCount,
-            ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => [];
-
-        public bool End(CharacterId characterId) =>
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? TryTakeGroundDrop(
-            CharacterId characterId, ushort groundDropNumber) =>
-            throw new NotSupportedException("This fixture only answers.");
-
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId,
             ClearRewardCardFace free,
             ClearRewardCardFace paid,
             int? paidFlipCost) =>
             throw new NotSupportedException("This fixture only answers.");
 
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
-            throw new NotSupportedException("This fixture only answers.");
-    }
+            throw new NotSupportedException("This fixture only answers.");}
 }

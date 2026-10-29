@@ -120,7 +120,7 @@ public sealed class LuckyStarRentalTests
             var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();
             DungeonRunId Open()
             {
-                runs.End(new(1));
+                if (runs.Find(new Dfo.Server.Data.Characters.CharacterId(1)) is { } previous) runs.End(new(1), previous.RunId);
                 var layout=new DungeonLayout(144,0,1,1,new(0,0),new(0,0),61000,1,
                     new Dictionary<MazeCell,DungeonCellDefinition>{[new(0,0)]=DungeonCellDefinition.Fixed(61000)},85);
                 var run=runs.PreparePartyEntry([new(new(1),new(1),0,true)],layout,0,

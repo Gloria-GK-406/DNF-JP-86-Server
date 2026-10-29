@@ -142,7 +142,7 @@ public sealed class CardRewardReconnectIntegrationTests
                     Assert.NotNull(
                         runs.FixClearRewardCards(
                             Character, run.RunId, FreeFace(), PaidFace(), PaidFlipCost));
-                    Assert.NotNull(runs.TrySettle(Character));
+                    Assert.NotNull(runs.CommitSettlement(runs.TryClaimSettlement(Character)!));
                     Assert.NotNull(runs.TryOpenCardLayout(Character, run.RunId));
                 });
             }

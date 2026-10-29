@@ -291,7 +291,7 @@ public sealed class ResultScreenTests
     /// Refusing rather than recording is what makes "changes nothing" checkable: a handler that
     /// grew a settle, a move or an end would throw here rather than quietly pass.
     /// </remarks>
-    private sealed class OneRun(ushort deadActor, bool inARun = true) : IDungeonRunDomainService
+    private sealed class OneRun(ushort deadActor, bool inARun = true) : DungeonRunServiceStub
     {
         /// <summary>How many times the run was looked at, which is all this handler may do.</summary>
         public int TimesRead { get; private set; }
@@ -311,7 +311,7 @@ public sealed class ResultScreenTests
             BasisLevel: 5,
             ExperienceWeight: 1.45);
 
-        public DungeonRunState? Find(CharacterId characterId)
+        public override DungeonRunState? Find(CharacterId characterId)
         {
             this.TimesRead++;
             return inARun
@@ -339,42 +339,25 @@ public sealed class ResultScreenTests
                 : null;
         }
 
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
+        public override bool End(CharacterId characterId) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
-        /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId,
-            int declaredDropCount,
-            ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => [];
-
-        public bool End(CharacterId characterId) =>
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
+        public override DungeonRunState? TrySettle(CharacterId characterId) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) =>
-            throw new NotSupportedException("The boss confirmation may only read the run.");
-
-        public DungeonRunState? TrySettle(CharacterId characterId) =>
-            throw new NotSupportedException("The boss confirmation may only read the run.");
-
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) =>
-            throw new NotSupportedException("The boss confirmation may only read the run.");
-
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId,
             ClearRewardCardFace free,
             ClearRewardCardFace paid,
             int? paidFlipCost) =>
             throw new NotSupportedException("The boss confirmation may only read the run.");
 
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
-            throw new NotSupportedException("The boss confirmation may only read the run.");
-    }
+            throw new NotSupportedException("The boss confirmation may only read the run.");}
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {

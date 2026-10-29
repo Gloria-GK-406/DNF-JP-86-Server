@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Abstractions.Characters;
@@ -1220,17 +1221,12 @@ public sealed class SelectDungeonHandlerTests
             CancellationToken cancellationToken) => ValueTask.FromResult(result);
     }
 
-    private sealed class NoopRuns : IDungeonRunDomainService
+    private sealed class NoopRuns : DungeonRunServiceStub
     {
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
-        public DungeonRunState? Find(CharacterId characterId) => null;
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => null;
-        public DungeonRunState? TrySettle(CharacterId characterId) => null;
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(CharacterId characterId, int declaredDropCount, ushort actorSequence, IReadOnlyList<RolledDrop> rolled) => [];
-        public DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => null;
-        public ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => null;
-        public bool End(CharacterId characterId) => true;
-    }
+        public override DungeonRunState? Find(CharacterId characterId) => null;
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
+        public override DungeonRunState? TrySettle(CharacterId characterId) => null;
+        public override DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => null;
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => null;
+        public override bool End(CharacterId characterId) => true;}
 }

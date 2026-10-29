@@ -41,7 +41,7 @@ public sealed class LostLandDungeonTests
             Assert.NotNull((await DungeonEntryRouteDriver.EnterAsync(fixture.Services, Entry())).Entry);
             Assert.Equal(1, (await domain.ReadQuotaAsync(new(71), default)).Remaining);
             Assert.Equal(2, (await quotas.ReadAsync(new(71), UsageQuotaKey.LostLand(period), default))!.UsedCount);
-            TestGameplay.Run(fixture.Services, () => runs.End(new(71)));
+            TestGameplay.Run(fixture.Services, () => { if (runs.Find(new Dfo.Server.Data.Characters.CharacterId(71)) is { } run) runs.End(new(71), run.RunId); });
         }
         Assert.Equal(originalFatigue, await fatigue.BalanceOfAsync(new(71), default));
         await using var normal = new LearningFixture(existing: fixture.Path, useArchive: true, configure: services =>
@@ -129,7 +129,7 @@ public sealed class LostLandDungeonTests
         for (var i = 0; i < 2; i++)
         {
             Assert.NotNull((await DungeonEntryRouteDriver.EnterAsync(fixture.Services, Entry())).Entry);
-            TestGameplay.Run(fixture.Services, () => runs.End(new(71)));
+            TestGameplay.Run(fixture.Services, () => { if (runs.Find(new Dfo.Server.Data.Characters.CharacterId(71)) is { } run) runs.End(new(71), run.RunId); });
         }
         Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached,
             (await DungeonEntryRouteDriver.EnterAsync(fixture.Services, Entry())).Failure);

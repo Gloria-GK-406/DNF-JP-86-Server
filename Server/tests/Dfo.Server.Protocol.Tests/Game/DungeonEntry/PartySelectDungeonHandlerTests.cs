@@ -1224,15 +1224,15 @@ public sealed class PartySelectDungeonHandlerTests
             });
     }
 
-    private sealed class RollbackRuns : IDungeonRunDomainService
+    private sealed class RollbackRuns : DungeonRunServiceStub
     {
         private readonly Dictionary<CharacterId, DungeonRunState> current = [];
         public List<CharacterId> Ended { get; } = [];
         public void SetCurrent(CharacterId characterId, DungeonRunState run) =>
             current[characterId] = run;
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
-        public DungeonRunState? Find(CharacterId characterId) => current.GetValueOrDefault(characterId);
-        public bool TryAbortEntry(
+        public override DungeonRunState? Find(CharacterId characterId) => current.GetValueOrDefault(characterId);
+        public override bool TryAbortEntry(
             DungeonRunId expectedRunId,
             long expectedEntryRevision,
             IReadOnlyList<CharacterId> expectedRecipients)
@@ -1252,32 +1252,28 @@ public sealed class PartySelectDungeonHandlerTests
             }
             return true;
         }
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => null;
-        public DungeonRunState? TrySettle(CharacterId characterId) => null;
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(CharacterId characterId, int declaredDropCount, ushort actorSequence, IReadOnlyList<RolledDrop> rolled) => [];
-        public DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => null;
-        public ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => null;
-        public bool End(CharacterId characterId)
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
+        public override DungeonRunState? TrySettle(CharacterId characterId) => null;
+        public override DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => null;
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => null;
+        public override bool End(CharacterId characterId)
         {
             Ended.Add(characterId);
             return true;
         }
-        public bool End(CharacterId characterId, DungeonRunId expectedRunId)
+        public override bool End(CharacterId characterId, DungeonRunId expectedRunId)
         {
             Ended.Add(characterId);
             return true;
         }
-        public ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId)
+        public override ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId)
         {
             CharacterId[] members = [.. current.Where(entry => entry.Value.RunId == runId)
                 .OrderBy(entry => entry.Value.Participant?.Slot)
                 .Select(entry => entry.Key)];
             Ended.AddRange(members);
             return ValueTask.FromResult<IReadOnlyList<CharacterId>>(members);
-        }
-    }
+        }}
 
     private sealed class Fatigue : ICharacterFatigueDomainService
     {

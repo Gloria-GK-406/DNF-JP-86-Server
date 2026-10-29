@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -167,40 +168,30 @@ public sealed class CharacterDeathHandlerTests
         public ValueTask SendExplicitAsync(NetworkConnectionId connectionId, GameExplicitMessageDelivery delivery, CancellationToken cancellationToken)
         { Assert.Equal(Current.ConnectionId, connectionId); return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken); }
     }
-    private sealed class Runs(DungeonRunState initial) : IDungeonRunDomainService
+    private sealed class Runs(DungeonRunState initial) : DungeonRunServiceStub
     {
         private DungeonRunState current = initial;
 
-        public DungeonRunState? TryMarkParticipantDead(CharacterId characterId, DungeonRunId runId, long version)
+        public override DungeonRunState? TryMarkParticipantDead(CharacterId characterId, DungeonRunId runId, long version)
         {
             if (current.RunId != runId || current.RoomVersion != version || current.DeadParticipants.Contains(characterId)) return null;
             current = current with { DeadParticipants = current.DeadParticipants.Add(characterId) };
             return current;
         }
 
-        public DungeonRunState? Find(CharacterId characterId) =>
+        public override DungeonRunState? Find(CharacterId characterId) =>
             current.Participants.Any(value => value.CharacterId == characterId) ? current : null;
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
-            throw new NotSupportedException();
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => null;
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => null;
-        public DungeonRunState? TrySettle(CharacterId characterId) => null;
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId,
-            int declaredDropCount,
-            ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => [];
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => null;
+        public override DungeonRunState? TrySettle(CharacterId characterId) => null;
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId,
             ClearRewardCardFace free,
             ClearRewardCardFace paid,
             int? paidFlipCost) => null;
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId,
             ClearRewardCardKind kind,
             int index) => null;
-        public bool End(CharacterId characterId) => false;
-    }
+        public override bool End(CharacterId characterId) => false;}
 
 }

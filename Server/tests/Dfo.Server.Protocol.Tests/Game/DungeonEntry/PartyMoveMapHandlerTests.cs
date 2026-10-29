@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
@@ -335,25 +336,19 @@ public sealed class PartyMoveMapHandlerTests
         }
     }
 
-    private sealed class Runs(DungeonRunState state) : IDungeonRunDomainService
+    private sealed class Runs(DungeonRunState state) : DungeonRunServiceStub
     {
         private readonly IReadOnlyDictionary<CharacterId, DungeonRunState> states =
             state.Participants.ToDictionary(
                 participant => participant.CharacterId,
                 participant => state with { Participant = participant });
-
-        public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) => throw new NotSupportedException();
-        public DungeonRunState? Find(CharacterId characterId) => states.GetValueOrDefault(characterId);
-        public DungeonRunState? Find(DungeonRunId id) => id == state.RunId ? state : null;
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw new NotSupportedException();
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) => throw new NotSupportedException();
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) => throw new NotSupportedException();
-        public DungeonRunState? TrySettle(CharacterId characterId) => throw new NotSupportedException();
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(CharacterId characterId, int declaredDropCount, ushort actorSequence, IReadOnlyList<RolledDrop> rolled) => throw new NotSupportedException();
-        public DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => throw new NotSupportedException();
-        public ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => throw new NotSupportedException();
-        public bool End(CharacterId characterId) => throw new NotSupportedException();
-    }
+        public override DungeonRunState? Find(CharacterId characterId) => states.GetValueOrDefault(characterId);
+        public override DungeonRunState? Find(DungeonRunId id) => id == state.RunId ? state : null;
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) => throw new NotSupportedException();
+        public override DungeonRunState? TrySettle(CharacterId characterId) => throw new NotSupportedException();
+        public override DungeonRunState? FixClearRewardCards(CharacterId characterId, ClearRewardCardFace free, ClearRewardCardFace paid, int? paidFlipCost) => throw new NotSupportedException();
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(CharacterId characterId, ClearRewardCardKind kind, int index) => throw new NotSupportedException();
+        public override bool End(CharacterId characterId) => throw new NotSupportedException();}
 
     private sealed class Sessions : ISelectedSessionDomainService
     {
