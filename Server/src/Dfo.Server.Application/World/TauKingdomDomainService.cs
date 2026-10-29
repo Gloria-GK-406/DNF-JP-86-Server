@@ -24,8 +24,7 @@ internal sealed class TauKingdomDomainService(ITauKingdomRuleService rules,
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
         if (context.Facts.Difficulty != DungeonDifficulty.Normal)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
-        if (!(await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries
-                .Any(x => x.EventId == rules.EventId && x.Status == "active"))
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), ct).ConfigureAwait(false))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.OutsideOpeningHours);
         TauKingdomDefinition definition;
         try { definition = await rules.DefinitionAsync(ct).ConfigureAwait(false); }

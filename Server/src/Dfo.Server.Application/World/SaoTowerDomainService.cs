@@ -18,9 +18,10 @@ internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowe
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
     public async ValueTask<SaoTowerProgress?> ReadStatusAsync(CancellationToken ct)
     {
-        var activity = (await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false))
-            .Entries.SingleOrDefault(x => x.EventId == 214 && x.Status == "active");
-        return activity is null ? null : await store.ReadAsync(activity.SeasonId, ct).ConfigureAwait(false);
+        var now = clock.GetUtcNow();
+        if (!await activities.IsOpenAsync(rules.EventId, now, ct).ConfigureAwait(false)) return null;
+        var activity = (await activities.ListAsync(now, ct).ConfigureAwait(false)).Entries.Single(x => x.EventId == rules.EventId);
+        return await store.ReadAsync(activity.SeasonId, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)

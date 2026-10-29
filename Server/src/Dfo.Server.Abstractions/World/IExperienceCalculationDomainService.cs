@@ -9,9 +9,11 @@ public sealed record ClearExperienceContext(ExperienceOccasion Occasion, ClearCi
 public sealed record QuestExperienceContext(ExperienceOccasion Occasion, uint Base)
     : ExperienceCalculationContext(Occasion);
 
-public sealed record TowerKillExperienceContext(ExperienceOccasion Occasion, byte ActorType)
+/// <param name="Tower">Which tower runtime paid the kill; each has its own reward table.</param>
+public sealed record TowerKillExperienceContext(ExperienceOccasion Occasion, DungeonParticipationMode Tower, byte ActorType)
     : ExperienceCalculationContext(Occasion);
-public sealed record TowerClearExperienceContext(ExperienceOccasion Occasion, int RewardLevel)
+/// <param name="Tower">Which tower runtime paid the clear; each has its own reward table.</param>
+public sealed record TowerClearExperienceContext(ExperienceOccasion Occasion, DungeonParticipationMode Tower, int RewardLevel)
     : ExperienceCalculationContext(Occasion);
 
 public interface IExperienceCalculationDomainService

@@ -36,7 +36,7 @@ public sealed class UsageQuotaProjectionTests
     public async Task Gold_silver_horn_sends_used_in_the_second_u16_and_keeps_the_unconfigured_gold_slot_zero(int used, string hex)
     {
         var sessions = new Sessions(); var snapshots = new Snapshots();
-        snapshots.Value = snapshots.Value with { GoldSilverHorn = new(new(2026, 10, 19), used, 3) };
+        snapshots.Value = snapshots.Value with { GoldSilverHorn = new(4123, new(2026, 10, 19), used, 3) };
         var messages = await new UsageQuotaViewChangedHandler(snapshots, sessions)
             .ComposeAsync(new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
                 new(sessions.Current.CharacterId, UsageQuotaFamily.GoldSilverHorn), default);
@@ -50,7 +50,7 @@ public sealed class UsageQuotaProjectionTests
     public async Task Gold_silver_horn_committed_refresh_updates_used_and_absolute_remaining_caches()
     {
         var sessions = new Sessions(); var snapshots = new Snapshots();
-        snapshots.Value = snapshots.Value with { GoldSilverHorn = new(new(2026, 10, 19), 1, 3) };
+        snapshots.Value = snapshots.Value with { GoldSilverHorn = new(4123, new(2026, 10, 19), 1, 3) };
         var messages = await new UsageQuotaViewChangedHandler(snapshots, sessions).ComposeAsync(
             new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
             new(sessions.Current.CharacterId, UsageQuotaFamily.GoldSilverHorn), default);

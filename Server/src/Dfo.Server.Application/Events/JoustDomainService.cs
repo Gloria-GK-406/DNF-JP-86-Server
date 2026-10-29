@@ -27,6 +27,11 @@ internal sealed class JoustDomainService(IEventPersistence events, IJoustPersist
     private static EventConfiguration Initial => new(0,"initial",false,"骑士马战大竞猜","骑士马战","","","",null,null);
     private ValueTask<EventConfiguration?> Configuration(CancellationToken ct) => events.ConfigurationAsync(EventId,ct);
     private static bool Active(EventConfiguration c,DateTimeOffset now)=>c.Enabled && c.StartsAt<=now && c.EndsAt>now;
+    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now,CancellationToken ct)
+    {
+        var c=await Configuration(ct) ?? Initial;var (d,_)=await rules.DefinitionAsync(ct);
+        return d is not null && Active(c,now);
+    }
     private async ValueTask Write(CancellationToken ct)
     {
         if (transactions.Current is null || transactions.Current.IsReadOnly) throw new InvalidOperationException("马战写入和推进必须在命令事务内执行。");

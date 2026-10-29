@@ -13,6 +13,8 @@ public sealed record SaoTowerCatalog(IReadOnlyList<SaoTowerFloor> Floors, int Fi
 public interface ISaoTowerContentSource { SaoTowerCatalog Load(); }
 public interface ISaoTowerRuleService
 {
+    /// <summary>The EVENT_INFO activity whose presence makes A21 show the SAO entrances.</summary>
+    int EventId { get; }
     bool Supports(int dungeonId);
     SaoTowerCatalog Catalog { get; }
     SaoTowerFloor Floor(int floor);

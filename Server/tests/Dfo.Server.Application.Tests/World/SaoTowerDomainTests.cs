@@ -46,6 +46,7 @@ public sealed class SaoTowerDomainTests
     {
         public ValueTask<ManagedEventList> ListAsync(DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult(new ManagedEventList(
             [new(214, "sao", 1, "season", enabled, enabled ? "active" : "disabled", "SAO", "SAO", "", "", "", now.AddDays(-1), now.AddDays(1), true, null, null, null)]));
+        public ValueTask<bool> IsOpenAsync(int eventId, DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult(eventId == 214 && enabled);
         public ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<ManagedEventList> ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
     }

@@ -21,7 +21,7 @@ internal sealed class GoldSilverHornDomainService(IGoldSilverHornRuleService rul
         var period = Period();
         var used = (await quotas.ReadAsync(character, UsageQuotaKey.GoldSilverHorn(period), ct).ConfigureAwait(false))?.UsedCount ?? 0;
         if (used < 0 || used > ushort.MaxValue) throw new InvalidDataException("Invalid gold/silver horn quota.");
-        return new(period, used, rules.MaximumEntries);
+        return new(rules.DungeonId, period, used, rules.MaximumEntries);
     }
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
@@ -32,8 +32,7 @@ internal sealed class GoldSilverHornDomainService(IGoldSilverHornRuleService rul
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
         if (context.Participants.Any(x => runs.Find(x.CharacterId) is not null))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
-        if (!(await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries
-            .Any(x => x.EventId == rules.EventId && x.Status == "active"))
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), ct).ConfigureAwait(false))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.OutsideOpeningHours);
         DungeonLayout? layout;
         int maximum;

@@ -9,12 +9,13 @@ public interface IGoldSilverHornContentSource
 {
     GoldSilverHornContent Load();
 }
-public sealed record GoldSilverHornQuotaSnapshot(DateOnly Period, int Used, int Maximum)
+public sealed record GoldSilverHornQuotaSnapshot(int DungeonId, DateOnly Period, int Used, int Maximum)
 {
     public int Remaining => Math.Max(0, Maximum - Used);
 }
 public interface IGoldSilverHornRuleService
 {
+    int DungeonId { get; }
     bool Supports(int dungeonId);
     int EventId { get; }
     int MaximumEntries { get; }

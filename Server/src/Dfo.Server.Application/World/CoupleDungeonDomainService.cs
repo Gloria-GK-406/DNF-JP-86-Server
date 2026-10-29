@@ -8,6 +8,10 @@ namespace Dfo.Server.Application.World;
 internal sealed class CoupleDungeonRule(IMarriageRelations relations)
 {
     public const int DungeonId = 3541;
+
+    /// <summary>The difficulty a married character sees unlocked, whatever the account's ledger records.</summary>
+    public const Dfo.Server.Data.World.DungeonDifficulty MarriedDifficulty = (Dfo.Server.Data.World.DungeonDifficulty)2;
+
     public async ValueTask<bool> EligibleAsync(DungeonEntryContext context, CancellationToken ct)
     {
         if (context.DungeonId != DungeonId || context.Participants.Count != 2 || context.PracticeMode != 0 || context.RequestMode != 0

@@ -156,8 +156,8 @@ public sealed class GameQuestClearCouponCommandHandler(
     }
     private async ValueTask ProjectCouponAsync(SelectedSessionIdentity session, QuestClearCouponRequest message, QuestClearCouponResult result, CancellationToken ct)
     {
-        logger.LogInformation("Quest clear coupon used character={CharacterId} sourceSlot={Slot} itemId={ItemId} completedCount={Count}",
-            session.CharacterId, message.SourceSlot, 10_006_007, result.CompletedQuestIds.Count);
+        logger.LogInformation("Quest clear coupon used character={CharacterId} sourceSlot={Slot} completedCount={Count}",
+            session.CharacterId, message.SourceSlot, result.CompletedQuestIds.Count);
         logger.LogDebug("Quest clear coupon completed quests character={CharacterId} questIds={QuestIds}",
             session.CharacterId, string.Join(',', result.CompletedQuestIds));
 

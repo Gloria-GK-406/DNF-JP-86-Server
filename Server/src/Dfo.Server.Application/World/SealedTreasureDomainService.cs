@@ -16,8 +16,7 @@ internal sealed class SealedTreasureDomainService(ISealedTreasureRuleService rul
         if (!Supports(context.DungeonId) || context.RequestMode != 0 || context.PracticeMode != 0
             || context.MirrorQuestId is not null || context.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
-        if (!(await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries
-            .Any(x => x.EventId == rules.EventId && x.Status == "active"))
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), ct).ConfigureAwait(false))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.OutsideOpeningHours);
         Dfo.Server.Abstractions.Content.DungeonDefinition definition;
         try { definition = await rules.DefinitionAsync(ct).ConfigureAwait(false); }

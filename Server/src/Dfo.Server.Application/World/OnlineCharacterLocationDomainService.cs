@@ -124,7 +124,7 @@ internal sealed class OnlineCharacterLocationDomainService : ITownAreaDomainServ
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterLocationDomainService) + "." + nameof(Transfer));
         ArgumentNullException.ThrowIfNull(position);
-        if (destination.TownId == 101 && destination.Instance == 0) return null;
+        if (CoupleRoomTown.Is(destination.TownId) && destination.Instance == 0) return null;
         if (position.TownId != destination.TownId || position.AreaId != destination.AreaId)
             throw new ArgumentException("The destination and position do not match.", nameof(position));
         var member = new TownAreaMember(session, destination, position, sharesTownPresence);
@@ -213,7 +213,7 @@ internal sealed class OnlineCharacterLocationDomainService : ITownAreaDomainServ
 
     private static void RequireRoomInstance(TownAreaKey area)
     {
-        if (area.TownId == 101 && area.Instance == 0)
+        if (CoupleRoomTown.Is(area.TownId) && area.Instance == 0)
             throw new InvalidOperationException("A couple room requires a private instance.");
     }
 

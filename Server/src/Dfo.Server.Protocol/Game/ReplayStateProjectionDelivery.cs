@@ -139,7 +139,10 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
                 state.Points ?? throw Missing("Points"), AccountHonorLevel.Initial, ExperienceBonusLines.None));
         }
         if (needs.HasFlag(ReplayProjectionNeeds.HerasQuota))
-            messages.Add(new DungeonRemainingEntriesMessage(3900, checked((byte)(state.HerasQuota ?? throw Missing("Heras quota")).Remaining)));
+        {
+            var heras = state.HerasQuota ?? throw Missing("Heras quota");
+            messages.Add(new DungeonRemainingEntriesMessage(heras.DungeonId, checked((byte)heras.Remaining)));
+        }
         if (needs.HasFlag(ReplayProjectionNeeds.Fatigue))
             messages.Add(new FatigueNotification(state.Fatigue ?? throw Missing("Fatigue")));
         if (needs.HasFlag(ReplayProjectionNeeds.Premium))

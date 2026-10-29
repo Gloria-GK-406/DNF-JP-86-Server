@@ -131,6 +131,7 @@ public sealed class QuestClearCouponDomainServiceTests
         """);
     private sealed class Selection(int[] ids) : IQuestClearCouponRuleService
     {
+        public bool IsCoupon(int itemId) => itemId == 10_006_007;
         public ValueTask<IReadOnlyList<int>> SelectAsync(int itemId, byte level, byte job, byte grow,
             IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<int>>(ids);
     }

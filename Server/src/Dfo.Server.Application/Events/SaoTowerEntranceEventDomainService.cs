@@ -1,19 +1,21 @@
 using System.Text;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Initialization;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Events;
 
 namespace Dfo.Server.Application.Events;
 
-// A21 filters [tower of despair sao] entrances unless EVENT_INFO contains event 214.
+// A21 filters [tower of despair sao] entrances unless EVENT_INFO contains the SAO activity.
 // This service owns that activity switch only; tower admission, progress and rewards are separate work.
-internal sealed class SaoTowerEntranceEventDomainService(IEventPersistence store) : IManagedEventDomainService
+internal sealed class SaoTowerEntranceEventDomainService(IEventPersistence store, ISaoTowerRuleService rules) : IManagedEventDomainService
 {
-    public int EventId => 214;
+    public int EventId => rules.EventId;
     private static EventConfiguration Initial => new(0, "initial", false, "艾恩葛朗特", "SAO塔", "SAO塔入口，玩法尚未实现。", "", "", null, null);
     private async ValueTask<EventConfiguration> Configuration(CancellationToken ct) => await store.ConfigurationAsync(EventId, ct) ?? Initial;
     private static bool Active(EventConfiguration c, DateTimeOffset now) => c.Enabled && c.StartsAt <= now && c.EndsAt > now;
+    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => Active(await Configuration(ct), now);
 
     public async ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct)
     {

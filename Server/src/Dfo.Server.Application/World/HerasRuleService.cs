@@ -5,9 +5,10 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class HerasRuleService(IHerasContentSource source) : IHerasRuleService
 {
-    internal const int DungeonId = 3900;
+    public const int Dungeon = 3900;
+    public int DungeonId => Dungeon;
     internal const int ActivityId = 2367;
-    public bool Supports(int dungeonId) => dungeonId == DungeonId;
+    public bool Supports(int dungeonId) => dungeonId == Dungeon;
     public int EventId => ActivityId;
     public int DailyEntries => 3;
     public EventConfiguration InitialActivity => new(0, "permanent", true, "赫拉斯研究所", "赫拉斯研究所",

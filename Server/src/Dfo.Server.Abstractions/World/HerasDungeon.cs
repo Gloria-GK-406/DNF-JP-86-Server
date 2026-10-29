@@ -10,7 +10,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Abstractions.World;
 
 public sealed record HerasDefinition(DungeonDefinition Dungeon, int DailyEntries);
-public sealed record HerasQuotaSnapshot(DateOnly Period, int Maximum, UsageQuotaValue? Entries, UsageQuotaValue? Bonus)
+public sealed record HerasQuotaSnapshot(int DungeonId, DateOnly Period, int Maximum, UsageQuotaValue? Entries, UsageQuotaValue? Bonus)
 {
     public int Used => Entries?.UsedCount ?? 0;
     public int Granted => Bonus?.UsedCount ?? 0;
@@ -19,6 +19,7 @@ public sealed record HerasQuotaSnapshot(DateOnly Period, int Maximum, UsageQuota
 public interface IHerasContentSource { ValueTask<HerasDefinition> ReadAsync(CancellationToken ct); }
 public interface IHerasRuleService
 {
+    int DungeonId { get; }
     bool Supports(int dungeonId);
     int EventId { get; }
     int DailyEntries { get; }

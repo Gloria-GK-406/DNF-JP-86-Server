@@ -46,7 +46,7 @@ public sealed class GameBuyItemCommandHandler(ISelectedSessionDomainService sess
             result = BuyItemOutcome.Refused(NpcShopRejection.NoSession);
         else
         {
-            var accounts = message.NpcId == 20011
+            var accounts = message is HousingBuyItemRequest
                 ? await marriage.CoupleAccountsAsync(session, ct).ConfigureAwait(false) : [session.AccountId];
             var selected = request as CommandRequestContext.ProtocolEffectSelected;
             if (message.GetType() == typeof(HousingBuyItemRequest)
@@ -61,7 +61,7 @@ public sealed class GameBuyItemCommandHandler(ISelectedSessionDomainService sess
             {
                 try
                 {
-                    var purchase = message.NpcId == 20011
+                    var purchase = message is HousingBuyItemRequest
                         ? await housing.PurchaseAsync(session, message.ItemId, message.RawCount, message.ShopId, accounts, token).ConfigureAwait(false)
                         : await shops.PurchaseAsync(session, message.ItemId, message.RawCount, message.ShopId, message.NpcId,
                             clock.GetUtcNow(), unit.Footprint, token).ConfigureAwait(false);

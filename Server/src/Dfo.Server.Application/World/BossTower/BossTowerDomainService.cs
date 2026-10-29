@@ -79,8 +79,7 @@ internal sealed class BossTowerDomainService(
             || members.Select(x => x.Session.CharacterId).Distinct().Count() != members.Count
             || members.Select(x => x.Session.WireUserId).Distinct().Count() != members.Count || members.Any(x => x.Slot > 3)
             || members.Select(x => x.Slot).Distinct().Count() != members.Count) return Refuse("InvalidParty");
-        if (!(await activities.ListAsync(clock.GetUtcNow(), token).ConfigureAwait(false)).Entries
-            .Any(x => x.EventId == rules.EventId && x.Status == "active")) return Refuse("ActivityClosed", failure: DungeonEntryFailure.OutsideOpeningHours);
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), token).ConfigureAwait(false)) return Refuse("ActivityClosed", failure: DungeonEntryFailure.OutsideOpeningHours);
         var definition = await rules.DefinitionAsync(token).ConfigureAwait(false);
         foreach (var candidate in members)
         {
@@ -289,8 +288,7 @@ internal sealed class BossTowerDomainService(
     {
         var run = Match(context);
         if (run?.Completion is not { Settled: true } || !run.Members.Any(x => x.Session == context.Session && x.IsLeader)) return false;
-        if (!(await activities.ListAsync(clock.GetUtcNow(), token).ConfigureAwait(false)).Entries
-            .Any(x => x.EventId == rules.EventId && x.Status == "active")) return false;
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), token).ConfigureAwait(false)) return false;
         var definition = await rules.DefinitionAsync(token).ConfigureAwait(false);
         foreach (var member in run.Members)
         {

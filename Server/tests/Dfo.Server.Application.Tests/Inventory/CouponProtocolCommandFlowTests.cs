@@ -270,7 +270,8 @@ public sealed class CouponProtocolCommandFlowTests(ITestOutputHelper output)
         ValueTask<ItemUsageRule?> IItemUsageRuleSource.GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<ItemUsageRule?>(new(1,10000,true));
     }
     private sealed class Selection:IQuestClearCouponRuleService
-    {public ValueTask<IReadOnlyList<int>> SelectAsync(int item,byte level,byte job,byte grow,IReadOnlyList<ClearedQuest> cleared,DateTimeOffset at,CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<int>>([101]);}
+    {public bool IsCoupon(int itemId) => itemId == 10_006_007;
+     public ValueTask<IReadOnlyList<int>> SelectAsync(int item,byte level,byte job,byte grow,IReadOnlyList<ClearedQuest> cleared,DateTimeOffset at,CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<int>>([101]);}
     private sealed class Quests:IQuestContentRuleService
     {
         public ValueTask<QuestDefinition?> FindAsync(int id,CancellationToken ct)=>ValueTask.FromResult<QuestDefinition?>(null);

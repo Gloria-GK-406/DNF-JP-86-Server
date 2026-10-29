@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Sessions;
@@ -134,7 +135,7 @@ internal sealed class SelectedSessionPositionPersistence(
     {
         ArgumentNullException.ThrowIfNull(position);
         // A couple room is runtime-only. Every persistence path (including teardown) retains the ordinary return position.
-        if (position.TownId == 101) return;
+        if (CoupleRoomTown.Is(position.TownId)) return;
         if (store is null)
         {
             throw new InvalidOperationException(

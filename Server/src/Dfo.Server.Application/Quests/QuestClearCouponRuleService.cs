@@ -9,12 +9,16 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class QuestClearCouponRuleService(
     IStackableActionDefinitionSource items, IQuestContentRuleService quests) : IQuestClearCouponRuleService
 {
+    private const int StoryCoupon = 10_006_007;
+
+    public bool IsCoupon(int itemId) => itemId == StoryCoupon;
+
     public async ValueTask<IReadOnlyList<int>> SelectAsync(int itemId, byte level, byte job,
         byte growType, IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now, CancellationToken cancellationToken)
     {
         // Other archives use the same action for different grades and reward policies.
         var item = await items.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
-        if (itemId != 10_006_007 || item is not { IsReadable: true, Action: "[quest clear]" })
+        if (!IsCoupon(itemId) || item is not { IsReadable: true, Action: "[quest clear]" })
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Unsupported quest-clear action or coupon.");
         if (level < Math.Max(1, item.MinimumLevel) || level > item.MaximumLevel
             || item.ExpiresAtUnixSeconds != 0 && now.ToUnixTimeSeconds() >= item.ExpiresAtUnixSeconds)

@@ -59,9 +59,10 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
                 ?? throw new InvalidDataException("Missing revive coin quota snapshot."))],
             UsageQuotaFamily.GoldSilverHorn => [new GoldSilverHornQuotaMessage((snapshot.GoldSilverHorn
                 ?? throw new InvalidDataException("Missing gold/silver horn quota snapshot.")).Used),
-                new DungeonRemainingEntriesMessage(4123, checked((byte)snapshot.GoldSilverHorn.Remaining))],
-            UsageQuotaFamily.HerasDungeon => [new DungeonRemainingEntriesMessage(3900, checked((byte)(snapshot.Heras
-                ?? throw new InvalidDataException("Missing Heras quota snapshot.")).Remaining))],
+                new DungeonRemainingEntriesMessage(snapshot.GoldSilverHorn.DungeonId, checked((byte)snapshot.GoldSilverHorn.Remaining))],
+            UsageQuotaFamily.HerasDungeon => [snapshot.Heras is { } heras
+                ? new DungeonRemainingEntriesMessage(heras.DungeonId, checked((byte)heras.Remaining))
+                : throw new InvalidDataException("Missing Heras quota snapshot.")],
             UsageQuotaFamily.TournamentDungeon => (snapshot.Tournaments
                 ?? throw new InvalidDataException("Missing tournament quota snapshot.")).Select(x =>
                     (IServerNetworkMessage)new DungeonRemainingEntriesMessage(x.DungeonId, checked((byte)x.Remaining))).ToArray(),

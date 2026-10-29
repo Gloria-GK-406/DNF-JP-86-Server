@@ -7,12 +7,16 @@ public interface IManagedEventDomainService
 {
     int EventId { get; }
     ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct);
+    /// <summary>Whether the activity is enabled and inside its period; the gameplay meaning of "open".</summary>
+    ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct);
     ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
     ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct);
 }
 public interface IEventManagementDomainService
 {
     ValueTask<ManagedEventList> ListAsync(DateTimeOffset now, CancellationToken ct);
+    /// <summary>Whether the registered activity is open now; an unregistered identity is never open.</summary>
+    ValueTask<bool> IsOpenAsync(int eventId, DateTimeOffset now, CancellationToken ct);
     ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
     ValueTask<ManagedEventList> ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct);
 }

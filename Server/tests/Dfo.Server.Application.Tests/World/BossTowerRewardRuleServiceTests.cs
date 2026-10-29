@@ -16,13 +16,13 @@ public sealed class BossTowerRewardRuleServiceTests
         Assert.Equal((uint)(32*mob), await rules.ClearExperienceAsync(level,8,default));
         var bonuses = new Bonuses();
         var calculation = new ExperienceCalculationDomainService(null!,bonuses,bossTower:rules);
-        var reward = await calculation.CalculateAsync(new TowerClearExperienceContext(new(ExperienceEvent.TowerClear,new(1),new(1),3505),8),65,default);
+        var reward = await calculation.CalculateAsync(new TowerClearExperienceContext(new(ExperienceEvent.TowerClear,new(1),new(1),3505),DungeonParticipationMode.BossTower,8),65,default);
         Assert.Equal(ExperienceEvent.DungeonClear,bonuses.LastEvent);
         Assert.Equal((uint)(32*mob),reward.Base);
         Assert.Equal((uint)(16*mob),reward.GrowthContract);
         Assert.Equal(reward.Base+reward.GrowthContract,reward.Total);
         bonuses.Rate=1000;
-        Assert.Equal(1100000u,(await calculation.CalculateAsync(new TowerClearExperienceContext(new(ExperienceEvent.TowerClear,new(1),new(1),3505),8),65,default)).Total);
+        Assert.Equal(1100000u,(await calculation.CalculateAsync(new TowerClearExperienceContext(new(ExperienceEvent.TowerClear,new(1),new(1),3505),DungeonParticipationMode.BossTower,8),65,default)).Total);
     }
     [Fact]
     public async Task Dedicated_kill_base_gets_supported_kill_bonus_once_and_candidates_keep_gold_multiplier()
@@ -31,7 +31,7 @@ public sealed class BossTowerRewardRuleServiceTests
         var basis=await rules.KillExperienceAsync(65,3,default);
         var bonuses=new Bonuses();
         var calculation=new ExperienceCalculationDomainService(null!,bonuses,bossTower:rules);
-        var award=await calculation.CalculateAsync(new TowerKillExperienceContext(new(ExperienceEvent.TowerKill,new(1),new(1),3505),3),65,default);
+        var award=await calculation.CalculateAsync(new TowerKillExperienceContext(new(ExperienceEvent.TowerKill,new(1),new(1),3505),DungeonParticipationMode.BossTower,3),65,default);
         Assert.Equal(ExperienceEvent.MonsterKill,bonuses.LastEvent); Assert.Equal(basis,award.Base);
         Assert.Equal((uint)Math.Floor(basis*.5),award.GrowthContract);
         var candidates=await rules.CandidatesAsync(65,8,123,default);
