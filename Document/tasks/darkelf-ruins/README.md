@@ -1,8 +1,8 @@
 # 暗精灵遗迹（#75）
 
 范围为 DGN5006–5009、5016–5019、5026–5029，对应 [#75](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/75) 和 [#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。
-工作区基线 `main@63fb3993`，开发分支 `codex/darkelf-ruins-75`。
-候选版本 `0.2.10` 已完成服务端自动验证，并按用户授权在默认端口接管原玩家库。尚未取得本次 A21 实机验收，未创建功能 PR。
+工作区基线 `main@81be4dfd`，开发分支 `codex/darkelf-ruins-75`。
+候选版本 `0.2.11` 已完成服务端自动验证，并按用户授权在默认端口接管原玩家库。尚未取得本次 A21 实机验收，未创建功能 PR。
 连接方式和具体操作见 [实机测试流程](user-test.md)。
 具体结果与保留边界见 [验证记录](verification.md)。
 
@@ -21,6 +21,7 @@
 静态内容唯一来源为 `PvfDarkElfRuinsContentSource`；规则由 `DarkElfRuinsRuleService` 解释；
 `DarkElfRuinsDomainService` 编排准入、进度与奖励，持久化只通过 `IDarkElfRuinsDomainStore`。
 星级、次数与月状态在 `darkelf_ruins_progress`，冻结奖励与领取/展示状态在 `darkelf_ruins_rewards`。
+入场由共享 `DungeonEntryRoutingDomainService` 路由；运行种类为 `DungeonRunMode.DarkElfRuins`，复活、翻牌、难度解锁与再挑战由共享能力表裁定。Boss 清场通过 `IDungeonBossClearHook` 注册执行。
 通用准入、拓扑验证、房间实例、账号材料容器及物品交付继续使用既有 owner。
 协议状态、字节布局和证据只维护在 [流程记录](../../../protocol/patterns/flow-darkelf-ruins.md)。
 
@@ -38,7 +39,7 @@
 
 客户端 EXE SHA256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。
 探查档案：`E:/Project/DNF/DNFClient-A21-protocol3/Script.pvf`，SHA256 `D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84`。
-实际主干进程使用 `E:/Project/DNF/DNFClient-A21-protocol/Script.pvf`，SHA256 `3822A9ED183CD17F74DFEE9C11B8F2E84AF596B23972A737846022148FB05C6B`；遗迹 ETC 表一致，最终真实内容测试与候选包使用此活动档案。`evidence/pvf-guardian-dgn5008.txt`、`pvf-alicia-activation.txt`、`pvf-alicia-portal.txt` 记录对象、源房清场条件及 `(0,0)→(2,0)` 的脚本 MOVE MAP。
+实际主干进程使用 `E:/Project/DNF/DNFClient-A21-protocol/Script.pvf`，SHA256 `01F1BE685D46647961DF65207A36304777DB20EF5A3D03C68EFAA92F8B0C5189`；遗迹 ETC 表一致，最终真实内容测试与候选包使用此活动档案。`evidence/pvf-guardian-dgn5008.txt`、`pvf-alicia-activation.txt`、`pvf-alicia-portal.txt` 记录对象、源房清场条件及 `(0,0)→(2,0)` 的脚本 MOVE MAP。
 静态内存镜像 SHA256：`6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`。
 上游四个核心文件依上表顺序的 SHA256：
 
