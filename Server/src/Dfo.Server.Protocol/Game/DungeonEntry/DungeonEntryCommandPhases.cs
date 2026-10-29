@@ -71,7 +71,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
         var protectedMembers = attachments.Members.Select(value => value.Session == requester
             ? CaptureParticipant(value.Session) : new SelectedSessionRecipient(value.Session, null)).ToArray();
         var attempt = await workUnits.WriteAsync(execution, new("dungeon-entry", protectedMembers),
-            (_, ct) => RouteEntryAsync(entry, ct), cancellationToken).ConfigureAwait(false);
+            (_, ct) => entries.EnterAsync(entry, ct), cancellationToken).ConfigureAwait(false);
         var entered = attempt.Entry;
         if (entered is null)
         {

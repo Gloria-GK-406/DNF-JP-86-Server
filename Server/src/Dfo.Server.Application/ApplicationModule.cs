@@ -301,6 +301,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IQuestCompletionSettlementDomainService, QuestCompletionSettlementService>();
         services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
         services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
+        services.TryAddSingleton<IDungeonEntryRoutingDomainService, DungeonEntryRoutingDomainService>();
         services.TryAddSingleton<IHellDungeonEntryRuleService, HellDungeonEntryRuleService>();
         services.TryAddSingleton<IHellRewardRuleService, HellRewardRuleService>();
         services.TryAddSingleton<IHellRewardDomainService, HellRewardDomainService>();

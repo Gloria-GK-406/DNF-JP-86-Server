@@ -81,23 +81,8 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly ICharacterFatigueDomainService fatigue;
     private readonly IInventorySlotProjectionDomainService inventoryProjection;
     private readonly IOutboundOrdering ordering;
-    private readonly IDungeonEntryDecisionDomainService decisions;
-    private readonly IHellDungeonEntryDomainService hell;
-    private readonly ICycleDungeonEntryDomainService cycles;
-    private readonly IMirrorDungeonEntryDomainService mirrors;
-    private readonly IDimensionDungeonDomainService dimensions;
-    private readonly IDespairTowerDomainService despair;
-    private readonly ITournamentDungeonDomainService tournaments;
-    private readonly IAltarDungeonDomainService altars;
     private readonly ISaoTowerDomainService sao;
-    private readonly ITauKingdomDomainService tau;
-    private readonly IHerasDungeonDomainService heras;
-    private readonly ICoupleDungeonDomainService couples;
-    private readonly ISouthernDaleDomainService southern;
-    private readonly ISealedTreasureDomainService sealedTreasure;
-    private readonly IGoldSilverHornDomainService goldSilverHorn;
-    private readonly IGiantDragonDomainService giantDragon;
-    private readonly IGuardianAltarDomainService guardian;
+    private readonly IDungeonEntryRoutingDomainService entries;
     public GameSelectDungeonCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
         IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ICharacterStateProjectionDomainService currentState,
@@ -112,21 +97,8 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         ICharacterFatigueDomainService fatigue,
         IInventorySlotProjectionDomainService inventoryProjection,
         IOutboundOrdering ordering,
-        IDungeonEntryDecisionDomainService decisions,
-        IHellDungeonEntryDomainService hell,
-        ICycleDungeonEntryDomainService cycles,
-        IMirrorDungeonEntryDomainService mirrors,
-        IDimensionDungeonDomainService dimensions,
-        IDespairTowerDomainService despair,
-        ITournamentDungeonDomainService tournaments,
-        IAltarDungeonDomainService altars,
         ISaoTowerDomainService sao,
-        ITauKingdomDomainService tau,
-        IHerasDungeonDomainService heras,
-        ICoupleDungeonDomainService couples,
-        ISouthernDaleDomainService southern,
-        ISealedTreasureDomainService sealedTreasure,
-        IGoldSilverHornDomainService goldSilverHorn, IGiantDragonDomainService giantDragon, IGuardianAltarDomainService guardian)
+        IDungeonEntryRoutingDomainService entries)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.workUnits = units; this.onlineUsers = onlineUsers; this.departureSink = departureSink; this.parties = parties;
@@ -138,64 +110,14 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         this.fatigue = fatigue;
         this.inventoryProjection = inventoryProjection;
         this.ordering = ordering;
-        this.decisions = decisions;
-        this.hell = hell;
-        this.cycles = cycles;
-        this.mirrors = mirrors;
-        this.dimensions = dimensions;
-        this.despair = despair;
-        this.tournaments = tournaments;
-        this.altars = altars;
         this.sao = sao;
-        this.tau = tau;
-        this.heras = heras;
-        this.couples = couples;
-        this.southern = southern;
-        this.sealedTreasure = sealedTreasure;
-        this.goldSilverHorn = goldSilverHorn;
-        this.giantDragon = giantDragon;
-        this.guardian = guardian;
+        this.entries = entries;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSelectDungeonCommand command, CancellationToken token)
     {
         await SelectDungeonAsync(execution, command.Dispatch, command.Input, token).ConfigureAwait(false);
         return true;
     }
-    internal ValueTask<DungeonEntryAttempt> RouteEntryAsync(DungeonEntryContext entry, CancellationToken cancellationToken) => guardian.Supports(entry.DungeonId)
-        ? guardian.EnterAsync(entry, cancellationToken)
-        : giantDragon.Supports(entry.DungeonId)
-        ? giantDragon.EnterAsync(entry, cancellationToken)
-        : couples.Supports(entry.DungeonId)
-        ? couples.EnterAsync(entry, cancellationToken)
-        : goldSilverHorn.Supports(entry.DungeonId)
-        ? goldSilverHorn.EnterAsync(entry, cancellationToken)
-        : sealedTreasure.Supports(entry.DungeonId)
-        ? sealedTreasure.EnterAsync(entry, cancellationToken)
-        : southern.Supports(entry.DungeonId)
-        ? southern.EnterAsync(entry, cancellationToken)
-        : heras.Supports(entry.DungeonId)
-        ? heras.EnterAsync(entry, cancellationToken)
-        : tau.Supports(entry.DungeonId)
-        ? tau.EnterAsync(entry, cancellationToken)
-        : altars.Supports(entry.DungeonId)
-        ? altars.EnterAsync(entry, cancellationToken)
-        : tournaments.Supports(entry.DungeonId)
-        ? tournaments.EnterAsync(entry, cancellationToken)
-        : sao.Supports(entry.DungeonId)
-        ? sao.EnterAsync(entry, cancellationToken)
-        : despair.IsTower(entry.DungeonId)
-        ? despair.EnterAsync(entry, cancellationToken)
-        : entry.MirrorQuestId is not null
-        ? mirrors.EnterAsync(entry, cancellationToken)
-        : entry.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle
-        ? cycles.EnterAsync(entry, cancellationToken)
-        : decisions.ResolveEntryKind(entry) switch
-        {
-            DungeonEntryKind.Normal => dimensions.EnterAsync(entry, cancellationToken),
-            DungeonEntryKind.ManualHell => hell.EnterManualAsync(entry, cancellationToken),
-            DungeonEntryKind.RandomHell => hell.EnterRandomAsync(entry, cancellationToken),
-            _ => throw new InvalidOperationException("Unknown dungeon entry kind."),
-        };
     private NetworkConnectionContext? CaptureEntryConnection(SelectedSessionIdentity session) =>
         onlineUsers.TryGetByConnection(session.ConnectionId, out var user) == true && user is not null
             && user.AccountId == session.AccountId && user.CurrentCharacterId == session.CharacterId ? user.Connection : null;
