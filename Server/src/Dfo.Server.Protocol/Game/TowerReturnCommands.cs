@@ -80,6 +80,9 @@ internal sealed partial class TowerReturnCommandHandler :
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly ITowerRunKind bossKind;
+    private readonly ITowerRunKind illusionKind;
+    internal TowerPartyDeparture Departures { get; }
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
     private readonly ICommandConnectionClosures closures;
@@ -108,8 +111,12 @@ internal sealed partial class TowerReturnCommandHandler :
         IOutboundOrdering ordering, IWeaknessDomainService weaknessState)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weaknessState; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties; this.ordering = ordering; this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; this.wipeRuns = wipeRuns; this.wipeRegistry = wipeRegistry;
-      this.wipeCards = cards; this.wipeAltars = altars; this.wipeTournaments = tournaments; this.wipeSlots = slots; this.wipeWake = wake; }
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weaknessState; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties; this.ordering = ordering; this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; this.wipeRuns = wipeRuns; this.wipeRegistry = wipeRegistry;
+      this.wipeCards = cards; this.wipeAltars = altars; this.wipeTournaments = tournaments; this.wipeSlots = slots; this.wipeWake = wake;
+        Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
+            this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,
+            ReturnTownIsolatedAsync);
+    }
 
     public ValueTask<ImmutableArray<TowerDepartureEntryId>> HandleAsync(CommandExecutionContext context,
         CaptureBossTowerDeparturesCommand command, CancellationToken token) => ValueTask.FromResult(bossDepartures.SnapshotPending());
@@ -118,13 +125,13 @@ internal sealed partial class TowerReturnCommandHandler :
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, ProjectBossTowerDepartureCommand command, CancellationToken token)
     {
         if (!bossDepartures.TryClaim(command.Entry, out var action)) return false;
-        await ProjectBossTowerPartyDepartureAsync(context, action!, null, null, token).ConfigureAwait(false);
+        await Departures.ProjectDepartureAsync(context, bossKind, action!, null, null, token).ConfigureAwait(false);
         return true;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, ProjectIllusionTowerDepartureCommand command, CancellationToken token)
     {
         if (!illusionDepartures.TryClaim(command.Entry, out var action)) return false;
-        await ProjectIllusionTowerPartyDepartureAsync(context, action!, null, null, token).ConfigureAwait(false);
+        await Departures.ProjectDepartureAsync(context, illusionKind, action!, null, null, token).ConfigureAwait(false);
         return true;
     }
     public ValueTask<TowerReturnsDue<TowerActionContext>> HandleAsync(CommandExecutionContext context,

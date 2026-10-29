@@ -85,24 +85,24 @@ internal sealed class BossTowerProjectionDriver(IBossTowerDomainService towers, 
     : TowerAlgorithmDriver(selected, sender, town, clock, closer, logger, views, state, characters, positions, boss: towers, mutations: mutations, onlineUsers: onlineUsers)
 {
     public bool HasRun(SelectedSessionIdentity session) => bossTowers.Find(session) is not null;
-    public ValueTask ProjectCommittedDepartureAsync(BossTowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.ProjectBossTowerPartyDepartureAsync(Execution, action, returning, response, token);
+    public ValueTask ProjectCommittedDepartureAsync(BossTowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.Departures.ProjectDepartureAsync(Execution, new BossTowerRunKind(bossTowers), action, returning, response, token);
     public ValueTask ProjectDisconnectedActionAsync(BossTowerActionResult action, CancellationToken token) => ProjectCommittedDepartureAsync(action, null, null, token);
-    public ValueTask ProjectCurrentHostAsync(BossTowerSnapshot run, CancellationToken token) => exit.ProjectBossTowerPartyHostAsync(run, token);
+    public ValueTask ProjectCurrentHostAsync(BossTowerSnapshot run, CancellationToken token) => exit.Departures.ProjectHostAsync(new BossTowerRunKind(bossTowers), run, token);
     public async ValueTask ReprojectCompletionAsync(TowerActionContext context, CancellationToken token)
     {
         var run = bossTowers.Find(context.Session);
         if (run is null || run.RunId != context.RunId || run.Room.Version != context.RoomVersion || run.Completion is not { Settled: true, Receipt: not null }) return;
         var closeTargets = new ExactSessionClosure();
         closeTargets.Capture(sessions, (IOnlineUserQueryDomainService)Dependencies.Last(value => value is IOnlineUserQueryDomainService), run.Members.Select(member => member.Session));
-        var failures = await BossTowerActionProjection.BossTowerProjectActionAsync(sessions, (ICharacterDomainService)Dependencies.LastOrDefault(value => value is ICharacterDomainService)!, bossTowers, Dependencies.OfType<TimeProvider>().Last(), (IGameCommandOutbox)Dependencies.LastOrDefault(value => value is IGameCommandOutbox)!, new(false, run) { SettlementCreated = true }, null, token);
-        await BossTowerActionProjection.BossTowerCloseProjectionFailuresAsync(sessions, this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, closeTargets, failures, run.RunId);
+        var failures = await TowerActionProjection.ProjectActionAsync(sessions, (ICharacterDomainService)Dependencies.LastOrDefault(value => value is ICharacterDomainService)!, new BossTowerRunKind(bossTowers), Dependencies.OfType<TimeProvider>().Last(), (IGameCommandOutbox)Dependencies.LastOrDefault(value => value is IGameCommandOutbox)!, new BossTowerActionResult(false, run) { SettlementCreated = true }, null, token);
+        await TowerActionProjection.CloseProjectionFailuresAsync(sessions, new BossTowerRunKind(bossTowers), this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, closeTargets, failures, run.RunId);
     }
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId id, GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {
         if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(id); var run = session is null ? null : bossTowers.Find(session);
         if (session is null || run is null) return false;
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run)) return true;
+        if (!TowerActionProjection.Exact(sessions, new BossTowerRunKind(bossTowers), session, run)) return true;
         var action = await this.mutations!.BossLeave(new(session, run.RunId, run.Room.Version));
         if (action.Changed) await ProjectCommittedDepartureAsync(action, session, response, token);
         return true;
@@ -145,24 +145,24 @@ internal sealed class IllusionTowerProjectionDriver(IIllusionTowerDomainService 
     : TowerAlgorithmDriver(selected, sender, town, clock, closer, logger, views, state, characters, positions, illusion: towers, mutations: mutations, onlineUsers: onlineUsers)
 {
     public bool HasRun(SelectedSessionIdentity session) => illusionTowers.Find(session) is not null;
-    public ValueTask ProjectCommittedDepartureAsync(TowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.ProjectIllusionTowerPartyDepartureAsync(Execution, action, returning, response, token);
+    public ValueTask ProjectCommittedDepartureAsync(TowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.Departures.ProjectDepartureAsync(Execution, new IllusionTowerRunKind(illusionTowers), action, returning, response, token);
     public ValueTask ProjectDisconnectedActionAsync(TowerActionResult action, CancellationToken token) => ProjectCommittedDepartureAsync(action, null, null, token);
-    public ValueTask ProjectCurrentHostAsync(IllusionTowerSnapshot run, CancellationToken token) => exit.ProjectIllusionTowerPartyHostAsync(run, token);
+    public ValueTask ProjectCurrentHostAsync(IllusionTowerSnapshot run, CancellationToken token) => exit.Departures.ProjectHostAsync(new IllusionTowerRunKind(illusionTowers), run, token);
     public async ValueTask ReprojectCompletionAsync(TowerActionContext context, CancellationToken token)
     {
         var run = illusionTowers.Find(context.Session);
         if (run is null || run.RunId != context.RunId || run.Room.Version != context.RoomVersion || run.Completion is not { Settled: true, Receipt: not null }) return;
         var closeTargets = new ExactSessionClosure();
         closeTargets.Capture(sessions, (IOnlineUserQueryDomainService)Dependencies.Last(value => value is IOnlineUserQueryDomainService), run.Members.Select(member => member.Session));
-        var failures = await IllusionTowerActionProjection.IllusionTowerProjectActionAsync(sessions, (ICharacterDomainService)Dependencies.LastOrDefault(value => value is ICharacterDomainService)!, illusionTowers, Dependencies.OfType<TimeProvider>().Last(), (IGameCommandOutbox)Dependencies.LastOrDefault(value => value is IGameCommandOutbox)!, new(false, run) { SettlementCreated = true }, null, token);
-        await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, closeTargets, failures, run.RunId);
+        var failures = await TowerActionProjection.ProjectActionAsync(sessions, (ICharacterDomainService)Dependencies.LastOrDefault(value => value is ICharacterDomainService)!, new IllusionTowerRunKind(illusionTowers), Dependencies.OfType<TimeProvider>().Last(), (IGameCommandOutbox)Dependencies.LastOrDefault(value => value is IGameCommandOutbox)!, new TowerActionResult(false, run) { SettlementCreated = true }, null, token);
+        await TowerActionProjection.CloseProjectionFailuresAsync(sessions, new IllusionTowerRunKind(illusionTowers), this.logger, (ICommandConnectionClosures)Dependencies.LastOrDefault(value => value is ICommandConnectionClosures)!, closeTargets, failures, run.RunId);
     }
     public async ValueTask<bool> LeaveAndReturnAsync(NetworkConnectionId id, GameMessageMetadata metadata, IGameServerMessage? response, CancellationToken token)
     {
         if (GameRequestFreshness.IsStale(metadata)) return true;
         var session = sessions.FindByConnection(id); var run = session is null ? null : illusionTowers.Find(session);
         if (session is null || run is null) return false;
-        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, run)) return true;
+        if (!TowerActionProjection.Exact(sessions, new IllusionTowerRunKind(illusionTowers), session, run)) return true;
         var action = await this.mutations!.IllusionLeave(new(session, run.RunId, run.Room.Version));
         if (action.Changed) await ProjectCommittedDepartureAsync(action, session, response, token);
         return true;

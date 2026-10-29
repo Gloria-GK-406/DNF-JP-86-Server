@@ -63,6 +63,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly ITowerRunKind bossKind;
+    private readonly ITowerRunKind illusionKind;
+    internal TowerPartyDeparture Departures { get; }
     private readonly IDungeonParticipationDomainService participation;
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
@@ -96,10 +99,13 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering, IGuardianAltarDomainService guardian)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.registry = registry; this.cardPresentation = cardPresentation;
         this.entryIntents = entryIntents; this.altars = altars; this.wake = wake; this.ordering = ordering;
         this.guardian = guardian;
+        Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
+            this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,
+            ReturnTownIsolatedAsync);
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameEplpCommand command, CancellationToken ct)
     { await EplpAsync(execution, command.Dispatch, command.Input, ct).ConfigureAwait(false); return true; }

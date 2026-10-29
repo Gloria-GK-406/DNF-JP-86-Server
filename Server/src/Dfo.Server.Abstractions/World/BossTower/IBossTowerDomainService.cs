@@ -8,7 +8,7 @@ namespace Dfo.Server.Abstractions.World.BossTower;
 
 public sealed record BossTowerGroundItem(ushort Uid, ushort ActorUid, RolledDrop Rolled, bool Claimed = false);
 public sealed record BossTowerSnapshot(Guid RunId, int DungeonId, ImmutableArray<TowerMember> Members,
-    TowerRoomSnapshot Room, ImmutableArray<int> CompletedLevels, TowerCompletion? Completion, DateTimeOffset StartedAt)
+    TowerRoomSnapshot Room, ImmutableArray<int> CompletedLevels, TowerCompletion? Completion, DateTimeOffset StartedAt) : ITowerRunSnapshot
 {
     public int TotalLevels { get; init; } = 8;
     public int CurrentStage => Room.Level;
@@ -25,8 +25,9 @@ public sealed record BossTowerEntryResult(string? Rejection, BossTowerSnapshot? 
     public byte? BlockedSlot { get; init; }
     public DungeonEntryFailure? Failure { get; init; }
 }
-public sealed record BossTowerActionResult(bool Changed, BossTowerSnapshot? Run, TowerActor? KilledActor = null)
+public sealed record BossTowerActionResult(bool Changed, BossTowerSnapshot? Run, TowerActor? KilledActor = null) : ITowerActionOutcome
 {
+    ITowerRunSnapshot? ITowerActionOutcome.Run => Run;
     public ImmutableArray<TowerKillReward> KillRewards { get; init; } = [];
     public ImmutableArray<BossTowerGroundItem> Drops { get; init; } = [];
     public bool SettlementCreated { get; init; }

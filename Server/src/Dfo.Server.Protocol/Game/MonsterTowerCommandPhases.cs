@@ -30,15 +30,15 @@ internal sealed partial class GameMonsterDeathCommandHandler
         GameMessageMetadata metadata,ushort actorUid,ushort killerUid,CancellationToken token)
     {
         var session=place.Session;var expected=place.Run;
-        if(!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session,expected)) return;
+        if(!TowerActionProjection.Exact(sessions, bossKind, session,expected)) return;
         var members=expected.Members.Select(member=>member.Session).ToArray();
         var captured=CaptureKillConnections(members);
         var participants=members.Select(member=>member==session?CaptureParticipant(member) with { Metadata=metadata }:new SelectedSessionRecipient(member,null,metadata)).ToArray();
         var action=await workUnits.WriteAsync(execution,new("kill-boss-tower-actor",participants,
             Footprint:CommandFootprintMode.DeclaredNonRequest,FootprintOwners:members),
-            (unit,ct)=>bossTowers.KillAsync(BossTowerActionProjection.BossTowerContext(expected,session),actorUid,unit.Footprint,ct),token).ConfigureAwait(false);
+            (unit,ct)=>bossTowers.KillAsync(TowerActionProjection.Context(expected,session),actorUid,unit.Footprint,ct),token).ConfigureAwait(false);
         if(!action.Changed || action.Run is null) return;
-        var failures=await BossTowerActionProjection.BossTowerProjectActionAsync(sessions, characters, bossTowers, clock, outbox, action,new MonsterDeathNotification(actorUid,
+        var failures=await TowerActionProjection.ProjectActionAsync(sessions, characters, bossKind, clock, outbox, action,new MonsterDeathNotification(actorUid,
             action.Drops.Select(item=>new MonsterDrop(item.Uid,item.Rolled)).ToArray(),killerUid),token).ConfigureAwait(false);
         await CloseKillFailuresAsync(failures,captured).ConfigureAwait(false);
     }
@@ -46,13 +46,13 @@ internal sealed partial class GameMonsterDeathCommandHandler
         ushort actorUid,ushort killerUid,CancellationToken token)
     {
         var session=place.Session;var expected=place.Run;
-        if(!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session,expected)) return;
+        if(!TowerActionProjection.Exact(sessions, illusionKind, session,expected)) return;
         var members=expected.Members.Select(member=>member.Session).ToArray();var captured=CaptureKillConnections(members);
         var action=await workUnits.WriteAsync(execution,new("kill-illusion-tower-actor",[],
             Footprint:CommandFootprintMode.DeclaredNonRequest,FootprintOwners:members),
-            (unit,ct)=>illusionTowers.KillAsync(IllusionTowerActionProjection.IllusionTowerContext(expected,session),actorUid,unit.Footprint,ct),token).ConfigureAwait(false);
+            (unit,ct)=>illusionTowers.KillAsync(TowerActionProjection.Context(expected,session),actorUid,unit.Footprint,ct),token).ConfigureAwait(false);
         if(!action.Changed || action.Run is null) return;
-        var failures=await IllusionTowerActionProjection.IllusionTowerProjectActionAsync(sessions, characters, illusionTowers, clock, outbox, action,new MonsterDeathNotification(actorUid,
+        var failures=await TowerActionProjection.ProjectActionAsync(sessions, characters, illusionKind, clock, outbox, action,new MonsterDeathNotification(actorUid,
             action.Drops.Select(item=>new MonsterDrop(item.Uid,new RolledDrop(item.ItemId,1,DropRarity.Common,DropItemKind.Stackable))).ToArray(),killerUid),token).ConfigureAwait(false);
         await CloseKillFailuresAsync(failures,captured).ConfigureAwait(false);
     }

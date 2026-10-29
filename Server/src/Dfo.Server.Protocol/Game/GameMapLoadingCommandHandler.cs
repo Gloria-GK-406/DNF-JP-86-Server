@@ -57,6 +57,8 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly ILogger logger;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly ITowerRunKind bossKind;
+    private readonly ITowerRunKind illusionKind;
     private readonly IDungeonParticipationDomainService participation;
     private readonly IGameCommandOutbox outbox;
     private readonly ICommandWorkUnits workUnits;
@@ -82,7 +84,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
         IGuardianAltarSchedulerWakeSignal guardianWake)
 
     {
-        this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.visits = visits; this.registry = registry;
         this.fatigue = fatigue; this.weaknessState = weaknessState; this.closures = closures; this.mapOutbox = outbox;
         this.guardian = guardian; this.guardianWake = guardianWake;

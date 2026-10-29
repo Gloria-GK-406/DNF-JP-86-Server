@@ -40,11 +40,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
     private const string PartyTransition = "Game/GamePartyTransitionCommandHandler.cs";
     private const string PartyStages = "Game/GamePartyTransitionCommandHandler.Stages.cs";
     private const string Selection = "Game/DungeonSelection/DungeonSelectionCommandPhases.cs";
-    private const string BossProjection = "Game/Party/BossTowerActionProjection.cs";
-    private const string IllusionProjection = "Game/Party/IllusionTowerActionProjection.cs";
+    private const string TowerProjection = "Game/Party/TowerActionProjection.cs";
     private const string TowerReturn = "Game/TowerReturnCommandHandler.Stages.cs";
-    private static readonly string[] DepartureProjections =
-        [PartyStages, "Game/DungeonSelection/GameDungeonSelectionCommandHandler.Stages.cs", TowerReturn];
     private const string FinishLoading = "HandleAsync(CommandExecutionContext, GameFinishLoadingCommand, CancellationToken)";
     private const string MoveMap = "HandleAsync(CommandExecutionContext, GameMoveMapCommand, CancellationToken)";
 
@@ -84,27 +81,23 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
         new(Rule.TowerLookup, "Game/Dungeons/DungeonLocator.cs", "Locate", 2,
             "the locator asks only the registered tower whether it seats this session in that run"),
         // Checks that serve the work in a channel or a projection, never the choice of channel.
-        new(Rule.TowerLookup, BossProjection, "BossTowerExact", 1,
+        new(Rule.TowerLookup, "Game/Party/TowerRunKind.cs", "Find(SelectedSessionIdentity)", 2,
+            "each tower engine answers the shared projections' seat question from its own runs"),
+        new(Rule.TowerLookup, "Game/Party/TowerRunKind.cs", "IsInTower(CharacterId)", 2,
+            "each tower engine answers the shared departure's still-in-the-tower question"),
+        new(Rule.TowerLookup, TowerProjection, "Exact", 1,
             "exact session check: the located session still sits in the same run and room version"),
-        new(Rule.TowerLookup, IllusionProjection, "IllusionTowerExact", 1, "the same exact session check for the illusion tower"),
-        new(Rule.TowerLookup, BossProjection, "BossTowerExactMembers", 1,
+        new(Rule.TowerLookup, TowerProjection, "ExactMembers", 1,
             "projection recipients: members still exactly in the run receive the frames"),
-        new(Rule.TowerLookup, IllusionProjection, "IllusionTowerExactMembers", 1, "the same projection recipients for the illusion tower"),
-        new(Rule.TowerLookup, BossProjection, "BossTowerCurrentRun", 1,
+        new(Rule.TowerLookup, TowerProjection, "CurrentRun", 1,
             "projection: rereads the run through a member still exactly seated after the write"),
-        new(Rule.TowerLookup, IllusionProjection, "IllusionTowerCurrentRun", 1, "the same projection reread for the illusion tower"),
-        new(Rule.TowerLookup, BossProjection, "BossTowerSendCommittedBatchAsync", 1,
+        new(Rule.TowerLookup, TowerProjection, "SendCommittedBatchAsync", 1,
             "projection retry: replays a committed batch only while the member still holds the same settlement receipt"),
-        new(Rule.TowerLookup, IllusionProjection, "IllusionTowerSendCommittedBatchAsync", 1, "the same projection retry for the illusion tower"),
         new(Rule.TowerLookup, PartyStages, "BossTowerExactSessions", 1,
             "party channel: every member of the located run is still exactly seated before the party write"),
         new(Rule.TowerLookup, PartyStages, "IllusionTowerExactSessions", 1, "the same whole-party exact check for the illusion tower"),
-        .. DepartureProjections.SelectMany(path => new Site[]
-        {
-            new(Rule.TowerLookup, path, "ProjectBossTowerPartyDepartureAsync", 1,
-                "departure projection: the returning member is projected back to town only once the tower no longer holds them"),
-            new(Rule.TowerLookup, path, "ProjectIllusionTowerPartyDepartureAsync", 1, "the same departure projection for the illusion tower"),
-        }),
+        new(Rule.TowerLookup, "Game/Party/TowerPartyDeparture.cs", "ProjectDepartureAsync", 1,
+            "departure projection: the returning member is projected back to town only once the tower no longer holds them"),
         new(Rule.TowerLookup, "Game/DungeonEntry/BossEntryCommandPhases.cs", "BossEntryCurrent", 1,
             "entry: after the entry write, every entrant must sit exactly in the new run"),
         new(Rule.TowerLookup, "Game/DungeonEntry/IllusionEntryCommandPhases.cs", "IllusionEntryCurrent", 1,
@@ -340,7 +333,7 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex TowerReceiver = new(
-        @"\bI(?:BossTower|IllusionTower)DomainService\s*\??\s+(\w+)\b(?!\s*[(<])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        @"\b(?:I(?:BossTower|IllusionTower)DomainService|ITowerRunKind)\s*\??\s+(\w+)\b(?!\s*[(<])", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex ParticipationReceiver = new(
         @"\bIDungeonParticipationDomainService\s*\??\s+(\w+)\b(?!\s*[(<])", RegexOptions.Compiled | RegexOptions.CultureInvariant);

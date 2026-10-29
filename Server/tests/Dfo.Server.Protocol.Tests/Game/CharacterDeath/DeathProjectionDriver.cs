@@ -14,7 +14,7 @@ internal sealed class DeathProjectionDriver(ISelectedSessionDomainService sessio
 
 {
     internal ValueTask<IReadOnlyList<(SelectedSessionIdentity Session,Exception Error)>> BossAsync(BossTowerActionResult action,SelectedSessionIdentity reporter,CancellationToken ct)=>
-        BossTowerActionProjection.BossTowerProjectActionAsync(sessions, null!, boss!, TimeProvider.System, new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender), action,new CharacterLifeStateNotification(reporter.WireUserId),ct,reporter,new CharacterDeathResponse());
+        TowerActionProjection.ProjectActionAsync(sessions, null!, new BossTowerRunKind(boss!), TimeProvider.System, new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender), action,new CharacterLifeStateNotification(reporter.WireUserId),ct,reporter,new CharacterDeathResponse());
     internal ValueTask<IReadOnlyList<(SelectedSessionIdentity Session,Exception Error)>> IllusionAsync(TowerActionResult action,SelectedSessionIdentity reporter,CancellationToken ct)=>
-        IllusionTowerActionProjection.IllusionTowerProjectActionAsync(sessions, null!, illusion!, TimeProvider.System, new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender), action,new CharacterLifeStateNotification(reporter.WireUserId),ct,reporter,new CharacterDeathResponse());
+        TowerActionProjection.ProjectActionAsync(sessions, null!, new IllusionTowerRunKind(illusion!), TimeProvider.System, new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(sender), action,new CharacterLifeStateNotification(reporter.WireUserId),ct,reporter,new CharacterDeathResponse());
 }

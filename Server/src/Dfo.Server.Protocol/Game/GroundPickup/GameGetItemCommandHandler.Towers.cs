@@ -28,18 +28,18 @@ internal sealed partial class GameGetItemCommandHandler
         DungeonPlace.InBossTower place,GameMessageMetadata metadata,ushort groundUid,CancellationToken token)
     {
         var session=place.Session;var expected=place.Run;
-        if(!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session,expected))return;
+        if(!TowerActionProjection.Exact(sessions, bossKind, session,expected))return;
         var members=expected.Members.Select(member=>member.Session).ToArray();var captured=CaptureConnections(members);
         var participants=members.Select(member=>member==session?CaptureParticipant(member)with{Metadata=metadata}:new SelectedSessionRecipient(member,null,metadata)).ToArray();
         var picked=await workUnits.WriteAsync(execution,new("pick-up-boss-tower-item",participants),
-            (unit,ct)=>bossTowers.PickupAsync(BossTowerActionProjection.BossTowerContext(expected,session),groundUid,ct),token).ConfigureAwait(false);
+            (unit,ct)=>bossTowers.PickupAsync(TowerActionProjection.Context(expected,session),groundUid,ct),token).ConfigureAwait(false);
         if(!picked.Action.Changed||picked.Action.Run is not{}run)
         {
             if(picked.NoRoom)await outbox.RegisterExplicitAsync(connectionId,new([new GetItemResponse(false)],[]),token).ConfigureAwait(false);
             return;
         }
         var item=run.GroundItems.Single(value=>value.Uid==groundUid);var failures=new List<(SelectedSessionIdentity,Exception)>();
-        foreach(var member in BossTowerActionProjection.BossTowerExactMembers(sessions, bossTowers, run))
+        foreach(var member in TowerActionProjection.ExactMembers(sessions, bossKind, run))
         {
             try
             {
@@ -52,11 +52,11 @@ internal sealed partial class GameGetItemCommandHandler
                 }
                 if(member==session)
                 {
-                    BossTowerActionProjection.BossTowerAppendInventory(frames,picked.Action.InventoryUpdates,clock.GetUtcNow());
-                    BossTowerActionProjection.BossTowerAppendQuest(frames,picked.Action.QuestProgress);
+                    TowerActionProjection.AppendInventory(frames,picked.Action.InventoryUpdates,clock.GetUtcNow());
+                    TowerActionProjection.AppendQuest(frames,picked.Action.QuestProgress);
                     if(picked.Action.GoldBalance is{}balance)frames.Add(GameInventoryDelivery.CarriedGoldNotification(balance,clock.GetUtcNow()));
                 }
-                await BossTowerActionProjection.BossTowerSendCommittedBatchAsync(sessions, bossTowers, outbox, run,member,new(frames,[]),token).ConfigureAwait(false);
+                await TowerActionProjection.SendCommittedBatchAsync(sessions, bossKind, outbox, run,member,new(frames,[]),token).ConfigureAwait(false);
             }
             catch(Exception error)when(error is not OperationCanceledException||!token.IsCancellationRequested){failures.Add((member,error));}
         }
@@ -66,24 +66,24 @@ internal sealed partial class GameGetItemCommandHandler
         DungeonPlace.InIllusionTower place,ushort groundUid,CancellationToken token)
     {
         var session=place.Session;var expected=place.Run;
-        if(!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session,expected))return;
+        if(!TowerActionProjection.Exact(sessions, illusionKind, session,expected))return;
         var captured=CaptureConnections(expected.Members.Select(member=>member.Session));
         var picked=await workUnits.WriteAsync(execution,new("pick-up-illusion-tower-item",[]),
-            (unit,ct)=>illusionTowers.PickupAsync(IllusionTowerActionProjection.IllusionTowerContext(expected,session),groundUid,ct),token).ConfigureAwait(false);
+            (unit,ct)=>illusionTowers.PickupAsync(TowerActionProjection.Context(expected,session),groundUid,ct),token).ConfigureAwait(false);
         if(!picked.Action.Changed||picked.Action.Run is not{}run||picked.Update is not{}update)
         {
             if(picked.NoRoom)await outbox.RegisterExplicitAsync(connectionId,new([new GetItemResponse(false)],[]),token).ConfigureAwait(false);
             return;
         }
         var failures=new List<(SelectedSessionIdentity,Exception)>();
-        foreach(var member in IllusionTowerActionProjection.IllusionTowerExactMembers(sessions, illusionTowers, run))
+        foreach(var member in TowerActionProjection.ExactMembers(sessions, illusionKind, run))
         {
             try
             {
                 var frames=new List<IGameServerMessage>();if(member==session)frames.Add(new GetItemResponse(true));
                 frames.Add(new GroundPickupNotification(groundUid,session.WireUserId,checked((ushort)slots.Project(update.Slot).Index)));
-                if(member==session)IllusionTowerActionProjection.IllusionTowerAppendInventory(frames,[update],clock.GetUtcNow());
-                await IllusionTowerActionProjection.IllusionTowerSendCommittedBatchAsync(sessions, illusionTowers, outbox, run,member,new(frames,[]),token).ConfigureAwait(false);
+                if(member==session)TowerActionProjection.AppendInventory(frames,[update],clock.GetUtcNow());
+                await TowerActionProjection.SendCommittedBatchAsync(sessions, illusionKind, outbox, run,member,new(frames,[]),token).ConfigureAwait(false);
             }
             catch(Exception error)when(error is not OperationCanceledException||!token.IsCancellationRequested){failures.Add((member,error));}
         }

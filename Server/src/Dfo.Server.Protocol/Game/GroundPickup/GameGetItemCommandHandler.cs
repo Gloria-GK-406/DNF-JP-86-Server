@@ -52,6 +52,8 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
     private readonly ILogger logger;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly ITowerRunKind bossKind;
+    private readonly ITowerRunKind illusionKind;
     private readonly IDungeonParticipationDomainService participation;
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
@@ -74,7 +76,7 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
         ICommandConnectionClosures closures, TimeProvider clock, IInventorySlotProjectionDomainService slots, ILogger<GameGetItemCommandHandler> logger )
 
     {
-        this.sessions = sessions; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs;this.registry=registry;this.clearEvaluator=clearEvaluator;this.quests=quests;
         this.floor=floor;this.closures=closures;this.slots=slots;
     }
