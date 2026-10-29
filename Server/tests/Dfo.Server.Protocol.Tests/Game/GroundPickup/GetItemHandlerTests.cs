@@ -575,7 +575,7 @@ public sealed class GetItemHandlerTests
     {
         public (DungeonRunId RunId, long RoomVersion)? LastRequest { get; private set; }
 
-        public ValueTask<DungeonClearChange?> EvaluateAsync(
+        public ValueTask<DungeonClearChange?> TryOpenClearAsync(
             AccountId accountId,
             CharacterId characterId,
             DungeonRunId expectedRunId,

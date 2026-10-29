@@ -11,7 +11,7 @@ public sealed class DungeonClearDomainService(
     IDungeonRunDomainService runs,
     IMonsterKillDomainService rooms) : IDungeonClearDomainService
 {
-    public async ValueTask<DungeonClearChange?> EvaluateAsync(
+    public async ValueTask<DungeonClearChange?> TryOpenClearAsync(
         AccountId accountId,
         CharacterId characterId,
         DungeonRunId expectedRunId,

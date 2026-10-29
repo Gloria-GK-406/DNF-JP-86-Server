@@ -24,12 +24,15 @@ public interface IDungeonSettlementRuleService
 }
 
 /// <summary>
-/// Re-evaluates whether one exact shared run may open its clear exit after an authoritative
-/// runtime change.
+/// Opens one exact shared run's clear exit when an authoritative runtime change has earned it.
 /// </summary>
+/// <remarks>
+/// A write, not a question: the clear is opened in the run's runtime state, outside any domain
+/// transaction, and the change names who saw it open.
+/// </remarks>
 public interface IDungeonClearDomainService
 {
-    ValueTask<DungeonClearChange?> EvaluateAsync(
+    ValueTask<DungeonClearChange?> TryOpenClearAsync(
         AccountId accountId,
         CharacterId characterId,
         DungeonRunId expectedRunId,

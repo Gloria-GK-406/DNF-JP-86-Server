@@ -217,7 +217,7 @@ public sealed class TournamentDungeonTests
             Assert.True(run.ClearOpen);
             Assert.All(run.CurrentCellState.Actors, actor => Assert.True(actor.IsDead));
             Assert.Null(await f.Services.GetRequiredService<IDungeonClearDomainService>()
-                .EvaluateAsync(new(1), new(71), run.RunId, run.RoomVersion, default));
+                .TryOpenClearAsync(new(1), new(71), run.RunId, run.RoomVersion, default));
             var gold = Gold(f);
             var exp = f.Scalar("SELECT exp FROM characters WHERE character_id=71");
             var duplicate = await Kill(f, 4);

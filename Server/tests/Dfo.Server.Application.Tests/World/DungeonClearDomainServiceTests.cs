@@ -25,7 +25,7 @@ public sealed class DungeonClearDomainServiceTests
             var runs = TestParties.Runs();
             var run = runs.Begin(Leader, layout, difficulty: 0);
             var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });
-            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.Null(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
             Assert.False(runs.Find(Leader)!.ClearOpen);
         });
     }
@@ -53,7 +53,7 @@ public sealed class DungeonClearDomainServiceTests
             Assert.NotNull(first);
             Assert.Empty(first.AutoKilledActorSequences);
             Assert.False(first.IsCellCleared);
-            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.Null(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
             var boss = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
             Assert.NotNull(boss);
             Assert.Equal(new ushort[] { 102 }, boss.AutoKilledActorSequences);
@@ -61,8 +61,8 @@ public sealed class DungeonClearDomainServiceTests
             Assert.False(boss.Run.CurrentCellState.FindActor(103)!.IsDead);
             Assert.False(boss.Run.CurrentCellState.FindActor(104)!.IsDead);
             Assert.Equal(0, boss.Run.KillSummary.Boss); // APCs do not enter the ordinary XP ledger.
-            Assert.NotNull(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
-            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.NotNull(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.Null(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
         });
     }
 
@@ -83,11 +83,11 @@ public sealed class DungeonClearDomainServiceTests
             Assert.Empty(first.AutoKilledActorSequences);
             Assert.False(first.Run.CurrentCellState.FindActor(101)!.IsDead);
             Assert.False(first.Run.CurrentCellState.FindActor(102)!.IsDead);
-            Assert.Null(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.Null(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
             var last = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
             Assert.NotNull(last);
             Assert.Equal(new ushort[] { 102 }, last.AutoKilledActorSequences);
-            Assert.NotNull(await service.EvaluateAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            Assert.NotNull(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
         });
     }
 
@@ -124,7 +124,7 @@ public sealed class DungeonClearDomainServiceTests
             var service = new DungeonClearDomainService(
                 runs, new MutableRoomCleared { Cleared = true });
 
-            var opened = await service.EvaluateAsync(
+            var opened = await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
 
             Assert.NotNull(opened);
@@ -142,16 +142,16 @@ public sealed class DungeonClearDomainServiceTests
             var room = new MutableRoomCleared();
             var service = new DungeonClearDomainService(runs, room);
 
-            Assert.Null(await service.EvaluateAsync(
+            Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
             room.Cleared = true;
 
-            var opened = await service.EvaluateAsync(
+            var opened = await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
 
             Assert.NotNull(opened);
             Assert.True(runs.Find(Leader)!.ClearOpen);
-            Assert.Null(await service.EvaluateAsync(
+            Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
         });
     }
@@ -172,7 +172,7 @@ public sealed class DungeonClearDomainServiceTests
             var service = new DungeonClearDomainService(
                 runs, new MutableRoomCleared { Cleared = true });
 
-            var opened = await service.EvaluateAsync(
+            var opened = await service.TryOpenClearAsync(
                 HelperAccount, Helper, run.RunId, run.RoomVersion, default);
 
             Assert.NotNull(opened);
@@ -190,9 +190,9 @@ public sealed class DungeonClearDomainServiceTests
             var service = new DungeonClearDomainService(
                 runs, new MutableRoomCleared { Cleared = true });
 
-            Assert.Null(await service.EvaluateAsync(
+            Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion, default));
-            Assert.Null(await service.EvaluateAsync(
+            Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion + 1, default));
         });
     }

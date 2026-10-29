@@ -180,7 +180,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             if (change.Run.Layout.ConsumesFatigue && change.IsCellCleared)
                 foreach (var participant in settled.Participants)
                     creatures.QueueRoomExperience(participant.Session, change.Run.RunId, change.Run.CurrentCell, 1);
-            var clear = await clearEvaluator.EvaluateAsync(reporter.AccountId, reporter.CharacterId,
+            var clear = await clearEvaluator.TryOpenClearAsync(reporter.AccountId, reporter.CharacterId,
                 change.Run.RunId, change.Run.RoomVersion, ct).ConfigureAwait(false);
             var drops = change.AddedGroundItems.Select(x => x.ToMonsterDrop()).ToArray();
             var owners = drops.Where(x => x.Rolled.OwnerCharacterId.HasValue)
