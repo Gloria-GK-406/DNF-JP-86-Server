@@ -65,7 +65,7 @@ public sealed class GameTaggedIdReportCommandHandler(
             rewardResult = await units.WriteAsync(execution, new("TaggedIdReport", []),
                 (_, token) => GrantAsync(containers, delivery, tutorial, session.CharacterId,
                     [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
-                    session.AccountId, message.FlagIndex == 31, token), cancellationToken).ConfigureAwait(false);
+                    session.AccountId, message.CompletesTutorial, token), cancellationToken).ConfigureAwait(false);
 
             granted.AddRange(rewardResult.Placed.Select(item => new GrantedTutorialItem(
                 checked((ushort)item.SlotIndex), (uint)item.ItemId, (uint)item.Count)));

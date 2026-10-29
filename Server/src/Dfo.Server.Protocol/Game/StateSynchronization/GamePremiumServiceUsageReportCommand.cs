@@ -16,7 +16,7 @@ public sealed record GamePremiumServiceUsageReportCommand(NetworkDispatchContext
 }
 public sealed class GamePremiumServiceUsageReportCommandHandler(ISelectedSessionDomainService sessions,
     IDungeonRunDomainService runs, IPremiumServiceDomainService premiums,
-    IPremiumServiceUsageDomainService usage, TimeProvider clock,
+    IPremiumServiceUsageDomainService usage, IDungeonPremiumBuffDomainService buffs, TimeProvider clock,
     ICommandWorkUnits units, IGameCommandOutbox sender, ILogger<PremiumServiceUsageReportHandler> logger)
     : ICommandHandler<GamePremiumServiceUsageReportCommand, bool>
 {
@@ -48,13 +48,8 @@ public sealed class GamePremiumServiceUsageReportCommandHandler(ISelectedSession
     {
         if (!sessions.IsInWorld(session))
             return new(new([]), [], clock.GetUtcNow(), false);
-        if (runId is { } capturedRunId && runs.Find(session.CharacterId)?.RunId == capturedRunId
-            && !runs.HasUsedDungeonBuff(session.CharacterId, capturedRunId)
-            && await usage.TryUseDungeonBuffAsync(session.AccountId, session.CharacterId, token).ConfigureAwait(false))
-        {
-            if (!runs.StageDungeonBuff(session.CharacterId, capturedRunId))
-                throw new InvalidOperationException("Dungeon changed during buff consumption.");
-        }
+        if (runId is { } capturedRunId)
+            await buffs.TryConsumeAsync(session.AccountId, session.CharacterId, capturedRunId, token).ConfigureAwait(false);
         return new(new(await premiums.For(session.AccountId).ReadAsync(token).ConfigureAwait(false)),
             await usage.ReadAsync(session.CharacterId, token).ConfigureAwait(false), clock.GetUtcNow());
     }

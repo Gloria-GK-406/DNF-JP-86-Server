@@ -531,6 +531,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<
             IQuestOfferRefreshDomainService, QuestOfferRefreshDomainService>();
         services.TryAddSingleton<IQuestAcceptanceDomainService, QuestAcceptanceDomainService>();
+        services.TryAddSingleton<IDungeonPremiumBuffDomainService, DungeonPremiumBuffDomainService>();
         // Whether a character may stand where they say, and what a tutorial step declares.
         services.TryAddSingleton<ITownMovementDomainService, TownMovementDomainService>();
         services.TryAddSingleton<ITutorialRewardDomainService, TutorialRewardDomainService>();
