@@ -14,7 +14,6 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs,
     ICharacterDomainService characters, ICharacterCarriedGoldTable goldRows, ICarriedGoldRuleService goldRules,
     IAccountCargoStateTable accountStates,
     IInventoryExpansionStateTable writes, IInventoryLevelDomainService levels,
@@ -22,7 +21,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
     ICharacterBusinessInventoryDomainService inventories, IItemPlacementRuleService placements,
     IDomainTransactionAccessor transactions, IItemDomainStore items,
     ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory,
-    IItemLifecycleDomainService lifecycle, IIllusionTowerDomainService? towers = null)
+    IItemLifecycleDomainService lifecycle, IDungeonParticipationDomainService participation)
     : IInventoryExpansionDomainService
 {
     public async ValueTask<InventoryExpansionResult> UseItemAsync(SelectedSessionIdentity session, BusinessSlot slot,
@@ -150,8 +149,7 @@ internal sealed class InventoryExpansionDomainService(ISelectedSessionDomainServ
             await accountInventory.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false), at);
     }
     private async ValueTask<bool> CurrentAsync(SelectedSessionIdentity session, CancellationToken ct) =>
-        sessions.IsInWorld(session) && runs.Find(session.CharacterId) is null
-        && towers?.IsInTower(session.CharacterId) != true;
+        sessions.IsInWorld(session) && participation.Find(session.CharacterId) is null;
     private ValueTask<int> ParameterAsync(SelectedSessionIdentity session, InventoryExpansionKind kind, CancellationToken ct) =>
         levels.GetLevelAsync(Container(session, kind), ct);
     private ValueTask ChangeAsync(SelectedSessionIdentity session, InventoryExpansionChange change, CancellationToken ct) =>

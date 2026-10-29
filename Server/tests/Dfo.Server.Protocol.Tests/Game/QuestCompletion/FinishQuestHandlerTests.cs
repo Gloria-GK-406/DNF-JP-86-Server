@@ -417,7 +417,7 @@ public sealed class FinishQuestHandlerTests
             var input = new FinishQuestRequest(GameMessageMetadata.Empty,QuestId,rewardSelection,completionCount);
             await QuestProjectionDriver.Finish(
                 [sessions,current,characters,new QuestProjectionDriver.Bus(bus),sender,offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,weakness,registry,towers,null],
-                [sessions,current,characters,new QuestProjectionDriver.Units(()=>bus.SendAsync(new QuestFinishProjectionInput(session.AccountId,session.CharacterId,QuestId,rewardSelection,completionCount,checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),session))),new SkillGrowthDirectDriver.Outbox(sender),offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,weakness,registry,null,null,towers,null],
+                [sessions,current,characters,new QuestProjectionDriver.Units(()=>bus.SendAsync(new QuestFinishProjectionInput(session.AccountId,session.CharacterId,QuestId,rewardSelection,completionCount,checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),session))),new SkillGrowthDirectDriver.Outbox(sender),offers,clock,SkillGrowthDirectDriver.Logger,town,dungeon,weakness,registry,null,null,towers,null,new TowerParticipation(towers),ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>()],
                 new(new NetworkConnectionContext(new("one"),NetworkEndpointKind.Game,10010)),input,session);
 
             return sender.Sent;

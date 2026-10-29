@@ -22,8 +22,8 @@ public sealed class WarehouseStorageTests
     [Fact]
     public async Task Tower_members_cannot_move_sort_or_change_cargo_but_can_sort_carried_items()
     {
-        var tower = TowerPresenceProxy.Create(out var presence);
-        using var host = Fixture(services => services.AddSingleton(tower));
+        _ = TowerPresenceProxy.Create(out var presence);
+        using var host = Fixture(services => presence.Register(services));
         presence.Members.Add(host.Session.CharacterId);
         host.Sql("INSERT INTO account_cargo_state(account_id,selection_key,value32) VALUES(1,1,0)");
         await host.Seed(65, 2000, 2);

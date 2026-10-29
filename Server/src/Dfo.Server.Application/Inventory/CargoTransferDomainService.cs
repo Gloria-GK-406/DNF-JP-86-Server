@@ -12,16 +12,14 @@ using Dfo.Server.Abstractions.World.IllusionTower;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CargoTransferDomainService(ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs,
+    IDungeonParticipationDomainService participation,
     IBusinessInventorySlotDomainService slots, ICargoItemRuleService rules,
-    IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time,
-    IIllusionTowerDomainService? towers = null) : ICargoTransferDomainService
+    IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time) : ICargoTransferDomainService
 {
     public async ValueTask<ItemMoveOutcome> MoveAsync(SelectedSessionIdentity session, BusinessSlot source,
         BusinessSlot destination, int count, CancellationToken cancellationToken)
     {
-        if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId) is not null
-            || towers?.IsInTower(session.CharacterId) == true
+        if (!sessions.IsInWorld(session) || participation.Find(session.CharacterId) is not null
             || !Served(source.Space) || !Served(destination.Space))
             return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
         var from = slots.Find(session.CharacterId, source);

@@ -166,11 +166,12 @@ public sealed class WarehouseProtocolCommandFlowTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("tower")] [InlineData("world")] [InlineData("dungeon")]
+    [InlineData("tower")] [InlineData("boss-tower")] [InlineData("world")] [InlineData("dungeon")]
     public async Task Current_domain_restrictions_stay_inside_Main(string restriction)
     {
-        var trace = new Trace { NotInWorld = restriction == "world" }; var tower = TowerPresenceProxy.Create(out var presence); using var f = WarehouseStorageTests.Fixture(s => { Configure(s, trace); s.AddSingleton(tower); }); await Seed(f, false);
+        var trace = new Trace { NotInWorld = restriction == "world" }; _ = TowerPresenceProxy.Create(out var presence); using var f = WarehouseStorageTests.Fixture(s => { Configure(s, trace); presence.Register(s); }); await Seed(f, false);
         if (restriction == "tower") presence.Members.Add(f.Session.CharacterId);
+        if (restriction == "boss-tower") { presence.Mode = DungeonParticipationMode.BossTower; presence.Members.Add(f.Session.CharacterId); }
         if (restriction == "dungeon") f.InTransaction(() =>
         {
             var cell = new MazeCell(0, 0);
