@@ -34,6 +34,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
     private readonly IDungeonRoomMechanismWakeSignal? mechanismWake;
     private readonly IGiantDragonRuleService? giantDragons;
+    private readonly ILostLandFeverRuleService lostLandFever;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
     // A party holds at most one run. Who is in it is the party's answer, so there is no
@@ -53,6 +54,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     public DungeonRunDomainService(
         IDomainTransactionAccessor transactions,
         IPartyService parties,
+        ILostLandFeverRuleService lostLandFever,
         IWeaknessDomainService? weakness = null,
         ICreatureRuntimeDomainService? creatures = null,
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
@@ -74,6 +76,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.mechanismWake = mechanismWake;
         this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
         this.giantDragons = giantDragons;
+        this.lostLandFever = lostLandFever;
     }
 
     public DungeonEntryChange PreparePartyEntry(
@@ -864,7 +867,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     aggregate.Layout.LevelOf(killedActor.Actor.Level),
                     (MonsterRank)killedActor.Actor.ActorType));
                 if (aggregate.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration } && previousFever is not null)
-                    aggregate.LostLandFever = LostLandFeverRules.Award(previousFever, killedActor,
+                    aggregate.LostLandFever = this.lostLandFever.Award(previousFever, killedActor,
                         claim.OccurredAt ?? this.clock.GetUtcNow(), exploration.FeverDuration);
             }
             cell.SuppressEnemies(autoKilled);

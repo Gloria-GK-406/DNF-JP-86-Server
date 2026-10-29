@@ -2,9 +2,9 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
-internal static class LostLandFeverRules
+internal sealed class LostLandFeverRuleService : ILostLandFeverRuleService
 {
-    public static LostLandFeverState Award(LostLandFeverState current, DungeonCellActorState actor,
+    public LostLandFeverState Award(LostLandFeverState current, DungeonCellActorState actor,
         DateTimeOffset at, TimeSpan duration)
     {
         if (!actor.IsMonster || actor.IsAiCharacter || !LostLandEnemyRules.IsEnemy(actor.Actor)

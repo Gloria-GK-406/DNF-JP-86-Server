@@ -2,7 +2,7 @@
 
 对应 [#77](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/77)、
 [#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)，2026-10-27 读取最新正文及评论；两项均无评论。
-源码已变基至主干`b9ffc750`，分支`codex/77-forgotten-land`，本功能版本`0.2.11`；已测主玩法与森林晶石修复通过用户验收，进入PR准备。原始取证基线为`63fb3993`。
+源码已变基至主干`b9ffc750`，分支`codex/77-forgotten-land`，版本保持主干`0.2.10`；已测主玩法与森林晶石修复通过用户验收，进入PR准备。原始取证基线为`63fb3993`。
 
 ## 当前结论
 

@@ -48,7 +48,7 @@ internal static class TestParties
     {
         parties ??= Create();
         var runs = new DungeonRunDomainService(
-            transactions!, parties, weakness, creatures, lifecycle, clock,
+            transactions!, parties, new LostLandFeverRuleService(), weakness, creatures, lifecycle, clock,
             mechanismRules, mechanismWake, sealedTreasureRules, participation, giantDragons: giantDragons);
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;

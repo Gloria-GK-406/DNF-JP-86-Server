@@ -32,7 +32,7 @@ public sealed class LostLandFeverTests
         {
             Declaration = new(69586, DungeonActorSpawnSource.Monster, 0) { MonsterTeam = team },
         }, false, false, [], IsMonster: true);
-        Assert.Equal(expected, LostLandFeverRules.Award(new(), actor, At, TimeSpan.FromSeconds(60)).Percent);
+        Assert.Equal(expected, new LostLandFeverRuleService().Award(new(), actor, At, TimeSpan.FromSeconds(60)).Percent);
     }
 
     [Theory]

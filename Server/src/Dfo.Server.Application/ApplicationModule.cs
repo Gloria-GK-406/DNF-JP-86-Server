@@ -189,6 +189,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton(new LostLandRuntimePolicy(configuration.GetValue<int?>("LostLand:LimitSecondsOverride"),
             configuration.GetValue<bool>("LostLand:UnlimitedEntriesForTesting")));
         services.TryAddSingleton<ILostLandRuleService, LostLandRuleService>();
+        services.TryAddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
         services.TryAddSingleton<ILostLandDropRuleService, LostLandDropRuleService>();
         services.TryAddSingleton<ILostLandDungeonDomainService, LostLandDungeonDomainService>();
         services.TryAddSingleton<ILostLandConsumableRuleService, LostLandConsumableRuleService>();

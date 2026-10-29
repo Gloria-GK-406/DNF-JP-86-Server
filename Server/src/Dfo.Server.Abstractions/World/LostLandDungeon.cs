@@ -25,11 +25,20 @@ public sealed record LostLandQuotaSnapshot(DateOnly Period, int Maximum, int Con
     public int Remaining => Math.Max(0, Maximum - Used);
 }
 
+public sealed record LostLandQuotaDecision(LostLandQuotaSnapshot View, DungeonAdmissionQuota? Admission);
+
+public interface ILostLandFeverRuleService
+{
+    LostLandFeverState Award(LostLandFeverState current, DungeonCellActorState actor,
+        DateTimeOffset at, TimeSpan duration);
+}
+
 public interface ILostLandRuleService
 {
     bool Supports(int dungeonId);
     ValueTask<LostLandDefinition> DefinitionAsync(CancellationToken cancellationToken);
-    ValueTask<int> MaximumEntriesAsync(int consumedFatigue, CancellationToken cancellationToken);
+    ValueTask<LostLandQuotaDecision> QuotaAsync(DateOnly period, int consumedFatigue, int used,
+        CancellationToken cancellationToken);
     ValueTask<DungeonLayout> LayoutAsync(DungeonEntryFacts facts, int seed, CancellationToken cancellationToken);
 }
 

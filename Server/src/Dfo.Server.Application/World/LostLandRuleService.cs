@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.UsageQuotas;
 
 namespace Dfo.Server.Application.World;
 
@@ -7,11 +8,17 @@ internal sealed class LostLandRuleService(ILostLandContentSource source,
 {
     public bool Supports(int dungeonId) => dungeonId == 4000;
     public ValueTask<LostLandDefinition> DefinitionAsync(CancellationToken cancellationToken) => source.ReadAsync(cancellationToken);
-    public async ValueTask<int> MaximumEntriesAsync(int consumedFatigue, CancellationToken cancellationToken)
+    public async ValueTask<LostLandQuotaDecision> QuotaAsync(DateOnly period, int consumedFatigue, int used,
+        CancellationToken cancellationToken)
     {
-        if (consumedFatigue < 0) throw new InvalidDataException("Invalid consumed fatigue for LostLand.");
+        cancellationToken.ThrowIfCancellationRequested();
+        if (consumedFatigue < 0 || used < 0) throw new InvalidDataException("Invalid LostLand entry counters.");
+        // The virtual acceptance view never changes or retroactively charges the saved ledger.
+        if (policy.UnlimitedEntriesForTesting) return new(new(period, 1, consumedFatigue, 0), null);
         var definition = await DefinitionAsync(cancellationToken).ConfigureAwait(false);
-        return checked(definition.BaseEntryCount + consumedFatigue / 100);
+        var maximum = checked(definition.BaseEntryCount + consumedFatigue / 100);
+        return new(new(period, maximum, consumedFatigue, used),
+            new(UsageQuotaFamily.LostLand, period, maximum, 4000));
     }
 
     public async ValueTask<DungeonLayout> LayoutAsync(DungeonEntryFacts facts, int seed, CancellationToken cancellationToken)
