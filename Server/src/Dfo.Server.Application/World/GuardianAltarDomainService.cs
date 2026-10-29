@@ -62,7 +62,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
     }
     public bool IsSelecting(SelectedSessionIdentity session) => sessions.IsInWorld(session)
         && state.Find(session.CharacterId) is { Selecting: true } owner && owner.Session == session;
-    public GuardianAltarRunState? Find(DungeonRunId run) => runs.Find(run) is { Layout.Guardian: not null } dungeon
+    public GuardianAltarRunState? Find(DungeonRunId run) => runs.Find(run) is { Layout.Mode: DungeonRunMode.Guardian } dungeon
         && state.Find(dungeon.Participants.Single().CharacterId)?.Run is { } current && current.RunId == run ? current : null;
     public IReadOnlyList<GuardianAltarRunState> Pending() => state.All().Where(x => x.Run?.Deadline is not null)
         .Select(x => x.Run!).ToArray();
@@ -102,7 +102,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
             .ToDictionary(x => x.cell, x => DungeonCellDefinition.Fixed(x.map));
         var layout = new DungeonLayout(context.DungeonId, 0, checked((byte)maps.Length), 1, new(0, 0),
             new(checked((byte)(maps.Length - 1)), 0), plan.Map.MapId, Random.Shared.Next(), cells,
-            BasisLevel: checked((byte)plan.BasisLevel), ExperienceWeight: 0, ConsumesFatigue: false) { Guardian = plan, NoGiveupPenalty = true };
+            BasisLevel: checked((byte)plan.BasisLevel), ExperienceWeight: 0, ConsumesFatigue: false) { Mode = new DungeonRunMode.Guardian(plan), NoGiveupPenalty = true };
         return await admission.ExecuteAsync(context, new() { ConsumesFatigue = false, EnforceOrdinaryDifficulty = false }, async (receipt, token) =>
         {
             var entered = await visits.EnterGrantedPartyAsync(context.Participants, layout, context.Facts, receipt, token).ConfigureAwait(false);

@@ -24,8 +24,8 @@ public sealed class DungeonClearDomainService(
         if (run is null
             || run.RunId != expectedRunId
             || run.RoomVersion != expectedRoomVersion
-            || run.Layout.Tournament is not null
-            || run.Layout.Altar is not null
+            || run.Layout.Mode is DungeonRunMode.Tournament
+            || run.Layout.Mode is DungeonRunMode.Altar
             || run.ClearOpen
             || !run.IsBossRoom
             || !await rooms.IsCurrentRoomClearedAsync(run, cancellationToken)

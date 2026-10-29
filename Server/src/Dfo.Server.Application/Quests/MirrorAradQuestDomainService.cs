@@ -23,7 +23,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     private DungeonRunState? Authorized(AccountId account, CharacterId character, int quest)
     {
         var run = runs.Find(character);
-        return run?.Layout.Mirror?.QuestId == quest
+        return run?.Layout.Mode is DungeonRunMode.Mirror { Plan.QuestId: var entered } && entered == quest
             && run.Participants.Any(x => x.CharacterId == character && x.AccountId == account) ? run : null;
     }
     public async ValueTask<QuestAcceptance> AcceptAsync(AccountId account, CharacterId character, ushort quest, CancellationToken ct)
@@ -117,7 +117,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     public async ValueTask<bool> ReportAsync(AccountId account, CharacterId character, IReadOnlyList<QuestProgressFact> facts, CancellationToken ct)
     {
         var run = runs.Find(character);
-        if (run?.Layout.Mirror is not { } mirror || Authorized(account, character, mirror.QuestId) is null) return false;
+        if (run?.Layout.Mode is not DungeonRunMode.Mirror { Plan: var mirror } || Authorized(account, character, mirror.QuestId) is null) return false;
         var state = await store.ReadAsync(character, run.RunId, ct).ConfigureAwait(false);
         if (state is null || state.GivenUp || state.RewardClaimed) return false;
         var objective = await rules.ResolveAsync(run.Layout.DungeonId, mirror.QuestId, ct).ConfigureAwait(false);
@@ -134,7 +134,7 @@ internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore s
     public async ValueTask<QuestProgressSnapshot> MergeAsync(CharacterId character, QuestProgressSnapshot ordinary, CancellationToken ct)
     {
         var run = runs.Find(character);
-        if (run?.Layout.Mirror is not { } mirror) return ordinary;
+        if (run?.Layout.Mode is not DungeonRunMode.Mirror { Plan: var mirror }) return ordinary;
         var state = await store.ReadAsync(character, run.RunId, ct).ConfigureAwait(false);
         if (state is null || state.GivenUp || state.RewardClaimed || state.QuestId != mirror.QuestId) return ordinary;
         var objective = await rules.ResolveAsync(run.Layout.DungeonId, mirror.QuestId, ct).ConfigureAwait(false);

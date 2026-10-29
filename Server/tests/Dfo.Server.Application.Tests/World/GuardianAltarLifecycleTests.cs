@@ -213,7 +213,7 @@ public sealed class GuardianAltarLifecycleTests
             await using (var tx = f.Scope.Begin())
             { Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry); await tx.CommitAsync(default); }
             var run = runs.Find(new CharacterId(71))!;
-            Assert.NotNull(run.Layout.Guardian); Assert.Null(run.Layout.Altar); Assert.False(run.CurrentCellState.IsCleared);
+            Assert.IsType<DungeonRunMode.Guardian>(run.Layout.Mode); Assert.False(run.CurrentCellState.IsCleared);
             runs.TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);
             await using (var tx = f.Scope.Begin()) { await altar.ReadyAsync(f.Session, run.RunId, default); await tx.CommitAsync(default); }
             var original = altar.Find(run.RunId)!;

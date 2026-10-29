@@ -54,7 +54,7 @@ internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars,
     {
         var reporter = sessions.FindByConnection(dispatch.Connection.ConnectionId);
         var expected = reporter is null ? null : runs.Find(reporter.CharacterId);
-        if (reporter is null || expected?.Layout.Altar is null) return;
+        if (reporter is null || expected?.Layout.Mode is not DungeonRunMode.Altar) return;
         var cohort = AltarTransitionProjection.Participants(runs, sessions, registry, expected.RunId);
         if (!sessions.IsInWorld(reporter) || !cohort.Contains(reporter)) return;
         if (actors is not null)

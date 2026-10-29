@@ -127,7 +127,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
                 61000,
                 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)})
-            { Mirror = mirror ? new(8000, 31, 14299) : null },
+            { Mode = mirror ? new DungeonRunMode.Mirror(new(8000, 31, 14299)) : DungeonRunMode.Ordinary },
             new MazeCell(0, 0),
             61000,
             new HashSet<MazeCell> { new(0, 0) },

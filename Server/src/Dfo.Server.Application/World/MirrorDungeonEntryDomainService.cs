@@ -38,7 +38,7 @@ internal sealed class MirrorDungeonEntryDomainService(IMirrorDungeonRuleService 
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
             if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, "Mirror historical maze unavailable.");
             var level = rules.ResolveRunLevel(levels);
-            layout = layout with { Mirror = new(catalog.WrapperDungeonId, catalog.WorldMapId, context.MirrorQuestId.Value),
+            layout = layout with { Mode = new DungeonRunMode.Mirror(new(catalog.WrapperDungeonId, catalog.WorldMapId, context.MirrorQuestId.Value)),
                 FixedMonsterLevel = level, BasisLevel = level };
             return await visits.EnterGrantedPartyAsync(context.Participants, layout, facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);

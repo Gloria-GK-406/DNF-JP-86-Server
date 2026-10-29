@@ -13,7 +13,7 @@ internal sealed record HellPartyMonsterInfoNotification(IReadOnlyList<(int Index
 internal static class HellPartyProjection
 {
     public static HellPartyMonsterInfoNotification? For(DungeonRunState run) =>
-        run.Hell is { } hell && run.CurrentCell == hell.Cell
+        run.Layout.Mode is DungeonRunMode.Hell { Plan: var hell } && run.CurrentCell == hell.Cell
             ? new(hell.Actors.Where(x => x.Actor.ActorType >= 5).GroupBy(x => x.Actor.Code)
                 .Select(x => (x.Key, (int)x.First().Actor.Level)).ToArray()) : null;
 }

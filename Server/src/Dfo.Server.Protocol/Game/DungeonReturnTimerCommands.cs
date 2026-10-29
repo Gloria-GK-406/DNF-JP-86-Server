@@ -53,8 +53,8 @@ internal sealed partial class TowerReturnCommandHandler
     {
         var frozen = wipeRegistry.Find(runId);
         // Guardian altar owns its result screen and the 50-second return deadline.
-        if (wipeRuns.Find(runId)?.Layout.Guardian is not null) return [];
-        if (!cleared && wipeRuns.Find(runId)?.Layout.Altar is not null)
+        if (wipeRuns.Find(runId)?.Layout.Mode is DungeonRunMode.Guardian) return [];
+        if (!cleared && wipeRuns.Find(runId)?.Layout.Mode is DungeonRunMode.Altar)
         {
             if (wipeAltars.Find(runId) is null) return [];
             var cohort = AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId);
@@ -74,10 +74,10 @@ internal sealed partial class TowerReturnCommandHandler
                     AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId), clock, wipeWake, logger, token).ConfigureAwait(false);
             return [];
         }
-        if (!cleared && wipeRuns.Find(runId)?.Layout.Tournament is not null)
+        if (!cleared && wipeRuns.Find(runId)?.Layout.Mode is DungeonRunMode.Tournament)
         {
             var run = wipeRuns.Find(runId);
-            if (run?.Layout.Tournament is null) return [];
+            if (run?.Layout.Mode is not DungeonRunMode.Tournament) return [];
             var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
             if (session is null || wipeTournaments.Find(session.CharacterId) is not { IsFinished: false }) return [];
             Exception? rejected = null;

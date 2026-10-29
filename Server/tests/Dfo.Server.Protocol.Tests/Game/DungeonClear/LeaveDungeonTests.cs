@@ -93,9 +93,9 @@ public sealed class LeaveDungeonTests
         {
             var runs = new OneRun(layoutChange: layout => kind switch
             {
-                "sao" => layout with { Sao = new(new("test")) },
-                "mirror" => layout with { Mirror = new(8000, 31, 14299) },
-                _ => layout with { EntryKind = DungeonEntryKind.ManualHell },
+                "sao" => layout with { Mode = new DungeonRunMode.Sao(new(new("test"))) },
+                "mirror" => layout with { Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) },
+                _ => layout with { Mode = new DungeonRunMode.Hell(new(0, layout.BossCell, layout.StartRoomMapId, [])) },
             });
             var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
             await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
@@ -766,7 +766,7 @@ public sealed class LeaveDungeonTests
         public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
             ? new DungeonRunState(
                 layoutChange is not null ? layoutChange(Layout)
-                    : isAltar ? Layout with { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 13)) }
+                    : isAltar ? Layout with { Mode = new DungeonRunMode.Altar(new(AltarDungeonKind.Ultimate, new(2026, 10, 13))) }
                     : story ? Layout with { Purpose = DungeonRunPurpose.QuestLinked(1776, DungeonQuestConnectionState.Active) } : Layout,
                 Layout.StartCell,
                 Layout.StartRoomMapId,

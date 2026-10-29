@@ -70,7 +70,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         }
         if (run is null || run.RunId != request.RunId || run.RoomVersion != request.RoomVersion
             || !request.Participants.Contains(request.Reporter)) return Refused("StaleRunOrParticipant");
-        var isTournament = run.Layout.Tournament is not null;
+        var isTournament = run.Layout.Mode is DungeonRunMode.Tournament;
         if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
             .CanKill(run, request.Actor)) return Refused("TournamentCannotKill");
         foreach (var session in request.Participants)
@@ -104,8 +104,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var points = pointLedgers[session.CharacterId];
             var applied = await rewards.ApplyAsync(session, session.AccountId, session.CharacterId, kill,
                 run.Layout.DungeonId, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
-                run.PartyKey, !isTournament && run.Layout.Altar is null && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
-                run.RunId, death.Actor, run.Layout.Mirror?.WorldMapId, death.ActorState?.PendingLoot, footprint, ct).ConfigureAwait(false);
+                run.PartyKey, !isTournament && run.Layout.Mode is not DungeonRunMode.Altar && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
+                run.RunId, death.Actor, (run.Layout.Mode as DungeonRunMode.Mirror)?.Plan.WorldMapId, death.ActorState?.PendingLoot, footprint, ct).ConfigureAwait(false);
             footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             pending.Awards[session.CharacterId] = applied.Award;
             var progress = applied.Award is { } award ? new CharacterProgressionState(award.Level, award.Total)
@@ -129,7 +129,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         if (clearsMap && run.IsBossRoom && southern?.Supports(run.Layout.DungeonId) == true)
             await southern.CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
-        if (clearsMap && run.Layout.Sao is not null && run.IsBossRoom)
+        if (clearsMap && run.Layout.Mode is DungeonRunMode.Sao && run.IsBossRoom)
             await (sao ?? throw new InvalidOperationException("SAO lifecycle is unavailable."))
                 .CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));

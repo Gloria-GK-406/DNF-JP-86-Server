@@ -49,7 +49,7 @@ internal sealed class DungeonRoomRuleService(
             {
                 IsNamedMonster = actor.IsNamedMonster || context.Layout.NamedMonsterCodes.Contains(actor.Actor.Code),
             }).ToArray();
-        if (context.Layout.Hell is { } hell && context.Cell == hell.Cell)
+        if (context.Layout.Mode is DungeonRunMode.Hell { Plan: var hell } && context.Cell == hell.Cell)
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
                 actor.Actor.ActorType >= FirstAiCharacterActorType)
                 { IsHellTemplate = true, HellOrder = actor.Order, HellGroupIndex = actor.GroupIndex })).ToArray();

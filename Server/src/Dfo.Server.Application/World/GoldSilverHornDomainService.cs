@@ -45,6 +45,7 @@ internal sealed class GoldSilverHornDomainService(IGoldSilverHornRuleService rul
         }
         catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
         if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
+        layout = layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.GoldSilverHorn) };
         return await admission.ExecuteAsync(context, new()
         {
             RequireMinimumLevel = true, ConsumesFatigue = false,

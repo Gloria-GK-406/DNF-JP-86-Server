@@ -18,13 +18,13 @@ internal sealed partial class GameSetPlayResultCommandHandler
     {
         var now = settledAt ?? clock.GetUtcNow();
         DespairTowerSettlement? tower = null;
-        if (runs.Find(characterId) is { Layout.Despair: not null } towerRun)
+        if (runs.Find(characterId) is { Layout.Mode: DungeonRunMode.Despair } towerRun)
         {
             tower = await (despair ?? throw new InvalidOperationException("Despair settlement is unavailable."))
                 .SettleAsync(accountId, characterId, new(runId), cancellationToken).ConfigureAwait(false);
             if (tower is null) return new(null, 0, 0);
         }
-        if (runs.Find(characterId) is { Layout.Mirror: not null } mirror
+        if (runs.Find(characterId) is { Layout.Mode: DungeonRunMode.Mirror } mirror
             && mirror.RunId.Value == runId && mirror.ClearOpen)
             await quests.ReportAsync(accountId, characterId,
                 [new QuestDungeonCleared(dungeonId, mirror.Difficulty, mirror.RunId, mirror.ClearedAt ?? now)], cancellationToken).ConfigureAwait(false);
@@ -36,7 +36,7 @@ internal sealed partial class GameSetPlayResultCommandHandler
             footprint, cancellationToken).ConfigureAwait(false);
         var changed = award is not null && runId != Guid.Empty
             && await attendance.RecordClearAsync(accountId,runId,dungeonId,settlementLevel,now,cancellationToken);
-        var unlocked = runs.Find(characterId)?.Layout is { Mirror: not null } or { Despair: not null } ? null
+        var unlocked = runs.Find(characterId)?.Layout.Mode is DungeonRunMode.Mirror or DungeonRunMode.Despair ? null
             : await difficulties.UnlockAfterClearAsync(characterId, dungeonId,
             (DungeonDifficulty)clear.Difficulty, cancellationToken).ConfigureAwait(false);
         return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked) { Despair = tower };

@@ -269,8 +269,8 @@ public sealed class WeaknessTests
             var layout = altarId == 0 ? Layout : Layout with
             {
                 DungeonId = altarId,
-                Altar = new(altarId == 11006 ? AltarDungeonKind.Endless : AltarDungeonKind.Ultimate,
-                    new DateOnly(2026, 10, 13)),
+                Mode = new DungeonRunMode.Altar(new(altarId == 11006 ? AltarDungeonKind.Endless : AltarDungeonKind.Ultimate,
+                    new DateOnly(2026, 10, 13))),
             };
             var run = runs.Begin(Id, layout, DungeonDifficulty.Normal);
             if (wipe)

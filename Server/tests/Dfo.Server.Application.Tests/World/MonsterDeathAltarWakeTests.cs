@@ -33,7 +33,7 @@ public sealed partial class BossTowerDomainServiceTests
             f.SetLevel(65);await using var tx=Scope(f).Begin();
             var layout=new DungeonLayout(144,0,3,1,new(0,0),new(2,0),61000,42,
                 new Dictionary<MazeCell,DungeonCellDefinition>{[new(0,0)]=DungeonCellDefinition.Fixed(61000),[new(1,0)]=DungeonCellDefinition.Fixed(61001),[new(2,0)]=DungeonCellDefinition.Fixed(61002)})
-                {Altar=new(AltarDungeonKind.Ultimate,new(2026,10,25))};
+                {Mode=new DungeonRunMode.Altar(new(AltarDungeonKind.Ultimate,new(2026,10,25)))};
             var run=f.Services.GetRequiredService<IDungeonRunDomainService>().PreparePartyEntry([new(f.Session.AccountId,f.Session.CharacterId,0,true)],layout,0,
                 new(layout.StartCell,61000,1,[new(1,new(13099,1,0),false,false,[]),new(2,new(13099,1,0),false,false,[])],[]),DungeonRunId.New(),f.Clock.GetUtcNow()).Run;
             f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Register(run.RunId,[f.Session]);await tx.CommitAsync(default);

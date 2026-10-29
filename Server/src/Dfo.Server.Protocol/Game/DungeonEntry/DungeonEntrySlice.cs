@@ -171,13 +171,14 @@ internal static class DungeonEntryPayloadCodec
         writer.Write(checked((byte)layout.MazeIndex));
         writer.Write(layout.BossCell.X);
         writer.Write(layout.BossCell.Y);
-        writer.Write(layout.Hell?.Cell.X ?? (byte)0);
-        writer.Write(layout.Hell?.Cell.Y ?? (byte)0);
+        var hellCell = (layout.Mode as DungeonRunMode.Hell)?.Plan.Cell;
+        writer.Write(hellCell?.X ?? (byte)0);
+        writer.Write(hellCell?.Y ?? (byte)0);
         writer.Write((byte)0); // practice mode
         writer.Write((byte)0); // no minimap groups
         // A21 DUNGEON_INFO reads this u16 into scene +0x43c. The despair banner
         // renders that value; the ordinary reference's 01 00 was floor 1, not a fixed flag.
-        writer.Write(checked((ushort)(layout.Despair?.Floor ?? 1)));
+        writer.Write(checked((ushort)((layout.Mode as DungeonRunMode.Despair)?.Plan.Floor ?? 1)));
         writer.Write(new byte[4]);
         writer.Write(unchecked((int)0xFFFFFFFF)); // builder default packet seed
         writer.Write(new byte[10]);
@@ -227,7 +228,7 @@ internal static class DungeonEntryPayloadCodec
         // A21's builder defaults this to two, not zero, and the reference session carries two here
         // on both ordinary START_MAP frames. Hell difficulty values follow upstream; native
         // A21 reads this byte, but active-hell behavior still needs real-client acceptance.
-        writer.Write(run.Hell?.Difficulty ?? (byte)2);
+        writer.Write((run.Layout.Mode as DungeonRunMode.Hell)?.Plan.Difficulty ?? (byte)2);
         writer.Write((byte)0); // unnamed byte the builder writes after it
         writer.Write(1); // room state value, the builder's default
         writer.Write(firstEntry ? (byte)1 : (byte)0);
@@ -303,7 +304,7 @@ internal static class DungeonEntryPayloadCodec
             writer.Write((byte)0);
         }
 
-        writer.Write(run.Hell is not null ? (byte)1 : (byte)0); // abyss fog
+        writer.Write(run.Layout.Mode is DungeonRunMode.Hell ? (byte)1 : (byte)0); // abyss fog
         writer.Write((byte)0); // no ridable object groups
         // The client binds its local dungeon actor and party HUD to this frozen entry slot. 0xFF is
         // only the solo/default sentinel; sending it to a party participant leaves the shared run

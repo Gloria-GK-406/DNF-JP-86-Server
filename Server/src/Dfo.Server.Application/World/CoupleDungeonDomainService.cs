@@ -31,6 +31,7 @@ internal sealed class CoupleDungeonDomainService(CoupleDungeonRule rule, IDungeo
         {
             var layout = await layouts.ResolveAsync(context.DungeonId, context.Facts, Random.Shared.Next(), token).ConfigureAwait(false);
             return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
-                : await visits.EnterGrantedPartyAsync(context.Participants, layout, context.Facts, receipt, token).ConfigureAwait(false);
+                : await visits.EnterGrantedPartyAsync(context.Participants,
+                    layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.Couple) }, context.Facts, receipt, token).ConfigureAwait(false);
         }, ct);
 }

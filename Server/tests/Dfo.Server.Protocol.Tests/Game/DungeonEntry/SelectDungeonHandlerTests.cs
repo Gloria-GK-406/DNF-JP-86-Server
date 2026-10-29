@@ -94,7 +94,7 @@ public sealed class SelectDungeonHandlerTests
             where TResult : notnull
         {
             Assert.Equal(14299, Assert.IsType<EntryRouteProbe>(command).Entry.MirrorQuestId);
-            var layout = Tutorial with { Mirror = new(8000, 31, 14299) };
+            var layout = Tutorial with { Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) };
             var run = AtStart with { Layout = layout };
             return ValueTask.FromResult((TResult)(object)DungeonEntryAttempt.Accepted(new DungeonPartyEntry(layout,
                 new Dictionary<CharacterId, DungeonRoomVisit> { [Identity.CharacterId] = new(run, true, [], [], 1) })));

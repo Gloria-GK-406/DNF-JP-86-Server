@@ -42,7 +42,7 @@ public sealed class MirrorEntryProtocolCommandFlowTests
         var run = TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
         if (validPair)
         {
-            Assert.NotNull(run); Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), run.Layout.Mirror);
+            Assert.NotNull(run); Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), Assert.IsType<DungeonRunMode.Mirror>(run.Layout.Mode).Plan);
             Assert.Equal((byte)60, run.Layout.FixedMonsterLevel);
             Assert.Equal(1, f.Scalar("SELECT entries FROM character_mirror_daily WHERE character_id=1"));
             Assert.Contains(f.Sender.Outbound.Frames, frame => frame[0] == 0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x0278

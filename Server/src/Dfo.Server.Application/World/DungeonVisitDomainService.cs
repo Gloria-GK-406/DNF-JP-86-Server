@@ -81,7 +81,7 @@ internal sealed class DungeonVisitDomainService(
     public ValueTask<DungeonEntryAttempt> TryEnterPreparedPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,
         DungeonLayout layout, DungeonEntryFacts facts, CancellationToken cancellationToken) =>
         admission.ExecuteAsync(new(layout.DungeonId, facts, 0, 0, participants),
-            new() { Mirror = layout.Mirror is not null, ConsumesFatigue = layout.ConsumesFatigue },
+            new() { Mirror = layout.Mode is DungeonRunMode.Mirror, ConsumesFatigue = layout.ConsumesFatigue },
             (receipt, ct) => EnterGrantedPartyAsync(participants, layout, facts, receipt, ct), cancellationToken);
 
     public ValueTask<DungeonEntryAttempt> EnterGrantedPartyAsync(IReadOnlyList<DungeonRunParticipant> participants,

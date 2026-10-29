@@ -43,7 +43,7 @@ internal sealed class TauKingdomDomainService(ITauKingdomRuleService rules,
             try { layout = await layouts.ResolveAsync(context.DungeonId, context.Facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
             if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-            layout = layout with { FixedMonsterLevel = character.Level, BasisLevel = character.Level, ConsumesFatigue = false };
+            layout = layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.TauKingdom), FixedMonsterLevel = character.Level, BasisLevel = character.Level, ConsumesFatigue = false };
             return await visits.EnterGrantedPartyAsync(context.Participants, layout, context.Facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }

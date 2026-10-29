@@ -178,7 +178,7 @@ internal sealed partial class GameCardCommandHandler(
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
 
         if (session is not null
-            && runs.Find(session.CharacterId) is { Layout.Despair: null } run)
+            && runs.Find(session.CharacterId) is { Layout.Mode: not DungeonRunMode.Despair } run)
         {
             logger.LogInformation(
                 "Score scroll state {ConnectionId} character={CharacterId}: "

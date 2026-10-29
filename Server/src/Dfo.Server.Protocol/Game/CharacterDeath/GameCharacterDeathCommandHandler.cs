@@ -93,7 +93,7 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
         // Original Direct mutation: no transaction or work unit is created for ordinary death.
         var occurredAt = clock.GetUtcNow();
         var committed=runs.TryMarkParticipantDead(session.CharacterId,expected.RunId,expected.RoomVersion);if(committed is null)return;
-        if (committed.Layout.Guardian is not null)
+        if (committed.Layout.Mode is DungeonRunMode.Guardian)
         {
             var scheduled = await workUnits.WriteAsync(execution, new("guardian-altar.character-death", [CaptureParticipant(session) with { Metadata = message.Metadata }]),
                 (_, ct) => guardian.ReportCharacterDeathAsync(session, committed.RunId, committed.RoomVersion, occurredAt, ct), token).ConfigureAwait(false);

@@ -124,7 +124,7 @@ public sealed class DungeonExitLifecycleTests
                 new(11007, DungeonEntryFacts.None, 0, 0, peer is null ? [new(f.Session.AccountId, f.Session.CharacterId, 0, true)] : [new(f.Session.AccountId, f.Session.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)]), default);
             Assert.NotNull(result.Entry); await tx.CommitAsync(default);
             var actual = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!;
-            Assert.NotNull(actual.Layout.Altar); run = actual.RunId;
+            Assert.IsType<DungeonRunMode.Altar>(actual.Layout.Mode); run = actual.RunId;
             f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Register(run, peer is null ? [f.Session] : [f.Session, peer]);
         });
         f.Sql("UPDATE character_stats SET carried_gold=0 WHERE character_id=1");

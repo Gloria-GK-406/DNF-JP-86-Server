@@ -13,7 +13,7 @@ public sealed class ManualHellEntryCodecTests
         [new(2, 10, new(461, 80, 5)), new(1, 11, new(61670, 85, 0)), new(3, 12, new(461, 80, 5))]);
     private static readonly DungeonLayout Layout = new(150, 0, 2, 1, new(0, 0), new(1, 0), 800, 42,
         new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(800), [new(1, 0)] = DungeonCellDefinition.Fixed(801) })
-        { EntryKind = DungeonEntryKind.ManualHell, Hell = Plan };
+        { Mode = new DungeonRunMode.Hell(Plan) };
     private static DungeonRunState In(MazeCell cell) => new(Layout, cell, cell == Plan.Cell ? Plan.MapId : 800,
         new HashSet<MazeCell> { cell }, DateTimeOffset.UnixEpoch,
         CurrentCellState: DungeonCellSeed.CompleteEmpty(cell, cell == Plan.Cell ? Plan.MapId : 800).Snapshot());

@@ -31,7 +31,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
     {
         var run = runs.Find(session.CharacterId);
         if (run?.RunId != runId || !sessions.IsInWorld(session)
-            || !onlyCaller && (run.Layout.Altar is null || !run.Participants.Any(p => p.CharacterId == session.CharacterId && p.IsLeader))) return;
+            || !onlyCaller && (run.Layout.Mode is not DungeonRunMode.Altar || !run.Participants.Any(p => p.CharacterId == session.CharacterId && p.IsLeader))) return;
         if (altars.Find(runId) is null) return;
         var cohort = AltarTransitionProjection.Participants(runs, sessions, registry, runId);
         if (!cohort.Contains(session)) return;

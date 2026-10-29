@@ -89,7 +89,7 @@ public sealed class HellDungeonEntryTests
         {
             var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71));
             Assert.NotNull(run);
-            Assert.Equal(DungeonEntryKind.ManualHell, run.EntryKind);
+            Assert.IsType<DungeonRunMode.Hell>(run.Layout.Mode);
         });
         Assert.Equal(10, await Count(f, new(71), 3330));
         Assert.Equal(1, (await Fatigue(f).BalanceOfAsync(new(71), default)).Used);
@@ -155,7 +155,7 @@ public sealed class HellDungeonEntryTests
             Assert.All(plan.Actors, x => Assert.InRange(x.Actor.Level, (byte)1, byte.MaxValue));
             Assert.Equal(plan.Actors, (await rules.PrepareAsync(declarations, layout, seed, default))!.Actors);
             var frozen = await structures.PrepareLayoutAsync(
-                layout with { EntryKind = DungeonEntryKind.ManualHell, Hell = plan }, default);
+                layout with { Mode = new DungeonRunMode.Hell(plan) }, default);
             Assert.Equal(plan.MapId, (await structures.SelectMapAsync(frozen, null, plan.Cell, default)).MapId);
         }
     }
@@ -274,8 +274,8 @@ public sealed class HellDungeonEntryTests
                 Assert.Single(result.Entry.Visits.Values.Select(x => x.Run.RunId).Distinct());
                 Assert.All(result.Entry.Visits.Values, x =>
                 {
-                    Assert.Equal(DungeonEntryKind.ManualHell, x.Run.EntryKind);
-                    Assert.Same(result.Entry.Layout.Hell, x.Run.Hell);
+                    Assert.IsType<DungeonRunMode.Hell>(x.Run.Layout.Mode);
+                    Assert.Same(result.Entry.Layout.Mode, x.Run.Layout.Mode);
                 });
                 Assert.Null(runs.Find(new CharacterId(71))); // publish only at commit
                 if (commit) await tx.CommitAsync(default);
@@ -385,10 +385,10 @@ public sealed class HellDungeonEntryTests
                 f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f), materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
             await using (var tx = f.Scope.Begin())
             {
-                var room = await visits.MoveAsync(new(71), start, start.Hell!.Cell, default);
+                var room = await visits.MoveAsync(new(71), start, ((DungeonRunMode.Hell)start.Layout.Mode).Plan.Cell, default);
                 Assert.NotNull(room);
                 Assert.Equal(900, room.Run.CurrentRoomMapId);
-                Assert.Same(start.Hell, room.Run.Hell);
+                Assert.Same(start.Layout.Mode, room.Run.Layout.Mode);
                 await tx.CommitAsync(default);
             }
             await using (var tx = f.Scope.Begin())
@@ -398,11 +398,11 @@ public sealed class HellDungeonEntryTests
             }
             await using (var tx = f.Scope.Begin())
             {
-                var room = await visits.MoveAsync(new(71), runs.Find(new CharacterId(71))!, start.Hell!.Cell, default);
+                var room = await visits.MoveAsync(new(71), runs.Find(new CharacterId(71))!, ((DungeonRunMode.Hell)start.Layout.Mode).Plan.Cell, default);
                 Assert.NotNull(room);
                 Assert.False(room.FirstEntry);
                 Assert.Empty(room.Actors);
-                Assert.Same(start.Hell, room.Run.Hell);
+                Assert.Same(start.Layout.Mode, room.Run.Layout.Mode);
                 await tx.CommitAsync(default);
             }
             Assert.Equal(20, await Count(f, new(71), 3330));
@@ -520,12 +520,11 @@ public sealed class HellDungeonEntryTests
             ? throw new InvalidDataException("invalid test maze") : ValueTask.FromResult<DungeonLayout?>(Layout);
         public ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken token)
         {
-            Assert.Equal(DungeonEntryKind.ManualHell, layout.EntryKind);
-            Assert.NotNull(layout.Hell);
+            Assert.IsType<DungeonRunMode.Hell>(layout.Mode);
             return failureBoundary == "final-layout" ? throw new InvalidDataException("invalid final hell layout")
                 : ValueTask.FromResult(layout);
         }
-        public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => ValueTask.FromResult(DungeonMapSelection.Selected(layout.Hell?.Cell == target ? layout.Hell.MapId : layout.Cells[target].MapCandidates[0]));
+        public ValueTask<DungeonMapSelection> SelectMapAsync(DungeonLayout layout, MazeCell? from, MazeCell target, CancellationToken token) => ValueTask.FromResult(DungeonMapSelection.Selected(layout.Mode is DungeonRunMode.Hell { Plan: var hell } && hell.Cell == target ? hell.MapId : layout.Cells[target].MapCandidates[0]));
     }
     private sealed class Selection : IDungeonSelectionRuleService
     {

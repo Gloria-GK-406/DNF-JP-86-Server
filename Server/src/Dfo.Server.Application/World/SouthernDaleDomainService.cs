@@ -46,7 +46,8 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
             try { layout = await layouts.ResolveAsync(context.DungeonId, context.Facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
             return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
-                : await visits.EnterGrantedPartyAsync(context.Participants, layout, context.Facts, receipt, token).ConfigureAwait(false);
+                : await visits.EnterGrantedPartyAsync(context.Participants,
+                    layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.SouthernDale) }, context.Facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 

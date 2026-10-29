@@ -42,7 +42,7 @@ internal sealed class QuestQueryDomainService(
     private async ValueTask<AcceptedQuestState?> MirrorAcceptedAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
         var run = runs?.Find(character);
-        if (run?.Layout.Mirror is not { } entry || mirror is null || mirrorRules is null
+        if (run?.Layout.Mode is not DungeonRunMode.Mirror { Plan: var entry } || mirror is null || mirrorRules is null
             || !run.Participants.Any(x => x.AccountId == account && x.CharacterId == character)) return null;
         var objective = await mirrorRules.ResolveAsync(run.Layout.DungeonId, entry.QuestId, ct).ConfigureAwait(false);
         if (objective is null) return null;

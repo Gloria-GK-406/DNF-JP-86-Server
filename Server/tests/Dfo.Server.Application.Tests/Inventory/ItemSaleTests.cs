@@ -36,7 +36,7 @@ public sealed class ItemSaleTests
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(11008, 0, 1, 1, cell, cell, 55611, 0,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) })
-            { Despair = tower ? new(1, new(2026, 10, 11)) : null };
+            { Mode = tower ? new DungeonRunMode.Despair(new(1, new(2026, 10, 11))) : DungeonRunMode.Ordinary };
         TestGameplay.Run(shop.Services, () =>
         {
             var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();

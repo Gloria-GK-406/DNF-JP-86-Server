@@ -153,7 +153,7 @@ public sealed class DungeonEntryCodecTests
     public void Despair_scene_receives_the_entered_floor_without_changing_other_dungeon_info_fields(int floor)
     {
         var ordinary = DungeonEntryPayloadCodec.EncodeDungeonInfo(Tutorial, difficulty: 0);
-        var tower = Tutorial with { Despair = new(floor, new DateOnly(2026, 10, 13)) };
+        var tower = Tutorial with { Mode = new DungeonRunMode.Despair(new(floor, new DateOnly(2026, 10, 13))) };
         var body = DungeonEntryPayloadCodec.EncodeDungeonInfo(tower, difficulty: 0);
         Assert.Equal(32, body.Length);
         Assert.Equal((ushort)floor, BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(12)));
@@ -165,7 +165,7 @@ public sealed class DungeonEntryCodecTests
     [Fact]
     public void Mirror_start_map_serializes_final_monster_level_without_overriding_APC_level()
     {
-        var layout = Tutorial with { BasisLevel = 86, FixedMonsterLevel = 86, Mirror = new(8000, 31, 14299) };
+        var layout = Tutorial with { BasisLevel = 86, FixedMonsterLevel = 86, Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) };
         var run = AtStart with { Layout = layout };
         DungeonRoomActor[] actors = [new(61670, 86, 0), new(461, 26, 5)];
         var body = DungeonEntryPayloadCodec.EncodeStartMap(

@@ -52,7 +52,7 @@ internal sealed class AltarDungeonDomainService(EndlessAltarDomainService endles
     IDomainEventSubscriber<DungeonParticipantLeft>
 {
     public bool Supports(int dungeonId) => dungeonId is 11006 or 11007;
-    private IAltarModeDomainService? Store(DungeonRunId runId) => runs.Find(runId)?.Layout.Altar?.Kind switch
+    private IAltarModeDomainService? Store(DungeonRunId runId) => (runs.Find(runId)?.Layout.Mode as DungeonRunMode.Altar)?.Plan.Kind switch
     {
         AltarDungeonKind.Endless => endless,
         AltarDungeonKind.Ultimate => ultimate,

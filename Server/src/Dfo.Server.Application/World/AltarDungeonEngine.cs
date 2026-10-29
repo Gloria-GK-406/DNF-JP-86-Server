@@ -65,7 +65,7 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
             if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
             if (!definition.Maps.Any(x => x.MapId == layout.StartRoomMapId && x.Rounds.Count > 0))
                 throw new InvalidDataException("Altar initial map is not backed by a round plan.");
-            layout = layout with { Altar = new(definition.Kind, period), ConsumesFatigue = false };
+            layout = layout with { Mode = new DungeonRunMode.Altar(new(definition.Kind, period)), ConsumesFatigue = false };
         }
         catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
         var frozenLayout = layout;

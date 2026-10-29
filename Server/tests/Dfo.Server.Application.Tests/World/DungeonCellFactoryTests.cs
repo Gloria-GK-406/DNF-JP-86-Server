@@ -17,7 +17,7 @@ public sealed class DungeonCellFactoryTests
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(77, 0, 1, 1, cell, cell, 60064, 123,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(60064) })
-        { Hell = new(1, cell, 60064, []) };
+        { Mode = new DungeonRunMode.Hell(new(1, cell, 60064, [])) };
         var factory = new DungeonCellFactory(new HellRoom(), new NoPlacement(), new RecordingLoot(),
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new FrozenHellRewards());
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 60064, 0,

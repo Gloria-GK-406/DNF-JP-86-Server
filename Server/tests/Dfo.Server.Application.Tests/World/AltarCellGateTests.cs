@@ -64,7 +64,7 @@ public sealed class AltarCellGateTests
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(11007, 0, 1, 1, cell, cell, 17030, 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(17030) })
-                { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 13)), ConsumesFatigue = false };
+                { Mode = new DungeonRunMode.Altar(new(AltarDungeonKind.Ultimate, new(2026, 10, 13))), ConsumesFatigue = false };
             var run = runs.PreparePartyEntry([new(new(1), new(2), 0, true)], layout, DungeonDifficulty.Normal,
                 new(cell, 17030, 1, [new(1, new(100, 70, 3), false, false, []), new(2, new(101, 70, 0), false, false, [])], [])
                     { MechanismBlocksClear = true }, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
