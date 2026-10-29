@@ -57,6 +57,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
         {
             services.AddSingleton<ISelectedSessionDomainService>(sessions);
             services.AddSingleton<IDungeonRunDomainService>(runs);
+            services.AddDungeonRunViews();
             services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
             services.AddSingleton(altars);
             services.AddSingleton<ICommandProjections>(projections);
@@ -96,6 +97,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
         await using var host = new TimerSourceHost(services =>
         {
             services.AddSingleton<IDungeonRunDomainService>(runs);
+            services.AddDungeonRunViews();
             services.AddSingleton<ISelectedSessionSnapshotQuery>(new EmptySessions());
             services.AddSingleton(trace);
             services.AddRuntimeEventSubscriber<DungeonRoomMechanismsChanged, RoomSubscriber>();

@@ -60,12 +60,12 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
     private readonly ICommandWorkUnits workUnits;
     private readonly IOnlineUserQueryDomainService onlineUsers;
 
-    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonRunParticipantDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly ICommandConnectionClosures closures;
     private readonly IGuardianAltarDomainService guardian;
     private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
-    public GameCharacterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    public GameCharacterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunParticipantDomainService runs,
         IDungeonRunProjectionDomainService registry, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units,
         IGameCommandOutbox outbox, ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameCharacterDeathCommandHandler> logger,

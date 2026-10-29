@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class LostLandDungeonDomainService(ILostLandRuleService rules,
     ICharacterFatigueDomainService fatigue, IUsageQuotaDomainService quotas, IDailyResetRuleService days,
     IDungeonAdmissionDomainService admission, IDungeonVisitDomainService visits,
-    IDungeonRunDomainService runs, TimeProvider clock) : ILostLandDungeonDomainService
+    IDungeonRunQueryDomainService runs, TimeProvider clock) : ILostLandDungeonDomainService
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
     public ValueTask<LostLandQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken cancellationToken) =>

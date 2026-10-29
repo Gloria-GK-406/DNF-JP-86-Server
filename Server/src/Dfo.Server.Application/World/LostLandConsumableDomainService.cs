@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class LostLandConsumableDomainService(ILostLandConsumableRuleService rules,
-    IDungeonRunDomainService runs, IDungeonVisitDomainService visits, IOpeningInventoryDomainService inventory,
+    IDungeonRunQueryDomainService runs, IDungeonVisitDomainService visits, IOpeningInventoryDomainService inventory,
     ICharacterItemUseDomainService itemUse, TimeProvider clock) : ILostLandConsumableDomainService
 {
     public ValueTask<bool> SupportsAsync(int itemId, CancellationToken token) => rules.SupportsAsync(itemId, token);

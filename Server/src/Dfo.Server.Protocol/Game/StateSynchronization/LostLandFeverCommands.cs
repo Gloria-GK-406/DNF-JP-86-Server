@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.StateSynchronization;
 internal sealed record CaptureLostLandFeverExpiriesCommand : ICommand<IReadOnlyList<LostLandFeverExpiry>>;
 internal sealed record ExpireLostLandFeverCommand(LostLandFeverExpiry Expiry) : ICommand<bool>;
 
-internal sealed class LostLandFeverCommandHandler(IDungeonRunDomainService runs,
+internal sealed class LostLandFeverCommandHandler(IDungeonRunTimerDomainService runs,
     IDungeonRunProjectionDomainService registry, ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService users, ICommandWorkUnits units, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<LostLandFeverCommandHandler> logger)

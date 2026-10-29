@@ -54,6 +54,7 @@ public sealed class SaoTowerDomainTests
     {
         s.AddSingleton<ISaoTowerContentSource>(new Source());
         s.AddSingleton<IDungeonRunDomainService>(runs);
+        s.AddDungeonRunViews();
         s.AddSingleton<IItemDeliveryDomainService>(delivery);
         s.AddSingleton<IEventManagementDomainService>(new Activities(enabled));
     });

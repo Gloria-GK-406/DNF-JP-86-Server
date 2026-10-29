@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class DungeonPremiumBuffDomainService(IDungeonRunDomainService runs,
+internal sealed class DungeonPremiumBuffDomainService(IDungeonRunParticipantDomainService runs,
     IPremiumServiceUsageDomainService usage) : IDungeonPremiumBuffDomainService
 {
     public async ValueTask<bool> TryConsumeAsync(AccountId accountId, CharacterId characterId, DungeonRunId runId,

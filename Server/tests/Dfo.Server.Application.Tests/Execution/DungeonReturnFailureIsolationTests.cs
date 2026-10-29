@@ -48,6 +48,7 @@ public sealed class DungeonReturnFailureIsolationTests
             services.AddSingleton(online);
             services.AddSingleton<ISelectedSessionDomainService>(sessions);
             services.AddSingleton<IDungeonRunDomainService>(runs);
+            services.AddDungeonRunViews();
             services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
             services.AddSingleton<ISelectedCharacterCurrentViewDomainService>(views);
             services.AddSingleton<IWeaknessDomainService>(new ReturnWeakness());

@@ -20,7 +20,7 @@ namespace Dfo.Server.Protocol.Game.Altar;
 internal sealed record AltarStateChanged(AltarActionResult Action, DateTimeOffset At) : INotification<AltarStateChanged>;
 
 internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars,
-    IDungeonRunDomainService runs, ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService slots)
+    IDungeonRunQueryDomainService runs, ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService slots)
     : INotificationHandler<AltarStateChanged>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, AltarStateChanged notification, CancellationToken ct)

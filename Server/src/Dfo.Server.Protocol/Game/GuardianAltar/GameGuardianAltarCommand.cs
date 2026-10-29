@@ -26,7 +26,7 @@ internal sealed record GuardianAltarMutation(GuardianAltarProgress? Progress = n
     ItemDeliveryReceipt? Delivery = null);
 
 internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs, ICommandWorkUnits units, IGameCommandOutbox outbox,
+    IDungeonRunQueryDomainService runs, ICommandWorkUnits units, IGameCommandOutbox outbox,
     IInventorySlotProjectionDomainService slots, ICharacterDomainService characters, IGuardianAltarSchedulerWakeSignal wake, TimeProvider clock)
     : ICommandHandler<GameGuardianAltarCommand, bool>
 {

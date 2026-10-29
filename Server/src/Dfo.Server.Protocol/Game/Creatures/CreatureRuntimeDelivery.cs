@@ -22,7 +22,7 @@ namespace Dfo.Server.Protocol.Game.Creatures;
 
 public sealed record AdvanceCreatureTickCommand : ICommand<bool>;
 public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainService creatures,
-    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns,
+    ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs, ITownAreaDomainService towns,
     IDungeonParticipationDomainService participation, IBossTowerDomainService bossTowers,
     IIllusionTowerDomainService towers, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
     IInventorySlotMappingRuleService slotMappings, ICommandWorkUnits units, TimeProvider clock,
@@ -173,7 +173,7 @@ internal static class CreatureVisibleRecipients
     /// ordinary run or town area. A tower audience comes with the seat check every delivery repeats.
     /// </summary>
     internal static (IEnumerable<SelectedSessionIdentity> Receivers, Func<SelectedSessionIdentity, bool>? Seated) Resolve(
-        SelectedSessionIdentity owner, ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+        SelectedSessionIdentity owner, ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         ITownAreaDomainService towns, IDungeonParticipationDomainService participation,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService towers)
     {

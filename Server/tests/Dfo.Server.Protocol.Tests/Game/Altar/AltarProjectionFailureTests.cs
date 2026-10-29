@@ -95,6 +95,7 @@ public sealed class AltarProjectionFailureTests
                 services.AddSingleton<ISelectedSessionDomainService>(directory);
                 services.AddSingleton<IOnlineUserQueryDomainService>(users);
                 services.AddSingleton<IDungeonRunDomainService>(runs);
+                services.AddDungeonRunViews();
                 services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
                 services.AddSingleton(altars);
                 services.AddSingleton<TimeProvider>(TimeProvider.System);

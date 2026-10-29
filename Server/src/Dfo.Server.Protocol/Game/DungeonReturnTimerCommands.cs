@@ -16,7 +16,7 @@ public sealed record ReturnDungeonRunCommand(DungeonRunId RunId, bool Cleared) :
 public sealed record ProjectDungeonReturnCommand(SelectedSessionIdentity Session, DungeonRunId RunId, bool Cleared) : ICommand<bool>;
 internal sealed partial class TowerReturnCommandHandler
 {
-    private readonly IDungeonRunDomainService wipeRuns;
+    private readonly IDungeonRunTimerDomainService wipeRuns;
     private readonly IDungeonRunProjectionDomainService wipeRegistry;
     private readonly IDungeonCardPresentationControl wipeCards;
     private readonly IAltarDungeonDomainService wipeAltars;

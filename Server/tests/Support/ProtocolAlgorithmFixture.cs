@@ -120,7 +120,10 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService)) return new Dfo.Server.Protocol.Game.Dungeons.DungeonRunDeliveryRegistry();
         if (type == typeof(ISelectedCharacterCurrentViewDomainService)) return new NoCurrentView();
         if (type == typeof(Dfo.Server.Abstractions.World.ITownMovementDomainService)) return new EveryTown();
-        if (EmptyWorldContracts.Contains(type)) return DispatchProxy.Create(type, typeof(EmptyWorld));
+        // Every narrow dungeon run service is a view of the same empty run registry.
+        if (EmptyWorldContracts.Contains(type) || type.IsInterface
+            && typeof(Dfo.Server.Abstractions.World.IDungeonRunQueryDomainService).IsAssignableFrom(type))
+            return DispatchProxy.Create(type, typeof(EmptyWorld));
         if (type == typeof(TimeProvider)) return TimeProvider.System;
         // A registered-collection dependency (hooks keyed by kind and the like) defaults to none registered.
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)) return Array.CreateInstance(type.GetGenericArguments()[0], 0);

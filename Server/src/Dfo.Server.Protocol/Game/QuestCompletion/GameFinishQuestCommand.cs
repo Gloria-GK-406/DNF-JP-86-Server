@@ -54,7 +54,7 @@ public sealed class GameFinishQuestCommandHandler(
     TimeProvider clock,
     ILogger<GameFinishQuestCommandHandler> logger,
     ITownAreaDomainService townAreas,
-    IDungeonRunDomainService dungeonRuns,
+    IDungeonRunQueryDomainService dungeonRuns,
     IWeaknessDomainService weakness,
     IDungeonRunProjectionDomainService runGenerations,
     Dfo.Server.Abstractions.Settlement.IQuestCompletionSettlementDomainService completion,

@@ -13,7 +13,7 @@ namespace Dfo.Server.Protocol.Game.Tournament;
 public sealed record SweepTournamentRewardsCommand : ICommand<bool>;
 public sealed record SweepTournamentCandidateCommand(TournamentDungeonState Candidate) : ICommand<bool>;
 public sealed class SweepTournamentRewardsCommandHandler(ITournamentDungeonDomainService tournaments,
-    ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+    ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
     Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
     Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService slots,
     ICommandWorkUnits units, IGameCommandOutbox outbox, TimeProvider clock, ILogger<SweepTournamentRewardsCommandHandler> logger)

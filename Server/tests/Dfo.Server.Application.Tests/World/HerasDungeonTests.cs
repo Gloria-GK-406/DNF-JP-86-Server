@@ -60,7 +60,7 @@ public sealed class HerasDungeonTests
             Assert.All(result.Entry.Visits.Values.SelectMany(v => v.Actors), a => Assert.Equal((byte)70, a.Actor.Level));
             TestGameplay.Run(f.Services, () =>
             {
-                runs.End(new(71));
+                runs.End(new(71), runs.Find(new Dfo.Server.Data.Characters.CharacterId(71))!.RunId);
             });
         }
         Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await DungeonEntryRouteDriver.EnterAsync(f.Services, context)).Failure);

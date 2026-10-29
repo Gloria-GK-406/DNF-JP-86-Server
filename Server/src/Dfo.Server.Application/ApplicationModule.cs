@@ -462,6 +462,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IWeaknessRuleService>(_ => new WeaknessRuleService(configuration));
         services.TryAddSingleton<IWeaknessDomainService, WeaknessDomainService>();
         services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+        services.AddDungeonRunViews();
         services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
 
         // The compensation seam and its first-phase implementation, which never compensates. It is

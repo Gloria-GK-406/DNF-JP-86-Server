@@ -1332,6 +1332,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             s.AddSingleton<IGoldSilverHornContentSource, SyntheticGoldSilverHornContent>();
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
             s.AddSingleton<IDungeonRunDomainService>(p => TestParties.Runs(p.GetRequiredService<IDomainTransactionAccessor>(), p.GetService<IPartyService>()));
+            s.AddDungeonRunViews();
             configure?.Invoke(s);
         }, useArchive: useArchive);
         f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");

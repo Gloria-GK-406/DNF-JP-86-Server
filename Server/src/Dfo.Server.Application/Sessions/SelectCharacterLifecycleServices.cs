@@ -38,7 +38,7 @@ internal sealed class SelectedSessionCleanupService(
     IOnlineCharacterRuntimeDomainService runtime,
     IChannelEntryDomainService channels,
     IPartyService parties,
-    IDungeonRunDomainService dungeonRuns,
+    IDungeonRunDepartureDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
     ICreatureRuntimeDomainService? creatures = null,
     IIllusionTowerDomainService? illusionTower = null,

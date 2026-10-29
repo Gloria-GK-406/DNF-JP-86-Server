@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowerDomainStore store,
     IEventManagementDomainService activities, IDungeonAdmissionDomainService admission,
-    IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
+    IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits, IDungeonRunCombatDomainService runs,
     ICharacterDomainService characters, IItemDeliveryDomainService delivery, IEventService events,
     IDomainTransactionAccessor transactions, TimeProvider clock) : ISaoTowerDomainService
 {

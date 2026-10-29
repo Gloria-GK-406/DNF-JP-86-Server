@@ -6,7 +6,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class SealedTreasureDomainService(ISealedTreasureRuleService rules,
     IDungeonAdmissionDomainService admission, IDungeonStructureRuleService layouts,
-    IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
+    IDungeonVisitDomainService visits, IDungeonRunQueryDomainService runs,
     IEventManagementDomainService activities, TimeProvider clock) : ISealedTreasureDomainService
 {
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);

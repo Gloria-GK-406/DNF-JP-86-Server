@@ -75,7 +75,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
     private readonly ICommandConnectionClosures entryClosures;
     private readonly IDungeonVisitDomainService visits;
-    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonRunEntryDomainService runs;
     private readonly IDungeonEntryIntentDomainService entryIntents;
     private readonly ICharacterQuestLogDomainService questLogs;
     private readonly ICharacterFatigueDomainService fatigue;
@@ -91,7 +91,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         IOnlineUserQueryDomainService onlineUsers, ILogger<GameSelectDungeonCommandHandler> logger,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers, IMarriageHousingQueryDomainService housing, TimeProvider clock,
         IDungeonVisitDomainService visits,
-        IDungeonRunDomainService runs,
+        IDungeonRunEntryDomainService runs,
         IDungeonEntryIntentDomainService entryIntents,
         ICharacterQuestLogDomainService questLogs,
         ICharacterFatigueDomainService fatigue,

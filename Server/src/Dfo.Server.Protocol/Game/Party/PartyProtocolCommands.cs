@@ -121,7 +121,7 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
 internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties, IPartyMemberStatusDomainService memberStatus,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunDomainService runs, ILogger<GameRequestPeerCommandHandler> logger)
+    IDungeonRunQueryDomainService runs, ILogger<GameRequestPeerCommandHandler> logger)
     :
       ICommandHandler<GameRequestPeerCommand, bool>
 {
@@ -189,7 +189,7 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
 internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunDomainService runs, ILogger<GameResponsePeerCommandHandler> logger)
+    IDungeonRunQueryDomainService runs, ILogger<GameResponsePeerCommandHandler> logger)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -256,7 +256,7 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
 /// </remarks>
 internal static class PartyRunAdmission
 {
-    public static PartyOperationResult? Refusal(IDungeonRunDomainService runs,
+    public static PartyOperationResult? Refusal(IDungeonRunQueryDomainService runs,
         PartyCharacterSnapshot first, PartyCharacterSnapshot second) =>
         runs.Find(first.CharacterId) is not null || runs.Find(second.CharacterId) is not null
             ? PartyOperationResult.Reject(PartyFailureReason.NotStandingInTown)

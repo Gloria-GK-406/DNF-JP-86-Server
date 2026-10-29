@@ -34,7 +34,7 @@ public sealed record GameAltarDifficultyCommand(NetworkDispatchContext Dispatch,
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
+internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars, IDungeonRunQueryDomainService runs,
     ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry,
     IMonsterDeathDomainService deaths, IOnlineUserQueryDomainService onlineUsers,
     ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandProjections projections,

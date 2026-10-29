@@ -13,7 +13,7 @@ using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CharacterDeath;
 internal sealed class GameUseRevivalCoinCommandHandler(ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService onlineUsers, IDungeonRunDomainService runs, IDungeonRunProjectionDomainService registry,
+    IOnlineUserQueryDomainService onlineUsers, IDungeonRunQueryDomainService runs, IDungeonRunProjectionDomainService registry,
     IDungeonRevivalDomainService revival, ICommandWorkUnits units, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<GameUseRevivalCoinCommandHandler> logger, IBossTowerDomainService bossTowers,
     IIllusionTowerDomainService illusionTowers, IDungeonParticipationDomainService participation)

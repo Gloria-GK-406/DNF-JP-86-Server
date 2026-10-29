@@ -76,7 +76,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IPartyService parties;
     private const bool projectWeakness = true;
 
-    private readonly IDungeonRunDomainService runs;
+    private readonly IDungeonRunDepartureDomainService runs;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly IDungeonCardPresentationControl cardPresentation;
     private readonly IDungeonEntryIntentDomainService entryIntents;
@@ -86,7 +86,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IGuardianAltarDomainService guardian;
     public GamePartyTransitionCommandHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
-        IDungeonRunDomainService runs, IDungeonRunProjectionDomainService registry, IPartyService parties,
+        IDungeonRunDepartureDomainService runs, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState,
         ICharacterStateProjectionDomainService currentState, ICharacterDomainService characters,
         ITownMovementDomainService towns, IMarriageHousingQueryDomainService housing,

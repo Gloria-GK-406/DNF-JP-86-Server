@@ -10,7 +10,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainService sessions,
-    IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
+    IDungeonRunQueryDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IBusinessInventorySlotDomainService slots, ICharacterItemUseDomainService itemUse,
     ITeleportConsumableRuleService rules, IItemUseJudgementService judgement,
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService

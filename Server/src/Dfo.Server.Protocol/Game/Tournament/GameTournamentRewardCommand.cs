@@ -12,7 +12,7 @@ public sealed record GameTournamentRewardCommand(NetworkDispatchContext Dispatch
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-public sealed class GameTournamentRewardCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+public sealed class GameTournamentRewardCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
     ITournamentDungeonDomainService tournaments, ICommandWorkUnits units, IGameCommandOutbox outbox,
     IInventorySlotProjectionDomainService slots, TimeProvider clock) : ICommandHandler<GameTournamentRewardCommand, bool>
 {

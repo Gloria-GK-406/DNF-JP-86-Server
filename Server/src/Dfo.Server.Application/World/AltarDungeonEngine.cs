@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.World;
 /// <summary>Shared operations only; each concrete domain owns its own state store.</summary>
 internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     IDungeonAdmissionDomainService admission, IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits,
-    IDungeonRunDomainService runs, IUsageQuotaDomainService quotas, ICharacterDomainService characters,
+    IDungeonRunCombatDomainService runs, IUsageQuotaDomainService quotas, ICharacterDomainService characters,
     ISelectedSessionDomainService sessions, IMonsterDropDomainService loot, IItemDeliveryDomainService delivery,
     IDailyResetRuleService daily, IEventService events, IDomainTransactionAccessor transactions, TimeProvider clock,
     ICharacterGameplayFactDomainService gameplay)

@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -225,6 +226,7 @@ public sealed class LeaveDungeonTests
         services.AddCommandDispatching();
         var runs = new OneRun();
         services.AddSingleton<IDungeonRunDomainService>(runs);
+        services.AddDungeonRunViews();
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
         services.AddFixtureCommand<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(
             FixtureUnitKind.Direct);
@@ -730,7 +732,7 @@ public sealed class LeaveDungeonTests
 
     /// <summary>A run that records whether it was ended, and refuses everything else.</summary>
     private sealed class OneRun(bool hasRun = true, bool isAltar = false, bool story = false,
-        Func<DungeonLayout, DungeonLayout>? layoutChange = null) : IDungeonRunDomainService
+        Func<DungeonLayout, DungeonLayout>? layoutChange = null) : DungeonRunServiceStub
     {
         private static readonly DungeonLayout Layout = new(
             144, 0, 1, 1,
@@ -744,14 +746,7 @@ public sealed class LeaveDungeonTests
         public DungeonRunId RunId { get; private set; } = DungeonRunId.New();
         public void Replace() => RunId = DungeonRunId.New();
 
-        /// <summary>Not exercised here: nothing in these tests kills anything.</summary>
-        public IReadOnlyList<MonsterDrop> AllocateMonsterDrops(
-            CharacterId characterId,
-            int declaredDropCount,
-            ushort actorSequence,
-            IReadOnlyList<RolledDrop> rolled) => [];
-
-        public bool End(CharacterId characterId)
+        public override bool End(CharacterId characterId)
         {
             BeforeEnd?.Invoke();
             this.Ended = true;
@@ -759,13 +754,13 @@ public sealed class LeaveDungeonTests
         }
 
         /// <summary>The fixture's run has the one identity as its only member.</summary>
-        public ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId) =>
+        public override ValueTask<IReadOnlyList<CharacterId>> EndRunAsync(DungeonRunId runId) =>
             ValueTask.FromResult<IReadOnlyList<CharacterId>>(
                 this.Find(Identity.CharacterId)?.RunId == runId && this.End(Identity.CharacterId)
                     ? [Identity.CharacterId]
                     : []);
 
-        public DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
+        public override DungeonRunState? Find(CharacterId characterId) => hasRun && !this.Ended
             ? new DungeonRunState(
                 layoutChange is not null ? layoutChange(Layout)
                     : isAltar ? Layout with { Mode = new DungeonRunMode.Altar(new(AltarDungeonKind.Ultimate, new(2026, 10, 13))) }
@@ -783,29 +778,22 @@ public sealed class LeaveDungeonTests
         public DungeonRunState Begin(CharacterId characterId, DungeonLayout layout, DungeonDifficulty difficulty) =>
             throw new NotSupportedException("This fixture only ends.");
 
-        public DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
+        public override DungeonRunState? TryMove(CharacterId characterId, MazeCell target) =>
             throw new NotSupportedException("This fixture only ends.");
 
-        public DungeonRunState? TryReportActorDead(CharacterId characterId, ushort actorSequence) =>
+        public override DungeonRunState? TrySettle(CharacterId characterId) =>
             throw new NotSupportedException("This fixture only ends.");
 
-        public DungeonRunState? TrySettle(CharacterId characterId) =>
-            throw new NotSupportedException("This fixture only ends.");
-
-        public DungeonRunState? TryTakeGroundDrop(CharacterId characterId, ushort groundDropNumber) =>
-            throw new NotSupportedException("This fixture only ends.");
-
-        public DungeonRunState? FixClearRewardCards(
+        public override DungeonRunState? FixClearRewardCards(
             CharacterId characterId,
             ClearRewardCardFace free,
             ClearRewardCardFace paid,
             int? paidFlipCost) =>
             throw new NotSupportedException("This fixture only ends.");
 
-        public ClearRewardCardSlot? TryClaimClearRewardCard(
+        public override ClearRewardCardSlot? TryClaimClearRewardCard(
             CharacterId characterId, ClearRewardCardKind kind, int index) =>
-            throw new NotSupportedException("This fixture only ends.");
-    }
+            throw new NotSupportedException("This fixture only ends.");}
 
     private sealed class OneSession(SelectedSessionIdentity identity) : ISelectedSessionDomainService
     {

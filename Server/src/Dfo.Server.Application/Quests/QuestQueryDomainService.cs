@@ -9,9 +9,8 @@ namespace Dfo.Server.Application.Quests;
 
 internal sealed class QuestQueryDomainService(
     ICharacterQuestLogDomainService logs, IQuestFactsDomainService facts, IQuestStateRuleService state,
-    IQuestAvailabilityRuleService availability, ICharacterTable owners,
-    IMirrorAradQuestDomainStore? mirror = null,
-    IDungeonRunDomainService? runs = null, IMirrorAradQuestRuleService? mirrorRules = null) : IQuestQueryDomainService
+    IQuestAvailabilityRuleService availability, ICharacterTable owners, IDungeonRunQueryDomainService runs,
+    IMirrorAradQuestDomainStore? mirror = null, IMirrorAradQuestRuleService? mirrorRules = null) : IQuestQueryDomainService
 {
     private async ValueTask AuthorizeAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
@@ -41,7 +40,7 @@ internal sealed class QuestQueryDomainService(
 
     private async ValueTask<AcceptedQuestState?> MirrorAcceptedAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
-        var run = runs?.Find(character);
+        var run = runs.Find(character);
         if (run?.Layout.Mode is not DungeonRunMode.Mirror { Plan: var entry } || mirror is null || mirrorRules is null
             || !run.Participants.Any(x => x.AccountId == account && x.CharacterId == character)) return null;
         var objective = await mirrorRules.ResolveAsync(run.Layout.DungeonId, entry.QuestId, ct).ConfigureAwait(false);

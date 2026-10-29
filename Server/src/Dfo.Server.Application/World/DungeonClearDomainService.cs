@@ -8,7 +8,7 @@ namespace Dfo.Server.Application.World;
 /// Turns whichever authoritative runtime fact just changed into the one shared clear transition.
 /// </summary>
 public sealed class DungeonClearDomainService(
-    IDungeonRunDomainService runs,
+    IDungeonRunSettlementDomainService runs,
     IMonsterKillDomainService rooms) : IDungeonClearDomainService
 {
     public async ValueTask<DungeonClearChange?> TryOpenClearAsync(

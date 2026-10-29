@@ -7,7 +7,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterVisibleSessionDomainService(ISelectedSessionDomainService sessions,
-    ITownAreaDomainService towns, IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunDomainService runs, IIllusionTowerDomainService? towers = null,
+    ITownAreaDomainService towns, IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunQueryDomainService runs, IIllusionTowerDomainService? towers = null,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null)
     : ICharacterVisibleSessionDomainService
 {

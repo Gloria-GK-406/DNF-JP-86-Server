@@ -18,7 +18,7 @@ internal sealed class EquipmentRepairDomainService(
     IEquipmentDomainService equipments,
     IEquipmentRepairRuleService rules, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService usage, IMaterialConsumptionDomainService materials,
-    IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService runtime, TimeProvider clock) : IEquipmentRepairDomainService
+    IDungeonRunQueryDomainService runs, IOnlineCharacterRuntimeDomainService runtime, TimeProvider clock) : IEquipmentRepairDomainService
 {
     public async ValueTask<EquipmentRepairResult> RepairWithCouponAsync(SelectedSessionIdentity session,
         BusinessSlot targetSlot, BusinessSlot couponSlot, CancellationToken ct)

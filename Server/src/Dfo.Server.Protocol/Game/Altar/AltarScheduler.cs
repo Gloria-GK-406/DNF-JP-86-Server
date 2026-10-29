@@ -31,7 +31,7 @@ public sealed record AltarNextDeadline(DateTimeOffset? At)
 {
     public IReadOnlyList<AltarDeadline> Due { get; init; } = [];
 }
-public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, IDungeonRunDomainService runs,
+public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, IDungeonRunQueryDomainService runs,
     Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions,
     Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService registry,
     Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,

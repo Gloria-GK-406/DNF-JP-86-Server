@@ -91,7 +91,7 @@ public sealed class LostLandDropTests
             current = runs.Find(new Dfo.Server.Data.Characters.CharacterId(71))!;
             Assert.NotNull(runs.TryMove(new(71),id,current.RoomVersion,new(0,0),seed));
             Assert.Null(runs.TryClaimActorDeath(new(71),1));
-            runs.End(new(71));
+            if (runs.Find(new Dfo.Server.Data.Characters.CharacterId(71)) is { } run71) runs.End(new(71), run71.RunId);
             runs.PreparePartyEntry(context.Participants,layout,0,seed,DungeonRunId.New(),context.StartedAt);
             Assert.Contains(Death(1).AddedGroundItems,item => item.ItemId==10092849);
         });
@@ -134,7 +134,7 @@ public sealed class LostLandDropTests
         }
         TestGameplay.Run(fixture.Services,() =>
         {
-            runs.End(fixture.Session.CharacterId);
+            if (runs.Find(fixture.Session.CharacterId) is { } current) runs.End(fixture.Session.CharacterId, current.RunId);
             fixture.Services.GetRequiredService<ICharacterContainerDomainService>().Clear(fixture.Session.CharacterId);
         });
         fixture.Select(1);

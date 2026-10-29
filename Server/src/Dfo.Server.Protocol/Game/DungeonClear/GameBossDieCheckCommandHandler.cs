@@ -10,7 +10,7 @@ using Dfo.Server.Application.Commands;
 namespace Dfo.Server.Protocol.Game.DungeonClear;
 internal sealed class GameBossDieCheckCommandHandler(
     ISelectedSessionDomainService selectedSessions,
-    IDungeonRunDomainService runs,
+    IDungeonRunQueryDomainService runs,
     ILogger<GameBossDieCheckCommandHandler> logger) : ICommandHandler<GameBossDieCheckCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameBossDieCheckCommand command, CancellationToken ct)

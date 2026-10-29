@@ -22,7 +22,7 @@ internal sealed record GameRenameCreatureCommand(NetworkDispatchContext Dispatch
 }
 internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings, ICreatureNamingDomainService naming, ICommandWorkUnits units,
-    IGameCommandOutbox outbox, IDungeonRunDomainService runs, ITownAreaDomainService towns,
+    IGameCommandOutbox outbox, IDungeonRunQueryDomainService runs, ITownAreaDomainService towns,
     IDungeonParticipationDomainService participation, Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTowers,
     IIllusionTowerDomainService towers, ICommandConnectionClosures connections, Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
     ILogger<GameRenameCreatureCommandHandler> logger, TimeProvider clock) : ICommandHandler<GameRenameCreatureCommand, bool>

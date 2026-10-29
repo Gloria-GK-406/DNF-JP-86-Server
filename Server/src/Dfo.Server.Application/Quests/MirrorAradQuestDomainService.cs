@@ -14,7 +14,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Quests;
 
 internal sealed class MirrorAradQuestDomainService(IMirrorAradQuestDomainStore store,
-    IMirrorAradQuestRuleService rules, IDungeonRunDomainService runs,
+    IMirrorAradQuestRuleService rules, IDungeonRunQueryDomainService runs,
     ICharacterQuestLogDomainService logs, ICharacterDomainService characters,
     IInventoryEffectPreflightDomainService preview,
     TimeProvider clock, IEventService events, IUsageQuotaDomainService quotas, IDailyResetRuleService reset) : IMirrorAradQuestDomainService,

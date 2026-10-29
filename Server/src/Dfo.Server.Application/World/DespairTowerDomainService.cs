@@ -19,7 +19,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
     IDespairTowerDomainStore progress, IDungeonAdmissionDomainService admission,
     IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits,
-    IDungeonRunDomainService runs, IUsageQuotaDomainService quotas, IEventService events,
+    IDungeonRunQueryDomainService runs, IUsageQuotaDomainService quotas, IEventService events,
     IDailyResetRuleService daily, TimeProvider clock, IDomainTransactionAccessor transactions,
     ICharacterDomainService characters, IItemDeliveryDomainService delivery,
     IQuestProgressDomainService quests) : IDespairTowerDomainService

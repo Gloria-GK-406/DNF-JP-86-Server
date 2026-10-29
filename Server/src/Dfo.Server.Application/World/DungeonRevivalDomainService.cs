@@ -7,7 +7,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService sessions,
-    ICharacterContainerDomainService containers, IDungeonRunDomainService runs,
+    ICharacterContainerDomainService containers, IDungeonRunParticipantDomainService runs,
     ITournamentDungeonDomainService tournaments, IAltarDungeonDomainService altars,
     Dfo.Server.Abstractions.Quests.IQuestProgressDomainService? quests = null) : IDungeonRevivalDomainService
 {

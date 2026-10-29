@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules, IGuardianAltarProgressDomainStore progress,
     GuardianAltarRuntimeStore state, ISelectedSessionDomainService sessions, ICharacterDomainService characters,
-    IDungeonAdmissionDomainService admission, IDungeonVisitDomainService visits, IDungeonRunDomainService runs,
+    IDungeonAdmissionDomainService admission, IDungeonVisitDomainService visits, IDungeonRunCombatDomainService runs,
     IDungeonEntryIntentDomainService intents, IItemDeliveryDomainService delivery, IDailyResetRuleService daily,
     IDomainTransactionAccessor transactions, TimeProvider clock, IEventManagementDomainService events, IPartyService parties,
     IDungeonParticipationDomainService participation, IOnlineCharacterRuntimeDomainService onlineCharacters, IExpertStoreDomainService stores) : IGuardianAltarDomainService,
@@ -296,7 +296,7 @@ internal sealed class GuardianAltarDomainService(IGuardianAltarRuleService rules
         _ = BeginFailure(current, GuardianAltarEndReason.CharacterDied, occurredAt);
         return ValueTask.FromResult(true);
     }
-    private sealed class DeathCommit(IDungeonRunDomainService runs, DungeonActorDeathClaim claim) : ITransactionParticipant
+    private sealed class DeathCommit(IDungeonRunCombatDomainService runs, DungeonActorDeathClaim claim) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
         public ValueTask PrepareAsync(CancellationToken ct)

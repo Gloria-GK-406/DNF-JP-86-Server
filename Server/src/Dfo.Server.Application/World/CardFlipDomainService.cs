@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class CardFlipDomainService(IDungeonRunDomainService runs, ICardRewardDomainService cards,
+internal sealed class CardFlipDomainService(IDungeonRunCardDomainService runs, ICardRewardDomainService cards,
     ICharacterDomainService characters, IItemDeliveryDomainService itemDelivery,
     ICardFlipCostDomainService flipCosts) : ICardFlipDomainService
 {
