@@ -55,6 +55,8 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
         return notification.Family switch
         {
             UsageQuotaFamily.GiantDragonCrystalExchange => [],
+            UsageQuotaFamily.LostLand => [new DungeonRemainingEntriesMessage(4000, checked((byte)Math.Min(byte.MaxValue,
+                (snapshot.LostLand ?? throw new InvalidDataException("Missing LostLand quota snapshot.")).Remaining)))],
             UsageQuotaFamily.ReviveCoin => [new DailyReviveCoinStateMessage(snapshot.ReviveCoinClaimed
                 ?? throw new InvalidDataException("Missing revive coin quota snapshot."))],
             UsageQuotaFamily.GoldSilverHorn => [new GoldSilverHornQuotaMessage((snapshot.GoldSilverHorn

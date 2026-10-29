@@ -52,6 +52,14 @@ CurrentImplementation / ClientStatic / 70Reference：入口4／10、0392–039A�
 | `0x00` NOTI | `0x0360` | GuardianAltar notification | 自动编码验证 | [0x0360](game/server-to-client/NOTI-0x0360.md) |
 | `0x00` NOTI | `0x0361` | GuardianAltar notification | 自动编码验证 | [0x0361](game/server-to-client/NOTI-0x0361.md) |
 | `0x00` NOTI | `0x0362` | GuardianAltar notification | 自动编码验证 | [0x0362](game/server-to-client/NOTI-0x0362.md) |
+## 遗忘之地退出与入口静态取证
+
+| Command 族 | Type | 当前编码实现 | 证明边界 | 协议记录 |
+|---|---|---|---|---|
+| `0x00` NOTI | `0x025C` | `DungeonClearTimeLimitMessage` | 首次加载发送策略1200/原始1200；原始10分钟及60秒自动结束已验，当前20分钟待验 | [0x025C](game/server-to-client/NOTI-0x025C.md) |
+| `0x00` NOTI | `0x0264` | `DungeonFeverGaugeMessage` | 1字节绝对进度，100触发原生热血；ClientStatic及本仓自动测试，待实机 | [0x0264](game/server-to-client/NOTI-0x0264.md) |
+
+ClientStatic / Confirmed：[CMD002A](game/client-to-server/0x002A.md#遗忘之地专用模块的退出构包)有来自遗忘之地专用更新模块的空体构包点，受本地奖励界面状态及一次发送标记控制。当前客户端内容将DGN4000置于世界地图101「黄金梦」，暗黑城区域2、3绑定该选图页；用户确认乔安入场按钮打开选图页，页内可选择遗忘之地，界面显示1/1及100疲劳加次提示。CurrentImplementation：已接专用探索准入及持久次数，普通解析仍保留Boss不可达拒绝；准入/次数及邻近回归44项通过，首次加载[025C](game/server-to-client/NOTI-0x025C.md)按用户确定的20分钟策略发送1200/1200，第二字段用途仍未知；60秒到点原生结束、宝箱及追击者已有用户反馈，当前20分钟及其他边界见[验收结果](../Document/tasks/forgotten-land/Human-Test.md)。本条不增加WireCaptured，不将菜单可见或内容读取测试扩大为完整玩法ClientVerified。见[取证与实现边界](../Document/tasks/forgotten-land/README.md)。
 
 ## 2026-10-20 循环任务客户端原生提交（核心流程已验收）
 

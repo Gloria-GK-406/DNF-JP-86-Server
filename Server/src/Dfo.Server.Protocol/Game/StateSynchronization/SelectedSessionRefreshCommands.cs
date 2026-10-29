@@ -23,6 +23,7 @@ public sealed record RefreshFatigueSessionCommand(DateTimeOffset Period, Selecte
 internal sealed class SelectedSessionRefreshCommandHandler(ISelectedSessionRefreshDomainService refresh,
     ISelectedSessionDomainService sessions, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService usage,
     IItemUsageDomainService items, ICharacterFatigueDomainService fatigue,
+    Dfo.Server.Abstractions.World.ILostLandDungeonDomainService lostLand,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<SelectedSessionRefreshCommandHandler> logger)
     : ICommandHandler<CaptureSelectedSessionRefreshCommand, SelectedSessionRefreshScan>,
@@ -36,7 +37,11 @@ internal sealed class SelectedSessionRefreshCommandHandler(ISelectedSessionRefre
         var topic = command.Topic; var session = command.Session;
         if (topic is SelectedSessionRefreshTopic.Premium or SelectedSessionRefreshTopic.ItemUsage or SelectedSessionRefreshTopic.Fatigue)
             throw new InvalidOperationException("A quota refresh requires a quota topic.");
-        var state = new PeriodRefreshState(command.Period);
+        if (!refresh.IsCurrent(topic, command.Period, session)) return false;
+        SelectedSessionRefreshState state = topic == SelectedSessionRefreshTopic.LostLand
+            ? new QuotaCountRefreshState(command.Period,
+                (await lostLand.ReadQuotaAsync(session.CharacterId, token).ConfigureAwait(false)).Remaining)
+            : new PeriodRefreshState(command.Period);
         if (!refresh.IsCurrent(topic, command.Period, session) || !refresh.NeedsRefresh(topic, session, state)) return false;
         var family = topic switch
         {
@@ -46,6 +51,7 @@ internal sealed class SelectedSessionRefreshCommandHandler(ISelectedSessionRefre
             SelectedSessionRefreshTopic.ReviveCoin => UsageQuotaFamily.ReviveCoin,
             SelectedSessionRefreshTopic.Mirror => UsageQuotaFamily.MirrorDungeon,
             SelectedSessionRefreshTopic.Heras => UsageQuotaFamily.HerasDungeon,
+            SelectedSessionRefreshTopic.LostLand => UsageQuotaFamily.LostLand,
             SelectedSessionRefreshTopic.Tournament => UsageQuotaFamily.TournamentDungeon,
             _ => throw new InvalidOperationException("Unknown quota refresh topic."),
         };

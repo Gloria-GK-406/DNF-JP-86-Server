@@ -159,6 +159,9 @@ public interface IDungeonVisitDomainService
         MazeCell target,
         CancellationToken cancellationToken);
 
+    ValueTask<DungeonRoomVisit?> MoveByLostLandItemAsync(CharacterId characterId, DungeonRunState current,
+        MazeCell target, CancellationToken token) => throw new NotSupportedException();
+
     async ValueTask<DungeonMoveAttempt> TryMoveAsync(CharacterId characterId, DungeonRunState current,
         MazeCell target, CancellationToken cancellationToken)
     {

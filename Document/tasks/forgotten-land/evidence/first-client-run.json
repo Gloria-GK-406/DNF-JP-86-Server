@@ -1,0 +1,13 @@
+{
+  "run_id": "8672be73-6444-405c-aa92-7050fc0d1284",
+  "accepted_monster_deaths": 136,
+  "accepted_unique_room_actor": 136,
+  "death_rejections": [],
+  "moves": 45,
+  "first_death": [
+    "Monster death delivered connection=Game:01-00-00-00 sequence=65 run=DungeonRunId { Value = 8672be73-6444-405c-aa92-7050fc0d1284 } dungeon=4000 room=11251 version=1 actor=3446 participants=1 drops=0 cellCleared=False boss=False clearProjected=False aliveBlockers=10 mechanismBlocks=False"
+  ],
+  "last_death": [
+    "Monster death delivered connection=Game:01-00-00-00 sequence=682 run=DungeonRunId { Value = 8672be73-6444-405c-aa92-7050fc0d1284 } dungeon=4000 room=38014 version=45 actor=14673 participants=1 drops=0 cellCleared=False boss=False clearProjected=False aliveBlockers=1 mechanismBlocks=False"
+  ]
+}

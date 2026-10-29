@@ -41,6 +41,8 @@ public sealed record DungeonRunState(
 {
     public DateTimeOffset? ClearedAt { get; init; }
     public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
+    public LostLandFeverState? LostLandFever { get; init; }
+    public LostLandExplorationState? LostLandExploration { get; init; }
 
     /// <summary>Stable party identity bound to this run, independent of the client's party number.</summary>
     public PartyKey PartyKey { get; init; }
@@ -304,6 +306,7 @@ public sealed record DungeonActorDeathChange(
 {
     /// <summary>Other monsters removed with a boss death, without kill rewards or drops.</summary>
     public IReadOnlyList<ushort> AutoKilledActorSequences { get; init; } = [];
+    public byte? LostLandFeverPercent { get; init; }
 }
 
 /// <summary>An exact claim over one participant's durable effects for one actor death.</summary>
@@ -460,6 +463,12 @@ public interface IDungeonRunDomainService
         DungeonRunState run, CancellationToken token) => throw new NotSupportedException("Settlement rules are unavailable.");
 
     IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
+    IReadOnlyList<LostLandCompletion> FindDueLostLandCompletions(DateTimeOffset now) => [];
+    bool StageLostLandCompletion(LostLandCompletion completion, DateTimeOffset now, bool notifyReady) => false;
+    IReadOnlyList<LostLandFeverExpiry> FindExpiredLostLandFevers(DateTimeOffset now) => [];
+    bool StageLostLandFeverExpiry(LostLandFeverExpiry expiry, DateTimeOffset now) => false;
+    DungeonRunState? TryMoveByLostLandItem(CharacterId character, DungeonRunId run, long version,
+        MazeCell target, DungeonCellSeed? preparedCell) => throw new NotSupportedException();
 
     /// <summary>
     /// One character's departure from the named run: releases what the run holds for them, records

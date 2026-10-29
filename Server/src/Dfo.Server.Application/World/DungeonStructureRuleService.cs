@@ -29,10 +29,13 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         cancellationToken.ThrowIfCancellationRequested();
         if (!layout.Cells.TryGetValue(target, out var cell))
             return DungeonMapSelection.Refused(DungeonMapSelectionFailure.CellNotFound);
+        if (layout.Mode is DungeonRunMode.LostLand && cell.MapCandidates.Count == 0)
+            return DungeonMapSelection.Refused(DungeonMapSelectionFailure.NoCompatibleMap);
         if (from is { } previous && !layout.CanTraverse(previous, target))
             return DungeonMapSelection.Refused(DungeonMapSelectionFailure.Disconnected);
 
-        var entrance = from is { } source ? DungeonLayout.EntranceFrom(source, target) : DungeonPathDirection.None;
+        var entrance = from is { } source && (layout.Mode as DungeonRunMode.LostLand)?.Plan.IsDeclaredWarp(source, target) != true
+            ? DungeonLayout.EntranceFrom(source, target) : DungeonPathDirection.None;
         // The frozen hell replacement still has to satisfy this cell's actual door layout.
         // It never falls back to ordinary resources when its own metadata is unavailable.
         if (layout.Mode is DungeonRunMode.Hell { Plan: var hell } && target == hell.Cell)
@@ -42,7 +45,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
                 ? DungeonMapSelection.Selected(hell.MapId)
                 : DungeonMapSelection.Refused(DungeonMapSelectionFailure.NoCompatibleMap);
         }
-        var boss = from is not null && target == layout.BossCell;
+        var boss = layout.Mode is not DungeonRunMode.LostLand && from is not null && target == layout.BossCell;
         var declared = boss ? cell.BossMapCandidates : cell.MapCandidates;
         var candidates = new List<int>();
         if (declared.Count > 0)
@@ -140,6 +143,20 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
                 $"start cell ({startCell.X},{startCell.Y}) has no compatible map");
         layout = layout with { StartRoomMapId = mapId };
+        if (layout.Mode is DungeonRunMode.LostLand)
+        {
+            // Exploration uses explicit MAPs and nonlocal transitions. Its unbound PVF boss
+            // marker stays on the minimap and is never filled from an ordinary MAP pool.
+            foreach (var (coordinate, cell) in layout.Cells)
+            {
+                if (coordinate == layout.BossCell && cell.MapCandidates.Count == 0) continue;
+                if (cell.MapCandidates.Count == 0
+                    || (await SelectMapAsync(layout, null, coordinate, cancellationToken).ConfigureAwait(false)).MapId is null)
+                    throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
+                        $"exploration cell ({coordinate.X},{coordinate.Y}) has no explicit compatible map");
+            }
+            return layout;
+        }
         await ValidateReachableMapsAsync(layout, cancellationToken).ConfigureAwait(false);
         return layout;
     }

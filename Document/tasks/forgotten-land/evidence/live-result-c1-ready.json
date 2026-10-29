@@ -1,0 +1,29 @@
+{
+  "Pid": 42896,
+  "StartFileTimeUtc": 134377141521439828,
+  "Executable": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host-result-diagnostics-20261029\\Dfo.Server.Host.exe",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "Branch": "codex/77-forgotten-land",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 600,
+  "ProtocolLogLevel": "Debug",
+  "Hashes": {
+    "Application": "0E7D7D6ADF0F97741E1A2ABC49AA853413766F922CCB5E05F355200B2246DED1",
+    "Protocol": "7956FFAC0D82633AE3595753142C9E082837AFA5BC0B24F8E02AAFE8145A5949",
+    "Infrastructure": "018A7DEDF4C0B2A91A943947E6ED1F1C8AC69530183BCD6705E4B0176D5DE1F5",
+    "Abstractions": "B8E6209F0A366ED1E117E97F25090B7279A6739BA43670A56AD8BF1A41AF80B0",
+    "Data": "60CFCCAA26A79F168AC09A01FAF1E21A9215CC51F21C2B6DB577CA669E27A930",
+    "Persistence": "DFA97524B2EBFBB97BB06EDEA89B1406B993AD703F849AF14A13A8722EDA96C0",
+    "Networking": "648C54D184FCFDAE1E9DE41D21EB688AC4378F2BCC8692610870D45B10193EEE"
+  },
+  "QuotaRemaining": 1,
+  "ReadinessVerified": true,
+  "CheckedAtUtc": "2026-10-29T02:23:12.9866347Z"
+}

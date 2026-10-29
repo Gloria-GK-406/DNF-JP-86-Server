@@ -1,0 +1,50 @@
+{
+  "run_id": "7d0b9ac0-1707-4105-b34a-b8de8d1e59b8",
+  "evidence": "current Host decoded C2S bodies; no S2C capture",
+  "frames": [
+    {
+      "body_hex": "65000000000000650000000000000007000000",
+      "source_slot": 101,
+      "container": 0,
+      "arg0": 0,
+      "action": 101,
+      "arg1": 0,
+      "arg2": 7,
+      "old_complete_guard": false
+    },
+    {
+      "body_hex": "65000000000000650000000000000007000000",
+      "source_slot": 101,
+      "container": 0,
+      "arg0": 0,
+      "action": 101,
+      "arg1": 0,
+      "arg2": 7,
+      "old_complete_guard": false
+    },
+    {
+      "body_hex": "65000000000000650000000000000007000000",
+      "source_slot": 101,
+      "container": 0,
+      "arg0": 0,
+      "action": 101,
+      "arg1": 0,
+      "arg2": 7,
+      "old_complete_guard": false
+    },
+    {
+      "body_hex": "6A000000000000630000000000000000000000",
+      "source_slot": 106,
+      "container": 0,
+      "arg0": 0,
+      "action": 99,
+      "arg1": 0,
+      "arg2": 0,
+      "old_complete_guard": true
+    }
+  ],
+  "teleport_item_from_pickup_log": 10093346,
+  "teleport_source_slot": 101,
+  "later_riding_item": 10092741,
+  "server_kept_accepting_deaths_after_teleport_request": true
+}

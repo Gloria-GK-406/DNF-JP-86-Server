@@ -1,0 +1,22 @@
+{
+  "Started": true,
+  "LiveDatabaseUsed": false,
+  "TcpListeners": 0,
+  "UdpListeners": 0,
+  "Snapshot": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\warp-20261028T135846263Z-smoke.db",
+  "SourceBackup": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\player-backup-20261028T135621584152Z.db",
+  "ApplicationSha256": "22EAD9C5497961924B8A707539690F084B783E39C43E89CC4C1120876130142C",
+  "ProtocolSha256": "0095A500FA4F6C4804FFB629FEF67DE29A3923C0F643F76D5FF9E39F3D2FE238",
+  "CheckedAtUtc": "2026-10-28T13:58:54.7531346Z",
+  "PlayerRowsPreserved": true,
+  "VerifiedRowCounts": {
+    "accounts": 4,
+    "characters": 9,
+    "items": 669,
+    "item_slots": 661,
+    "character_stats": 9,
+    "character_fatigue": 5,
+    "character_daily_counters": 109
+  },
+  "QuickCheck": "ok"
+}

@@ -69,6 +69,14 @@ public interface IEquipmentRepairRule
 
 public interface IEquipmentRepairRuleService
 {
+    ValueTask<IEquipmentRepairCouponRule?> PrepareCouponAsync(int itemId, CancellationToken ct);
     ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct);
     ValueTask<ushort?> AutoRepairDurabilityAsync(ItemSnapshot core, CancellationToken ct);
+}
+
+public interface IEquipmentRepairCouponRule
+{
+    ItemCooldownKey CooldownKey { get; }
+    TimeSpan Cooldown { get; }
+    bool Allows(Dfo.Server.Abstractions.Characters.ItemUseCandidate candidate, int? dungeonId);
 }

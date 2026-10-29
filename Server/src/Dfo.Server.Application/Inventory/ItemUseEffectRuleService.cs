@@ -11,7 +11,7 @@ internal sealed class ItemUseEffectRuleService(IItemUseJudgementService judgemen
     public async ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken ct)
     {
         var rule = await judgement.RuleForAsync(itemId, ct).ConfigureAwait(false);
-        if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]")
+        if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]" or "[repair coupon]")
             rule = rule with { HasUnreadableDeclaration = true };
         // A shop-listed MLA upgrade coupon must not fall through to a bare consumption.
         if (itemId == 490002848 && rule is not null)

@@ -13,7 +13,7 @@ internal sealed class DungeonCellFactory(
     IExperienceRuleService experienceRules,
     IQuestEnemyDropDomainService questLoot,
     IQuestHelperGroundBonusDomainService questBonus,
-    IHellRewardDomainService hellRewards) : IDungeonCellFactory
+    IHellRewardDomainService hellRewards, ILostLandDropRuleService lostLandDrops) : IDungeonCellFactory
 {
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
@@ -60,6 +60,7 @@ internal sealed class DungeonCellFactory(
             var isMonster = !isDummy && !described.IsHellTemplate
                 && experienceRules.IsMonster(described.Actor.ActorType);
             IReadOnlyList<RolledDrop> pending = [];
+            LostLandKillBonus? lostLandBonus = null;
             var eligibleForGroupReward = false;
             if (!isDummy && (described.IsHellTemplate || isMonster || described.IsAiCharacter))
             {
@@ -95,6 +96,10 @@ internal sealed class DungeonCellFactory(
                         generated.AddRange(await loot.GeneratePersonalAsync(
                             described.Actor.Code, participant.CharacterId, dropContext, cancellationToken)
                             .ConfigureAwait(false));
+                    var lostLand = await lostLandDrops.PrepareAsync(context, described, sequence, cancellationToken)
+                        .ConfigureAwait(false);
+                    generated.AddRange(lostLand.Regular);
+                    lostLandBonus = lostLand.Bonus;
                     pending = generated;
                 }
             }
@@ -105,7 +110,7 @@ internal sealed class DungeonCellFactory(
                 described.IsAiCharacter,
                 IsDead: false,
                 pending.ToArray(),
-                isMonster) { IsNamedMonster = isMonster && described.IsNamedMonster,
+                isMonster) { IsNamedMonster = isMonster && described.IsNamedMonster, LostLandBonus = lostLandBonus,
                     IsHellTemplate = described.IsHellTemplate, HellOrder = described.HellOrder,
                     HellGroupIndex = described.HellGroupIndex, EligibleForHellGroupReward = eligibleForGroupReward,
                     ObjectTemplateOwner = described.ObjectTemplateOwner, ObjectTemplateIndex = described.ObjectTemplateIndex });

@@ -47,6 +47,9 @@ public sealed class ReviveCoinQuotaDailyRefreshService(ICommandBus commands, Tim
 public sealed class MirrorQuotaDailyRefreshService(ICommandBus commands, TimeProvider clock, ILogger<MirrorQuotaDailyRefreshService> logger)
     : SelectedSessionRefreshSource(commands, clock, logger)
 { protected override SelectedSessionRefreshTopic Topic => SelectedSessionRefreshTopic.Mirror; }
+public sealed class LostLandQuotaRefreshService(ICommandBus commands, TimeProvider clock, ILogger<LostLandQuotaRefreshService> logger)
+    : SelectedSessionRefreshSource(commands, clock, logger)
+{ protected override SelectedSessionRefreshTopic Topic => SelectedSessionRefreshTopic.LostLand; }
 public sealed class ItemUsageDailyRefreshService(ICommandBus commands, TimeProvider clock, ILogger<ItemUsageDailyRefreshService> logger)
     : SelectedSessionRefreshSource(commands, clock, logger)
 { protected override SelectedSessionRefreshTopic Topic => SelectedSessionRefreshTopic.ItemUsage; }

@@ -1,0 +1,7 @@
+{
+  "source": "E:\\Project\\DNF\\Research\\1995chen-dnf\\other\\\u7b49\u7ea7\u8865\u4e01\\70\\df_game_r",
+  "sha256": "CF45F4E8514C3BF560DD322C146F8441249F6C28246EC8566DCF9EBC4E1B2EB7",
+  "pattern": "lost.?land|forgotten.?land|lostland|chasing.?monster",
+  "distinct_function_addresses": 97021,
+  "matches": []
+}

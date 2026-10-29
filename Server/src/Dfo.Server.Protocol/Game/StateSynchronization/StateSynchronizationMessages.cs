@@ -597,6 +597,8 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<MirrorDungeonQuotaMessage>(services);
         AddNoti<GoldSilverHornQuotaMessage>(services);
         AddNoti<DungeonRemainingEntriesMessage>(services);
+        AddNoti<DungeonClearTimeLimitMessage>(services);
+        AddNoti<DungeonFeverGaugeMessage>(services);
         AddNoti<DimensionDungeonQuotaMessage>(services);
         AddNoti<PartyBaselineMessage>(services);
         AddNoti<GuildMedalBaselineMessage>(services);

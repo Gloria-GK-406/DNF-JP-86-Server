@@ -1,0 +1,21 @@
+{
+  "Pid": 44076,
+  "StartFileTimeUtc": 134377483428017462,
+  "Executable": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host-forest-crystal-20261029\\Dfo.Server.Host.exe",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "Branch": "codex/77-forgotten-land",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 1200,
+  "UnlimitedEntriesForTesting": true,
+  "QuotaReset": false,
+  "CandidateFiles": 74,
+  "DropPolicyActive": true,
+  "CheckedAtUtc": "2026-10-29T11:52:30.2143661Z"
+}

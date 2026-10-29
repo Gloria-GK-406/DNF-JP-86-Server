@@ -18,6 +18,7 @@ internal sealed partial class DungeonRunDomainService
             if (objectCode <= 0 || this.RunOf(characterId) is not { } run
                 || run.RunId != runId || run.RoomVersion != roomVersion)
                 return null;
+            if (run.LostLandExploration?.HasExpired(this.clock.GetUtcNow()) == true) return null;
             var cell = run.Cells[run.CurrentCell];
             if (!this.sealedTreasureRules.AllowsObjectDestruction(run.Layout.DungeonId, run.KilledMonsterCodes, objectCode))
                 return null;

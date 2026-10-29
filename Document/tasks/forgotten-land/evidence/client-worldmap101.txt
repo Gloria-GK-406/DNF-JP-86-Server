@@ -1,0 +1,14 @@
+=== worldmap/golden_road.wdm ===
+[map image]
+WorldMap/golden_load.img 0
+[ui path]
+WorldMap/UI/golden_load.xui
+[dungeon]
+4000 -1 94 -1 4103 -1
+[/dungeon]
+[exercise]
+0
+[quick party]
+0
+[name]
+黄金梦

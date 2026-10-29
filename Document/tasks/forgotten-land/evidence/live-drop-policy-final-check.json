@@ -1,0 +1,19 @@
+{
+  "Pid": 6972,
+  "StartFileTimeUtc": 134377301389812265,
+  "Branch": "codex/77-forgotten-land",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 1200,
+  "UnlimitedEntriesForTesting": true,
+  "DropPolicyActive": true,
+  "VerifiedFiles": 74,
+  "CheckedAtUtc": "2026-10-29T06:49:53.5144929Z"
+}

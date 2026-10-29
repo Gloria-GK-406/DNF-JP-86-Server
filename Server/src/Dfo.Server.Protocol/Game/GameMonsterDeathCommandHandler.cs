@@ -185,8 +185,16 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
                 GroundDropInstance.ForKill(change.Run, message.ActorSequence), owners);
             var targets = settled.Participants.Where(x => sessions.IsInWorld(x.Session))
                 .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
-                    settled.Tournament, labelProbe))).ToArray();
+                    settled.Tournament, labelProbe, change.LostLandFeverPercent))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
+            // The native LostLand summary collects announced drops before GET_ITEM. Keep the
+            // announced identities so a summary can be reconciled with pickup logs independently.
+            if (change.Run.Layout.Mode is DungeonRunMode.LostLand && logger.IsEnabled(LogLevel.Debug))
+                foreach (var drop in change.AddedGroundItems)
+                    logger.LogDebug("LostLand drop registered connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} actor={Actor} number={Number} item={ItemId} count={ItemCount} equipment={IsEquipment} owner={Owner}",
+                        reporter.ConnectionId, change.Run.RunId, change.Run.CurrentRoomMapId, change.Run.RoomVersion,
+                        message.ActorSequence, drop.Number, drop.ItemId, drop.Count, drop.IsEquipment,
+                        death.DropOwners?.GetValueOrDefault(drop.Number) ?? death.Owner);
             if (clear is not null) await ProjectClearAsync(reporter, clear, ct).ConfigureAwait(false);
             if (change.Run.Layout.Mode is DungeonRunMode.Altar) WakeAltar();
             if (logger.IsEnabled(LogLevel.Debug))
@@ -215,7 +223,8 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             targets.Where(x => x.ConnectionId != reporter.ConnectionId).ToArray()), ct);
 
     private IReadOnlyList<IGameServerMessage> Frames(MonsterDeathParticipantResult participant,
-        MonsterDeathNotification death, IReadOnlyList<ushort> autoKilled, TournamentActionResult? tournament = null, bool labelProbe = false)
+        MonsterDeathNotification death, IReadOnlyList<ushort> autoKilled, TournamentActionResult? tournament = null,
+        bool labelProbe = false, byte? feverPercent = null)
     {
         var award = participant.Effects.Award;
         var total = award?.NotificationTotal ?? participant.Progress.Experience;
@@ -223,6 +232,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             labelProbe ? checked(total + ExperienceDiagnostics.ProbeTotal) : total, participant.SkillPoints,
             AccountHonorLevel.Initial, ExperienceBonusLines.Of(award), labelProbe), death };
         frames.AddRange(autoKilled.Select(MonsterDeathNotification.Empty));
+        if (feverPercent is { } percent) frames.Add(new DungeonFeverGaugeMessage(percent));
         frames.AddRange(MonsterQuestFrames.Of(participant.Effects));
         if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));
         if (tournament is not null)

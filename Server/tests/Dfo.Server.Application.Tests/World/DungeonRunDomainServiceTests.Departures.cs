@@ -215,7 +215,8 @@ public sealed partial class DungeonRunDomainServiceTests
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
                 TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Runs = new DungeonRunDomainService(
-                transactions: null!, parties: Parties, weakness: Weakness, creatures: Combat,
+                transactions: null!, parties: Parties, lostLandFever: new LostLandFeverRuleService(),
+                weakness: Weakness, creatures: Combat,
                 lifecycle: Lifecycle, participation: Participation);
         }
 

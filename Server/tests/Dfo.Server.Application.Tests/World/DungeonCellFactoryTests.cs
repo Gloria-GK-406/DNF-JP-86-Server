@@ -11,6 +11,13 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonCellFactoryTests
 {
+    private sealed class NoLostLandDrops : ILostLandDropRuleService
+    {
+        public ValueTask<LostLandDropPlan> PrepareAsync(DungeonCellCreationContext context,
+            RoomActorDescription actor, ushort sequence, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(LostLandDropPlan.Empty);
+    }
+
     [Fact]
     public async Task Repeated_hell_group_across_orders_freezes_one_shared_reward_and_preserves_actor_loot()
     {
@@ -19,7 +26,7 @@ public sealed class DungeonCellFactoryTests
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(60064) })
         { Mode = new DungeonRunMode.Hell(new(1, cell, 60064, [])) };
         var factory = new DungeonCellFactory(new HellRoom(), new NoPlacement(), new RecordingLoot(),
-            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new FrozenHellRewards());
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new FrozenHellRewards(), new NoLostLandDrops());
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 60064, 0,
             DateTimeOffset.UnixEpoch, [new(new(1), new(10), 0, true)]), default);
         Assert.Empty(seed.GroundItems);
@@ -62,7 +69,7 @@ public sealed class DungeonCellFactoryTests
             var rooms = new DungeonRoomRuleService(source, source, source, source);
             var loot = new RecordingLoot();
             var factory = new DungeonCellFactory(rooms, new NoPlacement(), loot,
-                new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
+                new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops());
             DungeonRunParticipant[] members = [new(new(1), new(10), 0, true)];
             var runs = TestParties.Runs();
             var runId = DungeonRunId.New();
@@ -174,7 +181,7 @@ public sealed class DungeonCellFactoryTests
             new OneActorRoom(actorType, hostile, dummy, objectTemplate, sceneWave),
             new NoPlacement(),
             loot,
-            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards());
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops());
 
         var seed = await factory.CreateAsync(
             new DungeonCellCreationContext(
@@ -237,7 +244,7 @@ public sealed class DungeonCellFactoryTests
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
             DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
             var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
-                new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards());
+                new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops());
             var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
                 DateTimeOffset.UnixEpoch, members), CancellationToken.None);
             Assert.Empty(seed.Actors);

@@ -1,0 +1,18 @@
+{
+  "Pid": 38708,
+  "StartFileTimeUtc": 134376695712958985,
+  "Branch": "codex/77-forgotten-land",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "UdpPorts": [],
+  "ApplicationSha256": "22EAD9C5497961924B8A707539690F084B783E39C43E89CC4C1120876130142C",
+  "ProtocolSha256": "0095A500FA4F6C4804FFB629FEF67DE29A3923C0F643F76D5FF9E39F3D2FE238",
+  "CheckedAtUtc": "2026-10-28T13:59:38.7532161Z"
+}

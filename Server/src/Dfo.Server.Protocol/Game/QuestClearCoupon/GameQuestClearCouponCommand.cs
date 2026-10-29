@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -16,6 +17,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.Fatigue;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
@@ -36,7 +38,8 @@ public sealed class GameQuestClearCouponCommandHandler(
     ICharacterQuestLogDomainService questLogs, IQuestOfferRefreshDomainService offers,
     IItemUsageDomainService usage, TimeProvider clock,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
-    ILogger<GameQuestClearCouponCommandHandler> logger, IMirrorAradQuestDomainService mirror)
+    ILogger<GameQuestClearCouponCommandHandler> logger, IMirrorAradQuestDomainService mirror,
+    ILostLandConsumableDomainService lostLandItems)
     : ICommandHandler<GameQuestClearCouponCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameQuestClearCouponCommand command, CancellationToken ct)
@@ -44,8 +47,10 @@ public sealed class GameQuestClearCouponCommandHandler(
         var request = context.Request ?? throw new InvalidOperationException("Stackable action requires its explicit request.");
         var message = command.Input;
         var connection = command.Dispatch.Connection.ConnectionId;
+        // A21 action 101 uses the legacy Reserved2/3 fields for its current maze-cell X/Y.
         var complete = message.Complete && message.SourceSlot >= 0 && message.Container == 0 && message.Reserved1 == 0
-            && message.Reserved2 == 0 && message.Reserved3 == 0 && message.Action <= byte.MaxValue;
+            && (message.Action == 101 ? message.Reserved2 <= 9 && message.Reserved3 <= 9
+                : message.Reserved2 == 0 && message.Reserved3 == 0) && message.Action <= byte.MaxValue;
         if (!complete) { await RefuseAsync(connection, message, true, ct).ConfigureAwait(false); return false; }
         var session = sessions.FindByConnection(connection);
         if (session is null || request is CommandRequestContext.ProtocolEffectRejected
@@ -60,7 +65,8 @@ public sealed class GameQuestClearCouponCommandHandler(
         {
             var slot = OpeningWireSlots.FromMain(message.SourceSlot);
             var source = await slots.Get(session.CharacterId, slot).Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
-            branch = source is not null && entryAllowances.Supports(source.ItemId) ? Branch.Entry
+            branch = source is not null && message.Action is 99 or 101 && await lostLandItems.SupportsAsync(source.ItemId, ct).ConfigureAwait(false) ? Branch.LostLand
+                : source is not null && entryAllowances.Supports(source.ItemId) ? Branch.Entry
                 : message.IsFatiguePotion ? Branch.Fatigue : Branch.Coupon;
         }
         catch (Exception failure) when (CanRefuse(failure))
@@ -68,7 +74,8 @@ public sealed class GameQuestClearCouponCommandHandler(
             logger.LogWarning(failure, "Heras entry coupon refused character={CharacterId} slot={Slot}", session.CharacterId, message.SourceSlot);
             await RefuseAsync(connection, message, false, ct).ConfigureAwait(false); return false;
         }
-        if (branch == Branch.Coupon && !message.IsSupported)
+        if (branch != Branch.LostLand && (message.Reserved2 != 0 || message.Reserved3 != 0)
+            || branch == Branch.Coupon && !message.IsSupported)
         { await RefuseAsync(connection, message, true, ct).ConfigureAwait(false); return false; }
 
         var outcome = await units.WriteResultAsync(context,
@@ -79,6 +86,14 @@ public sealed class GameQuestClearCouponCommandHandler(
                 try
                 {
                     var slot = OpeningWireSlots.FromMain(message.SourceSlot);
+                    if (branch == Branch.LostLand)
+                    {
+                        var used = await lostLandItems.UseAsync(session, slot,
+                            message.Action == 101 ? LostLandConsumableKind.Teleport : LostLandConsumableKind.Transformation,
+                            message.Action == 101 ? new MazeCell((byte)message.Reserved2, (byte)message.Reserved3) : null,
+                            footprint, token).ConfigureAwait(false);
+                        return new ActionOutcome(used.Inventory, null, null, used.Movement);
+                    }
                     if (branch == Branch.Entry)
                     {
                         var source = await inventory.SourceAsync(session, slot, clock.GetUtcNow(), token).ConfigureAwait(false);
@@ -104,7 +119,15 @@ public sealed class GameQuestClearCouponCommandHandler(
         };
         if (action.Failure is { } actionFailure)
         {
-            if (branch == Branch.Entry)
+            if (branch == Branch.LostLand)
+            {
+                if (actionFailure is OpeningRejectedException)
+                    logger.LogInformation("LostLand consumable refused character={CharacterId} slot={Slot} action={Action}: {Reason}",
+                        session.CharacterId, message.SourceSlot, message.Action, actionFailure.Message);
+                else logger.LogError(actionFailure, "LostLand consumable failed character={CharacterId} slot={Slot} action={Action}",
+                    session.CharacterId, message.SourceSlot, message.Action);
+            }
+            else if (branch == Branch.Entry)
                 logger.LogWarning(actionFailure, "Heras entry coupon refused character={CharacterId} slot={Slot}", session.CharacterId, message.SourceSlot);
             else if (branch == Branch.Fatigue)
             {
@@ -121,7 +144,15 @@ public sealed class GameQuestClearCouponCommandHandler(
             return false;
         }
         var receipt = action.Inventory ?? throw new InvalidOperationException("Stackable action returned no inventory receipt.");
-        if (branch == Branch.Entry)
+        if (branch == Branch.LostLand)
+        {
+            await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
+                new OpeningCompleted(receipt, [new QuestClearCouponResponse(true, message.SourceSlot, message.Container) { Action = message.Action }],
+                    FollowingMessages: action.Movement is { } movement ? [DungeonRoomTransitionProjection.StartMap(movement)] : []), ct).ConfigureAwait(false);
+            logger.LogInformation("LostLand consumable accepted character={CharacterId} slot={Slot} action={Action}",
+                session.CharacterId, message.SourceSlot, message.Action);
+        }
+        else if (branch == Branch.Entry)
         {
             await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
                 new OpeningCompleted(receipt, [new QuestClearCouponResponse(true, message.SourceSlot, message.Container) { Action = message.Action }]), ct).ConfigureAwait(false);
@@ -205,6 +236,6 @@ public sealed class GameQuestClearCouponCommandHandler(
         outbox.RegisterCmdAsync(connection, new QuestClearCouponResponse(false,
             sanitize && request.SourceSlot < 0 ? (short)0 : request.SourceSlot, sanitize && request.Container != 0 ? (byte)0 : request.Container) { Action = request.Action }, ct);
     private static bool CanRefuse(Exception failure) => failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure);
-    private enum Branch { Entry, Fatigue, Coupon }
-    private sealed record ActionOutcome(OpeningInventoryReceipt? Inventory, QuestClearCouponResult? Coupon, Exception? Failure);
+    private enum Branch { Entry, Fatigue, Coupon, LostLand }
+    private sealed record ActionOutcome(OpeningInventoryReceipt? Inventory, QuestClearCouponResult? Coupon, Exception? Failure, DungeonRoomVisit? Movement = null);
 }

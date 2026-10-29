@@ -1,0 +1,29 @@
+{
+  "run_id": "b6764b5f-66bc-4950-b0b7-2584f3f9bcdf",
+  "character_id": 8,
+  "events": [
+    {
+      "at": "2026-10-28 22:02:15.408 +08:00 dbug: Dfo.Server.Networking.Outbound.RegistryOutboundEncoder[0]",
+      "event": "S->C Game:01-00-00-00 selector=0x00 type=0x025C frame=23 DungeonClearTimeLimitMessage"
+    },
+    {
+      "at": "2026-10-28 22:02:28.168 +08:00 info: Dfo.Server.Protocol.Game.QuestClearCoupon.GameQuestClearCouponCommandHandler[0]",
+      "event": "LostLand consumable accepted character=8 slot=80 action=101"
+    },
+    {
+      "at": "2026-10-28 22:02:53.983 +08:00 info: Dfo.Server.Protocol.Game.QuestClearCoupon.GameQuestClearCouponCommandHandler[0]",
+      "event": "LostLand consumable accepted character=8 slot=4 action=99"
+    },
+    {
+      "at": "2026-10-28 22:09:01.736 +08:00 info: Dfo.Server.Protocol.Game.QuestClearCoupon.GameQuestClearCouponCommandHandler[0]",
+      "event": "LostLand consumable accepted character=8 slot=80 action=101"
+    },
+    {
+      "at": "2026-10-28 22:13:54.691 +08:00 info: Dfo.Server.Protocol.Game.GamePartyTransitionCommandHandler[0]",
+      "event": "Give up game Game:01-00-00-00 character=8: run ended=True"
+    }
+  ],
+  "clear_noti_001f_sent": false,
+  "ordinary_play_result_002e_observed": false,
+  "client_report": "Both consumables and fever work; zero timer does not end run. Return Town shows Joann imperial army dialogue, dedicated result flow and automatic return."
+}

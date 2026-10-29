@@ -65,6 +65,11 @@ public sealed record DungeonRunCapabilities(
         DungeonRunKind.Ordinary or DungeonRunKind.Dimension or DungeonRunKind.GiantDragon
             or DungeonRunKind.SouthernDale or DungeonRunKind.TauKingdom or DungeonRunKind.SealedTreasure
             or DungeonRunKind.GoldSilverHorn or DungeonRunKind.Couple => OrdinaryRun,
+        DungeonRunKind.LostLand => OrdinaryRun with
+        {
+            EndsOnBossClear = false, AppliesFailureWeakness = false, DrawsClearCards = false,
+            UnlocksDifficulty = false, AllowsOrdinaryRechallenge = false, QuotaFamily = UsageQuotaFamily.LostLand,
+        },
         DungeonRunKind.Heras => OrdinaryRun with { QuotaFamily = UsageQuotaFamily.HerasDungeon },
         DungeonRunKind.Hell => OrdinaryRun with { AllowsOrdinaryRechallenge = false },
         DungeonRunKind.Sao => OrdinaryRun with { AllowsOrdinaryRechallenge = false },

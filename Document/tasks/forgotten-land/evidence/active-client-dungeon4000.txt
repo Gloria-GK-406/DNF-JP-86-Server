@@ -1,0 +1,307 @@
+=== dungeon/Fun_test/Fun_test2.dgn ===
+[background pos]
+80
+[name]
+遗忘之地
+[explain]
+(每消耗100点疲劳值， 遗忘之地入场次数即增加1次)
+━━━━━━━━━━━━━━━━━━━━
+    不知何时出现的神秘岛屿， 无人清楚它的来历， 只知道那里充斥着各种传闻和质疑。 许多冒险家为了一探究竟而涌入那里……那里到底藏着什么秘密？ 一向眼光独到的乔安这次也将目光投到了“遗忘之地”， 岛上罕见的转移晶石让他看到了满满的商机。 他开始四处招募冒险家前往收集， 究竟是商机还是危机， 一切只能等踏入那里才能知悉……
+[cutscene image]
+Map/CutScene/Lost_land.img 0
+[minimap image]
+Map/MiniMap/Act3.img
+[worldmap pattern info]
+1 3 WorldMap/SelectdungeonSlot/Lost_land.img 0
+[minimum required level]
+25
+[basis level]
+85
+[experience increasing point]
+2.09
+[champion]
+3 25 40 60 60
+[pathgate object]
+6200 6201 6202 6203 6204 6205 6206 6207 6208 6209
+[maze info]
+[minimap boss icon]
+0
+[size]
+10 10
+[greed]
+JJFFNNNNMMAAAAIIAAII
+ DDEELLPPOOAAJJFFNNEE
+ IIBBDDHHOOBBHHFFOOAA
+ AABBJJNNOOAABBMMKKAA
+ AABBLLPPOOBBNNHHHHEE
+ AABBDDHHHHNNGGBBEEAA
+ IIIIBBNNFFHHMMAAJJEE
+ BBEEBBPPFFFFPPFFGGAA
+ JJMMBBHHFFFFGGBBFFMM
+ CCCCBBEEAABBEEBBFFGG
+[move map even enemy]
+1
+[event monster random map]
+0
+[map specification]
+map 0 2 11250 map 7 0 11247 11248 11249 map 1 3 38050 map 2 3 38051 map 3 3 38052 map 4 3 38053 map 1 4 38054 map 2 4 38055 map 3 4 38056 map 4 4 38057 map 1 5 38058 map 2 5 38059 map 3 5 38060 map 4 5 38061 map 1 2 38062 map 2 6 38030 map 3 6 38031 map 4 6 38032 map 5 6 38033 map 6 6 38034 map 3 7 38036 map 4 7 38037 map 5 7 11204 map 2 7 38035 map 2 8 38040 map 3 8 38041 map 4 8 38042 map 5 8 38043 map 6 8 38044 map 2 9 38045 map 3 9 38046 map 5 9 38048 map 6 9 38047 map 6 1 38000 map 7 1 38001 map 8 1 38004 map 9 1 38003 map 5 2 38005 map 6 2 38006 map 7 2 38015 map 8 2 38008 map 9 2 38009 map 6 3 38010 map 7 3 38011 map 8 3 38012 map 5 4 38013 map 6 4 38014 map 7 4 38007 map 8 4 38016 map 9 4 38017 map 5 5 38018 map 6 5 38019 map 7 5 38020 map 8 5 38021 map 7 9 11214 map 8 9 11215 map 9 9 11216 map 9 8 11217 map 8 8 11218 map 7 8 11219 map 9 6 11200 map 8 6 11251 map 8 7 11202 map 7 7 11203 map 6 7 38039 map 0 6 11252 map 1 6 11205 map 0 7 11207 map 1 7 11206 map 0 8 11212 map 0 9 11209 map 1 8 11213 map 1 9 11211
+[/map specification]
+[start map]
+9 6
+[/start map]
+[boss map]
+9 0
+[/boss map]
+[map specification]
+map 0 0 11230 map 0 1 11231 map 1 0 11229 map 1 1 11232 map 2 0 11224 map 2 1 11225 map 2 2 11226 map 3 0 11223 map 3 1 11228 map 3 2 11227 map 4 0 11222 map 4 1 11221 map 4 2 11220
+[/map specification]
+[open door even enemy]
+1
+[no fatigue]
+[lost land parameters]
+120000 120000
+[dungeon type]
+lost land
+[monster level rivision]
+lostland
+[recommended level]
+25 86
+[difficulty]
+0
+[movable even boss die]
+1
+[ignore clear effect and sound]
+1
+[no giveup panalty]
+[dont kill mob when boss die]
+1
+[remove dungeon score and rank]
+1
+[clear condition]
+[limit time]
+600 1200
+[/clear condition]
+[warp map condition]
+[source grid pos]
+3 9
+[dest grid pos]
+2 6
+[source grid pos]
+5 9
+[dest grid pos]
+2 8
+[source grid pos]
+8 6
+[dest grid pos]
+1 6
+[source grid pos]
+8 1
+[dest grid pos]
+9 2
+[source grid pos]
+9 2
+[dest grid pos]
+9 1
+[source grid pos]
+0 6
+[dest grid pos]
+8 6
+[source grid pos]
+1 9
+[dest grid pos]
+9 6
+[source grid pos]
+8 5
+[dest grid pos]
+9 1
+[source grid pos]
+2 3
+[dest grid pos]
+1 3
+[source grid pos]
+2 4
+[dest grid pos]
+1 4
+[source grid pos]
+2 5
+[dest grid pos]
+1 5
+[source grid pos]
+3 4
+[dest grid pos]
+1 2
+[source grid pos]
+1 3
+[dest grid pos]
+2 3
+[source grid pos]
+1 4
+[dest grid pos]
+2 4
+[source grid pos]
+1 5
+[dest grid pos]
+2 5
+[source grid pos]
+1 2
+[dest grid pos]
+3 4
+[source grid pos]
+8 7
+[dest grid pos]
+0 9
+[source grid pos]
+0 2
+[dest grid pos]
+1 2
+[source grid pos]
+1 7
+[dest grid pos]
+8 6
+[source grid pos]
+1 6
+[dest grid pos]
+8 6
+[source grid pos]
+0 9
+[dest grid pos]
+8 7
+[source grid pos]
+2 6
+[dest grid pos]
+3 9
+[source grid pos]
+2 8
+[dest grid pos]
+5 9
+[source grid pos]
+9 6
+[dest grid pos]
+9 6
+[source grid pos]
+7 0
+[dest grid pos]
+7 8
+[source grid pos]
+7 0
+[dest grid pos]
+2 9
+[source grid pos]
+7 0
+[dest grid pos]
+6 1
+[source grid pos]
+7 0
+[dest grid pos]
+1 2
+[source grid pos]
+7 0
+[dest grid pos]
+1 1
+[source grid pos]
+7 0
+[dest grid pos]
+6 9
+[source grid pos]
+7 8
+[dest grid pos]
+7 0
+[source grid pos]
+2 9
+[dest grid pos]
+7 0
+[source grid pos]
+6 1
+[dest grid pos]
+7 0
+[source grid pos]
+1 2
+[dest grid pos]
+7 0
+[source grid pos]
+1 1
+[dest grid pos]
+7 0
+[source grid pos]
+6 9
+[dest grid pos]
+7 0
+[source grid pos]
+9 2
+[dest grid pos]
+8 1
+[source grid pos]
+9 1
+[dest grid pos]
+9 2
+[source grid pos]
+8 6
+[dest grid pos]
+0 6
+[source grid pos]
+9 6
+[dest grid pos]
+1 9
+[source grid pos]
+1 2
+[dest grid pos]
+0 2
+[source grid pos]
+8 6
+[dest grid pos]
+1 7
+[source grid pos]
+9 6
+[dest grid pos]
+7 9
+[source grid pos]
+7 9
+[dest grid pos]
+9 6
+[source grid pos]
+6 2
+[dest grid pos]
+7 5
+[source grid pos]
+-1 -1
+[dest grid pos]
+9 6
+[source grid pos]
+-1 -1
+[dest grid pos]
+6 7
+[source grid pos]
+-1 -1
+[dest grid pos]
+5 5
+[source grid pos]
+-1 -1
+[dest grid pos]
+4 5
+[source grid pos]
+-1 -1
+[dest grid pos]
+4 2
+[/warp map condition]
+[mob level charac level replace flag]
+2
+[special passive object item]
+0 -1 16 10092844 770 10092845 770 10092846 770 10092847 770 10092848 770 10092849 1150 10093469 500 10093471 500 10092850 223 10092851 223 10092852 167 10092853 167 10092854 110 10092855 110 10093706 2000 10093456 1000 1 -1 14 10092844 230 10092845 230 10092846 230 10092847 230 10092848 230 10092849 350 10093469 2500 10093471 2500 10093342 400 10093343 400 10093344 400 10093345 400 10093346 400 10093456 1500 2 -1 8 10093342 100 10093343 100 10093344 100 10093345 100 10093346 100 10093456 1000 10093341 500 10093706 3000 3 -1 14 10092850 667 10092851 667 10092852 500 10092853 500 10092854 333 10092855 333 10093342 200 10093343 200 10093344 200 10093345 200 10093346 200 10092856 3000 10093341 1000 10093456 2000 4 -1 14 100321908 25 100321909 25 100300143 25 10092904 100 10092906 100 10092905 100 10092907 100 10092909 100 10092908 100 10092910 100 10092912 100 10092911 100 10092855 5025 10092856 4000 5 -1 8 10093470 3000 10093472 3000 10093342 400 10093343 400 10093344 400 10093345 400 10093346 400 10092856 2000 6 -1 2 10093456 5000 10093341 5000 7 -1 1 10093707 10000 8 -1 2 10093473 500 10093456 5000
+[/special passive object item]
+[limit party count]
+1
+[prohibit practice]
+1
+[summon monster max limit]
+3000
+[enter without fatigue]
+1
+[fever time]
+60 85 10 30 55 75 75 -80
+[/fever time]
+[recommend equipment]
+0 2 0 0 0 0 0 0 0 0
+[/recommend equipment]
+[recommend party]
+> 0 > 0 > 0 > 0 > 0
+[/recommend party]

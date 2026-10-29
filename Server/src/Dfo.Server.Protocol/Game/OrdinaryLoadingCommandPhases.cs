@@ -72,7 +72,20 @@ internal sealed partial class GameMapLoadingCommandHandler
 
         // The direct response belongs to this frozen generation too; it follows the validation above.
         await outbox.RegisterExplicitAsync(connectionId, new([new LoadingCompleteNotification()], []), cancellationToken).ConfigureAwait(false);
+        // A repeated FINISH_LOADING or a later room must not restart the exploration clock.
+        if (restoreEntryWeakness && current!.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration })
+            await outbox.RegisterNotiAsync(connectionId,
+                new Dfo.Server.Protocol.Game.StateSynchronization.DungeonClearTimeLimitMessage(
+                    exploration.FirstLimitSeconds, exploration.SecondLimitSeconds), cancellationToken).ConfigureAwait(false);
         await LoadingMechanismsAsync(session, current!, cancellationToken).ConfigureAwait(false);
+        if (current!.Layout.Mode is DungeonRunMode.LostLand)
+        {
+            // Sending 100 again restarts the native fever clock. Only restore an inactive charge.
+            if (current.LostLandFever is { ActiveUntil: null } fever)
+                await outbox.RegisterNotiAsync(connectionId,
+                    new Dfo.Server.Protocol.Game.StateSynchronization.DungeonFeverGaugeMessage(
+                        fever.Percent), cancellationToken).ConfigureAwait(false);
+        }
         if (current!.Layout.Mode.Capabilities.QuotaFamily is { } quota)
             _ = await LoadingQuotaAsync(session, quota, cancellationToken).ConfigureAwait(false);
         if (restoreEntryWeakness)
@@ -242,5 +255,10 @@ internal sealed partial class GameMapLoadingCommandHandler
             logger.LogDebug("Move map delivered connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} sequence={Sequence} recipients={RecipientCount} actors={ActorCount} floorDrops={FloorDropCount}",
                 context.Connection.ConnectionId, visit.Run.RunId, visit.Run.CurrentRoomMapId, visit.Run.RoomVersion,
                 message.Metadata.Sequence, currentRecipients.Length, visit.Actors.Count, visit.FloorDrops.Count);
+        if (visit.Run.Layout.Mode is DungeonRunMode.LostLand && logger.IsEnabled(LogLevel.Debug))
+            foreach (var piece in FloorPieceValues.Describe(visit.Run, visit.FloorDrops))
+                logger.LogDebug("LostLand floor registered connection={ConnectionId} run={RunId} room={RoomId} version={RoomVersion} first={FirstEntry} number={Number} item={ItemId} count={ItemCount} wireValue={WireValue}",
+                    context.Connection.ConnectionId, visit.Run.RunId, visit.Run.CurrentRoomMapId, visit.Run.RoomVersion,
+                    visit.FirstEntry, piece.Number, piece.Drop.ItemId, piece.Drop.Count, piece.WireValue);
     }
 }

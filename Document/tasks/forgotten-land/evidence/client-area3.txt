@@ -1,0 +1,54 @@
+=== map/town/underfoot/underfoot_gosewer.map ===
+[player number]
+2 8
+[pvp start area]
+174 151 1100 60 297 101 77 149 1073 95 60 166
+[pvp practice start area]
+284 41 74 256 1143 59 57 251
+[type]
+[normal]
+[tile]
+Tile/Underfoot_To_Sewer_Tile00.til Tile/Underfoot_To_Sewer_Tile01.til Tile/Underfoot_To_Sewer_Tile02.til Tile/Underfoot_To_Sewer_Tile03.til Tile/Underfoot_To_Sewer_Tile04.til Tile/Underfoot_To_Sewer_Tile05.til
+[/tile]
+[far sight scroll]
+50
+[middle sight scroll]
+75
+[background animation]
+[ani info]
+[filename]
+Animation/Far.ani
+[layer]
+[distantback]
+[order]
+[below]
+[/ani info]
+[ani info]
+[filename]
+Animation/Mid.ani
+[layer]
+[middleback]
+[order]
+[below]
+[/ani info]
+[/background animation]
+[town movable area]
+1316 -25 50 350 2 2 142 121 30 50 3 1
+[/town movable area]
+[virtual movable area]
+147 146 1189 80 672 179 664 100 147 126 250 100
+[/virtual movable area]
+[sound]
+M_UNDERFOOT AMB_WIND_05
+[/sound]
+[animation]
+Animation/Drift_Stone1.ani [close] 253 315 0 Animation/Drift_Stone3.ani [close] 394 340 0 Animation/WR_banister_L1.ani [close] 799 315 0 Animation/WR_banister_L1.ani [close] 955 315 0 Animation/WR_banister_L2.ani [close] 650 315 0 Animation/WR_banister_L1.ani [close] 1111 315 0 Animation/WR_banister_L1.ani [close] 1267 315 0 Animation/Underfoot_To_Sewer_door.ani [close] 140 178 0 Animation/DJ_Obj.ani [closeback] 878 112 0
+[/animation]
+[scroll animation]
+Animation/Drift_Stone3.ani [middleback] 375 82 0 100 Animation/Drift_Stone2.ani [middleback] 488 139 0 100 Animation/Drift_Stone4.ani [middleback] 611 131 0 100 Animation/Drift_Stone1.ani [middleback] 309 105 0 100 Animation/Drift_Stone3.ani [middleback] 723 97 0 100
+[/scroll animation]
+[NPC]
+8 [left] 949 123 0
+[/NPC]
+[map name]
+PVP无名

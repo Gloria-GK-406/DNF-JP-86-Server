@@ -1,0 +1,15 @@
+{
+  "all_other_rows_preserved": true,
+  "changed": [
+    {
+      "table": "character_daily_counters",
+      "character_id": 8,
+      "period": "2026-10-28",
+      "before": 1,
+      "after": 0
+    }
+  ],
+  "maximum": 1,
+  "remaining": 1,
+  "quick_check": "ok"
+}

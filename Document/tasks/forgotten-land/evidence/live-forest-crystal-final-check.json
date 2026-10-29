@@ -1,0 +1,11 @@
+{
+  "Pid": 44076,
+  "ProcessIdentityVerified": true,
+  "ArtifactHashesVerified": 74,
+  "ActualEnvironmentVerified": true,
+  "Database": "E:\\Project\\DNF\\DNF-JP-86-Server\\Server\\src\\Dfo.Server.Host\\bin\\Release\\net10.0\\Data\\dfo-server.db",
+  "LimitSeconds": 1200,
+  "UnlimitedEntriesForTesting": true,
+  "QuotaReset": false,
+  "CheckedAtUtc": "2026-10-29T11:52:50.3104387Z"
+}

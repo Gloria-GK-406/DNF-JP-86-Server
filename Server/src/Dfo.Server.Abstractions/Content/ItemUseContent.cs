@@ -93,6 +93,7 @@ public sealed record ItemUseRule(
     /// </para>
     /// </remarks>
     public bool SummonsApc { get; init; }
+    public IReadOnlyList<int> AllowedDungeonIds { get; init; } = [];
     public byte? SharedEffectSelector { get; init; }
     public bool IsReadable => Jobs.IsValid && Places.IsValid && !HasUnreadableDeclaration;
 }

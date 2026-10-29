@@ -1,0 +1,2 @@
+HEAD baseline exit: 1
+Current failure diagnostics identical to HEAD sources and catalog: True

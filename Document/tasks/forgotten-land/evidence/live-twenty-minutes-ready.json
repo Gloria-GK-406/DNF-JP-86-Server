@@ -1,0 +1,20 @@
+{
+  "Pid": 37024,
+  "StartFileTimeUtc": 134377228979446697,
+  "Executable": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host-twenty-minutes-20261029\\Dfo.Server.Host.exe",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "Branch": "codex/77-forgotten-land",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 1200,
+  "UnlimitedEntriesForTesting": true,
+  "QuotaReset": false,
+  "UnchangedArtifacts": 73,
+  "CheckedAtUtc": "2026-10-29T04:48:25.2651876Z"
+}

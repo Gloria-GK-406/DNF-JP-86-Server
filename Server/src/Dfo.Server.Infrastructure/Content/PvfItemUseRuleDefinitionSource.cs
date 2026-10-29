@@ -46,6 +46,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         }, optional: true);
         internal static readonly PvfField<IReadOnlyList<string>> UsableJobField = PvfField.Strings("[usable job]", optional: true);
         internal static readonly PvfField<IReadOnlyList<string>> ActionUsablePlaceField = PvfField.Strings("[action usable place]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ActionUsableDungeonField = PvfField.Int32List("[action usable dungeon]", optional: true);
     }
 
     private const string StackableListPath = "stackable/stackable.lst";
@@ -129,6 +130,22 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             unreadable = true;
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
+        var dungeons = RootSectionValues(archive, ref reader, Fields.ActionUsableDungeonField, out var duplicateDungeons, out _);
+        if (action == "[repair coupon]"
+            && RootSectionValues(archive, ref reader, Fields.ActionTypeField, out _, out _) is { Count: not 1 })
+            unreadable = true;
+        IReadOnlyList<int> allowedDungeons = [];
+        if (dungeons is not null)
+        {
+            try
+            {
+                if (duplicateDungeons) throw new InvalidDataException("Duplicate dungeon restriction.");
+                allowedDungeons = Fields.ActionUsableDungeonField.Decode(archive, dungeons, path).ToArray();
+                if (allowedDungeons.Count == 0 || allowedDungeons.Any(id => id <= 0))
+                    throw new InvalidDataException("Invalid dungeon restriction.");
+            }
+            catch (InvalidDataException) { unreadable = true; }
+        }
 
         return new ItemUseRule(
             IsConsumedOnUse: stackableType is null
@@ -141,7 +158,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             HasUnreadableDeclaration: unreadable,
             ExpBonusRate: expBonusRate,
             EffectDurationMilliseconds: Math.Max(0, effectDuration),
-            Action: action) { SummonsApc = summonsApc, SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
+            Action: action) { AllowedDungeonIds = allowedDungeons, SummonsApc = summonsApc, SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
     }
 
     /// <summary>

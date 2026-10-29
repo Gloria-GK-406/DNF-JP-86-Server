@@ -29,9 +29,18 @@ public sealed class EquipmentRepairCompletedHandler(
             || recipient.ConnectionId != receipt.Session.ConnectionId
             || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
-        List<IServerNetworkMessage> messages = [new RepairItemResponse(
+        List<IServerNetworkMessage> messages = [];
+        if (receipt.Coupon is { } coupon)
+        {
+            var source = slotProjection.Project(coupon.Slot);
+            messages.Add(coupon.Remaining is null
+                ? GameInventoryDelivery.ClearedSlotNotification(source.Space, source.Index, notification.PreparedAt)
+                : GameInventoryDelivery.Notification(new(source.Space,
+                    [new InventoryItemState(null, source.Index, coupon.Remaining)], notification.PreparedAt)));
+        }
+        messages.Add(new RepairItemResponse(
             receipt.Slot is { } slot ? slotProjection.Project(slot) : null, receipt.Gold,
-            RepairAllSpace: notification.RepairAllSpace)];
+            RepairAllSpace: notification.RepairAllSpace));
         if (notification.Entitlements is { } entitlements)
             messages.Add(new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt));
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);

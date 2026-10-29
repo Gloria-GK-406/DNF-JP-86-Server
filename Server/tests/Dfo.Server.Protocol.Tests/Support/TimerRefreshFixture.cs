@@ -22,7 +22,8 @@ internal sealed class TimerRefreshFixture : IDisposable
     private readonly SelectedSessionRefreshSource source;
     internal TimerRefreshFixture(SelectedSessionRefreshTopic topic, ISelectedSessionSnapshotQuery directory,
         ISelectedSessionDomainService sessions, IEventService? events, IDailyResetRuleService daily, TimeProvider clock,
-        IGameplayQueue queue, IItemUsageDomainService? items = null, IGameMessageSender? sender = null)
+        IGameplayQueue queue, IItemUsageDomainService? items = null, IGameMessageSender? sender = null,
+        Dfo.Server.Abstractions.World.ILostLandDungeonDomainService? lostLand = null)
     {
         var services = new ServiceCollection().AddLogging();
         services.AddCommandDispatching();
@@ -33,6 +34,7 @@ internal sealed class TimerRefreshFixture : IDisposable
         services.AddSingleton(DispatchProxy.Create<IPremiumServiceDomainService, Empty>());
         services.AddSingleton(items ?? DispatchProxy.Create<IItemUsageDomainService, Empty>());
         services.AddSingleton(DispatchProxy.Create<ICharacterFatigueDomainService, Empty>());
+        services.AddSingleton(lostLand ?? DispatchProxy.Create<Dfo.Server.Abstractions.World.ILostLandDungeonDomainService, Empty>());
         services.AddSingleton<ICommandProjections>(new Projections(events));
         services.AddSingleton<IGameCommandOutbox>(sender is null ? DispatchProxy.Create<IGameCommandOutbox, Empty>() : new GameOutboxFixture(sender));
         services.AddInternalCommandHandler<CaptureSelectedSessionRefreshCommand, SelectedSessionRefreshScan, SelectedSessionRefreshCommandHandler>();
@@ -46,6 +48,7 @@ internal sealed class TimerRefreshFixture : IDisposable
             SelectedSessionRefreshTopic.GoldSilverHorn => typeof(GoldSilverHornQuotaDailyRefreshService),
             SelectedSessionRefreshTopic.ReviveCoin => typeof(ReviveCoinQuotaDailyRefreshService),
             SelectedSessionRefreshTopic.Mirror => typeof(MirrorQuotaDailyRefreshService),
+            SelectedSessionRefreshTopic.LostLand => typeof(LostLandQuotaRefreshService),
             SelectedSessionRefreshTopic.Heras => typeof(Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService),
             SelectedSessionRefreshTopic.Tournament => typeof(Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService),
             SelectedSessionRefreshTopic.ItemUsage => typeof(ItemUsageDailyRefreshService),

@@ -1,0 +1,31 @@
+=== passiveobject/actionobject/map/lostland/treasurebox/action/box_key.act ===
+[MOTION]
+[BASE ANI]
+../Animation/RegenDungeon_key_get01.ani
+[SUB ANI]
+../Animation/RegenDungeon_key_get02.ani 0 1
+[/SUB ANI]
+[/MOTION]
+[TRIGGER]
+[FRAME]
+1 1
+[DO BEHAVIOR]
+[ME]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[DUNGEON SYMBOL CALC]
+treasure key
+[+]
+1
+[/BEHAVIOR]
+[TRIGGER]
+[FRAME]
+2 2
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[DESTROY]
+[/BEHAVIOR]

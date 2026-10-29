@@ -1,0 +1,19 @@
+{
+  "run_id": "ffcf49ba-00c1-4f1b-9c90-8ea0f71590d4",
+  "character_id": 8,
+  "entry_seed": 1119856705,
+  "initial_floor_count": 0,
+  "monster_death_reports": 0,
+  "monster_death_notifications": 0,
+  "registered_death_drops": 0,
+  "registered_room_drops": 0,
+  "pickup_messages": 0,
+  "run_ended": true,
+  "user_report": "First run all blank",
+  "client_image": "result-blank-client.png",
+  "client_image_sha256": "3BFA3DFE9E2B5E5DD8D75BA16357CCF073713772E59DB6B5D36226523600F037",
+  "image_observation": "Three columns of ten unrevealed/empty card faces; no item icons or names visible; EXP 0",
+  "evidence_boundary": "User reports the full result blank; image alone captures one instant. No reward payout semantics inferred.",
+  "entry_log_line": 1024,
+  "exit_log_line": 1092
+}

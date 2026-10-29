@@ -29,6 +29,7 @@ public enum DungeonRunKind : byte
     Heras,
     GoldSilverHorn,
     Couple,
+    LostLand,
 }
 
 /// <summary>
@@ -61,12 +62,17 @@ public abstract record DungeonRunMode
                     or DungeonRunKind.GoldSilverHorn or DungeonRunKind.Couple => kind,
                 DungeonRunKind.Hell or DungeonRunKind.Mirror or DungeonRunKind.Sao or DungeonRunKind.Despair
                     or DungeonRunKind.Tournament or DungeonRunKind.Altar or DungeonRunKind.Guardian
-                    or DungeonRunKind.GiantDragon => throw new ArgumentException(
+                    or DungeonRunKind.GiantDragon or DungeonRunKind.LostLand => throw new ArgumentException(
                         $"{kind} runs carry an entry plan.", nameof(kind)),
             };
         }
 
         public override DungeonRunKind Kind { get; }
+    }
+
+    public sealed record LostLand(LostLandEntryPlan Plan) : DungeonRunMode
+    {
+        public override DungeonRunKind Kind => DungeonRunKind.LostLand;
     }
 
     public sealed record Hell(HellEntryPlan Plan) : DungeonRunMode

@@ -1,0 +1,10 @@
+{
+  "Pid": 5092,
+  "StartFileTimeUtc": 134377530215054501,
+  "ArtifactHashesVerified": 74,
+  "LimitSeconds": 1200,
+  "UnlimitedEntriesForTesting": false,
+  "QuotaReset": false,
+  "RuntimeIsPreRebaseAcceptedCandidate": true,
+  "CheckedAtUtc": "2026-10-29T13:38:23.2935155Z"
+}

@@ -1,0 +1,47 @@
+id 10093341 -> 10093341.stk
+=== stackable/10093341.stk ===
+[name]
+免罪符
+[explain]
+使用后， 追击猎手会消失。 (遗忘之地专用)
+[flavor text]
+今天爷高兴， 就放你一马……  --追击猎手
+[grade]
+8
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[weight]
+20
+[cool time]
+60000
+[icon]
+Item/stackable/consumption.img 1405
+[field image]
+Item/FieldImage.img 28
+[stackable type]
+[throw] 0
+[item group name]
+potion
+[move wav]
+FLASK_TOUCH
+[string data]
+
+[/string data]
+[stack limit]
+100
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[need material]
+10092849 5
+[/need material]
+[int data]
+37278 0 0 450 0 100
+[/int data]

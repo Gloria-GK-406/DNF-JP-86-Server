@@ -1,0 +1,10 @@
+{
+  "character_id": 8,
+  "period": "2026-10-29",
+  "maximum": 1,
+  "remaining": 1,
+  "compared_tables": 113,
+  "startup_changed_tables": [],
+  "player_rows_preserved": true,
+  "quick_check": "ok"
+}

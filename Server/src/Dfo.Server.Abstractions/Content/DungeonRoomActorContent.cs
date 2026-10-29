@@ -71,4 +71,8 @@ public interface IDungeonRoomDropSource
 {
     ValueTask<IReadOnlyList<ObjectDropDefinition>> GetAsync(
         int dungeonId, int mapId, CancellationToken cancellationToken);
+
+    /// <summary>One declared special-object reward pool, without map actions or random draws.</summary>
+    ValueTask<IReadOnlyList<ObjectDropEntry>> GetItemPoolAsync(int dungeonId, int groupId,
+        CancellationToken cancellationToken) => throw new NotSupportedException("Dungeon item pools are unavailable.");
 }

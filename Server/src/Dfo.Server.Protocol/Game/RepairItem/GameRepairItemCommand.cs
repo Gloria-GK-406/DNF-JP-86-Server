@@ -27,6 +27,7 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
     {
         var context = command.Dispatch;
         var message = command.Input;
+        if (message.MaterialSlot >= 0 && GameRequestFreshness.IsStale(message.Metadata)) return false;
         BusinessSlot? slot = message.Slot is { } gameSlot
             ? slotMappings.ToBusinessSlot(gameSlot)
             : null;
@@ -35,10 +36,17 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
         if (!sessions.IsInWorld(session)) return false;
         var automatic = message.AutoRepair == 1 && message.Slot is null
             && message.RepairAllSpace == InventoryContainerType.Main;
+        BusinessSlot? coupon = null;
+        var invalidCoupon = message.MaterialSlot < -1;
+        if (message.MaterialSlot >= 0)
+        {
+            try { coupon = slotMappings.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot)); }
+            catch (InventorySlotMappingException) { invalidCoupon = true; }
+        }
         EquipmentRepairResult result;
-        // Only the verified automatic all-repair shape may bypass the ordinary gold path.
-        if (message.MaterialSlot != -1 || (message.AutoRepair != 0 && !automatic) || message.Reserved != 0
-            || message.QuickRepair != 0)
+        // Coupon use is a single-target operation; it cannot be combined with automatic or quick repair.
+        if (invalidCoupon || coupon is not null && (slot is null || automatic)
+            || (message.AutoRepair != 0 && !automatic) || message.Reserved != 0 || message.QuickRepair != 0)
             result = new(EquipmentRepairRejection.InvalidRequest);
         else if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
@@ -47,11 +55,16 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
             result = await units.WriteAsync(execution, new("RepairItem", []),
                 (_, token) => automatic
                     ? repairs.AutoRepairAsync(session, token)
-                    : repairs.RepairAsync(session, slot, token),
+                    : coupon is { } source
+                        ? repairs.RepairWithCouponAsync(session, slot!.Value, source, token)
+                        : repairs.RepairAsync(session, slot, token),
                 cancellationToken).ConfigureAwait(false);
 
         if (automatic)
             logger.LogInformation("Automatic repair character={CharacterId} result={Result}", session.CharacterId, result.Rejection);
+        if (message.MaterialSlot != -1)
+            logger.LogInformation("Coupon repair character={CharacterId} target={Target} source={Source} result={Result}",
+                session.CharacterId, message.Slot, message.MaterialSlot, result.Rejection);
         if (result.Receipt is { } receipt)
             await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),
                 new EquipmentRepairCompleted(receipt, message.RepairAllSpace, result.Entitlements, result.Usage, clock.GetUtcNow()), cancellationToken)
