@@ -67,7 +67,6 @@ public sealed class SqliteMailboxRepositoryTests
             }
             Assert.True((await fixture.Reopen().Repository.FindAsync(recipient, id, default))!
                 .Attachments[2].Claimed);
-            Assert.Equal(1L, fixture.Scalar($"SELECT received_gold_flag FROM mailbox_recipients WHERE message_id={id}"));
         });
     }
 
@@ -75,6 +74,7 @@ public sealed class SqliteMailboxRepositoryTests
     public async Task OldRowsAreRetainedGoldBecomesClaimableAndUnprovenEquipmentStaysUnsupported()
     {
         using var fixture = new MailboxFixture();
+        fixture.AddLegacyGoldColumns();
         fixture.Execute("""
             INSERT INTO mailbox_messages(message_id,receiver_character_id,sender_name,title,body,gold)
             VALUES(10,27,'old','old-title','old-body',99);
@@ -97,6 +97,7 @@ public sealed class SqliteMailboxRepositoryTests
         Assert.Equal(1L, fixture.Scalar("SELECT COUNT(*) FROM mailbox_attachments WHERE message_id=10 AND asset_kind='gold'"));
         Assert.Equal(12345L, fixture.Scalar("SELECT source_item_uid FROM mailbox_attachments WHERE message_id=10 AND asset_kind='legacy'"));
         Assert.True(await reopened.Repository.HoldsEquipmentAsync(new ItemIdentity(12345), default));
+        Assert.Equal(0L, fixture.LegacyGoldColumnCount);
     }
 
     [Fact]
@@ -105,6 +106,7 @@ public sealed class SqliteMailboxRepositoryTests
         await TestGameplay.RunAsync(async () =>
         {
         using var fixture = new MailboxFixture();
+        fixture.AddLegacyGoldColumns();
         fixture.Execute("""
             INSERT INTO mailbox_messages(message_id,receiver_character_id,gold) VALUES(11,27,50);
             INSERT INTO mailbox_recipients(message_id,character_id,received_gold_flag) VALUES(11,27,1);
@@ -160,7 +162,7 @@ public sealed class SqliteMailboxRepositoryTests
     }
 
     [Fact]
-    public async Task MultipleGoldAttachmentsSetLegacyGoldFlagOnlyAfterAllAreClaimed()
+    public async Task MultipleGoldAttachmentsAreClaimedOneAtATime()
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -182,14 +184,14 @@ public sealed class SqliteMailboxRepositoryTests
                 Assert.True(await fixture.Repository.MarkClaimedAsync(rows[0].Id, default));
                 await lease.CommitAsync(default);
             }
-            Assert.Equal(0L, fixture.Scalar($"SELECT received_gold_flag FROM mailbox_recipients WHERE message_id={id}"));
+            Assert.Equal(1L, fixture.Scalar($"SELECT COUNT(*) FROM mailbox_attachments WHERE message_id={id} AND claimed_flag=0"));
             await using (var lease = fixture.Scope.Begin())
             {
                 await fixture.Repository.AcquireWriteAsync(default);
                 Assert.True(await fixture.Repository.MarkClaimedAsync(rows[1].Id, default));
                 await lease.CommitAsync(default);
             }
-            Assert.Equal(1L, fixture.Scalar($"SELECT received_gold_flag FROM mailbox_recipients WHERE message_id={id}"));
+            Assert.Equal(0L, fixture.Scalar($"SELECT COUNT(*) FROM mailbox_attachments WHERE message_id={id} AND claimed_flag=0"));
         });
     }
 
@@ -219,6 +221,17 @@ public sealed class SqliteMailboxRepositoryTests
             var scope = new DomainTransactionScope();
             return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope), new SqliteItemDomainStore(path), scope));
         }
+
+        /// <summary>Gives the database the message-level gold columns it had before gold attachments.</summary>
+        public void AddLegacyGoldColumns() => Execute("""
+            ALTER TABLE mailbox_messages ADD COLUMN gold INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE mailbox_recipients ADD COLUMN received_gold_flag INTEGER NOT NULL DEFAULT 0;
+            """);
+
+        public long LegacyGoldColumnCount => Scalar("""
+            SELECT (SELECT COUNT(*) FROM pragma_table_info('mailbox_messages') WHERE name='gold')
+                 + (SELECT COUNT(*) FROM pragma_table_info('mailbox_recipients') WHERE name='received_gold_flag')
+            """);
 
         public void Execute(string sql)
         {

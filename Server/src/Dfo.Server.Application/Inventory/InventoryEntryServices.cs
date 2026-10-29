@@ -149,8 +149,7 @@ internal static class InventoryEntryProjection
                 cargoContainer,
                 accountCargoEquipmentLocks,
                 stored.AccountCargoState.SelectionKey,
-                stored.AccountCargoState.Value32,
-                stored.AccountCargoState.StoredItemCount),
+                stored.AccountCargoState.Value32),
             accountVirtualResources);
     }
 

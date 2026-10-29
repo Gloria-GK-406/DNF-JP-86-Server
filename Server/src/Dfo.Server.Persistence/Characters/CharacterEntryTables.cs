@@ -72,7 +72,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         database.ReadAllAsync(
             $"""
             SELECT character_id, slot_index, {Name}, job, grow_type, level, clone_title_item_id,
-                   appearance_blob, created_at
+                   created_at
             FROM characters
             WHERE account_id = @aid AND delete_flag = 0
             ORDER BY slot_index, character_id;
@@ -85,10 +85,7 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 // its range does not fit the signed read, and a character wearing no title has
                 // nothing in it at all.
                 reader.IsDBNull(6) ? 0L : reader.GetInt64(6),
-                // The same blob the entry path reads. The roster screen draws the character, so it
-                // needs the parts, not just the name and level.
-                EntryBlob.Bounded(reader, 7, EntryBlob.Appearance, "appearance", allowNull: true),
-                reader.GetInt32(8)),
+                reader.GetInt32(7)),
             cancellationToken);
 
     public ValueTask<CharacterSummaryRow?> FindBySlotAsync(
@@ -106,12 +103,12 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 parameters.AddWithValue("@aid", accountId.Value);
                 parameters.AddWithValue("@slot", slotIndex);
             },
-            // Neither the title nor the appearance is selected here: this lookup answers "which
-            // character is in that slot", and its callers do not draw anything. Both are empty
-            // rather than absent because the row type is shared with the roster query.
+            // The title is not selected here: this lookup answers "which character is in that
+            // slot", and its callers do not draw anything. It is empty rather than absent because
+            // the row type is shared with the roster query.
             reader => new CharacterSummaryRow(
                 reader.GetInt32(0), reader.GetInt32(1), NameOf(reader, 2),
-                reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0, [],
+                reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), 0,
                 reader.GetInt32(6))
             {
                 TutorialCompleted = reader.GetInt32(12) != 0,
@@ -218,13 +215,12 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
         byte[] nameBytes,
         int job,
         int slotIndex,
-        byte[] appearanceBlob,
         CancellationToken cancellationToken)
     {
         var created = await database.WriteReturningAsync(
             """
-            INSERT INTO characters (account_id, name, name_bytes, job, grow_type, level, slot_index, created_at, appearance_blob)
-            VALUES (@aid, @name, @nameBytes, @job, 0, 1, @slot, unixepoch(), @appearance)
+            INSERT INTO characters (account_id, name, name_bytes, job, grow_type, level, slot_index, created_at)
+            VALUES (@aid, @name, @nameBytes, @job, 0, 1, @slot, unixepoch())
             RETURNING character_id;
             """,
             parameters =>
@@ -234,7 +230,6 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 parameters.AddWithValue("@nameBytes", nameBytes);
                 parameters.AddWithValue("@job", job);
                 parameters.AddWithValue("@slot", slotIndex);
-                parameters.AddWithValue("@appearance", appearanceBlob);
             },
             reader => (object)new CharacterId(reader.GetInt32(0)),
             cancellationToken).ConfigureAwait(false);

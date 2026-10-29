@@ -185,9 +185,7 @@ public sealed class MarriageRelationLedgerTests
 
         var used = await InTx(f, () => TestEffectFootprints.Run(f.Session, cap => Couple(f).UseLovePointAsync(f.Session, coupon, [f.Session.AccountId, peer.AccountId], cap, default)));
         Assert.Equal(0, used.Status); Assert.Equal(1, used.Points);
-        Assert.Equal(0, (await RelationAsync(f, ceremony.RelationId)).LovePoints);
         Assert.Equal(1, await Ledger(f).PointsAsync(ceremony.RelationId, f.Session.CharacterId, default));
-        Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_weddings WHERE phase=1"));
         Assert.Equal(0, (await Query(f).SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
     }
 

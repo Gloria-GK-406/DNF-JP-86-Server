@@ -46,8 +46,8 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var core = ItemCore(1001, 17);
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id,
-                    appearance_blob,user_state,skill_tree_index,manage_level)
-                VALUES(22, 12, 'loaded', 1, 60, 77, X'0102',10,0,13);
+                    user_state,manage_level)
+                VALUES(22, 12, 'loaded', 1, 60, 77,10,13);
                 INSERT INTO character_condition(character_id,stamina,fatigue_penalty,
                     champion_break_key_id,champion_break_mode,champion_break_value,
                     crystal_cube_type,crystal_cube_grade,
@@ -95,11 +95,13 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     disjoint_machine_endurance=4, enchanter_endurance=5 WHERE character_id=22;
                 INSERT INTO character_expert_job_recipes VALUES(22,70);
                 INSERT INTO mailbox_messages(message_id,sender_character_id,sender_name,receiver_character_id,
-                    title,body,gold,mail_type,source_protocol,expire_at)
-                    VALUES(800,77,'sender',22,'title','body',123,4,5,'9999-12-31 23:59:59');
+                    title,body,mail_type,source_protocol,expire_at)
+                    VALUES(800,77,'sender',22,'title','body',4,5,'9999-12-31 23:59:59');
                 INSERT INTO mailbox_recipients(message_id,character_id,read_flag) VALUES(800,22,1);
                 INSERT INTO mailbox_attachments(message_id,ordinal,item_type,item_template_id,item_kind,item_count,
                     item_core,detail_json) VALUES(800,0,2,1001,'equipment',3,@core,'detail');
+                INSERT INTO mailbox_attachments(message_id,ordinal,item_template_id,asset_kind,gold_amount)
+                    VALUES(800,1,0,'gold',123);
                 INSERT INTO character_pvp_missions VALUES(22,0,900,12);
                 """, ("@core", core));
             CharacterDatabaseSchema.Ensure($"Data Source={path}");
@@ -107,7 +109,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var result = await repository.LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);
 
-            Assert.Equal([1, 2], result.Profile.AppearanceBlob);
             Assert.Equal((byte)8, result.Profile.PvpGrade);
             Assert.Equal((byte)9, result.Profile.PvpRatingGrade);
             Assert.Equal((byte)10, result.Profile.UserState);
@@ -349,7 +350,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
     [InlineData("wrong-owner")]
     [InlineData("missing-required")]
     [InlineData("invalid-skill")]
-    [InlineData("oversized-appearance")]
     [InlineData("group-out-of-range")]
     [InlineData("incomplete-schedule")]
     public async Task CharacterEntryState_RejectsInvalidNormalizedState(string invalidCase)
@@ -371,7 +371,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 "wrong-owner" => "UPDATE characters SET account_id=99 WHERE character_id=23;",
                 "missing-required" => "DELETE FROM character_stats WHERE character_id=23;",
                 "invalid-skill" => "INSERT INTO character_skills VALUES(23,'pve',0,0,-1,1,NULL);",
-                "oversized-appearance" => "UPDATE characters SET appearance_blob=zeroblob(16385) WHERE character_id=23;",
                 "group-out-of-range" => "INSERT INTO character_daily_challenges(character_id,group_index,group_id) VALUES(23,9,1);",
                 _ => "INSERT INTO character_daily_schedule_states VALUES(23,0,0,0,0,0);",
             };

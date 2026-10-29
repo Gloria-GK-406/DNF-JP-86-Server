@@ -328,8 +328,7 @@ public sealed record AccountCargoEntryState(
     InventoryContainerState Container,
     IReadOnlyList<InventoryEquipmentLockState> EquipmentLocks,
     ushort SelectionKey,
-    int Value32,
-    ushort StoredItemCount);
+    int Value32);
 
 public sealed record AccountInventoryEntryState(
     AccountId AccountId,

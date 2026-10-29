@@ -143,7 +143,7 @@ public sealed class CreatureIdentityFitsTheWireTests
                 [],
                 [],
                 [],
-                (0, 0, 0, 0, 0, 0, []),
+                (0, 0, 0, 0, 0, []),
                 new CharacterMailboxStorageRecord(0, []),
                 [])).Pets;
 

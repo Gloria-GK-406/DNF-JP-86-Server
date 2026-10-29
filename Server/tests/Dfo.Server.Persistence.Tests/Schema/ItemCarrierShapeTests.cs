@@ -33,7 +33,7 @@ public sealed class ItemCarrierShapeTests
     private static readonly string[] Items =
     [
         "appearance_item_id", "avatar_clear_id", "avatar_color1", "avatar_color2", "avatar_delete_date",
-        "avatar_expire_date", "avatar_jewel_socket", "cargo_character_id",
+        "avatar_expire_date", "avatar_jewel_socket",
         "created_at", "creature_field04", "creature_field_after_value", "creature_mode1_field0a",
         "creature_mode1_field0b", "creature_mode_flag", "creature_progress_value", "creature_tail_flag",
         "creature_text", "item_core", "item_uid", "is_mirror", "mirror_source_uid", "updated_at",
@@ -219,7 +219,6 @@ public sealed class ItemCarrierShapeTests
     [InlineData("avatar_color1")]
     [InlineData("avatar_color2")]
     [InlineData("avatar_delete_date")]
-    [InlineData("cargo_character_id")]
     [InlineData("creature_field04")]
     [InlineData("creature_mode_flag")]
     [InlineData("creature_progress_value")]

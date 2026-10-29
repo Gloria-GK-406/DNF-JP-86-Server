@@ -203,7 +203,7 @@ internal sealed class InventoryEntryAssembly(
             .ConfigureAwait(false);
         if (rows.Count == 0)
         {
-            return new AccountCargoStorageState(accountId, 0, 0, 0);
+            return new AccountCargoStorageState(accountId, 0, 0);
         }
 
         var row = rows[0];
@@ -217,8 +217,7 @@ internal sealed class InventoryEntryAssembly(
         var state = new AccountCargoStorageState(
             new AccountId(row.AccountId),
             RequireUInt16(row.SelectionKey, "account cargo selection key"),
-            row.Value32,
-            RequireUInt16(row.ItemCount, "account cargo item count"));
+            row.Value32);
         return rows.Count > 1
             ? throw new InvalidDataException("Account cargo metadata is duplicated.")
             : state;

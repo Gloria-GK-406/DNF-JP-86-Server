@@ -333,24 +333,14 @@ public sealed class SqliteCharacterLifecycleTests
     }
 
     /// <summary>
-    /// The stored blob is left exactly as it was, and nothing reads it any more.
+    /// A character is drawn in what it wears now, not in what it was created wearing.
     /// </summary>
     /// <remarks>
-    /// <b>Both rosters derive from what is worn now, and this is where the storage side of that is
-    /// checkable.</b> It used to say the two disagreed, because the entry burst's roster frame read
-    /// <c>characters.appearance_blob</c> through the entry-state load while the selection screen
-    /// derived from equipment; the entry frame was moved onto the same derivation afterwards, and
-    /// this remark is corrected rather than left standing.
-    /// <para>
-    /// The column itself is unchanged by any of that. It still holds only what creation wrote --
-    /// creation's own filter, which stops at slot thirteen, and three of a part's eight fields --
-    /// and nothing writes it, removes it, or brings it up to date. What is different is that
-    /// nothing decodes it any more either. Retiring it is a storage decision with a migration
-    /// behind it.
-    /// </para>
+    /// Creation once stored an appearance of its own; the roster frames read worn equipment
+    /// instead, so changing it after creation shows on the selection screen.
     /// </remarks>
     [Fact]
-    public Task TheStoredBlobIsLeftAloneAndNoLongerRead()
+    public Task TheRosterDrawsWhatIsWornAfterCreation()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-character-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -365,27 +355,12 @@ public sealed class SqliteCharacterLifecycleTests
                     InitialEquipment: [new NewCharacterEquipment(12, 27600, 45, EquipmentKind)]),
                 CancellationToken.None);
 
-            // Put something else on afterwards. The selection screen follows it; the column does
-            // not, and that is what the two paragraphs above are about.
+            // Put something else on afterwards; the selection screen follows it.
             await Wear(side, character, slot: 0, itemId: 413560000);
 
             var drawn = Drawn((await side.PerCall.ListByAccountWithAppearanceAsync(
                 Account, CancellationToken.None)).Single());
             Assert.Equal([0, 12], drawn.Select(value => (int)value.Slot));
-
-            var stored = (await new CharacterSide(databasePath)
-                .EntryState(new GoldLimitRuleService())
-                .LoadAsync(Account, character, CancellationToken.None)).Profile.AppearanceBlob;
-
-            // One count byte and one part: slot twelve, item 27600 as 0x6BD0, an expansion field
-            // declaring its own four, and fourteen zero bytes creation never fills in.
-            Assert.Equal(
-                [
-                    0x01,
-                    0x0C, 0xD0, 0x6B, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                ],
-                stored);
         });
     }
 

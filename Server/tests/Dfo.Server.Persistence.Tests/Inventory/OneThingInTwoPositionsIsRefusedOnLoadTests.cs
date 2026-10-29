@@ -61,8 +61,8 @@ public sealed class OneThingInTwoPositionsIsRefusedOnLoadTests
         await WithASeededCharacterAsync(async (path, side) =>
         {
             await ExecuteAsync(path, $"""
-                INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
-                VALUES({Account},1,2,3);
+                INSERT INTO account_cargo_state(account_id,selection_key,value32)
+                VALUES({Account},1,2);
                 """);
             var thing = await InsertWorldRowAsync(path, itemKind: 1, itemId: 2600, value: 5);
             await NameAsync(path, "account", Account, listType: 12, slot: 5, kind: "template",
@@ -110,8 +110,8 @@ public sealed class OneThingInTwoPositionsIsRefusedOnLoadTests
         await WithASeededCharacterAsync(async (path, side) =>
         {
             await ExecuteAsync(path, $"""
-                INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
-                VALUES({Account},1,2,3);
+                INSERT INTO account_cargo_state(account_id,selection_key,value32)
+                VALUES({Account},1,2);
                 """);
             var first = await InsertWorldRowAsync(path, itemKind: 1, itemId: 2001, value: 11);
             var second = await InsertWorldRowAsync(path, itemKind: 1, itemId: 2002, value: 22);

@@ -208,7 +208,7 @@ internal sealed class CharacterEntryAssembly(
 
         return new CharacterProfileStorageRecord(
             checked((byte)row.Job), checked((byte)row.Level),
-            checked((uint)row.CloneTitleItemId), row.Appearance,
+            checked((uint)row.CloneTitleItemId),
             conditionState, settingsState, pvpState, expertJobState, statsState, guildState,
             projectedTree, row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel,
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
@@ -463,13 +463,10 @@ internal sealed class CharacterEntryAssembly(
         var workshop = await expertJob.FindAsync(characterId, cancellationToken)
                 .ConfigureAwait(false)
             ?? throw new InvalidDataException("Required character state is unavailable.");
-        // Read as a 32-bit value here as it always was, so an out-of-range experience still
-        // fails rather than being silently truncated.
-        var expert = (Type: workshop.ExpertJobType,
-            Experience: checked((int)workshop.ExpertJobExperience));
+        // The expert job's experience is the public profile's; RequireProfileInRange checks it.
         var recipes = await expertRecipes.ReadAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
-        if (expert.Type is < 0 or > byte.MaxValue || expert.Experience < 0
+        if (workshop.ExpertJobType is < 0 or > byte.MaxValue
             || workshop.GiveUpCount is < 0 or > ushort.MaxValue
             || workshop.DisjointMachineGrade < 0 || workshop.DisjointMachineEndurance < 0
             || workshop.EnchanterEndurance < 0
@@ -493,7 +490,7 @@ internal sealed class CharacterEntryAssembly(
 
         return new CharacterFeatureStorageRecord(
             pets, books, completed, collection,
-            (expert.Type, expert.Experience, workshop.GiveUpCount, workshop.DisjointMachineGrade,
+            (workshop.ExpertJobType, workshop.GiveUpCount, workshop.DisjointMachineGrade,
                 workshop.DisjointMachineEndurance, workshop.EnchanterEndurance, recipes),
             inbox, missions);
     }

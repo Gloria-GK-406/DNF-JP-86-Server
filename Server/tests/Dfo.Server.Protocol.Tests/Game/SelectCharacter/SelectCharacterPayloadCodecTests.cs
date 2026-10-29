@@ -686,7 +686,8 @@ public sealed class SelectCharacterPayloadCodecTests
                     INSERT INTO character_pvp(character_id) VALUES(22);
                     INSERT INTO character_settings(character_id) VALUES(22);
                     INSERT INTO character_expert_job(character_id) VALUES(22);
-                    UPDATE characters SET manage_level=8, skill_tree_index=0 WHERE character_id=22;
+                    UPDATE characters SET manage_level=8 WHERE character_id=22;
+                    INSERT INTO character_skill_builds VALUES(22,0,1),(22,1,1);
                     INSERT INTO character_invisible_flags(character_id,slot_index,flag_value)
                     VALUES(22,13502,1);
                     -- Two collect-box rows because the entry batch sends two box frames. The
@@ -920,7 +921,7 @@ internal static class SelectCharacterPayloadTestData
             new AccountInventoryEntryState(accountId,
                 new AccountCargoEntryState(accountId,
                     new InventoryContainerState(InventoryContainerType.AccountCargo, 0, []),
-                    [], 0, 0, 0), []),
+                    [], 0, 0), []),
             new AccountEntryState(accountId, null!,
                 new AccountWalletEntryState(1234, 2, 3, 4),
                 new AccountEntitlementEntryState(
@@ -988,7 +989,7 @@ internal static class SelectCharacterPayloadTestData
         var features = new CharacterFeaturesEntryState(
             [new CharacterPetRuntimeState(44, 1, 1, 2, 3, 4, 5, [0x50], 6)],
             collections,
-            new CharacterExpertJobEntryState(1, 100, 2, 0, 0, 300, [80],
+            new CharacterExpertJobEntryState(1, 2, 0, 0, 300, [80],
                 new CharacterExpertProtocolState([4, 5], 6)),
             new CharacterMailboxEntryState(2,
                 [new CharacterMailboxMessageEntryState(
@@ -1005,7 +1006,6 @@ internal static class SelectCharacterPayloadTestData
                 derivedStats,
                 new CharacterGuildStandingStorageRecord(0, 0),
                 extras,
-                new CharacterAppearanceCompatibilityState(1, [0]),
                 4,
                 5,
                 new CharacterPublicIdentityEntryState(6, 7, 8)),

@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Transactions;
-using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -56,59 +55,6 @@ internal sealed class CharacterRosterService(
     private const int ReviveCoinSlot = 1;
     private const int ReviveCoinItemId = 1;
 
-    /// <summary>The appearance a character is created wearing.</summary>
-    /// <remarks>
-    /// Three parts -- <c>count(1)</c> then <c>slot(1), displayItem(i32), expansionLength(i32=4),
-    /// expansion(4), state(1), linkItem(i32), enchant(u32), flag(1)</c> per part -- shaped from a
-    /// working A21 session's character.
-    ///
-    /// What it draws is the equipment the character is created wearing, so it is built from the
-    /// same grants rather than held as a constant. It was a constant until the archive was read
-    /// properly: an earlier note here recorded that no per-job creation set could be found and
-    /// that starting gear must therefore be server data. That was wrong. Every <c>.chr</c> carries
-    /// <c>[create equipment list]</c>, and the constant that stood in for it was transcribed from
-    /// a session whose character was a different job, so every character made here was drawn
-    /// holding that job's weapon.
-    ///
-    /// An earlier note also recorded a belief that an empty blob is what makes the A21 client fail
-    /// <c>InitGraphicSystem</c> and terminate itself while building the town. That belief did not
-    /// survive retesting: with everything else as it is now, a character whose blob is NULL enters
-    /// the world just as well. What actually triggers that failure is unresolved; see
-    /// protocol/patterns/world-entry.md.
-    /// </remarks>
-    private static byte[] Appearance(IReadOnlyList<NewCharacterEquipment> equipment)
-    {
-        var drawn = equipment.Where(piece => piece.SlotIndex <= LastAppearanceSlot).ToArray();
-        var blob = new byte[1 + (AppearancePartLength * drawn.Length)];
-        blob[0] = checked((byte)drawn.Length);
-        for (var index = 0; index < drawn.Length; index++)
-        {
-            var part = blob.AsSpan(1 + (index * AppearancePartLength));
-            part[0] = drawn[index].SlotIndex;
-            BinaryPrimitives.WriteInt32LittleEndian(part[1..], drawn[index].ItemId);
-            BinaryPrimitives.WriteInt32LittleEndian(part[5..], AppearanceExpansionLength);
-        }
-
-        return blob;
-    }
-
-    /// <summary>The last equipment slot the roster appearance draws.</summary>
-    /// <remarks>
-    /// Zero through thirteen: the twelve costume-bar slots, the weapon and the title. Armour is
-    /// worn but not drawn here -- a working A21 session's freshly made character carries three
-    /// pieces and sends one appearance part, the weapon. Sending the armour too makes the frame
-    /// forty-six bytes longer than that session's.
-    /// </remarks>
-    private const byte LastAppearanceSlot = 13;
-
-    /// <summary>One part of the appearance blob, in bytes.</summary>
-    private const int AppearancePartLength = 23;
-
-    /// <summary>
-    /// The length each part declares for its own expansion field, which is four zero bytes.
-    /// </summary>
-    private const int AppearanceExpansionLength = 4;
-
     /// <summary>The account's characters, with nothing worked out about how they look.</summary>
     /// <remarks>
     /// One read, and every summary carries a null appearance. This is what the four call sites that
@@ -140,23 +86,14 @@ internal sealed class CharacterRosterService(
 
     /// <summary>The account's characters, each drawn wearing what it is wearing.</summary>
     /// <remarks>
-    /// Two reads, and the second is the whole of what makes the character-selection screen right.
-    /// The appearance used to be decoded out of <c>characters.appearance_blob</c>, which is written
-    /// once when a character is created and by nothing afterwards -- so a player who dressed a
-    /// character and came back to that screen was drawn the character they made, not the character
-    /// they have. Observed live on 2026-09-08.
+    /// Two reads, and the second is the whole of what makes the character-selection screen right:
+    /// a character is drawn in what it wears now, so a player who dressed a character and came back
+    /// to that screen sees the character they have, not the one they made.
     /// <para>
     /// What is drawn is asked of <see cref="DrawnAppearance"/>, which is the same answer the
     /// in-world frame writes. <b>The entry burst's roster frame asks this listing too</b>, so the
     /// two screens agree: <c>SelectCharacterPreparationService.BuildRosterEntryAsync</c> takes the
-    /// appearance off these summaries rather than decoding the stored blob. They disagreed between
-    /// <c>35aaedf3</c> and the change that fixed it, and that gap is why this paragraph exists.
-    /// <para>
-    /// The blob is neither written nor removed by any of this. It is still written once at
-    /// creation and still loaded with the entry state; what changed is that nothing decodes it any
-    /// more. Retiring the column is a storage decision with a migration behind it and belongs to
-    /// whoever takes that on.
-    /// </para>
+    /// appearance off these summaries.
     /// </para>
     /// <para>
     /// A character wearing nothing has no rows in the second read and is drawn wearing nothing,
@@ -260,7 +197,7 @@ internal sealed class CharacterRosterService(
         var equipment = spec.InitialEquipment ?? [];
         var characterId = await characters.InsertAsync(
             spec.AccountId, DecodeForDisplay(spec.Name), spec.Name, spec.Job, spec.SlotIndex,
-            Appearance(equipment), cancellationToken).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
 
         // Both pages, and the second is a copy of the first. A character owns two skill trees from
         // the moment it exists; the second stays locked until it is bought, and while it is locked

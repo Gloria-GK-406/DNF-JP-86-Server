@@ -49,6 +49,8 @@ internal static class SharedMaterialMigration
 
     private static List<(int Account, int Slot, int Count)> ReadBalances(SqliteConnection connection, SqliteTransaction transaction)
     {
+        // A database built without the balance columns has no balances to move.
+        if (!RetiredColumnMigration.IsPresent(connection, transaction, "accounts", "cube_black")) return [];
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """

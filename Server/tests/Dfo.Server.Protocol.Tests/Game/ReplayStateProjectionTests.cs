@@ -196,13 +196,11 @@ public sealed class ReplayStateProjectionTests
         source.CharacterEntry.Features.Pets[0].CreatureText[0] = 99;
         avatar.JewelSocket[0] = 99; extras[0] = 99; combo[0] = 99;
         source.Character.Identity.Name[0] = 99;
-        source.CharacterEntry.Public.Appearance.EncodedEntries[0] = 99;
         Assert.Equal(0x50, pets[0].ToState().CreatureText[0]);
         Assert.Equal(0, Avatar(inventory).JewelSocket[0]);
         Assert.Equal(3, skills.ToState().Pages[0].Skills[0].ExtraValues[0]);
         Assert.Equal(1, skills.ToState().DarkKnightCombos![0].EncodedBody[0]);
         Assert.Equal(0x41, character.Character().Identity.Name[0]);
-        Assert.Equal(0, character.Public().Appearance.EncodedEntries[0]);
         // Adapters expose legacy mutable arrays, but mutating them cannot change a later replay.
         pets[0].ToState().CreatureText[0] = 77; Avatar(inventory).JewelSocket[0] = 77;
         skills.ToState().DarkKnightCombos![0].EncodedBody[0] = 77;

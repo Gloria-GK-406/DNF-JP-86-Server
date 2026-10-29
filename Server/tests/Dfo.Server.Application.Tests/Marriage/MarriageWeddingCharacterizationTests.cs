@@ -140,8 +140,8 @@ public sealed class MarriageWeddingCharacterizationTests
         w.Clock.Now = room.ReadyUntil;
         var result = (await InTx(f, () => Venue(f).AdvanceAsync(ceremony.Id, default)))!;
         Assert.Equal(MarriageWeddingPhase.Completed, result.Wedding.Phase);
-        Assert.Equal(31_500, f.Scalar("SELECT gold FROM mailbox_messages WHERE title='婚礼礼金' AND receiver_character_id=71"));
-        Assert.Equal(31_500, f.Scalar("SELECT gold FROM mailbox_messages WHERE title='婚礼礼金' AND receiver_character_id=72"));
+        Assert.Equal(31_500, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼礼金' AND receiver_character_id=71"));
+        Assert.Equal(31_500, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼礼金' AND receiver_character_id=72"));
         Assert.Equal(2, f.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE title='婚礼礼金'"));
         Assert.Equal(
             new[]
@@ -177,9 +177,9 @@ public sealed class MarriageWeddingCharacterizationTests
         Assert.Equal(MarriageWeddingPhase.Cancelled, result.Wedding.Phase);
         Assert.Null(result.Wedding.CompletedAt);
         Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_ceremonies WHERE state=3 AND response=2"));
-        Assert.Equal(500_000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE title='婚礼退款' AND receiver_character_id=71"));
-        Assert.Equal(10_000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE title='婚礼退款' AND receiver_character_id=73"));
-        Assert.Equal(20_001, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE title='婚礼退款' AND receiver_character_id=74"));
+        Assert.Equal(500_000, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼退款' AND receiver_character_id=71"));
+        Assert.Equal(10_000, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼退款' AND receiver_character_id=73"));
+        Assert.Equal(20_001, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼退款' AND receiver_character_id=74"));
         Assert.Equal(3, f.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE title='婚礼退款'"));
         foreach (var character in new[] { 71, 72, 73 })
         {

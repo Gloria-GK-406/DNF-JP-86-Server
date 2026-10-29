@@ -571,7 +571,6 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoState.AccountId.Value = 41
         AccountCargoState.SelectionKey = 6001
         AccountCargoState.Value32 = 6002
-        AccountCargoState.StoredItemCount = 6003
         AccountVirtualResources[0].SlotIndex = 354
         AccountVirtualResources[0].ItemId = 3033
         AccountVirtualResources[0].Value = 11
@@ -636,8 +635,8 @@ public sealed class InventoryLoadCharacterizationTests
             VALUES({Character},9001,9101,9201),
                   ({Character},9002,9102,9202);
 
-            INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
-            VALUES({Account},6001,6002,6003);
+            INSERT INTO account_cargo_state(account_id,selection_key,value32)
+            VALUES({Account},6001,6002);
             """);
 
         foreach (var (slot, count) in new[] { (0, 11), (1, 12), (3, 14), (4, 15), (5, 16) })
@@ -711,8 +710,8 @@ public sealed class InventoryLoadCharacterizationTests
     private static Task InsertCargoAvatarAsync(
         string path, int slot, int from, int itemId, int avatarUid) =>
         ExecuteAsync(path, $"""
-            INSERT INTO items(cargo_character_id,item_core)
-            VALUES({Character},{Core(from, 8, itemId, avatarUid)});
+            INSERT INTO items(item_core)
+            VALUES({Core(from, 8, itemId, avatarUid)});
             INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
             VALUES('account',{Account},12,{slot},'world',last_insert_rowid(),
               last_insert_rowid(),1);
@@ -721,8 +720,8 @@ public sealed class InventoryLoadCharacterizationTests
     private static Task InsertCargoItemAsync(
         string path, int slot, int from, int itemId, int value) =>
         ExecuteAsync(path, $"""
-            INSERT INTO items(cargo_character_id,item_core)
-            VALUES({Character},{Core(from, 1, itemId, value)});
+            INSERT INTO items(item_core)
+            VALUES({Core(from, 1, itemId, value)});
             INSERT INTO item_slots(owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
             VALUES('account',{Account},12,{slot},'world',last_insert_rowid(),
               last_insert_rowid(),1);

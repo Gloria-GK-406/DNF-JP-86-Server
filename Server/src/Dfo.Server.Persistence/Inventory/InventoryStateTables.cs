@@ -56,95 +56,21 @@ internal sealed class SqliteAccountCargoStateTable(SqliteDatabase database)
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT account_id, selection_key, value32, item_count
+            SELECT account_id, selection_key, value32
             FROM account_cargo_state
             WHERE account_id = @accountId
             LIMIT 2;
             """,
             parameters => parameters.AddWithValue("@accountId", accountId.Value),
             reader => new AccountCargoStateRow(
-                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
+                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
             cancellationToken);
-
-    /// <remarks>
-    /// One statement: the upsert adds to the stored value and returns it, so nothing is read into
-    /// the server and written back. Clamped at zero and at the 32-bit ceiling by the statement
-    /// itself -- the wire field is a signed 32-bit integer and a total that wrapped would show the
-    /// player a negative figure on the account cargo.
-    /// </remarks>
-    public async ValueTask<int> AddValue32Async(
-        AccountId accountId, int amount, CancellationToken cancellationToken)
-    {
-        var rows = await database.ReadAllAsync(
-            """
-            INSERT INTO account_cargo_state (account_id, value32)
-            VALUES (@accountId, MAX(0, MIN(@ceiling, @amount)))
-            ON CONFLICT(account_id) DO UPDATE SET
-                value32 = MAX(0, MIN(@ceiling, value32 + @amount)),
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING value32;
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@accountId", accountId.Value);
-                parameters.AddWithValue("@amount", amount);
-                parameters.AddWithValue("@ceiling", int.MaxValue);
-            },
-            reader => reader.GetInt32(0),
-            cancellationToken).ConfigureAwait(false);
-
-        return rows.Count > 0 ? rows[0] : 0;
-    }
-
-    /// <remarks>
-    /// One statement again, and for a second reason on top of the first: the condition that says
-    /// the account can pay and the subtraction that makes it pay are the same statement, so two
-    /// charges answered at once cannot both read a total that only covers one of them.
-    /// <para>
-    /// <b>Not the addition with a negative amount.</b> That one clamps at zero, so an account
-    /// short of the price would be emptied and answer with a total, which a caller cannot tell
-    /// from a charge that went through. Here the row is only touched when
-    /// <c>value32 &gt;= @amount</c> holds, so a refusal writes nothing at all and the stored gold
-    /// is left where it was.
-    /// </para>
-    /// <para>
-    /// No row matched means one of two things -- the account is short, or it has no row at all --
-    /// and both are the same answer for any real price: an account with no row carries nothing.
-    /// The single exception is a take of zero, which every cargo including an unopened one can
-    /// afford, so it answers with the zero such an account carries rather than opening it a row
-    /// to say the same thing.
-    /// </para>
-    /// </remarks>
-    public async ValueTask<int?> TryTakeValue32Async(
-        AccountId accountId, int amount, CancellationToken cancellationToken)
-    {
-        var rows = await database.ReadAllAsync(
-            """
-            UPDATE account_cargo_state SET
-                value32 = value32 - @amount,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE account_id = @accountId AND value32 >= @amount
-            RETURNING value32;
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@accountId", accountId.Value);
-                parameters.AddWithValue("@amount", amount);
-            },
-            reader => reader.GetInt32(0),
-            cancellationToken).ConfigureAwait(false);
-
-        if (rows.Count > 0)
-            return rows[0];
-
-        return amount == 0 ? 0 : null;
-    }
 }
 
 /// <summary>The <c>character_stats.carried_gold</c> column.</summary>
 /// <remarks>
-/// Both directions are one statement, for the reason the account cargo's are: two changes answered
-/// at once must not each read the same figure and each write their own sum. Nothing serialises them
+/// Both directions are one statement: two changes answered at once must not each read the same
+/// figure and each write their own sum. Nothing serialises them
 /// -- the per-character execution gate this server declares has no callers -- and the item store,
 /// being a unit of work, offers only read-modify-write. So the guard lives in the statement.
 /// <para>

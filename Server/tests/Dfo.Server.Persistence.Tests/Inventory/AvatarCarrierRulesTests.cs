@@ -106,10 +106,10 @@ public sealed class AvatarCarrierRulesTests
         await WithASeededCharacterAsync(async (path, side) =>
         {
             await ExecuteAsync(path, $"""
-                INSERT INTO account_cargo_state(account_id,selection_key,value32,item_count)
-                VALUES({Account},1,2,3);
-                INSERT INTO items(cargo_character_id,item_core)
-                VALUES({Character},{Core(8, 2700, 5151)});
+                INSERT INTO account_cargo_state(account_id,selection_key,value32)
+                VALUES({Account},1,2);
+                INSERT INTO items(item_core)
+                VALUES({Core(8, 2700, 5151)});
                 INSERT INTO item_slots(
                     owner_scope,owner_id,list_type,slot_index,kind,id,core_uid,count)
                 VALUES('account',{Account},12,5,'world',last_insert_rowid(),

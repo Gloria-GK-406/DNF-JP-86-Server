@@ -132,7 +132,7 @@ internal sealed class SqliteAccountCargoItemTable(SqliteDatabase database) : IAc
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             """
-            SELECT held.item_uid, place.owner_id, held.cargo_character_id,
+            SELECT held.item_uid, place.owner_id,
                    place.list_type, place.slot_index, held.item_core
             FROM item_slots place
             JOIN items held ON held.item_uid = place.core_uid
@@ -144,11 +144,10 @@ internal sealed class SqliteAccountCargoItemTable(SqliteDatabase database) : IAc
             reader => new AccountCargoItemRow(
                 reader.GetInt64(0),
                 reader.GetInt32(1),
-                reader.IsDBNull(2) ? null : reader.GetInt32(2),
+                reader.GetInt32(2),
                 reader.GetInt32(3),
-                reader.GetInt32(4),
                 InventoryItemCore.Decode(
-                    SqliteCharacterItemTable.EntryCore(reader, 5, reader.GetInt64(0)))),
+                    SqliteCharacterItemTable.EntryCore(reader, 4, reader.GetInt64(0)))),
             cancellationToken);
 }
 

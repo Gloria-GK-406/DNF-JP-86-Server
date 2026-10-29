@@ -35,7 +35,6 @@ internal sealed class CharacterProfileEntryProjection : ICharacterProfileEntryPr
                     storage.Dimensions,
                     storage.DimensionFlags,
                     []),
-                new CharacterAppearanceCompatibilityState(1, [.. storage.AppearanceBlob]),
                 storage.Settings.UserStateBits,
                 storage.CloneTitleItemId,
                 new CharacterPublicIdentityEntryState(
@@ -195,7 +194,6 @@ internal sealed class CharacterFeatureEntryProjection : ICharacterFeatureEntryPr
                 boxes),
             new CharacterExpertJobEntryState(
                 checked((byte)storage.ExpertJob.ProfessionType),
-                storage.ExpertJob.Experience,
                 checked((ushort)storage.ExpertJob.GiveupCount),
                 storage.ExpertJob.DisjointMachineGrade,
                 storage.ExpertJob.DisjointMachineEndurance,

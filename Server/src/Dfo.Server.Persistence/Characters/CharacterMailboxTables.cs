@@ -41,7 +41,7 @@ internal sealed class SqliteMailboxMessageTable(SqliteDatabase database) : IMail
         database.ReadAllAsync(
             """
             SELECT message_id, sender_character_id, sender_name, mail_type,
-                   source_protocol, title, body, gold,
+                   source_protocol, title, body,
                    CASE WHEN unlimited_flag!=0 OR expire_at >= '9999-01-01 00:00:00' THEN 0
                         ELSE MIN(2147483647, MAX(0, CAST(strftime('%s',expire_at) AS INTEGER)-CAST(strftime('%s','now') AS INTEGER))) END,
                    CAST(strftime('%s',created_at) AS INTEGER),
@@ -61,8 +61,8 @@ internal sealed class SqliteMailboxMessageTable(SqliteDatabase database) : IMail
             },
             reader => new MailboxMessageRow(
                 reader.GetInt64(0), reader.GetInt32(1), reader.GetString(2), reader.GetInt32(3),
-                reader.GetInt32(4), reader.GetString(5), reader.GetString(6), reader.GetInt32(7),
-                reader.GetInt32(8), reader.GetInt32(9), reader.GetInt32(10) != 0),
+                reader.GetInt32(4), reader.GetString(5), reader.GetString(6),
+                reader.GetInt32(7), reader.GetInt32(8), reader.GetInt32(9) != 0),
             cancellationToken);
 }
 

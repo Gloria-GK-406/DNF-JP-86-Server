@@ -124,7 +124,7 @@ public sealed class CharacterEntryInventoryTests
                 accountId,
                 characterId,
                 [cargo],
-                new AccountCargoStorageState(accountId, 16, 1234, 1),
+                new AccountCargoStorageState(accountId, 16, 1234),
                 [new InventoryRuntimeValueState(356, 3035, 99)],
                 [
                     new InventoryEquipmentLockStorageRecord(
@@ -174,7 +174,6 @@ public sealed class CharacterEntryInventoryTests
             accountResult.Cargo.EquipmentLocks);
         Assert.Equal((ushort)16, accountResult.Cargo.SelectionKey);
         Assert.Equal(1234, accountResult.Cargo.Value32);
-        Assert.Equal((ushort)1, accountResult.Cargo.StoredItemCount);
         Assert.Equal(
             new InventoryRuntimeValueState(356, 3035, 99),
             Assert.Single(accountResult.VirtualResources));
@@ -640,7 +639,6 @@ public sealed class CharacterEntryInventoryTests
                 new InventoryContainerState(InventoryContainerType.AccountCargo, 0, []),
                 [],
                 0,
-                0,
                 0),
             []));
 
@@ -654,7 +652,7 @@ public sealed class CharacterEntryInventoryTests
             new CharacterDerivedStatsStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
             new CharacterGuildStandingStorageRecord(0, 0),
             new CharacterEntryExtrasState(-1, 0, 0, 0, 0, 0, [], (0, 0, 0, 0), []),
-            new CharacterAppearanceCompatibilityState(1, []), 0, 0),
+            0, 0),
         new CharacterSettingsEntryState([], [], 0),
         new CharacterSkillsEntryState(
             [], [], new CharacterSkillPointBasisState(0, 0), null, null),
@@ -664,7 +662,7 @@ public sealed class CharacterEntryInventoryTests
         new CharacterFeaturesEntryState(
             [],
             new CharacterCollectionsEntryState([], [], []),
-            new CharacterExpertJobEntryState(0, 0, 0, 0, 0, 0, []),
+            new CharacterExpertJobEntryState(0, 0, 0, 0, 0, []),
             new CharacterMailboxEntryState(0, []),
             []));
 

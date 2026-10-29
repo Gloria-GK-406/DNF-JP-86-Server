@@ -194,8 +194,8 @@ public sealed class SkillGrowthProtocolCommandFlowTests(ITestOutputHelper output
             s.AddSingleton<ICommandWorkUnits>(p => new UnitProbe((ICommandWorkUnits)(units.ImplementationInstance ?? units.ImplementationFactory?.Invoke(p) ?? ActivatorUtilities.CreateInstance(p, units.ImplementationType!)), trace, p, protocol));
         });
         f.SetLevel(protocol == 5 ? (byte)1 : (byte)20);
-        f.Sql("UPDATE characters SET job=12,bonus_sp=5,bonus_tp=3,skill_tree_index=-1; INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',0,5,1,2,X'0908'),(1,'pve',1,15,1,1,X'07'); INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1)");
-        if (protocol == 4) f.Sql("UPDATE characters SET skill_tree_index=0 WHERE character_id=1");
+        f.Sql("UPDATE characters SET job=12,bonus_sp=5,bonus_tp=3; INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',0,5,1,2,X'0908'),(1,'pve',1,15,1,1,X'07'); INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1)");
+        if (protocol == 4) f.Sql("INSERT INTO character_skill_builds VALUES(1,0,1),(1,1,1)");
         if (protocol == 1) await f.Seed(5, Book, 2);
         if (protocol == 2) await f.Seed(5, Ticket, 2);
         if (protocol == 5) f.InTransaction(() => f.Services.GetRequiredService<IDungeonRunDomainService>().Begin(f.Session.CharacterId,

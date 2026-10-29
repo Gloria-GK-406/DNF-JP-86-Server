@@ -85,7 +85,6 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Equal((ushort)48, Assert.Single(characterResult.CharacterContainerParameters).Value);
             Assert.Equal((ushort)16, accountResult.AccountCargoState.SelectionKey);
             Assert.Equal(3456, accountResult.AccountCargoState.Value32);
-            Assert.Equal((ushort)1, accountResult.AccountCargoState.StoredItemCount);
             Assert.Equal(
                 [
                     new InventoryRuntimeValueState(356, 3035, 99),
@@ -175,7 +174,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Empty(characterResult.EquipmentLocks);
             Assert.Empty(accountResult.EquipmentLocks);
             Assert.Empty(characterResult.CharacterRentals);
-            Assert.Equal(new AccountCargoStorageState(new AccountId(12), 0, 0, 0), accountResult.AccountCargoState);
+            Assert.Equal(new AccountCargoStorageState(new AccountId(12), 0, 0), accountResult.AccountCargoState);
             Assert.Equal(new InventoryGoldLimitState(0, 0), characterResult.GoldLimits);
         }
         finally

@@ -126,7 +126,6 @@ public sealed class ReplayCharacterState
         Pvp = state.Pvp with { Results = state.Pvp.Results.ToImmutableArray() },
         Extras = state.Extras with
         { Dimensions = state.Extras.Dimensions.ToImmutableArray(), SpecialRewardQuestIds = state.Extras.SpecialRewardQuestIds.ToImmutableArray() },
-        Appearance = state.Appearance with { EncodedEntries = state.Appearance.EncodedEntries.ToArray() },
         Display = state.Display is { } display ? display with { Parts = display.Parts.Select(
             part => part with { ExpansionData = part.ExpansionData.ToArray() }).ToImmutableArray() } : null,
     };
