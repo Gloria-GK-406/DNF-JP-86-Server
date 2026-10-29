@@ -48,7 +48,7 @@ public sealed record TowerSettlementReceipt(ImmutableArray<TowerMemberSettlement
 public sealed record TowerCompletion(TowerEndReason Reason, int CompletedLevels, int RewardLevel, bool Settled,
     DateTimeOffset CompletedAt, TowerSettlementReceipt? Receipt = null);
 public sealed record IllusionTowerSnapshot(Guid RunId, int DungeonId, ImmutableArray<TowerMember> Members,
-    TowerRoomSnapshot Room, ImmutableArray<int> CompletedLevels, TowerCompletion? Completion, DateTimeOffset StartedAt)
+    TowerRoomSnapshot Room, ImmutableArray<int> CompletedLevels, TowerCompletion? Completion, DateTimeOffset StartedAt) : ITowerRunSnapshot
 {
     public int TotalLevels { get; init; }
     public byte? ReturnOption { get; init; }
@@ -63,8 +63,9 @@ public sealed record TowerEntryResult(string? Rejection, IllusionTowerSnapshot? 
     public byte? BlockedSlot { get; init; }
 }
 // Facts are provisional until the enclosing command transaction commits.
-public sealed record TowerActionResult(bool Changed, IllusionTowerSnapshot? Run, TowerActor? KilledActor = null)
+public sealed record TowerActionResult(bool Changed, IllusionTowerSnapshot? Run, TowerActor? KilledActor = null) : ITowerActionOutcome
 {
+    ITowerRunSnapshot? ITowerActionOutcome.Run => Run;
     public ImmutableArray<TowerKillReward> KillRewards { get; init; } = [];
     public ImmutableArray<TowerGroundItem> Drops { get; init; } = [];
     public bool SettlementCreated { get; init; }

@@ -417,7 +417,7 @@ public sealed partial class BossTowerDomainServiceTests
     private static IBossTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IBossTowerDomainService>();
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static ValueTask<BossTowerEntryResult> Enter(ShopFixture f) => Tower(f).EnterAsync([new(f.Session, 0)], f.Session, 42, default);
-    private static BossTowerActionContext Context(BossTowerSnapshot run, SelectedSessionIdentity session) => new(session, run.RunId, run.Room.Version);
+    private static TowerActionContext Context(BossTowerSnapshot run, SelectedSessionIdentity session) => new(session, run.RunId, run.Room.Version);
     internal sealed class Rules : IBossTowerRuleService, IDungeonAdmissionRuleService
     {
         public TimeSpan LoadingTimeout => TimeSpan.FromSeconds(120);

@@ -47,20 +47,15 @@ namespace Dfo.Server.Protocol.Game.Party;
 
 internal enum PartyChange { Leave, Remove, Transfer }
 
-internal sealed record IllusionTowerCaptureState(
+internal sealed record TowerCaptureState(
         PartySnapshot Party,
         SelectedSessionIdentity? Target,
-        IReadOnlyList<IllusionTowerSnapshot> Runs);
+        IReadOnlyList<ITowerRunSnapshot> Runs);
 
 internal sealed record TownReturnDelivery(
         TownAreaAdmission Admission,
         TownAreaSnapshot Area,
         IReadOnlyList<(SelectedSessionIdentity Session, TownParticipantEntryState Participant)> Peers,
         IReadOnlyList<IGameServerMessage> Frames);
-
-internal sealed record BossTowerCaptureState(
-        PartySnapshot Party,
-        SelectedSessionIdentity? Target,
-        IReadOnlyList<BossTowerSnapshot> Runs);
 
 internal sealed record PartyCommandExecution(PartyOperationResult Result, PartyNotificationRecipientPlan Recipients);

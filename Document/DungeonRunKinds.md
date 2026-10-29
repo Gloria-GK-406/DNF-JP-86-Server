@@ -12,6 +12,25 @@
 
 两塔不进入 `DungeonRunKind`：它们的事务、成员表与投影自成体系，并入后每个按种类分支的地方都要写“不适用”。
 
+## 两座塔的共享投影
+
+两塔各有自己的领域服务（`IBossTowerDomainService`、`IIllusionTowerDomainService`），但 Protocol 里的击杀奖励与结算投影
+（`TowerActionProjection`）、离队与换主机投影（`TowerPartyDeparture`）、离队队列（`TowerDepartureProjectionQueue<T>`）
+和队伍协调（`CoordinateTowerPartyAsync`）各只有一份，按 Abstractions 的共享只读视图 `ITowerRunSnapshot`、`ITowerActionOutcome` 编写。
+
+两塔真正不同的地方由 `ITowerRunKind`（`Protocol/Game/Party/TowerRunKind.cs`）回答，每座塔一个实现：
+
+| 分歧点 | Boss 塔 | 幻影塔 |
+|---|---|---|
+| 结算尾帧 | 奖励卡 8 槽、`CanRetryAsync` | 先发排行帧，奖励卡 4 槽、`CanContinueAsync` |
+| 离队后房间已全员加载 | 自动开局并广播加载完成 | 只重发加载完成 |
+| 队伍工作单元收件人 | 列出成员 | 不列，只靠足迹归属 |
+| 回城 | 不恢复背包 | 死亡之塔先恢复自己的背包 |
+
+新增两塔共有的投影时写在共享代码里；只有确属一座塔的行为才加进 `ITowerRunKind`。
+入场、地图推进、定时回城仍按塔分开实现。塔快照里的 `TowerMember.IsLeader` 是塔内主机，
+队长不在塔内时它不跟随队伍队长，不能当作队长的副本删去。
+
 ## 判别值
 
 - 每局恰好一个 `DungeonLayout.Mode`，由负责该玩法的入场服务写入。无计划的种类（普通、次元、南部溪谷、陶之王国、封印宝藏、赫拉斯、金银角、情侣）共用 `DungeonRunMode.Plain(kind)`；

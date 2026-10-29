@@ -76,6 +76,9 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
+    private readonly ITowerRunKind bossKind;
+    private readonly ITowerRunKind illusionKind;
+    internal TowerPartyDeparture Departures { get; }
     private readonly IDungeonParticipationDomainService participation;
     private readonly TimeProvider clock;
     private readonly IGameCommandOutbox outbox;
@@ -106,11 +109,14 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         IDespairTowerDomainService despair, ISaoTowerDomainService sao, TimeProvider clock, IWeaknessDomainService weakness)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
         this.visits = visits;
         this.entryIntents = entryIntents;
         this.despair = despair;
         this.sao = sao;
+        Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
+            this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,
+            ReturnTownIsolatedAsync);
     }
 
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameEnterSelectDungeonCommand command, CancellationToken token) =>
@@ -131,35 +137,22 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         DungeonPlace.InBossTower place, int dungeon, CancellationToken token)
     {
         var session = place.Session; var run = place.Run;
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run) || !run.Members.Any(member => member.Session == session && member.IsLeader)) return false;
+        if (!TowerActionProjection.Exact(sessions, bossKind, session, run) || !run.Members.Any(member => member.Session == session && member.IsLeader)) return false;
         var participants = run.Members.Select(member => member.Session == session
             ? CaptureParticipant(member.Session) : new SelectedSessionRecipient(member.Session, null)).ToArray();
         var released = await workUnits.WriteAsync(execution, new("selection-release-boss-tower", participants),
-            (_, ct) => bossTowers.ReleaseForSelectionAsync(BossTowerActionProjection.BossTowerContext(run, session), dungeon, ct), token).ConfigureAwait(false);
+            (_, ct) => bossTowers.ReleaseForSelectionAsync(TowerActionProjection.Context(run, session), dungeon, ct), token).ConfigureAwait(false);
         return released.Changed;
     }
 
-    private async ValueTask SelectionLeaveBossAsync(CommandExecutionContext execution,
-        DungeonPlace.InBossTower place, IGameServerMessage response, CancellationToken token)
+    private async ValueTask SelectionLeaveTowerAsync(CommandExecutionContext execution, ITowerRunKind kind,
+        SelectedSessionIdentity session, ITowerRunSnapshot run, IGameServerMessage response, CancellationToken token)
     {
-        var session = place.Session; var run = place.Run;
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, run)) return;
+        if (!TowerActionProjection.Exact(sessions, kind, session, run)) return;
         closeTargets.Capture(sessions, onlineUsers, run.Members.Select(member => member.Session));
-        var action = await LeaveBossPartyTowerAsync(execution, BossTowerActionProjection.BossTowerContext(run, session),
+        var action = await Departures.LeaveAsync(execution, kind, TowerActionProjection.Context(run, session),
             run.Members.Select(member => member.Session).ToArray(), token).ConfigureAwait(false);
         if (action.Changed)
-            await ProjectBossTowerPartyDepartureAsync(execution, action, session, response, token).ConfigureAwait(false);
-    }
-
-    private async ValueTask SelectionLeaveIllusionAsync(CommandExecutionContext execution,
-        DungeonPlace.InIllusionTower place, IGameServerMessage response, CancellationToken token)
-    {
-        var session = place.Session; var run = place.Run;
-        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, run)) return;
-        closeTargets.Capture(sessions, onlineUsers, run.Members.Select(member => member.Session));
-        var action = await LeaveIllusionPartyTowerAsync(execution, IllusionTowerActionProjection.IllusionTowerContext(run, session),
-            run.Members.Select(member => member.Session).ToArray(), token).ConfigureAwait(false);
-        if (action.Changed)
-            await ProjectIllusionTowerPartyDepartureAsync(execution, action, session, response, token).ConfigureAwait(false);
+            await Departures.ProjectDepartureAsync(execution, kind, action, session, response, token).ConfigureAwait(false);
     }
 }

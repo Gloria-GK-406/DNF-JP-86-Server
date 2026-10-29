@@ -26,7 +26,8 @@ namespace Dfo.Server.Networking.Tests.Characterization;
 /// rebuilt underneath them, so nothing here reaches into those. State is prepared on the wire.
 /// Accounts and tickets come from the launcher HTTP endpoints because the game protocol cannot
 /// register an account or issue a ticket. The only other permitted seams are a decorator on an
-/// Abstractions <c>*DomainService</c> (see <see cref="CharacterizationOptions.Decorate"/>) and a
+/// Abstractions <c>*DomainService</c> (see <see cref="CharacterizationOptions.Decorate"/>), the seed
+/// pins of <see cref="DeterministicLayouts"/> and <see cref="DeterministicTowers"/>, and a
 /// direct SQLite write that a test must justify where it makes it.
 /// </remarks>
 internal sealed class CharacterizationHost : IAsyncDisposable
@@ -123,6 +124,7 @@ internal sealed class CharacterizationHost : IAsyncDisposable
                 .ConfigureServices(services =>
                 {
                     DeterministicLayouts.Register(services);
+                    DeterministicTowers.Register(services);
                     options.Decorate?.Invoke(services);
                 })
                 .Build();

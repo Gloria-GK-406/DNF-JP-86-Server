@@ -161,28 +161,28 @@ public sealed class BossTowerFrameIntegrationTests
         public bool IsInTower(CharacterId id) => Current?.Members.Any(value => value.Session.CharacterId == id) == true;
         public BossTowerSnapshot? Find(SelectedSessionIdentity session) => Current?.Members.Any(value => value.Session == session) == true ? Current : null;
         public ValueTask<BossTowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members, SelectedSessionIdentity leader, uint seed, CancellationToken ct, byte requestMode = 0, byte difficulty = 0, byte practiceMode = 0) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte x, byte y, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> NextLevelAsync(TowerActionContext context, byte x, byte y, CancellationToken ct)
         { Current = Current! with { Room = Current.Room with { Level = 2, MapId = 25045, Version = 2, Phase = TowerRoomPhase.Loading } }; return Result(); }
-        public ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> LoadAsync(TowerActionContext context, CancellationToken ct)
         { Current = Current! with { Room = Current.Room with { Phase = TowerRoomPhase.Ready } }; return Result(); }
-        public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> StartAsync(TowerActionContext context, CancellationToken ct)
         { Current = Current! with { Room = Current.Room with { Phase = TowerRoomPhase.Fighting } }; return Result(); }
-        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> KillAsync(TowerActionContext context, ushort uid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {
             Kills++; var member = Current!.Members[0];
             Current = Current with { Completion = new(TowerEndReason.Completed, 8, 8, true, DateTimeOffset.UtcNow,
                 new([new(member.Session.CharacterId, 123, 0, []) { Session = member.Session, Candidates = [new(-1, 0)] }])) };
             return ValueTask.FromResult(new BossTowerActionResult(true, Current) { SettlementCreated = true });
         }
-        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         { var previous = Current; Current = null; return ValueTask.FromResult(new BossTowerActionResult(true, previous! with { Members = [] })); }
-        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct) => Result();
-        public ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken ct) => ValueTask.FromResult(false);
-        public ValueTask<BossTowerActionResult> SelectResultAsync(BossTowerActionContext context, byte option, CancellationToken ct) { Choices++; return Result(); }
-        public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(BossTowerActionContext context, int dungeonId, CancellationToken ct) => throw new NotSupportedException();
-        public IReadOnlyList<BossTowerActionContext> FindReturnsDue(DateTimeOffset now) => [];
+        public ValueTask<BossTowerActionResult> DieAsync(TowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<BossTowerPickupResult> PickupAsync(TowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(TowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct) => Result();
+        public ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken ct) => ValueTask.FromResult(false);
+        public ValueTask<BossTowerActionResult> SelectResultAsync(TowerActionContext context, byte option, CancellationToken ct) { Choices++; return Result(); }
+        public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(TowerActionContext context, int dungeonId, CancellationToken ct) => throw new NotSupportedException();
+        public IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now) => [];
         public bool CanShop(SelectedSessionIdentity session, int npcId, int shopId) => false;
         private ValueTask<BossTowerActionResult> Result() => ValueTask.FromResult(new BossTowerActionResult(true, Current));
     }

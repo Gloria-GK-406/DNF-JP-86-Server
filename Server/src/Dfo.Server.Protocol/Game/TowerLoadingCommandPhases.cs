@@ -53,13 +53,13 @@ internal sealed partial class GameMapLoadingCommandHandler
         var session = place.Session; var expected = place.Run;
         var captured = CaptureLoadingConnections(expected.Members.Select(member => member.Session));
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, expected)) return;
-        var action = await BossLoadingUnitAsync(execution, "load-boss-tower", expected, session, ct => bossTowers.LoadAsync(BossTowerActionProjection.BossTowerContext(expected, session), ct), token).ConfigureAwait(false);
+        if (!TowerActionProjection.Exact(sessions, bossKind, session, expected)) return;
+        var action = await BossLoadingUnitAsync(execution, "load-boss-tower", expected, session, ct => bossTowers.LoadAsync(TowerActionProjection.Context(expected, session), ct), token).ConfigureAwait(false);
         if (action.Run is not { Room.Phase: TowerRoomPhase.Ready } run) return;
         var leader = run.Members.Single(value => value.IsLeader).Session;
-        var started = await BossLoadingUnitAsync(execution, "start-boss-tower", run, leader, ct => bossTowers.StartAsync(BossTowerActionProjection.BossTowerContext(run, leader), ct), token).ConfigureAwait(false);
+        var started = await BossLoadingUnitAsync(execution, "start-boss-tower", run, leader, ct => bossTowers.StartAsync(TowerActionProjection.Context(run, leader), ct), token).ConfigureAwait(false);
         if (started.Run is not { Room.Phase: TowerRoomPhase.Fighting } fighting) return;
-        failures = await BossTowerActionProjection.BossTowerSendToExactAsync(sessions, bossTowers, outbox,
+        failures = await TowerActionProjection.SendToExactAsync(sessions, bossKind, outbox,
             fighting, [new LoadingCompleteNotification()], token).ConfigureAwait(false);
         await CloseLoadingFailuresAsync(failures, captured).ConfigureAwait(false);
     }
@@ -73,18 +73,18 @@ internal sealed partial class GameMapLoadingCommandHandler
             expected.Room.Version, expected.Room.Level, expected.Room.Phase, targetX, targetY);
         var captured = CaptureLoadingConnections(expected.Members.Select(member => member.Session));
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session, expected))
+        if (!TowerActionProjection.Exact(sessions, bossKind, session, expected))
         {
             logger.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} reason=SnapshotOrSessionChanged",
                 session.CharacterId.Value, expected.RunId, expected.Room.Version);
             return;
         }
-        var action = await BossLoadingUnitAsync(execution, "advance-boss-tower", expected, session, ct => bossTowers.NextLevelAsync(BossTowerActionProjection.BossTowerContext(expected, session), targetX, targetY, ct), token).ConfigureAwait(false);
+        var action = await BossLoadingUnitAsync(execution, "advance-boss-tower", expected, session, ct => bossTowers.NextLevelAsync(TowerActionProjection.Context(expected, session), targetX, targetY, ct), token).ConfigureAwait(false);
         logger.LogInformation("Boss tower move result character={CharacterId} run={RunId} changed={Changed} stage={Stage} map={MapId} phase={Phase} roomVersion={RoomVersion}",
             session.CharacterId.Value, expected.RunId, action.Changed, action.Run?.Room.Level,
             action.Run?.Room.MapId, action.Run?.Room.Phase, action.Run?.Room.Version);
         if (action.Changed && action.Run is { } run)
-            failures = await BossTowerActionProjection.BossTowerSendToExactAsync(sessions, bossTowers, outbox,
+            failures = await TowerActionProjection.SendToExactAsync(sessions, bossKind, outbox,
                 run, [new BossTowerMapNotification(run.Room)], token).ConfigureAwait(false);
         await CloseLoadingFailuresAsync(failures, captured).ConfigureAwait(false);
     }
@@ -94,10 +94,10 @@ internal sealed partial class GameMapLoadingCommandHandler
         var session = place.Session; var expected = place.Run;
         var captured = CaptureLoadingConnections(expected.Members.Select(member => member.Session));
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, expected)) return;
-        var action = await IllusionLoadingUnitAsync(execution, "load-illusion-tower", ct => illusionTowers.LoadAsync(IllusionTowerActionProjection.IllusionTowerContext(expected, session), ct), token).ConfigureAwait(false);
+        if (!TowerActionProjection.Exact(sessions, illusionKind, session, expected)) return;
+        var action = await IllusionLoadingUnitAsync(execution, "load-illusion-tower", ct => illusionTowers.LoadAsync(TowerActionProjection.Context(expected, session), ct), token).ConfigureAwait(false);
         if (action.Run is not { Room.Phase: TowerRoomPhase.Ready } run) return;
-        failures = await IllusionTowerActionProjection.IllusionTowerSendToExactAsync(sessions, illusionTowers, outbox,
+        failures = await TowerActionProjection.SendToExactAsync(sessions, illusionKind, outbox,
             run, [new LoadingCompleteNotification()], token).ConfigureAwait(false);
         await CloseLoadingFailuresAsync(failures, captured).ConfigureAwait(false);
     }
@@ -109,8 +109,8 @@ internal sealed partial class GameMapLoadingCommandHandler
         var session = sessions.FindByConnection(connectionId);
         var expected = session is null ? null : illusionTowers.Find(session);
         if (session is null || expected is null) return false;
-        if (IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, expected))
-            _ = await IllusionLoadingUnitAsync(execution, "start-illusion-tower", ct => illusionTowers.StartAsync(IllusionTowerActionProjection.IllusionTowerContext(expected, session), ct), token).ConfigureAwait(false);
+        if (TowerActionProjection.Exact(sessions, illusionKind, session, expected))
+            _ = await IllusionLoadingUnitAsync(execution, "start-illusion-tower", ct => illusionTowers.StartAsync(TowerActionProjection.Context(expected, session), ct), token).ConfigureAwait(false);
         return true;
     }
 
@@ -119,10 +119,10 @@ internal sealed partial class GameMapLoadingCommandHandler
         var session = place.Session; var expected = place.Run;
         var captured = CaptureLoadingConnections(expected.Members.Select(member => member.Session));
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures = [];
-        if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session, expected)) return;
-        var action = await IllusionLoadingUnitAsync(execution, "advance-illusion-tower", ct => illusionTowers.NextLevelAsync(IllusionTowerActionProjection.IllusionTowerContext(expected, session), ct), token).ConfigureAwait(false);
+        if (!TowerActionProjection.Exact(sessions, illusionKind, session, expected)) return;
+        var action = await IllusionLoadingUnitAsync(execution, "advance-illusion-tower", ct => illusionTowers.NextLevelAsync(TowerActionProjection.Context(expected, session), ct), token).ConfigureAwait(false);
         if (action.Changed && action.Run is { } run)
-            failures = await IllusionTowerActionProjection.IllusionTowerSendToExactAsync(sessions, illusionTowers, outbox,
+            failures = await TowerActionProjection.SendToExactAsync(sessions, illusionKind, outbox,
                 run, [new IllusionTowerMapNotification(run.Room)], token).ConfigureAwait(false);
         await CloseLoadingFailuresAsync(failures, captured).ConfigureAwait(false);
     }

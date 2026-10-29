@@ -26,24 +26,24 @@ internal sealed partial class GameCharacterDeathCommandHandler
     private async ValueTask DieBossAsync(CommandExecutionContext execution,DungeonPlace.InBossTower place,GameMessageMetadata metadata,CancellationToken token)
     {
         var session=place.Session;var expected=place.Run;
-        if(!BossTowerActionProjection.BossTowerExact(sessions, bossTowers, session,expected))return;
+        if(!TowerActionProjection.Exact(sessions, bossKind, session,expected))return;
         var members=expected.Members.Select(x=>x.Session).ToArray();var captured=CaptureConnections(members);
         var participants=members.Select(member=>member==session?CaptureParticipant(member)with{Metadata=metadata}:new SelectedSessionRecipient(member,null,metadata)).ToArray();
         var action=await workUnits.WriteAsync(execution,new("die-in-boss-tower",participants,Footprint:CommandFootprintMode.DeclaredNonRequest,FootprintOwners:members),
-            (unit,ct)=>bossTowers.DieAsync(BossTowerActionProjection.BossTowerContext(expected,session),unit.Footprint,ct),token).ConfigureAwait(false);
+            (unit,ct)=>bossTowers.DieAsync(TowerActionProjection.Context(expected,session),unit.Footprint,ct),token).ConfigureAwait(false);
         if(!action.Changed||action.Run is null)return;
-        var failures=await BossTowerActionProjection.BossTowerProjectActionAsync(sessions, characters, bossTowers, clock, outbox, action,new CharacterLifeStateNotification(session.WireUserId),token,session,new CharacterDeathResponse()).ConfigureAwait(false);
+        var failures=await TowerActionProjection.ProjectActionAsync(sessions, characters, bossKind, clock, outbox, action,new CharacterLifeStateNotification(session.WireUserId),token,session,new CharacterDeathResponse()).ConfigureAwait(false);
         await CloseFailuresAsync(failures,captured).ConfigureAwait(false);
     }
     private async ValueTask DieIllusionAsync(CommandExecutionContext execution,DungeonPlace.InIllusionTower place,CancellationToken token)
     {
         var session=place.Session;var expected=place.Run;
-        if(!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, session,expected))return;
+        if(!TowerActionProjection.Exact(sessions, illusionKind, session,expected))return;
         var members=expected.Members.Select(x=>x.Session).ToArray();var captured=CaptureConnections(members);
         var action=await workUnits.WriteAsync(execution,new("die-in-illusion-tower",[],Footprint:CommandFootprintMode.DeclaredNonRequest,FootprintOwners:members),
-            (unit,ct)=>illusionTowers.DieAsync(IllusionTowerActionProjection.IllusionTowerContext(expected,session),unit.Footprint,ct),token).ConfigureAwait(false);
+            (unit,ct)=>illusionTowers.DieAsync(TowerActionProjection.Context(expected,session),unit.Footprint,ct),token).ConfigureAwait(false);
         if(!action.Changed||action.Run is null)return;
-        var failures=await IllusionTowerActionProjection.IllusionTowerProjectActionAsync(sessions, characters, illusionTowers, clock, outbox, action,new CharacterLifeStateNotification(session.WireUserId),token,session,new CharacterDeathResponse()).ConfigureAwait(false);
+        var failures=await TowerActionProjection.ProjectActionAsync(sessions, characters, illusionKind, clock, outbox, action,new CharacterLifeStateNotification(session.WireUserId),token,session,new CharacterDeathResponse()).ConfigureAwait(false);
         await CloseFailuresAsync(failures,captured).ConfigureAwait(false);
     }
 }

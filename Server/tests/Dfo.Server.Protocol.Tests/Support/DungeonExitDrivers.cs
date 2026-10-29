@@ -30,7 +30,7 @@ internal class DungeonExitDriver(ISelectedSessionDomainService selected, ISelect
     IPartyService? parties = null, PartyNotificationDelivery? partyNotifications = null, IDungeonCardPresentationControl? cards = null,
     IDungeonEntryIntentDomainService? intents = null, IOutboundOrdering? ordering = null,
     BossTowerPartyDriver? bossParties = null, IllusionTowerPartyDriver? towerParties = null,
-    IBossTowerDomainService? boss = null, Func<BossTowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
+    IBossTowerDomainService? boss = null, Func<TowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
 {
     private GamePartyTransitionCommandHandler? handler;
     private GamePartyTransitionCommandHandler Handler => handler ??= Build();
@@ -47,7 +47,7 @@ internal class DungeonExitDriver(ISelectedSessionDomainService selected, ISelect
         if (boss is not null)
             supplied.Add(choose is null ? boss : ProtocolAlgorithmFixture.Decorate(boss, (method, args) =>
                 method.Name == nameof(IBossTowerDomainService.SelectResultAsync)
-                    ? (true, choose((BossTowerActionContext)args[0]!, (byte)args[1]!, (CancellationToken)args[2]!))
+                    ? (true, choose((TowerActionContext)args[0]!, (byte)args[1]!, (CancellationToken)args[2]!))
                     : (false, null)));
         return ProtocolAlgorithmFixture.Create<GamePartyTransitionCommandHandler>(supplied.ToArray());
     }
@@ -68,7 +68,7 @@ internal sealed class EplpDriver(ISelectedSessionDomainService selectedSessions,
     IDungeonCardPresentationControl? cardPresentation = null, IPartyService? parties = null,
     IBossTowerDomainService? bossTower = null, IDungeonEntryIntentDomainService? entryIntents = null,
     ITownAreaDomainService? townAreas = null, IOutboundOrdering? ordering = null,
-    Func<BossTowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
+    Func<TowerActionContext, byte, CancellationToken, ValueTask<BossTowerActionResult>>? choose = null)
     : DungeonExitDriver(selectedSessions, currentViews, onlineCharacters, runs, deliveries, sender, townAreaProjection, logger,
         townAreas, parties, cards: cardPresentation, intents: entryIntents, ordering: ordering, boss: bossTower, choose: choose);
 internal sealed class GiveUpDriver(ISelectedSessionDomainService selectedSessions, ISelectedCharacterCurrentViewDomainService currentViews,

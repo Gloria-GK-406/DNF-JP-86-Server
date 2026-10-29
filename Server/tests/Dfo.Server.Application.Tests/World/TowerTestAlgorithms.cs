@@ -51,7 +51,7 @@ internal static class TowerTestAlgorithms
             await using var lease = fixture.Services.GetRequiredService<DomainTransactionScope>().Begin();
             var result = await action(); await lease.CommitAsync(default); return result;
         }
-        public ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context) => Write(() =>
+        public ValueTask<BossTowerActionResult> BossLeave(TowerActionContext context) => Write(() =>
         {
             var towers = fixture.Services.GetRequiredService<IBossTowerDomainService>();
             return TestEffectFootprints.Run(towers.Find(context.Session)!.Members.Select(member => member.Session), cap => towers.LeaveAsync(context, false, cap, default));
@@ -61,8 +61,8 @@ internal static class TowerTestAlgorithms
             var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
             return TestEffectFootprints.Run(towers.Find(context.Session)!.Members.Select(member => member.Session), cap => towers.LeaveAsync(context, false, cap, default));
         });
-        public ValueTask<BossTowerActionResult> BossSynchronize(BossTowerActionContext context, SelectedSessionIdentity leader) => Write(() => fixture.Services.GetRequiredService<IBossTowerDomainService>().SynchronizeLeaderAsync(context, leader, default));
+        public ValueTask<BossTowerActionResult> BossSynchronize(TowerActionContext context, SelectedSessionIdentity leader) => Write(() => fixture.Services.GetRequiredService<IBossTowerDomainService>().SynchronizeLeaderAsync(context, leader, default));
         public ValueTask<TowerActionResult> IllusionSynchronize(TowerActionContext context, SelectedSessionIdentity leader) => Write(() => fixture.Services.GetRequiredService<IIllusionTowerDomainService>().SynchronizeLeaderAsync(context, leader, default));
-        public ValueTask<BossTowerActionResult> BossStart(BossTowerActionContext context) => Write(() => fixture.Services.GetRequiredService<IBossTowerDomainService>().StartAsync(context, default));
+        public ValueTask<BossTowerActionResult> BossStart(TowerActionContext context) => Write(() => fixture.Services.GetRequiredService<IBossTowerDomainService>().StartAsync(context, default));
     }
 }

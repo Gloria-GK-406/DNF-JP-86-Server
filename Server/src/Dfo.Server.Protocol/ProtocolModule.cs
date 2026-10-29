@@ -927,20 +927,20 @@ public sealed class ProtocolModule : IServerModule
         services.RegisterProtocolMessageHandler<MonsterDeathHandler, MonsterDeathRequest, GameMonsterDeathCommand>(ClientMessageType.GameMonsterDeath);
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
         services.TryAddSingleton<IBossTowerDepartureProjectionDomainService>(p => p.GetRequiredService<BossTowerDepartureProjectionQueue>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionSink>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionQueue>(p => p.GetRequiredService<BossTowerDepartureProjectionQueue>()));
         services.TryAddSingleton<BossTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider => provider.GetRequiredService<BossTowerReturnSweepService>());
         services.TryAddSingleton<IllusionTowerDepartureProjectionQueue>();
         services.TryAddSingleton<IIllusionTowerDepartureProjectionDomainService>(p => p.GetRequiredService<IllusionTowerDepartureProjectionQueue>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IIllusionTowerDepartureSink,
-            IllusionTowerDepartureProjectionSink>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IIllusionTowerDepartureSink, IllusionTowerDepartureProjectionQueue>(
+            p => p.GetRequiredService<IllusionTowerDepartureProjectionQueue>()));
         services.TryAddSingleton<IllusionTowerReturnSweepService>();
         services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(provider =>
             provider.GetRequiredService<IllusionTowerReturnSweepService>());
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(p => p.GetRequiredService<BossTowerReturnSweepService>());
         services.AddInternalCommandHandler<CaptureBossTowerDeparturesCommand, System.Collections.Immutable.ImmutableArray<TowerDepartureEntryId>, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ProjectBossTowerDepartureCommand, bool, TowerReturnCommandHandler>();
-        services.AddInternalCommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<BossTowerActionContext>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ReturnBossTowerRunCommand, bool, TowerReturnCommandHandler>();
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(p => p.GetRequiredService<IllusionTowerReturnSweepService>());
         services.AddInternalCommandHandler<CaptureIllusionTowerDeparturesCommand, System.Collections.Immutable.ImmutableArray<TowerDepartureEntryId>, TowerReturnCommandHandler>();

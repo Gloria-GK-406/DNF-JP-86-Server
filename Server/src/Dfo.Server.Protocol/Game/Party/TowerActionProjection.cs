@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -27,11 +26,6 @@ using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.FinishLoading;
 using Dfo.Server.Protocol.Game.GroundPickup;
-using Dfo.Server.Protocol.Game.IllusionTowerContinue;
-using Dfo.Server.Protocol.Game.IllusionTowerInfo;
-using Dfo.Server.Protocol.Game.IllusionTowerMap;
-using Dfo.Server.Protocol.Game.IllusionTowerRanking;
-using Dfo.Server.Protocol.Game.IllusionTowerReward;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -45,14 +39,15 @@ using System.Collections.Immutable;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
-internal static class IllusionTowerActionProjection
+/// <summary>The post-commit projections both tower engines share; see <see cref="ITowerRunKind"/> for where they differ.</summary>
+internal static class TowerActionProjection
 {
     private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
-    internal static async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> IllusionTowerProjectActionAsync(ISelectedSessionDomainService sessions,ICharacterDomainService characters,IIllusionTowerDomainService illusionTowers,TimeProvider clock,IGameCommandOutbox outbox,        TowerActionResult action,IGameServerMessage? shared,        CancellationToken token,SelectedSessionIdentity? requester = null,IGameServerMessage? requesterResponse = null)
+    internal static async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> ProjectActionAsync(ISelectedSessionDomainService sessions, ICharacterDomainService characters, ITowerRunKind kind, TimeProvider clock, IGameCommandOutbox outbox, ITowerActionOutcome action, IGameServerMessage? shared, CancellationToken token, SelectedSessionIdentity? requester = null, IGameServerMessage? requesterResponse = null)
     {
         var failures = new List<(SelectedSessionIdentity, Exception)>();
         var run = action.Run!;
-        foreach (var member in IllusionTowerActionProjection.IllusionTowerExactMembers(sessions, illusionTowers, run))
+        foreach (var member in TowerActionProjection.ExactMembers(sessions, kind, run))
         {
             try
             {
@@ -60,18 +55,18 @@ internal static class IllusionTowerActionProjection
                 var kill = action.KillRewards.SingleOrDefault(value => value.Session == member);
                 if (kill is not null)
                 {
-                    await IllusionTowerActionProjection.IllusionTowerAppendExperienceAsync(characters, frames, member, kill.Award, token).ConfigureAwait(false);
-                    IllusionTowerActionProjection.IllusionTowerAppendInventory(frames, kill.InventoryUpdates, clock.GetUtcNow());
-                    IllusionTowerActionProjection.IllusionTowerAppendQuest(frames, kill.QuestProgress);
+                    await TowerActionProjection.AppendExperienceAsync(characters, frames, member, kill.Award, token).ConfigureAwait(false);
+                    TowerActionProjection.AppendInventory(frames, kill.InventoryUpdates, clock.GetUtcNow());
+                    TowerActionProjection.AppendQuest(frames, kill.QuestProgress);
                 }
                 if (requesterResponse is not null && member == requester) frames.Add(requesterResponse);
                 if (shared is not null) frames.Add(shared);
                 if (action.SettlementCreated
                     && run.Completion is { Settled: true, Receipt: { } receipt }
                     && receipt.Members.SingleOrDefault(value => value.Session == member) is { } settlement)
-                    await IllusionTowerActionProjection.IllusionTowerAppendSettlementAsync(characters, illusionTowers, frames, run, settlement, receipt, member, token).ConfigureAwait(false);
+                    await TowerActionProjection.AppendSettlementAsync(characters, kind, frames, run, settlement, receipt, member, token).ConfigureAwait(false);
                 if (frames.Count > 0)
-                    await IllusionTowerActionProjection.IllusionTowerSendCommittedBatchAsync(sessions, illusionTowers, outbox, run, member,
+                    await TowerActionProjection.SendCommittedBatchAsync(sessions, kind, outbox, run, member,
                         new GameExplicitMessageDelivery(frames, []), token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -86,7 +81,8 @@ internal static class IllusionTowerActionProjection
         return failures;
     }
 
-    internal static async ValueTask IllusionTowerSendCommittedBatchAsync(ISelectedSessionDomainService sessions,IIllusionTowerDomainService illusionTowers,IGameCommandOutbox outbox,IllusionTowerSnapshot run,        SelectedSessionIdentity member,GameExplicitMessageDelivery batch,CancellationToken token)
+    internal static async ValueTask SendCommittedBatchAsync(ISelectedSessionDomainService sessions, ITowerRunKind kind, IGameCommandOutbox outbox, ITowerRunSnapshot run,
+        SelectedSessionIdentity member, GameExplicitMessageDelivery batch, CancellationToken token)
     {
         try
         {
@@ -96,24 +92,24 @@ internal static class IllusionTowerActionProjection
         {
             // The first attempt may have sent part of the batch. Only replay these committed
             // projections; never execute the reward again.
-            if (!IllusionTowerActionProjection.IllusionTowerExact(sessions, illusionTowers, member, run)
-                || !Equals(illusionTowers.Find(member)?.Completion?.Receipt, run.Completion?.Receipt))
+            if (!TowerActionProjection.Exact(sessions, kind, member, run)
+                || !Equals(kind.Find(member)?.Completion?.Receipt, run.Completion?.Receipt))
                 throw;
             await outbox.RegisterExplicitAsync(member.ConnectionId, batch, token).ConfigureAwait(false);
         }
     }
 
-    internal static async ValueTask IllusionTowerAppendSettlementAsync(ICharacterDomainService characters, IIllusionTowerDomainService illusionTowers, List<IGameServerMessage> frames,
-        IllusionTowerSnapshot run, TowerMemberSettlementReceipt member, TowerSettlementReceipt receipt,
+    internal static async ValueTask AppendSettlementAsync(ICharacterDomainService characters, ITowerRunKind kind, List<IGameServerMessage> frames,
+        ITowerRunSnapshot run, TowerMemberSettlementReceipt member, TowerSettlementReceipt receipt,
         SelectedSessionIdentity session, CancellationToken token)
     {
         if (member.Award is { } award)
         {
-            await IllusionTowerActionProjection.IllusionTowerAppendExperienceAsync(characters, frames, session, award, token).ConfigureAwait(false);
-            IllusionTowerActionProjection.IllusionTowerAppendQuest(frames, member.QuestProgress);
+            await TowerActionProjection.AppendExperienceAsync(characters, frames, session, award, token).ConfigureAwait(false);
+            TowerActionProjection.AppendQuest(frames, member.QuestProgress);
         }
         else
-            IllusionTowerActionProjection.IllusionTowerAppendQuest(frames, member.QuestProgress);
+            TowerActionProjection.AppendQuest(frames, member.QuestProgress);
         foreach (var group in member.InventoryUpdates.GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
         {
             frames.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(
@@ -126,16 +122,10 @@ internal static class IllusionTowerActionProjection
         }
         if (member.Gold > 0)
             frames.Add(GameInventoryDelivery.CarriedGoldNotification(member.GoldBalance, run.Completion!.CompletedAt));
-        var elapsed = (int)Math.Clamp((run.Completion!.CompletedAt - run.StartedAt).TotalMilliseconds, 0, int.MaxValue);
-        frames.Add(new IllusionTowerRankingNotification(run.DungeonId, run.Completion.CompletedLevels, elapsed));
-        frames.Add(new IllusionTowerRewardNotification(member.Experience,
-            receipt.Members.Where(value => value.Slot < 4)
-                .ToDictionary(value => value.Slot, value => value.Candidates)));
-        frames.Add(new IllusionTowerContinueNotification(
-            await illusionTowers.CanContinueAsync(IllusionTowerActionProjection.IllusionTowerContext(run, session), token).ConfigureAwait(false)));
+        await kind.AppendSettlementResultAsync(frames, run, member, receipt, session, token).ConfigureAwait(false);
     }
 
-    internal static async ValueTask IllusionTowerAppendExperienceAsync(ICharacterDomainService characters, List<IGameServerMessage> frames,
+    internal static async ValueTask AppendExperienceAsync(ICharacterDomainService characters, List<IGameServerMessage> frames,
         SelectedSessionIdentity session, ExperienceAward award, CancellationToken token)
     {
         var skillPoints = await characters.Get(session.CharacterId)
@@ -145,7 +135,7 @@ internal static class IllusionTowerActionProjection
                 AccountHonorLevel.Initial, ExperienceBonusLines.Of(award)));
     }
 
-    internal static void IllusionTowerAppendInventory(List<IGameServerMessage> frames,
+    internal static void AppendInventory(List<IGameServerMessage> frames,
         IReadOnlyList<TowerInventoryUpdate> updates, DateTimeOffset at)
     {
         foreach (var group in updates.GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
@@ -157,7 +147,7 @@ internal static class IllusionTowerActionProjection
                 }).ToArray(), at)));
     }
 
-    internal static void IllusionTowerAppendQuest(List<IGameServerMessage> frames,
+    internal static void AppendQuest(List<IGameServerMessage> frames,
         Dfo.Server.Abstractions.Quests.QuestProgressSnapshot? progress)
     {
         if (progress is null) return;
@@ -167,7 +157,7 @@ internal static class IllusionTowerActionProjection
                     checked((ushort)quest.QuestId), unchecked((uint)quest.TriggerValue)))]));
     }
 
-    internal static async ValueTask<List<TownAreaEntry>> IllusionTowerCaptureReturnEntriesAsync(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState, IOnlineCharacterRuntimeDomainService onlineCharacters, IGameCommandOutbox outbox, IReadOnlyList<SelectedSessionIdentity> returning,
+    internal static async ValueTask<List<TownAreaEntry>> CaptureReturnEntriesAsync(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState, IOnlineCharacterRuntimeDomainService onlineCharacters, IGameCommandOutbox outbox, IReadOnlyList<SelectedSessionIdentity> returning,
         IGameServerMessage? response, List<(SelectedSessionIdentity, Exception)> failures,
         CancellationToken token, bool restoreInventory)
     {
@@ -204,25 +194,25 @@ internal static class IllusionTowerActionProjection
         return entries;
     }
 
-    internal static bool IllusionTowerExact(ISelectedSessionDomainService sessions, IIllusionTowerDomainService illusionTowers, SelectedSessionIdentity session, IllusionTowerSnapshot expected) =>
+    internal static bool Exact(ISelectedSessionDomainService sessions, ITowerRunKind kind, SelectedSessionIdentity session, ITowerRunSnapshot expected) =>
         sessions.IsInWorld(session)
-        && illusionTowers.Find(session) is { } current
+        && kind.Find(session) is { } current
         && current.RunId == expected.RunId && current.Room.Version == expected.Room.Version;
 
-    internal static IReadOnlyList<SelectedSessionIdentity> IllusionTowerExactMembers(ISelectedSessionDomainService sessions, IIllusionTowerDomainService illusionTowers, IllusionTowerSnapshot run) =>
+    internal static IReadOnlyList<SelectedSessionIdentity> ExactMembers(ISelectedSessionDomainService sessions, ITowerRunKind kind, ITowerRunSnapshot run) =>
         run.Members.OrderBy(value => value.Slot).Select(value => value.Session)
             .Where(member => sessions.IsInWorld(member)
-                && illusionTowers.Find(member) is { } current
+                && kind.Find(member) is { } current
                 && current.RunId == run.RunId
                 && current.Room.Version == run.Room.Version).ToArray();
 
-    internal static IllusionTowerSnapshot? IllusionTowerCurrentRun(ISelectedSessionDomainService sessions, IIllusionTowerDomainService illusionTowers, IllusionTowerSnapshot captured)
+    internal static ITowerRunSnapshot? CurrentRun(ISelectedSessionDomainService sessions, ITowerRunKind kind, ITowerRunSnapshot captured)
     {
         foreach (var member in captured.Members.OrderBy(value => value.Slot))
         {
             if (!sessions.IsInWorld(member.Session))
                 continue;
-            if (illusionTowers.Find(member.Session) is { } current
+            if (kind.Find(member.Session) is { } current
                 && current.RunId == captured.RunId
                 && current.Room.Version == captured.Room.Version)
             {
@@ -232,12 +222,12 @@ internal static class IllusionTowerActionProjection
         return null;
     }
 
-    internal static async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> IllusionTowerSendToExactAsync(ISelectedSessionDomainService sessions, IIllusionTowerDomainService illusionTowers, IGameCommandOutbox outbox, 
-        IllusionTowerSnapshot run,
+    internal static async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> SendToExactAsync(ISelectedSessionDomainService sessions, ITowerRunKind kind, IGameCommandOutbox outbox,
+        ITowerRunSnapshot run,
         IReadOnlyList<IGameServerMessage> frames, CancellationToken token)
     {
         var failures = new List<(SelectedSessionIdentity, Exception)>();
-        foreach (var member in IllusionTowerActionProjection.IllusionTowerExactMembers(sessions, illusionTowers, run))
+        foreach (var member in TowerActionProjection.ExactMembers(sessions, kind, run))
         {
             try
             {
@@ -256,23 +246,25 @@ internal static class IllusionTowerActionProjection
         return failures;
     }
 
-    internal static TowerActionContext IllusionTowerContext(IllusionTowerSnapshot run, SelectedSessionIdentity session) =>
+    internal static SelectedSessionIdentity[] Members(ITowerRunSnapshot run) => run.Members.Select(value => value.Session).ToArray();
+
+    internal static TowerActionContext Context(ITowerRunSnapshot run, SelectedSessionIdentity session) =>
         new(session, run.RunId, run.Room.Version);
 
-    internal static async ValueTask IllusionTowerCloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, ExactSessionClosure targets, SelectedSessionIdentity session)
+    internal static async ValueTask CloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, ExactSessionClosure targets, SelectedSessionIdentity session)
     {
         await targets.RequestAsync(sessions, closures, session).ConfigureAwait(false);
     }
 
-    internal static async ValueTask IllusionTowerCloseProjectionFailuresAsync(ISelectedSessionDomainService sessions, ILogger logger, ICommandConnectionClosures closures, ExactSessionClosure targets,
+    internal static async ValueTask CloseProjectionFailuresAsync(ISelectedSessionDomainService sessions, ITowerRunKind kind, ILogger logger, ICommandConnectionClosures closures, ExactSessionClosure targets,
         IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)> failures, Guid runId)
     {
         foreach (var (session, error) in failures.DistinctBy(value => value.Session))
         {
             logger.LogWarning(error,
-                "Illusion tower post-commit projection failed for exact session {ConnectionId} in run {RunId}",
-                session.ConnectionId, runId);
-            await IllusionTowerActionProjection.IllusionTowerCloseQuietlyAsync(sessions, closures, targets, session).ConfigureAwait(false);
+                "{Tower} post-commit projection failed for exact session {ConnectionId} in run {RunId}",
+                kind.Name, session.ConnectionId, runId);
+            await TowerActionProjection.CloseQuietlyAsync(sessions, closures, targets, session).ConfigureAwait(false);
         }
     }
 }

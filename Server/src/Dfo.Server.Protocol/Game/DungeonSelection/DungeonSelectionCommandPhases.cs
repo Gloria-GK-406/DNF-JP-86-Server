@@ -33,10 +33,10 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         switch (session is null ? null : DungeonLocator.Locate(session, participation, bossTowers, illusionTowers))
         {
             case DungeonPlace.InBossTower boss:
-                await SelectionLeaveBossAsync(execution, boss, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
+                await SelectionLeaveTowerAsync(execution, bossKind, boss.Session, boss.Run, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
                 return true;
             case DungeonPlace.InIllusionTower illusion:
-                await SelectionLeaveIllusionAsync(execution, illusion, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
+                await SelectionLeaveTowerAsync(execution, illusionKind, illusion.Session, illusion.Run, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
                 return true;
             default:
                 return await BackToVillageOrdinaryAsync(context, message, session, cancellationToken).ConfigureAwait(false);

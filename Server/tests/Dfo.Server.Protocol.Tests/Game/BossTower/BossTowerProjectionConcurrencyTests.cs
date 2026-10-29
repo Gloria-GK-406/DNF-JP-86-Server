@@ -793,10 +793,10 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             foreach (var member in run.Members) runs[member.Session.CharacterId] = run;
         }
 
-        public IReadOnlyList<BossTowerActionContext> FindReturnsDue(DateTimeOffset now) =>
+        public IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now) =>
             runs.Values.DistinctBy(run => run.RunId)
                 .Where(run => run.ReturnDueAt <= now)
-                .Select(run => new BossTowerActionContext(run.Members[0].Session, run.RunId, run.Room.Version))
+                .Select(run => new TowerActionContext(run.Members[0].Session, run.RunId, run.Room.Version))
                 .ToArray();
 
         public bool IsInTower(CharacterId characterId) => runs.ContainsKey(characterId);
@@ -834,18 +834,18 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public bool UnusedReserve(IReadOnlyList<CharacterId> members) => false;
         public bool Supports(int dungeonId) => dungeonId == 3505;
         public bool CanShop(SelectedSessionIdentity session, int npcId, int shopId) => false;
-        public ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken cancellationToken) => ValueTask.FromResult(false);
+        public ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken cancellationToken) => ValueTask.FromResult(false);
         public ValueTask<BossTowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members, SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, byte requestMode = 0, byte difficulty = 0, byte practiceMode = 0) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort actorUid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(BossTowerActionContext context, int requestedDungeonId, CancellationToken ct) => ValueTask.FromResult(Leave(context.Session));
-        public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> SelectResultAsync(BossTowerActionContext context, byte option, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> LoadAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> StartAsync(TowerActionContext context, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> NextLevelAsync(TowerActionContext context, byte targetX, byte targetY, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> DieAsync(TowerActionContext context, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(TowerActionContext context, SelectedSessionIdentity leader, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(TowerActionContext context, int requestedDungeonId, CancellationToken ct) => ValueTask.FromResult(Leave(context.Session));
+        public ValueTask<BossTowerPickupResult> PickupAsync(TowerActionContext context, ushort uid, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> SelectResultAsync(TowerActionContext context, byte option, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class Sessions(params SelectedSessionIdentity[] values) : ISelectedSessionDomainService
@@ -926,7 +926,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
 
         public List<Guid> Attempts { get; } = [];
 
-        public ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context)
+        public ValueTask<BossTowerActionResult> BossLeave(TowerActionContext context)
         {
             Attempts.Add(context.RunId);
             return context.RunId == failingRun ? ValueTask.FromException<BossTowerActionResult>(new IOException("closed recipient")) : ValueTask.FromResult(new BossTowerActionResult(false, null));
@@ -951,12 +951,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public int SynchronizeCalls { get; private set; }
 
         public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken token = default) where TResult : notnull => throw new NotSupportedException(command.GetType().Name);
-        public ValueTask<BossTowerActionResult> BossSynchronize(BossTowerActionContext context, SelectedSessionIdentity leader)
+        public ValueTask<BossTowerActionResult> BossSynchronize(TowerActionContext context, SelectedSessionIdentity leader)
         {
             SynchronizeCalls++;
             return ValueTask.FromResult(towers.Synchronize(leader));
         }
-        public ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context)
+        public ValueTask<BossTowerActionResult> BossLeave(TowerActionContext context)
         {
             var result = towers.Leave(context.Session);
             request.Cancel();

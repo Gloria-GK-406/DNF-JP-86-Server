@@ -267,23 +267,23 @@ public sealed class GameplayWriteEntryTableTests
         ["DungeonCardPresentationCoordinator.ScheduleAfterSettlement(SelectedSessionIdentity, DungeonRunId)"] = W,
 
         // BossTowerDomainService
-        ["BossTowerDomainService.CanRetryAsync(BossTowerActionContext, CancellationToken)"] = W,
+        ["BossTowerDomainService.CanRetryAsync(TowerActionContext, CancellationToken)"] = W,
         ["BossTowerDomainService.CanShop(SelectedSessionIdentity, Int32, Int32)"] = ReadNote(ConditionalEnlist),
-        ["BossTowerDomainService.DieAsync(BossTowerActionContext, IEffectFootprintRecorder, CancellationToken)"] = W,
+        ["BossTowerDomainService.DieAsync(TowerActionContext, IEffectFootprintRecorder, CancellationToken)"] = W,
         ["BossTowerDomainService.EnterAsync(IReadOnlyList<TowerEntryMember>, SelectedSessionIdentity, UInt32, CancellationToken, Byte, Byte, Byte)"] = W,
         ["BossTowerDomainService.Find(SelectedSessionIdentity)"] = ReadNote(ConditionalEnlist),
         ["BossTowerDomainService.FindReturnsDue(DateTimeOffset)"] = R,
         ["BossTowerDomainService.IsInTower(CharacterId)"] = ReadNote(ConditionalEnlist),
-        ["BossTowerDomainService.KillAsync(BossTowerActionContext, UInt16, IEffectFootprintRecorder, CancellationToken)"] = W,
-        ["BossTowerDomainService.LeaveAsync(BossTowerActionContext, Boolean, IEffectFootprintRecorder, CancellationToken)"] = W,
-        ["BossTowerDomainService.LoadAsync(BossTowerActionContext, CancellationToken)"] = W,
-        ["BossTowerDomainService.NextLevelAsync(BossTowerActionContext, Byte, Byte, CancellationToken)"] = W,
-        ["BossTowerDomainService.PickupAsync(BossTowerActionContext, UInt16, CancellationToken)"] = W,
-        ["BossTowerDomainService.ReleaseForSelectionAsync(BossTowerActionContext, Int32, CancellationToken)"] = W,
-        ["BossTowerDomainService.SelectResultAsync(BossTowerActionContext, Byte, CancellationToken)"] = W,
-        ["BossTowerDomainService.StartAsync(BossTowerActionContext, CancellationToken)"] = W,
+        ["BossTowerDomainService.KillAsync(TowerActionContext, UInt16, IEffectFootprintRecorder, CancellationToken)"] = W,
+        ["BossTowerDomainService.LeaveAsync(TowerActionContext, Boolean, IEffectFootprintRecorder, CancellationToken)"] = W,
+        ["BossTowerDomainService.LoadAsync(TowerActionContext, CancellationToken)"] = W,
+        ["BossTowerDomainService.NextLevelAsync(TowerActionContext, Byte, Byte, CancellationToken)"] = W,
+        ["BossTowerDomainService.PickupAsync(TowerActionContext, UInt16, CancellationToken)"] = W,
+        ["BossTowerDomainService.ReleaseForSelectionAsync(TowerActionContext, Int32, CancellationToken)"] = W,
+        ["BossTowerDomainService.SelectResultAsync(TowerActionContext, Byte, CancellationToken)"] = W,
+        ["BossTowerDomainService.StartAsync(TowerActionContext, CancellationToken)"] = W,
         ["BossTowerDomainService.Supports(Int32)"] = R,
-        ["BossTowerDomainService.SynchronizeLeaderAsync(BossTowerActionContext, SelectedSessionIdentity, CancellationToken)"] = W,
+        ["BossTowerDomainService.SynchronizeLeaderAsync(TowerActionContext, SelectedSessionIdentity, CancellationToken)"] = W,
 
         // IllusionTowerDomainService
         ["IllusionTowerDomainService.CanContinueAsync(TowerActionContext, CancellationToken)"] = W,
@@ -479,12 +479,13 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyClientIdRegistry.Project(PartySnapshot)"] = W,
 
         // The two tower departure queues
-        ["BossTowerDepartureProjectionQueue.SnapshotPending()"] = R,
-        ["IllusionTowerDepartureProjectionQueue.SnapshotPending()"] = R,
-        ["BossTowerDepartureProjectionQueue.Enqueue(BossTowerActionResult)"] = W,
-        ["BossTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, BossTowerActionResult&)"] = W,
-        ["IllusionTowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
-        ["IllusionTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
+        ["TowerDepartureProjectionQueue.SnapshotPending()"] = R,
+        ["TowerDepartureProjectionQueue.Enqueue(BossTowerActionResult)"] = W,
+        ["TowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, BossTowerActionResult&)"] = W,
+        ["TowerDepartureProjectionQueue.DepartedAsync(BossTowerActionResult, CancellationToken)"] = W,
+        ["TowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
+        ["TowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
+        ["TowerDepartureProjectionQueue.DepartedAsync(TowerActionResult, CancellationToken)"] = W,
 
         ["GameJoustBetCommandHandler.HandleAsync(CommandExecutionContext, GameJoustBetCommand, CancellationToken)"] = W,
     };
@@ -662,7 +663,7 @@ public sealed class GameplayWriteEntryTableTests
                     violations.Add(key + ": not classified");
                     continue;
                 }
-                var own = type.Name + "." + MemberName(method);
+                var own = TypeName(method.DeclaringType ?? type) + "." + MemberName(method);
                 if (entry.Kind == Kind.Write)
                 {
                     if (calls.Count == 0) violations.Add(key + ": write member does not assert");
@@ -677,7 +678,8 @@ public sealed class GameplayWriteEntryTableTests
                     violations.Add(key + ": an exemption must name its appendix B row and a reason");
             }
         }
-        var names = types.Select(type => type.Name + ".").ToArray();
+        var names = types.SelectMany(type => new[] { type, SharedBase(type) }).OfType<Type>()
+            .Select(type => TypeName(type) + ".").ToArray();
         foreach (var key in table.Keys)
             if (names.Any(name => key.StartsWith(name, StringComparison.Ordinal)) && !seen.Contains(key))
                 violations.Add(key + ": stale row, no such member");
@@ -770,16 +772,28 @@ public sealed class GameplayWriteEntryTableTests
         throw new DirectoryNotFoundException("The write entry criterion requires the repository checkout.");
     }
 
+    /// <remarks>
+    /// A write entry that only closes a generic base of its own assembly is that base's members:
+    /// they are keyed by the base, the type their assertion names.
+    /// </remarks>
     internal static IEnumerable<MethodInfo> Members(Type type) =>
-        type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static
-                        | BindingFlags.Public | BindingFlags.NonPublic)
+        new[] { type, SharedBase(type) }.OfType<Type>()
+            .SelectMany(owner => owner.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static
+                                                  | BindingFlags.Public | BindingFlags.NonPublic))
             .Where(method => method.IsSpecialName || !method.IsDefined(typeof(CompilerGeneratedAttribute)))
             .Where(method => method.IsPublic || method.IsAssembly || method.IsFamilyOrAssembly
                              || (method.IsPrivate && method.Name.Contains('.', StringComparison.Ordinal)))
             .OrderBy(method => method.Name, StringComparer.Ordinal)
             .ThenBy(method => Signature(method), StringComparer.Ordinal);
 
-    internal static string Key(Type type, MethodInfo method) => type.Name + "." + Signature(method);
+    internal static string Key(Type type, MethodInfo method) => TypeName(method.DeclaringType ?? type) + "." + Signature(method);
+
+    private static Type? SharedBase(Type type) =>
+        type.BaseType is { IsGenericType: true } generic && generic.Assembly == type.Assembly ? generic : null;
+
+    /// <summary>A generic type by its name alone, as <c>nameof</c> spells it in the member's assertion.</summary>
+    private static string TypeName(Type type) =>
+        type.IsGenericType ? type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)] : type.Name;
 
     private static string MemberName(MethodInfo method)
     {
