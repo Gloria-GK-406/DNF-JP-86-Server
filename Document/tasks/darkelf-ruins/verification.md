@@ -23,9 +23,10 @@ decision: manual_required
 | 活动PVF遗迹与遗忘之地内容 | 12通过，0失败/0跳过 | `content-81be.log` |
 | 遗迹codec、遗忘之地时限、注册、协议结构、选图、入场、清场 | 214通过，0失败/0跳过 | `protocol-81be-fixed.log` |
 | GM前端测试 | 158通过，13文件 | `gm-test.log` |
+| Release发布及副本/默认端口启动 | 通过；版本 `0.2.11+9df5ffe3` | `publish.log`、`deployment/*-result.json` |
 | GM前端生产构建 | 通过；存在Vite大块体积提示 | `gm-build.log` |
-| 协议文档检查器自测 | 通过 | `docsync-self.log` |
-| 协议文档全量同步 | 与原基线相同18项既存失败，本次新增0；不能标为全量通过 | `docsync.log`及原任务基线日志 |
+| 协议文档检查器自测 | 通过 | `protocol-doc-sync-self.log` |
+| 协议文档全量同步 | 与原基线相同18项既存失败，本次新增0；不能标为全量通过 | `protocol-doc-sync.log`及原任务基线日志 |
 
 GM源码在本次两个主干基点之间没有变化。协议入场测试夹具补齐遗忘之地空实现后，受影响测试214项通过。
 自动测试不证明 A21 原生入口、传送或专用结果已通过实机验收。
@@ -38,7 +39,10 @@ GM源码在本次两个主干基点之间没有变化。协议入场测试夹具
 默认端口与原玩家库路径见 [实机测试流程](user-test.md)。不对玩家库运行测试夹具或重置资料。
 `prior-process.json`、`prior-appsettings.json` 和 `prior-runtime.json` 保留实际原服务恢复依据；
 `final-backup-manifest.json`、`probe-result.json`、`live-result.json` 保存备份、迁移与启动结果。
-此文档提交时，新包部署尚待本轮执行结果；实际状态以这些记录为准。
+已发布并启动 `0.2.11+9df5ffe3`，默认端口由同一新进程持有；启动器 ready，GM 页面200。
+副本迁移与切换后实际库均 `quick_check=ok`，4个账号、9个角色、675条物品槽、2199条任务不可见标记及角色抽样行均与对应备份一致。
+`probe-migration-result.json`、`live-data-check.json` 保存核对结果；玩家详情只保留在忽略的本地记录中。
+保留原库路径及遗忘之地1200秒时限、正常入场次数设置。健康检查不代表真实客户端验收。
 
 ## 待实机验证
 
