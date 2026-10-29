@@ -653,7 +653,9 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
         {
             if (type.IsArray) return Format(type.GetElementType()!) + "[]";
             if (!type.IsGenericType) return type.Name;
-            var name = type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)];
+            // A type nested in a generic type is generic too, with no arity of its own in its name.
+            var arity = type.Name.IndexOf('`', StringComparison.Ordinal);
+            var name = arity < 0 ? type.Name : type.Name[..arity];
             return name + "<" + string.Join(", ", type.GetGenericArguments().Select(Format)) + ">";
         }
     }

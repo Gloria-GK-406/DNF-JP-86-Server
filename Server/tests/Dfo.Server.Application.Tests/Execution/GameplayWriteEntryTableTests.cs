@@ -479,12 +479,13 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyClientIdRegistry.Project(PartySnapshot)"] = W,
 
         // The two tower departure queues
-        ["BossTowerDepartureProjectionQueue.SnapshotPending()"] = R,
-        ["IllusionTowerDepartureProjectionQueue.SnapshotPending()"] = R,
-        ["BossTowerDepartureProjectionQueue.Enqueue(BossTowerActionResult)"] = W,
-        ["BossTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, BossTowerActionResult&)"] = W,
-        ["IllusionTowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
-        ["IllusionTowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
+        ["TowerDepartureProjectionQueue.SnapshotPending()"] = R,
+        ["TowerDepartureProjectionQueue.Enqueue(BossTowerActionResult)"] = W,
+        ["TowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, BossTowerActionResult&)"] = W,
+        ["TowerDepartureProjectionQueue.DepartedAsync(BossTowerActionResult, CancellationToken)"] = W,
+        ["TowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
+        ["TowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
+        ["TowerDepartureProjectionQueue.DepartedAsync(TowerActionResult, CancellationToken)"] = W,
 
         ["GameJoustBetCommandHandler.HandleAsync(CommandExecutionContext, GameJoustBetCommand, CancellationToken)"] = W,
     };
@@ -662,7 +663,7 @@ public sealed class GameplayWriteEntryTableTests
                     violations.Add(key + ": not classified");
                     continue;
                 }
-                var own = type.Name + "." + MemberName(method);
+                var own = TypeName(method.DeclaringType ?? type) + "." + MemberName(method);
                 if (entry.Kind == Kind.Write)
                 {
                     if (calls.Count == 0) violations.Add(key + ": write member does not assert");
@@ -677,7 +678,8 @@ public sealed class GameplayWriteEntryTableTests
                     violations.Add(key + ": an exemption must name its appendix B row and a reason");
             }
         }
-        var names = types.Select(type => type.Name + ".").ToArray();
+        var names = types.SelectMany(type => new[] { type, SharedBase(type) }).OfType<Type>()
+            .Select(type => TypeName(type) + ".").ToArray();
         foreach (var key in table.Keys)
             if (names.Any(name => key.StartsWith(name, StringComparison.Ordinal)) && !seen.Contains(key))
                 violations.Add(key + ": stale row, no such member");
@@ -770,16 +772,28 @@ public sealed class GameplayWriteEntryTableTests
         throw new DirectoryNotFoundException("The write entry criterion requires the repository checkout.");
     }
 
+    /// <remarks>
+    /// A write entry that only closes a generic base of its own assembly is that base's members:
+    /// they are keyed by the base, the type their assertion names.
+    /// </remarks>
     internal static IEnumerable<MethodInfo> Members(Type type) =>
-        type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static
-                        | BindingFlags.Public | BindingFlags.NonPublic)
+        new[] { type, SharedBase(type) }.OfType<Type>()
+            .SelectMany(owner => owner.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static
+                                                  | BindingFlags.Public | BindingFlags.NonPublic))
             .Where(method => method.IsSpecialName || !method.IsDefined(typeof(CompilerGeneratedAttribute)))
             .Where(method => method.IsPublic || method.IsAssembly || method.IsFamilyOrAssembly
                              || (method.IsPrivate && method.Name.Contains('.', StringComparison.Ordinal)))
             .OrderBy(method => method.Name, StringComparer.Ordinal)
             .ThenBy(method => Signature(method), StringComparer.Ordinal);
 
-    internal static string Key(Type type, MethodInfo method) => type.Name + "." + Signature(method);
+    internal static string Key(Type type, MethodInfo method) => TypeName(method.DeclaringType ?? type) + "." + Signature(method);
+
+    private static Type? SharedBase(Type type) =>
+        type.BaseType is { IsGenericType: true } generic && generic.Assembly == type.Assembly ? generic : null;
+
+    /// <summary>A generic type by its name alone, as <c>nameof</c> spells it in the member's assertion.</summary>
+    private static string TypeName(Type type) =>
+        type.IsGenericType ? type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)] : type.Name;
 
     private static string MemberName(MethodInfo method)
     {
