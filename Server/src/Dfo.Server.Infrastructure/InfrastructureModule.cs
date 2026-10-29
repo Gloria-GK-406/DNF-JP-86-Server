@@ -42,6 +42,9 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Content.IMarriageHousingContentSource, PvfMarriageHousingContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyContentSource, PvfMarriageCeremonyContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IHerasContentSource, PvfHerasContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandContentSource, PvfLostLandContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandDropContentSource, PvfLostLandDropContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandConsumableDefinitionSource, PvfLostLandConsumableDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerContentSource, PvfDespairTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();

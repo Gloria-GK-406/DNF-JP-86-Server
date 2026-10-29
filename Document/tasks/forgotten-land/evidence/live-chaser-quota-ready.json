@@ -1,0 +1,15 @@
+{
+  "Pid": 30952,
+  "StartFileTimeUtc": 134376765747879229,
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 600,
+  "QuotaResetReceiptExists": true,
+  "CheckedAtUtc": "2026-10-28T15:56:21.8679439Z"
+}

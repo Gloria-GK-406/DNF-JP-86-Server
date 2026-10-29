@@ -131,8 +131,16 @@ internal sealed class DungeonVisitDomainService(
         CancellationToken cancellationToken)
         => (await TryMoveAsync(characterId, current, target, cancellationToken).ConfigureAwait(false)).Visit;
 
-    public async ValueTask<DungeonMoveAttempt> TryMoveAsync(
-        CharacterId characterId, DungeonRunState current, MazeCell target, CancellationToken cancellationToken)
+    public ValueTask<DungeonMoveAttempt> TryMoveAsync(
+        CharacterId characterId, DungeonRunState current, MazeCell target, CancellationToken cancellationToken) =>
+        TryMoveCoreAsync(characterId, current, target, false, cancellationToken);
+
+    public async ValueTask<DungeonRoomVisit?> MoveByLostLandItemAsync(CharacterId characterId,
+        DungeonRunState current, MazeCell target, CancellationToken token) =>
+        (await TryMoveCoreAsync(characterId, current, target, true, token).ConfigureAwait(false)).Visit;
+
+    private async ValueTask<DungeonMoveAttempt> TryMoveCoreAsync(CharacterId characterId,
+        DungeonRunState current, MazeCell target, bool itemWarp, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(current);
 
@@ -160,13 +168,14 @@ internal sealed class DungeonVisitDomainService(
         var firstEntry = !latest.VisitedCells.Contains(target);
         if (!latest.Layout.Cells.ContainsKey(target))
             return Refused(DungeonMoveFailure.CellNotFound);
-        if (!latest.Layout.CanTraverse(latest.CurrentCell, target))
+        if (itemWarp && latest.Layout.Mode is not DungeonRunMode.LostLand) return Refused(DungeonMoveFailure.StateRejected);
+        if (!itemWarp && !latest.Layout.CanTraverse(latest.CurrentCell, target))
             return Refused(DungeonMoveFailure.Disconnected);
 
         DungeonCellSeed? preparedCell = null;
         if (firstEntry)
         {
-            var selected = await layouts.SelectMapAsync(latest.Layout, latest.CurrentCell, target, cancellationToken)
+            var selected = await layouts.SelectMapAsync(latest.Layout, itemWarp ? null : latest.CurrentCell, target, cancellationToken)
                 .ConfigureAwait(false);
             if (selected.MapId is not { } mapId) return Refused(DungeonMoveFailure.NoCompatibleMap);
             if (logger.IsEnabled(LogLevel.Debug))
@@ -184,12 +193,9 @@ internal sealed class DungeonVisitDomainService(
                 cancellationToken).ConfigureAwait(false);
         }
 
-        var entered = runs.TryMove(
-            characterId,
-            latest.RunId,
-            latest.RoomVersion,
-            target,
-            preparedCell);
+        var entered = itemWarp
+            ? runs.TryMoveByLostLandItem(characterId, latest.RunId, latest.RoomVersion, target, preparedCell)
+            : runs.TryMove(characterId, latest.RunId, latest.RoomVersion, target, preparedCell);
         if (entered is null) return Refused(DungeonMoveFailure.StateRejected);
         if (logger.IsEnabled(LogLevel.Debug))
             logger.LogDebug("Dungeon move accepted character={CharacterId} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} firstEntry={FirstEntry} actors={ActorCount} objects={ObjectCount}",

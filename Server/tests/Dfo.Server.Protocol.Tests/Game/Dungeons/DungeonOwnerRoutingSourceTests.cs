@@ -71,6 +71,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
             "0x0010 select dungeon: judged before consuming the entry intent, outside dungeon owner routing"),
         new(Rule.Stale, "Game/GuardianAltar/GameGuardianAltarCommand.cs", "HandleAsync", 1,
             "0x0392-0x039A guardian actions: the single activity entry rejects stale frames before any owned mutation"),
+        new(Rule.Stale, "Game/RepairItem/GameRepairItemCommand.cs", "HandleAsync", 1,
+            "0x0017 coupon repair: rejects stale consumable requests in town or dungeon without routing by dungeon owner"),
 
         .. Routes.Select(route => new Site(Rule.Locate, route.Path, route.Member, 1, route.Commands + ": the one locate")),
         new(Rule.Locate, PartyStages, "LocatePartyOf", 1,

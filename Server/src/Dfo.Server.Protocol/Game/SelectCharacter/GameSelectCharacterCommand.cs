@@ -458,6 +458,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
+            _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.LostLand, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker)
             _ = await ProjectQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.GoldSilverHorn, cancellationToken).ConfigureAwait(false);

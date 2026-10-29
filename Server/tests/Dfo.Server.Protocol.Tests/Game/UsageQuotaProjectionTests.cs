@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -26,6 +27,52 @@ public sealed class UsageQuotaProjectionTests
             new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
             new(sessions.Current.CharacterId, UsageQuotaFamily.GiantDragonCrystalExchange), default);
         Assert.Empty(messages);
+    }
+
+    [Fact]
+    public async Task Lost_land_refresh_reacts_to_earned_entries_and_retries_failed_registration()
+    {
+        var sessions = new Sessions(); var clock = new Clock(); var domain = new LostLandCounter();
+        var events = new Events { Family = UsageQuotaFamily.LostLand };
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.LostLand, sessions, sessions, events,
+            new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)), lostLand: domain);
+        await worker.RefreshAsync(default); await worker.RefreshAsync(default);
+        Assert.Single(events.Projections);
+        domain.Remaining = 2; events.Outcome = NotificationOutcome.Failed;
+        await worker.RefreshAsync(default); Assert.Equal(2, events.Projections.Count);
+        events.Outcome = NotificationOutcome.Registered;
+        await worker.RefreshAsync(default); await worker.RefreshAsync(default);
+        Assert.Equal(3, events.Projections.Count);
+        clock.Now = clock.Now.AddDays(1);
+        await worker.RefreshAsync(default); Assert.Equal(4, events.Projections.Count);
+    }
+
+    private sealed class LostLandCounter : ILostLandDungeonDomainService
+    {
+        public int Remaining { get; set; } = 1;
+        public bool Supports(int dungeonId) => dungeonId == 4000;
+        public ValueTask<LostLandQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken ct) =>
+            ValueTask.FromResult(new LostLandQuotaSnapshot(new(2026, 10, 27), Remaining, 0, 0));
+        public ValueTask<LostLandQuotaSnapshot> ReadQuotaAtAsync(CharacterId character, DateTimeOffset at, CancellationToken ct) =>
+            ReadQuotaAsync(character, ct);
+        public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    [Theory]
+    [InlineData(1, 0, 1)]
+    [InlineData(2, 1, 1)]
+    [InlineData(2, 2, 0)]
+    [InlineData(300, 0, 255)]
+    public async Task Lost_land_projects_absolute_remaining_and_saturates_the_byte_view(int maximum, int used, byte visible)
+    {
+        var sessions = new Sessions(); var snapshots = new Snapshots();
+        snapshots.Value = snapshots.Value with { LostLand = new(new(2026, 10, 27), maximum, 0, used) };
+        var message = Assert.IsType<DungeonRemainingEntriesMessage>(Assert.Single(await new UsageQuotaViewChangedHandler(snapshots, sessions)
+            .ComposeAsync(new(sessions.Current!.CharacterId, sessions.Current.ConnectionId),
+                new(sessions.Current.CharacterId, UsageQuotaFamily.LostLand), default)));
+        Assert.Equal(0x0227, message.Type);
+        Assert.Equal(new byte[] { 0xA0, 0x0F, 0, 0, visible }, message.EncodeBody());
     }
 
     [Theory]

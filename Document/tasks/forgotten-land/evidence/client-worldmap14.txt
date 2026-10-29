@@ -1,0 +1,11 @@
+id 14 -> GranFlorisHillside.wdm
+=== worldmap/GranFlorisHillside.wdm ===
+[map image]
+WorldMap/GranflorisHillside.img 0
+[ui path]
+WorldMap/UI/GranFlorisHillside.xui
+[dungeon]
+100 -1 3557 -1 4123 -1 3541 -1 3700 -1 3900 -1
+[/dungeon]
+[name]
+格兰之森山麓

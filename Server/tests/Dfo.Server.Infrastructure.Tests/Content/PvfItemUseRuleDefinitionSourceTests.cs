@@ -15,6 +15,21 @@ namespace Dfo.Server.Infrastructure.Tests.Content;
 /// </remarks>
 public sealed class PvfItemUseRuleDefinitionSourceTests
 {
+    [SkippableFact]
+    public async Task LostLand_repair_coupon_preserves_action_and_dungeon_restriction()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var rule = await new PvfItemUseRuleDefinitionSource(provider).GetAsync(10093456, default);
+        Assert.NotNull(rule);
+        Assert.True(rule.IsReadable);
+        Assert.True(rule.IsConsumedOnUse);
+        Assert.Equal("[repair coupon]", rule.Action);
+        Assert.Equal(new[] { 4000 }, rule.AllowedDungeonIds);
+        Assert.True(rule.Places.Allows(ItemUsePlace.Dungeon));
+        Assert.False(rule.Places.Allows(ItemUsePlace.Village));
+    }
+
     [SkippableTheory]
     [InlineData(10002625)] [InlineData(10002626)]
     public async Task Wedding_fireworks_have_shared_consumable_effect_rules(int itemId)

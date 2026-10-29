@@ -361,6 +361,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
             }
 
+            if (aggregate.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration } && aggregate.LostLandExploration is null)
+                aggregate.LostLandExploration = new(this.clock.GetUtcNow().AddSeconds(exploration.FirstLimitSeconds));
             aggregate.EntryRevision++;
             if (aggregate.Participants.All(member => aggregate.ReadyParticipants.Contains(member.CharacterId)))
             {
@@ -471,7 +473,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         DungeonRunId? expectedRunId,
         long? expectedRoomVersion,
         MazeCell target,
-        DungeonCellSeed? preparedCell = null)
+        DungeonCellSeed? preparedCell = null, bool lostLandItem = false)
     {
         DungeonRunState? Refused(string reason, DungeonRunAggregate? run)
         {
@@ -483,6 +485,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         if (this.RunOf(characterId) is not { } aggregate)
             return Refused("NoRun", null);
+        if (aggregate.LostLandExploration?.HasExpired(this.clock.GetUtcNow()) == true)
+            return Refused("LostLandEnded", aggregate);
         if (!this.IsCurrentLeader(aggregate, characterId))
             return Refused("NotLeader", aggregate);
         if (expectedRunId is { } runId && aggregate.RunId != runId)
@@ -498,10 +502,12 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         if (this.preparedGroundDropClaims.Any(key =>
                 key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
             return Refused("GroundDropPrepared", aggregate);
-        if (Math.Abs(target.X - aggregate.CurrentCell.X)
+        if (aggregate.Layout.Mode is not DungeonRunMode.LostLand && Math.Abs(target.X - aggregate.CurrentCell.X)
                 + Math.Abs(target.Y - aggregate.CurrentCell.Y) != 1)
             return Refused("NotAdjacent", aggregate);
-        if (!aggregate.Layout.CanTraverse(aggregate.CurrentCell, target))
+        if (lostLandItem && (aggregate.Layout.Mode is not DungeonRunMode.LostLand || !aggregate.Layout.Cells.TryGetValue(target, out var destination)
+            || destination.MapCandidates.Count == 0)) return Refused("InvalidLostLandDestination", aggregate);
+        if (!lostLandItem && !aggregate.Layout.CanTraverse(aggregate.CurrentCell, target))
             return Refused("Disconnected", aggregate);
         if (!this.sealedTreasureRules.AllowsTraversal(aggregate.Layout.DungeonId,
                 aggregate.KilledMonsterCodes, aggregate.CurrentCell, target))
@@ -562,6 +568,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
             }
 
+            if (aggregate.LostLandExploration?.HasExpired(this.clock.GetUtcNow()) == true) return null;
             var drop = new GroundDropId(aggregate.CurrentCell, groundDropNumber);
             var cell = aggregate.Cells[aggregate.CurrentCell];
             var item = cell.FindGroundItem(groundDropNumber);
@@ -677,6 +684,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 return null;
             }
 
+            if (aggregate.LostLandExploration?.HasExpired(this.clock.GetUtcNow()) == true) return null;
             var cell = aggregate.Cells[aggregate.CurrentCell];
             if (cell.Revision != expectedCellRevision)
                 return null;
@@ -710,6 +718,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             if (this.RunOf(characterId) is not { } aggregate
                 || aggregate.RunId != expectedRunId
                 || aggregate.RoomVersion != expectedRoomVersion
+                || !aggregate.IsMember(characterId)
+                || aggregate.Layout.Mode is DungeonRunMode.LostLand
                 || aggregate.Cells[aggregate.CurrentCell].ClearOpen)
             {
                 return null;
@@ -754,6 +764,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             if (this.RunOf(characterId) is not { } aggregate)
                 return null;
 
+            if (aggregate.LostLandExploration?.HasExpired(this.clock.GetUtcNow()) == true) return null;
             var actor = new RoomActorId(aggregate.CurrentCell, actorSequence);
             var cell = aggregate.Cells[aggregate.CurrentCell];
             if (!cell.CanClaimDeath(actorSequence))
@@ -818,6 +829,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
             var cell = aggregate.Cells[claim.Actor.Cell];
             var killedActor = cell.FindActor(claim.Actor.Sequence);
+            var previousFever = aggregate.LostLandFever;
             var autoKilled = this.SuppressedAfterDeath(aggregate, cell, claim);
             IReadOnlyList<RolledDrop>? resolvedLoot = null;
             if (aggregate.Layout.Mode is DungeonRunMode.GiantDragon { TimeReward: { } timeReward }
@@ -833,10 +845,15 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     timeReward.Material.ItemId, resolvedLoot.Where(x => x.ItemId == timeReward.Material.ItemId
                         && x.OwnerCharacterId is null && x.Delivery == RolledDropDelivery.Ground).Sum(x => x.Count));
             }
+            // A committed kill is the only once-per-run fact. Freeze rolls in the cell, then
+            // select the shared boss bonus here so pre-created alternative rooms cannot both pay.
+            var bonus = aggregate.Layout.Mode is DungeonRunMode.LostLand && killedActor?.LostLandBonus is { } frozen
+                && !aggregate.KilledMonsterCodes.Any(frozen.SharedBossCodes.Contains)
+                    ? frozen.Items : [];
             var added = cell.CommitActorDeath(
                 claim.Actor.Sequence,
                 rolled => rolled.OwnerCharacterId is not { } owner
-                    || aggregate.IsMember(owner), resolvedLoot);
+                    || aggregate.IsMember(owner), resolvedLoot, bonus);
             if (added is null)
                 return null;
             if (killedActor is { IsMonster: true })
@@ -846,6 +863,9 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     killedActor.Actor.Code,
                     aggregate.Layout.LevelOf(killedActor.Actor.Level),
                     (MonsterRank)killedActor.Actor.ActorType));
+                if (aggregate.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration } && previousFever is not null)
+                    aggregate.LostLandFever = LostLandFeverRules.Award(previousFever, killedActor,
+                        claim.OccurredAt ?? this.clock.GetUtcNow(), exploration.FeverDuration);
             }
             cell.SuppressEnemies(autoKilled);
             if (cell.IsCleared)
@@ -866,6 +886,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                     .Select(participant => participant.CharacterId)])
             {
                 AutoKilledActorSequences = autoKilled,
+                LostLandFeverPercent = aggregate.LostLandFever != previousFever
+                    ? aggregate.LostLandFever?.Percent : null,
             };
         }
     }
@@ -1803,6 +1825,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             this.parties = parties;
             this.entryParticipants = participants;
             this.Layout = layout;
+            this.LostLandFever = layout.Mode is not DungeonRunMode.LostLand ? null : new();
             this.Difficulty = difficulty;
             this.StartedAt = startedAt;
             this.CurrentCell = layout.StartCell;
@@ -1859,6 +1882,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             this.Participants.Single(participant => participant.IsLeader);
         public DateTimeOffset? ClearedAt { get; set; }
         public DungeonLayout Layout { get; }
+        public LostLandFeverState? LostLandFever { get; set; }
+        public LostLandExplorationState? LostLandExploration { get; set; }
         public DungeonDifficulty Difficulty { get; }
         public DateTimeOffset StartedAt { get; }
         public MazeCell CurrentCell { get; set; }
@@ -1960,6 +1985,8 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 ClearedAt = this.ClearedAt,
                 ClearedCells = this.Cells.Where(x => x.Value.IsCleared).Select(x => x.Key).ToImmutableHashSet(),
                 KillExperience = this.KillExperiences.GetValueOrDefault(characterId) ?? new(),
+                LostLandFever = this.LostLandFever,
+                LostLandExploration = this.LostLandExploration,
             };
         }
     }
@@ -2059,7 +2086,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 
         public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(
             ushort sequence,
-            Func<RolledDrop, bool> mayMaterialize, IReadOnlyList<RolledDrop>? resolvedLoot = null)
+            Func<RolledDrop, bool> mayMaterialize, IReadOnlyList<RolledDrop>? resolvedLoot, IReadOnlyList<RolledDrop> bonus)
         {
             if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
                 return null;
@@ -2069,7 +2096,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                 && group.ActorSequences.All(member => member == sequence || this.actors[member].IsDead)
                     ? group : null;
             var rewards = (resolvedLoot ?? actor.PendingLoot).Concat(completedGroup is not null && actor.EligibleForHellGroupReward
-                ? completedGroup.PendingLoot : []);
+                ? completedGroup.PendingLoot : []).Concat(bonus);
             var added = this.AppendGroundItems(rewards
                 .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)
                 .Where(mayMaterialize)
@@ -2084,7 +2111,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
                         rolled.Kind,
                         rolled.OwnerCharacterId)).ToArray());
 
-            this.actors[sequence] = actor with { IsDead = true, PendingLoot = [] };
+            this.actors[sequence] = actor with { IsDead = true, PendingLoot = [], LostLandBonus = null };
             if (completedGroup is not null)
                 this.hellGroups[completedGroup.GroupIndex] = completedGroup with { IsSettled = true, PendingLoot = [] };
             this.Revision++;
@@ -2103,7 +2130,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         public void SuppressEnemies(IReadOnlyList<ushort> sequences)
         {
             foreach (var sequence in sequences)
-                this.actors[sequence] = this.actors[sequence] with { IsDead = true, PendingLoot = [] };
+                this.actors[sequence] = this.actors[sequence] with { IsDead = true, PendingLoot = [], LostLandBonus = null };
         }
 
         public IReadOnlyList<DungeonGroundItem> AppendGroundItems(

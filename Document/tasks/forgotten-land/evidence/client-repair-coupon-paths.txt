@@ -1,0 +1,280 @@
+Source: E:\Project\DNF\DNFClient-A21-protocol\dumps\dnf-dump-20260906-224825-165-31384\DNF-memory-rva.bin
+SHA256: 6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+ImageBase=00400000; addresses are VA. Bounded disasm_lite, no process attachment.
+
+Function 023EC800, selected interval 023EC800..023EC95C
+023EC800 push     ebp
+023EC801 mov      ebp, esp
+023EC803 push     ebx
+023EC804 mov      ebx, dword ptr [ebp + 8]
+023EC807 test     ebx, ebx
+023EC809 jne      0x23ec87c
+023EC80B push     ebx
+023EC80C push     0x17
+023EC80E call     0x274ca50
+023EC813 mov      ecx, eax
+023EC815 call     0x274d1e0
+023EC81A push     ebx
+023EC81B call     0x274ca50
+023EC820 mov      ecx, eax
+023EC822 call     0x274d2e0
+023EC827 push     0xffff
+023EC82C call     0x274ca50
+023EC831 mov      ecx, eax
+023EC833 call     0x274d310
+023EC838 movzx    eax, word ptr [0x3992cac]
+023EC83F push     eax
+023EC840 call     0x274ca50
+023EC845 mov      ecx, eax
+023EC847 call     0x274d310
+023EC84C push     ebx
+023EC84D call     0x274ca50
+023EC852 mov      ecx, eax
+023EC854 call     0x274d310
+023EC859 mov      byte ptr [ebp + 8], bl
+023EC85C cmp      byte ptr [ebp + 0x14], bl
+023EC85F je       0x23ec865
+023EC861 mov      byte ptr [ebp + 8], 1
+023EC865 mov      ecx, dword ptr [ebp + 8]
+023EC868 push     ecx
+023EC869 call     0x274ca50
+023EC86E mov      ecx, eax
+023EC870 call     0x274d2e0
+023EC875 pop      ebx
+023EC876 pop      ebp
+023EC877 jmp      0x274e6d0
+023EC87C mov      ecx, dword ptr [0x3a5c9bc]
+023EC882 push     esi
+023EC883 push     edi
+023EC884 push     ebx
+023EC885 call     0x16ef980
+023EC88A mov      esi, eax
+023EC88C cmp      esi, -1
+023EC88F je       0x23ec8ce
+023EC891 xor      edi, edi
+023EC893 push     0
+023EC895 push     0x17
+023EC897 call     0x274ca50
+023EC89C mov      ecx, eax
+023EC89E call     0x274d1e0
+023EC8A3 push     edi
+023EC8A4 call     0x274ca50
+023EC8A9 mov      ecx, eax
+023EC8AB call     0x274d2e0
+023EC8B0 push     esi
+023EC8B1 call     0x274ca50
+023EC8B6 mov      ecx, eax
+023EC8B8 call     0x274d310
+023EC8BD mov      eax, dword ptr [0x3992cac]
+023EC8C2 cmp      eax, -1
+023EC8C5 jne      0x23ec91b
+023EC8C7 push     0xffff
+023EC8CC jmp      0x23ec91f
+023EC8CE mov      edi, dword ptr [0x3b3dfb8]
+023EC8D4 xor      esi, esi
+023EC8D6 mov      edx, dword ptr [edi]
+023EC8D8 mov      eax, dword ptr [edx + 0xa58]
+023EC8DE push     esi
+023EC8DF mov      ecx, edi
+023EC8E1 call     eax
+023EC8E3 cmp      eax, ebx
+023EC8E5 je       0x23ec8ef
+023EC8E7 inc      esi
+023EC8E8 cmp      esi, 0x20
+023EC8EB jl       0x23ec8d6
+023EC8ED jmp      0x23ec8f9
+023EC8EF mov      edi, 3
+023EC8F4 cmp      esi, -1
+023EC8F7 jne      0x23ec893
+023EC8F9 push     0
+023EC8FB push     0x452
+023EC900 call     0x28c14c0
+023EC905 mov      ecx, dword ptr [ebp + 0xc]
+023EC908 add      esp, 4
+023EC90B push     eax
+023EC90C push     0x209
+023EC911 call     0x2304c70
+023EC916 pop      edi
+023EC917 pop      esi
+023EC918 pop      ebx
+023EC919 pop      ebp
+023EC91A ret
+023EC91B movzx    ecx, ax
+023EC91E push     ecx
+023EC91F call     0x274ca50
+023EC924 mov      ecx, eax
+023EC926 call     0x274d310
+023EC92B push     0
+023EC92D call     0x274ca50
+023EC932 mov      ecx, eax
+023EC934 call     0x274d310
+023EC939 cmp      byte ptr [ebp + 0x14], 0
+023EC93D mov      byte ptr [ebp + 8], 0
+023EC941 je       0x23ec947
+023EC943 mov      byte ptr [ebp + 8], 1
+023EC947 mov      edx, dword ptr [ebp + 8]
+023EC94A push     edx
+023EC94B call     0x274ca50
+023EC950 mov      ecx, eax
+023EC952 call     0x274d2e0
+023EC957 pop      edi
+023EC958 pop      esi
+023EC959 pop      ebx
+023EC95A pop      ebp
+023EC95B jmp      0x274e6d0
+
+Function 02319670, selected interval 023199F9..02319ADD
+023199F9 je       0x2319730
+023199FF mov      eax, dword ptr [eax + 0x398]
+02319A05 cmp      eax, 0x26
+02319A08 je       0x2319ad2
+02319A0E cmp      eax, 0x49
+02319A11 je       0x2319995
+02319A13 cmp      byte ptr [ebp + 0x10], 0
+02319A17 je       0x2319ad2
+02319A1D test     esi, esi
+02319A1F je       0x2319a32
+02319A21 call     0x27eba50
+02319A26 mov      byte ptr [0x3b72d68], 1
+02319A2D cmp      eax, 6
+02319A30 je       0x2319a39
+02319A32 mov      byte ptr [0x3b72d68], 0
+02319A39 mov      ecx, edi
+02319A3B call     0x23015a0
+02319A40 call     0x27eba50
+02319A45 cmp      eax, 0x10
+02319A48 jne      0x2319a93
+02319A4A push     0x3447
+02319A4F push     0x35bb0a8
+02319A54 call     0x27bacc0
+02319A59 add      esp, 4
+02319A5C push     eax
+02319A5D call     0x1648e70
+02319A62 add      esp, 8
+02319A65 test     eax, eax
+02319A67 je       0x2319a93
+02319A69 push     0x3449
+02319A6E push     0x35bb0a8
+02319A73 call     0x27bacc0
+02319A78 add      esp, 4
+02319A7B push     eax
+02319A7C call     0x1648e70
+02319A81 mov      edx, dword ptr [eax]
+02319A83 add      esp, 8
+02319A86 push     1
+02319A88 push     1
+02319A8A mov      ecx, eax
+02319A8C mov      eax, dword ptr [edx + 0x3c]
+02319A8F push     0
+02319A91 call     eax
+02319A93 push     0
+02319A95 call     0x27eba30
+02319A9A add      esp, 4
+02319A9D push     0
+02319A9F push     esi
+02319AA0 push     0x21c
+02319AA5 mov      ecx, edi
+02319AA7 call     0x2304c70
+02319AAC cmp      byte ptr [ebp - 0x215], 0
+02319AB3 je       0x2319995
+02319AB9 test     eax, eax
+02319ABB je       0x2319995
+02319AC1 mov      edx, dword ptr [eax]
+02319AC3 mov      ecx, eax
+02319AC5 mov      eax, dword ptr [edx + 0xa8]
+02319ACB call     eax
+02319ACD jmp      0x2319995
+02319AD2 push     0
+02319AD4 push     0
+02319AD6 push     edi
+02319AD7 push     esi
+02319AD8 call     0x23ec800
+
+Function 01122C40, selected interval 01122C40..01122CAD
+01122C40 push     ebp
+01122C41 mov      ebp, esp
+01122C43 sub      esp, 0x424
+01122C49 mov      eax, dword ptr [0x399cee0]
+01122C4E xor      eax, ebp
+01122C50 mov      dword ptr [ebp - 4], eax
+01122C53 push     edi
+01122C54 xor      edi, edi
+01122C56 cmp      byte ptr [ebp + 0xc], 0
+01122C5A je       0x11231fb
+01122C60 push     ebx
+01122C61 lea      eax, [ebp - 0x420]
+01122C67 push     esi
+01122C68 push     eax
+01122C69 mov      byte ptr [ebp - 0x40d], 0
+01122C70 mov      dword ptr [ebp - 0x41c], edi
+01122C76 mov      dword ptr [ebp - 0x420], edi
+01122C7C mov      dword ptr [ebp - 0x414], edi
+01122C82 call     0x27c5310
+01122C87 lea      ecx, [ebp - 0x40d]
+01122C8D push     1
+01122C8F push     ecx
+01122C90 call     0x27c5230
+01122C95 lea      edx, [ebp - 0x41c]
+01122C9B push     edx
+01122C9C call     0x27c52a0
+01122CA1 lea      eax, [ebp - 0x414]
+01122CA7 push     eax
+01122CA8 call     0x27c52a0
+
+Function 01122C40, selected interval 011230ED..011231AF
+011230ED cmp      word ptr [ebp - 0x414], di
+011230F4 mov      edx, dword ptr [esi]
+011230F6 mov      edx, dword ptr [edx + 0x164]
+011230FC sete     al
+011230FF movzx    ecx, al
+01123102 mov      eax, dword ptr [ebp - 0x408]
+01123108 push     ecx
+01123109 push     eax
+0112310A mov      ecx, esi
+0112310C call     edx
+0112310E mov      ecx, dword ptr [0x3b3dfb8]
+01123114 mov      eax, dword ptr [ecx]
+01123116 mov      edx, dword ptr [eax + 0xa58]
+0112311C push     0xc
+0112311E call     edx
+01123120 pop      esi
+01123121 pop      ebx
+01123122 test     eax, eax
+01123124 je       0x1123132
+01123126 call     0xd0b370
+0112312B mov      ecx, eax
+0112312D call     0xd04ef0
+01123132 mov      ecx, dword ptr [0x3a5c9b8]
+01123138 push     0
+0112313A push     -1
+0112313C push     0x20e
+01123141 call     0x2304790
+01123146 cmp      dword ptr [0x3992cac], -1
+0112314D je       0x11231af
+0112314F mov      eax, dword ptr [0x3992cb0]
+01123154 mov      ecx, dword ptr [0x3a5c914]
+0112315A push     1
+0112315C push     eax
+0112315D call     0x2752a80
+01123162 test     eax, eax
+01123164 je       0x112335d
+0112316A cmp      dword ptr [eax + 0x398], 0x26
+01123171 jne      0x11231af
+01123173 push     0
+01123175 push     0xb52e
+0112317A call     0x28c14c0
+0112317F mov      ecx, dword ptr [0x3a5c9b8]
+01123185 add      esp, 4
+01123188 push     eax
+01123189 push     0x209
+0112318E call     0x2304c70
+01123193 mov      ecx, dword ptr [0x3a5c9b8]
+01123199 push     0
+0112319B call     0x23053c0
+011231A0 pop      edi
+011231A1 mov      ecx, dword ptr [ebp - 4]
+011231A4 xor      ecx, ebp
+011231A6 call     0x2c627f3
+011231AB mov      esp, ebp
+011231AD pop      ebp
+011231AE ret

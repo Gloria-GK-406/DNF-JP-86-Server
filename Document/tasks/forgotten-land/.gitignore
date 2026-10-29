@@ -1,0 +1,11 @@
+probe/bin/
+probe/obj/
+__pycache__/
+private/
+evidence/*.log
+# Raw inventory searches include unrelated assets; the investigation cites script excerpts instead.
+evidence/*-files.tsv
+evidence/client-dungeon4000-sites.txt
+evidence/client-module-callers.txt
+evidence/client-protocol-links.txt
+evidence/client-lost-literals.txt

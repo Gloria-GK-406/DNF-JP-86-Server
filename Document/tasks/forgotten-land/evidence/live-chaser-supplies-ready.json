@@ -1,0 +1,15 @@
+{
+  "Pid": 22260,
+  "StartFileTimeUtc": 134376763586334735,
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 600,
+  "GrantReceiptExists": true,
+  "CheckedAtUtc": "2026-10-28T15:52:45.7403024Z"
+}

@@ -1,0 +1,19 @@
+{
+  "active_client_exe_sha256": "1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD",
+  "active_client_pvf_sha256": "D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84",
+  "same_dungeon4000_tokens": true,
+  "comparisons": [
+    {
+      "path": "etc/lostland/chaserpattern.etc",
+      "token_text_identical": true
+    },
+    {
+      "path": "passiveobject/actionobject/map/lostland/treasurebox/action/box_key.act",
+      "token_text_identical": true
+    },
+    {
+      "path": "passiveobject/actionobject/map/lostland/treasurebox/action/treasurebox1.act",
+      "token_text_identical": true
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "run_id": "d18c80b0-2255-41b5-a57f-bec0dd1b3318",
+  "character_id": 8,
+  "entry_log_line": 1034,
+  "exit_log_line": 1504,
+  "run_ended": true,
+  "drops_registered": [
+    {
+      "number": 3,
+      "item_id": 3156,
+      "count": 1,
+      "log_line": 1302
+    },
+    {
+      "number": 4,
+      "item_id": 0,
+      "count": 383,
+      "log_line": 1396
+    },
+    {
+      "number": 5,
+      "item_id": 10092764,
+      "count": 1,
+      "log_line": 1452
+    },
+    {
+      "number": 6,
+      "item_id": 3151,
+      "count": 1,
+      "log_line": 1454
+    }
+  ],
+  "pickups": [
+    {
+      "number": 3,
+      "status": "PickedUp",
+      "item_id": 3156,
+      "log_line": 1316
+    },
+    {
+      "number": 4,
+      "status": "Banked",
+      "item_id": 0,
+      "log_line": 1464
+    }
+  ],
+  "assets": {
+    "before": {
+      "3156": 1,
+      "3151": 7,
+      "10092764": 1,
+      "gold": 231448
+    },
+    "after": {
+      "3156": 2,
+      "3151": 7,
+      "10092764": 1,
+      "gold": 231831
+    },
+    "delta": {
+      "3156": 1,
+      "3151": 0,
+      "10092764": 0,
+      "gold": 383
+    }
+  },
+  "client_image": "result-partial-pickup-client.png",
+  "client_image_sha256": "096D079C7C5EA4C0FFEB9A3B70E6AB3EDFFB7251C077FDFA9315055DFC0FD962",
+  "visible_result_items": [
+    {
+      "item_id": 3156,
+      "name": "\u6700\u4e0b\u7ea7\u7825\u77f3"
+    },
+    {
+      "item_id": 3151,
+      "name": "\u6700\u4e0b\u7ea7\u786c\u5316\u5242"
+    },
+    {
+      "item_id": 10092764,
+      "name": "\u725b\u5934\u68b0\u738b\u7684\u53d8\u8eab\u836f\u6c34"
+    },
+    {
+      "item_id": 0,
+      "name": "\u91d1\u5e01",
+      "displayed_count": 383
+    }
+  ],
+  "conclusion": "Visible summary includes registered monster drops regardless of pickup. Picked whetstone and gold persisted; unpicked hardener and transformation potion did not increase. No independent reward roll or missing picked item demonstrated in this run.",
+  "evidence_boundary": "Server semantic logs and user screenshot, not raw request/response capture. Historical robe/diamond coin run cannot be reconstructed from the old count-only logs. Relog was requested but not separately confirmed.",
+  "checked_at_utc": "2026-10-29T02:20:16.555131+00:00"
+}

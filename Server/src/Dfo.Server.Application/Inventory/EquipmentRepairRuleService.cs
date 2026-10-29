@@ -1,11 +1,32 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSource definitions) : IEquipmentRepairRuleService
+internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSource definitions,
+    IItemUseJudgementService uses) : IEquipmentRepairRuleService
 {
+    public async ValueTask<IEquipmentRepairCouponRule?> PrepareCouponAsync(int itemId, CancellationToken ct)
+    {
+        var rule = await uses.RuleForAsync(itemId, ct).ConfigureAwait(false);
+        // The repair use case cannot silently discard additional potion effects.
+        return rule is { IsReadable: true, IsConsumedOnUse: true, Action: "[repair coupon]",
+            ExpBonusRate: 0, SummonsApc: false, SharedEffectSelector: null }
+            ? new CouponRule(rule, uses.CooldownKeyFor(itemId, rule), uses) : null;
+    }
+
+    private sealed class CouponRule(ItemUseRule rule, ItemCooldownKey key, IItemUseJudgementService uses)
+        : IEquipmentRepairCouponRule
+    {
+        public ItemCooldownKey CooldownKey => key;
+        public TimeSpan Cooldown => TimeSpan.FromMilliseconds(rule.CooldownMilliseconds);
+        public bool Allows(ItemUseCandidate candidate, int? dungeonId) =>
+            uses.Judge(rule, candidate) == ItemUsability.Allowed
+            && (rule.AllowedDungeonIds.Count == 0 || dungeonId is { } id && rule.AllowedDungeonIds.Contains(id));
+    }
+
     public async ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct)
     {
         var rates = await definitions.RatesAsync(ct).ConfigureAwait(false);

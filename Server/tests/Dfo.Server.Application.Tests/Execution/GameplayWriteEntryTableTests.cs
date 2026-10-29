@@ -152,6 +152,11 @@ public sealed class GameplayWriteEntryTableTests
         ["LoginSessionRegistry.TryBind(NetworkConnectionId, String, String)"] = W,
 
         // DungeonRunDomainService
+        ["DungeonRunDomainService.FindDueLostLandCompletions(DateTimeOffset)"] = R,
+        ["DungeonRunDomainService.StageLostLandCompletion(LostLandCompletion, DateTimeOffset, Boolean)"] = W,
+        ["DungeonRunDomainService.FindExpiredLostLandFevers(DateTimeOffset)"] = R,
+        ["DungeonRunDomainService.StageLostLandFeverExpiry(LostLandFeverExpiry, DateTimeOffset)"] = W,
+        ["DungeonRunDomainService.TryMoveByLostLandItem(CharacterId, DungeonRunId, Int64, MazeCell, DungeonCellSeed)"] = W,
         ["DungeonRunDomainService.AdvanceRoomMechanisms(DateTimeOffset)"] = W,
         ["DungeonRunDomainService.ClaimObjectDestruction(CharacterId, DungeonRunId, Int64, Int32)"] = W,
         ["DungeonRunDomainService.CommitActorDeath(DungeonActorDeathClaim)"] = W,

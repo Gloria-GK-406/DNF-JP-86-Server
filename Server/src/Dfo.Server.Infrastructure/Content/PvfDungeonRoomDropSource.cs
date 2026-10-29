@@ -39,10 +39,7 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             if (cache.TryGetValue((dungeonId, mapId), out var existing)) return ValueTask.FromResult(existing);
             if (!maps.TryGetValue(mapId, out var actions))
                 maps[mapId] = actions = ParseActions(ReadSection("map", mapId, Fields.SpecialPassiveObjectField), mapId);
-            if (!groups.TryGetValue(dungeonId, out var table))
-                groups[dungeonId] = table = ParseGroups(ReadSection("dungeon", dungeonId,
-                    Fields.SpecialPassiveObjectItemField).Select(t => int.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray(), dungeonId,
-                    item => PvfEquipmentDurability.Read(provider.Archive, Paths("equipment"), item));
+            var table = ItemGroups(dungeonId);
             // MAPs may retain item actions while the dungeon explicitly has no object loot table.
             // Parsing above still validates both declarations; an empty table disables only loot.
             if (table.Count == 0)
@@ -63,6 +60,24 @@ internal sealed class PvfDungeonRoomDropSource(PvfArchiveProvider provider) : ID
             cache[(dungeonId, mapId)] = answer;
             return ValueTask.FromResult(answer);
         }
+    }
+
+    public ValueTask<IReadOnlyList<ObjectDropEntry>> GetItemPoolAsync(int dungeonId, int groupId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+            return ValueTask.FromResult(ItemGroups(dungeonId).TryGetValue(groupId, out var group)
+                ? group.Entries : (IReadOnlyList<ObjectDropEntry>)ImmutableArray<ObjectDropEntry>.Empty);
+    }
+
+    private IReadOnlyDictionary<int, Group> ItemGroups(int dungeonId)
+    {
+        if (!groups.TryGetValue(dungeonId, out var table))
+            groups[dungeonId] = table = ParseGroups(ReadSection("dungeon", dungeonId,
+                Fields.SpecialPassiveObjectItemField).Select(t => int.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray(), dungeonId,
+                item => PvfEquipmentDurability.Read(provider.Archive, Paths("equipment"), item));
+        return table;
     }
 
     public ValueTask<IReadOnlyList<DungeonRoomObject>> GetObjectsAsync(int mapId, CancellationToken cancellationToken)

@@ -364,6 +364,14 @@ internal sealed partial class GameSelectDungeonCommandHandler
             leaderVisit.Run.Difficulty,
             intent, layout.MazeIndex, layout.Width, layout.Height, layout.StartRoomMapId,
             layout.Purpose.Kind, layout.Purpose.QuestId);
+        if (layout.Mode is DungeonRunMode.LostLand && logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug("LostLand entry registered connection={ConnectionId} run={RunId} seed={Seed} room={RoomId} floorCount={FloorCount}",
+                requesterConnection, runId, layout.Seed, leaderVisit.Run.CurrentRoomMapId, leaderVisit.FloorDrops.Count);
+            foreach (var piece in FloorPieceValues.Describe(leaderVisit.Run, leaderVisit.FloorDrops))
+                logger.LogDebug("LostLand entry floor registered connection={ConnectionId} run={RunId} number={Number} item={ItemId} count={ItemCount} wireValue={WireValue}",
+                    requesterConnection, runId, piece.Number, piece.Drop.ItemId, piece.Drop.Count, piece.WireValue);
+        }
     }
 
     private CohortObservation ObserveCurrentCohort(

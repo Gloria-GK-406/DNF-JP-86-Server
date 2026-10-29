@@ -49,6 +49,34 @@ namespace Dfo.Server.Protocol.Tests.Game.MonsterDeath;
 /// </remarks>
 public sealed class MonsterDeathHandlerTests
 {
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 3)]
+    [InlineData(2, 5)]
+    [InlineData(3, 10)]
+    public async Task LostLand_committed_death_projects_rank_points_once(byte rank, byte points)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = global::Dfo.Server.Testing.TestParties.Runs();
+            var layout = BossLayout() with
+            {
+                DungeonId = 4000,
+                Mode = new DungeonRunMode.LostLand(new(600, 1200, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), [], [])),
+            };
+            runs.PreparePartyEntry([new(new(1), new(60), 0, true)], layout, 0,
+                new(layout.StartCell, layout.StartRoomMapId, DeadActor,
+                    [new(DeadActor, new(3001, 1, rank), false, false, [])], []),
+                DungeonRunId.New(), DateTimeOffset.UnixEpoch);
+
+            var sent = await Kill(run: runs, killRules: new MonsterKillDomainService(), reports: 2);
+
+            Assert.Equal(points, Assert.Single(sent.OfType<DungeonFeverGaugeMessage>()).Percent);
+            Assert.Single(runs.Find(new CharacterId(60))!.Kills);
+            Assert.Empty(sent.OfType<EnableClearDungeonNotification>());
+        });
+    }
+
     // Keep the wire assertions and injected reward outcomes, but execute the new domain settlement
     // and its real transaction coordinator rather than emulating transaction boundaries in the handler.
     private static DeathAlgorithmDriver CreateHandler(ISelectedSessionDomainService sessions,

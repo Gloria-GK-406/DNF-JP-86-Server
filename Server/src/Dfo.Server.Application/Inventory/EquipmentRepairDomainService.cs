@@ -8,16 +8,57 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentRepairDomainService(
     ISelectedSessionDomainService sessions,
-    ICharacterDomainService characters, IBusinessInventorySlotDomainService slots,
+    ICharacterDomainService characters, ICharacterItemUseDomainService itemUse, IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipments,
     IEquipmentRepairRuleService rules, IPremiumServiceDomainService premiums,
-    IPremiumServiceUsageDomainService usage) : IEquipmentRepairDomainService
+    IPremiumServiceUsageDomainService usage, IMaterialConsumptionDomainService materials,
+    IDungeonRunDomainService runs, IOnlineCharacterRuntimeDomainService runtime, TimeProvider clock) : IEquipmentRepairDomainService
 {
+    public async ValueTask<EquipmentRepairResult> RepairWithCouponAsync(SelectedSessionIdentity session,
+        BusinessSlot targetSlot, BusinessSlot couponSlot, CancellationToken ct)
+    {
+        if (!sessions.IsInWorld(session)) return new(EquipmentRepairRejection.NoSession);
+        if (targetSlot.Space is not (BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment)
+            || couponSlot.Space is not (BusinessInventorySpace.QuickSlot or BusinessInventorySpace.Consumable))
+            return new(EquipmentRepairRejection.InvalidRequest);
+        var at = clock.GetUtcNow();
+        var bound = slots.Find(session.CharacterId, couponSlot);
+        var coupon = bound is null ? null : await bound.Container.GetAsync(couponSlot.Index, ct).ConfigureAwait(false);
+        if (coupon is null || !coupon.IsPile || coupon.Count <= 0 || Unavailable(coupon.Snapshot))
+            return new(EquipmentRepairRejection.ItemUnavailable);
+        var rule = await rules.PrepareCouponAsync(coupon.ItemId, ct).ConfigureAwait(false);
+        if (rule is null) return new(EquipmentRepairRejection.CannotRepair);
+        var run = runs.Find(session.CharacterId);
+        if (run is not null && (!run.ReadyParticipants.Contains(session.CharacterId)
+            || run.LostLandExploration?.HasExpired(at) == true))
+            return new(EquipmentRepairRejection.CannotRepair);
+        var candidate = await itemUse.FactsAsync(session.CharacterId, rule.CooldownKey, ct).ConfigureAwait(false);
+        if (candidate is null || !rule.Allows(candidate, run?.Layout.DungeonId))
+            return new(EquipmentRepairRejection.CannotRepair);
+        var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
+        var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
+        if (target is null || target.Snapshot.IsMirror || Unavailable(target.Snapshot))
+            return new(EquipmentRepairRejection.ItemUnavailable);
+        var maximum = await rules.AutoRepairDurabilityAsync(target.Snapshot, ct).ConfigureAwait(false);
+        if (maximum is null or 0 || target.Snapshot.Durability >= maximum)
+            return new(EquipmentRepairRejection.CannotRepair);
+        var consumed = await materials.ConsumeAsync(session, [new(couponSlot, coupon.ItemId, 1)], ct).ConfigureAwait(false);
+        if (!consumed.Success) return new(EquipmentRepairRejection.ItemUnavailable);
+        await instance!.SetDurabilityAsync(maximum.Value, ct).ConfigureAwait(false);
+        if (rule.Cooldown > TimeSpan.Zero) runtime.StartCooldown(session, rule.CooldownKey, rule.Cooldown);
+        return new(EquipmentRepairRejection.None, new(session, targetSlot, await characters.Get(session.CharacterId).GoldAsync(ct).ConfigureAwait(false))
+            { Coupon = new(couponSlot, consumed.Debits.Single().Remaining) });
+
+        bool Unavailable(ItemSnapshot item) => item.EquipmentLockId != 0 || item.SortLockFlag != 0
+            || item.ExpireTime > 0 && item.ExpireTime <= at.ToUnixTimeSeconds();
+    }
+
     // A21 repair ACK excludes title, accessories, support and magic stone. These business
     // indices project to weapon 12 and armor 14..18; ordinary NPC repair remains unchanged.
     private static readonly IReadOnlyList<BusinessSlot> AutoRepairSlots =

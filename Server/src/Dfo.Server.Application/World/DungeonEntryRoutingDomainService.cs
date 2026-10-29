@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.World;
 
 public sealed class DungeonEntryRoutingDomainService(
+    ILostLandDungeonDomainService lostLand,
     IGuardianAltarDomainService guardian,
     IGiantDragonDomainService giantDragon,
     ICoupleDungeonDomainService couples,
@@ -22,7 +23,8 @@ public sealed class DungeonEntryRoutingDomainService(
     IHellDungeonEntryDomainService hell) : IDungeonEntryRoutingDomainService
 {
     public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct) =>
-        guardian.Supports(entry.DungeonId) ? guardian.EnterAsync(entry, ct)
+        lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)
+        : guardian.Supports(entry.DungeonId) ? guardian.EnterAsync(entry, ct)
         : giantDragon.Supports(entry.DungeonId) ? giantDragon.EnterAsync(entry, ct)
         : couples.Supports(entry.DungeonId) ? couples.EnterAsync(entry, ct)
         : goldSilverHorn.Supports(entry.DungeonId) ? goldSilverHorn.EnterAsync(entry, ct)

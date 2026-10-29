@@ -1,0 +1,42 @@
+{
+  "items": [
+    652,
+    652
+  ],
+  "item_slots": [
+    644,
+    644
+  ],
+  "character_item_cooldowns": [
+    0,
+    0
+  ],
+  "character_item_effects": [
+    0,
+    0
+  ],
+  "accounts": [
+    4,
+    4
+  ],
+  "character_buy_restrict_items": [
+    0,
+    0
+  ],
+  "character_daily_counters": [
+    106,
+    106
+  ],
+  "character_item_locks": [
+    0,
+    0
+  ],
+  "characters": [
+    9,
+    9
+  ],
+  "character_fatigue": [
+    5,
+    5
+  ]
+}

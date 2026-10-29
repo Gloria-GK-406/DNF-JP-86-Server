@@ -1,0 +1,21 @@
+{
+  "Pid": 49644,
+  "IdentityVerified": true,
+  "Executable": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host-result-diagnostics-20261029\\Dfo.Server.Host.exe",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "Branch": "codex/77-forgotten-land",
+  "Database": "E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "ProtocolLogLevel": "Debug",
+  "EffectiveLimitSeconds": 600,
+  "ManifestStartMatches": true,
+  "AssemblyHashesMatch": true,
+  "CheckedAtUtc": "2026-10-29T02:03:41.7593343Z"
+}

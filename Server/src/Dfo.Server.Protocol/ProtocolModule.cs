@@ -263,6 +263,13 @@ public sealed class ProtocolModule : IServerModule
             ClientAppearanceSettingsSubscriber>("settings.appearance-visibility", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
             fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
         services.AddTypedGameplayTimer<MirrorQuotaDailyRefreshService>();
+        services.AddTypedGameplayTimer<LostLandQuotaRefreshService>();
+        services.AddTypedGameplayTimer<LostLandCompletionMaintenanceService>();
+        services.AddInternalCommandHandler<CaptureLostLandCompletionsCommand, IReadOnlyList<LostLandCompletion>, LostLandCompletionCommandHandler>();
+        services.AddInternalCommandHandler<CompleteLostLandCommand, bool, LostLandCompletionCommandHandler>();
+        services.AddTypedGameplayTimer<LostLandFeverMaintenanceService>();
+        services.AddInternalCommandHandler<CaptureLostLandFeverExpiriesCommand, IReadOnlyList<LostLandFeverExpiry>, LostLandFeverCommandHandler>();
+        services.AddInternalCommandHandler<ExpireLostLandFeverCommand, bool, LostLandFeverCommandHandler>();
         services.AddTypedGameplayTimer<DimensionQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<GoldSilverHornQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<ReviveCoinQuotaDailyRefreshService>();

@@ -125,10 +125,15 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameBackToVillageCommand command, CancellationToken token) =>
         BackToVillageAsync(execution, command.Dispatch, command.Input, token);
 
-    private async ValueTask SelectionQuotaAsync(SelectedSessionIdentity session, CancellationToken token) =>
+    private async ValueTask SelectionQuotaAsync(SelectedSessionIdentity session, CancellationToken token)
+    {
         _ = await projections.ProjectAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
             new Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged(session.CharacterId,
                 Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon), token).ConfigureAwait(false);
+        _ = await projections.ProjectAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
+            new Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged(session.CharacterId,
+                Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.LostLand), token).ConfigureAwait(false);
+    }
 
     // Tower channels: the caller has already dropped a stale request and located the requester in this tower.
     /// <summary>Releases the leader's Boss tower run for a new selection.</summary>

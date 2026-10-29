@@ -1,0 +1,106 @@
+{
+  "Archive": "E:\\Project\\DNF\\Script-purple-187-312-no-random-20261022.pvf",
+  "Sha256": "246300A2C796B0C0F5B6B0C1204D130B6D058DEEBA42F121C9DF6B1B36DE16B3",
+  "ArchivePath": "dungeon/Fun_test/Fun_test2.dgn",
+  "MinimumRequiredLevel": 25,
+  "ConsumesFatigue": false,
+  "NoGiveupPenalty": true,
+  "PartyLimit": 1,
+  "ProhibitsPractice": true,
+  "Mazes": [
+    {
+      "Width": 10,
+      "Height": 10,
+      "OccupiedCells": 86,
+      "StartCandidates": [
+        {
+          "X": 9,
+          "Y": 6
+        }
+      ],
+      "BossCandidates": [
+        {
+          "X": 9,
+          "Y": 0
+        }
+      ],
+      "ConfigurationError": null,
+      "StartMaps": [
+        [
+          11200
+        ]
+      ],
+      "BossDeclared": [
+        true
+      ]
+    }
+  ],
+  "OrdinaryTopologyRefusal": "Dungeon '4000' maze '0': boss cell (9,0) is unreachable from the start.",
+  "Town2WorldMap101Areas": [
+    {
+      "AreaId": 2,
+      "MapPath": "Town/Underfoot/Underfoot_Event.map",
+      "Kind": 3,
+      "Operand1": 101,
+      "Operand2": -1,
+      "MinimumLevel": 17
+    },
+    {
+      "AreaId": 3,
+      "MapPath": "Town/Underfoot/Underfoot_GoSewer.map",
+      "Kind": 3,
+      "Operand1": 101,
+      "Operand2": -1,
+      "MinimumLevel": 17
+    }
+  ],
+  "EntryReferences": [
+    {
+      "Path": "event/chn_event/chn_composecard.evt",
+      "Matches": [
+        "1300 | 3 | 3689 | 1300 | 3 | 3712 | >>>4000<<<",
+        "following: 3 | 3721 | 1300 | 3 | 3722 | 1300"
+      ]
+    },
+    {
+      "Path": "event/conditioneventchkdungeon.evt",
+      "Matches": [
+        "86 | [/worldmap event level] | [specific dungeon event level] | 155 | 54 | 57 | >>>4000<<<",
+        "following: 25 | 86 | 239 | 36 | 39 | 240"
+      ]
+    },
+    {
+      "Path": "event/holidayceraevent.evt",
+      "Matches": [
+        "[days cera] | 2 | 2000 | 3 | 3000 | 4 | >>>4000<<<"
+      ]
+    },
+    {
+      "Path": "event/seriaroomdecoevent.evt",
+      "Matches": [
+        "CHICK_PEEP | 5000 | 4 | 26 | 54 | CHICK_PEEP | >>>4000<<<"
+      ]
+    },
+    {
+      "Path": "event/tw_seabottom2000m/tw_seabottom2000mgriddata.evt",
+      "Matches": [
+        "[reward pos x] | 40 | [reward meter str offset] | 3 | 9 | [moving time] | >>>4000<<<"
+      ]
+    },
+    {
+      "Path": "event/tw_seabottom2000m/tw_seabottom2000mworlddata.evt",
+      "Matches": [
+        "[view layer count] | 5 | [moving time] | >>>4000<<<",
+        "following: [sweeping time] | 3000 | [sweeping back time] | 3000 | [holding sweeping time] | 0"
+      ]
+    },
+    {
+      "Path": "worldmap/golden_road.wdm",
+      "Matches": [
+        "[map image] | WorldMap/golden_load.img | 0 | [ui path] | WorldMap/UI/golden_load.xui | [dungeon] | >>>4000<<<",
+        "following: -1 | 94 | -1 | 4103 | -1 | [/dungeon]"
+      ]
+    }
+  ],
+  "ProbeChecks": "PASS: current declarations and ordinary route refusal reproduced; no gameplay acceptance"
+}

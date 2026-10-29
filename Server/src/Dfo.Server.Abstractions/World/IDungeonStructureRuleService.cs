@@ -141,6 +141,12 @@ public sealed record DungeonLayout(
     /// <summary>Both cells must expose the matching door, not just be adjacent on the grid.</summary>
     public bool CanTraverse(MazeCell from, MazeCell target)
     {
+        if (Mode is DungeonRunMode.LostLand { Plan: var exploration })
+        {
+            if (from == target || !Cells.TryGetValue(from, out var origin) || origin.MapCandidates.Count == 0
+                || !Cells.TryGetValue(target, out var room) || room.MapCandidates.Count == 0) return false;
+            if (exploration.IsDeclaredWarp(from, target)) return true;
+        }
         var entrance = EntranceFrom(from, target);
         return entrance != DungeonPathDirection.None
             && Cells.TryGetValue(from, out var source)
@@ -187,7 +193,8 @@ public sealed record DungeonLayout(
 
     /// <summary>What this cell's room is for.</summary>
     public DungeonRoomKind KindOf(MazeCell cell) =>
-        cell == BossCell ? DungeonRoomKind.Boss
+        Mode is DungeonRunMode.LostLand ? DungeonRoomKind.Exploration
+        : cell == BossCell ? DungeonRoomKind.Boss
         : cell == StartCell ? DungeonRoomKind.Start
         : DungeonRoomKind.Ordinary;
 }
@@ -212,6 +219,8 @@ public enum DungeonRoomKind : byte
 
     /// <summary>The room the run ends in. There is no way back out of it.</summary>
     Boss,
+    /// <summary>A timed exploration room; no ordinary boss settlement.</summary>
+    Exploration,
 }
 
 /// <summary>Turns dungeon content, entry facts and an explicit seed into a run's maze.</summary>

@@ -1,0 +1,22 @@
+{
+  "Pid": 40940,
+  "ProbeExecutable": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host-capsule-origin-20261028\\Dfo.Server.Host.exe",
+  "Database": "E:\\Project\\DNF\\DNF-JP-86-Server\\Server\\src\\Dfo.Server.Host\\bin\\Release\\net10.0\\Data\\dfo-server.db",
+  "Branch": "codex/77-forgotten-land",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "UdpPorts": [
+    12311,
+    12312
+  ],
+  "ApplicationSha256": "E19C3989A8414168109DF85E8B6BC15ACC139CD80BECE37A1D45961C9876BE1F",
+  "ProtocolSha256": "F86CFCDF795C13F907E0FFA6D5F7320FF3B957763D77D5AF1FDE08E4764F82F0",
+  "CheckedAtUtc": "2026-10-28T06:42:28.9730059Z"
+}

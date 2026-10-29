@@ -186,6 +186,15 @@ public sealed class ApplicationModule : IServerModule
         services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.MarriageTrialClearSubscriber>(
             "quest.wedding-trial", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<IHerasRuleService, HerasRuleService>();
+        services.TryAddSingleton(new LostLandRuntimePolicy(configuration.GetValue<int?>("LostLand:LimitSecondsOverride"),
+            configuration.GetValue<bool>("LostLand:UnlimitedEntriesForTesting")));
+        services.TryAddSingleton<ILostLandRuleService, LostLandRuleService>();
+        services.TryAddSingleton<ILostLandDropRuleService, LostLandDropRuleService>();
+        services.TryAddSingleton<ILostLandDungeonDomainService, LostLandDungeonDomainService>();
+        services.TryAddSingleton<ILostLandConsumableRuleService, LostLandConsumableRuleService>();
+        services.TryAddSingleton<ILostLandConsumableDomainService, LostLandConsumableDomainService>();
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.LostLandEntryRecorded,
+            Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<IHerasDungeonDomainService, HerasDungeonDomainService>();
         services.TryAddSingleton<IHerasQuotaDomainService, HerasQuotaDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.HerasQuotaRecorded,

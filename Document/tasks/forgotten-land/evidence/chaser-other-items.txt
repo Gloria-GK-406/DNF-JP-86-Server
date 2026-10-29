@@ -1,0 +1,250 @@
+id 10093456 -> 10093456.stk
+=== stackable/10093456.stk ===
+[name]
+遗忘之地修理券
+[explain]
+可以免费修理1件装备， 但除装备以外的物品或耐久度消耗为零的装备不可使用。 (遗忘之地专用)
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[icon]
+Item/stackable/consumption.img 814
+[field image]
+Item/FieldImage.img 28
+[stackable type]
+[etc] 1
+[move wav]
+PAPER_TOUCH
+[stack limit]
+100
+[action type]
+[repair coupon]
+[/action type]
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[action usable place]
+[dungeon]
+[/action usable place]
+id 10093469 -> 10093469.stk
+=== stackable/10093469.stk ===
+[name]
+遗忘之地的生命秘药
+[explain]
+仅限在[遗忘之地]内使用。
+[grade]
+1
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[cool time]
+10000
+[icon]
+Item/stackable/consumption.img 464
+[field image]
+Item/field_material_cn.img 72
+[stackable type]
+[waste] 0
+[item group name]
+potion
+[move wav]
+POTION_TOUCH
+[stack limit]
+1000
+[cooltime group]
+0
+[hp recovery]
+% 50 500 myself
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]
+id 10093470 -> 10093470.stk
+=== stackable/10093470.stk ===
+[name]
+遗忘之地的生命圣药
+[explain]
+仅限在[遗忘之地]内使用。
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[cool time]
+10000
+[icon]
+Item/stackable/consumption.img 373
+[field image]
+Item/field_material_cn.img 72
+[stackable type]
+[waste] 0
+[item group name]
+potion
+[move wav]
+POTION_TOUCH
+[stack limit]
+1000
+[cooltime group]
+0
+[hp recovery]
+% 80 500 myself
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]
+id 10093471 -> 10093471.stk
+=== stackable/10093471.stk ===
+[name]
+遗忘之地的魔力秘药
+[explain]
+仅限在[遗忘之地]内使用。
+[grade]
+1
+[rarity]
+1
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[cool time]
+10000
+[icon]
+Item/stackable/consumption.img 465
+[field image]
+Item/field_material_cn.img 71
+[stackable type]
+[waste] 0
+[item group name]
+potion
+[move wav]
+POTION_TOUCH
+[stack limit]
+1000
+[cooltime group]
+0
+[mp recovery]
+% 50 500 myself
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]
+id 10093472 -> 10093472.stk
+=== stackable/10093472.stk ===
+[name]
+遗忘之地的魔力圣药
+[explain]
+仅限在[遗忘之地]内使用。
+[grade]
+1
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[cool time]
+10000
+[icon]
+Item/stackable/consumption.img 375
+[field image]
+Item/field_material_cn.img 71
+[stackable type]
+[waste] 0
+[item group name]
+potion
+[move wav]
+POTION_TOUCH
+[stack limit]
+1000
+[cooltime group]
+0
+[mp recovery]
+% 80 500 myself
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[item category]
+[/item category]
+[impossible contents]
+gift
+[/impossible contents]
+id 10093473 -> 10093473.stk
+=== stackable/10093473.stk ===
+[name]
+监视者的威严
+[explain]
+使用后， 可以大幅度地降低追击猎手的能力值。 (遗忘之地专用)
+[flavor text]
+竟然用这种卑鄙手段， 有本事堂堂正正再比过！  --追击猎手
+[grade]
+8
+[rarity]
+2
+[usable job]
+[all]
+[/usable job]
+[attach type]
+[trade]
+[minimum level]
+1
+[cool time]
+60000
+[icon]
+Item/stackable/material.img 12
+[field image]
+Item/FieldImage.img 28
+[stackable type]
+[throw] 0
+[item group name]
+potion
+[move wav]
+FLASK_TOUCH
+[string data]
+
+[/string data]
+[stack limit]
+100
+[action usable dungeon]
+4000
+[/action usable dungeon]
+[int data]
+52943 0 0 450 0 100
+[/int data]

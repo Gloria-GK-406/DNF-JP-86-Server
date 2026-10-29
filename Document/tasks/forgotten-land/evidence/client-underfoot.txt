@@ -1,0 +1,27 @@
+=== worldmap/underfoot.wdm ===
+[map image]
+WorldMap/UnderFoot.img 0
+[ui path]
+WorldMap/UI/UnderFoot.xui
+[dungeon]
+33 397 33 646 34 -1 36 -1 37 -1
+[/dungeon]
+[name]
+暗黑城
+[hell dungeon]
+1
+[hell quest]
+2603
+[/hell quest]
+[hell freepass item]
+490003092 1 490003314 1 490700622 1 490003362 1 490003168 1 490003358 1 490003222 1 490003066 1 490002858 1 490002229 1 490002089 1 490001899 1 490001923 1 490001860 1 490001453 1 490001013 1 490001408 1 490000378 1 490000726 1 490000405 1 490000152 1 10006488 1 10005810 1 10005377 1 10005026 1 10003824 1 10003954 1 2749718 1 2749501 1 2749535 1 2749403 1 10158327 1 10157097 1 8272 1 8376 1 8247 1 10004045 1 10004046 1 2682582 1 2749911 1 10002090 1 10002197 1 10002248 1 10002865 1 10002586 1
+[/hell freepass item]
+[item condition]
+3330
+[/item condition]
+[kinggoldenhorn kingsilverhorn condition]
+2680998
+[/kinggoldenhorn kingsilverhorn condition]
+[kinggoldenhorn kingsilverhorn allow level]
+1 59
+[/kinggoldenhorn kingsilverhorn allow level]

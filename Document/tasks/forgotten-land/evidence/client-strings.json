@@ -1,0 +1,23 @@
+{
+  "source": "E:\\Project\\DNF\\DNFClient-A21-protocol\\dumps\\dnf-dump-20260906-224825-165-31384\\DNF-memory-rva.bin",
+  "sha256": "6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507",
+  "pattern": "lost.?land|forgotten.?land|lostland|chasing.?monster",
+  "matches": [
+    {
+      "offset": "0x356f86c",
+      "text": ".?AV?$_Ref_count@VLostLandUIDrawer@@@tr1@std@@"
+    },
+    {
+      "offset": "0x356f8a4",
+      "text": ".?AV?$_Ref_count@VLostLandRewardDrawer@@@tr1@std@@"
+    },
+    {
+      "offset": "0x3570450",
+      "text": ".?AV?$_Ref_count@VLostLandRewardForegroundItemNExp@@@tr1@std@@"
+    },
+    {
+      "offset": "0x35704f0",
+      "text": ".?AV?$_Ref_count@VLostLandRewardForegroundMonsterList@@@tr1@std@@"
+    }
+  ]
+}

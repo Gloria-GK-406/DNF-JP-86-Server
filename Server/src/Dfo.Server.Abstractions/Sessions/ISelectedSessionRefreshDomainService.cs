@@ -4,10 +4,11 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Sessions;
 
-public enum SelectedSessionRefreshTopic { Altar, Dimension, GoldSilverHorn, ReviveCoin, Mirror, Heras, Tournament, ItemUsage, Premium, Fatigue }
+public enum SelectedSessionRefreshTopic { Altar, Dimension, GoldSilverHorn, ReviveCoin, Mirror, Heras, Tournament, ItemUsage, Premium, Fatigue, LostLand }
 public sealed record SelectedSessionRefreshScan(DateTimeOffset Period, ImmutableArray<SelectedSessionIdentity> Sessions);
 public abstract record SelectedSessionRefreshState;
 public sealed record PeriodRefreshState(DateTimeOffset Period) : SelectedSessionRefreshState;
+public sealed record QuotaCountRefreshState(DateTimeOffset Period, int Remaining) : SelectedSessionRefreshState;
 public sealed record PremiumRefreshState(DateTimeOffset Period, string Active, bool CrystalActive, bool GrowthActive) : SelectedSessionRefreshState;
 public sealed record FatigueRefreshState(CharacterFatigueBalance Balance) : SelectedSessionRefreshState;
 public interface ISelectedSessionRefreshDomainService

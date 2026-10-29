@@ -13,6 +13,7 @@ namespace Dfo.Server.Application.UsageQuotas;
 internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService quotas,
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions,
+    ILostLandDungeonDomainService lostLand,
     IDespairTowerDomainService despair, IDailyResetRuleService daily, IHerasQuotaDomainService heras, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IGoldSilverHornDomainService? goldSilverHorn = null, IReviveCoinDomainService? reviveCoins = null) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
@@ -23,6 +24,8 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
         {
             // Quest list/completion projections already publish this claim's visible effects.
             UsageQuotaFamily.GiantDragonCrystalExchange => new(at, [], null, [], null),
+            UsageQuotaFamily.LostLand => new(at, [], null, [], null, LostLand:
+                await lostLand.ReadQuotaAtAsync(characterId, at, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.ReviveCoin => new(at, [], null, [], null, ReviveCoinClaimed:
                 await (reviveCoins ?? throw new InvalidOperationException("Revive coin quotas unavailable.")).ClaimedAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.GoldSilverHorn => new(at, [], null, [], null, GoldSilverHorn:

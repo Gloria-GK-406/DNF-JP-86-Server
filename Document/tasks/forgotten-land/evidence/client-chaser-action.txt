@@ -1,0 +1,127 @@
+=== passiveobject/actionobject/map/lostland/chasercreator/action/chasercreator.act ===
+[MOTION]
+[BASE ANI]
+../Animation/last.ani
+[SUB ANI]
+../Animation/RepeatedSmashSub7.ani 0 -4 ../Animation/RepeatedSmashSub8.ani 0 -3 ../Animation/OppressionTalismanChainBackNormal.ani 0 -2 ../Animation/OppressionTalismanChainBackDodge.ani 0 -1 ../Animation/OppressionTalismanChainFrontDodge.ani 0 1 ../Animation/OppressionTalismanChainFrontNormal.ani 0 2 ../Animation/TalismanThunderbolt1.ani 0 3 ../Animation/TalismanThunderbolt2.ani 0 4 ../Animation/TalismanThunderbolt3.ani 0 5
+[/SUB ANI]
+[/MOTION]
+[TRIGGER]
+[FRAME]
+0 0
+[DO BEHAVIOR]
+[ME]
+2
+[/TRIGGER]
+[TRIGGER]
+[FRAME]
+1 1
+[DO BEHAVIOR]
+[ME]
+3
+[/TRIGGER]
+[TRIGGER]
+[FRAME]
+2 2
+[DO BEHAVIOR]
+[ME]
+4
+[/TRIGGER]
+[TRIGGER]
+[FRAME]
+3 3
+[DO BEHAVIOR]
+[ME]
+5
+[/TRIGGER]
+[TRIGGER]
+[ENABLE]
+[ON]
+[FRAME]
+6 6
+[DO BEHAVIOR]
+[ME]
+0
+[DO BEHAVIOR]
+[ME]
+3
+[/TRIGGER]
+[BEHAVIOR]
+[NOTICE]
+警告！ 追击猎手已出动。 255 0 0 WarningSystemMessage
+[/NOTICE]
+[SUMMON MONSTER]
+[INDEX]
+59822
+[LEVEL]
+85
+[POS]
+0 0 0
+[TEAM]
+100
+[NO EFFECT]
+[/SUMMON MONSTER]
+[ZOOM IT]
+2500 130
+[SHAKING]
+5 500
+[TRIGGER]
+4
+[OFF]
+[/BEHAVIOR]
+[TRIGGER]
+[FRAME]
+8 8
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[TRIGGER]
+[FRAME]
+9 9
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[DESTROY]
+[/BEHAVIOR]
+[BEHAVIOR]
+[FLASH SCREEN]
+[TIME VALUE]
+500 3000 300
+[RGBA]
+0 0 0 200
+[LAYER]
+[FAR]
+[/FLASH SCREEN]
+[/BEHAVIOR]
+[BEHAVIOR]
+[FLASH SCREEN]
+[TIME VALUE]
+30 150 500
+[RGBA]
+255 255 255 255
+[LAYER]
+[CLOSE]
+[/FLASH SCREEN]
+[/BEHAVIOR]
+[BEHAVIOR]
+[FLASH SCREEN]
+[TIME VALUE]
+50 100 300
+[RGBA]
+255 255 255 200
+[LAYER]
+[MID]
+[/FLASH SCREEN]
+[/BEHAVIOR]
+[BEHAVIOR]
+[FLASH SCREEN]
+[TIME VALUE]
+30 50 200
+[RGBA]
+255 255 255 255
+[LAYER]
+[MID]
+[/FLASH SCREEN]

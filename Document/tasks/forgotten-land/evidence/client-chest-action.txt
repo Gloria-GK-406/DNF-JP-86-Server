@@ -1,0 +1,119 @@
+=== passiveobject/actionobject/map/lostland/treasurebox/action/treasurebox1.act ===
+[MOTION]
+[BASE ANI]
+../Animation/TreasureBox1.ani
+[SUB ANI]
+../Animation/RegenDungeon_key_use.ani 0 1
+[/SUB ANI]
+[/MOTION]
+[TRIGGER]
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[IS IN AREA]
+[POS]
+0 20 0
+[RANGE]
+80 20 10
+[COORDINATE]
+RELATIVE
+[/IS IN AREA]
+[IS TARGET STATE]
+8
+[/CHECKUP]
+[DO BEHAVIOR]
+[CHECKUP OBJECT]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[SIT]
+[NOW]
+[TRIGGER]
+1
+[ON]
+[TRIGGER]
+2
+[ON]
+[/BEHAVIOR]
+[TRIGGER]
+[DUNGEON SYMBOL COMPARE]
+treasure key
+[>]
+0
+[ENABLE]
+[OFF]
+[DO BEHAVIOR]
+[ME]
+1
+[/TRIGGER]
+[BEHAVIOR]
+[TRIGGER]
+1
+[OFF]
+[TRIGGER]
+2
+[OFF]
+[DUNGEON SYMBOL CALC]
+treasure key
+[-]
+1
+[DESTROY]
+[/BEHAVIOR]
+[TRIGGER]
+[DUNGEON SYMBOL COMPARE]
+treasure key
+[=]
+0
+[ENABLE]
+[OFF]
+[DO BEHAVIOR]
+[ME]
+2
+[/TRIGGER]
+[BEHAVIOR]
+[TRIGGER]
+1
+[OFF]
+[TRIGGER]
+2
+[OFF]
+[NOTICE]
+需要钥匙 255 255 255 None
+[/NOTICE]
+[/BEHAVIOR]
+[TRIGGER]
+[ON DAMAGE]
+[WHICH]
+[LAST ACTIVE ATTACKER]
+[CHECKUP]
+[CHECK JOB]
+10
+[/CHECKUP]
+[DO BEHAVIOR]
+[ME]
+3
+[/TRIGGER]
+[BEHAVIOR]
+[TRIGGER]
+1
+[ON]
+[TRIGGER]
+2
+[ON]
+[/BEHAVIOR]
+[TRIGGER]
+[DUNGEON SYMBOL COMPARE]
+treasure key
+[=]
+0
+[DO BEHAVIOR]
+[ME]
+4
+[/TRIGGER]
+[BEHAVIOR]
+[SET ACTION]
+[CUSTOM]
+0
+[NOW]
+[/BEHAVIOR]

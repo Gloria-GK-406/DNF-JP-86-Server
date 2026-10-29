@@ -22,6 +22,30 @@ namespace Dfo.Server.Protocol.Tests.Game.Dungeons;
 public sealed class DungeonLoadingProjectionDeliveryTests
 {
     [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 1)]
+    public async Task LostLand_loading_restores_charge_but_never_restarts_active_fever(bool active, long roomVersion)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fever = active ? new LostLandFeverState(100, DateTimeOffset.UtcNow.AddSeconds(60))
+                : new LostLandFeverState(37);
+            var world = World(roomVersion: roomVersion, fever: fever,
+                quotaProjection: new(new QuotaEvents(UsageQuotaFamily.LostLand)));
+            for (var repeat = 0; repeat < 2; repeat++)
+                Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId,
+                    _ => ValueTask.CompletedTask, default));
+            var gauges = world.Sender.GameMessages.OfType<DungeonFeverGaugeMessage>().ToArray();
+            if (active) Assert.Empty(gauges);
+            else Assert.Equal(new byte[] { 37, 37 }, gauges.Select(message => message.Percent));
+            Assert.Equal(roomVersion == 0 ? 1 : 0,
+                world.Sender.GameMessages.OfType<DungeonClearTimeLimitMessage>().Count());
+        });
+    }
+
+    [Theory]
     [InlineData(10)]
     [InlineData(28)]
     [InlineData(100)]
@@ -130,7 +154,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         long roomVersion = 0,
         bool mirror = false,
         TestCommandProjections? quotaProjection = null,
-        DungeonRunMode? mode = null)
+        DungeonRunMode? mode = null, LostLandFeverState? fever = null)
     {
         var participant = new DungeonRunParticipant(
             Current.AccountId, Current.CharacterId, Slot: 0, IsLeader: true);
@@ -145,7 +169,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
                 61000,
                 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)})
-            { Mode = mode ?? (mirror ? new DungeonRunMode.Mirror(new(8000, 31, 14299)) : DungeonRunMode.Ordinary) },
+            { Mode = mode ?? (fever is not null ? new DungeonRunMode.LostLand(new(600, 1200, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), [], [])) : mirror ? new DungeonRunMode.Mirror(new(8000, 31, 14299)) : DungeonRunMode.Ordinary) },
             new MazeCell(0, 0),
             61000,
             new HashSet<MazeCell> { new(0, 0) },
@@ -156,7 +180,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             Participants: [participant],
             EntryRevision: 1,
             CurrentCellState: DungeonCellSeed.CompleteEmpty(
-                new MazeCell(0, 0), 61000).Snapshot());
+                new MazeCell(0, 0), 61000).Snapshot()) { LostLandFever = fever };
         var sessions = new Sessions(Current);
         var runs = new Runs(run);
         var registry = new DungeonRunDeliveryRegistry();
@@ -213,6 +237,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             outbound.FailAny(message => outbound.ExplicitInFlight is null && message is IGameCmdMessage, () => new NotSupportedException());
         }
         public List<byte> Values => [.. outbound.Messages.Select(message => Assert.IsType<WeaknessProjectionNotification>(message).Value)];
+        public IEnumerable<IGameServerMessage> GameMessages => outbound.Messages.OfType<IGameServerMessage>();
         public Action? BeforeSend { get; set; }
         public ValueTask SendNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken token)
         {

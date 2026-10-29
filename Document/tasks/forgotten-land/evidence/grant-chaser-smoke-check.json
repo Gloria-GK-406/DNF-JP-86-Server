@@ -1,0 +1,21 @@
+{
+  "events_valid": true,
+  "deliveries_valid": true,
+  "before": {
+    "10093341": 0,
+    "10093473": 0,
+    "10092849": 3
+  },
+  "after": {
+    "10093341": 5,
+    "10093473": 5,
+    "10092849": 28
+  },
+  "expected": {
+    "10093341": 5,
+    "10093473": 5,
+    "10092849": 28
+  },
+  "other_tables_unchanged": true,
+  "quick_check": "ok"
+}

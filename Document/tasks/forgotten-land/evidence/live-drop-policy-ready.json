@@ -1,0 +1,21 @@
+{
+  "Pid": 6972,
+  "StartFileTimeUtc": 134377301389812265,
+  "Executable": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host-drop-policy-20261029\\Dfo.Server.Host.exe",
+  "Version": "0.2.9+63fb399345383f0d42d76e4289d8d9f967444acf",
+  "Branch": "codex/77-forgotten-land",
+  "BootstrapStatus": "ready",
+  "GmHttpStatus": 200,
+  "TcpPorts": [
+    7001,
+    10011,
+    18080,
+    18081
+  ],
+  "EffectiveLimitSeconds": 1200,
+  "UnlimitedEntriesForTesting": true,
+  "QuotaReset": false,
+  "CandidateFiles": 74,
+  "DropPolicyActive": true,
+  "CheckedAtUtc": "2026-10-29T06:49:06.3811065Z"
+}

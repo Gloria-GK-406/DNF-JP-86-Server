@@ -1,0 +1,11 @@
+{
+  "Host": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\host\\Dfo.Server.Host.exe",
+  "TemporaryPid": 45352,
+  "Database": "C:\\Users\\Gloria\\.codex\\worktrees\\828f\\DNF-JP-86-Server\\Document\\tasks\\forgotten-land\\private\\compatibility.db",
+  "Started": true,
+  "TcpListeners": 0,
+  "UdpListeners": 0,
+  "LiveDatabaseUsed": false,
+  "OriginalHostPid": 29936,
+  "OriginalHostStillRunning": true
+}

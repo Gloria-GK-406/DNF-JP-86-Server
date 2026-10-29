@@ -27,10 +27,12 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class MonsterDeathTransactionTests
 {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    public async Task Party_failure_rolls_back_every_recipient_and_actor_then_retry_commits_once(bool duringFlush, bool cycle)
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    public async Task Party_failure_rolls_back_every_recipient_and_actor_then_retry_commits_once(bool duringFlush, bool cycle, bool lostLand)
     {
         using var fixture = new ShopFixture(s =>
         {
@@ -61,12 +63,17 @@ public sealed class MonsterDeathTransactionTests
             var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
             var layout = new DungeonLayout(10000, 0, 1, 1, new(0, 0), new(0, 0), 61000, 17,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000) },
-                Purpose: cycle ? new(DungeonRunPurposeKind.Cycle, 2001, DungeonQuestConnectionState.Active) : default);
+                Purpose: cycle ? new(DungeonRunPurposeKind.Cycle, 2001, DungeonQuestConnectionState.Active) : default)
+            {
+                Mode = lostLand ? new DungeonRunMode.LostLand(new(600, 1200, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), [], [])) : DungeonRunMode.Ordinary,
+            };
             DungeonRunParticipant[] roster = [new(leader.AccountId, leader.CharacterId, 0, true), new(member.AccountId, member.CharacterId, 1, false)];
             TestParties.EnsureEntryParty(runs, roster);
             var run = runs.PreparePartyEntry(roster,
                 layout, DungeonDifficulty.Normal,
-                new(layout.StartCell, layout.StartRoomMapId, 1, [new(1, new(13099, 1, 0), false, false, [])], []),
+                new(layout.StartCell, layout.StartRoomMapId, 1, [new(1, new(13099, 1, 0), false, false, [])
+                { LostLandBonus = lostLand ? new(System.Collections.Immutable.ImmutableHashSet.Create(13099),
+                    [new(10092849,50,DropRarity.Rare,DropItemKind.Stackable),new(10092856,3,DropRarity.Rare,DropItemKind.Stackable)]) : null }], []),
                 DungeonRunId.New(), fixture.Clock.GetUtcNow()).Run;
             return (member, leader, runs, run);
         });
@@ -91,6 +98,12 @@ public sealed class MonsterDeathTransactionTests
         TestGameplay.Run(fixture.Services, () =>
         {
             Assert.False(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.IsDead);
+            if (lostLand)
+            {
+                Assert.Equal(0, runs.Find(leader.CharacterId)!.LostLandFever!.Percent);
+                Assert.NotNull(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.LostLandBonus);
+                Assert.Empty(runs.Find(leader.CharacterId)!.CurrentCellState.GroundItems);
+            }
         });
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.map-cleared'"));
         Assert.Equal(2, probe.Transactions.Count);
@@ -104,6 +117,11 @@ public sealed class MonsterDeathTransactionTests
         probe.FailMember = false;
         var result = await Settle();
         Assert.NotNull(result.Death?.Change);
+        if (lostLand)
+        {
+            Assert.Equal(50, Assert.Single(result.Death!.Change!.AddedGroundItems, item => item.ItemId == 10092849).Count);
+            Assert.Equal(3, Assert.Single(result.Death.Change.AddedGroundItems, item => item.ItemId == 10092856).Count);
+        }
         Assert.Equal(2, result.Participants.Count);
         Assert.Equal(100017, fixture.Gold);
         Assert.Equal(100017, fixture.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=3"));
@@ -112,13 +130,14 @@ public sealed class MonsterDeathTransactionTests
         TestGameplay.Run(fixture.Services, () =>
         {
             Assert.True(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.IsDead);
+            if (lostLand) Assert.Equal(1, runs.Find(leader.CharacterId)!.LostLandFever!.Percent);
         });
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.map-cleared'"));
         Assert.Equal(2, fixture.Scalar("SELECT SUM(trigger_value) FROM character_active_quests"));
         var queued = Assert.Single(await fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IDomainEventPersistence>()
             .ReadDueAsync("quest.map-clear", fixture.Clock.GetUtcNow(), 64, default));
         var clear = System.Text.Json.JsonSerializer.Deserialize<DungeonMapCleared>(queued.Event.PayloadJson)!;
-        Assert.True(clear.IsBossRoom);
+        Assert.Equal(!lostLand, clear.IsBossRoom);
         await fixture.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync("quest.map-clear");
         Assert.Equal(0, fixture.Scalar("SELECT SUM(trigger_value) FROM character_active_quests"));
         Assert.NotSame(probe.Transactions[0], probe.Transactions[2]);

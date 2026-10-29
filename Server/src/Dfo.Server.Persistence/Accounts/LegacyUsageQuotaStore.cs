@@ -32,6 +32,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
                     r => new UsageQuotaValue(r.GetInt32(0), null), ct).ConfigureAwait(false)).SingleOrDefault();
             case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:
+            case UsageQuotaFamily.LostLand:
             case UsageQuotaFamily.HerasDungeon:
             case UsageQuotaFamily.AltarDungeon:
             case UsageQuotaFamily.DespairTower:
@@ -80,6 +81,7 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
             case UsageQuotaFamily.ReviveCoin:
             case UsageQuotaFamily.GoldSilverHorn:
             case UsageQuotaFamily.TournamentDungeon:
+            case UsageQuotaFamily.LostLand:
             case UsageQuotaFamily.HerasDungeon:
             case UsageQuotaFamily.AltarDungeon:
             case UsageQuotaFamily.DespairTower:
@@ -126,6 +128,9 @@ internal sealed class LegacyUsageQuotaStore(IConsumableUsageTable consumables,
         : key.Family == UsageQuotaFamily.GoldSilverHorn
         ? key.Name == "entries" ? "gold-silver-horn.4123.entries:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : throw new InvalidDataException("Invalid gold/silver horn quota key.")
+        : key.Family == UsageQuotaFamily.LostLand
+        ? key.Name == "entries" ? "lost-land.4000.entries:" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : throw new InvalidDataException("Invalid LostLand quota key.")
         : key.Family == UsageQuotaFamily.HerasDungeon
         ? key.Name is "entries" or "bonus" ? "heras.3900." + key.Name + ":" + Day(key).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : throw new InvalidDataException("Invalid Heras quota key.")
