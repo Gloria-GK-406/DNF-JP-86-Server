@@ -34,6 +34,7 @@ CMD 在唯一玩法执行器中划分事务并登记投影，作业结束后由�
 | 修改执行器、事务、调度、发件箱、发送或关闭 | [玩法执行与事务](Document/GameplayExecution.md) |
 | 修改角色、会话、当前状态、疲劳或设置 | [角色与会话状态](Document/CurrentCharacterFacts.md) |
 | 修改物品、容器、移动或生命周期 | [物品与容器](Document/ItemContainers.md) |
+| 新增或修改特殊地下城玩法、塔与活动副本 | [地下城玩法种类](Document/DungeonRunKinds.md) |
 | 修改领域事件、通知或多人投影 | [事件与通知](Document/EventsAndNotifications.md) |
 | 修改宿主、组件开关或启动顺序 | [组件组合](Document/host-component-composition.md) |
 | 构建、运行、测试与失败排查 | [构建与测试](Document/BuildAndTest.md) |
