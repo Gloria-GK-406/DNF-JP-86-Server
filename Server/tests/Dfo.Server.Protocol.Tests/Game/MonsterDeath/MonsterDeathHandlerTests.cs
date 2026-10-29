@@ -63,7 +63,10 @@ public sealed class MonsterDeathHandlerTests
         _ = unusedView;
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
         var service = new MonsterDeathDomainService(scope, sessions, characters,
-            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers), NullLogger<MonsterDeathDomainService>.Instance,
+            runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers),
+            Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IQuestItemDropDomainService>(),
+            Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestProgressDomainService>(),
+            TimeProvider.System, NullLogger<MonsterDeathDomainService>.Instance,
             events: new DeathEvents(scope));
         return new DeathAlgorithmDriver(sessions, runs, clear, clearProjection, scope, service, rewards,
             registry, sender, diagnostics, partyRecipients, creatures, safety);

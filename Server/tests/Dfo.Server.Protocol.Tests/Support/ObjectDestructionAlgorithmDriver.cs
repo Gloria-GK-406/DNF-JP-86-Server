@@ -27,7 +27,8 @@ internal sealed class ObjectDestructionAlgorithmDriver(IDungeonRunDomainService 
     IQuestProgressDomainService progress)
 {
     private readonly GameMonsterDeathCommandHandler command = ProtocolAlgorithmFixture.Create<GameMonsterDeathCommandHandler>(
-        sessions, runs, logs, containers, items, progress, new NoProjectionOutbox());
+        sessions, runs, new NoProjectionOutbox(), ProtocolAlgorithmFixture.Create<Dfo.Server.Application.World.MonsterDeathDomainService>(
+            sessions, runs, new Dfo.Server.Application.World.QuestItemDropDomainService(logs, containers, items), progress, TimeProvider.System));
 
     internal ValueTask<ObjectDestructionResult> HandleAsync(CommandExecutionContext unused,ObjectDestructionFacts input,CancellationToken ct)=>
         command.DestroyObjectAsync(input.Session,input.RunId,input.RoomVersion,input.ObjectCode,input.Recipients,ct);

@@ -31,40 +31,7 @@ internal sealed partial class GameMonsterDeathCommandHandler
         IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct) =>
         workUnits.WriteAsync(execution, new("destroy-dungeon-object", []),
             (_, token) => DestroyObjectAsync(session, runId, roomVersion, objectCode, recipients, token), ct);
-    internal async ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity session,
-        DungeonRunId runId, long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct)
-    {
-        if (!sessions.IsInWorld(session))
-            return new(null);
-        var run = runs.Find(session.CharacterId);
-        if (run is null || run.RunId != runId || run.RoomVersion != roomVersion)
-            return new(null);
-        // A reporting client is not the loot owner. Freeze exact sessions at the protocol
-        // boundary, then revalidate them here, inside the command's transaction.
-        if (!recipients.Contains(session)
-            || recipients.Count != run.Participants.Count
-            || recipients.Select(value => value.CharacterId).Distinct().Count() != recipients.Count
-            || recipients.Any(recipient => !sessions.IsInWorld(recipient)
-                || runs.Find(recipient.CharacterId) is not { } memberRun
-                || memberRun.RunId != runId || memberRun.RoomVersion != roomVersion
-                || !run.Participants.Any(member => member.CharacterId == recipient.CharacterId
-                    && member.AccountId == recipient.AccountId)))
-            return new(null);
-        var claim = runs.ClaimObjectDestruction(session.CharacterId, runId,
-            roomVersion, objectCode);
-        if (claim is null) return new(null);
-        var rewards = new List<ObjectQuestReward>();
-        foreach (var recipient in recipients)
-        {
-            var granted = await PendingQuestItemGrants.GrantAsync(recipient.AccountId, recipient.CharacterId,
-                claim.PendingLoot, default, questLogs, containers, items, null, ct, failIfFull: true)
-                .ConfigureAwait(false);
-            var updated = granted.HasChanges
-                ? await progress.ReportAsync(recipient.AccountId, recipient.CharacterId,
-                    [new QuestHoldingsChanged()], ct).ConfigureAwait(false)
-                : null;
-            rewards.Add(new(recipient, new MonsterKillEffects(null, updated?.NotificationSnapshot, granted.CharacterItems, granted.AccountMaterials)));
-        }
-        return new(rewards);
-    }
+    internal ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity session,
+        DungeonRunId runId, long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct) =>
+        deaths.DestroyObjectAsync(session, runId, roomVersion, objectCode, recipients, ct);
 }

@@ -525,6 +525,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         // Runtime kill interpretation reads only the published Cell snapshot.
         services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
+        services.TryAddSingleton<IQuestItemDropDomainService, QuestItemDropDomainService>();
         services.TryAddSingleton<IMonsterKillRewardsDomainService, MonsterKillRewardsDomainService>();
         services.TryAddSingleton<IMonsterDeathDomainService, MonsterDeathDomainService>();
         // Recomputing a session's offer list after a level or a quest moved what it is made of.

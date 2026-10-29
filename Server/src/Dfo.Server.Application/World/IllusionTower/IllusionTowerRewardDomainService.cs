@@ -14,9 +14,9 @@ namespace Dfo.Server.Application.World.IllusionTower;
 
 internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleService rules,
     ICharacterDomainService characters,
-    IItemDeliveryDomainService delivery, ICharacterContainerDomainService containers,
+    IItemDeliveryDomainService delivery,
     IQuestProgressDomainService quests, IQuestEnemyDropDomainService questDrops,
-    ICharacterQuestLogDomainService questLogs,
+    IQuestItemDropDomainService questItems,
     IDomainTransactionAccessor transactions, TimeProvider clock)
     : IIllusionTowerRewardDomainService
 {
@@ -66,30 +66,8 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var changed = new Dictionary<BusinessSlot, TowerInventoryUpdate>();
-        var active = (await questLogs.LogOf(session.AccountId, session.CharacterId)
-                .CarriedAsync(token).ConfigureAwait(false))
-            .Select(quest => quest.QuestId).ToHashSet();
-        foreach (var drop in pending.Where(value => value.Delivery == RolledDropDelivery.DirectQuestItem
-            && value.OwnerCharacterId == session.CharacterId && value.ItemId > 0 && value.Count > 0))
-        {
-            if (drop.QuestId <= 0 || !active.Contains(drop.QuestId) || drop.GrantLimit <= 0) continue;
-            var source = AccountMaterialCatalog.ContainsItem(drop.ItemId)
-                ? containers.FindContainer(session.CharacterId, InventoryContainerType.SharedMaterial, isDefault: true)
-                    ?? throw new InvalidDataException("Shared material container is unavailable.")
-                : containers.FindContainer(session.CharacterId, InventoryContainerType.Main, isDefault: true)
-                    ?? throw new InvalidDataException("Character inventory is unavailable.");
-            var held = (await source.GetAllAsync(token).ConfigureAwait(false))
-                .Where(item => item.ItemId == drop.ItemId).Sum(item => (long)item.Count);
-            held += await delivery.PendingQuantityAsync(session.CharacterId, drop.ItemId, token).ConfigureAwait(false);
-            var remaining = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
-            if (remaining > 0)
-            {
-                footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
-                var receipt = await delivery.DeliverAsync(session.AccountId, session.CharacterId,
-                    [new(drop.ItemId, remaining)], "任务掉落奖励", token, ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
-                foreach (var item in receipt.Inventory) changed[item.Slot] = new(item.Slot, item.Snapshot);
-            }
-        }
+        foreach (var item in await questItems.GrantAsync(session.AccountId, session.CharacterId, pending, token).ConfigureAwait(false))
+            changed[item.Slot] = new(item.Slot, item.Snapshot);
         return changed.OrderBy(value => value.Key.Space).ThenBy(value => value.Key.Index)
             .Select(value => value.Value).ToImmutableArray();
     }

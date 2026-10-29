@@ -17,8 +17,7 @@ namespace Dfo.Server.Application.World;
 
 /// <summary>All durable effects of a participant's verified kill, inside the caller's transaction.</summary>
 public sealed class MonsterKillRewardsDomainService(ICharacterDomainService characters,
-    ICharacterQuestLogDomainService logs, ICharacterContainerDomainService containers,
-    IQuestProgressDomainService quests, IItemDeliveryDomainService delivery,
+    IQuestItemDropDomainService questItems, IQuestProgressDomainService quests,
     IPartyService? parties = null, TimeProvider? clock = null, ICharacterGameplayFactDomainService? gameplay = null)
     : IMonsterKillRewardsDomainService
 {
@@ -63,36 +62,10 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
         var empty = new MonsterKillEffects(null, null, null, []);
         if (party != default && (parties?.FindByKey(party) is not { } current
             || !current.Members.Any(x => x.CharacterId == character))) return empty;
-        var candidates = loot?.Where(x => x.Delivery == RolledDropDelivery.DirectQuestItem
-            && x.OwnerCharacterId == character).ToArray() ?? [];
-        if (candidates.Length == 0) return empty;
-        var active = (await logs.LogOf(account, character).CarriedAsync(ct).ConfigureAwait(false)).Select(x => x.QuestId).ToHashSet();
-        var changed = new Dictionary<GameSlot, (IBusinessItemContainer Container, int Index)>();
-        var slots = new InventorySlotMappingRuleService();
-        foreach (var drop in candidates)
-        {
-            if (drop.QuestId <= 0 || !active.Contains(drop.QuestId) || drop.ItemId <= 0 || drop.Count <= 0 || drop.GrantLimit <= 0) continue;
-            var bag = containers.FindContainer(character, AccountMaterialCatalog.ContainsItem(drop.ItemId)
-                ? InventoryContainerType.SharedMaterial : InventoryContainerType.Main)
-                ?? throw new InvalidDataException("Quest inventory is unavailable.");
-            var held = (await bag.GetAllAsync(ct).ConfigureAwait(false)).Where(x => x.ItemId == drop.ItemId).Sum(x => (long)x.Count)
-                + await delivery.PendingQuantityAsync(character, drop.ItemId, ct).ConfigureAwait(false);
-            var count = checked((int)Math.Min(drop.Count, Math.Max(0, drop.GrantLimit - held)));
-            if (count <= 0) continue;
-            footprint.DemandEffects(new(account, character, session));
-            var receipt = await delivery.DeliverAsync(account, character, [new(drop.ItemId, count)], "任务掉落奖励", ct,
-                ItemDeliveryMode.InventoryThenMail).ConfigureAwait(false);
-            foreach (var addition in receipt.Inventory) changed[slots.ToGameSlot(addition.Slot)] = (addition.Container, addition.Slot.Index);
-        }
-        var items = new List<InventoryItemState>();
-        var shared = new List<InventoryRuntimeValueState>();
-        foreach (var (slot, source) in changed.OrderBy(x => x.Key.Index))
-        {
-            var item = await source.Container.GetAsync(source.Index, ct).ConfigureAwait(false)
-                ?? throw new InvalidDataException("Granted quest item disappeared before commit.");
-            if (source.Container.Space == BusinessInventorySpace.SharedMaterial) shared.Add(new(slot.Index, item.ItemId, item.Count));
-            else items.Add(new(null, slot.Index, item.Snapshot.ToCore()));
-        }
-        return empty with { QuestItems = items.Count == 0 ? null : new(InventoryContainerType.Main, items, (clock ?? TimeProvider.System).GetUtcNow()), AccountMaterials = shared };
+        footprint.DemandEffects(new(account, character, session));
+        var additions = await questItems.GrantAsync(account, character, loot, ct).ConfigureAwait(false);
+        var (items, shared) = await QuestItemDropProjection.ReadAsync(
+            additions, (clock ?? TimeProvider.System).GetUtcNow(), ct).ConfigureAwait(false);
+        return empty with { QuestItems = items, AccountMaterials = shared };
     }
 }

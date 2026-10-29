@@ -66,10 +66,6 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly IMonsterDeathDomainService deaths;
     private readonly ICreatureRuntimeDomainService creatures;
     private readonly IQuestQueryDomainService quests;
-    private readonly ICharacterQuestLogDomainService questLogs;
-    private readonly ICharacterContainerDomainService containers;
-    private readonly IItemDeliveryDomainService items;
-    private readonly IQuestProgressDomainService progress;
     private readonly ICommandConnectionClosures closures;
     private readonly IInventorySlotProjectionDomainService slots;
     private readonly IAltarSchedulerWakeSignal altarWake;
@@ -78,8 +74,6 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IMonsterDeathDomainService deaths, ICreatureRuntimeDomainService creatures, IQuestQueryDomainService quests,
-        ICharacterQuestLogDomainService questLogs, ICharacterContainerDomainService containers,
-        IItemDeliveryDomainService items, IQuestProgressDomainService progress,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation,
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
@@ -90,8 +84,8 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs; this.registry=registry; this.clearEvaluator=clearEvaluator; this.deaths=deaths;
-        this.creatures=creatures; this.quests=quests; this.questLogs=questLogs; this.containers=containers;
-        this.items=items; this.progress=progress; this.closures=closures; this.slots=slots; this.altarWake=altarWake;
+        this.creatures=creatures; this.quests=quests;
+        this.closures=closures; this.slots=slots; this.altarWake=altarWake;
         this.guardian = guardian; this.guardianWake = guardianWake;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMonsterDeathCommand command, CancellationToken ct)

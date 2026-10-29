@@ -15,9 +15,47 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ISelectedSessionDomainService sessions,
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
+    IQuestItemDropDomainService questItems, IQuestProgressDomainService progress, TimeProvider clock,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
     IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null) : IMonsterDeathDomainService
 {
+    public async ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity reporter,
+        DungeonRunId runId, long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct)
+    {
+        if (!sessions.IsInWorld(reporter))
+            return new(null);
+        var run = runs.Find(reporter.CharacterId);
+        if (run is null || run.RunId != runId || run.RoomVersion != roomVersion)
+            return new(null);
+        // A reporting client is not the loot owner. The exact sessions frozen at the protocol
+        // boundary are revalidated here, inside the command's transaction.
+        if (!recipients.Contains(reporter)
+            || recipients.Count != run.Participants.Count
+            || recipients.Select(value => value.CharacterId).Distinct().Count() != recipients.Count
+            || recipients.Any(recipient => !sessions.IsInWorld(recipient)
+                || runs.Find(recipient.CharacterId) is not { } memberRun
+                || memberRun.RunId != runId || memberRun.RoomVersion != roomVersion
+                || !run.Participants.Any(member => member.CharacterId == recipient.CharacterId
+                    && member.AccountId == recipient.AccountId)))
+            return new(null);
+        var claim = runs.ClaimObjectDestruction(reporter.CharacterId, runId,
+            roomVersion, objectCode);
+        if (claim is null) return new(null);
+        var rewards = new List<ObjectQuestReward>();
+        foreach (var recipient in recipients)
+        {
+            var additions = await questItems.GrantAsync(recipient.AccountId, recipient.CharacterId,
+                claim.PendingLoot, ct).ConfigureAwait(false);
+            var (items, shared) = await QuestItemDropProjection.ReadAsync(additions, clock.GetUtcNow(), ct).ConfigureAwait(false);
+            var updated = items is not null || shared.Count > 0
+                ? await progress.ReportAsync(recipient.AccountId, recipient.CharacterId,
+                    [new QuestHoldingsChanged()], ct).ConfigureAwait(false)
+                : null;
+            rewards.Add(new(recipient, new MonsterKillEffects(null, updated?.NotificationSnapshot, items, shared)));
+        }
+        return new(rewards);
+    }
+
     public async ValueTask<MonsterDeathSettlementResult> SettleAsync(MonsterDeathSettlementRequest request, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));

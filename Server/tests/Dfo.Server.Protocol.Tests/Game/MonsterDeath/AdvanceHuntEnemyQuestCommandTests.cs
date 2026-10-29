@@ -56,10 +56,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         {
             var log = new OneLog(new CarriedQuest(0, 1776, 1));
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-                new OneCharacterLog(log),
-                new CharacterContainerDomainService(),
-                Progress(log),
-                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+                new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(),
+                    new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())),
+                Progress(log));
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account,
@@ -89,10 +88,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 null, [], [], [], [],
                 DungeonClearRequirement: new DungeonClearRequirement(146, -1));
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-                new OneCharacterLog(log),
-                new CharacterContainerDomainService(),
-                Progress(log, definition),
-                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+                new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(),
+                    new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())),
+                Progress(log, definition));
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account, Character, new MonsterRewardIdentity(3001, 5, MonsterRank.Boss),
@@ -110,10 +108,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         {
             var log = new OneLog(new CarriedQuest(0, 1776, 1));
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new ExperienceMustNotBeAwarded(),
-                new OneCharacterLog(log),
-                new CharacterContainerDomainService(),
-                Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)),
-                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+                new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(),
+                    new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())),
+                Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)));
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account,
@@ -137,10 +134,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var valuation = new RecordingValuation();
             var log = new OneLog(new CarriedQuest(0, 1776, 1));
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses())),
-                new OneCharacterLog(log),
-                new CharacterContainerDomainService(),
-                Progress(log),
-                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()));
+                new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(),
+                    new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService())),
+                Progress(log));
 
             await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account,
@@ -166,10 +162,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var seeking = new RecordingSeekingProgress();
             var log = new OneLog(new CarriedQuest(0, 1776, 1));
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-                new OneCharacterLog(log),
-                containers,
-                Progress(log, seeking: seeking),
-                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers));
+                new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), containers,
+                    new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)),
+                Progress(log, seeking: seeking));
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account, Character,
@@ -402,10 +397,9 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             containers.Register(Character, bag);
             var log = new OneLog(new CarriedQuest(0, 1776, 1));
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
-                new OneCharacterLog(log),
-                containers,
+                new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), containers,
+                    new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)),
                 Progress(log),
-                new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers),
                 new VirtualOnlyPartyService());
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
