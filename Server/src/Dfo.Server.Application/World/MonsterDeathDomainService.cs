@@ -16,9 +16,12 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService progress,
-    ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
-    IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null) : IMonsterDeathDomainService
+    ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService tournaments,
+    IEventService events, IEnumerable<IDungeonBossClearHook> clearHooks) : IMonsterDeathDomainService
 {
+    private readonly IReadOnlyDictionary<DungeonRunKind, IDungeonBossClearHook> clearHooksByKind =
+        clearHooks.ToDictionary(hook => hook.Kind);
+
     public async ValueTask<ObjectDestructionResult> DestroyObjectAsync(SelectedSessionIdentity reporter,
         DungeonRunId runId, long roomVersion, int objectCode, IReadOnlyList<SelectedSessionIdentity> recipients, CancellationToken ct)
     {
@@ -71,8 +74,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         if (run is null || run.RunId != request.RunId || run.RoomVersion != request.RoomVersion
             || !request.Participants.Contains(request.Reporter)) return Refused("StaleRunOrParticipant");
         var isTournament = run.Layout.Mode is DungeonRunMode.Tournament;
-        if (isTournament && !(tournaments ?? throw new InvalidOperationException("Tournament lifecycle is unavailable."))
-            .CanKill(run, request.Actor)) return Refused("TournamentCannotKill");
+        if (isTournament && !tournaments.CanKill(run, request.Actor)) return Refused("TournamentCannotKill");
         foreach (var session in request.Participants)
             if (!sessions.IsInWorld(session)
                 || runs.Find(session.CharacterId)?.RunId != run.RunId)
@@ -122,20 +124,15 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         }
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         var tournament = isTournament
-            ? await tournaments!.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
+            ? await tournaments.AdvanceAsync(request.Reporter, run.RunId, request.Actor, ct).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The accepted tournament death could not advance its round.")
             : null;
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
-        if (clearsMap && run.IsBossRoom && southern?.Supports(run.Layout.DungeonId) == true)
-            await southern.CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
-        footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
-        if (clearsMap && run.Layout.Mode is DungeonRunMode.Sao && run.IsBossRoom)
-            await (sao ?? throw new InvalidOperationException("SAO lifecycle is unavailable."))
-                .CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
+        if (clearsMap && run.IsBossRoom && clearHooksByKind.TryGetValue(run.Layout.Mode.Kind, out var clearHook))
+            await clearHook.CompleteClearAsync(death, request.Participants, ct).ConfigureAwait(false);
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         if (clearsMap)
-            await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
-                .EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,
+            await events.EnqueueAsync(new DungeonMapCleared(run.RunId, run.Layout.DungeonId, run.Difficulty,
                     run.CurrentCell, run.CurrentRoomMapId, run.RoomVersion, death.OccurredAt!.Value,
                     [.. request.Participants.DistinctBy(x => x.CharacterId).Select(session =>
                         run.Participants.Single(x => x.CharacterId == session.CharacterId))]) { IsBossRoom = run.IsBossRoom }, ct).ConfigureAwait(false);

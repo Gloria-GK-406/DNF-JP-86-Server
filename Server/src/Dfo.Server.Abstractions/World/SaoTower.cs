@@ -32,12 +32,9 @@ public sealed record SaoTowerRewardRefresh(CharacterId CharacterId, ImmutableArr
 public sealed record SaoTowerCleared(string Season, Guid RunId,
     ImmutableArray<SaoTowerRewardRefresh> Rewards) : IDomainEvent;
 
-public interface ISaoTowerDomainService
+public interface ISaoTowerDomainService : IDungeonBossClearHook
 {
     bool Supports(int dungeonId);
     ValueTask<SaoTowerProgress?> ReadStatusAsync(CancellationToken ct);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);
-    /// <summary>Runs inside the authoritative, multi-account actor-death transaction.</summary>
-    ValueTask CompleteClearAsync(DungeonActorDeathClaim death,
-        IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken ct);
 }

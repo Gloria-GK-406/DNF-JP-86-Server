@@ -203,6 +203,7 @@ public sealed class ApplicationModule : IServerModule
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
         services.TryAddSingleton<ISealedTreasureDomainService, SealedTreasureDomainService>();
         services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
+        services.AddSingleton<IDungeonBossClearHook>(sp => sp.GetRequiredService<ISouthernDaleDomainService>());
         services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
         services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
         services.AddDomainEvent<SouthernDaleDailyRefillCompleted>("southern-dale.daily-refill-completed", 1);
@@ -213,6 +214,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddTauKingdomDailyRefill();
         services.TryAddSingleton<ISaoTowerRuleService, SaoTowerRuleService>();
         services.TryAddSingleton<ISaoTowerDomainService, SaoTowerDomainService>();
+        services.AddSingleton<IDungeonBossClearHook>(sp => sp.GetRequiredService<ISaoTowerDomainService>());
         services.AddDomainEvent<SaoTowerCleared>("sao-tower.cleared", 1);
         services.TryAddSingleton<IDespairTowerRuleService, DespairTowerRuleService>();
         services.TryAddSingleton<IDespairTowerDomainService, DespairTowerDomainService>();

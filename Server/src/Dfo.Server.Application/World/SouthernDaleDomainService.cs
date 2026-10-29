@@ -19,6 +19,7 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
     IEventService events,
     IDomainTransactionAccessor transactions, TimeProvider clock) : ISouthernDaleDomainService
 {
+    public DungeonRunKind Kind => DungeonRunKind.SouthernDale;
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)

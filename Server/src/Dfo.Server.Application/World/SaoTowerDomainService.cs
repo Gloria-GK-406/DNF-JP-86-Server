@@ -14,6 +14,7 @@ internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowe
     ICharacterDomainService characters, IItemDeliveryDomainService delivery, IEventService events,
     IDomainTransactionAccessor transactions, TimeProvider clock) : ISaoTowerDomainService
 {
+    public DungeonRunKind Kind => DungeonRunKind.Sao;
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
     public async ValueTask<SaoTowerProgress?> ReadStatusAsync(CancellationToken ct)
     {
