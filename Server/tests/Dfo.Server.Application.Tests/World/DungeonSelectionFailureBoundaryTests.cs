@@ -120,7 +120,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var user = f.Services.GetRequiredService<IOnlineUserQueryDomainService>(); Assert.True(user.TryGetByConnection(peer.ConnectionId, out var online));
             f.Sender.Outbound.Connections.Add(online!.Connection);
             peerPhysical = probe.Sender.Add(online.Connection);
-            Assert.NotNull((await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default)).Run);
+            Assert.NotNull((await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default, 11001)).Run);
         });
         var physical = probe.Sender.Add(f.Connection); var replacement = f.Connection with { }; var next = probe.Sender.Add(replacement);
         probe.BeforeDispose = () => { f.Sender.Outbound.Connections.Remove(f.Connection.ConnectionId); f.Sender.Outbound.Connections.Add(replacement); };

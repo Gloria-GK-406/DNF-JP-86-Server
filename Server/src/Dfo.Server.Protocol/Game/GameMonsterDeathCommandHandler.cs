@@ -130,7 +130,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
                 new GameExplicitMessageDelivery([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
             return;
         }
-        if (run.Layout.Guardian is not null)
+        if (run.Layout.Mode is DungeonRunMode.Guardian)
         {
             if (message.ObjectCode is null)
                 _ = await workUnits.WriteAsync(execution, new("guardian-altar.death", CaptureDeathRecipients([reporter], context, message.Metadata)),
@@ -186,7 +186,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
                     settled.Tournament, labelProbe))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             if (clear is not null) await ProjectClearAsync(reporter, clear, ct).ConfigureAwait(false);
-            if (change.Run.Layout.Altar is not null) WakeAltar();
+            if (change.Run.Layout.Mode is DungeonRunMode.Altar) WakeAltar();
             if (logger.IsEnabled(LogLevel.Debug))
                 logger.LogDebug("Monster death delivered connection={ConnectionId} sequence={Sequence} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} drops={Drops} cellCleared={CellCleared} boss={IsBossRoom} clearProjected={ClearProjected} aliveBlockers={AliveBlockers} mechanismBlocks={MechanismBlocks}",
                     reporter.ConnectionId, message.Metadata.Sequence, run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId,

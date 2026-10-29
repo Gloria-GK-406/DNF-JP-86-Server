@@ -85,7 +85,7 @@ public sealed partial class BossTowerDomainServiceTests
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 61000, 42,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000) })
-            { Altar = new(AltarDungeonKind.Ultimate, new(2026, 10, 26)) };
+            { Mode = new DungeonRunMode.Altar(new(AltarDungeonKind.Ultimate, new(2026, 10, 26))) };
         var run = f.Services.GetRequiredService<IDungeonRunDomainService>().PreparePartyEntry(
             [new(f.Session.AccountId, f.Session.CharacterId, 0, true)], layout, 0,
             new(cell, 61000, 1, [new(1, new(13099, 1, 0), false, false, []), new(2, new(13099, 1, 0), false, false, [])], [])

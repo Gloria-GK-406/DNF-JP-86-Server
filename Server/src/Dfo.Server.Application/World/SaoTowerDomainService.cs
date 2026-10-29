@@ -14,12 +14,14 @@ internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowe
     ICharacterDomainService characters, IItemDeliveryDomainService delivery, IEventService events,
     IDomainTransactionAccessor transactions, TimeProvider clock) : ISaoTowerDomainService
 {
+    public DungeonRunKind Kind => DungeonRunKind.Sao;
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
     public async ValueTask<SaoTowerProgress?> ReadStatusAsync(CancellationToken ct)
     {
-        var activity = (await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false))
-            .Entries.SingleOrDefault(x => x.EventId == 214 && x.Status == "active");
-        return activity is null ? null : await store.ReadAsync(activity.SeasonId, ct).ConfigureAwait(false);
+        var now = clock.GetUtcNow();
+        if (!await activities.IsOpenAsync(rules.EventId, now, ct).ConfigureAwait(false)) return null;
+        var activity = (await activities.ListAsync(now, ct).ConfigureAwait(false)).Entries.Single(x => x.EventId == rules.EventId);
+        return await store.ReadAsync(activity.SeasonId, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
@@ -45,7 +47,7 @@ internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowe
             try { layout = await layouts.ResolveAsync(floor.DungeonId, facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
             if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-            layout = layout with { Sao = new(progress), ConsumesFatigue = false };
+            layout = layout with { Mode = new DungeonRunMode.Sao(new(progress)), ConsumesFatigue = false };
             return await visits.EnterGrantedPartyAsync(target.Participants, layout, facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
@@ -56,7 +58,7 @@ internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowe
         var transaction = transactions.Current ?? throw new InvalidOperationException("SAO clear requires a transaction.");
         if (transaction.IsReadOnly) throw new InvalidOperationException("SAO clear requires a writable transaction.");
         var run = runs.Find(death.CharacterId);
-        if (run is null || run.RunId != death.RunId || run.Layout.Sao is not { } plan || !run.IsBossRoom
+        if (run is null || run.RunId != death.RunId || run.Layout.Mode is not DungeonRunMode.Sao { Plan: var plan } || !run.IsBossRoom
             || !runs.IsActorDeathClaimCurrent(death) || !runs.WillClearMap(death))
             throw new InvalidOperationException("SAO completion requires the current authoritative room-clear claim.");
         if (participants.Count == 0 || participants.Select(x => x.CharacterId).Distinct().Count() != participants.Count

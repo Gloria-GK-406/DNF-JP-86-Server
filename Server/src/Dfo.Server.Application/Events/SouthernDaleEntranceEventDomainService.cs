@@ -15,6 +15,7 @@ internal sealed class SouthernDaleEntranceEventDomainService(IEventPersistence s
     private EventConfiguration Initial => rules.InitialActivity;
     private async ValueTask<EventConfiguration> Configuration(CancellationToken ct) => await store.ConfigurationAsync(EventId, ct) ?? Initial;
     private static bool Active(EventConfiguration c, DateTimeOffset now) => c.Enabled && c.StartsAt <= now && c.EndsAt > now;
+    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => Active(await Configuration(ct), now);
 
     public async ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct)
     {

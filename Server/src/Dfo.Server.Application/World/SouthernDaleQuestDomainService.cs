@@ -13,8 +13,7 @@ internal sealed class SouthernDaleQuestDomainService(ISouthernDaleDomainStore st
     private DateOnly Period => reset.PeriodDay(clock.GetUtcNow());
 
     public async ValueTask<bool> CanAcceptAsync(CharacterId character, CancellationToken ct) =>
-        (await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries
-            .Any(x => x.EventId == rules.EventId && x.Status == "active")
+        await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), ct).ConfigureAwait(false)
         && !await store.HasCompletedDailyQuestAsync(character, Period, ct).ConfigureAwait(false);
 
     public async ValueTask<bool> TryCompleteAsync(CharacterId character, CancellationToken ct)

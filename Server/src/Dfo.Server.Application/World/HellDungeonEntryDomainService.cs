@@ -39,7 +39,7 @@ internal sealed class HellDungeonEntryDomainService(IHellDungeonEntryRuleService
                 if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid);
                 var plan = await hellRules.PrepareAsync(rules, layout, seed, token).ConfigureAwait(false);
                 if (plan is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid);
-                layout = await structures.PrepareLayoutAsync(layout with { EntryKind = DungeonEntryKind.ManualHell, Hell = plan,
+                layout = await structures.PrepareLayoutAsync(layout with { Mode = new DungeonRunMode.Hell(plan),
                     StartRoomMapId = layout.StartCell == plan.Cell ? plan.MapId : layout.StartRoomMapId }, token).ConfigureAwait(false);
             }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.HellConfigurationInvalid, error.Message); }

@@ -46,6 +46,7 @@ public sealed class SaoTowerDomainTests
     {
         public ValueTask<ManagedEventList> ListAsync(DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult(new ManagedEventList(
             [new(214, "sao", 1, "season", enabled, enabled ? "active" : "disabled", "SAO", "SAO", "", "", "", now.AddDays(-1), now.AddDays(1), true, null, null, null)]));
+        public ValueTask<bool> IsOpenAsync(int eventId, DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult(eventId == 214 && enabled);
         public ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<ManagedEventList> ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
     }
@@ -61,7 +62,7 @@ public sealed class SaoTowerDomainTests
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(3600, 0, 1, 1, cell, cell, 27000, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = new(DungeonPathDirection.None, [27000], [27000]) })
-            { Sao = new(progress ?? new("season")), ConsumesFatigue = false };
+            { Mode = new DungeonRunMode.Sao(new(progress ?? new("season"))), ConsumesFatigue = false };
         var actor = new DungeonCellActorState(1, new(64811, 86, 0), false, false, []);
         var roster = Players.Select((x, i) => new DungeonRunParticipant(x.AccountId, x.CharacterId, (byte)i, i == 0)).ToArray();
         TestParties.EnsureEntryParty(runs, roster);
@@ -188,7 +189,7 @@ public sealed class SaoTowerDomainTests
                 var entered = await sao.EnterAsync(context, default);
                 Assert.True(entered.Entry is not null, $"Refused {entered.Failure}: {entered.Detail}");
                 Assert.Equal(3601, entered.Entry.Layout.DungeonId);
-                Assert.Equal(2, entered.Entry.Layout.Sao!.Progress.NextFloor);
+                Assert.Equal(2, Assert.IsType<DungeonRunMode.Sao>(entered.Entry.Layout.Mode).Plan.Progress.NextFloor);
                 // Deliberate transaction rollback: no run publication and no ticket charge.
             }
             Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));

@@ -122,6 +122,8 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(Dfo.Server.Abstractions.World.ITownMovementDomainService)) return new EveryTown();
         if (EmptyWorldContracts.Contains(type)) return DispatchProxy.Create(type, typeof(EmptyWorld));
         if (type == typeof(TimeProvider)) return TimeProvider.System;
+        // A registered-collection dependency (hooks keyed by kind and the like) defaults to none registered.
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)) return Array.CreateInstance(type.GetGenericArguments()[0], 0);
         if (type == typeof(IOutboundOrdering)) return new Ordering();
         if (type == typeof(IPartyProjectionStateDomainService)) return new PartyProjectionStreamRegistry();
         if (type == typeof(Dfo.Server.Abstractions.World.IDungeonEntryIntentDomainService)) return new Dfo.Server.Application.World.DungeonEntryIntentDomainService();

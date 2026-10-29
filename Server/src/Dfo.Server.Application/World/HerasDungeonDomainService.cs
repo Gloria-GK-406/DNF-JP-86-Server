@@ -25,7 +25,7 @@ internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeo
         var entries = await quotas.ReadAsync(character, UsageQuotaKey.Heras("entries", period), ct).ConfigureAwait(false);
         var bonus = await quotas.ReadAsync(character, UsageQuotaKey.Heras("bonus", period), ct).ConfigureAwait(false);
         if (entries?.UsedCount < 0 || bonus?.UsedCount < 0) throw new InvalidDataException("Invalid Heras counters.");
-        return new(period, maximum, entries, bonus);
+        return new(rules.DungeonId, period, maximum, entries, bonus);
     }
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
@@ -34,7 +34,7 @@ internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeo
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
         var player = context.Participants[0];
         if (runs.Find(player.CharacterId) is not null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
-        if (!(await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries.Any(x => x.EventId == rules.EventId && x.Status == "active"))
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), ct).ConfigureAwait(false))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.OutsideOpeningHours);
         HerasDefinition definition;
         try { definition = await rules.DefinitionAsync(ct).ConfigureAwait(false); }
@@ -54,7 +54,7 @@ internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeo
             try { layout = await layouts.ResolveAsync(context.DungeonId, facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException e) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, e.Message); }
             if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-            layout = layout with { FixedMonsterLevel = progress.Level, BasisLevel = progress.Level, ConsumesFatigue = false };
+            layout = layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.Heras), FixedMonsterLevel = progress.Level, BasisLevel = progress.Level, ConsumesFatigue = false };
             return await visits.EnterGrantedPartyAsync(context.Participants, layout, facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }

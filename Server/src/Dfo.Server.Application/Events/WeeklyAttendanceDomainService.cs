@@ -25,6 +25,11 @@ internal sealed class WeeklyAttendanceDomainService(IEventPersistence store,IWee
             return (null,"本期次的 PVF 规则已改变，请恢复原规则或显式创建新期次。");
         return result;
     }
+    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now,CancellationToken ct)
+    {
+        var c = await Configuration(ct); var (d,_) = await Definition(c,ct);
+        return d is not null && Active(c,now);
+    }
     public async ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now,CancellationToken ct)
     {
         var c = await Configuration(ct); var (d,error) = await Definition(c,ct);

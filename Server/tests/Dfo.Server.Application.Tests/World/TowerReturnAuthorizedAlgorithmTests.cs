@@ -78,7 +78,7 @@ internal static class TowerReturnAuthorizedCases
                 else
                 {
                     var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-                    var run = (await towers.EnterAsync([new(session, 0)], session, 42, default)).Run!;
+                    var run = (await towers.EnterAsync([new(session, 0)], session, 42, default, 11001)).Run!;
                     var context = new TowerActionContext(session, run.RunId, run.Room.Version);
                     await towers.LoadAsync(context, default);
                     await towers.StartAsync(context, default);
@@ -155,7 +155,7 @@ internal static class TowerReturnAuthorizedCases
                 else
                 {
                     var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-                    var run = (await towers.EnterAsync([new(peer, 0)], peer, 44, default)).Run!;
+                    var run = (await towers.EnterAsync([new(peer, 0)], peer, 44, default, 11001)).Run!;
                     var context = new TowerActionContext(peer, run.RunId, run.Room.Version);
                     await towers.LoadAsync(context, default);
                     await towers.StartAsync(context, default);

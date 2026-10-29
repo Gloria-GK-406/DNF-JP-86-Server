@@ -114,19 +114,20 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
         new(Rule.TowerLookup, TowerReturn, "ReturnIllusionTowerRunAsync", 1, "the same timer return for the illusion tower"),
         new(Rule.TowerLookup, "Game/TowerLoadingCommandPhases.cs", "StartIllusionAsync", 1,
             "0x009F illusion stage start: its single channel takes the run the session sits in"),
-        // Other commands' own rules on whether a character sits in an illusion tower; none of them chooses a dungeon channel.
-        new(Rule.TowerLookup, "Game/Creatures/CreatureRuntimeDelivery.cs", "Resolve", 1,
-            "creature notifications: an illusion tower member is seen by the run's members"),
-        new(Rule.TowerLookup, "Game/Creatures/CreatureRuntimeDelivery.cs", "VisibleAsync", 2,
-            "creature notifications: owner and receiver must still sit in the resolved run"),
-        new(Rule.TowerLookup, "Game/Creatures/RenameCreatureHandler.cs", "SendVisibleAsync", 2,
-            "the same creature notification recipients for a renamed creature"),
+        // Other commands' own audiences: they place the session once, then keep only members still seated in that run.
+        new(Rule.Locate, "Game/Creatures/CreatureRuntimeDelivery.cs", "Resolve", 1,
+            "creature notifications: a tower member is seen by the members of the run it is located in"),
+        new(Rule.TowerLookup, "Game/Creatures/CreatureRuntimeDelivery.cs", "Resolve", 2,
+            "creature notifications: the seat check every delivery repeats for the located Boss or illusion run"),
+        new(Rule.Locate, "Game/QuestCompletion/GameFinishQuestCommand.cs", "HandleAsync", 1,
+            "quest completion appearance: placed once to choose the tower or ordinary audience"),
         new(Rule.TowerLookup, "Game/QuestCompletion/GameFinishQuestCommand.cs", "HandleAsync", 2,
-            "quest completion appearance: shown to the peers seated in the same illusion run"),
-        new(Rule.TowerLookup, "Game/InventorySort/GameSortItemCommand.cs", "HandleAsync", 1,
-            "cargo sorting is refused inside a dungeon or illusion tower"),
-        new(Rule.TowerLookup, "Game/RecoverStamina/RecoverStaminaSlice.cs", "RecoverAsync", 1,
-            "fatigue recovery is refused inside a dungeon or illusion tower"),
+            "quest completion appearance: shown to the peers still seated in the located Boss or illusion run"),
+        // Commands refused inside any dungeon ask the occupancy registry, which covers both towers.
+        new(Rule.ParticipationLookup, "Game/InventorySort/GameSortItemCommand.cs", "HandleAsync", 1,
+            "cargo sorting is refused inside any dungeon"),
+        new(Rule.ParticipationLookup, "Game/RecoverStamina/RecoverStaminaSlice.cs", "RecoverAsync", 1,
+            "fatigue recovery is refused inside any dungeon"),
     ];
 
     [Fact]

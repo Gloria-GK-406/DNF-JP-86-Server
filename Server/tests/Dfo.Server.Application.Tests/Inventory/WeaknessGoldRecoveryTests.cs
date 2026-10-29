@@ -23,8 +23,8 @@ public sealed class WeaknessGoldRecoveryTests
     [Fact]
     public async Task Tower_member_cannot_buy_weakness_recovery()
     {
-        var tower = TowerPresenceProxy.Create(out var presence);
-        using var shop = new ShopFixture(services => services.AddSingleton(tower));
+        _ = TowerPresenceProxy.Create(out var presence);
+        using var shop = new ShopFixture(services => presence.Register(services));
         presence.Members.Add(shop.Session.CharacterId);
         var state = await Weaken(shop);
 

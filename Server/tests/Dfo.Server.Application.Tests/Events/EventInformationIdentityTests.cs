@@ -33,6 +33,7 @@ public sealed class EventInformationIdentityTests
         public ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
             => ValueTask.FromResult(new[] { information });
         public ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
     }
 }

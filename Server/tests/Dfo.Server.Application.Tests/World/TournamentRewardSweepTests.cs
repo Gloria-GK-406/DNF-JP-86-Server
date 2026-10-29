@@ -106,7 +106,7 @@ public sealed class TournamentRewardSweepTests
     {
         var layout = new DungeonLayout(120, 0, 1, 1, new(0, 0), new(0, 0), 17100, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(17100) })
-        { Tournament = Plan };
+        { Mode = new DungeonRunMode.Tournament(Plan) };
         return shop.InTransaction(() => shop.Services.GetRequiredService<IDungeonRunDomainService>().PreparePartyEntry(
             [new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)], layout, (DungeonDifficulty)2)).Run.RunId;
     }

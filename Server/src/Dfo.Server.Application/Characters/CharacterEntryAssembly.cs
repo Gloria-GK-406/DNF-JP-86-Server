@@ -375,9 +375,9 @@ internal sealed class CharacterEntryAssembly(
         var recordedDifficulties = await dungeonPermissions.GetRecordedAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
         // Couple-map visibility follows this character's relation, never the account-wide permanent unlock ledger.
-        var visibleDifficulties = recordedDifficulties.Where(x => x.DungeonId != 3541).ToList();
+        var visibleDifficulties = recordedDifficulties.Where(x => x.DungeonId != World.CoupleDungeonRule.DungeonId).ToList();
         if (marriageRelations is not null && await marriageRelations.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
-            is { Stage: Dfo.Server.Data.Marriage.MarriageStage.Married }) visibleDifficulties.Add(new(3541, (Dfo.Server.Data.World.DungeonDifficulty)2));
+            is { Stage: Dfo.Server.Data.Marriage.MarriageStage.Married }) visibleDifficulties.Add(new(World.CoupleDungeonRule.DungeonId, World.CoupleDungeonRule.MarriedDifficulty));
         var dungeons = visibleDifficulties.Select((value, index) =>
             (index, value.DungeonId, (int)value.Maximum)).ToArray();
 

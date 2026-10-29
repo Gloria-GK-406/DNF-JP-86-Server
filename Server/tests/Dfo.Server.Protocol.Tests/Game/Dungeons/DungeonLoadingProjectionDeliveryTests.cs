@@ -108,11 +108,29 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         });
     }
 
+    [Theory]
+    [InlineData(DungeonRunKind.Heras, UsageQuotaFamily.HerasDungeon)]
+    [InlineData(DungeonRunKind.Altar, UsageQuotaFamily.AltarDungeon)]
+    public async Task A_loaded_room_refreshes_the_quota_its_run_kind_spends(DungeonRunKind kind, UsageQuotaFamily family)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var events = new QuotaEvents(family);
+            DungeonRunMode mode = kind == DungeonRunKind.Altar
+                ? new DungeonRunMode.Altar(new(AltarDungeonKind.Ultimate, new DateOnly(2026, 10, 13)))
+                : new DungeonRunMode.Plain(kind);
+            var world = World(mode: mode, quotaProjection: new(events));
+            Assert.True(await world.Delivery.CompleteLoadingAsync(Current.ConnectionId, _ => ValueTask.CompletedTask, default));
+            Assert.Equal(Current, Assert.Single(Assert.IsType<NotificationAudience.TheseSessions>(Assert.Single(events.Audiences)).Sessions));
+        });
+    }
+
     private static TestWorld World(
         byte weaknessValue = 19,
         long roomVersion = 0,
         bool mirror = false,
-        TestCommandProjections? quotaProjection = null)
+        TestCommandProjections? quotaProjection = null,
+        DungeonRunMode? mode = null)
     {
         var participant = new DungeonRunParticipant(
             Current.AccountId, Current.CharacterId, Slot: 0, IsLeader: true);
@@ -127,7 +145,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
                 61000,
                 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)})
-            { Mirror = mirror ? new(8000, 31, 14299) : null },
+            { Mode = mode ?? (mirror ? new DungeonRunMode.Mirror(new(8000, 31, 14299)) : DungeonRunMode.Ordinary) },
             new MazeCell(0, 0),
             61000,
             new HashSet<MazeCell> { new(0, 0) },
@@ -337,7 +355,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
         public bool End(CharacterId characterId) => false;
     }
 
-    private sealed class QuotaEvents : IEventService
+    private sealed class QuotaEvents(UsageQuotaFamily expected = UsageQuotaFamily.MirrorDungeon) : IEventService
     {
         public List<NotificationAudience> Audiences = [];
         public Action? BeforeProjection;
@@ -347,7 +365,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             where T : class, INotification<T>
         {
             BeforeProjection?.Invoke();
-            Assert.Equal(new UsageQuotaViewChanged(Current.CharacterId, UsageQuotaFamily.MirrorDungeon), Assert.IsType<UsageQuotaViewChanged>(notification));
+            Assert.Equal(new UsageQuotaViewChanged(Current.CharacterId, expected), Assert.IsType<UsageQuotaViewChanged>(notification));
             Audiences.Add(audience);
             return ValueTask.FromResult(new NotificationDelivery([new(Current.CharacterId, NotificationOutcome.Registered)]));
         }

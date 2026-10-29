@@ -73,17 +73,8 @@ internal sealed partial class GameMapLoadingCommandHandler
         // The direct response belongs to this frozen generation too; it follows the validation above.
         await outbox.RegisterExplicitAsync(connectionId, new([new LoadingCompleteNotification()], []), cancellationToken).ConfigureAwait(false);
         await LoadingMechanismsAsync(session, current!, cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.Mirror is not null)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
-                cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.Altar is not null)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.AltarDungeon,
-                cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.Tournament is not null)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
-                cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.DungeonId == 3900)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
+        if (current!.Layout.Mode.Capabilities.QuotaFamily is { } quota)
+            _ = await LoadingQuotaAsync(session, quota, cancellationToken).ConfigureAwait(false);
         if (restoreEntryWeakness)
             await LoadingWeaknessAsync(session, cancellationToken).ConfigureAwait(false);
         return true;
@@ -213,7 +204,7 @@ internal sealed partial class GameMapLoadingCommandHandler
             FloorPieceValues.Describe(run, visit.FloorDrops));
 
         IReadOnlyList<IGameServerMessage> FramesFor(DungeonRunState run) =>
-            run.Layout.Altar is not null
+            run.Layout.Mode is DungeonRunMode.Altar
                 ? run.IsCleared
                     ? [new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(run), new Dfo.Server.Protocol.Game.Altar.AltarWaveMessage([], 0)]
                     : [new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(run)]

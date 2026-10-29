@@ -80,9 +80,9 @@ internal static class TownArrivalProjection
                 entry.Position.TownId,
                 entry.Position.AreaId,
                 cancellationToken).ConfigureAwait(false);
-            var instance = entry.Position.TownId == 101 ? await housing.InstanceAsync(entry.Session, cancellationToken).ConfigureAwait(false) : 0;
-            if (entry.Position.TownId == 101 && instance is not > 0) continue;
-            candidates.Add((entry, entry.Position.TownId == 101 || sharesTownPresence, instance ?? 0));
+            var instance = CoupleRoomTown.Is(entry.Position.TownId) ? await housing.InstanceAsync(entry.Session, cancellationToken).ConfigureAwait(false) : 0;
+            if (CoupleRoomTown.Is(entry.Position.TownId) && instance is not > 0) continue;
+            candidates.Add((entry, CoupleRoomTown.Is(entry.Position.TownId) || sharesTownPresence, instance ?? 0));
         }
         if (candidates.Count == 0)
             return [];

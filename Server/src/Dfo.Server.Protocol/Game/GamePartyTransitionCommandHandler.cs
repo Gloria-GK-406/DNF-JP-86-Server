@@ -154,8 +154,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             return;
         }
 
-        var isAltar = currentRun?.Layout.Altar is not null;
-        var isGuardian = currentRun?.Layout.Guardian is not null;
+        var isAltar = currentRun?.Layout.Mode is DungeonRunMode.Altar;
+        var isGuardian = currentRun?.Layout.Mode is DungeonRunMode.Guardian;
         var leaving = message.State == EplpCommandHandler.LeaveState && (isAltar || isGuardian || message.Option <= 2);
         if (message.State == EplpCommandHandler.LeaveState && currentRun is null && message.Option != 2)
         {
@@ -252,10 +252,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
                     return;
                 // Native retry follows the exit with 000F(dungeonId). Retain the ordinary
                 // maze partition rather than treating that nonzero target as a story request.
-                if (message.Option == 0 && !(isAltar || isGuardian)
+                if (message.Option == 0
                     && currentRun.Layout is { Purpose.Kind: DungeonRunPurposeKind.Ordinary,
-                        EntryKind: DungeonEntryKind.Normal, Mirror: null, Sao: null, Despair: null,
-                        Tournament: null })
+                        Mode.Capabilities.AllowsOrdinaryRechallenge: true })
                     foreach (var member in returning)
                         entryIntents.RestoreIfAbsent(member.Session,
                             DungeonEntryIntent.OrdinaryRechallenge(currentRun.Layout.DungeonId));
@@ -370,10 +369,10 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         if (!sessions.IsInWorld(session))
             return;
         var currentRun = runs.Find(session.CharacterId);
-        if (currentRun?.Layout.Guardian is not null)
+        if (currentRun?.Layout.Mode is DungeonRunMode.Guardian)
             _ = await workUnits.WriteAsync(execution, new("guardian-altar.give-up", [CaptureParticipant(session)]),
                 async (_, token) => new GuardianAltar.GuardianAltarMutation(Action: await guardian.AbandonAsync(session, token).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
-        if (currentRun?.Layout.Altar is not null)
+        if (currentRun?.Layout.Mode is DungeonRunMode.Altar)
             await SettleAltarExitAsync(execution, session, currentRun.RunId, true, cancellationToken).ConfigureAwait(false);
         if (currentRun is not null)
         {
@@ -410,7 +409,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery([new GiveUpGameResponse()], []),
             cancellationToken).ConfigureAwait(false);
-        if (currentRun?.Layout.Guardian is not null)
+        if (currentRun?.Layout.Mode is DungeonRunMode.Guardian)
             await GuardianAltar.GuardianAltarProjection.RestoreInventoryAsync(session, sessions, currentViews, currentState, outbox, cancellationToken).ConfigureAwait(false);
         await ReturnTownAsync(
             [new TownAreaEntry(session, result, position, ProjectWeaknessBeforeTown: true)],

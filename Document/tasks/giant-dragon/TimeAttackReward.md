@@ -15,7 +15,7 @@
 - Content：3200–3202声明 `[nateram time attack info] = 7 45000 100000`；材料与兑换读取当前01F1档案，不能混用未登记的旧版任务文件。
 - ClientStatic：原生START_MAP调用巨龙计时对象，manager更新界面/状态，ACT可读取状态；证据统一见 [001D](../../../protocol/game/server-to-client/NOTI-0x001D.md#巨龙原生计时调用)。这与玩家看见条自行变化一致，不证明服务器发奖。
 - ClientRuntime：普通3200实际副本对象+BE8及UI对象+384均为 `7,100000,45000`，PVF文本的后两项在原生结构中交换。两次只读采样的墙钟间隔约36491ms、原生累计增量36487，支持该运行计时的毫秒量纲。详情见 [运行字段与HUD身份](evidence/native-timer-and-hud-20261027.json)。
-- CurrentImplementation：入场由 `GiantDragonRuleService` 核对10094602材料元数据，冻结本服计时策略到 `DungeonLayout.GiantDragonTimeReward`。普通掉落仍在 `DungeonCellFactory` 建房时预生成；最后一名实际Boss在Boss房确认死亡时，`DungeonRunDomainService` 用既有 `StartedAt` 与死亡claim的 `OccurredAt` 调规则服务决定10094602共享数量，在同一次actor死亡提交中生成地面物品。3326原生预生成数量不变，没有客户端数量或新计时账本。
+- CurrentImplementation：入场由 `GiantDragonRuleService` 核对10094602材料元数据，冻结本服计时策略到 `DungeonLayout.Mode`（`DungeonRunMode.GiantDragon.TimeReward`）。普通掉落仍在 `DungeonCellFactory` 建房时预生成；最后一名实际Boss在Boss房确认死亡时，`DungeonRunDomainService` 用既有 `StartedAt` 与死亡claim的 `OccurredAt` 调规则服务决定10094602共享数量，在同一次actor死亡提交中生成地面物品。3326原生预生成数量不变，没有客户端数量或新计时账本。
 - RuntimeObserved：当前服务日志记载3200完成并结算，拾取了3326；这只证明普通掉落链能给该材料。日志与本次只读探查保存在私有运行目录 `reward-research` 及 `native-channel-stdout.log`，不代表官方实帧或计时奖励正确。
 
 ## 必须补齐的核心边界

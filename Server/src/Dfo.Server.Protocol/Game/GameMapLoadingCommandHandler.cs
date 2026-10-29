@@ -104,7 +104,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
         }
         var completed = await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
         var selected = sessions.FindByConnection(id);
-        if (completed && selected is not null && runs.Find(selected.CharacterId) is { Layout.Guardian: not null } activity)
+        if (completed && selected is not null && runs.Find(selected.CharacterId) is { Layout.Mode: DungeonRunMode.Guardian } activity)
         {
             var result = await workUnits.WriteAsync(execution, new("guardian-altar.ready", [CaptureParticipant(selected)]),
                 async (_, ct) => new GuardianAltar.GuardianAltarMutation(Action: await guardian.ReadyAsync(selected, activity.RunId, ct).ConfigureAwait(false)), token).ConfigureAwait(false);

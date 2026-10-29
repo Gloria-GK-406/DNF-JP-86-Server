@@ -26,7 +26,7 @@ internal sealed class EntryPlacementRuleService(
     private const byte ArrivalAreaState = 3;
 
     public async ValueTask<bool> CanRememberInnAsync(int townId, CancellationToken cancellationToken) =>
-        townId != 101 && !IsSpecialTown(townId)
+        !CoupleRoomTown.Is(townId) && !IsSpecialTown(townId)
         && await TryResolveTownGateSpawnAsync(townId, cancellationToken).ConfigureAwait(false) is not null;
 
     public async ValueTask<ChannelEntryPolicyState> ResolveAsync(
@@ -89,7 +89,7 @@ internal sealed class EntryPlacementRuleService(
         CancellationToken cancellationToken)
     {
         // Historical saves may contain the special town; a general channel must not restore it.
-        var townId = persistedTownId > 0 && persistedTownId != 101 && !IsSpecialTown(persistedTownId)
+        var townId = persistedTownId > 0 && !CoupleRoomTown.Is(persistedTownId) && !IsSpecialTown(persistedTownId)
             ? persistedTownId : options.DefaultTownId;
         var spawn = await TryResolveTownGateSpawnAsync(townId, cancellationToken).ConfigureAwait(false);
         if (spawn is not null)

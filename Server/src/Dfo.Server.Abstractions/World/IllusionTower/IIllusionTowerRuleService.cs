@@ -1,9 +1,20 @@
 namespace Dfo.Server.Abstractions.World.IllusionTower;
 
+/// <summary>The two archive towers that share the illusion tower runtime.</summary>
+public enum IllusionTowerVariant : byte
+{
+    /// <summary>The Tower of Death: members carry the tower's own quick slots and pick up its ground items.</summary>
+    Death,
+
+    /// <summary>The Illusion Tower: members keep their ordinary inventory.</summary>
+    Illusion,
+}
+
 public interface IIllusionTowerRuleService
 {
-    ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001);
-    ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001);
+    bool Supports(int dungeonId);
+    ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId);
+    ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId);
 
     TimeSpan DefaultReturnDelay => TimeSpan.FromSeconds(60);
     TimeSpan? ReturnDelay(byte option) => option switch
@@ -17,7 +28,9 @@ public interface IIllusionTowerRuleService
 
 public interface IIllusionTowerContentSource
 {
-    ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId = 11001);
+    /// <summary>Whether the dungeon is one of the archive towers this runtime plays.</summary>
+    bool Supports(int dungeonId);
+    ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId);
 }
 
 public sealed record TowerPosition(int X, int Y, int Z);
@@ -50,11 +63,14 @@ public sealed record IllusionTowerParameters(
     IReadOnlyList<double> HighSkillInitialCoolTimeRate,
     IReadOnlyList<IReadOnlyList<int>> RecoveryOperands);
 public sealed record IllusionTowerDefinition(
-    int DungeonId, int MinimumLevel, int BasisLevel,
+    int DungeonId, IllusionTowerVariant Variant, int MinimumLevel, int BasisLevel,
     IReadOnlyList<TowerRequiredItem> RequiredItems,
     IReadOnlyList<TowerRoomDefinition> Rooms,
     IReadOnlyList<TowerApcCandidate> RandomApcCandidates,
-    IllusionTowerRewardParameters Rewards, IllusionTowerParameters Parameters);
+    IllusionTowerRewardParameters Rewards, IllusionTowerParameters Parameters)
+{
+    public bool UsesTowerInventory => Variant == IllusionTowerVariant.Death;
+}
 
 public sealed record TowerActorSeed(
     int ListIndex, int TemplateId, byte Level, byte ActorType, bool BlocksClear,

@@ -89,11 +89,10 @@ public sealed record GameRecoverStaminaCommand(NetworkDispatchContext Dispatch, 
 
 public sealed class GameRecoverStaminaCommandHandler(
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IDungeonRunDomainService runs, IWeaknessDomainService weakness, ICharacterDomainService characters,
+    IDungeonParticipationDomainService participation, IWeaknessDomainService weakness, ICharacterDomainService characters,
     IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
-    TimeProvider clock, ILogger<GameRecoverStaminaCommandHandler> logger,
-    IIllusionTowerDomainService towers)
+    TimeProvider clock, ILogger<GameRecoverStaminaCommandHandler> logger)
     : ICommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult>
 {
     public async ValueTask<RecoverStaminaResult> HandleAsync(CommandExecutionContext context,
@@ -146,8 +145,7 @@ public sealed class GameRecoverStaminaCommandHandler(
         // The requested payment mode does not establish entitlement.
         if (mode > 1 || !sessions.IsInWorld(session)
             || !onlineUsers.TryGetByConnection(session.ConnectionId, out var online)
-            || online?.OnlineUserId != onlineUser || runs.Find(session.CharacterId) is not null
-            || towers?.IsInTower(session.CharacterId) == true)
+            || online?.OnlineUserId != onlineUser || participation.Find(session.CharacterId) is not null)
             return new(4);
 
         var state = weakness.For(session.CharacterId);

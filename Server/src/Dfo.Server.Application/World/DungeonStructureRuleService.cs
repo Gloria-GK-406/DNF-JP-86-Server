@@ -35,7 +35,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         var entrance = from is { } source ? DungeonLayout.EntranceFrom(source, target) : DungeonPathDirection.None;
         // The frozen hell replacement still has to satisfy this cell's actual door layout.
         // It never falls back to ordinary resources when its own metadata is unavailable.
-        if (layout.Hell is { } hell && target == hell.Cell)
+        if (layout.Mode is DungeonRunMode.Hell { Plan: var hell } && target == hell.Cell)
         {
             var map = await maps.GetAsync(hell.MapId, cancellationToken).ConfigureAwait(false);
             return map is not null && IsCompatible(map, cell, entrance)
@@ -131,7 +131,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
     public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(layout);
-        if (layout.Hell is { } hell && (hell.MapId <= 0 || !layout.Cells.ContainsKey(hell.Cell)))
+        if (layout.Mode is DungeonRunMode.Hell { Plan: var hell } && (hell.MapId <= 0 || !layout.Cells.ContainsKey(hell.Cell)))
             throw ConfigurationFailure(layout.DungeonId, layout.MazeIndex,
                 "hell replacement requires an occupied cell and a positive map id");
         var startCell = layout.StartCell;

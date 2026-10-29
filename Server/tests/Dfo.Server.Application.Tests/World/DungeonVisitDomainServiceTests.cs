@@ -127,11 +127,11 @@ public sealed class DungeonVisitDomainServiceTests
             var fatigue = new TestFatigue();
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(), runs, new ImmediateSelection(), cells,
                 new MaximumDifficulty(storageFailure: true), new DungeonDifficultyRuleService(), fatigue);
-            var layout = Layout with { Mirror = new(8000, 31, 14299) };
+            var layout = Layout with { Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) };
             var result = await visits.TryEnterPreparedPartyAsync([new(new(1), new(71), 0, true)], layout,
                 DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Tier3 }, default);
             Assert.NotNull(result.Entry);
-            Assert.Same(layout.Mirror, result.Entry.Layout.Mirror);
+            Assert.Same(layout.Mode, result.Entry.Layout.Mode);
             Assert.Equal(DungeonDifficulty.Tier3, result.Entry.Visits[new(71)].Run.Difficulty);
             Assert.Equal(1, fatigue.Spent[new(71)]);
             Assert.Equal(1, cells.CallCount);

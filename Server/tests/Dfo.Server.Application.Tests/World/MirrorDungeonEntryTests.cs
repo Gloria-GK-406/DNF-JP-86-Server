@@ -115,7 +115,7 @@ public sealed class MirrorDungeonEntryTests
             var result = await service.EnterAsync(Context(), default);
             Assert.Equal(1, visits.Calls);
             Assert.Equal(32, visits.Layout!.DungeonId);
-            Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), visits.Layout.Mirror);
+            Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), Assert.IsType<DungeonRunMode.Mirror>(visits.Layout.Mode).Plan);
             Assert.Equal((byte)85, visits.Layout.FixedMonsterLevel);
             Assert.Equal((byte)85, visits.Layout.BasisLevel);
             Assert.Equal(DungeonDifficulty.Tier3, visits.Facts!.Difficulty);

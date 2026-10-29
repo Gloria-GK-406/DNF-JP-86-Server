@@ -124,19 +124,12 @@ public sealed record DungeonLayout(
     DungeonRunPurpose Purpose = default,
     bool ConsumesFatigue = true)
 {
-    public DungeonEntryKind EntryKind { get; init; } = DungeonEntryKind.Normal;
+    /// <summary>The run's gameplay kind and the plan that kind froze at entry.</summary>
+    public DungeonRunMode Mode { get; init; } = DungeonRunMode.Ordinary;
     public ushort? EntryOnlyFatigue { get; init; }
-    public GiantDragonTimeRewardPlan? GiantDragonTimeReward { get; init; }
-    public SaoTowerEntryPlan? Sao { get; init; }
-    public DespairTowerEntryPlan? Despair { get; init; }
-    public TournamentPlan? Tournament { get; init; }
-    public AltarEntryPlan? Altar { get; init; }
-    public GuardianAltarAdmission? Guardian { get; init; }
     // 70 CParty::giveup_game exempts every nonzero blood-dungeon type from stamina penalties.
     public bool NoGiveupPenalty { get; init; }
-    public bool AppliesFailureWeakness => Altar is null && !NoGiveupPenalty;
-    public HellEntryPlan? Hell { get; init; }
-    public MirrorDungeonRunIdentity? Mirror { get; init; }
+    public bool AppliesFailureWeakness => Mode.Capabilities.AppliesFailureWeakness && !NoGiveupPenalty;
     /// <summary>
     /// Entry-frozen level for ordinary monsters. Null preserves MAP declarations;
     /// APCs, dummy actors and special summon templates keep their own level rules.

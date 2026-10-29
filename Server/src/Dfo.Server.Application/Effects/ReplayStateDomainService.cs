@@ -41,7 +41,7 @@ internal sealed class ReplayStateDomainService(IServiceProvider services, IDomai
         {
             characterInventory = await Get<ICharacterInventoryEntryDomainService>()
                 .ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-            if (services.GetService<IIllusionTowerDomainService>()?.Find(session) is { DungeonId: 11000 })
+            if (services.GetService<IIllusionTowerDomainService>()?.Find(session) is { UsesTowerInventory: true })
             {
                 var tower = Get<ICharacterContainerDomainService>().GetContainer(session.CharacterId, InventoryContainerType.QuickSlot);
                 var items = await tower.GetAllAsync(ct).ConfigureAwait(false);

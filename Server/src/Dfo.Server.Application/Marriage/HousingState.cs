@@ -19,7 +19,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
     public void RememberReturn(SelectedSessionIdentity actor, Dfo.Server.Data.Characters.CharacterPositionState position)
     {
         GameplayWriteAssertion.Writing(nameof(HousingState) + "." + nameof(RememberReturn));
-        lock (gate) { if (position.TownId != 101) returns[actor] = position; }
+        lock (gate) { if (!CoupleRoomTown.Is(position.TownId)) returns[actor] = position; }
     }
     public Dfo.Server.Data.Characters.CharacterPositionState? ReturnFor(SelectedSessionIdentity actor)
     { lock (gate) return returns.GetValueOrDefault(actor); }
@@ -46,7 +46,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
         return store.RecordHarvestAsync(planting, round, rewards, ct);
     }
     public bool IsInside(SelectedSessionIdentity actor, HousingSnapshot room) => sessions.IsInWorld(actor)
-        && onlineCharacters.StandingOf(actor) is { Area.TownId: 101, Area.AreaId: 0 } member
+        && onlineCharacters.StandingOf(actor) is { Area.TownId: CoupleRoomTown.Id, Area.AreaId: 0 } member
         && member.Area.Instance == room.Instance;
     public bool Edit(Guid relation, SelectedSessionIdentity actor, bool close)
     {
@@ -60,7 +60,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
                     if (close) PendingEdit(relation, actor, true);
                     return true;
                 }
-                if (sessions.IsInWorld(holder) && onlineCharacters.StandingOf(holder) is { Area.TownId: 101 }) return close;
+                if (sessions.IsInWorld(holder) && onlineCharacters.StandingOf(holder) is { Area.TownId: CoupleRoomTown.Id }) return close;
                 editors.Remove(relation);
             }
             if (!close) PendingEdit(relation, actor, false);
@@ -70,7 +70,7 @@ internal sealed class HousingState(IMarriageHousingDomainStore store, ISelectedS
     public bool CanEdit(Guid relation, SelectedSessionIdentity actor)
     { lock (gate) return editors.TryGetValue(relation, out var holder) && holder == actor; }
     private bool IsPresent(SelectedSessionIdentity actor) => sessions.IsInWorld(actor)
-        && onlineCharacters.StandingOf(actor) is { Area.TownId: 101 };
+        && onlineCharacters.StandingOf(actor) is { Area.TownId: CoupleRoomTown.Id };
 
     private void PendingEdit(Guid relation, SelectedSessionIdentity actor, bool close) =>
         (transactions.Current ?? throw new InvalidOperationException("Housing editing requires its account transaction."))

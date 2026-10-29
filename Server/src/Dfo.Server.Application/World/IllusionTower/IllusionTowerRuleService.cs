@@ -4,11 +4,13 @@ namespace Dfo.Server.Application.World.IllusionTower;
 
 internal sealed class IllusionTowerRuleService(IIllusionTowerContentSource content) : IIllusionTowerRuleService
 {
-    public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001) =>
+    public bool Supports(int dungeonId) => content.Supports(dungeonId);
+
+    public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId) =>
         content.GetAsync(cancellationToken, dungeonId);
 
     public async ValueTask<TowerRoomSeed> CreateRoomAsync(
-        int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001)
+        int level, uint seed, CancellationToken cancellationToken, int dungeonId)
     {
         var definition = await content.GetAsync(cancellationToken, dungeonId).ConfigureAwait(false);
         var room = definition.Rooms.SingleOrDefault(value => value.Level == level)

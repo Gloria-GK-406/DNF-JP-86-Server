@@ -244,7 +244,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(f.Services, async () =>
         {
             await f.Seed(65, 4183, 1); peer = await AddMember(f, 1);
-            var entered = await Tower(f).EnterAsync([new(f.Session, 2), new(peer, 0)], f.Session, 42, default);
+            var entered = await Tower(f).EnterAsync([new(f.Session, 2), new(peer, 0)], f.Session, 42, default, 11001);
             Assert.NotNull(entered.Run);
             await Tower(f).LoadAsync(Context(entered.Run, peer), default);
             var online = f.Services.GetRequiredService<IOnlineUserQueryDomainService>();

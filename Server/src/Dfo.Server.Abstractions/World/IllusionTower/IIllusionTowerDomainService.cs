@@ -53,6 +53,8 @@ public sealed record IllusionTowerSnapshot(Guid RunId, int DungeonId, ImmutableA
     public int TotalLevels { get; init; }
     public byte? ReturnOption { get; init; }
     public DateTimeOffset? ReturnDueAt { get; init; }
+    /// <summary>Frozen from the tower's variant at entry; see <see cref="IllusionTowerVariant.Death"/>.</summary>
+    public bool UsesTowerInventory { get; init; }
 }
 public sealed record TowerMemberDebit(SelectedSessionIdentity Session, IReadOnlyList<MaterialDebit> Debits);
 public sealed record TowerEntryResult(string? Rejection, IllusionTowerSnapshot? Run,
@@ -74,7 +76,7 @@ public interface IIllusionTowerDomainService
     bool IsInTower(CharacterId characterId);
     bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members);
     ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-        SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId = 11001);
+        SelectedSessionIdentity leader, uint seed, CancellationToken cancellationToken, int dungeonId);
     ValueTask<TowerActionResult> LoadAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> StartAsync(TowerActionContext context, CancellationToken cancellationToken);
     ValueTask<TowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);

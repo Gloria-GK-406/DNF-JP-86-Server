@@ -34,8 +34,8 @@ public sealed class DungeonRevivalTests
                 new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)});
             if (tournament) layout = layout with
             {
-                Tournament = new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
-                    { CoinLimit = 1 }, [], [], 1),
+                Mode = new DungeonRunMode.Tournament(new(new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16)
+                    { CoinLimit = 1 }, [], [], 1)),
             };
             var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId, shop.Session.CharacterId, 0, true)],
                 layout, DungeonDifficulty.Normal)).Run;

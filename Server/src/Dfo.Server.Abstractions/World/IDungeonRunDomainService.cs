@@ -41,8 +41,6 @@ public sealed record DungeonRunState(
 {
     public DateTimeOffset? ClearedAt { get; init; }
     public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
-    public DungeonEntryKind EntryKind => Layout.EntryKind;
-    public HellEntryPlan? Hell => Layout.Hell;
 
     /// <summary>Stable party identity bound to this run, independent of the client's party number.</summary>
     public PartyKey PartyKey { get; init; }

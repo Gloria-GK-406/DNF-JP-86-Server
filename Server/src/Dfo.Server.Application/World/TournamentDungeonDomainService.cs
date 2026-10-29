@@ -83,7 +83,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
             var layout = new DungeonLayout(context.DungeonId, 0, 1, 1, cell, cell, plan.Definition.MapId,
                 unchecked((int)plan.Seed), new Dictionary<MazeCell, DungeonCellDefinition>
                 { [cell] = DungeonCellDefinition.Fixed(plan.Definition.MapId) }, (byte)plan.Definition.BasisLevel,
-                ConsumesFatigue: false) { Tournament = plan };
+                ConsumesFatigue: false) { Mode = new DungeonRunMode.Tournament(plan) };
             var actors = new List<DungeonCellActorState>();
             foreach (var actor in plan.PathActors)
             {
@@ -225,7 +225,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
 
     private DungeonRunState? CurrentRun(SelectedSessionIdentity session, DungeonRunId runId) =>
         sessions.IsInWorld(session) && dungeonRuns.Find(session.CharacterId) is { } run
-        && run.RunId == runId && run.Layout.Tournament is not null ? run : null;
+        && run.RunId == runId && run.Layout.Mode is DungeonRunMode.Tournament ? run : null;
 
     private void Put(TournamentDungeonState state)
     {

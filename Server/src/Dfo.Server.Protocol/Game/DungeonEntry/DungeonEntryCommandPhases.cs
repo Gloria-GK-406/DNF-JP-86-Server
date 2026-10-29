@@ -71,7 +71,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
         var protectedMembers = attachments.Members.Select(value => value.Session == requester
             ? CaptureParticipant(value.Session) : new SelectedSessionRecipient(value.Session, null)).ToArray();
         var attempt = await workUnits.WriteAsync(execution, new("dungeon-entry", protectedMembers),
-            (_, ct) => RouteEntryAsync(entry, ct), cancellationToken).ConfigureAwait(false);
+            (_, ct) => entries.EnterAsync(entry, ct), cancellationToken).ConfigureAwait(false);
         var entered = attempt.Entry;
         if (entered is null)
         {
@@ -204,7 +204,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                     frames.Add(new EnterSelectDungeonNotification(allWireUserIds));
                 }
 
-                if (layout.Mirror is { } mission)
+                if (layout.Mode is DungeonRunMode.Mirror { Plan: var mission })
                     frames.Add(new Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification(mission.QuestId));
                 frames.Add(new SupportTagNotification());
                 foreach (var debit in entered.InventoryChanges.Where(x => x.CharacterId == receiver.Session.CharacterId))
@@ -215,12 +215,12 @@ internal sealed partial class GameSelectDungeonCommandHandler
                         ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
                         : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));
                 }
-                if (layout.Guardian is { } guardianPlan)
+                if (layout.Mode is DungeonRunMode.Guardian { Plan: var guardianPlan })
                 {
                     frames.Add(new Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarStageInfoMessage(guardianPlan));
                     frames.Add(new Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarMapMessage(visit.Run, guardianPlan));
                 }
-                else if (layout.Altar is { } altar)
+                else if (layout.Mode is DungeonRunMode.Altar { Plan: var altar })
                 {
                     frames.Add(new Dfo.Server.Protocol.Game.Altar.AltarInfoMessage(layout.DungeonId, altar.Kind));
                     frames.Add(new Dfo.Server.Protocol.Game.Altar.AltarMapMessage(visit.Run));
@@ -228,7 +228,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                         await characters.Get(receiver.Session.CharacterId).GoldAsync(cancellationToken).ConfigureAwait(false),
                         refreshed[receiver.Session.CharacterId].World.PreparedAt));
                 }
-                else if (layout.Tournament is { } tournament)
+                else if (layout.Mode is DungeonRunMode.Tournament { Plan: var tournament })
                 {
                     frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentInfoMessage(tournament));
                     frames.Add(new Dfo.Server.Protocol.Game.Tournament.TournamentMapMessage(tournament));
@@ -243,7 +243,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                         visit.FirstActorSequence,
                         FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
                 }
-                if (layout.Despair is { Floor: >= 10 and <= 90 } tower && tower.Floor % 10 == 0)
+                if (layout.Mode is DungeonRunMode.Despair { Plan: { Floor: >= 10 and <= 90 } tower } && tower.Floor % 10 == 0)
                 {
                     var view = refreshed[receiver.Session.CharacterId];
                     var equipment = view.CharacterInventory.Containers.SingleOrDefault(x => x.ContainerType ==

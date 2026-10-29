@@ -70,7 +70,7 @@ public sealed class MirrorAradQuestTests
     private static DungeonRunState Run(bool cleared = false, DungeonRunId? id = null) => new(
         new DungeonLayout(32, 0, 1, 1, new(0, 0), new(0, 0), 4403, 42,
             new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(4403) })
-            { Mirror = new(8000, 31, 14299) },
+            { Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) },
         new(0, 0), 4403, new HashSet<MazeCell> { new(0, 0) }, Now.AddMinutes(-20),
         RunId: id ?? DungeonRunId.New(), Participants: [new(new(1), new(71), 0, true)], ClearOpen: cleared,
         CurrentCellState: new(new(0, 0), 4403, 0, 1, [new(1, new(100, 85, 3), false, true, [])], []))

@@ -10,28 +10,36 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
     private readonly Lock gate = new();
     private readonly Dictionary<int, IllusionTowerDefinition> cached = [];
 
+    // The archive gives both towers the same [dungeon type]; only their identities and the
+    // deathtower.etc reward fields tell them apart.
+    private static readonly IReadOnlyDictionary<int, IllusionTowerVariant> Towers = new Dictionary<int, IllusionTowerVariant>
+    {
+        [11000] = IllusionTowerVariant.Death,
+        [11001] = IllusionTowerVariant.Illusion,
+    };
+
     public string Name => "illusion-towers";
 
     public async ValueTask<int> WarmAsync(CancellationToken cancellationToken)
     {
-        // GetAsync accepts exactly these two towers.
-        await GetAsync(cancellationToken, 11000).ConfigureAwait(false);
-        await GetAsync(cancellationToken, 11001).ConfigureAwait(false);
-        return 2;
+        foreach (var dungeonId in Towers.Keys) await GetAsync(cancellationToken, dungeonId).ConfigureAwait(false);
+        return Towers.Count;
     }
 
-    public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId = 11001)
+    public bool Supports(int dungeonId) => Towers.ContainsKey(dungeonId);
+
+    public ValueTask<IllusionTowerDefinition> GetAsync(CancellationToken cancellationToken, int dungeonId)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (dungeonId is not (11000 or 11001)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
+        if (!Towers.TryGetValue(dungeonId, out var variant)) throw new ArgumentOutOfRangeException(nameof(dungeonId));
         lock (gate)
         {
-            if (!cached.TryGetValue(dungeonId, out var definition)) cached[dungeonId] = definition = Read(provider.Archive, dungeonId);
+            if (!cached.TryGetValue(dungeonId, out var definition)) cached[dungeonId] = definition = Read(provider.Archive, dungeonId, variant);
             return ValueTask.FromResult(definition);
         }
     }
 
-    private static IllusionTowerDefinition Read(PvfArchive archive, int dungeonId)
+    private static IllusionTowerDefinition Read(PvfArchive archive, int dungeonId, IllusionTowerVariant variant)
     {
         var dungeonPath = Resolve(archive, "dungeon", dungeonId);
         var dungeon = PvfDocument.Open(archive, dungeonPath).AtRoot();
@@ -79,11 +87,11 @@ internal sealed class PvfIllusionTowerContentSource(PvfArchiveProvider provider)
             if (AppearancePoint(document, path) > 0) ReadApc(id);
         }
         var rewards = PvfDocument.Open(archive, "etc/deathtower.etc");
-        var experienceWeights = rewards.Read(PvfField.Numbers(dungeonId == 11001 ? "[illusion reward exp weight]" : "[reward exp weight]"));
-        var cards = Ints(rewards, dungeonId == 11001 ? "[illusion reward card num]" : "[reward card num]");
+        var experienceWeights = rewards.Read(PvfField.Numbers(variant == IllusionTowerVariant.Illusion ? "[illusion reward exp weight]" : "[reward exp weight]"));
+        var cards = Ints(rewards, variant == IllusionTowerVariant.Illusion ? "[illusion reward card num]" : "[reward card num]");
         Require(experienceWeights.Count >= rooms.Count && cards.Count >= rooms.Count
             && experienceWeights.All(value => value >= 0) && cards.All(value => value >= 0), dungeonPath, "reward table does not cover every stage");
-        return new(dungeonId, minimumLevel, basisLevel, requiredItems.AsReadOnly(), rooms.AsReadOnly(),
+        return new(dungeonId, variant, minimumLevel, basisLevel, requiredItems.AsReadOnly(), rooms.AsReadOnly(),
             Array.AsReadOnly(apcs.Values.Where(apc => apc.AppearancePoint > 0).OrderBy(apc => apc.TemplateId).ToArray()),
             new(experienceWeights, cards, Ints(rewards, "[reward item prob]"),
                 rewards.Read(PvfField.Number("[reward gold weight]")),

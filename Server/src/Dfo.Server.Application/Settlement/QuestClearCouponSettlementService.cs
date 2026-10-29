@@ -18,7 +18,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         ArgumentNullException.ThrowIfNull(session);
         var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
-        if (source.ItemId != 10_006_007)
+        if (!rules.IsCoupon(source.ItemId))
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Not a quest-clear coupon.");
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);

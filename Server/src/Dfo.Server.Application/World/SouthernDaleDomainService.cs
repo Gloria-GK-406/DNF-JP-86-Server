@@ -19,6 +19,7 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
     IEventService events,
     IDomainTransactionAccessor transactions, TimeProvider clock) : ISouthernDaleDomainService
 {
+    public DungeonRunKind Kind => DungeonRunKind.SouthernDale;
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
@@ -26,8 +27,7 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
         if (!Supports(context.DungeonId) || context.RequestMode != 0 || context.PracticeMode != 0
             || context.MirrorQuestId is not null || context.Facts.Intent.Kind == DungeonEntryIntentKind.Cycle)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
-        if (!(await activities.ListAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Entries
-            .Any(x => x.EventId == rules.EventId && x.Status == "active"))
+        if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), ct).ConfigureAwait(false))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.OutsideOpeningHours);
         SouthernDaleDefinition definition;
         try { definition = await rules.DefinitionAsync(ct).ConfigureAwait(false); }
@@ -46,7 +46,8 @@ internal sealed class SouthernDaleDomainService(ISouthernDaleRuleService rules,
             try { layout = await layouts.ResolveAsync(context.DungeonId, context.Facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
             return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
-                : await visits.EnterGrantedPartyAsync(context.Participants, layout, context.Facts, receipt, token).ConfigureAwait(false);
+                : await visits.EnterGrantedPartyAsync(context.Participants,
+                    layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.SouthernDale) }, context.Facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 

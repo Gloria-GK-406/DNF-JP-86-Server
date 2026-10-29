@@ -60,7 +60,9 @@ public sealed class GameFinishQuestCommandHandler(
     Dfo.Server.Abstractions.Settlement.IQuestCompletionSettlementDomainService completion,
     IBusinessInventorySlotDomainService inventorySlots,
     IIllusionTowerDomainService towers,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
+    IDungeonParticipationDomainService participation,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTowers)
     : ICommandHandler<GameFinishQuestCommand, QuestFinishOutcome>
 {
     public async ValueTask<QuestFinishOutcome> HandleAsync(CommandExecutionContext execution, GameFinishQuestCommand command, CancellationToken cancellationToken)
@@ -232,7 +234,15 @@ public sealed class GameFinishQuestCommandHandler(
             var audience = new HashSet<SelectedSessionIdentity>();
             if (selectedSessions.IsInWorld(session))
             {
-                if (towers?.Find(session) is { } tower)
+                var place = DungeonLocator.Locate(session, participation, bossTowers, towers);
+                if (place is DungeonPlace.InBossTower { Run: var boss })
+                {
+                    foreach (var member in boss.Members)
+                        if (selectedSessions.IsInWorld(member.Session)
+                            && bossTowers.Find(member.Session)?.RunId == boss.RunId)
+                            audience.Add(member.Session);
+                }
+                else if (place is DungeonPlace.InIllusionTower { Run: var tower })
                 {
                     foreach (var member in tower.Members)
                     {

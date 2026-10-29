@@ -18,6 +18,8 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
         foreach (var e in events) entries.Add(await e.DescribeAsync(now,ct));
         return new([..entries]);
     }
+    public async ValueTask<bool> IsOpenAsync(int eventId, DateTimeOffset now, CancellationToken ct) =>
+        events.SingleOrDefault(e => e.EventId == eventId) is { } owner && await owner.IsActiveAsync(now, ct);
     public async ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {
         var entries = new List<EventInfo>();

@@ -46,7 +46,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(f.Services,async()=>
         {
             await f.Seed(65,4183,1); peer=await AddMember(f,3);
-            var tower=Tower(f); var run=(await tower.EnterAsync([new(f.Session,0),new(peer,1)],f.Session,42,default)).Run!;
+            var tower=Tower(f); var run=(await tower.EnterAsync([new(f.Session,0),new(peer,1)],f.Session,42,default, 11001)).Run!;
             await tower.LoadAsync(Context(run,f.Session),default);await tower.LoadAsync(Context(run,peer),default);await tower.StartAsync(Context(run,f.Session),default);
         });
         await CharacterDeathOracle.Check(f,probe,peer,fault,false,()=>Assert.True(Tower(f).Find(f.Session)!.Members.Single(x=>x.Session==f.Session).Dead));
@@ -302,7 +302,7 @@ public sealed partial class RevivalProtocolLifecycleTests
         await using var probe=new EntryFailureProbe(false,false,ordinary:true,commandOverride:Whole?"GameUseRevivalCoinCommand":"UseRevivalCoinCommand");
         var facts=new RevivalFacts();using var f=new ShopFixture(s=>{probe.Configure(s);s.AddSingleton<IAltarDungeonDomainService>(p=>{facts.Transactions=p.GetRequiredService<IDomainTransactionAccessor>();return facts;});s.AddSingleton<Dfo.Server.Abstractions.Quests.IQuestProgressDomainService>(facts);});
         await f.Seed(1,1,2,0);SelectedSessionIdentity target=null!;await TestGameplay.RunAsync(f.Services,async()=>target=await BossTowerDomainServiceTests.AddMember(f,0));
-        var run=CharacterDeathProtocolLifecycleTests.Enter(f,target,true,layout=>altar?layout with{Altar=new(AltarDungeonKind.Endless,new DateOnly(2026,10,25))}:layout with{Mirror=new(8000,31,14299)});
+        var run=CharacterDeathProtocolLifecycleTests.Enter(f,target,true,layout=>altar?layout with{Mode=new DungeonRunMode.Altar(new(AltarDungeonKind.Endless,new DateOnly(2026,10,25)))}:layout with{Mode=new DungeonRunMode.Mirror(new(8000,31,14299))});
         var source=probe.Sender.Add(f.Connection);Assert.True(f.Services.GetRequiredService<IOnlineUserQueryDomainService>().TryGetByConnection(target.ConnectionId,out var user));f.Sender.Outbound.Connections.Add(user!.Connection);probe.Sender.Add(user.Connection);
         var body=new byte[2];BinaryPrimitives.WriteUInt16LittleEndian(body,target.WireUserId);await probe.Wire(f,0x29,body);await probe.Sender.Settled();Assert.Equal(1,await Coins(f));
         if(altar){Assert.Equal(1,facts.Revivals);Assert.Empty(facts.Facts);}else{var report=Assert.Single(facts.Facts);Assert.Equal(target.AccountId,report.Account);Assert.Equal(target.CharacterId,report.Character);Assert.Equal(new Dfo.Server.Abstractions.Quests.QuestCharacterRevived(run,target.CharacterId),Assert.Single(report.Facts));}

@@ -24,8 +24,7 @@ public sealed class GameSortItemCommandHandler(IInventorySortDomainService sorti
     ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
     ICharacterInventoryEntryDomainService characterInventory, IAccountInventoryEntryDomainService accountInventory,
     TimeProvider clock, ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
-    Dfo.Server.Abstractions.World.IDungeonRunDomainService runs,
-    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService towers)
+    Dfo.Server.Abstractions.World.IDungeonParticipationDomainService participation)
     : ICommandHandler<GameSortItemCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameSortItemCommand command, CancellationToken ct)
@@ -44,7 +43,7 @@ public sealed class GameSortItemCommandHandler(IInventorySortDomainService sorti
                     || current?.OnlineUserId != onlineUserId)
                     return new Outcome(null);
                 if (space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo
-                    && (runs?.Find(session.CharacterId) is not null || towers?.IsInTower(session.CharacterId) == true))
+                    && participation.Find(session.CharacterId) is not null)
                     return new Outcome(null);
                 if (!await sorting.SortAsync(session.CharacterId, space, order, token).ConfigureAwait(false))
                     return new Outcome(null);

@@ -3,7 +3,9 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Abstractions.World.IllusionTower;
+using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Networking;
@@ -21,6 +23,7 @@ namespace Dfo.Server.Protocol.Game.Creatures;
 public sealed record AdvanceCreatureTickCommand : ICommand<bool>;
 public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainService creatures,
     ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns,
+    IDungeonParticipationDomainService participation, IBossTowerDomainService bossTowers,
     IIllusionTowerDomainService towers, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
     IInventorySlotMappingRuleService slotMappings, ICommandWorkUnits units, TimeProvider clock,
     ILogger<AdvanceCreatureTickCommandHandler> logger) : ICommandHandler<AdvanceCreatureTickCommand, bool>
@@ -61,17 +64,13 @@ public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainServ
     private async ValueTask<bool> VisibleAsync(ProjectionPhase phase, SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct)
     {
         if (!sessions.IsInWorld(owner)) return false;
-        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
+        var (receivers, seated) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, participation, bossTowers, towers);
         var ownerDelivered = true;
         foreach (var receiver in receivers)
         {
-            if (towerRunId is { } expectedRun
-                && (!sessions.IsInWorld(owner)
-                    || towers.Find(owner)?.RunId != expectedRun))
+            if (seated is not null && (!sessions.IsInWorld(owner) || !seated(owner)))
                 break;
-            if (towerRunId is not null
-                && (!sessions.IsInWorld(receiver)
-                    || towers.Find(receiver)?.RunId != towerRunId))
+            if (seated is not null && (!sessions.IsInWorld(receiver) || !seated(receiver)))
                 continue;
             try
             {
@@ -169,24 +168,28 @@ public sealed class CreatureClockService(ICommandBus commands, TimeProvider cloc
 
 internal static class CreatureVisibleRecipients
 {
-    internal static (IEnumerable<SelectedSessionIdentity> Receivers, Guid? TowerRunId) Resolve(SelectedSessionIdentity owner,
-        ISelectedSessionDomainService sessions, IDungeonRunDomainService runs, ITownAreaDomainService towns, IIllusionTowerDomainService towers)
+    /// <summary>
+    /// Who sees an owner's creature: the members of the tower run it is seated in, otherwise its
+    /// ordinary run or town area. A tower audience comes with the seat check every delivery repeats.
+    /// </summary>
+    internal static (IEnumerable<SelectedSessionIdentity> Receivers, Func<SelectedSessionIdentity, bool>? Seated) Resolve(
+        SelectedSessionIdentity owner, ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
+        ITownAreaDomainService towns, IDungeonParticipationDomainService participation,
+        IBossTowerDomainService bossTowers, IIllusionTowerDomainService towers)
     {
-        IEnumerable<SelectedSessionIdentity> receivers;
-        Guid? towerRunId = null;
-        if (towers.Find(owner) is { } tower)
+        switch (DungeonLocator.Locate(owner, participation, bossTowers, towers))
         {
-            towerRunId = tower.RunId;
-            receivers = new[] { owner }.Concat(tower.Members.Select(member => member.Session)).Distinct();
+            case DungeonPlace.InBossTower { Run: var boss }:
+                return (new[] { owner }.Concat(boss.Members.Select(member => member.Session)).Distinct(),
+                    session => bossTowers.Find(session)?.RunId == boss.RunId);
+            case DungeonPlace.InIllusionTower { Run: var tower }:
+                return (new[] { owner }.Concat(tower.Members.Select(member => member.Session)).Distinct(),
+                    session => towers.Find(session)?.RunId == tower.RunId);
         }
-        else
-        {
-            var audience = runs.Find(owner.CharacterId)?.Participants.Select(x => x.CharacterId)
-                ?? (towns.Find(owner.CharacterId) is { } member
-                    ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
-            receivers = new[] { owner.CharacterId }.Concat(audience).Distinct()
-                .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null).OfType<SelectedSessionIdentity>();
-        }
-        return (receivers, towerRunId);
+        var audience = runs.Find(owner.CharacterId)?.Participants.Select(x => x.CharacterId)
+            ?? (towns.Find(owner.CharacterId) is { } member
+                ? towns.Find(member.Area)?.VisibleTo(owner.CharacterId).Select(x => x.CharacterId) : null) ?? [];
+        return (new[] { owner.CharacterId }.Concat(audience).Distinct()
+            .Select(id => sessions.TryGetInWorld(id, out var inWorld) ? inWorld : null).OfType<SelectedSessionIdentity>(), null);
     }
 }

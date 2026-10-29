@@ -111,7 +111,7 @@ public sealed class WorldContentArchiveTests
             scope.GetRequiredService<IDungeonMapDefinitionSource>());
         var original = Assert.IsType<DungeonLayout>(await structures.ResolveAsync(
             dungeonId, DungeonEntryFacts.None, 42, default));
-        var layout = original with { BasisLevel = 86, FixedMonsterLevel = 86, Mirror = new(8000, 31, 14299) };
+        var layout = original with { BasisLevel = 86, FixedMonsterLevel = 86, Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) };
         var scaled = 0;
         foreach (var cell in layout.Cells)
         foreach (var map in cell.Value.MapCandidates.Concat(cell.Value.BossMapCandidates).Distinct())

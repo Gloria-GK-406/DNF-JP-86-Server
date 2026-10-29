@@ -20,7 +20,7 @@ internal sealed class DungeonCellFactory(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (context.Layout.Altar is not null)
+        if (context.Layout.Mode is DungeonRunMode.Altar)
             return DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId) with { MechanismBlocksClear = true };
         var leader = context.Participants.Single(participant => participant.IsLeader);
         var participants = context.Participants
@@ -28,7 +28,7 @@ internal sealed class DungeonCellFactory(
             .ToImmutableArray();
         var contents = await rooms.DescribeAsync(context, cancellationToken)
             .ConfigureAwait(false);
-        if (context.Layout.Guardian is { } guardian)
+        if (context.Layout.Mode is DungeonRunMode.Guardian { Plan: var guardian })
             // Native ProcStage starts at zero and shares this counter with later 035D summons.
             // A21 reads 035D identifiers as signed words; ordinary room random bases are unsuitable.
             return new(context.Cell, context.MapId, 0,
@@ -114,7 +114,7 @@ internal sealed class DungeonCellFactory(
         var hellGroups = new List<DungeonCellHellGroupState>();
         foreach (var group in actors.Where(x => x.IsHellTemplate).GroupBy(x => x.HellGroupIndex!.Value))
         {
-            var hell = context.Layout.Hell ?? throw new InvalidDataException("Hell actors require a frozen entry plan.");
+            var hell = (context.Layout.Mode as DungeonRunMode.Hell)?.Plan ?? throw new InvalidDataException("Hell actors require a frozen entry plan.");
             var drop = new MonsterDropContext(context.RunId, context.Layout.DungeonId, context.Layout.Seed,
                 context.Cell, context.MapId, context.Difficulty, group.First().Sequence,
                 context.Layout.BasisLevel, 0, leader.CharacterId, participants);

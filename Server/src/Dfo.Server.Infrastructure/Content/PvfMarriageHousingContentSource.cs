@@ -1,3 +1,4 @@
+using Dfo.Server.Data.World;
 using Dfo.Pvf.Index;
 using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
@@ -60,7 +61,7 @@ internal sealed class PvfMarriageHousingContentSource(PvfArchiveProvider provide
         var sources = new HashSet<(int, int)>();
         foreach (var town in PvfListFile.Read(archive, "town/town.lst"))
         {
-            if (town.Id == 101 || archive.FindFile("town/" + town.RelativePath) < 0) continue;
+            if (CoupleRoomTown.Is(town.Id) || archive.FindFile("town/" + town.RelativePath) < 0) continue;
             foreach (var area in PvfDocument.Open(archive, "town/" + town.RelativePath).ReadAll(PvfField.Tokens("[area]")))
             {
                 if (area.Count < 2 || !area[1].IsString) continue;
@@ -73,7 +74,7 @@ internal sealed class PvfMarriageHousingContentSource(PvfArchiveProvider provide
                 if (transits is null) continue;
                 if (transits.Count % 6 != 0) throw new InvalidDataException("Invalid housing door geometry.");
                 for (var i = 0; i < transits.Count; i += 6)
-                    if (transits[i + 4] == 101 && transits[i + 5] == 0) sources.Add((town.Id, area[0].Value));
+                    if (CoupleRoomTown.Is(transits[i + 4]) && transits[i + 5] == 0) sources.Add((town.Id, area[0].Value));
             }
         }
         return new(furniture, seedMap, Enumerable.Range(0, waters.Count / 2).ToDictionary(i => waters[i * 2], i => waters[i * 2 + 1]),

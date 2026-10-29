@@ -23,6 +23,7 @@ internal sealed record GameRenameCreatureCommand(NetworkDispatchContext Dispatch
 internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainService sessions,
     IInventorySlotMappingRuleService slotMappings, ICreatureNamingDomainService naming, ICommandWorkUnits units,
     IGameCommandOutbox outbox, IDungeonRunDomainService runs, ITownAreaDomainService towns,
+    IDungeonParticipationDomainService participation, Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTowers,
     IIllusionTowerDomainService towers, ICommandConnectionClosures connections, Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
     ILogger<GameRenameCreatureCommandHandler> logger, TimeProvider clock) : ICommandHandler<GameRenameCreatureCommand, bool>
 {
@@ -78,17 +79,13 @@ internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainSer
     private async ValueTask<bool> SendVisibleAsync(SelectedSessionIdentity owner, IGameNotiMessage notification, CancellationToken ct)
     {
         if (!sessions.IsInWorld(owner)) return false;
-        var (receivers, towerRunId) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, towers);
+        var (receivers, seated) = CreatureVisibleRecipients.Resolve(owner, sessions, runs, towns, participation, bossTowers, towers);
         var ownerDelivered = true;
         foreach (var receiver in receivers)
         {
-            if (towerRunId is { } expectedRun
-                && (!sessions.IsInWorld(owner)
-                    || towers.Find(owner)?.RunId != expectedRun))
+            if (seated is not null && (!sessions.IsInWorld(owner) || !seated(owner)))
                 break;
-            if (towerRunId is not null
-                && (!sessions.IsInWorld(receiver)
-                    || towers.Find(receiver)?.RunId != towerRunId))
+            if (seated is not null && (!sessions.IsInWorld(receiver) || !seated(receiver)))
                 continue;
             try
             {

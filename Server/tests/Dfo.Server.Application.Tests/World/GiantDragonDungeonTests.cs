@@ -50,7 +50,7 @@ public sealed partial class GiantDragonDungeonTests
         }
         var result = await DungeonEntryRouteDriver.EnterAsync(f.Services, context);
         Assert.True(result.Entry is not null, $"{result.Failure}: {result.Detail}");
-        Assert.Null(result.Entry.Layout.GiantDragonTimeReward);
+        Assert.Null(Assert.IsType<DungeonRunMode.GiantDragon>(result.Entry.Layout.Mode).TimeReward);
         Assert.Equal(dungeon == 3540 ? 0 : 1,
             (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
         if (ticket > 0) Assert.Equal(1, await CountTicket(f, ticket));
@@ -87,7 +87,7 @@ public sealed partial class GiantDragonDungeonTests
             0, 0, [new(new(1), new(71), 0, true)]);
         var result = await DungeonEntryRouteDriver.EnterAsync(f.Services, context);
         Assert.True(result.Entry is not null, $"{result.Failure}: {result.Detail}");
-        Assert.NotNull(result.Entry.Layout.GiantDragonTimeReward);
+        Assert.NotNull(Assert.IsType<DungeonRunMode.GiantDragon>(result.Entry.Layout.Mode).TimeReward);
         Assert.NotEmpty(result.Entry.Visits[new(71)].Actors);
         Assert.Equal(8, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
         var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71))!;

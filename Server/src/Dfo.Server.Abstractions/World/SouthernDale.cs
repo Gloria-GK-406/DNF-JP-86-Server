@@ -34,13 +34,11 @@ public interface ISouthernDaleQuestDomainService
     ValueTask<bool> CanAcceptAsync(CharacterId character, CancellationToken ct);
     ValueTask<bool> TryCompleteAsync(CharacterId character, CancellationToken ct);
 }
-public interface ISouthernDaleDomainService
+public interface ISouthernDaleDomainService : IDungeonBossClearHook
 {
     bool Supports(int dungeonId);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);
     ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct);
-    ValueTask CompleteClearAsync(DungeonActorDeathClaim death,
-        IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken ct);
 }
 public sealed record SouthernDaleInventoryChanged(CharacterId CharacterId,
     ImmutableArray<BusinessSlot> Slots) : IDomainEvent;

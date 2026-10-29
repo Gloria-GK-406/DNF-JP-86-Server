@@ -795,7 +795,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     }
 
     private IReadOnlyList<ushort> SuppressedAfterDeath(DungeonRunAggregate aggregate, DungeonCellAggregate cell, DungeonActorDeathClaim claim) =>
-        !cell.MechanismBlocksClear && aggregate.Layout.Altar is null
+        !cell.MechanismBlocksClear && aggregate.Layout.Mode is not DungeonRunMode.Altar
         && cell.FindActor(claim.Actor.Sequence) is { BlocksClear: true, Actor.IsBoss: true }
         && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
         && !cell.HasLivingBossExcept(claim.Actor.Sequence)
@@ -820,7 +820,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
             var killedActor = cell.FindActor(claim.Actor.Sequence);
             var autoKilled = this.SuppressedAfterDeath(aggregate, cell, claim);
             IReadOnlyList<RolledDrop>? resolvedLoot = null;
-            if (aggregate.Layout.GiantDragonTimeReward is { } timeReward
+            if (aggregate.Layout.Mode is DungeonRunMode.GiantDragon { TimeReward: { } timeReward }
                 && killedActor is { IsMonster: true, BlocksClear: true, Actor.IsBoss: true }
                 && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
                 && !cell.HasLivingBossExcept(claim.Actor.Sequence))

@@ -48,7 +48,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
         SelectedSessionIdentity requester,
         PartySnapshot roster,
         DungeonEntryIntent intent,
-        CancellationToken token, int dungeonId = 11001)
+        CancellationToken token, int dungeonId)
     {
         var attachments = await IllusionEntryResolveAttachmentsAsync(requester, roster, token).ConfigureAwait(false);
         if (attachments is null)
@@ -104,7 +104,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
             {
                 // The attachment was loaded before admission. Attribute refresh alone keeps
                 // its inventory snapshot, so reread after the temporary bindings commit.
-                var runtime = run.DungeonId == 11000
+                var runtime = run.UsesTowerInventory
                     ? await currentViews.TryLoadAsync(member.Session, token).ConfigureAwait(false)
                         ?? throw new InvalidOperationException("Tower member view disappeared after admission.")
                     : member.Runtime;

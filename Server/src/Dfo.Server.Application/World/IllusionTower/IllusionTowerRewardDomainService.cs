@@ -34,7 +34,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
             var session = member.Session;
             footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
             var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerKillExperienceContext(
-                new(ExperienceEvent.TowerKill, session.AccountId, session.CharacterId, run.DungeonId), actor.Seed.ActorType),
+                new(ExperienceEvent.TowerKill, session.AccountId, session.CharacterId, run.DungeonId), DungeonParticipationMode.IllusionTower, actor.Seed.ActorType),
                 clock.GetUtcNow(), session, footprint, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
             var request = new QuestEnemyDropRequest(
@@ -111,7 +111,7 @@ internal sealed class IllusionTowerRewardDomainService(IIllusionTowerRewardRuleS
                 updates.AddRange(receipt.Inventory.Select(x => new TowerInventoryUpdate(x.Slot, x.Snapshot)));
             }
             var award = await characters.Get(session.CharacterId).AddExpAsync(new TowerClearExperienceContext(
-                new(ExperienceEvent.TowerClear, session.AccountId, session.CharacterId, run.DungeonId), completion.RewardLevel),
+                new(ExperienceEvent.TowerClear, session.AccountId, session.CharacterId, run.DungeonId), DungeonParticipationMode.IllusionTower, completion.RewardLevel),
                 clock.GetUtcNow(), session, footprint, token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Tower member has no progression.");
             var facts = new List<QuestProgressFact>();

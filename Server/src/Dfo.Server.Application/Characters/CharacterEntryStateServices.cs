@@ -295,9 +295,15 @@ internal sealed class CharacterEntryStateDomainService(
             remainingEntries.AddRange((await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
                 .Select(value => (value.DungeonId, value.Remaining)));
         if (heras is not null)
-            remainingEntries.Add((3900, (await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)).Remaining));
+        {
+            var quota = await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
+            remainingEntries.Add((quota.DungeonId, quota.Remaining));
+        }
         if (goldSilverHorn is not null)
-            remainingEntries.Add((4123, (await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)).Remaining));
+        {
+            var quota = await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
+            remainingEntries.Add((quota.DungeonId, quota.Remaining));
+        }
         if (remainingEntries.Count > 0)
         {
             // A21 subtype1 and NOTI0227 write the same counter cache. Legacy dimensions

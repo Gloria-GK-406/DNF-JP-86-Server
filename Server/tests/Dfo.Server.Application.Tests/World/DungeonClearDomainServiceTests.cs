@@ -21,7 +21,7 @@ public sealed class DungeonClearDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var definition = new TournamentDefinition(120, 17100, 69, 72, 2, 2, [], [], [], [], [], 16);
-            var layout = BossLayout() with { Tournament = new(definition, [], [], 1) };
+            var layout = BossLayout() with { Mode = new DungeonRunMode.Tournament(new(definition, [], [], 1)) };
             var runs = TestParties.Runs();
             var run = runs.Begin(Leader, layout, difficulty: 0);
             var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });

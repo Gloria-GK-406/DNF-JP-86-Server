@@ -49,7 +49,7 @@ public sealed partial class GiantDragonDungeonTests
             var boss = bossRoom ? cell : new MazeCell(1, 0);
             var layout = new DungeonLayout(3200, 0, 2, 1, cell, boss, 38119, 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(38119) })
-                { GiantDragonTimeReward = enabled ? RewardPlan : null };
+                { Mode = new DungeonRunMode.GiantDragon(enabled ? RewardPlan : null) };
             RolledDrop[] loot = [new(10094602, 4, DropRarity.Uncommon, DropItemKind.Stackable),
                 new(3326, 4, DropRarity.Rare, DropItemKind.Stackable),
                 new(0, 123, 0, DropItemKind.Gold), new(10002515, 2, 0, DropItemKind.Stackable),
@@ -106,7 +106,7 @@ public sealed partial class GiantDragonDungeonTests
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(3200, 0, 1, 1, cell, cell, 38119, 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(38119) })
-                { GiantDragonTimeReward = RewardPlan };
+                { Mode = new DungeonRunMode.GiantDragon(RewardPlan) };
             var actors = new List<DungeonCellActorState> { new(1, new(69037, 1, 3), false, false,
                 [new(10002515, 2, 0, DropItemKind.Stackable)]) };
             if (earlierBoss) actors.Add(new(2, new(69037, 1, 3), false, false,

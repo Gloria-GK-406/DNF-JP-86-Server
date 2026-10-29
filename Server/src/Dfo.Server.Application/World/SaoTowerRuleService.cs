@@ -4,6 +4,7 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class SaoTowerRuleService(ISaoTowerContentSource source) : ISaoTowerRuleService
 {
+    public int EventId => 214;
     public SaoTowerCatalog Catalog => source.Load();
     // A21's known SAO resource namespace is a cheap prefilter; the catalog remains authoritative.
     public bool Supports(int dungeonId) => dungeonId is >= 3600 and <= 3699

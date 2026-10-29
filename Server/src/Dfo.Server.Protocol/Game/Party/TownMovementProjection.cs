@@ -81,8 +81,8 @@ internal static class TownMovementProjection
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(previousMember);
-        var instance = townId == 101 ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
-        if (townId == 101 && instance is not > 0) return false;
+        var instance = CoupleRoomTown.Is(townId) ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : 0;
+        if (CoupleRoomTown.Is(townId) && instance is not > 0) return false;
         var destination = new TownAreaKey(channelId, townId, areaId, instance ?? 0);
         if (onlineCharacters.CrossInto(session, destination, x, y, sharesTownPresence) is null)
             return false;
@@ -96,7 +96,7 @@ internal static class TownMovementProjection
         var member = townAreas.Find(session.CharacterId);
         if (member is null || member.Session != session) return false;
         var changedArea = previousMember.Area != member.Area;
-        if (changedArea && previousMember.Area.TownId == 101) housingSessions.CloseExact(session);
+        if (changedArea && CoupleRoomTown.Is(previousMember.Area.TownId)) housingSessions.CloseExact(session);
         var currentKey = member.Area;
         var current = townAreas.Find(currentKey);
         var own = current?.Members.SingleOrDefault(member => member.Session == session);

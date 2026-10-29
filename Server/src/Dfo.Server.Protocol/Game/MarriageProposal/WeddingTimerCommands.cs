@@ -82,8 +82,8 @@ internal sealed partial class GameMarriageCommandHandler
             if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not {} observed
                 || await currentViews.TryLoadAsync(actor, token).ConfigureAwait(false) is not {} currentView) return;
             previous = observed; view = currentView;
-            var instance = location.TownId == 101 ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
-            if (location.TownId == 101 && instance is not > 0) return;
+            var instance = CoupleRoomTown.Is(location.TownId) ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
+            if (CoupleRoomTown.Is(location.TownId) && instance is not > 0) return;
             if (onlineCharacters.CrossInto(actor, new(channel, location.TownId, location.AreaId, instance ?? 0), location.X, location.Y, true) is null) return;
         }
         catch (Exception error) when (IsWeddingBusinessFailure(error))

@@ -67,7 +67,8 @@ public sealed class MonsterDeathHandlerTests
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IQuestItemDropDomainService>(),
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestProgressDomainService>(),
             NullLogger<MonsterDeathDomainService>.Instance,
-            events: new DeathEvents(scope));
+            Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>(),
+            new DeathEvents(scope), []);
         return new DeathAlgorithmDriver(sessions, runs, clear, clearProjection, scope, service, rewards,
             registry, sender, diagnostics, partyRecipients, creatures, safety);
     }

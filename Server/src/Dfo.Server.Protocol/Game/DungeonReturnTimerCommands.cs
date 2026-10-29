@@ -52,47 +52,15 @@ internal sealed partial class TowerReturnCommandHandler
     private async ValueTask<ImmutableArray<SelectedSessionIdentity>> ReturnDungeonAsync(CommandExecutionContext context, DungeonRunId runId, bool cleared, CancellationToken token)
     {
         var frozen = wipeRegistry.Find(runId);
-        // Guardian altar owns its result screen and the 50-second return deadline.
-        if (wipeRuns.Find(runId)?.Layout.Guardian is not null) return [];
-        if (!cleared && wipeRuns.Find(runId)?.Layout.Altar is not null)
+        switch (wipeRuns.Find(runId)?.Layout.Mode.Capabilities.PartyWipe)
         {
-            if (wipeAltars.Find(runId) is null) return [];
-            var cohort = AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId);
-            if (cohort.Count == 0) return [];
-            Exception? rejected = null;
-            var write = await workUnits.WriteResultAsync(context, new("altar.wipe", ProtectedParticipants(cohort, cohort[0])), async (unit, ct) =>
-            {
-                try { return new Altar.AltarCommandResult(await wipeAltars.FailAsync(runId, ct).ConfigureAwait(false)); }
-                catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
-                { rejected = error; unit.RequireRollback(error); return new Altar.AltarCommandResult(null); }
-            }, token).ConfigureAwait(false);
-            if (write is CommandWriteResult<Altar.AltarCommandResult>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
-            if (rejected is not null) { logger.LogError(rejected, "Party wipe return failed run={RunId}", runId); return []; }
-            var action = ((CommandWriteResult<Altar.AltarCommandResult>.Returned)write).Value.Action;
-            if (action is not null)
-                await AltarTransitionProjection.ProjectAsync(projections, action,
-                    AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId), clock, wipeWake, logger, token).ConfigureAwait(false);
-            return [];
-        }
-        if (!cleared && wipeRuns.Find(runId)?.Layout.Tournament is not null)
-        {
-            var run = wipeRuns.Find(runId);
-            if (run?.Layout.Tournament is null) return [];
-            var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
-            if (session is null || wipeTournaments.Find(session.CharacterId) is not { IsFinished: false }) return [];
-            Exception? rejected = null;
-            var write = await workUnits.WriteResultAsync(context, new("tournament.wipe", [CaptureParticipant(session)]), async (unit, ct) =>
-            {
-                try { return new TournamentCommandResult(await wipeTournaments.EliminateAsync(session, runId, ct).ConfigureAwait(false)); }
-                catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
-                { rejected = error; unit.RequireRollback(error); return new TournamentCommandResult(null); }
-            }, token).ConfigureAwait(false);
-            if (write is CommandWriteResult<TournamentCommandResult>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
-            if (rejected is not null) { logger.LogError(rejected, "Party wipe return failed run={RunId}", runId); return []; }
-            var action = ((CommandWriteResult<TournamentCommandResult>.Returned)write).Value.Action;
-            if (action is not null && sessions.IsInWorld(session))
-                await outbox.RegisterExplicitAsync(session.ConnectionId, new(TournamentCompletionFrames.CompletionFrames(action, wipeSlots, clock), []), token).ConfigureAwait(false);
-            return [];
+            // Guardian altar owns its result screen and the 50-second return deadline.
+            case DungeonPartyWipePolicy.Guardian:
+                return [];
+            case DungeonPartyWipePolicy.AltarFailure when !cleared:
+                return await FailAltarAsync(context, runId, token).ConfigureAwait(false);
+            case DungeonPartyWipePolicy.TournamentElimination when !cleared:
+                return await EliminateTournamentAsync(context, runId, token).ConfigureAwait(false);
         }
         var ended = cleared ? await wipeRuns.TryEndClearReturnAsync(runId, clock.GetUtcNow()).ConfigureAwait(false)
             : await wipeRuns.TryEndPartyWipeAsync(runId, clock.GetUtcNow()).ConfigureAwait(false);
@@ -105,5 +73,47 @@ internal sealed partial class TowerReturnCommandHandler
         // Only identity crosses the producer boundary; each recipient loads its current view in its own CMD.
         return frozen.Where(session => ended.Participants.Any(participant => participant.CharacterId == session.CharacterId))
             .ToImmutableArray();
+    }
+
+    private async ValueTask<ImmutableArray<SelectedSessionIdentity>> FailAltarAsync(CommandExecutionContext context, DungeonRunId runId, CancellationToken token)
+    {
+        if (wipeAltars.Find(runId) is null) return [];
+        var cohort = AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId);
+        if (cohort.Count == 0) return [];
+        Exception? rejected = null;
+        var write = await workUnits.WriteResultAsync(context, new("altar.wipe", ProtectedParticipants(cohort, cohort[0])), async (unit, ct) =>
+        {
+            try { return new Altar.AltarCommandResult(await wipeAltars.FailAsync(runId, ct).ConfigureAwait(false)); }
+            catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
+            { rejected = error; unit.RequireRollback(error); return new Altar.AltarCommandResult(null); }
+        }, token).ConfigureAwait(false);
+        if (write is CommandWriteResult<Altar.AltarCommandResult>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
+        if (rejected is not null) { logger.LogError(rejected, "Party wipe return failed run={RunId}", runId); return []; }
+        var action = ((CommandWriteResult<Altar.AltarCommandResult>.Returned)write).Value.Action;
+        if (action is not null)
+            await AltarTransitionProjection.ProjectAsync(projections, action,
+                AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId), clock, wipeWake, logger, token).ConfigureAwait(false);
+        return [];
+    }
+
+    private async ValueTask<ImmutableArray<SelectedSessionIdentity>> EliminateTournamentAsync(CommandExecutionContext context, DungeonRunId runId, CancellationToken token)
+    {
+        var run = wipeRuns.Find(runId);
+        if (run?.Layout.Mode is not DungeonRunMode.Tournament) return [];
+        var session = sessions.FindByCharacter(run.Participants[0].CharacterId);
+        if (session is null || wipeTournaments.Find(session.CharacterId) is not { IsFinished: false }) return [];
+        Exception? rejected = null;
+        var write = await workUnits.WriteResultAsync(context, new("tournament.wipe", [CaptureParticipant(session)]), async (unit, ct) =>
+        {
+            try { return new TournamentCommandResult(await wipeTournaments.EliminateAsync(session, runId, ct).ConfigureAwait(false)); }
+            catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
+            { rejected = error; unit.RequireRollback(error); return new TournamentCommandResult(null); }
+        }, token).ConfigureAwait(false);
+        if (write is CommandWriteResult<TournamentCommandResult>.CommitRolledBack rolledBack) rejected = rolledBack.Cause;
+        if (rejected is not null) { logger.LogError(rejected, "Party wipe return failed run={RunId}", runId); return []; }
+        var action = ((CommandWriteResult<TournamentCommandResult>.Returned)write).Value.Action;
+        if (action is not null && sessions.IsInWorld(session))
+            await outbox.RegisterExplicitAsync(session.ConnectionId, new(TournamentCompletionFrames.CompletionFrames(action, wipeSlots, clock), []), token).ConfigureAwait(false);
+        return [];
     }
 }

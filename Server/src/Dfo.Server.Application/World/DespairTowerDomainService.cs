@@ -67,7 +67,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
             try { layout = await layouts.ResolveAsync(floor.DungeonId, facts, Random.Shared.Next(), token).ConfigureAwait(false); }
             catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
             if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-            layout = layout with { Despair = new(floor.Floor, period), ConsumesFatigue = false };
+            layout = layout with { Mode = new DungeonRunMode.Despair(new(floor.Floor, period)), ConsumesFatigue = false };
             return await visits.EnterGrantedPartyAsync(target.Participants, layout, facts, receipt, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
@@ -77,7 +77,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
     {
         var transaction = transactions.Current ?? throw new InvalidOperationException("Tower clear requires a transaction.");
         var run = runs.Find(character);
-        if (run is null || run.RunId != runId || !run.ClearOpen || run.Layout.Despair is not { } plan
+        if (run is null || run.RunId != runId || !run.ClearOpen || run.Layout.Mode is not DungeonRunMode.Despair { Plan: var plan }
             || run.Participant?.AccountId != account) return null;
         var current = await progress.ReadAsync(character, ct).ConfigureAwait(false);
         if (rules.NextFloor(current)?.Floor != plan.Floor

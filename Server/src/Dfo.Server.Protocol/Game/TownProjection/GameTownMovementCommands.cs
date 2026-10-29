@@ -154,16 +154,16 @@ internal sealed partial class GameTownMovementCommandHandler :
             return false;
         }
 
-        if (message.TownId == 101)
+        if (CoupleRoomTown.Is(message.TownId))
         {
-            if (message.AreaId != 0 || standing.TownId != 101 && !housing.IsEntrySource(standing.TownId, standing.AreaId)
+            if (message.AreaId != 0 || !CoupleRoomTown.Is(standing.TownId) && !housing.IsEntrySource(standing.TownId, standing.AreaId)
                 || await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) is not > 0)
             {
                 await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
                     "请由已婚角色通过赛丽亚房间的婚房入口进入。", cancellationToken).ConfigureAwait(false); return false;
             }
         }
-        if (standing.TownId == 101 && message.TownId != 101)
+        if (CoupleRoomTown.Is(standing.TownId) && !CoupleRoomTown.Is(message.TownId))
         {
             var home = housingSessions.ReturnFor(session);
             if (home is null || home.TownId != message.TownId || home.AreaId != message.AreaId)
@@ -172,7 +172,7 @@ internal sealed partial class GameTownMovementCommandHandler :
                     "请从婚房出口返回原来的城镇。", cancellationToken).ConfigureAwait(false); return false;
             }
         }
-        var sharesTownPresence = message.TownId == 101 || await towns
+        var sharesTownPresence = CoupleRoomTown.Is(message.TownId) || await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
         if (!await marriage.CanCrossAsync(session, channel.ChannelId,
@@ -196,12 +196,12 @@ internal sealed partial class GameTownMovementCommandHandler :
             {
                 TownId = message.TownId, AreaId = message.AreaId, X = message.X, Y = message.Y,
             };
-            if (message.TownId == 101)
+            if (CoupleRoomTown.Is(message.TownId))
             {
                 await PersistAsync(execution, session, standing, cancellationToken).ConfigureAwait(false);
                 housingSessions.RememberReturn(session, standing);
             }
-            if (destination.TownId != 101)
+            if (!CoupleRoomTown.Is(destination.TownId))
                 await PersistAsync(execution, session, destination, cancellationToken).ConfigureAwait(false);
         }
         var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);

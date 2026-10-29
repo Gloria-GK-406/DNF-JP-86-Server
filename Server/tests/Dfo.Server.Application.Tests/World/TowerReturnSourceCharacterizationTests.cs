@@ -87,7 +87,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             peer = await AddMember(f, 3);
             foreach (var session in new[] { f.Session, peer })
             {
-                var run = (await Tower(f).EnterAsync([new(session, 0)], session, 42, default)).Run!;
+                var run = (await Tower(f).EnterAsync([new(session, 0)], session, 42, default, 11001)).Run!;
                 var context = Context(run, session);
                 await Tower(f).LoadAsync(context, default);
                 await Tower(f).StartAsync(context, default);

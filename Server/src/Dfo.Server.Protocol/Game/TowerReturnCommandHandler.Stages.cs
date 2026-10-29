@@ -113,7 +113,7 @@ internal partial class TowerReturnCommandHandler
             && sessions.IsInWorld(returning)
             && !illusionTowers.IsInTower(returning.CharacterId))
             {
-            var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.DungeonId == 11000).ConfigureAwait(false);
+            var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.UsesTowerInventory).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
         await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);
@@ -152,7 +152,7 @@ internal partial class TowerReturnCommandHandler
         IGameServerMessage? response = expected.ReturnOption is { } option
             ? new EplpCommandResponse(EplpCommandHandler.LeaveState, option) : null;
         var failures = new List<(SelectedSessionIdentity, Exception)>();
-        var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, frozen, response, failures, token, expected.DungeonId == 11000).ConfigureAwait(false);
+        var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, frozen, response, failures, token, expected.UsesTowerInventory).ConfigureAwait(false);
         await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, expected.RunId).ConfigureAwait(false);
         return true;

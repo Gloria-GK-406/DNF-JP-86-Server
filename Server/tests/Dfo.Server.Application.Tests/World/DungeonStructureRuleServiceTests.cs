@@ -359,8 +359,7 @@ public sealed class DungeonStructureRuleServiceTests
         Assert.Equal(0, topology.StartRoomMapId);
         var prepared = await rules.PrepareLayoutAsync(topology with
         {
-            EntryKind = DungeonEntryKind.ManualHell,
-            Hell = new HellEntryPlan(0, replaceStart ? start : boss, 900, []),
+            Mode = new DungeonRunMode.Hell(new HellEntryPlan(0, replaceStart ? start : boss, 900, [])),
         }, default);
         Assert.Equal(replaceStart ? 900 : 10, prepared.StartRoomMapId);
         Assert.Equal(900, (await rules.SelectMapAsync(prepared, replaceStart ? null : start,
@@ -383,7 +382,7 @@ public sealed class DungeonStructureRuleServiceTests
             {
                 [start] = new(DungeonPathDirection.Right, [10], []),
                 [boss] = new(DungeonPathDirection.Left, [], [11]),
-            }) { EntryKind = DungeonEntryKind.ManualHell, Hell = new(0, boss, 900, []) };
+            }) { Mode = new DungeonRunMode.Hell(new(0, boss, 900, [])) };
         IDungeonStructureRuleService rules = new DungeonStructureRuleService(
             new StubDungeonSource(Tutorial()), new ReplacementMaps(false, failure));
         var selected = await rules.SelectMapAsync(layout, start, boss, default);

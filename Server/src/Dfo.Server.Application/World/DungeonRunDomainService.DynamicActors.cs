@@ -47,7 +47,7 @@ internal sealed partial class DungeonRunDomainService
                 cell.AddActors(actors);
                 cell.MechanismBlocksClear = blocksClear;
                 run.RuntimeRevision++;
-                if (!blocksClear && cell.IsCleared && run.Layout.Altar is not null && run.CurrentCell == run.Layout.BossCell)
+                if (!blocksClear && cell.IsCleared && run.Layout.Mode is DungeonRunMode.Altar && run.CurrentCell == run.Layout.BossCell)
                     owner.TryOpenClear(run.Participants.First().CharacterId, run.RunId, roomVersion);
             }
             return ValueTask.CompletedTask;
