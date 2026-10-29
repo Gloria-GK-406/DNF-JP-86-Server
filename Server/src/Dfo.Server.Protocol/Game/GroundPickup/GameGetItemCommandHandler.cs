@@ -50,7 +50,6 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
 {
     private readonly ISelectedSessionDomainService sessions;
     private readonly ILogger logger;
-    private readonly ICharacterDomainService characters;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
     private readonly IDungeonParticipationDomainService participation;
@@ -65,25 +64,19 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
     private readonly IDungeonClearDomainService clearEvaluator;
     private readonly IQuestQueryDomainService quests;
     private readonly IGroundPickupDomainService floor;
-    private readonly ICharacterContainerDomainService containers;
-    private readonly IQuestProgressDomainService questProgress;
-    private readonly IItemGrantDomainService itemGrants;
-    private readonly IEpicBookDomainService epicBook;
     private readonly ICommandConnectionClosures closures;
     private readonly IInventorySlotProjectionDomainService slots;
 
     public GameGetItemCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
-        IGroundPickupDomainService floor, ICharacterContainerDomainService containers, ICharacterDomainService characters,
-        IQuestProgressDomainService progress, IItemGrantDomainService grants, IEpicBookDomainService epicBook,
-        IQuestQueryDomainService quests, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        IGroundPickupDomainService floor, IQuestQueryDomainService quests, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, TimeProvider clock, IInventorySlotProjectionDomainService slots, ILogger<GameGetItemCommandHandler> logger )
 
     {
-        this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
+        this.sessions = sessions; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs;this.registry=registry;this.clearEvaluator=clearEvaluator;this.quests=quests;
-        this.floor=floor;this.containers=containers;this.questProgress=progress;this.itemGrants=grants;this.epicBook=epicBook;this.closures=closures;this.slots=slots;
+        this.floor=floor;this.closures=closures;this.slots=slots;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution,GameGetItemCommand command,CancellationToken token)
     {

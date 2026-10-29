@@ -28,9 +28,9 @@ public sealed class MarriageCapsuleItemUseTests
         });
         var number=Assert.Single(run.CurrentCellState.GroundItems).Number;
         var result=await PickUp(number);
-        Assert.Equal(Dfo.Server.Protocol.Game.GroundPickup.GroundPickupStatus.PickedUp,result.Status);
+        Assert.Equal(Dfo.Server.Abstractions.World.GroundPickupStatus.PickedUp,result.Status);
         Assert.Equal(1,f.Count(10002915));Assert.Null(runs.Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(number));
-        Assert.NotEqual(Dfo.Server.Protocol.Game.GroundPickup.GroundPickupStatus.PickedUp,(await PickUp(number)).Status);
+        Assert.NotEqual(Dfo.Server.Abstractions.World.GroundPickupStatus.PickedUp,(await PickUp(number)).Status);
         Assert.Equal(1,f.Count(10002915));
     }
     [SkippableFact]

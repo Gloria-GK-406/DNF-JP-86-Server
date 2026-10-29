@@ -391,7 +391,7 @@ public sealed class DungeonEntryCodecTests
 
         var entry = body.AsSpan(20);
         Assert.Equal(
-            GameDropIdentity.ForDeclaredObject(AtStart, 0),
+            GroundDropInstance.ForDeclaredObject(AtStart, 0),
             BinaryPrimitives.ReadUInt32LittleEndian(entry[7..]));
     }
 
@@ -558,7 +558,7 @@ public sealed class DungeonEntryCodecTests
         {
             for (byte objectIndex = 0; objectIndex < 4; objectIndex++)
             {
-                var instance = GameDropIdentity.ForDeclaredObject(
+                var instance = GroundDropInstance.ForDeclaredObject(
                     AtStart with { CurrentRoomMapId = mapId }, objectIndex);
 
                 Assert.InRange(instance, 1u, (uint)int.MaxValue);

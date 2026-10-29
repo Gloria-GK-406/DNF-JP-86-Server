@@ -186,7 +186,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             var owners = drops.Where(x => x.Rolled.OwnerCharacterId.HasValue)
                 .ToDictionary(x => x.Number, x => SelectedSessionIdentity.ToWireUserId(x.Rolled.OwnerCharacterId!.Value));
             var death = new MonsterDeathNotification(message.ActorSequence, drops, reporter.WireUserId,
-                GameDropIdentity.ForKill(change.Run, message.ActorSequence), owners);
+                GroundDropInstance.ForKill(change.Run, message.ActorSequence), owners);
             var targets = settled.Participants.Where(x => sessions.IsInWorld(x.Session))
                 .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
                     settled.Tournament, labelProbe))).ToArray();

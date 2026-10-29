@@ -58,6 +58,7 @@ internal sealed class DungeonOwnerRoutingWorld
         // The protocol projection numbers the wire party, as party notifications require.
         Parties = new PartyClientProjectionService(TestParties.Create(), new PartyClientIdRegistry());
         Runs = TestParties.Runs(parties: Parties);
+        Floor = ProtocolAlgorithmFixture.Create<Dfo.Server.Application.World.GroundPickupDomainService>(Runs);
         Boss = new BossTowers(Sessions);
         Illusion = new IllusionTowers(Sessions);
         Participation = new DerivedDungeonParticipation(Boss, Illusion, Runs, Sessions);
@@ -66,6 +67,8 @@ internal sealed class DungeonOwnerRoutingWorld
     public ISelectedSessionDomainService Sessions { get; }
     public IPartyService Parties { get; }
     public IDungeonRunDomainService Runs { get; }
+    /// <summary>The real pick-up: with no run it refuses before touching anything else.</summary>
+    public IGroundPickupDomainService Floor { get; }
     public DungeonRunDeliveryRegistry Registry { get; } = new();
     public BossTowers Boss { get; }
     public IllusionTowers Illusion { get; }
@@ -157,7 +160,7 @@ internal sealed class DungeonOwnerRoutingWorld
         handle(Handler<THandler>(), ComponentContext.For(command, typeof(THandler)), command);
 
     private T Handler<T>() where T : class => ProtocolAlgorithmFixture.Create<T>(
-        Sessions, Parties, Runs, Registry, Boss, Illusion, Participation, Outbox, Units, Views, Projections);
+        Sessions, Parties, Runs, Floor, Registry, Boss, Illusion, Participation, Outbox, Units, Views, Projections);
 
     /// <summary>Nothing registered, no unit written and no tower asked: what a dropped request leaves behind.</summary>
     public void AssertUntouched()

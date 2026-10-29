@@ -378,7 +378,6 @@ public sealed class PickedUpAvatarStaysWholeTests
             var runs = TestParties.Runs();
             var handler = new GroundPickupAlgorithmDriver(
                 runs,
-                new GroundPickupDomainService(),
                 side.Containers,
                 null!,
                 new NoQuestProgress(),
