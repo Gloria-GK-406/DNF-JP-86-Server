@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
@@ -14,6 +16,45 @@ namespace Dfo.Server.Protocol.Tests.Game;
 [Trait("Category", "Unit")]
 public sealed class DarkElfRuinsCodecTests
 {
+    [Fact]
+    public async Task Reward_refresh_uses_absolute_changed_slots_for_native_gain_feedback_without_replaying_a_full_bag()
+    {
+        await Dfo.Server.Testing.TestGameplay.RunAsync(async () =>
+        {
+            var sessions = Dfo.Server.Testing.TestSessions.Directory(out var online);
+            var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(new(1), new(2), new("ruins-gain"), 2, 10011);
+            Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, online, session);
+            var rewardSlots = new[] { new Dfo.Server.Data.Inventory.BusinessSlot(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 0),
+                new Dfo.Server.Data.Inventory.BusinessSlot(Dfo.Server.Data.Inventory.BusinessInventorySpace.Material, 0) };
+            var mapping = new InventorySlotMappingRuleService();
+            var items = new[] { (rewardSlots[0], 10155137, 3), (rewardSlots[1], 10155143, 8) };
+            var cores = items.Select(x => new Dfo.Server.Data.Inventory.InventoryItemState(null, mapping.ToGameSlot(x.Item1).Index,
+                Dfo.Server.Data.Inventory.StackableItemCore.Create(2, x.Item2, x.Item3))).ToArray();
+            var projection = Dfo.Server.Testing.ProtocolAlgorithmFixture.Decorate(Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IInventorySlotProjectionDomainService>(),
+                (method, args) => (true, mapping.ToGameSlot((Dfo.Server.Data.Inventory.BusinessSlot)args[0]!)));
+            var binding = Dfo.Server.Testing.ProtocolAlgorithmFixture.Decorate(Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IBusinessInventorySlotDomainService>(),
+                (method, args) =>
+                {
+                    var slot = (Dfo.Server.Data.Inventory.BusinessSlot)args[1]!;
+                    var row = items.Single(x => x.Item1 == slot);
+                    var container = Dfo.Server.Testing.ProtocolAlgorithmFixture.Decorate(Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IBusinessItemContainer>(),
+                        (m, a) => (true, ValueTask.FromResult<ItemReference?>(new ItemReference(new object(), default, slot.Index, 0,
+                            ItemSnapshot.FromCore(Dfo.Server.Data.Inventory.StackableItemCore.Create(2, row.Item2, row.Item3), true), slot))));
+                    return (true, new BoundInventorySlot(slot, container));
+                });
+            var handler = Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<RuinsInventoryRefreshHandler>(sessions, projection, binding);
+            var frames = await handler.ComposeAsync(new(session.CharacterId, session.ConnectionId, session),
+                new(rewardSlots.Concat([rewardSlots[0]]).ToArray(), DateTimeOffset.UnixEpoch), default);
+            var delta = Assert.IsType<InventoryDeltaMessage>(Assert.Single(frames));
+            Assert.Equal(cores.Select(x => (x.SlotIndex, x.Core.ItemId, x.Core.Value)), delta.Items.Select(x => (x.SlotIndex, x.Core.ItemId, x.Core.Value)));
+            var encoded = Assert.Single(new InventoryDeltaEncoder().Encode(delta));
+            Assert.Equal(0x000E, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(encoded.AsSpan(1, 2)));
+            // Native 000E gain text uses new absolute count minus the old pile, not the new total.
+            Assert.Equal(new[] { 1, 1 }, delta.Items.Select((x, i) => x.Core.Value - new[] { 2, 7 }[i]));
+            Assert.Empty(await handler.ComposeAsync(new(new(999), session.ConnectionId), new(rewardSlots, DateTimeOffset.UnixEpoch), default));
+        });
+    }
+
     [Fact]
     public void Start_map_projects_frozen_passive_objects_and_regenerates_only_script_declared_entries()
     {

@@ -271,6 +271,34 @@ public sealed class DarkElfRuinsTests
     }
 
     [SkippableFact]
+    public async Task Exhausted_daily_quota_takes_precedence_over_tier_and_difficulty_without_charging()
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        var clock = new Clock { Now = new(2026, 10, 26, 23, 0, 0, TimeSpan.FromHours(8)) };
+        await using var f = await Fixture(clock);
+        await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var store = f.Services.GetRequiredService<IDarkElfRuinsDomainStore>();
+            var domain = f.Services.GetRequiredService<IDarkElfRuinsDomainService>();
+            var exhausted = new DarkElfRuinsProgress(2, 0, new(2026, 10, 26), 2, new(2026, 10, 1), 2, 0, 1);
+            await using (var tx = f.Scope.Begin())
+            {
+                Assert.True(await store.CompareExchangeAsync(Character, new(), exhausted, default));
+                await tx.CommitAsync(default);
+            }
+            foreach (var entry in new[] { Entry(5007), Entry(5008, DungeonDifficulty.Tier2) })
+                await using (var tx = f.Scope.Begin())
+                {
+                    Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await domain.EnterAsync(entry, default)).Failure);
+                    await tx.CommitAsync(default);
+                }
+            Assert.Equal(exhausted, await store.ReadAsync(Character, default));
+            Assert.Equal(1000, await Cubes(f));
+            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(Character));
+        });
+    }
+
+    [SkippableFact]
     public async Task Clear_freezes_one_reward_then_requires_result_ack_and_recovers_unclaimed_after_exit()
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);

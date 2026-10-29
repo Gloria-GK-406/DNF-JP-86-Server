@@ -52,8 +52,6 @@ internal sealed class DarkElfRuinsDomainService(IDarkElfRuinsRuleService rules, 
         try { rule = await rules.EntryAsync(context.DungeonId, day.DayOfWeek, ct).ConfigureAwait(false); }
         catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
         if (!rule.Open) return DungeonEntryAttempt.Refused(DungeonEntryFailure.OutsideOpeningHours);
-        if ((byte)context.Facts.Difficulty != rule.Difficulty)
-            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
         var expected = new Dictionary<CharacterId, DarkElfRuinsProgress>();
         var active = new Dictionary<CharacterId, DarkElfRuinsProgress>();
         var level = 1;
@@ -65,11 +63,13 @@ internal sealed class DarkElfRuinsDomainService(IDarkElfRuinsRuleService rules, 
             if (runs.Find(member.CharacterId) is not null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
             var raw = await store.ReadAsync(member.CharacterId, ct).ConfigureAwait(false);
             var state = At(raw, day);
-            if (state.License < rule.Directory.License) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
             if (state.Entries >= rules.Catalog.DailyEntries) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DailyEntryLimitReached);
             expected.Add(member.CharacterId, raw); active.Add(member.CharacterId, state);
             level = Math.Max(level, (await characters.Get(member.CharacterId).ProgressAsync(ct).ConfigureAwait(false))?.Level ?? 1);
         }
+        // The shared daily quota remains the actionable refusal after a clear changes the tier.
+        if ((byte)context.Facts.Difficulty != rule.Difficulty || active.Values.Any(x => x.License < rule.Directory.License))
+            return DungeonEntryAttempt.Refused(DungeonEntryFailure.DifficultyNotUnlocked);
         var maze = rules.ChooseMaze(rule, active.Values.ToArray(), Random.Shared.Next());
         var guardian = maze.Guardian;
         var facts = context.Facts with { RequiredMazeIndex = maze.Index };

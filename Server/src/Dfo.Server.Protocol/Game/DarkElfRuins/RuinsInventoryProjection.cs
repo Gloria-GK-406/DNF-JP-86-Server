@@ -6,7 +6,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.DarkElfRuins;
 
@@ -18,17 +17,25 @@ internal sealed class RuinsInventorySubscriber(IEventService events) : IDomainEv
             new RuinsInventoryRefresh(message.Payload.Slots, message.OccurredAt), ct).ConfigureAwait(false);
 }
 internal sealed class RuinsInventoryRefreshHandler(ISelectedSessionDomainService sessions,
-    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts,
+    IBusinessInventorySlotDomainService inventory,
     IInventorySlotProjectionDomainService slots) : INotificationHandler<RuinsInventoryRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, RuinsInventoryRefresh notification, CancellationToken ct)
     {
         if (!sessions.TryGetInWorld(recipient.ConnectionId, out var session) || session.CharacterId != recipient.CharacterId
             || recipient.ExpectedSession is { } expected && expected != session || notification.Slots.Count == 0) return [];
-        var inventory = await inventories.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        var account = await accounts.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        return sessions.IsInWorld(session) ? notification.Slots.Select(x => slots.Project(x).Space).Distinct()
-            .Select(space => (IServerNetworkMessage)new InventoryFullSnapshotMessage(
-                inventory.Containers.Single(x => x.ContainerType == space), inventory, account, notification.At)).ToArray() : [];
+        var changed = new List<(InventoryContainerType Space, InventoryItemState Item)>();
+        foreach (var slot in notification.Slots.Distinct())
+        {
+            var bound = inventory.Find(session.CharacterId, slot);
+            var item = bound is null ? null : await bound.Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
+            if (item is null) continue;
+            var wire = slots.Project(slot);
+            changed.Add((wire.Space, new(item.ItemUid, wire.Index, item.Snapshot.ToCore(), item.Snapshot.AvatarDetail)));
+        }
+        // A21 000E computes native gain text from positive absolute-count changes; 000D is silent.
+        return sessions.IsInWorld(session) ? changed.GroupBy(x => x.Space)
+            .Select(group => (IServerNetworkMessage)GameInventoryDelivery.Notification(new(group.Key,
+                group.Select(x => x.Item).ToArray(), notification.At))).ToArray() : [];
     }
 }
