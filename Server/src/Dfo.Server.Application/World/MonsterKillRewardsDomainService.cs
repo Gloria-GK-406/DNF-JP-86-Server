@@ -64,8 +64,28 @@ public sealed class MonsterKillRewardsDomainService(ICharacterDomainService char
             || !current.Members.Any(x => x.CharacterId == character))) return empty;
         footprint.DemandEffects(new(account, character, session));
         var additions = await questItems.GrantAsync(account, character, loot, ct).ConfigureAwait(false);
-        var (items, shared) = await QuestItemDropProjection.ReadAsync(
+        var (items, shared) = await ProjectQuestItemsAsync(
             additions, (clock ?? TimeProvider.System).GetUtcNow(), ct).ConfigureAwait(false);
         return empty with { QuestItems = items, AccountMaterials = shared };
+    }
+
+    // MonsterKillEffects already carries wire slots for the kill path; this projection stays here
+    // with that contract. Object destruction returns business slots and projects in Protocol.
+    private static async ValueTask<(CommittedInventoryUpdateState? Items, IReadOnlyList<InventoryRuntimeValueState> Shared)> ProjectQuestItemsAsync(
+        IReadOnlyList<ItemDeliveryAddition> additions, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        var slots = new InventorySlotMappingRuleService();
+        var changed = new Dictionary<int, (IBusinessItemContainer Container, int Index)>();
+        foreach (var addition in additions) changed[slots.ToGameSlot(addition.Slot).Index] = (addition.Container, addition.Slot.Index);
+        var items = new List<InventoryItemState>();
+        var shared = new List<InventoryRuntimeValueState>();
+        foreach (var (slot, source) in changed.OrderBy(x => x.Key))
+        {
+            var item = await source.Container.GetAsync(source.Index, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Granted quest item disappeared before commit.");
+            if (source.Container.Space == BusinessInventorySpace.SharedMaterial) shared.Add(new(slot, item.ItemId, item.Count));
+            else items.Add(new(null, slot, item.Snapshot.ToCore()));
+        }
+        return (items.Count == 0 ? null : new(InventoryContainerType.Main, items, at), shared);
     }
 }

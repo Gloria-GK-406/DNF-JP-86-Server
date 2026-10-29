@@ -32,7 +32,10 @@ public sealed record MonsterDeathSettlementResult(IReadOnlyList<MonsterDeathPart
     public TournamentActionResult? Tournament { get; init; }
 }
 
-public sealed record ObjectQuestReward(SelectedSessionIdentity Session, MonsterKillEffects Effects);
+/// <param name="Items">The business slots the grant touched; the protocol projects them to wire slots.</param>
+/// <param name="QuestProgress">Null when nothing was granted.</param>
+public sealed record ObjectQuestReward(SelectedSessionIdentity Session,
+    IReadOnlyList<Dfo.Server.Abstractions.Inventory.ItemDeliveryAddition> Items, QuestProgressSnapshot? QuestProgress);
 
 /// <param name="Rewards">Null when the destruction was refused or already claimed.</param>
 public sealed record ObjectDestructionResult(IReadOnlyList<ObjectQuestReward>? Rewards);

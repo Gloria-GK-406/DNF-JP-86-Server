@@ -367,7 +367,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             this.Command = new(first, run.RunId, run.RoomVersion, 8961, [first, second]);
         }
 
-        public ValueTask<ObjectDestructionResult> Apply(ObjectDestructionFacts? command = null) =>
+        public ValueTask<Dfo.Server.Protocol.Game.ObjectDestructionEffects> Apply(ObjectDestructionFacts? command = null) =>
             this.handler.HandleAsync(DomainCommandFixture.Context(Guid.Empty, typeof(ObjectDestructionFacts),
                 typeof(ObjectDestructionAlgorithmDriver), FixtureUnitKind.Transactional), command ?? this.Command, default);
     }

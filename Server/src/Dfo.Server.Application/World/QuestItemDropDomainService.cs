@@ -3,7 +3,6 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.World;
@@ -39,27 +38,5 @@ internal sealed class QuestItemDropDomainService(ICharacterQuestLogDomainService
             additions.AddRange(receipt.Inventory);
         }
         return additions;
-    }
-}
-
-/// <summary>The kill-effect shape of granted quest items: each touched slot once, as it now stands.</summary>
-internal static class QuestItemDropProjection
-{
-    public static async ValueTask<(CommittedInventoryUpdateState? Items, IReadOnlyList<InventoryRuntimeValueState> Shared)> ReadAsync(
-        IReadOnlyList<ItemDeliveryAddition> additions, DateTimeOffset at, CancellationToken cancellationToken)
-    {
-        var slots = new InventorySlotMappingRuleService();
-        var changed = new Dictionary<int, (IBusinessItemContainer Container, int Index)>();
-        foreach (var addition in additions) changed[slots.ToGameSlot(addition.Slot).Index] = (addition.Container, addition.Slot.Index);
-        var items = new List<InventoryItemState>();
-        var shared = new List<InventoryRuntimeValueState>();
-        foreach (var (slot, source) in changed.OrderBy(x => x.Key))
-        {
-            var item = await source.Container.GetAsync(source.Index, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidDataException("Granted quest item disappeared before commit.");
-            if (source.Container.Space == BusinessInventorySpace.SharedMaterial) shared.Add(new(slot, item.ItemId, item.Count));
-            else items.Add(new(null, slot, item.Snapshot.ToCore()));
-        }
-        return (items.Count == 0 ? null : new(InventoryContainerType.Main, items, at), shared);
     }
 }

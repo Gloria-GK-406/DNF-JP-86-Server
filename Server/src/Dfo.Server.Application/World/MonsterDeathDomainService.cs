@@ -15,7 +15,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     ISelectedSessionDomainService sessions,
     ICharacterDomainService characters, IDungeonRunDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
-    IQuestItemDropDomainService questItems, IQuestProgressDomainService progress, TimeProvider clock,
+    IQuestItemDropDomainService questItems, IQuestProgressDomainService progress,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService? tournaments = null,
     IEventService? events = null, ISaoTowerDomainService? sao = null, ISouthernDaleDomainService? southern = null) : IMonsterDeathDomainService
 {
@@ -46,12 +46,11 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
         {
             var additions = await questItems.GrantAsync(recipient.AccountId, recipient.CharacterId,
                 claim.PendingLoot, ct).ConfigureAwait(false);
-            var (items, shared) = await QuestItemDropProjection.ReadAsync(additions, clock.GetUtcNow(), ct).ConfigureAwait(false);
-            var updated = items is not null || shared.Count > 0
+            var updated = additions.Count > 0
                 ? await progress.ReportAsync(recipient.AccountId, recipient.CharacterId,
                     [new QuestHoldingsChanged()], ct).ConfigureAwait(false)
                 : null;
-            rewards.Add(new(recipient, new MonsterKillEffects(null, updated?.NotificationSnapshot, items, shared)));
+            rewards.Add(new(recipient, additions, updated?.NotificationSnapshot));
         }
         return new(rewards);
     }
