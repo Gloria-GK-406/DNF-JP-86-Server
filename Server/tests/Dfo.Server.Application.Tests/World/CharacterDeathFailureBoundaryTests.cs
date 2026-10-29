@@ -46,7 +46,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         await TestGameplay.RunAsync(f.Services,async()=>
         {
             await f.Seed(65,4183,1); peer=await AddMember(f,3);
-            var tower=Tower(f); var run=(await tower.EnterAsync([new(f.Session,0),new(peer,1)],f.Session,42,default)).Run!;
+            var tower=Tower(f); var run=(await tower.EnterAsync([new(f.Session,0),new(peer,1)],f.Session,42,default, 11001)).Run!;
             await tower.LoadAsync(Context(run,f.Session),default);await tower.LoadAsync(Context(run,peer),default);await tower.StartAsync(Context(run,f.Session),default);
         });
         await CharacterDeathOracle.Check(f,probe,peer,fault,false,()=>Assert.True(Tower(f).Find(f.Session)!.Members.Single(x=>x.Session==f.Session).Dead));

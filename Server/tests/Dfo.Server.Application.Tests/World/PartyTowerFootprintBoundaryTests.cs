@@ -212,7 +212,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 session.WireUserId, new PartyDirectoryScope(1, 0, 0));
             Assert.True(parties.RequestInvite(Character(f.Session), Character(peer), new(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(Character(peer), Character(f.Session)).Succeeded);
-            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default)).Run!;
+            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default, 11001)).Run!;
         });
         var attempts = 0;
         f.Sender.Outbound.Fail(peer.ConnectionId, message => message.MessageType == ServerMessageType.GameUdpHost,
@@ -255,7 +255,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 session.WireUserId, new PartyDirectoryScope(1, 0, 0));
             Assert.True(parties.RequestInvite(Character(f.Session), Character(peer), new(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(Character(peer), Character(f.Session)).Succeeded);
-            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default)).Run!;
+            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default, 11001)).Run!;
             await Tower(f).LoadAsync(Context(run, f.Session), default);
             await Tower(f).LoadAsync(Context(run, peer), default);
             Assert.Equal(TowerRoomPhase.Ready, Tower(f).Find(f.Session)!.Room.Phase);
@@ -290,7 +290,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 session.WireUserId, new PartyDirectoryScope(1, 0, 0));
             Assert.True(parties.RequestInvite(Character(f.Session), Character(peer), new(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(Character(peer), Character(f.Session)).Succeeded);
-            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default)).Run!;
+            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default, 11001)).Run!;
             await Tower(f).LoadAsync(Context(run, f.Session), default);
             await Tower(f).LoadAsync(Context(run, peer), default);
             await Tower(f).StartAsync(Context(run, f.Session), default);
@@ -333,7 +333,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var parties = f.Services.GetRequiredService<IPartyService>();
             Assert.True(parties.RequestInvite(PartyCharacter(f.Session), PartyCharacter(peer), new(0, 0, 0, 0)).Succeeded);
             Assert.True(parties.AcceptInvite(PartyCharacter(peer), PartyCharacter(f.Session)).Succeeded);
-            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default)).Run!;
+            run = (await Tower(f).EnterAsync([new(f.Session, 0), new(peer, 1)], f.Session, 42, default, 11001)).Run!;
             Assert.Equal(2, run.Members.Length);
         });
 

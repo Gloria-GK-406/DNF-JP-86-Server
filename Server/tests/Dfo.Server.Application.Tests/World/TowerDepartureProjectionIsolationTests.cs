@@ -58,7 +58,7 @@ internal static class TowerDepartureProjectionCases
                 else
                 {
                     var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-                    var run = (await towers.EnterAsync([new(cohort[0], 0), new(cohort[1], 1)], cohort[0], 42, default)).Run!;
+                    var run = (await towers.EnterAsync([new(cohort[0], 0), new(cohort[1], 1)], cohort[0], 42, default, 11001)).Run!;
                     await towers.LoadAsync(new(cohort[0], run.RunId, run.Room.Version), default);
                     await towers.LoadAsync(new(cohort[1], run.RunId, run.Room.Version), default);
                     var departure = await TestEffectFootprints.Run(cohort,

@@ -255,7 +255,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");
             await f.Seed(65, 4183, 2);
             var tower = f.Services.GetRequiredService<IIllusionTowerDomainService>();
-            var result = await tower.EnterAsync([new(f.Session, 2)], f.Session, 42, default);
+            var result = await tower.EnterAsync([new(f.Session, 2)], f.Session, 42, default, 11001);
             Assert.Null(result.Rejection);
             Assert.Equal(1, f.Count(4183));
             Assert.Equal(1, tower.Find(f.Session)!.Room.Level);
@@ -289,8 +289,8 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 3);
             var tower = Tower(f);
             var stale = f.Session with { ConnectionGeneration = f.Session.ConnectionGeneration + 1 };
-            Assert.Equal("NoSession", (await tower.EnterAsync([new(stale, 0)], stale, 42, default)).Rejection);
-            Assert.Equal("InvalidParty", (await tower.EnterAsync([new(f.Session, 0), new(f.Session, 1)], f.Session, 42, default)).Rejection);
+            Assert.Equal("NoSession", (await tower.EnterAsync([new(stale, 0)], stale, 42, default, 11001)).Rejection);
+            Assert.Equal("InvalidParty", (await tower.EnterAsync([new(f.Session, 0), new(f.Session, 1)], f.Session, 42, default, 11001)).Rejection);
             var entered = await Enter(f);
             Assert.Null(entered.Rejection);
             Assert.Equal("AlreadyInDungeon", (await Enter(f)).Rejection);
@@ -478,11 +478,11 @@ public sealed partial class IllusionTowerDomainServiceTests
             var other = await AddMember(f, 0);
             var tower = Tower(f);
             TowerEntryMember[] members = [new(f.Session, 0), new(other, 3)];
-            Assert.Equal("InsufficientMaterial", (await tower.EnterAsync(members, f.Session, 1, default)).Rejection);
+            Assert.Equal("InsufficientMaterial", (await tower.EnterAsync(members, f.Session, 1, default, 11001)).Rejection);
             Assert.Equal(2, f.Count(4183));
             await SeedOther(f, other, 2);
             f.Sql("CREATE TRIGGER fail_tower_ticket BEFORE UPDATE ON item_slots WHEN OLD.owner_id=3 BEGIN SELECT RAISE(ABORT,'ticket failure'); END;");
-            await Assert.ThrowsAsync<SqliteException>(async () => await tower.EnterAsync(members, f.Session, 1, default));
+            await Assert.ThrowsAsync<SqliteException>(async () => await tower.EnterAsync(members, f.Session, 1, default, 11001));
             Assert.Null(tower.Find(f.Session));
             Assert.Null(tower.Find(other));
             Assert.Equal(2, f.Count(4183));
@@ -499,7 +499,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 2);
             var other = await AddMember(f, 2);
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default, 11001)).Run!;
             var first = Context(run, f.Session);
             var second = Context(run, other);
             Assert.Equal((byte)3, run.Members[1].Slot);
@@ -539,7 +539,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             sessions.EnterWorld(replacement);
             Assert.False((await tower.LoadAsync(context, default)).Changed);
             Assert.True((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, true, cap, default))).Changed);
-            var next = await tower.EnterAsync([new(replacement, 0)], replacement, 2, default);
+            var next = await tower.EnterAsync([new(replacement, 0)], replacement, 2, default, 11001);
             Assert.Null(next.Rejection);
             Assert.False((await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.LeaveAsync(context, true, cap, default))).Changed);
             Assert.NotNull(tower.Find(replacement));
@@ -555,7 +555,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 1);
             var other = await AddMember(f, 1);
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default, 11001)).Run!;
             var sessions = f.Services.GetRequiredService<ISelectedSessionDomainService>();
             sessions.ReleaseExact(f.Session);
             sessions.ReleaseExact(other);
@@ -688,7 +688,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var other = await AddMember(f, 1);
             f.Sql($"UPDATE characters SET level=40,exp={f.ExperienceForLevel(40)} WHERE character_id=3; INSERT INTO character_active_quests VALUES(1,0,64,2),(1,1,65,2),(1,2,999,1);");
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default, 11001)).Run!;
             for (var floor = 1; floor <= 2; floor++)
             {
                 var context = Context(run, f.Session);
@@ -726,7 +726,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 1);
             f.Sql("INSERT INTO character_active_quests VALUES(1,0,950,10);");
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11001)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
@@ -763,7 +763,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 }
                 if (active) f.Sql($"INSERT INTO character_active_quests VALUES(1,0,950,{10 - held});");
                 var tower = Tower(f);
-                var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default)).Run!;
+                var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11001)).Run!;
                 var context = Context(run, f.Session);
                 await tower.LoadAsync(context, default);
                 await tower.StartAsync(context, default);
@@ -788,7 +788,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 1);
             f.Sql("INSERT INTO character_active_quests VALUES(1,0,950,10);");
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11001)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
@@ -820,7 +820,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.SeedShared(3033, 9);
             f.Sql("INSERT INTO character_active_quests VALUES(1,0,950,1);");
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0)], f.Session, 42, default, 11001)).Run!;
             var context = Context(run, f.Session);
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
@@ -939,7 +939,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 1);
             var other = await AddMember(f, 1);
             var tower = Tower(f);
-            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default)).Run!;
+            var run = (await tower.EnterAsync([new(f.Session, 0), new(other, 3)], f.Session, 1, default, 11001)).Run!;
             var first = Context(run, f.Session);
             var second = Context(run, other);
             await tower.LoadAsync(first, default); await tower.LoadAsync(second, default); await tower.StartAsync(first, default);
@@ -963,7 +963,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var other = await AddMember(f, 1);
             var tower = Tower(f);
             var run = (await tower.EnterAsync(
-                [new(f.Session, 0), new(other, 3)], f.Session, 1, default)).Run!;
+                [new(f.Session, 0), new(other, 3)], f.Session, 1, default, 11001)).Run!;
             var first = Context(run, f.Session);
             var second = Context(run, other);
             await tower.LoadAsync(first, default);
@@ -999,7 +999,7 @@ public sealed partial class IllusionTowerDomainServiceTests
 
             var tower = Tower(f);
             var run = (await tower.EnterAsync(
-                [new(f.Session, 0), new(other, 1)], f.Session, 1, default)).Run!;
+                [new(f.Session, 0), new(other, 1)], f.Session, 1, default, 11001)).Run!;
             var first = Context(run, f.Session);
             var second = Context(run, other);
             await tower.LoadAsync(first, default);
@@ -1359,7 +1359,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         public GoldSilverHornContent Load() => new(4123, 3);
     }
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
-    private static ValueTask<TowerEntryResult> Enter(ShopFixture f) => Tower(f).EnterAsync([new(f.Session, 2)], f.Session, 42, default);
+    private static ValueTask<TowerEntryResult> Enter(ShopFixture f) => Tower(f).EnterAsync([new(f.Session, 2)], f.Session, 42, default, 11001);
     private static TowerActionContext Context(IllusionTowerSnapshot run, SelectedSessionIdentity session) => new(session, run.RunId, run.Room.Version);
     private static PartyCharacterSnapshot PartyCharacter(SelectedSessionIdentity session) =>
         new(session.AccountId, session.CharacterId, session.WireUserId,
@@ -1400,8 +1400,9 @@ public sealed partial class IllusionTowerDomainServiceTests
         public double ExperienceWeight { get; set; } = 1;
         public int[] Probabilities { get; set; } = [50, 49, 100];
         public int CardCount { get; set; } = 4;
+        public bool Supports(int dungeonId) => dungeonId is 11000 or 11001;
         public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001) => ValueTask.FromResult(
-            new IllusionTowerDefinition(dungeonId, 40, 40, [new(4183, 1, true)],
+            new IllusionTowerDefinition(dungeonId, dungeonId == 11000 ? IllusionTowerVariant.Death : IllusionTowerVariant.Illusion, 40, 40, [new(4183, 1, true)],
                 Enumerable.Range(1, FloorCount).Select(n => new TowerRoomDefinition(n, 60000 + n, [], 0, [], [])).ToArray(), [],
                 new(Enumerable.Repeat(ExperienceWeight, 15).ToArray(), Enumerable.Repeat(CardCount, 15).ToArray(), Probabilities, 11, 3, 1), new(4, 0, 0, 0, [], [], [])));
         public ValueTask<TowerRoomSeed> CreateRoomAsync(int level, uint seed, CancellationToken cancellationToken, int dungeonId = 11001) => level == FailLevel ? throw new InvalidDataException("fixture room failure") : ValueTask.FromResult(

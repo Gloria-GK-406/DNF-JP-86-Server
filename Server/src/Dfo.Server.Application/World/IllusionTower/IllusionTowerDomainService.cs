@@ -61,7 +61,7 @@ internal sealed class IllusionTowerDomainService(
     }
 
     public ValueTask<TowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
-        SelectedSessionIdentity leader, uint seed, CancellationToken token, int dungeonId = 11001)
+        SelectedSessionIdentity leader, uint seed, CancellationToken token, int dungeonId)
     {
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(EnterAsync));
         return Execute(async () =>
@@ -107,7 +107,7 @@ internal sealed class IllusionTowerDomainService(
         var first = await rules.CreateRoomAsync(1, seed, token, dungeonId).ConfigureAwait(false);
         var run = new IllusionTowerDgn
         {
-            RunId = Guid.NewGuid(), DungeonId = definition.DungeonId, LevelCount = definition.Rooms.Count,
+            RunId = Guid.NewGuid(), DungeonId = definition.DungeonId, UsesTowerInventory = definition.UsesTowerInventory, LevelCount = definition.Rooms.Count,
             Seed = seed, StartedAt = clock.GetUtcNow(),
             Members = members.Select(x => new TowerMember(x.Session, x.Slot, x.Session == leader, false)).ToImmutableArray(),
             Room = null!, ReservedUids = members.Select(x => x.Session.WireUserId).ToImmutableHashSet()
@@ -126,7 +126,7 @@ internal sealed class IllusionTowerDomainService(
         }
         foreach (var member in members)
         {
-            if (dungeonId == 11000)
+            if (run.UsesTowerInventory)
                 (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
                     .Enter(member.Session.CharacterId, run.RunId);
             Pending.AuthenticatedSessions.Add(member.Session);
@@ -177,7 +177,7 @@ internal sealed class IllusionTowerDomainService(
     {
         var current = Match(context);
         TowerPickupResult Refuse(bool noRoom = false) => new(new(false, current?.Snapshot()), groundUid, null, noRoom);
-        if (current is null || current.DungeonId != 11000 || current.Members.Any(x => x.Session == context.Session && x.Dead)
+        if (current is null || !current.UsesTowerInventory || current.Members.Any(x => x.Session == context.Session && x.Dead)
             || current.Room.State.Phase is not (TowerRoomPhase.Fighting or TowerRoomPhase.Cleared)) return Refuse();
         var ground = current.Room.State.Items.SingleOrDefault(x => x.Uid == groundUid && x.Available && !x.Claimed);
         if (ground is null) return Refuse();
@@ -253,7 +253,7 @@ internal sealed class IllusionTowerDomainService(
     }
 
     public async ValueTask<bool> SupportsDungeonAsync(int dungeonId, CancellationToken token) =>
-        dungeonId is 11000 or 11001 && (await rules.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false)).DungeonId == dungeonId;
+        rules.Supports(dungeonId) && (await rules.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false)).DungeonId == dungeonId;
 
     public ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token)
     {
@@ -318,7 +318,7 @@ internal sealed class IllusionTowerDomainService(
                     clock.GetUtcNow(), rules.DefaultReturnDelay);
         }
         footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
-        if (current.DungeonId == 11000)
+        if (current.UsesTowerInventory)
         {
             foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
                 (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))

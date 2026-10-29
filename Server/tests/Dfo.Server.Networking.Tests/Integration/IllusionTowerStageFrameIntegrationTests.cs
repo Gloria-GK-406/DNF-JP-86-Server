@@ -231,9 +231,11 @@ public sealed class IllusionTowerStageFrameIntegrationTests
 
     private sealed class TowerRules : IIllusionTowerRuleService
     {
+        public bool Supports(int dungeonId) => dungeonId is 11000 or 11001;
+
         public ValueTask<IllusionTowerDefinition> GetDefinitionAsync(CancellationToken cancellationToken, int dungeonId = 11001) =>
             ValueTask.FromResult(new IllusionTowerDefinition(
-                dungeonId, 1, 40, [],
+                dungeonId, dungeonId == 11000 ? IllusionTowerVariant.Death : IllusionTowerVariant.Illusion, 1, 40, [],
                 [new TowerRoomDefinition(1, 60001, [], 0, [], [])], [],
                 new IllusionTowerRewardParameters([1], [0], [100], 0, 0, 0),
                 new IllusionTowerParameters(0, 0, 0, 0, [], [], [])));

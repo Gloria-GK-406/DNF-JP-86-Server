@@ -130,7 +130,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             && sessions.IsInWorld(returning)
             && !illusionTowers.IsInTower(returning.CharacterId))
             {
-            var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.DungeonId == 11000).ConfigureAwait(false);
+            var entries = await IllusionTowerActionProjection.IllusionTowerCaptureReturnEntriesAsync(sessions, currentViews, currentState, onlineCharacters, outbox, [returning], response, failures, token, captured.UsesTowerInventory).ConfigureAwait(false);
             await ReturnTownIsolatedAsync(entries, failures, token).ConfigureAwait(false);
         }
         await IllusionTowerActionProjection.IllusionTowerCloseProjectionFailuresAsync(sessions, logger, closures, closeTargets, failures, captured.RunId).ConfigureAwait(false);

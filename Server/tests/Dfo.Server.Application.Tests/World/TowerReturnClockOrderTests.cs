@@ -71,7 +71,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         {
             await fixture.Seed(65, 4183, 3);
             var peer = await AddMember(fixture, 3);
-            var run = (await Tower(fixture).EnterAsync([new(fixture.Session, 0), new(peer, 1)], fixture.Session, 42, default)).Run!;
+            var run = (await Tower(fixture).EnterAsync([new(fixture.Session, 0), new(peer, 1)], fixture.Session, 42, default, 11001)).Run!;
             await Tower(fixture).LoadAsync(Context(run, fixture.Session), default);
             await Tower(fixture).LoadAsync(Context(run, peer), default);
             var departure = await TestEffectFootprints.Run([fixture.Session, peer],

@@ -73,7 +73,7 @@ internal static class TowerReturnCancellationCases
             else
             {
                 var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
-                var run = (await towers.EnterAsync([new(fixture.Session, 0), new(peer, 1)], fixture.Session, 42, default)).Run!;
+                var run = (await towers.EnterAsync([new(fixture.Session, 0), new(peer, 1)], fixture.Session, 42, default, 11001)).Run!;
                 var context = new TowerActionContext(fixture.Session, run.RunId, run.Room.Version);
                 await towers.LoadAsync(context, default);
                 await towers.LoadAsync(context with { Session = peer }, default);

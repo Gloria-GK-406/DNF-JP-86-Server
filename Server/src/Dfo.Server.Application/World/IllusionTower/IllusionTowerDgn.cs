@@ -52,6 +52,7 @@ internal sealed class IllusionTowerDgn
 {
     public required Guid RunId { get; init; }
     public required int DungeonId { get; init; }
+    public required bool UsesTowerInventory { get; init; }
     public required int LevelCount { get; init; }
     public required uint Seed { get; init; }
     public required DateTimeOffset StartedAt { get; init; }
@@ -66,7 +67,7 @@ internal sealed class IllusionTowerDgn
 
     public IllusionTowerDgn Clone() => new()
     {
-        RunId = RunId, DungeonId = DungeonId, LevelCount = LevelCount, Seed = Seed, StartedAt = StartedAt,
+        RunId = RunId, DungeonId = DungeonId, UsesTowerInventory = UsesTowerInventory, LevelCount = LevelCount, Seed = Seed, StartedAt = StartedAt,
         Members = Members, Room = Room.Clone(), CompletedLevels = CompletedLevels,
         Completion = Completion, ReturnOption = ReturnOption, ReturnDueAt = ReturnDueAt,
         NextUid = NextUid, ReservedUids = ReservedUids
@@ -76,6 +77,7 @@ internal sealed class IllusionTowerDgn
         TotalLevels = LevelCount,
         ReturnOption = ReturnOption,
         ReturnDueAt = ReturnDueAt,
+        UsesTowerInventory = UsesTowerInventory,
     };
     public TowerActionResult Result(bool changed, TowerActor? killed = null) => new(changed, Snapshot(), killed);
     public void SetRoom(TowerRoomSeed seed, long version)

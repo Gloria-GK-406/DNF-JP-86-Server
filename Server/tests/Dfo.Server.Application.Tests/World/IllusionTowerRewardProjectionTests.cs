@@ -110,7 +110,7 @@ public sealed class IllusionTowerRewardProjectionTests
             Assert.Null(Tower(fixture).Find(old));
             Assert.Equal(replacement, fixture.Services.GetRequiredService<ISelectedSessionDomainService>()
                 .FindByCharacter(old.CharacterId));
-            var next = await Tower(fixture).EnterAsync([new(replacement, 0)], replacement, 43, default);
+            var next = await Tower(fixture).EnterAsync([new(replacement, 0)], replacement, 43, default, 11001);
             Assert.NotNull(next.Run);
             Assert.NotEqual(run.RunId, next.Run.RunId);
             _ = await TestEffectFootprints.Run(old, cap => cleanup.CleanupAsync(old, includeOwner: false, cap, default));
@@ -140,7 +140,7 @@ public sealed class IllusionTowerRewardProjectionTests
     {
         await fixture.Seed(65, 4183, 3);
         var tower = Tower(fixture);
-        var run = (await tower.EnterAsync([new(fixture.Session, 2)], fixture.Session, 42, default)).Run!;
+        var run = (await tower.EnterAsync([new(fixture.Session, 2)], fixture.Session, 42, default, 11001)).Run!;
         var context = new TowerActionContext(fixture.Session, run.RunId, run.Room.Version);
         await tower.LoadAsync(context, default);
         await tower.StartAsync(context, default);
