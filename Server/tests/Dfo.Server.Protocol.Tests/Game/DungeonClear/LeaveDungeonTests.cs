@@ -87,6 +87,7 @@ public sealed class LeaveDungeonTests
     [InlineData("sao")]
     [InlineData("mirror")]
     [InlineData("hell")]
+    [InlineData("despair")]
     public async Task Specialized_retries_do_not_gain_the_ordinary_retry_intent(string kind)
     {
         await TestGameplay.RunAsync(async () =>
@@ -95,6 +96,7 @@ public sealed class LeaveDungeonTests
             {
                 "sao" => layout with { Mode = new DungeonRunMode.Sao(new(new("test"))) },
                 "mirror" => layout with { Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) },
+                "despair" => layout with { Mode = new DungeonRunMode.Despair(new(1, new DateOnly(2026, 10, 13))) },
                 _ => layout with { Mode = new DungeonRunMode.Hell(new(0, layout.BossCell, layout.StartRoomMapId, [])) },
             });
             var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();

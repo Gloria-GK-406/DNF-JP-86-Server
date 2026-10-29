@@ -218,10 +218,11 @@ public sealed record DungeonRunCapabilities(
   - 仓库移动、仓库升级与金币存取、仓库整理、疲劳恢复改为只问副本占用登记；
   - 宠物通知与任务完成外观的收件人改为经 `DungeonLocator` 定位，Boss 塔与幻影塔同等对待。
   - `DungeonAdmissionDomainService` 已经通过占用登记覆盖 Boss 塔，它的一串可选依赖留给 #183；`PlayingCharacter` 的 `Func` 留给 #184。
-- **变异检查**（把一种玩法的能力改回普通后，看现有测试是否失败）：
-  - 赫拉斯一项没有测试覆盖，已补 `DungeonLoadingProjectionDeliveryTests.A_loaded_room_refreshes_the_quota_its_run_kind_spends`；
-  - 地狱由 `LeaveDungeonTests` 覆盖；
-  - 其余种类的结果见 PR 描述。
+- **变异检查**（逐一把一种特殊玩法的能力改回普通，跑 Protocol 与 Application 测试）：
+  - 地狱、SAO、镜像、比武大会、祭坛、守护者祭坛在补测前就各有测试失败；
+  - 赫拉斯与绝望之塔原本无测试失败。已补 `DungeonLoadingProjectionDeliveryTests.A_loaded_room_refreshes_the_quota_its_run_kind_spends`
+    和 `LeaveDungeonTests.Specialized_retries_do_not_gain_the_ordinary_retry_intent("despair")`，补测后这两项变异都会被捕获。
+  - 绝望之塔的“不发卡、不解锁难度”两项仍只由代码审阅保证。
 
 ## 7. 基线失败（与本任务无关）
 
