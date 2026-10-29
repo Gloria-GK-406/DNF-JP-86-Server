@@ -129,7 +129,7 @@ public sealed record DungeonLayout(
     public ushort? EntryOnlyFatigue { get; init; }
     // 70 CParty::giveup_game exempts every nonzero blood-dungeon type from stamina penalties.
     public bool NoGiveupPenalty { get; init; }
-    public bool AppliesFailureWeakness => Mode is not DungeonRunMode.Altar && !NoGiveupPenalty;
+    public bool AppliesFailureWeakness => Mode.Capabilities.AppliesFailureWeakness && !NoGiveupPenalty;
     /// <summary>
     /// Entry-frozen level for ordinary monsters. Null preserves MAP declarations;
     /// APCs, dummy actors and special summon templates keep their own level rules.

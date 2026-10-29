@@ -127,7 +127,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
                 runs.ReleaseSettlement(settlementClaim);
                 return;
             }
-            var settled = run.Layout.Mode is DungeonRunMode.Despair
+            var settled = !run.Layout.Mode.Capabilities.DrawsClearCards
                 ? new ClearRewardSettlementResult(new(new(ClearRewardCardKind.Free, [], 0),
                     new(ClearRewardCardKind.Paid, [], 0), System.Collections.Immutable.ImmutableHashSet<ClearRewardCardId>.Empty, null), null)
                 : await cardRewards.SettleAsync(
@@ -327,7 +327,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(frames, []),
                 cancellationToken).ConfigureAwait(false);
-            if (run.Layout.Mode is not DungeonRunMode.Despair) cardPresentation.ScheduleAfterSettlement(session, currentRun.RunId);
+            if (run.Layout.Mode.Capabilities.DrawsClearCards) cardPresentation.ScheduleAfterSettlement(session, currentRun.RunId);
         }
         catch (Exception failure)
         {

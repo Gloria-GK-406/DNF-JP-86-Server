@@ -73,17 +73,8 @@ internal sealed partial class GameMapLoadingCommandHandler
         // The direct response belongs to this frozen generation too; it follows the validation above.
         await outbox.RegisterExplicitAsync(connectionId, new([new LoadingCompleteNotification()], []), cancellationToken).ConfigureAwait(false);
         await LoadingMechanismsAsync(session, current!, cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.Mode is DungeonRunMode.Mirror)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.MirrorDungeon,
-                cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.Mode is DungeonRunMode.Altar)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.AltarDungeon,
-                cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.Mode is DungeonRunMode.Tournament)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.TournamentDungeon,
-                cancellationToken).ConfigureAwait(false);
-        if (current!.Layout.DungeonId == 3900)
-            _ = await LoadingQuotaAsync(session, Dfo.Server.Abstractions.UsageQuotas.UsageQuotaFamily.HerasDungeon, cancellationToken).ConfigureAwait(false);
+        if (current!.Layout.Mode.Capabilities.QuotaFamily is { } quota)
+            _ = await LoadingQuotaAsync(session, quota, cancellationToken).ConfigureAwait(false);
         if (restoreEntryWeakness)
             await LoadingWeaknessAsync(session, cancellationToken).ConfigureAwait(false);
         return true;

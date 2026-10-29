@@ -36,7 +36,7 @@ internal sealed partial class GameSetPlayResultCommandHandler
             footprint, cancellationToken).ConfigureAwait(false);
         var changed = award is not null && runId != Guid.Empty
             && await attendance.RecordClearAsync(accountId,runId,dungeonId,settlementLevel,now,cancellationToken);
-        var unlocked = runs.Find(characterId)?.Layout.Mode is DungeonRunMode.Mirror or DungeonRunMode.Despair ? null
+        var unlocked = runs.Find(characterId)?.Layout.Mode.Capabilities.UnlocksDifficulty is false ? null
             : await difficulties.UnlockAfterClearAsync(characterId, dungeonId,
             (DungeonDifficulty)clear.Difficulty, cancellationToken).ConfigureAwait(false);
         return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked) { Despair = tower };

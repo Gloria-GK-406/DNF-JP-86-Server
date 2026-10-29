@@ -45,6 +45,8 @@ public abstract record DungeonRunMode
 
     public abstract DungeonRunKind Kind { get; }
 
+    public DungeonRunCapabilities Capabilities => DungeonRunCapabilities.Of(Kind);
+
     public static Plain Ordinary { get; } = new(DungeonRunKind.Ordinary);
 
     /// <summary>A kind whose behaviour is fixed by its kind alone.</summary>
