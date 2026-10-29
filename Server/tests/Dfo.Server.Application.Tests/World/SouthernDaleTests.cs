@@ -181,7 +181,8 @@ public sealed class SouthernDaleTests
             var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(100, 0, 1, 1, cell, cell, 12006, 1,
-                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(12006) }) { ConsumesFatigue = false };
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(12006) })
+                { ConsumesFatigue = false, Mode = new DungeonRunMode.Plain(DungeonRunKind.SouthernDale) };
             await using (var setup = f.Scope.Begin())
             {
                 runs.PreparePartyEntry(players.Select((x, i) => new DungeonRunParticipant(x.AccountId, x.CharacterId, (byte)i, i == 0)).ToArray(),
