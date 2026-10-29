@@ -95,7 +95,7 @@ Host 内组合 HttpApi、GmWeb 与 GameServer，仍为一份发布包和一个�
 - 使用合法持有的 `Script.pvf`，通过环境变量 `PVF_ARCHIVE_PATH` 指定，或放入 `Data/Pvf/Script.pvf`。
 - 默认数据库为程序目录下 `Data/dfo-server.db`。可以用环境变量 `Database__Path` 指定外部数据位置。
 - 环境变量配置键使用双下划线，例如 `Networking__Enabled=true`。
-- 升级时保留现有数据库、PVF 和部署配置。新版本服务端只打开当前结构版本的数据库，升级前需停服并运行 `Tool/DbMigrate`（会先备份），见 [数据库结构版本与迁移](DatabaseSchemaMigration.md)。本工作流只产出附件，不自动部署，不复制开发机数据库，不修改正在运行的服务。
+- 升级时保留现有数据库、PVF 和部署配置。新版本服务端只打开当前结构版本的数据库，升级前需停服并运行包内的 `tools/DbMigrate/DbMigrate <数据库路径>`（会先备份），见 [数据库结构版本与迁移](DatabaseSchemaMigration.md)。本工作流只产出附件，不自动部署，不复制开发机数据库，不修改正在运行的服务。
 
 启动冒烟在发布副本、独立临时数据库与本机临时端口启用GM，关闭游戏/Launcher，清除继承的管理员初始化配置。验证GM入口及全部资源的HTTP内容/类型、未初始化状态和私有API401，再结束自己的进程。数据库和日志均留在临时目录，不进入压缩包；这不代表游戏客户端验收。
 

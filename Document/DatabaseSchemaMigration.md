@@ -13,6 +13,14 @@
 
 ## 迁移工具：Tool/DbMigrate
 
+发布包里自带自包含的迁移工具，部署机不需要安装 .NET：
+
+```bash
+tools/DbMigrate/DbMigrate <数据库路径>
+```
+
+从源码运行：
+
 ```bash
 dotnet run --project Tool/DbMigrate -- <数据库路径>
 ```
@@ -42,6 +50,8 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
 列一旦删除，旧版本程序不能直接接着用这个库；回滚需恢复迁移前的备份和对应版本的程序。
 
 ## 测试
+
+- 发布打包（`Tool/Release/release.py package`）把迁移工具自包含发布到包内 `tools/DbMigrate`，并在归档前用它迁移一个无版本号的旧库做冒烟：检查版本号、数据保留、备份文件，以及重复运行不改动。
 
 - 迁移相关用例在 `Tool/DbMigrate.Tests`，已加入 `Server/86JP.Server.slnx`，随解决方案构建和测试。
 - 服务端测试中手写精简表结构的用例，通过 `Support/HandWrittenShape.Adopt` 调用迁移工具把库带到当前版本后再打开。

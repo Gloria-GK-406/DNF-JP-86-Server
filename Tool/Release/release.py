@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 import tarfile
@@ -237,6 +238,47 @@ def smoke(published, rid):
                         process.wait()
 
 
+MIGRATOR = Path("tools/DbMigrate")
+
+
+def smoke_migrator(published, rid):
+    """Migrates a database from before schema versions with the published tool, on a scratch copy."""
+    executable = Path(published) / MIGRATOR / ("DbMigrate.exe" if rid == "win-x64" else "DbMigrate")
+    with temporary_directory(prefix="dfo-release-migrate-") as temporary:
+        database = Path(temporary) / "legacy.db"
+        with sqlite3.connect(database) as connection:
+            connection.executescript(
+                "CREATE TABLE accounts(account_id INTEGER PRIMARY KEY, m_id TEXT NOT NULL UNIQUE,"
+                " cube_red INTEGER NOT NULL DEFAULT 0);"
+                "INSERT INTO accounts(account_id, m_id, cube_red) VALUES(1, 'smoke', 3);")
+        connection.close()
+
+        def migrate():
+            return subprocess.run([str(executable), str(database)], cwd=temporary, capture_output=True,
+                                  text=True, encoding="utf-8", timeout=60)
+
+        first = migrate()
+        if first.returncode != 0 or "Migrated from schema version 0" not in first.stdout:
+            raise RuntimeError(f"Published migration tool failed ({first.returncode}):\n{first.stdout}{first.stderr}")
+        connection = sqlite3.connect(database)
+        try:
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            kept = connection.execute("SELECT COUNT(*) FROM accounts WHERE m_id='smoke'").fetchone()[0]
+            moved = connection.execute(
+                "SELECT COALESCE(SUM(count), 0) FROM item_slots WHERE owner_scope='account' AND list_type=240").fetchone()[0]
+            retired = connection.execute("SELECT COUNT(*) FROM pragma_table_info('accounts') WHERE name='cube_red'").fetchone()[0]
+        finally:
+            connection.close()
+        if version < 1 or kept != 1 or moved != 3 or retired != 0:
+            raise ValueError(f"Published migration left version={version} kept={kept} moved={moved} retired={retired}")
+        if not list(Path(temporary).glob("legacy.db.v0-*.bak")):
+            raise FileNotFoundError("Published migration tool did not back the database up")
+        again = migrate()
+        if again.returncode != 0 or "Already at schema version" not in again.stdout:
+            raise RuntimeError(f"Published migration tool did not recognize a current database:\n{again.stdout}{again.stderr}")
+        print(f"Published migration tool: unversioned database migrated to schema version {version} with a backup; rerun left it alone.")
+
+
 def package():
     version = os.environ.get("RELEASE_VERSION") or ET.parse(ROOT / "Server/Directory.Build.props").findtext(".//VersionPrefix")
     rid = os.environ["RELEASE_RID"]
@@ -250,20 +292,29 @@ def package():
         subprocess.run(["dotnet", "publish", "Server/src/Dfo.Server.Host/Dfo.Server.Host.csproj",
                         "-c", "Release", "-r", rid, "--self-contained", "true", "-o", str(published),
                         f"-p:Version={version}", "-p:ContinuousIntegrationBuild=true"], cwd=ROOT, check=True)
+        # Its own directory: the tool is a separate self-contained program, not part of the host.
+        subprocess.run(["dotnet", "publish", "Tool/DbMigrate/DbMigrate.csproj",
+                        "-c", "Release", "-r", rid, "--self-contained", "true", "-o", str(published / MIGRATOR),
+                        f"-p:Version={version}", "-p:ContinuousIntegrationBuild=true"], cwd=ROOT, check=True)
         verify_runtime_content(published)
         assets = gm_assets(published, ROOT / "Web/gm-admin/dist")
         manifest = {"version": version, "runtime": rid, "commit": run("git", "rev-parse", "HEAD"),
-                    "sdk": run("dotnet", "--version"), "selfContained": True, "gmAssets": assets}
+                    "sdk": run("dotnet", "--version"), "selfContained": True, "gmAssets": assets,
+                    "migrationTool": MIGRATOR.as_posix()}
         (published / "release.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         (published / "README.md").write_text(
             "# DNF JP 86 Server\n\n"
             "运行与配置见 [server-ci-release.md](server-ci-release.md)。\n\n"
+            "升级已有数据库：停服后运行 `tools/DbMigrate/DbMigrate <数据库路径>`（会先备份），"
+            "见 [DatabaseSchemaMigration.md](DatabaseSchemaMigration.md)。\n\n"
             "GM 后台说明见 [gm-web-admin.md](gm-web-admin.md)，"
             "验收按 [gm-acceptance-list.md](gm-acceptance-list.md)。\n", encoding="utf-8")
         shutil.copyfile(ROOT / "Document/server-ci-release.md", published / "server-ci-release.md")
         shutil.copyfile(ROOT / "Document/host-component-composition.md", published / "host-component-composition.md")
+        shutil.copyfile(ROOT / "Document/DatabaseSchemaMigration.md", published / "DatabaseSchemaMigration.md")
         for document in ("gm-web-admin.md", "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md"):
             shutil.copyfile(ROOT / "Document" / document, published / document)
+        smoke_migrator(published, rid)
         smoke(published, rid)
         output = ROOT / "artifacts/release"
         output.mkdir(parents=True, exist_ok=True)
