@@ -24,7 +24,7 @@ public sealed class PartyTowerCharacterizationTests
         // game protocol cannot perform. The level column follows experience through the schema's
         // projection trigger.
         var (leader, member) = await TwoPlayersInTownAsync(
-            server, timeout.Token, () => PrepareEveryCharacterAsync(server, timeout.Token));
+            server, timeout.Token, () => PrepareEveryCharacterAsync(server, TowerLevel, TowerTicket, timeout.Token));
         using var _ = leader;
         using var __ = member;
         await FormPartyAsync(leader, member, timeout.Token);
@@ -52,18 +52,20 @@ public sealed class PartyTowerCharacterizationTests
             "draws from Random.Shared (IllusionTowerMapPayloadCodec.Encode)."),
     ];
 
-    private static async Task PrepareEveryCharacterAsync(CharacterizationHost server, CancellationToken cancellationToken)
+    /// <summary>Raises every character to <paramref name="level"/> and gives each one quest-space <paramref name="ticket"/>.</summary>
+    internal static async Task PrepareEveryCharacterAsync(
+        CharacterizationHost server, byte level, int ticket, CancellationToken cancellationToken)
     {
-        var experience = await ExperienceForLevelAsync(server, TowerLevel, cancellationToken);
+        var experience = await ExperienceForLevelAsync(server, level, cancellationToken);
         await server.ExecuteSqlAsync(
-            $"UPDATE characters SET exp = {experience.ToString(CultureInfo.InvariantCulture)} WHERE level < {TowerLevel};",
+            $"UPDATE characters SET exp = {experience.ToString(CultureInfo.InvariantCulture)} WHERE level < {level};",
             cancellationToken);
-        // One 4183 (kind 4, a quest-space pile in the archive) at Main/177, the first quest slot,
+        // One ticket (kind 4, a quest-space pile in the archive) at Main/177, the first quest slot,
         // in the same 82-byte core layout CREATE_CHARACTER writes for its own pile: kind, template,
         // value = count, marker -1 at 21, "no changed random option" 0xFF at 66.
         var core = new byte[82];
         core[0] = 4;
-        BitConverter.TryWriteBytes(core.AsSpan(1), TowerTicket);
+        BitConverter.TryWriteBytes(core.AsSpan(1), ticket);
         BitConverter.TryWriteBytes(core.AsSpan(5), 1);
         BitConverter.TryWriteBytes(core.AsSpan(21), -1);
         core[66] = 0xFF;
@@ -71,13 +73,13 @@ public sealed class PartyTowerCharacterizationTests
             $"""
             INSERT INTO items(item_core)
             SELECT X'{Convert.ToHexString(core)}' FROM characters c
-            WHERE NOT EXISTS (SELECT 1 FROM item_slots s WHERE s.owner_scope='character' AND s.owner_id=c.character_id AND s.id={TowerTicket})
+            WHERE NOT EXISTS (SELECT 1 FROM item_slots s WHERE s.owner_scope='character' AND s.owner_id=c.character_id AND s.id={ticket})
             ORDER BY c.character_id;
             INSERT INTO item_slots(owner_scope, owner_id, list_type, slot_index, kind, id, core_uid, count)
-            SELECT 'character', c.character_id, 0, 177, 'template', {TowerTicket},
+            SELECT 'character', c.character_id, 0, 177, 'template', {ticket},
                    (SELECT MAX(item_uid) FROM items), 1
             FROM characters c
-            WHERE NOT EXISTS (SELECT 1 FROM item_slots s WHERE s.owner_scope='character' AND s.owner_id=c.character_id AND s.id={TowerTicket});
+            WHERE NOT EXISTS (SELECT 1 FROM item_slots s WHERE s.owner_scope='character' AND s.owner_id=c.character_id AND s.id={ticket});
             """,
             cancellationToken);
     }
