@@ -3,7 +3,8 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class LostLandDropRuleService(ILostLandDropContentSource source) : ILostLandDropRuleService
+internal sealed class LostLandDropRuleService(ILostLandDropContentSource source)
+    : ILostLandDropRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     // User-approved server policy, not reconstructed original monster rates. Boss identities are
     // anchored by LostLand's boss-chest ACT and three LastTemple MAPs; aliases share one payout.
@@ -12,6 +13,10 @@ internal sealed class LostLandDropRuleService(ILostLandDropContentSource source)
          ImmutableHashSet.Create(69625, 69634), ImmutableHashSet.Create(69660),
          ImmutableHashSet.Create(69619), ImmutableHashSet.Create(69667, 69668, 69669)];
     private readonly Lazy<Task<LostLandDropContent>> content = new(() => source.ReadAsync(CancellationToken.None).AsTask());
+    public string Name => "lost-land-drops";
+
+    public async ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        (await content.Value.WaitAsync(cancellationToken).ConfigureAwait(false)).Items.Count;
 
     public async ValueTask<LostLandDropPlan> PrepareAsync(DungeonCellCreationContext context,
         RoomActorDescription described, ushort sequence, CancellationToken cancellationToken)

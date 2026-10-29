@@ -35,7 +35,7 @@ public sealed partial class ContentWarmupTests
         "equipment-requirement-index", "experience-item-index", "inventory-sort-index", "item-sale-index",
         "item-socket-index", "item-usage-index", "item-use-index", "mail-item-index", "npc-shop-index", "recipe-index",
         "stackable-action-index", "teleport-consumable-index", "tutorial-rewards", "lucky-star-rental",
-        "equipment-slot-index", "hell-dungeons",
+        "equipment-slot-index", "hell-dungeons", "lost-land-drops", "lost-land-consumable-index",
     ];
 
     /// <summary>
@@ -107,6 +107,8 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfRecipeContentSource")] = Warmed<Abstractions.Inventory.IRecipeContentSource>(),
         [Infra("PvfStackableActionDefinitionSource")] = Warmed<IStackableActionDefinitionSource>(),
         [Infra("PvfTeleportConsumableDefinitionSource")] = Warmed<Abstractions.Inventory.ITeleportConsumableDefinitionSource>(),
+        [Infra("PvfLostLandConsumableDefinitionSource")] = Warmed<Abstractions.World.ILostLandConsumableDefinitionSource>(),
+        [App("World.LostLandDropRuleService")] = Warmed<Abstractions.World.ILostLandDropRuleService>(),
         [Infra("PvfTutorialRewardDefinitionSource")] = Warmed<ITutorialRewardDefinitionSource>(),
         // Warmed by StartingAsync items that predate this unit.
         [Infra("PvfExtraDropContentSource")] = Warmed<IExtraDropContentSource>("startup: extra drop content"),

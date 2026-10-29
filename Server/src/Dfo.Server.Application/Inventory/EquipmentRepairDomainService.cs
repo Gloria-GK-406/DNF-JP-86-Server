@@ -56,7 +56,7 @@ internal sealed class EquipmentRepairDomainService(
             { Coupon = new(couponSlot, consumed.Debits.Single().Remaining) });
 
         bool Unavailable(ItemSnapshot item) => item.EquipmentLockId != 0 || item.SortLockFlag != 0
-            || item.ExpireTime > 0 && item.ExpireTime <= at.ToUnixTimeSeconds();
+            || item.Lifetime.IsExpired(at);
     }
 
     // A21 repair ACK excludes title, accessories, support and magic stone. These business

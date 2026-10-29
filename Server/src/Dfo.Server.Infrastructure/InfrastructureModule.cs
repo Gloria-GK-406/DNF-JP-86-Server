@@ -246,6 +246,7 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<IRecipeContentSource>()
         .AddContentWarmup<IStackableActionDefinitionSource>()
         .AddContentWarmup<ITeleportConsumableDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.ILostLandConsumableDefinitionSource>()
         .AddContentWarmup<ITutorialRewardDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource>()
         .AddContentWarmup<IEquipmentSlotDefinitionSource>()

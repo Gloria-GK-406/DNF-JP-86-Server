@@ -855,7 +855,8 @@ public sealed class ApplicationModule : IServerModule
             .AddContentWarmup<Dfo.Server.Abstractions.Events.IJoustRuleService>()
             .AddContentWarmup<ITournamentDungeonRuleService>()
             .AddContentWarmup<IEpicBookRuleService>()
-            .AddContentWarmup<IDropRuleService>();
+            .AddContentWarmup<IDropRuleService>()
+            .AddContentWarmup<ILostLandDropRuleService>();
         services.AddSingleton<Dfo.Server.Abstractions.Content.IContentWarmup, CharacterSkillRuleWarmup>();
     }
 }
