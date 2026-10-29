@@ -51,6 +51,7 @@ public sealed class DungeonPickupTransactionTests
             services.AddLogging();
             services.AddCommandDispatching();
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(TestParties.Create());
+            services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
             services.AddDungeonRunViews();
             services.AddSingleton<IQuestDomainStore>(new SqliteQuestDomainStore(path));

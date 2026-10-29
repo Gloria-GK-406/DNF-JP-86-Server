@@ -58,7 +58,7 @@ public sealed partial class SelectCharacterLifecycleTests
     private static readonly UsageQuotaFamily[] SelectionQuotaOrder =
     [UsageQuotaFamily.DimensionDungeon, UsageQuotaFamily.MirrorDungeon, UsageQuotaFamily.DespairTower,
         UsageQuotaFamily.AltarDungeon, UsageQuotaFamily.TournamentDungeon, UsageQuotaFamily.HerasDungeon,
-        UsageQuotaFamily.GoldSilverHorn];
+        UsageQuotaFamily.LostLand, UsageQuotaFamily.GoldSilverHorn];
     private static string[] WithSupplementalStages(string[] lifecycle) =>
         lifecycle.SelectMany(stage => stage == "premium"
             ? new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}"))
@@ -71,7 +71,7 @@ public sealed partial class SelectCharacterLifecycleTests
         Assert.Equal(fixture.ConnectionId, target);
         Assert.Equal((byte)0, weakness.Value);
         Assert.Equal(new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}")),
-            fixture.Ledger.TakeLast(9));
+            fixture.Ledger.TakeLast(2 + SelectionQuotaOrder.Length));
         Assert.Equal(1, fixture.Ledger.Count(stage => stage == "weakness"));
         var quotaEntries = fixture.Notifications.Published.Where(entry => entry.Notification is UsageQuotaViewChanged).ToArray();
         Assert.Equal(SelectionQuotaOrder, quotaEntries.Select(entry => ((UsageQuotaViewChanged)entry.Notification).Family));
