@@ -203,37 +203,37 @@ internal sealed class DungeonOwnerRoutingWorld
         public bool IsInTower(CharacterId characterId) => RunOf(characterId) is not null;
         public ValueTask<BossTowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members, SelectedSessionIdentity leader, uint seed,
             CancellationToken ct, byte requestMode = 0, byte difficulty = 0, byte practiceMode = 0) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken ct) => Unchanged(nameof(LoadAsync), context);
-        public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken ct) => Unchanged(nameof(StartAsync), context);
-        public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, IEffectFootprintRecorder footprint, CancellationToken ct) => Unchanged(nameof(KillAsync), context);
-        public ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken ct) => Unchanged(nameof(NextLevelAsync), context);
-        public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> LoadAsync(TowerActionContext context, CancellationToken ct) => Unchanged(nameof(LoadAsync), context);
+        public ValueTask<BossTowerActionResult> StartAsync(TowerActionContext context, CancellationToken ct) => Unchanged(nameof(StartAsync), context);
+        public ValueTask<BossTowerActionResult> KillAsync(TowerActionContext context, ushort uid, IEffectFootprintRecorder footprint, CancellationToken ct) => Unchanged(nameof(KillAsync), context);
+        public ValueTask<BossTowerActionResult> NextLevelAsync(TowerActionContext context, byte targetX, byte targetY, CancellationToken ct) => Unchanged(nameof(NextLevelAsync), context);
+        public ValueTask<BossTowerPickupResult> PickupAsync(TowerActionContext context, ushort uid, CancellationToken ct)
         {
             Record(nameof(PickupAsync), context);
             return ValueTask.FromResult(new BossTowerPickupResult(new(false, Find(context.Session)), uid, NoRoom: true));
         }
-        public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken ct) => Unchanged(nameof(DieAsync), context);
-        public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken ct) => Unchanged(nameof(LeaveAsync), context);
-        public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct) => Unchanged(nameof(SynchronizeLeaderAsync), context);
-        public ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken ct) => throw new NotSupportedException();
-        public ValueTask<BossTowerActionResult> SelectResultAsync(BossTowerActionContext context, byte option, CancellationToken ct) => Unchanged(nameof(SelectResultAsync), context);
-        public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(BossTowerActionContext context, int requestedDungeonId, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> DieAsync(TowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken ct) => Unchanged(nameof(DieAsync), context);
+        public ValueTask<BossTowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken ct) => Unchanged(nameof(LeaveAsync), context);
+        public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(TowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct) => Unchanged(nameof(SynchronizeLeaderAsync), context);
+        public ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<BossTowerActionResult> SelectResultAsync(TowerActionContext context, byte option, CancellationToken ct) => Unchanged(nameof(SelectResultAsync), context);
+        public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(TowerActionContext context, int requestedDungeonId, CancellationToken ct)
         {
             Record(nameof(ReleaseForSelectionAsync), context);
             if (!ReleasesForSelection || Find(context.Session) is not { } run) return ValueTask.FromResult(new BossTowerActionResult(false, Find(context.Session)));
             runs.Remove(run);
             return ValueTask.FromResult(new BossTowerActionResult(true, run));
         }
-        public IReadOnlyList<BossTowerActionContext> FindReturnsDue(DateTimeOffset now) => [];
+        public IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now) => [];
         public bool CanShop(SelectedSessionIdentity session, int npcId, int shopId) => false;
 
-        private void Record(string name, BossTowerActionContext context)
+        private void Record(string name, TowerActionContext context)
         {
             // Only exact current members can reach a tower action; anything else is a routing defect.
             Assert.True(sessions.IsInWorld(context.Session) && Find(context.Session)?.RunId == context.RunId);
             Actions.Add(new(name, context.Session, context.RunId));
         }
-        private ValueTask<BossTowerActionResult> Unchanged(string name, BossTowerActionContext context)
+        private ValueTask<BossTowerActionResult> Unchanged(string name, TowerActionContext context)
         {
             Record(name, context);
             return ValueTask.FromResult(new BossTowerActionResult(false, Find(context.Session)));

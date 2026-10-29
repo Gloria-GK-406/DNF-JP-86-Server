@@ -166,7 +166,7 @@ internal partial class TowerReturnCommandHandler
             ? CaptureParticipant(session) : new SelectedSessionRecipient(session, null)).ToArray();
 
     internal ValueTask<BossTowerActionResult> LeaveBossPartyTowerAsync(CommandExecutionContext execution,
-        BossTowerActionContext context, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
+        TowerActionContext context, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-leave-boss-tower", ProtectedParticipants(participants, context.Session),
                 Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: participants),
             (unit, ct) => bossTowers.LeaveAsync(context, false, unit.Footprint, ct), token);

@@ -120,7 +120,7 @@ internal sealed class BossTowerDomainService(
     }, token);
     }
 
-    private BossTowerRun? Match(BossTowerActionContext context, bool leaving = false)
+    private BossTowerRun? Match(TowerActionContext context, bool leaving = false)
     {
         var run = Lookup(context.Session.CharacterId);
         if (run is null || run.RunId != context.RunId || run.Room.State.Version != context.RoomVersion
@@ -129,7 +129,7 @@ internal sealed class BossTowerDomainService(
         if (!leaving) Pending.AuthenticatedSessions.Add(context.Session);
         return run;
     }
-    private ValueTask<BossTowerActionResult> Mutate(BossTowerActionContext context,
+    private ValueTask<BossTowerActionResult> Mutate(TowerActionContext context,
         Func<BossTowerRun, BossTowerActionResult> action, CancellationToken token, bool leaving = false) => Execute(() =>
     {
         var current = Match(context, leaving);
@@ -139,22 +139,22 @@ internal sealed class BossTowerDomainService(
         if (result.Changed) Pending.Put(current, next);
         return ValueTask.FromResult(result);
     }, token);
-    public ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken token)
+    public ValueTask<BossTowerActionResult> LoadAsync(TowerActionContext context, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(LoadAsync));
         return Mutate(context, run => run.Load(context.Session), token);
     }
-    public ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken token)
+    public ValueTask<BossTowerActionResult> StartAsync(TowerActionContext context, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(StartAsync));
         return Mutate(context, run => run.Start(context.Session, clock.GetUtcNow()), token);
     }
-    public ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort actorUid, IEffectFootprintRecorder footprint, CancellationToken token)
+    public ValueTask<BossTowerActionResult> KillAsync(TowerActionContext context, ushort actorUid, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(KillAsync));
         return RewardingMutation(context, run => run.Kill(context.Session, actorUid, clock.GetUtcNow()), footprint, token);
     }
-    public ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort groundUid, CancellationToken token)
+    public ValueTask<BossTowerPickupResult> PickupAsync(TowerActionContext context, ushort groundUid, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(PickupAsync));
         return Execute(async () =>
@@ -173,7 +173,7 @@ internal sealed class BossTowerDomainService(
         return new BossTowerPickupResult(next.Result(true) with { InventoryUpdates = granted.Updates, GoldBalance = granted.Gold, QuestProgress = granted.QuestProgress }, groundUid);
     }, token);
     }
-    public ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken token)
+    public ValueTask<BossTowerActionResult> NextLevelAsync(TowerActionContext context, byte targetX, byte targetY, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(NextLevelAsync));
         return Execute(async () =>
@@ -206,23 +206,23 @@ internal sealed class BossTowerDomainService(
         return result;
     }, token);
     }
-    public ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken token)
+    public ValueTask<BossTowerActionResult> DieAsync(TowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(DieAsync));
         return RewardingMutation(context, run => run.Die(context.Session, clock.GetUtcNow()), footprint, token);
     }
-    public ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken token)
+    public ValueTask<BossTowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(LeaveAsync));
         return RewardingMutation(context, run => run.Leave(context.Session, disconnected, clock.GetUtcNow()), footprint, token, leaving: true);
     }
-    public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context,
+    public ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(TowerActionContext context,
         SelectedSessionIdentity leader, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(SynchronizeLeaderAsync));
         return Mutate(context, run => run.SynchronizeLeader(leader), token);
     }
-    public ValueTask<BossTowerActionResult> SelectResultAsync(BossTowerActionContext context, byte option, CancellationToken token)
+    public ValueTask<BossTowerActionResult> SelectResultAsync(TowerActionContext context, byte option, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(SelectResultAsync));
         return Execute(async () =>
@@ -232,7 +232,7 @@ internal sealed class BossTowerDomainService(
             option == 2 ? TimeSpan.Zero : rules.ResultTimeout), token).ConfigureAwait(false);
     }, token);
     }
-    public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(BossTowerActionContext context, int requestedDungeonId, CancellationToken token)
+    public ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(TowerActionContext context, int requestedDungeonId, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(ReleaseForSelectionAsync));
         return Execute(async () =>
@@ -265,7 +265,7 @@ internal sealed class BossTowerDomainService(
             && run.Room.State.Phase is TowerRoomPhase.Fighting or TowerRoomPhase.Cleared;
     }
 
-    public IReadOnlyList<BossTowerActionContext> FindReturnsDue(DateTimeOffset now)
+    public IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now)
     {
         lock (sync)
         {
@@ -273,15 +273,15 @@ internal sealed class BossTowerDomainService(
                 .Where(run => run.ReturnDueAt is { } due && due <= now && run.Completion is { Settled: true }
                     || run.Room.State.Phase == TowerRoomPhase.Loading && run.LoadDueAt <= now && run.Completion is null)
                 .Select(run => run.Members.FirstOrDefault(member => member.IsLeader) is { } leader
-                    ? new BossTowerActionContext(leader.Session, run.RunId, run.Room.State.Version)
+                    ? new TowerActionContext(leader.Session, run.RunId, run.Room.State.Version)
                     : null)
                 .Where(context => context is not null)
-                .Cast<BossTowerActionContext>()
+                .Cast<TowerActionContext>()
                 .ToArray();
         }
     }
 
-    public ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken token)
+    public ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(CanRetryAsync));
         return Execute(async () =>
@@ -324,7 +324,7 @@ internal sealed class BossTowerDomainService(
         return (updates, gold, report.NotificationSnapshot);
     }
 
-    private ValueTask<BossTowerActionResult> RewardingMutation(BossTowerActionContext context,
+    private ValueTask<BossTowerActionResult> RewardingMutation(TowerActionContext context,
         Func<BossTowerRun, BossTowerActionResult> action, IEffectFootprintRecorder footprint, CancellationToken token, bool leaving = false) => Execute(async () =>
     {
         var current = Match(context, leaving);

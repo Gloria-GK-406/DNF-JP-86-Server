@@ -47,8 +47,8 @@ namespace Dfo.Server.Protocol.Game;
 
 public sealed record CaptureBossTowerDeparturesCommand : ICommand<ImmutableArray<TowerDepartureEntryId>>;
 public sealed record ProjectBossTowerDepartureCommand(TowerDepartureEntryId Entry) : ICommand<bool>;
-public sealed record CaptureBossTowerReturnsDueCommand : ICommand<TowerReturnsDue<BossTowerActionContext>>;
-public sealed record ReturnBossTowerRunCommand(BossTowerActionContext Context, DateTimeOffset CapturedAt) : ICommand<bool>;
+public sealed record CaptureBossTowerReturnsDueCommand : ICommand<TowerReturnsDue<TowerActionContext>>;
+public sealed record ReturnBossTowerRunCommand(TowerActionContext Context, DateTimeOffset CapturedAt) : ICommand<bool>;
 public sealed record CaptureIllusionTowerDeparturesCommand : ICommand<ImmutableArray<TowerDepartureEntryId>>;
 public sealed record ProjectIllusionTowerDepartureCommand(TowerDepartureEntryId Entry) : ICommand<bool>;
 public sealed record CaptureIllusionTowerReturnsDueCommand : ICommand<TowerReturnsDue<TowerActionContext>>;
@@ -57,7 +57,7 @@ public sealed record ReturnIllusionTowerRunCommand(TowerActionContext Context, D
 internal sealed partial class TowerReturnCommandHandler :
     ICommandHandler<CaptureBossTowerDeparturesCommand, ImmutableArray<TowerDepartureEntryId>>,
     ICommandHandler<ProjectBossTowerDepartureCommand, bool>,
-    ICommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<BossTowerActionContext>>,
+    ICommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>>,
     ICommandHandler<ReturnBossTowerRunCommand, bool>,
     ICommandHandler<CaptureIllusionTowerDeparturesCommand, ImmutableArray<TowerDepartureEntryId>>,
     ICommandHandler<ProjectIllusionTowerDepartureCommand, bool>,
@@ -127,11 +127,11 @@ internal sealed partial class TowerReturnCommandHandler :
         await ProjectIllusionTowerPartyDepartureAsync(context, action!, null, null, token).ConfigureAwait(false);
         return true;
     }
-    public ValueTask<TowerReturnsDue<BossTowerActionContext>> HandleAsync(CommandExecutionContext context,
+    public ValueTask<TowerReturnsDue<TowerActionContext>> HandleAsync(CommandExecutionContext context,
         CaptureBossTowerReturnsDueCommand command, CancellationToken token)
     {
         var now = clock.GetUtcNow();
-        return ValueTask.FromResult(new TowerReturnsDue<BossTowerActionContext>(now, bossTowers.FindReturnsDue(now).ToImmutableArray()));
+        return ValueTask.FromResult(new TowerReturnsDue<TowerActionContext>(now, bossTowers.FindReturnsDue(now).ToImmutableArray()));
     }
     public ValueTask<TowerReturnsDue<TowerActionContext>> HandleAsync(CommandExecutionContext context,
         CaptureIllusionTowerReturnsDueCommand command, CancellationToken token)

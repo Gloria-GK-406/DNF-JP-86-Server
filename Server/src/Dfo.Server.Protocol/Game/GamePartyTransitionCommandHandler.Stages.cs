@@ -186,7 +186,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             ? CaptureParticipant(session) : new SelectedSessionRecipient(session, null)).ToArray();
 
     internal ValueTask<BossTowerActionResult> LeaveBossPartyTowerAsync(CommandExecutionContext execution,
-        BossTowerActionContext context, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
+        TowerActionContext context, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-leave-boss-tower", ProtectedParticipants(participants, context.Session),
                 Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: participants),
             (unit, ct) => bossTowers.LeaveAsync(context, false, unit.Footprint, ct), token);
@@ -197,7 +197,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             (unit, ct) => illusionTowers.LeaveAsync(context, false, unit.Footprint, ct), token);
 
     internal ValueTask<BossTowerActionResult> SynchronizeBossTowerPartyTowerAsync(CommandExecutionContext execution,
-        BossTowerActionContext context, SelectedSessionIdentity leader, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
+        TowerActionContext context, SelectedSessionIdentity leader, IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken token) =>
         workUnits.WriteAsync(execution!, new("party-synchronize-boss-leader", ProtectedParticipants(participants, context.Session)),
             (_, ct) => bossTowers.SynchronizeLeaderAsync(context, leader, ct), token);
 
@@ -500,14 +500,14 @@ internal sealed partial class GamePartyTransitionCommandHandler
         // Any predictable party refusal has already been resolved above.
         if (departingMember is not null)
         {
-            departure = await LeaveBossPartyTowerAsync(execution, new BossTowerActionContext(departingMember.Session, run.RunId, run.Room.Version), run.Members.Select(value => value.Session).ToArray(), token).ConfigureAwait(false);
+            departure = await LeaveBossPartyTowerAsync(execution, new TowerActionContext(departingMember.Session, run.RunId, run.Room.Version), run.Members.Select(value => value.Session).ToArray(), token).ConfigureAwait(false);
             if (!departure.Changed || departure.Run is null)
                 return BossTowerRejected(observed.Target, PartyFailureReason.CallerNotCurrent);
             projectionRun = departure.Run;
         }
         else if (BossTowerLeaderToSynchronize(change, caller, observed) is { } nextLeader)
         {
-            var synchronized = await SynchronizeBossTowerPartyTowerAsync(execution, new BossTowerActionContext(nextLeader, run.RunId, run.Room.Version), nextLeader, run.Members.Select(value => value.Session).ToArray(), token).ConfigureAwait(false);
+            var synchronized = await SynchronizeBossTowerPartyTowerAsync(execution, new TowerActionContext(nextLeader, run.RunId, run.Room.Version), nextLeader, run.Members.Select(value => value.Session).ToArray(), token).ConfigureAwait(false);
             if (synchronized.Run is not null)
                 projectionRun = synchronized.Run;
         }

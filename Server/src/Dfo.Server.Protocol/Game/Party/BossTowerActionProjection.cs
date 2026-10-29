@@ -258,7 +258,7 @@ internal static class BossTowerActionProjection
 
     internal static SelectedSessionIdentity[] BossTowerMembers(BossTowerSnapshot run) => run.Members.Select(value => value.Session).ToArray();
 
-    internal static BossTowerActionContext BossTowerContext(BossTowerSnapshot run, SelectedSessionIdentity session) =>
+    internal static TowerActionContext BossTowerContext(BossTowerSnapshot run, SelectedSessionIdentity session) =>
         new(session, run.RunId, run.Room.Version);
 
     internal static async ValueTask BossTowerCloseQuietlyAsync(ISelectedSessionDomainService sessions, ICommandConnectionClosures closures, ExactSessionClosure targets, SelectedSessionIdentity session)

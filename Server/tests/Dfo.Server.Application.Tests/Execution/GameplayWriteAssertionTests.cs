@@ -337,7 +337,7 @@ public sealed class GameplayWriteAssertionTests
         var scope = new DomainTransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
             null!, scope, TimeProvider.System);
-        var context = new BossTowerActionContext(Session(), Guid.NewGuid(), 1);
+        var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
@@ -481,7 +481,7 @@ public sealed class GameplayWriteAssertionTests
         var scope = new DomainTransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
             null!, scope, TimeProvider.System);
-        var context = new BossTowerActionContext(Session(), Guid.NewGuid(), 1);
+        var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>

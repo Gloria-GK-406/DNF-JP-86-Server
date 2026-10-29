@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World.BossTower;
+using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Parties;
 using Dfo.Server.Data.Networking;
@@ -42,7 +43,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         var domain = ProtocolAlgorithmFixture.Decorate<IBossTowerDomainService>(tower, (method, arguments) =>
         {
             if (method.Name != nameof(IBossTowerDomainService.LeaveAsync)) return (false, null);
-            var result = tower.Leave(((BossTowerActionContext)arguments[0]!).Session);
+            var result = tower.Leave(((TowerActionContext)arguments[0]!).Session);
             towerWrites++;
             // Replace only the physical connection while the command is inside its durable domain stage.
             // Its logical selected identity remains equal, so an accidental late ID lookup can close the new socket.

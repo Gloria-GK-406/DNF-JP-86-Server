@@ -23,9 +23,9 @@ namespace Dfo.Server.Testing;
 // separately through the registered internal entries; this driver does not impersonate a bus.
 internal interface ITowerAlgorithmMutations
 {
-    ValueTask<BossTowerActionResult> BossLeave(BossTowerActionContext context) => throw new NotSupportedException();
-    ValueTask<BossTowerActionResult> BossSynchronize(BossTowerActionContext context, SelectedSessionIdentity leader) => throw new NotSupportedException();
-    ValueTask<BossTowerActionResult> BossStart(BossTowerActionContext context) => throw new NotSupportedException();
+    ValueTask<BossTowerActionResult> BossLeave(TowerActionContext context) => throw new NotSupportedException();
+    ValueTask<BossTowerActionResult> BossSynchronize(TowerActionContext context, SelectedSessionIdentity leader) => throw new NotSupportedException();
+    ValueTask<BossTowerActionResult> BossStart(TowerActionContext context) => throw new NotSupportedException();
     ValueTask<TowerActionResult> IllusionLeave(TowerActionContext context) => throw new NotSupportedException();
     ValueTask<TowerActionResult> IllusionSynchronize(TowerActionContext context, SelectedSessionIdentity leader) => throw new NotSupportedException();
 }
@@ -58,9 +58,9 @@ internal abstract class TowerAlgorithmDriver
         bossTowers = boss is null ? (IBossTowerDomainService)ProtocolAlgorithmFixture.Default(typeof(IBossTowerDomainService))
             : mutations is null ? boss : ProtocolAlgorithmFixture.Decorate(boss, (method, args) => method.Name switch
             {
-                nameof(IBossTowerDomainService.LeaveAsync) => (true, mutations.BossLeave((BossTowerActionContext)args[0]!)),
-                nameof(IBossTowerDomainService.SynchronizeLeaderAsync) => (true, mutations.BossSynchronize((BossTowerActionContext)args[0]!, (SelectedSessionIdentity)args[1]!)),
-                nameof(IBossTowerDomainService.StartAsync) => (true, mutations.BossStart((BossTowerActionContext)args[0]!)),
+                nameof(IBossTowerDomainService.LeaveAsync) => (true, mutations.BossLeave((TowerActionContext)args[0]!)),
+                nameof(IBossTowerDomainService.SynchronizeLeaderAsync) => (true, mutations.BossSynchronize((TowerActionContext)args[0]!, (SelectedSessionIdentity)args[1]!)),
+                nameof(IBossTowerDomainService.StartAsync) => (true, mutations.BossStart((TowerActionContext)args[0]!)),
                 _ => (false, null),
             });
         illusionTowers = illusion is null ? (IIllusionTowerDomainService)ProtocolAlgorithmFixture.Default(typeof(IIllusionTowerDomainService))
@@ -88,7 +88,7 @@ internal sealed class BossTowerProjectionDriver(IBossTowerDomainService towers, 
     public ValueTask ProjectCommittedDepartureAsync(BossTowerActionResult action, SelectedSessionIdentity? returning, IGameServerMessage? response, CancellationToken token) => exit.ProjectBossTowerPartyDepartureAsync(Execution, action, returning, response, token);
     public ValueTask ProjectDisconnectedActionAsync(BossTowerActionResult action, CancellationToken token) => ProjectCommittedDepartureAsync(action, null, null, token);
     public ValueTask ProjectCurrentHostAsync(BossTowerSnapshot run, CancellationToken token) => exit.ProjectBossTowerPartyHostAsync(run, token);
-    public async ValueTask ReprojectCompletionAsync(BossTowerActionContext context, CancellationToken token)
+    public async ValueTask ReprojectCompletionAsync(TowerActionContext context, CancellationToken token)
     {
         var run = bossTowers.Find(context.Session);
         if (run is null || run.RunId != context.RunId || run.Room.Version != context.RoomVersion || run.Completion is not { Settled: true, Receipt: not null }) return;

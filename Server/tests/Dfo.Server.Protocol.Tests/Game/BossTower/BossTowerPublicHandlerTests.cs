@@ -187,11 +187,11 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         {
             if (method is null || args is null) throw new NotSupportedException();
             if (method.Name == nameof(IBossTowerDomainService.LoadAsync))
-                return ValueTask.FromResult(commands.Load((BossTowerActionContext)args[0]!));
+                return ValueTask.FromResult(commands.Load((TowerActionContext)args[0]!));
             if (method.Name == nameof(IBossTowerDomainService.StartAsync))
-                return commands.Start((BossTowerActionContext)args[0]!);
+                return commands.Start((TowerActionContext)args[0]!);
             if (method.Name == nameof(IBossTowerDomainService.NextLevelAsync))
-                return ValueTask.FromResult(new BossTowerActionResult(false, towers.Find(((BossTowerActionContext)args[0]!).Session)));
+                return ValueTask.FromResult(new BossTowerActionResult(false, towers.Find(((TowerActionContext)args[0]!).Session)));
             try { return method.Invoke(towers, args); }
             catch (System.Reflection.TargetInvocationException error) when (error.InnerException is not null)
             { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
@@ -202,7 +202,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
             ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
 
-        public BossTowerActionResult Load(Dfo.Server.Abstractions.World.BossTower.BossTowerActionContext context)
+        public BossTowerActionResult Load(Dfo.Server.Abstractions.World.IllusionTower.TowerActionContext context)
         {
             var loading = towers.Find(context.Session)!;
             if (loading.Room.Phase != TowerRoomPhase.Loading) return new(false, loading);
@@ -211,12 +211,12 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 Phase = loading.Members.All(value => loaded.Contains(value.Session.CharacterId)) ? TowerRoomPhase.Ready : TowerRoomPhase.Loading } };
             towers.Put(loading); return new(true, loading);
         }
-        public ValueTask<BossTowerActionResult> ChooseAsync(BossTowerActionContext context, byte option, CancellationToken ct)
+        public ValueTask<BossTowerActionResult> ChooseAsync(TowerActionContext context, byte option, CancellationToken ct)
         {
             ResultChoices++; var chosen = towers.Find(context.Session)! with { PendingResultChoice = option };
             towers.Put(chosen); return ValueTask.FromResult(new BossTowerActionResult(true, chosen));
         }
-        public ValueTask<BossTowerActionResult> Start(BossTowerActionContext context)
+        public ValueTask<BossTowerActionResult> Start(TowerActionContext context)
         {
             Starts++; var started = towers.Find(context.Session)!;
             started = started with { Room = started.Room with { Phase = TowerRoomPhase.Fighting } }; towers.Put(started);

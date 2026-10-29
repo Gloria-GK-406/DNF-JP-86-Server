@@ -940,7 +940,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(p => p.GetRequiredService<BossTowerReturnSweepService>());
         services.AddInternalCommandHandler<CaptureBossTowerDeparturesCommand, System.Collections.Immutable.ImmutableArray<TowerDepartureEntryId>, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ProjectBossTowerDepartureCommand, bool, TowerReturnCommandHandler>();
-        services.AddInternalCommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<BossTowerActionContext>, TowerReturnCommandHandler>();
+        services.AddInternalCommandHandler<CaptureBossTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ReturnBossTowerRunCommand, bool, TowerReturnCommandHandler>();
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(p => p.GetRequiredService<IllusionTowerReturnSweepService>());
         services.AddInternalCommandHandler<CaptureIllusionTowerDeparturesCommand, System.Collections.Immutable.ImmutableArray<TowerDepartureEntryId>, TowerReturnCommandHandler>();

@@ -7,7 +7,6 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Abstractions.World.BossTower;
 
 public sealed record BossTowerGroundItem(ushort Uid, ushort ActorUid, RolledDrop Rolled, bool Claimed = false);
-public sealed record BossTowerActionContext(SelectedSessionIdentity Session, Guid RunId, long RoomVersion);
 public sealed record BossTowerSnapshot(Guid RunId, int DungeonId, ImmutableArray<TowerMember> Members,
     TowerRoomSnapshot Room, ImmutableArray<int> CompletedLevels, TowerCompletion? Completion, DateTimeOffset StartedAt)
 {
@@ -44,18 +43,18 @@ public interface IBossTowerDomainService
     ValueTask<BossTowerEntryResult> EnterAsync(IReadOnlyList<TowerEntryMember> members,
         SelectedSessionIdentity leader, uint seed, CancellationToken ct, byte requestMode = 0,
         byte difficulty = 0, byte practiceMode = 0);
-    ValueTask<BossTowerActionResult> LoadAsync(BossTowerActionContext context, CancellationToken ct);
-    ValueTask<BossTowerActionResult> StartAsync(BossTowerActionContext context, CancellationToken ct);
-    ValueTask<BossTowerActionResult> KillAsync(BossTowerActionContext context, ushort uid, IEffectFootprintRecorder footprint, CancellationToken ct);
-    ValueTask<BossTowerActionResult> NextLevelAsync(BossTowerActionContext context, byte targetX, byte targetY, CancellationToken ct);
-    ValueTask<BossTowerPickupResult> PickupAsync(BossTowerActionContext context, ushort uid, CancellationToken ct);
-    ValueTask<BossTowerActionResult> DieAsync(BossTowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken ct);
-    ValueTask<BossTowerActionResult> LeaveAsync(BossTowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken ct);
-    ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(BossTowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct);
-    ValueTask<bool> CanRetryAsync(BossTowerActionContext context, CancellationToken ct);
-    ValueTask<BossTowerActionResult> SelectResultAsync(BossTowerActionContext context, byte option, CancellationToken ct);
-    ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(BossTowerActionContext context, int requestedDungeonId, CancellationToken ct);
-    IReadOnlyList<BossTowerActionContext> FindReturnsDue(DateTimeOffset now);
+    ValueTask<BossTowerActionResult> LoadAsync(TowerActionContext context, CancellationToken ct);
+    ValueTask<BossTowerActionResult> StartAsync(TowerActionContext context, CancellationToken ct);
+    ValueTask<BossTowerActionResult> KillAsync(TowerActionContext context, ushort uid, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<BossTowerActionResult> NextLevelAsync(TowerActionContext context, byte targetX, byte targetY, CancellationToken ct);
+    ValueTask<BossTowerPickupResult> PickupAsync(TowerActionContext context, ushort uid, CancellationToken ct);
+    ValueTask<BossTowerActionResult> DieAsync(TowerActionContext context, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<BossTowerActionResult> LeaveAsync(TowerActionContext context, bool disconnected, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<BossTowerActionResult> SynchronizeLeaderAsync(TowerActionContext context, SelectedSessionIdentity leader, CancellationToken ct);
+    ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken ct);
+    ValueTask<BossTowerActionResult> SelectResultAsync(TowerActionContext context, byte option, CancellationToken ct);
+    ValueTask<BossTowerActionResult> ReleaseForSelectionAsync(TowerActionContext context, int requestedDungeonId, CancellationToken ct);
+    IReadOnlyList<TowerActionContext> FindReturnsDue(DateTimeOffset now);
     bool CanShop(SelectedSessionIdentity session, int npcId, int shopId);
 }
 public interface IBossTowerDepartureSink

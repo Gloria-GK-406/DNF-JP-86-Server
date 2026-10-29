@@ -86,13 +86,13 @@ public abstract class TowerReturnSweepSource<T>(ICommandBus commands, TimeProvid
     }
 }
 public sealed class BossTowerReturnSweepService(ICommandBus commands, TimeProvider clock, ILogger<BossTowerReturnSweepService> logger)
-    : TowerReturnSweepSource<BossTowerActionContext>(commands, clock, logger)
+    : TowerReturnSweepSource<TowerActionContext>(commands, clock, logger)
 {
     protected override string SourceName => "timer:BossTowerReturnSweepService";
     protected override ICommand<ImmutableArray<TowerDepartureEntryId>> CaptureDepartures => new CaptureBossTowerDeparturesCommand();
     protected override ICommand<bool> Departure(TowerDepartureEntryId id) => new ProjectBossTowerDepartureCommand(id);
-    protected override ICommand<TowerReturnsDue<BossTowerActionContext>> CaptureDue => new CaptureBossTowerReturnsDueCommand();
-    protected override ICommand<bool> Return(BossTowerActionContext context, DateTimeOffset at) => new ReturnBossTowerRunCommand(context, at);
+    protected override ICommand<TowerReturnsDue<TowerActionContext>> CaptureDue => new CaptureBossTowerReturnsDueCommand();
+    protected override ICommand<bool> Return(TowerActionContext context, DateTimeOffset at) => new ReturnBossTowerRunCommand(context, at);
 }
 public sealed class IllusionTowerReturnSweepService(ICommandBus commands, TimeProvider clock, ILogger<IllusionTowerReturnSweepService> logger)
     : TowerReturnSweepSource<TowerActionContext>(commands, clock, logger)
