@@ -18,6 +18,28 @@
 | `DungeonCellAggregate` | 独占 Actor 状态、pending loot、统一 GroundItems、clear 状态和 Cell revision；防御性复制构造输入 |
 | 规则/content 服务 | 只提供 Cell 构造输入；Cell 发布后不得参与死亡、拾取或重访的运行态查询 |
 | CMD/事务协调 | 预占领域事实，完成经验、任务、背包或金币等持久化，再提交或释放 Cell 预占 |
+
+### 运行服务的窄接口
+
+`DungeonRunDomainService` 只有一个实例，对外按用途拆成窄接口，调用方只注入自己用到的那个：
+
+| 接口 | 用途 |
+|---|---|
+| `IDungeonRunQueryDomainService` | 两个 `Find`，查角色或 run 身份所在的 run；其余窄接口都继承它 |
+| `IDungeonRunEntryDomainService` | 组队入场、加载就绪、入场回滚与移图 |
+| `IDungeonRunCombatDomainService` | Actor 死亡、击杀效果、物件破坏与动态 Cell 的预占和提交 |
+| `IDungeonRunParticipantDomainService` | 参与者自身状态：死亡、复活、每局一次的增益 |
+| `IDungeonRunGroundDropDomainService` | 地面物的预占、暂存与释放 |
+| `IDungeonRunSettlementDomainService` | 打开 clear 与逐人结算 |
+| `IDungeonRunCardDomainService` | 翻牌布局与牌位预占 |
+| `IDungeonRunTimerDomainService` | 通关回城、团灭回城、遗忘之地的探索与狂热时限，以及定时房间机关 |
+| `IDungeonRunDepartureDomainService` | 单人离开或整局结束 |
+
+`IDungeonRunDomainService` 只是继承以上全部的聚合接口，生产代码只有同时跨两类用途的调用方注入它。
+组合根经 `AddDungeonRunViews()` 把每个窄接口登记为聚合接口的同一实例；自建容器的测试替换聚合接口后也要调用它。
+接口成员都没有默认实现：新增成员时，实现类和每个替身都要明确作答。Protocol 测试的手写替身继承
+`DungeonRunServiceStub`，只重写自己用到的成员；只用 `Find` 的替身直接实现查询接口。
+实现按同样的用途拆成 `DungeonRunDomainService.*.cs` 分部文件。
 | 协议投影 | 只消费 Cell snapshot 或同一次提交返回的 change；不访问 PVF 来补运行态事实 |
 
 Session、Connection 和发送器不进入 Run/Cell 领域模型。它们只在协议投影层决定把已经提交的

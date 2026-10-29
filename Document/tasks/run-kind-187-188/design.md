@@ -245,3 +245,19 @@ public sealed record DungeonRunCapabilities(
   塔保留原主机，这在现有测试中有钉住，并不是队长的单纯副本。
 - 保留的分歧：踢人被拒时，只有幻影塔回 `RemovePartyMemberRefusal` 并记录队伍变更日志，Boss 塔静默。本 PR 保持原样。
 
+## 9. 实施结果与偏差（PR3）
+
+- 分部文件：`DungeonRunDomainService.cs` 只留字段与构造函数，成员原样搬进 Lookup、Entry、Movement、Participants、Timers、
+  GroundDrops、Deaths、Settlement、Cards、Departure、Model 分部，与已有的 DynamicActors、Mechanisms、Objects、Transitions 并列。
+  搬迁前后代码行逐行一致。
+- 窄接口：CMD 只能注入 `*DomainService` / `*DomainStore`，所以查询接口命名为 `IDungeonRunQueryDomainService`
+  （先例 `IOnlineUserQueryDomainService`），另有入场、战斗、参与者、地面物、结算、翻牌、计时、离场八个窄接口，都继承查询接口。
+  `AddDungeonRunViews()` 把它们登记为聚合接口的同一实例。大部分调用方只注入查询接口；
+  `TournamentDungeonDomainService` 与 `GameCardCommandHandler` 跨两类用途，仍注入聚合接口。
+- 默认实现：56 个全部删除（51 个，加上 #242 新增的遗忘之地 5 个成员）；4 个生产从不调用的重载（两参 `TryMove`、`TrySettle`、四参 `FixClearRewardCards`、一参 `End`）
+  已从接口删除。实现类上仍保留这 4 个方法，因为 Application 测试直接在具体服务上大量使用它们。
+- 偏差：设计稿原计划让 12 个替身各自只实现窄接口。实际上这些替身常常同时喂给多个消费方，驱动参数也是聚合类型，
+  逐个收窄会牵动大量驱动和夹具。因此 Protocol 测试的 11 个替身改为继承测试基类 `DungeonRunServiceStub`，
+  基类逐字保留原默认实现；只用 `Find` 的镜像任务替身直接实现查询接口。4 个早已不在接口上的残留方法已删除。
+- 依赖：`QuestQueryDomainService` 的 `runs` 改为必填并收窄为查询接口；`DungeonAdmissionDomainService` 的可选依赖不动，留给 #183。
+
