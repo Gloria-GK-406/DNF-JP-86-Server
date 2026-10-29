@@ -146,6 +146,9 @@ LOGIN 经 `IChannelEntryDomainService` 与 typed 来源读取同一配置快照�
 也不属于游戏规则输入；理由由各自实现说明，不能扩大为任意配置读取许可。
 
 - 使用 `ValueTask`；handler 为 sealed，使用主构造器 DI；命令与命令 handler 同文件共置。
+- 依赖经构造器显式注入。构造参数不用产出接口的 `Func`、`Lazy<>` 或 `IServiceProvider` 推迟依赖：出现依赖环时
+  按职责拆读写接口、抽出上层服务，或让调用方把世界状态作为 facts 传入。按注册类型在作业或事件 scope 内解析处理器的
+  分发机制是具名例外。`DependencyGraphArchitectureTests` 扫描真实生产类型，并在生产模块组合出的容器上检查依赖环。
 - 分层先看项目引用图；CMD 注入与结构由 `CommandHandlerArchitectureTests` 的真实类型判据守护。
   消息／CMD 双向绑定、薄 handler 和纯遥测由注册检查及对应结构测试约束。
 - 类型后缀与文档不能替代判据；新增机制能力须有具名理由及会拒绝违规形状的反例。
