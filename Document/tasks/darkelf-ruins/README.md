@@ -1,7 +1,7 @@
 # 暗精灵遗迹（#75）
 
 范围为 DGN5006–5009、5016–5019、5026–5029，对应 [#75](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/75) 和 [#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。
-工作区基线 `main@d6002078`，开发分支 `codex/darkelf-ruins-75`；PR沿用主干版本号，不修改版本声明。
+工作区基线 `main@e5569dcf`，开发分支 `codex/darkelf-ruins-75`；PR沿用主干版本号，不修改版本声明。
 用户2026-10-30确认首次选图星级、累计显示及额外一次无复活通关升星正常，授权准备PR。
 实机候选为 `0.2.11+21a083d4`；变基后的源码验证与未覆盖场景分别见验证记录，不以变基自动获得新的实机证明。
 连接方式和具体操作见 [实机测试流程](user-test.md)。
