@@ -70,9 +70,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly IQuestQueryDomainService quests;
     private readonly ICommandConnectionClosures closures;
     private readonly IInventorySlotProjectionDomainService slots;
-    private readonly IAltarSchedulerWakeSignal altarWake;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
     public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IMonsterDeathDomainService deaths, ICreatureRuntimeDomainService creatures, IQuestQueryDomainService quests,
@@ -80,15 +78,15 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         IDungeonParticipationDomainService participation,
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
         ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
-        TimeProvider clock, IInventorySlotProjectionDomainService slots, IAltarSchedulerWakeSignal altarWake, ILogger<GameMonsterDeathCommandHandler> logger,
-        IGuardianAltarDomainService guardian, IGuardianAltarSchedulerWakeSignal guardianWake)
+        TimeProvider clock, IInventorySlotProjectionDomainService slots, ILogger<GameMonsterDeathCommandHandler> logger,
+        IGuardianAltarDomainService guardian)
 
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs; this.registry=registry; this.clearEvaluator=clearEvaluator; this.deaths=deaths;
         this.creatures=creatures; this.quests=quests;
-        this.closures=closures; this.slots=slots; this.altarWake=altarWake;
-        this.guardian = guardian; this.guardianWake = guardianWake;
+        this.closures=closures; this.slots=slots;
+        this.guardian = guardian;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMonsterDeathCommand command, CancellationToken ct)
     { await RunAsync(execution, command.Dispatch, command.Input, command.Input.LabelProbe, ct).ConfigureAwait(false); return true; }
@@ -138,7 +136,6 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
                 _ = await workUnits.WriteAsync(execution, new("guardian-altar.death", CaptureDeathRecipients([reporter], context, message.Metadata)),
                     (_, token) => guardian.ReportDeathAsync(reporter, run.RunId, run.RoomVersion, message.ActorSequence, token), ct).ConfigureAwait(false);
             await outbox.RegisterExplicitAsync(reporter.ConnectionId, new([MonsterDeathNotification.Empty(message.ActorSequence)], []), ct).ConfigureAwait(false);
-            guardianWake.Wake();
             return;
         }
         var participants = (run.PartyMemberCount > 1
@@ -196,7 +193,6 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
                         message.ActorSequence, drop.Number, drop.ItemId, drop.Count, drop.IsEquipment,
                         death.DropOwners?.GetValueOrDefault(drop.Number) ?? death.Owner);
             if (clear is not null) await ProjectClearAsync(reporter, clear, ct).ConfigureAwait(false);
-            if (change.Run.Layout.Mode is DungeonRunMode.Altar) WakeAltar();
             if (logger.IsEnabled(LogLevel.Debug))
                 logger.LogDebug("Monster death delivered connection={ConnectionId} sequence={Sequence} run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} drops={Drops} cellCleared={CellCleared} boss={IsBossRoom} clearProjected={ClearProjected} aliveBlockers={AliveBlockers} mechanismBlocks={MechanismBlocks}",
                     reporter.ConnectionId, message.Metadata.Sequence, run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId,
@@ -253,5 +249,4 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         DungeonClearCommandProjection.DeliverAsync(sessions, runs, FindRecipients(reporter, clear.RunId), quests, outbox, reporter, clear, ct);
     private IReadOnlyList<IGameServerMessage> TournamentFrames(TournamentActionResult result) =>
         TournamentCompletionFrames.CompletionFrames(result, slots, clock);
-    private void WakeAltar() => altarWake.Wake();
 }

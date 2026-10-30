@@ -27,14 +27,14 @@ public sealed class WorldMaintenanceFailureIsolationTests
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
 
     [Theory]
-    [InlineData("AltarScheduler")]
-    [InlineData("RoomMechanismMaintenanceService")]
-    public async Task A_failed_scan_retries_on_its_own_deadline_without_an_external_wakeup(string service)
+    [InlineData("altar")]
+    [InlineData("room-mechanism")]
+    public async Task A_failed_scan_retries_on_its_own_deadline_without_an_external_wakeup(string source)
     {
-        var label = "timer:" + service;
+        var label = "timer:DungeonDeadlineScheduler/" + source;
         FailedScan? fault = null;
         await using var host = new TimerSourceHost(wrapQueue: queue => fault = new(queue, label));
-        await host.StartAsync(host.Hosted(service));
+        await host.StartAsync(host.Hosted("DungeonDeadlineScheduler"));
         await Until(() => fault!.Failed && host.Clock.ActiveTimers > 0);
         // No Wake() here: that would hide the infinite-wait regression.
         host.Clock.Advance(TimeSpan.FromSeconds(2));
@@ -76,14 +76,14 @@ public sealed class WorldMaintenanceFailureIsolationTests
             projections.FailedRun = trace.States.Keys.First();
             return Task.CompletedTask;
         });
-        await host.StartAsync(host.Hosted(nameof(AltarScheduler)));
-        await Until(() => projections.Seen.Count == 2 && host.Queue.Ran.Count(x => x.CommandType == "timer:AltarScheduler/deadline") == 2);
+        await host.StartAsync(host.Hosted("DungeonDeadlineScheduler"));
+        await Until(() => projections.Seen.Count == 2 && host.Queue.Ran.Count(x => x.CommandType == "timer:DungeonDeadlineScheduler/altar/deadline") == 2);
         Assert.True(sessions.StandingOf(first)!.Fenced);
         Assert.False(sessions.StandingOf(second)!.Fenced);
         Assert.Equal(2, trace.Advanced.Count);
         Assert.Equal(2, trace.Advanced.Select(x => x.Job).Distinct().Count());
-        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:AltarScheduler/deadline" && !x.Completed);
-        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:AltarScheduler/deadline" && x.Completed);
+        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:DungeonDeadlineScheduler/altar/deadline" && !x.Completed);
+        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:DungeonDeadlineScheduler/altar/deadline" && x.Completed);
         Assert.All(trace.Advanced, x => Assert.Equal(DomainTransactionCompletion.Committed, x.Transaction.Completion));
         Assert.Equal(2, trace.States.Count);
         Assert.All(trace.States.Values, value => Assert.Equal(1, value.Generation));
@@ -108,11 +108,11 @@ public sealed class WorldMaintenanceFailureIsolationTests
             _ = Prepare(runs, new(9202), host.Clock.GetUtcNow(), mechanisms: true);
             return Task.CompletedTask;
         });
-        await host.StartAsync(host.Hosted("RoomMechanismMaintenanceService"));
+        await host.StartAsync(host.Hosted("DungeonDeadlineScheduler"));
         await Until(() => trace.Seen.Count == 2 && host.Clock.ActiveTimers > 0);
         Assert.Equal(2, trace.Seen.Select(x => x.Job).Distinct().Count());
-        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:RoomMechanismMaintenanceService/room" && !x.Completed);
-        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:RoomMechanismMaintenanceService/room" && x.Completed);
+        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:DungeonDeadlineScheduler/room-mechanism/room" && !x.Completed);
+        Assert.Contains(host.Queue.Ran, x => x.CommandType == "timer:DungeonDeadlineScheduler/room-mechanism/room" && x.Completed);
         host.Clock.Advance(TimeSpan.FromSeconds(2));
         await Until(() => trace.Seen.Count == 3);
         Assert.Equal(2, trace.Seen.Count(x => x.Run == trace.FailedRun));

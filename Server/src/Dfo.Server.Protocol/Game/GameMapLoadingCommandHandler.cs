@@ -73,21 +73,19 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly ICommandConnectionClosures closures;
     private readonly IGameCommandOutbox mapOutbox;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
     public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunEntryDomainService runs,
         IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
         ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
-        ILogger<GameMapLoadingCommandHandler> logger, IGuardianAltarDomainService guardian,
-        IGuardianAltarSchedulerWakeSignal guardianWake)
+        ILogger<GameMapLoadingCommandHandler> logger, IGuardianAltarDomainService guardian)
 
     {
         this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.visits = visits; this.registry = registry;
         this.fatigue = fatigue; this.weaknessState = weaknessState; this.closures = closures; this.mapOutbox = outbox;
-        this.guardian = guardian; this.guardianWake = guardianWake;
+        this.guardian = guardian;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameFinishLoadingCommand command, CancellationToken token)
     {
@@ -117,7 +115,6 @@ internal sealed partial class GameMapLoadingCommandHandler :
                     ready.State.Generation, ready.State.PlannedSpawns.IsEmpty ? -1 : ready.State.PlannedSpawns[0].OffsetMilliseconds,
                     ready.State.NextActorSequence, string.Join(";", activity.CurrentCellState.Actors.Select(actor =>
                         $"{actor.Sequence}:{actor.Actor.Code}:{actor.Actor.Level}:{actor.Actor.ActorType}")));
-            guardianWake.Wake();
         }
         if (!completed)
             logger.LogWarning("Finish loading {ConnectionId}: stale or missing selected-session generation", id);

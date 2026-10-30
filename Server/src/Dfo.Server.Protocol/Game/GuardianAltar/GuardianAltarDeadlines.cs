@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
@@ -9,25 +8,11 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Execution;
+using Dfo.Server.Application.World;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.GuardianAltar;
 
-internal sealed class GuardianAltarWakeSignal(TimeProvider clock) : IGuardianAltarSchedulerWakeSignal
-{
-    private readonly Channel<bool> channel = System.Threading.Channels.Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
-    { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });
-    public void Wake() => channel.Writer.TryWrite(true);
-    public async ValueTask WaitAsync(DateTimeOffset? at, CancellationToken ct)
-    {
-        var delay = at is null ? TimeSpan.FromSeconds(30) : at.Value - clock.GetUtcNow();
-        if (delay < TimeSpan.FromMilliseconds(50)) delay = TimeSpan.FromMilliseconds(50);
-        using var timer = new CancellationTokenSource(delay, clock);
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timer.Token);
-        try { _ = await channel.Reader.ReadAsync(linked.Token).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested && timer.IsCancellationRequested) { }
-    }
-}
 public sealed record MaintainGuardianAltarCommand : ICommand<GuardianAltarSchedule>;
 public sealed record AdvanceGuardianAltarCommand(GuardianAltarRunState Expected) : ICommand<bool>;
 public sealed record ReturnGuardianAltarCommand(GuardianAltarRunState Expected) : ICommand<ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>>;
@@ -95,34 +80,25 @@ internal sealed class GuardianAltarTimerCommandHandler(IGuardianAltarDomainServi
         return true;
     }
 }
-internal sealed class GuardianAltarScheduler(ICommandBus commands, GuardianAltarWakeSignal wake, TimeProvider clock,
-    ILogger<GuardianAltarScheduler> logger) : TypedGameplayTimerSource(commands, logger)
+internal sealed class GuardianAltarDeadlineSource : DungeonDeadlineSource
 {
-    private DateTimeOffset? next;
-    protected override string SourceName => "timer:GuardianAltarScheduler";
-    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken ct)
+    public override DungeonDeadlineKind Kind => DungeonDeadlineKind.GuardianAltar;
+    // The scan also prunes selections whose session went away, so it keeps running while no run is pending.
+    public override TimeSpan? IdlePoll => TimeSpan.FromSeconds(30);
+    public override async ValueTask<DateTimeOffset?> RunAsync(DungeonDeadlineRound round, CancellationToken ct)
     {
-        var schedule = await SubmitAsync(new MaintainGuardianAltarCommand(), root, SourceName, ct).ConfigureAwait(false);
+        var schedule = await round.SubmitAsync(new MaintainGuardianAltarCommand(), ct).ConfigureAwait(false);
         foreach (var due in schedule.Due)
         {
             if (due.Status is GuardianAltarStatus.Won or GuardianAltarStatus.Lost or GuardianAltarStatus.Abandoned)
             {
-                var recipients = await SubmitAsync(new ReturnGuardianAltarCommand(due), root, SourceName + "/return", ct).ConfigureAwait(false);
+                var recipients = await round.SubmitAsync(new ReturnGuardianAltarCommand(due), "return", ct).ConfigureAwait(false);
                 foreach (var session in recipients)
-                    await ItemAsync(new ProjectDungeonReturnCommand(session, due.RunId, due.Status == GuardianAltarStatus.Won),
-                        root, SourceName + "/return-member", CancellationToken.None).ConfigureAwait(false);
+                    await round.ItemAsync(new ProjectDungeonReturnCommand(session, due.RunId, due.Status == GuardianAltarStatus.Won),
+                        "return-member", CancellationToken.None).ConfigureAwait(false);
             }
-            else await ItemAsync(new AdvanceGuardianAltarCommand(due), root, SourceName + "/deadline", ct).ConfigureAwait(false);
+            else await round.ItemAsync(new AdvanceGuardianAltarCommand(due), "deadline", ct).ConfigureAwait(false);
         }
-        next = (await SubmitAsync(new MaintainGuardianAltarCommand(), root, SourceName, ct).ConfigureAwait(false)).Next;
-    }
-    protected override async Task ExecuteAsync(CancellationToken ct)
-    {
-        try
-        {
-            while (!ct.IsCancellationRequested)
-            { next = clock.GetUtcNow().AddSeconds(1); await HostedAsync(ct).ConfigureAwait(false); await wake.WaitAsync(next, ct).ConfigureAwait(false); }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        return (await round.SubmitAsync(new MaintainGuardianAltarCommand(), ct).ConfigureAwait(false)).Next;
     }
 }

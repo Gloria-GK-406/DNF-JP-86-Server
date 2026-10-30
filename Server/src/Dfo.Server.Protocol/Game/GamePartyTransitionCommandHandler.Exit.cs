@@ -41,7 +41,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 onlyCaller ? session.CharacterId : null).ConfigureAwait(false)), ct).ConfigureAwait(false);
         if (action.Action is not { } transition) return;
         var recipients = AltarTransitionProjection.Participants(runs, sessions, registry, transition.State.RunId);
-        await AltarTransitionProjection.ProjectAsync(projections, transition, recipients, clock, wake, logger, ct).ConfigureAwait(false);
+        await AltarTransitionProjection.ProjectAsync(projections, transition, recipients, clock, logger, ct).ConfigureAwait(false);
     }
     private sealed record AltarExitResult(AltarActionResult? Action);
 

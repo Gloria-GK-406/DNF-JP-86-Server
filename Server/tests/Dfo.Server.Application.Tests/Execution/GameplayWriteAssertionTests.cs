@@ -389,7 +389,7 @@ public sealed class GameplayWriteAssertionTests
     {
         var engine = new AltarDungeonEngine(null!, null!, null!, null!, TestParties.Runs(), null!, null!,
             null!, null!, null!, null!, null!, new NoTransactions(), TimeProvider.System, null!);
-        var store = new AltarStateStore();
+        var store = new AltarStateStore(new NoDeadlineWake());
         var runId = DungeonRunId.New();
         var seen = ViolationCapture.Attach();
 
@@ -405,7 +405,7 @@ public sealed class GameplayWriteAssertionTests
     {
         // Not in appendix F by name: the altar state lives here, and AltarDungeonDomainService.HandleAsync removes
         // from it directly, outside every AltarDungeonEngine member (TASK-18 section 2.3 check).
-        var store = new AltarStateStore();
+        var store = new AltarStateStore(new NoDeadlineWake());
         var runId = DungeonRunId.New();
         var seen = ViolationCapture.Attach();
 
@@ -927,4 +927,5 @@ public sealed class GameplayWriteAssertionTests
     {
         public IDomainTransaction? Current => null;
     }
+    private sealed class NoDeadlineWake : IDungeonDeadlineWake { public void Wake(DungeonDeadlineKind kind) { } }
 }

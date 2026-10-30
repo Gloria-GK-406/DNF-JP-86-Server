@@ -110,11 +110,11 @@ public sealed class TimerSourceDownstreamTests
     {
         var altars = new RecordingAltars();
         await using var host = new TimerSourceHost(services => services.AddSingleton<IAltarDungeonDomainService>(altars));
-        await host.StartAsync(host.Hosted(nameof(AltarScheduler)));
+        await host.StartAsync(host.Hosted("DungeonDeadlineScheduler"));
 
         await Until(() => altars.Seen.Count >= 2);
         var firstRound = altars.Seen.Count;
-        host.Services.GetRequiredService<AltarWakeSignal>().Wake();
+        host.Services.GetRequiredService<IDungeonDeadlineWake>().Wake(DungeonDeadlineKind.Altar);
         await Until(() => altars.Seen.Count >= firstRound + 2);
 
         Assert.All(altars.Seen, seen =>
@@ -122,7 +122,7 @@ public sealed class TimerSourceDownstreamTests
             Assert.True(seen.OnExecutor);
             var chain = Assert.NotNull(seen.Chain);
             Assert.Equal(GameplayCallSource.Timer, chain.Source);
-            Assert.Equal("timer:AltarScheduler", chain.CommandType);
+            Assert.Equal("timer:DungeonDeadlineScheduler/altar", chain.CommandType);
         });
     }
 

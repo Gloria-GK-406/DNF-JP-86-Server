@@ -16,7 +16,7 @@ internal static class AltarTransitionProjection
         registry.Find(runId).Where(x => sessions.IsInWorld(x) && runs.Find(x.CharacterId)?.RunId == runId).ToArray();
 
     internal static async ValueTask ProjectAsync(ICommandProjections projections, AltarActionResult action,
-        IReadOnlyList<SelectedSessionIdentity> recipients, TimeProvider clock, IAltarSchedulerWakeSignal wake,
+        IReadOnlyList<SelectedSessionIdentity> recipients, TimeProvider clock,
         ILogger logger, CancellationToken ct)
     {
         if (recipients.Count > 0)
@@ -37,6 +37,5 @@ internal static class AltarTransitionProjection
         if (action.RoundStarted || action.Spawns.Count > 0 || action.DifficultyPrompt || action.ShowRanking || action.ShowRewards || action.Awards.Count > 0)
             logger.LogInformation("Altar transition run={RunId} room={RoomVersion} round={Round} status={Status} waveActors={Actors} generation={Generation}",
                 action.State.RunId, action.State.RoomVersion, action.State.CompletedRounds, action.State.Status, action.Spawns.Count, action.State.Generation);
-        wake.Wake();
     }
 }

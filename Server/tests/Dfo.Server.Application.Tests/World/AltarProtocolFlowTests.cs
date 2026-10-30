@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Application.Transactions;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -29,7 +30,6 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.Equal(2, frames[^1][19]);
         Assert.Equal(new[] { "ready", "quota" }, altar.Calls);
         Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(altar.Transactions).Completion);
-        Assert.Equal(!refuse, WakeObservation.Pending(f.Services.GetRequiredService<AltarWakeSignal>()));
     }
 
     [Theory]
@@ -47,7 +47,6 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.DoesNotContain(frames, x => Type(x) == 0x129);
         Assert.Equal(new[] { "difficulty:2" }, altar.Calls);
         Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(altar.Transactions).Completion);
-        Assert.Equal(!refuse, WakeObservation.Pending(f.Services.GetRequiredService<AltarWakeSignal>()));
     }
 
     [Theory]
@@ -70,7 +69,8 @@ public sealed partial class BossTowerDomainServiceTests
         var frames = f.Sender.Outbound.Frames.ToArray();
         Assert.Equal(fighting ? new ushort[] { 0x25, 0x26, 0x25, 0x26 } : [], frames.Select(Type));
         if (fighting) Assert.Equal(new ushort[] { 1, 2 }, frames.Where(x => Type(x) == 0x26).Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(15))));
-        Assert.True(WakeObservation.Pending(f.Services.GetRequiredService<AltarWakeSignal>()));
+        // The committed kills, not the handler, wake the altar deadlines.
+        Assert.Equal(fighting, f.Services.GetRequiredService<DungeonDeadlineScheduler>().IsWoken(DungeonDeadlineKind.Altar));
         var experience = f.Scalar("SELECT exp FROM characters WHERE character_id=1");
         await EffectRequestTransport.SendRaw(f, new(1, 0xFF, 0, 8), [2, 1, 0, 2, 0]);
         Assert.Equal(experience, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
@@ -128,7 +128,6 @@ public sealed partial class BossTowerDomainServiceTests
         {
             Calls.Add(call);
             Transactions.Add(Assert.IsType<DomainTransaction>(p.GetRequiredService<IDomainTransactionAccessor>().Current));
-            Assert.False(WakeObservation.Pending(p.GetRequiredService<AltarWakeSignal>()));
             return ValueTask.FromResult<AltarActionResult?>(Refuse ? null : new(State!)
             { RoundStarted = true, DifficultyResolved = call.StartsWith("difficulty", StringComparison.Ordinal), Spawns = [new(3, 13099, 0, 1, 100, 20, 30, 0)] });
         }

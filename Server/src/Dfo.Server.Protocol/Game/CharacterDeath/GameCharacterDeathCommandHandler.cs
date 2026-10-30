@@ -64,16 +64,15 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly ICommandConnectionClosures closures;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly IGuardianAltarSchedulerWakeSignal guardianWake;
     public GameCharacterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunParticipantDomainService runs,
         IDungeonRunProjectionDomainService registry, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units,
         IGameCommandOutbox outbox, ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameCharacterDeathCommandHandler> logger,
-        IGuardianAltarDomainService guardian, IGuardianAltarSchedulerWakeSignal guardianWake)
+        IGuardianAltarDomainService guardian)
 
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers;this.runs=runs;this.registry=registry;this.closures=closures;
-        this.guardian = guardian; this.guardianWake = guardianWake;
+        this.guardian = guardian;
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameCharacterDeathCommand command, CancellationToken token)
@@ -102,7 +101,6 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
             if (scheduled && guardian.Find(committed.RunId) is { } ending)
                 logger.LogInformation("Guardian altar death scheduled character={CharacterId} run={RunId} reason={Reason} occurred={OccurredAt} eplpDue={Deadline}",
                     session.CharacterId, committed.RunId, ending.EndReason, occurredAt, ending.Deadline);
-            guardianWake.Wake();
         }
         var notification=new CharacterLifeStateNotification(session.WireUserId);
         var secondary=registry.Find(committed.RunId)

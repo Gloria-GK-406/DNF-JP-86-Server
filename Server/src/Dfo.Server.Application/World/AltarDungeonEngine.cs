@@ -321,8 +321,9 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
 }
 
 /// <summary>One domain's transactionally committed RunId states; no cross-domain global dictionary.</summary>
-internal sealed class AltarStateStore
+internal sealed class AltarStateStore(IDungeonDeadlineWake deadlines)
 {
+    private readonly IDungeonDeadlineWake wake = deadlines;
     private readonly Lock gate = new();
     private readonly Dictionary<DungeonRunId, AltarDungeonState> states = [];
     public AltarDungeonState? Find(DungeonRunId runId) { lock (gate) return states.GetValueOrDefault(runId); }
@@ -330,7 +331,9 @@ internal sealed class AltarStateStore
     public void Remove(DungeonRunId runId)
     {
         GameplayWriteAssertion.Writing(nameof(AltarStateStore) + "." + nameof(Remove));
-        lock (gate) states.Remove(runId);
+        bool removed;
+        lock (gate) removed = states.Remove(runId);
+        if (removed) wake.Wake(DungeonDeadlineKind.Altar);
     }
     public void Put(AltarDungeonState state, IDomainTransactionAccessor transactions)
     {
@@ -358,6 +361,7 @@ internal sealed class AltarStateStore
         public ValueTask CommitAsync(CancellationToken ct)
         {
             lock (owner.gate) foreach (var (run, state) in after) owner.states[run] = state;
+            owner.wake.Wake(DungeonDeadlineKind.Altar);
             return ValueTask.CompletedTask;
         }
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;

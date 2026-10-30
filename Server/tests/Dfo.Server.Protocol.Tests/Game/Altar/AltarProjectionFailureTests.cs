@@ -99,7 +99,6 @@ public sealed class AltarProjectionFailureTests
                 services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
                 services.AddSingleton(altars);
                 services.AddSingleton<TimeProvider>(TimeProvider.System);
-                services.AddSingleton<IAltarSchedulerWakeSignal>(new AltarWakeSignal(TimeProvider.System));
                 services.AddInternalCommandHandler<AdvanceAltarDeadlineCommand, bool, AltarTimerCommandHandler>();
                 services.AddSingleton(new AltarProbeRule(failing));
                 services.AddEventDispatching();

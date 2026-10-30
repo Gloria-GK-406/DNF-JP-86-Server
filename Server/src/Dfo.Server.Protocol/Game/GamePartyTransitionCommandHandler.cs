@@ -80,7 +80,6 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IDungeonCardPresentationControl cardPresentation;
     private readonly IDungeonEntryIntentDomainService entryIntents;
     private readonly IAltarDungeonDomainService altars;
-    private readonly IAltarSchedulerWakeSignal wake;
     private readonly IOutboundOrdering ordering;
     private readonly IGuardianAltarDomainService guardian;
     public GamePartyTransitionCommandHandler(ISelectedSessionDomainService sessions,
@@ -93,13 +92,13 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, IDungeonCardPresentationControl cardPresentation,
         IDungeonEntryIntentDomainService entryIntents, IAltarDungeonDomainService altars,
-        IAltarSchedulerWakeSignal wake, IWeaknessDomainService weakness, TimeProvider clock,
+        IWeaknessDomainService weakness, TimeProvider clock,
         ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering, IGuardianAltarDomainService guardian)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.registry = registry; this.cardPresentation = cardPresentation;
-        this.entryIntents = entryIntents; this.altars = altars; this.wake = wake; this.ordering = ordering;
+        this.entryIntents = entryIntents; this.altars = altars; this.ordering = ordering;
         this.guardian = guardian;
         Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
             this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,

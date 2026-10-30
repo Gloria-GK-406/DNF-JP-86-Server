@@ -128,7 +128,7 @@ internal sealed partial class DungeonRunDomainService
         aggregate.RoomVersion++;
         aggregate.EntryRevision++;
         aggregate.ReadyParticipants.Clear();
-        this.mechanismWake?.Wake();
+        this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
         return aggregate.ViewFor(characterId);
     }
 
