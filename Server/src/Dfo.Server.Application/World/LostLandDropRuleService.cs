@@ -23,7 +23,7 @@ internal sealed class LostLandDropRuleService(ILostLandDropContentSource source)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var actor = described.Actor;
-        if (context.Layout.DungeonId != 4000 || context.Layout.Mode is not DungeonRunMode.LostLand
+        if (context.Layout.Mode is not DungeonRunMode.LostLand
             || described.IsAiCharacter || described.IsHellTemplate
             || !LostLandEnemyRules.IsEnemy(actor)) return LostLandDropPlan.Empty;
         var table = await content.Value.WaitAsync(cancellationToken).ConfigureAwait(false);

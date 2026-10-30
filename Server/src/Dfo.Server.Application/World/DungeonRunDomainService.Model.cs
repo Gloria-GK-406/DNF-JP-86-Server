@@ -42,7 +42,7 @@ internal sealed partial class DungeonRunDomainService
             this.parties = parties;
             this.entryParticipants = participants;
             this.Layout = layout;
-            this.LostLandFever = layout.Mode is not DungeonRunMode.LostLand ? null : new();
+            this.ModeState = layout.Mode is DungeonRunMode.LostLand ? new DungeonRunModeState.LostLand(new()) : null;
             this.Difficulty = difficulty;
             this.StartedAt = startedAt;
             this.CurrentCell = layout.StartCell;
@@ -99,8 +99,18 @@ internal sealed partial class DungeonRunDomainService
             this.Participants.Single(participant => participant.IsLeader);
         public DateTimeOffset? ClearedAt { get; set; }
         public DungeonLayout Layout { get; }
-        public LostLandFeverState? LostLandFever { get; set; }
-        public LostLandExplorationState? LostLandExploration { get; set; }
+        public DungeonRunModeState? ModeState { get; set; }
+        // Lost Land views of the slot; only a Lost Land run has one, so writes assume it.
+        public LostLandFeverState? LostLandFever
+        {
+            get => (this.ModeState as DungeonRunModeState.LostLand)?.Fever;
+            set => this.ModeState = (DungeonRunModeState.LostLand)this.ModeState! with { Fever = value! };
+        }
+        public LostLandExplorationState? LostLandExploration
+        {
+            get => (this.ModeState as DungeonRunModeState.LostLand)?.Exploration;
+            set => this.ModeState = (DungeonRunModeState.LostLand)this.ModeState! with { Exploration = value };
+        }
         public DungeonDifficulty Difficulty { get; }
         public DateTimeOffset StartedAt { get; }
         public MazeCell CurrentCell { get; set; }
@@ -206,8 +216,7 @@ internal sealed partial class DungeonRunDomainService
                 ClearedAt = this.ClearedAt,
                 ClearedCells = this.Cells.Where(x => x.Value.IsCleared).Select(x => x.Key).ToImmutableHashSet(),
                 KillExperience = this.KillExperiences.GetValueOrDefault(characterId) ?? new(),
-                LostLandFever = this.LostLandFever,
-                LostLandExploration = this.LostLandExploration,
+                ModeState = this.ModeState,
             };
         }
     }

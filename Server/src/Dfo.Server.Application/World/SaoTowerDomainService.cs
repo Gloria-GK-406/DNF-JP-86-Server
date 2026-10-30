@@ -43,12 +43,8 @@ internal sealed class SaoTowerDomainService(ISaoTowerRuleService rules, ISaoTowe
             RequireMinimumLevel = true, ConsumesFatigue = false, RequiredItemsOverride = floor.Tickets,
         }, async (receipt, token) =>
         {
-            DungeonLayout? layout;
-            try { layout = await layouts.ResolveAsync(floor.DungeonId, facts, Random.Shared.Next(), token).ConfigureAwait(false); }
-            catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
-            if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-            layout = layout with { Mode = new DungeonRunMode.Sao(new(progress)), ConsumesFatigue = false };
-            return await visits.EnterGrantedPartyAsync(target.Participants, layout, facts, receipt, token).ConfigureAwait(false);
+            return await visits.ResolveAndEnterAsync(layouts, target.Participants, floor.DungeonId, facts, receipt,
+                layout => layout with { Mode = new DungeonRunMode.Sao(new(progress)), ConsumesFatigue = false }, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 

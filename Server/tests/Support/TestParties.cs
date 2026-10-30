@@ -125,3 +125,11 @@ internal static class TestParties
         participant.AccountId, participant.CharacterId,
         unchecked((ushort)participant.CharacterId.Value), Town);
 }
+
+/// <summary>Lost Land views of a run's mode state, for assertions.</summary>
+public static class LostLandRunStateViews
+{
+    public static LostLandFeverState? LostLandFever(this DungeonRunState run) => (run.ModeState as DungeonRunModeState.LostLand)?.Fever;
+    public static LostLandExplorationState? LostLandExploration(this DungeonRunState run) =>
+        (run.ModeState as DungeonRunModeState.LostLand)?.Exploration;
+}

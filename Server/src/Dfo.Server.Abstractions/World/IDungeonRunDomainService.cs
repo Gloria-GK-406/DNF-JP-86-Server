@@ -41,8 +41,8 @@ public sealed record DungeonRunState(
 {
     public DateTimeOffset? ClearedAt { get; init; }
     public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
-    public LostLandFeverState? LostLandFever { get; init; }
-    public LostLandExplorationState? LostLandExploration { get; init; }
+    /// <summary>The runtime state of this run's kind of play, when the kind keeps any.</summary>
+    public DungeonRunModeState? ModeState { get; init; }
 
     /// <summary>Stable party identity bound to this run, independent of the client's party number.</summary>
     public PartyKey PartyKey { get; init; }

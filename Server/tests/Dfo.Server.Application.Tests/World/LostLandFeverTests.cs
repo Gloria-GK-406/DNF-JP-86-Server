@@ -64,7 +64,7 @@ public sealed class LostLandFeverTests
         Assert.True(await commands.SendInternalAsync(new ExpireLostLandFeverCommand(expiry), Origin()));
         Assert.False(await commands.SendInternalAsync(new ExpireLostLandFeverCommand(expiry), Origin()));
         TestGameplay.Run(fixture.Services, () => Assert.Equal(new LostLandFeverState(),
-            fixture.Services.GetRequiredService<IDungeonRunDomainService>().Find(Character)!.LostLandFever));
+            fixture.Services.GetRequiredService<IDungeonRunDomainService>().Find(Character)!.LostLandFever()));
         var notices = fixture.Sender.Messages.OfType<DungeonFeverGaugeMessage>().ToArray();
         if (loading) Assert.Empty(notices);
         else Assert.Equal(0, Assert.Single(notices).Percent);
@@ -78,15 +78,15 @@ public sealed class LostLandFeverTests
             IDungeonRunDomainService runs = global::Dfo.Server.Testing.TestParties.Runs();
             Begin(runs);
             for (ushort actor = 1; actor <= 98; actor++) Death(runs, actor, At);
-            Assert.Equal(98, runs.Find(Character)!.LostLandFever!.Percent);
+            Assert.Equal(98, runs.Find(Character)!.LostLandFever()!.Percent);
             var full = Death(runs, 99, At);
             Assert.Equal((byte?)100, full.LostLandFeverPercent);
-            Assert.Equal(At.AddSeconds(60), full.Run.LostLandFever!.ActiveUntil);
+            Assert.Equal(At.AddSeconds(60), full.Run.LostLandFever()!.ActiveUntil);
             Assert.Null(Death(runs, 100, At.AddSeconds(59)).LostLandFeverPercent);
             Assert.Empty(runs.FindExpiredLostLandFevers(At.AddMilliseconds(59999)));
             var expiry = Assert.Single(runs.FindExpiredLostLandFevers(At.AddSeconds(60)));
             Assert.True(runs.StageLostLandFeverExpiry(expiry, At.AddSeconds(60)));
-            Assert.Equal(new LostLandFeverState(), runs.Find(Character)!.LostLandFever);
+            Assert.Equal(new LostLandFeverState(), runs.Find(Character)!.LostLandFever());
             Assert.False(runs.StageLostLandFeverExpiry(expiry, At.AddSeconds(61)));
             Assert.Equal((byte?)1, Death(runs, 101, At.AddSeconds(61)).LostLandFeverPercent);
         });
@@ -103,11 +103,11 @@ public sealed class LostLandFeverTests
             var expiry = Assert.Single(runs.FindExpiredLostLandFevers(At.AddSeconds(60)));
             Assert.Equal((byte?)1, Death(runs, 100, At.AddSeconds(60)).LostLandFeverPercent);
             Assert.False(runs.StageLostLandFeverExpiry(expiry, At.AddSeconds(60)));
-            Assert.Equal(1, runs.Find(Character)!.LostLandFever!.Percent);
+            Assert.Equal(1, runs.Find(Character)!.LostLandFever()!.Percent);
             runs.End(Character, expiry.RunId);
             Begin(runs);
             Assert.False(runs.StageLostLandFeverExpiry(expiry, At.AddMinutes(2)));
-            Assert.Equal(new LostLandFeverState(), runs.Find(Character)!.LostLandFever);
+            Assert.Equal(new LostLandFeverState(), runs.Find(Character)!.LostLandFever());
         });
     }
 
@@ -124,7 +124,7 @@ public sealed class LostLandFeverTests
             await using (var tx = transactions.Begin())
             {
                 Assert.True(runs.StageLostLandFeverExpiry(expiry, At.AddSeconds(60)));
-                Assert.Equal(100, runs.Find(Character)!.LostLandFever!.Percent);
+                Assert.Equal(100, runs.Find(Character)!.LostLandFever()!.Percent);
             }
             Assert.Equal(expiry, Assert.Single(runs.FindExpiredLostLandFevers(At.AddSeconds(60))));
             await using (var tx = transactions.Begin())
@@ -132,7 +132,7 @@ public sealed class LostLandFeverTests
                 Assert.True(runs.StageLostLandFeverExpiry(expiry, At.AddSeconds(60)));
                 await tx.CommitAsync(default);
             }
-            Assert.Equal(new LostLandFeverState(), runs.Find(Character)!.LostLandFever);
+            Assert.Equal(new LostLandFeverState(), runs.Find(Character)!.LostLandFever());
         });
     }
 
@@ -150,7 +150,7 @@ public sealed class LostLandFeverTests
             var moved = runs.TryMove(Character, run.RunId, run.RoomVersion, target,
                 DungeonCellSeed.CompleteEmpty(target, 61001));
             Assert.NotNull(moved);
-            Assert.Equal(1, moved.LostLandFever!.Percent);
+            Assert.Equal(1, moved.LostLandFever()!.Percent);
         });
     }
 

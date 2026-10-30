@@ -18,7 +18,7 @@ internal sealed class LostLandConsumableDomainService(ILostLandConsumableRuleSer
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var run = runs.Find(session.CharacterId);
-        if (run?.Layout.Mode is not DungeonRunMode.LostLand || run.LostLandExploration?.HasExpired(clock.GetUtcNow()) == true
+        if (run?.Layout.Mode is not DungeonRunMode.LostLand || run.ModeState is DungeonRunModeState.LostLand { Exploration: { } exploration } && exploration.HasExpired(clock.GetUtcNow())
             || !run.ReadyParticipants.Contains(session.CharacterId))
             throw Reject("LostLand consumable requires a loaded exploration room.");
         var at = clock.GetUtcNow();

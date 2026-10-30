@@ -39,12 +39,8 @@ internal sealed class HerasDungeonDomainService(IHerasRuleService rules, IDungeo
             Quota = new(UsageQuotaFamily.HerasDungeon, quota.Period, checked(quota.Maximum + quota.Granted), context.DungeonId),
         }, async (receipt, token) =>
         {
-            DungeonLayout? layout;
-            try { layout = await layouts.ResolveAsync(context.DungeonId, facts, Random.Shared.Next(), token).ConfigureAwait(false); }
-            catch (InvalidDataException e) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, e.Message); }
-            if (layout is null) return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
-            layout = layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.Heras), FixedMonsterLevel = progress.Level, BasisLevel = progress.Level, ConsumesFatigue = false };
-            return await visits.EnterGrantedPartyAsync(context.Participants, layout, facts, receipt, token).ConfigureAwait(false);
+            return await visits.ResolveAndEnterAsync(layouts, context.Participants, context.DungeonId, facts, receipt,
+                layout => layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.Heras), FixedMonsterLevel = progress.Level, BasisLevel = progress.Level, ConsumesFatigue = false }, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 }

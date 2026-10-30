@@ -24,7 +24,40 @@ public sealed record DungeonAdmissionOptions
     public IReadOnlyList<DungeonRequiredItem>? RequiredItemsOverride { get; init; }
     public DungeonAdmissionQuota? Quota { get; init; }
 }
-public sealed record DungeonAdmissionQuota(UsageQuotaFamily Family, DateOnly Period, int Maximum, int? DungeonId = null);
+/// <summary>The daily entry counter an admission charges. Only dungeon entry families have one.</summary>
+public sealed record DungeonAdmissionQuota(UsageQuotaFamily Family, DateOnly Period, int Maximum, int? DungeonId = null)
+{
+    /// <summary>Whether this family counts dungeon entries; the others are not admission quotas.</summary>
+    public static bool CountsEntries(UsageQuotaFamily family) => family switch
+    {
+        UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower
+            or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon
+            or UsageQuotaFamily.GoldSilverHorn or UsageQuotaFamily.LostLand => true,
+        UsageQuotaFamily.Consumable or UsageQuotaFamily.Premium or UsageQuotaFamily.ReviveCoin
+            or UsageQuotaFamily.GiantDragonCrystalExchange => false,
+    };
+
+    /// <summary>The stored counter an entry of this family charges.</summary>
+    public UsageQuotaKey Key => Family switch
+    {
+        UsageQuotaFamily.MirrorDungeon => UsageQuotaKey.Mirror("entries", Period),
+        UsageQuotaFamily.DimensionDungeon => UsageQuotaKey.Dimension(Period),
+        UsageQuotaFamily.DespairTower => UsageQuotaKey.Despair("entries", Period),
+        UsageQuotaFamily.AltarDungeon => UsageQuotaKey.Altar(DungeonId ?? throw new InvalidDataException("Altar quota requires dungeon id."), Period),
+        UsageQuotaFamily.TournamentDungeon => UsageQuotaKey.Tournament(DungeonId ?? throw new InvalidDataException("Tournament quota requires dungeon id."), Period),
+        UsageQuotaFamily.HerasDungeon => UsageQuotaKey.Heras("entries", Period),
+        UsageQuotaFamily.GoldSilverHorn => UsageQuotaKey.GoldSilverHorn(Period),
+        UsageQuotaFamily.LostLand => UsageQuotaKey.LostLand(Period),
+        UsageQuotaFamily.Consumable or UsageQuotaFamily.Premium or UsageQuotaFamily.ReviveCoin
+            or UsageQuotaFamily.GiantDragonCrystalExchange => throw new InvalidOperationException($"{Family} is not an entry quota."),
+    };
+
+    /// <summary>
+    /// Whether <paramref name="used"/> entries exhaust the quota. Dimension passes what remains, so zero refuses;
+    /// every other family passes its daily allowance, where zero means the content sets no limit.
+    /// </summary>
+    public bool IsExhaustedBy(int used) => Family == UsageQuotaFamily.DimensionDungeon ? used >= Maximum : Maximum > 0 && used >= Maximum;
+}
 
 /// <summary>Issued by the admission service for one participant in one entry transaction.</summary>
 public interface IDungeonAdmissionPermit

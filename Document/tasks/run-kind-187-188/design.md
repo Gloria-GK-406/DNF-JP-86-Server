@@ -261,3 +261,15 @@ public sealed record DungeonRunCapabilities(
   基类逐字保留原默认实现；只用 `Find` 的镜像任务替身直接实现查询接口。4 个早已不在接口上的残留方法已删除。
 - 依赖：`QuestQueryDomainService` 的 `runs` 改为必填并收窄为查询接口；`DungeonAdmissionDomainService` 的可选依赖不动，留给 #183。
 
+
+## 10. 实施结果与偏差（PR4）
+
+- 入口活动：8 个 `*EntranceEventDomainService` 继承 `EntranceEventDomainService`，基类持有配置读取、开放判定、GM 描述与变更校验；各入口只给 EventId、Key、初始配置与 EVENT_INFO 投影。
+- 入场骨架：只抽出 9 个特殊入场在 admission 之内共同的尾段（解析迷宫、拒绝配置错误或缺失、写入 `Mode`、进入）为 `GrantedDungeonEntry.ResolveAndEnterAsync`。
+  前置守卫（人数、请求模式、难度、活动开放）和等级规则各服务确有差异，保留在各自服务；“等级查两次、阈值来源不同”没有统一，因为两次检查的阈值确实来自不同内容（楼层门槛与副本门槛），合并会改变行为。
+  情侣副本因此多了一个行为差异：迷宫数据不可读时改为拒绝（ConfigurationInvalid），与另外 8 个一致，此前会抛出异常。
+- 次数族：入场计数的族集合、计数键与“是否用尽”由 `DungeonAdmissionQuota` 回答；存储形状由 `UsageQuotaDomainService.Accepts` 一个穷举 switch 回答；快照与投影的 switch 去掉兜底分支。
+  “上限 0”**未统一**：次元传入的是剩余次数（0 即拒绝），其它族传入每日上限（0 表示内容未设上限），两者含义本就不同，统一会改变行为。现把规则写在 `IsExhaustedBy` 一处。
+- 遗忘之地运行态：run 上的 `LostLandFever`、`LostLandExploration` 改为唯一的 `ModeState` 槽（`DungeonRunModeState.LostLand`），规则写入 `DungeonRunKinds.md`。
+  `LostLandDropRuleService` 去掉“副本号 4000”的第二口径。`DungeonCellState.LostLandBonus` 是格子上冻结的击杀奖励，属于内容计划，不在本次范围。
+- 未做：遗忘之地的发烧、限时两个维护服务迁入 #249 的局内截止时间调度器（待 #254 合并后再做）。

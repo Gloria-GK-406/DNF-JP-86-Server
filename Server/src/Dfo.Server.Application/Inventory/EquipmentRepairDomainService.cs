@@ -36,7 +36,7 @@ internal sealed class EquipmentRepairDomainService(
         if (rule is null) return new(EquipmentRepairRejection.CannotRepair);
         var run = runs.Find(session.CharacterId);
         if (run is not null && (!run.ReadyParticipants.Contains(session.CharacterId)
-            || run.LostLandExploration?.HasExpired(at) == true))
+            || run.ModeState is DungeonRunModeState.LostLand { Exploration: { } exploration } && exploration.HasExpired(at)))
             return new(EquipmentRepairRejection.CannotRepair);
         var candidate = await itemUse.FactsAsync(session.CharacterId, rule.CooldownKey, ct).ConfigureAwait(false);
         if (candidate is null || !rule.Allows(candidate, run?.Layout.DungeonId))

@@ -30,12 +30,8 @@ internal sealed class DimensionDungeonDomainService(IDimensionDungeonRuleService
             Quota = new(UsageQuotaFamily.DimensionDungeon, period, checked(initial.Remaining + initial.ExtraRemaining)),
         }, async (receipt, token) =>
         {
-            DungeonLayout? layout;
-            try { layout = await layouts.ResolveAsync(context.DungeonId, context.Facts, Random.Shared.Next(), token).ConfigureAwait(false); }
-            catch (InvalidDataException error) { return DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message); }
-            return layout is null ? DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound)
-                : await visits.EnterGrantedPartyAsync(context.Participants,
-                    layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.Dimension) }, context.Facts, receipt, token).ConfigureAwait(false);
+            return await visits.ResolveAndEnterAsync(layouts, context.Participants, context.DungeonId, context.Facts, receipt,
+                layout => layout with { Mode = new DungeonRunMode.Plain(DungeonRunKind.Dimension) }, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
     }
 }

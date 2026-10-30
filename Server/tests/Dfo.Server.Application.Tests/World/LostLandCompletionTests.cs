@@ -49,7 +49,7 @@ public sealed class LostLandCompletionTests
         {
             var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
             runs.TryMarkParticipantReady(fixture.Session.CharacterId, run.RunId, run.RoomVersion);
-            Assert.Equal(fixture.Clock.GetUtcNow().AddSeconds(60), runs.Find(fixture.Session.CharacterId)!.LostLandExploration!.EndsAt);
+            Assert.Equal(fixture.Clock.GetUtcNow().AddSeconds(60), runs.Find(fixture.Session.CharacterId)!.LostLandExploration()!.EndsAt);
             fixture.Clock.Advance(TimeSpan.FromSeconds(30));
             var moved = runs.TryMove(fixture.Session.CharacterId, run.RunId, run.RoomVersion, new(1, 0),
                 DungeonCellSeed.CompleteEmpty(new(1, 0), 61001))!;
@@ -79,7 +79,7 @@ public sealed class LostLandCompletionTests
         Assert.False(await Complete(fixture, completion));
         var current = TestGameplay.Run(fixture.Services, () => fixture.Services
             .GetRequiredService<IDungeonRunDomainService>().Find(fixture.Session.CharacterId)!);
-        Assert.True(current.LostLandExploration!.IsEnding);
+        Assert.True(current.LostLandExploration()!.IsEnding);
         Assert.Equal(run.RunId, current.RunId);
         if (loading)
         {
@@ -112,9 +112,9 @@ public sealed class LostLandCompletionTests
             await using (var tx = scope.Begin())
             {
                 Assert.True(runs.StageLostLandCompletion(completion, fixture.Clock.GetUtcNow(), true));
-                Assert.False(runs.Find(fixture.Session.CharacterId)!.LostLandExploration!.IsEnding);
+                Assert.False(runs.Find(fixture.Session.CharacterId)!.LostLandExploration()!.IsEnding);
             }
-            Assert.False(runs.Find(fixture.Session.CharacterId)!.LostLandExploration!.IsEnding);
+            Assert.False(runs.Find(fixture.Session.CharacterId)!.LostLandExploration()!.IsEnding);
         });
         Assert.Equal(completion, Assert.Single(await Capture(fixture)));
         TestGameplay.Run(fixture.Services, () =>

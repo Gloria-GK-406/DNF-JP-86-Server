@@ -122,3 +122,16 @@ public abstract record DungeonRunMode
         public override DungeonRunKind Kind => DungeonRunKind.DarkElfRuins;
     }
 }
+
+/// <summary>
+/// Runtime state that belongs to one kind of play and changes during the run. The plan frozen at entry stays on
+/// <see cref="DungeonRunMode"/>; what the run changes lives here. The generic run carries this one slot, so a kind
+/// with its own runtime state adds a nested record rather than another nullable field on the run.
+/// </summary>
+public abstract record DungeonRunModeState
+{
+    private DungeonRunModeState() { }
+
+    /// <summary>The fever gauge, and the exploration limit once every participant has loaded.</summary>
+    public sealed record LostLand(LostLandFeverState Fever, LostLandExplorationState? Exploration = null) : DungeonRunModeState;
+}

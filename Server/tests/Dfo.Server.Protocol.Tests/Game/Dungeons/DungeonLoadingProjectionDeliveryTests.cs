@@ -181,7 +181,7 @@ public sealed class DungeonLoadingProjectionDeliveryTests
             Participants: [participant],
             EntryRevision: 1,
             CurrentCellState: DungeonCellSeed.CompleteEmpty(
-                new MazeCell(0, 0), 61000).Snapshot()) { LostLandFever = fever };
+                new MazeCell(0, 0), 61000).Snapshot()) { ModeState = fever is null ? null : new DungeonRunModeState.LostLand(fever) };
         var sessions = new Sessions(Current);
         var runs = new Runs(run);
         var registry = new DungeonRunDeliveryRegistry();

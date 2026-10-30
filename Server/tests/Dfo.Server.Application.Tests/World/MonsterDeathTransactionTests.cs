@@ -101,7 +101,7 @@ public sealed class MonsterDeathTransactionTests
             Assert.False(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.IsDead);
             if (lostLand)
             {
-                Assert.Equal(0, runs.Find(leader.CharacterId)!.LostLandFever!.Percent);
+                Assert.Equal(0, runs.Find(leader.CharacterId)!.LostLandFever()!.Percent);
                 Assert.NotNull(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.LostLandBonus);
                 Assert.Empty(runs.Find(leader.CharacterId)!.CurrentCellState.GroundItems);
             }
@@ -131,7 +131,7 @@ public sealed class MonsterDeathTransactionTests
         TestGameplay.Run(fixture.Services, () =>
         {
             Assert.True(runs.Find(leader.CharacterId)!.CurrentCellState.FindActor(1)!.IsDead);
-            if (lostLand) Assert.Equal(1, runs.Find(leader.CharacterId)!.LostLandFever!.Percent);
+            if (lostLand) Assert.Equal(1, runs.Find(leader.CharacterId)!.LostLandFever()!.Percent);
         });
         Assert.Equal(1, fixture.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='dungeon.map-cleared'"));
         Assert.Equal(2, fixture.Scalar("SELECT SUM(trigger_value) FROM character_active_quests"));

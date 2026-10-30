@@ -48,7 +48,6 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
             UsageQuotaFamily.MirrorDungeon => new(at, [], null, [],
                 await quotas.ReadMirrorAsync(characterId,
                     daily.PeriodDay(at), cancellationToken).ConfigureAwait(false)),
-            _ => throw new ArgumentOutOfRangeException(nameof(family)),
         };
     }
 }
