@@ -153,7 +153,7 @@ LOGIN 经 `IChannelEntryDomainService` 与 typed 来源读取同一配置快照�
   不能传 null 后跳过一段或在罕见路径上才抛错。可执行程序经 `ServerComposition` 组合，任何环境都开启 `ValidateOnBuild`／`ValidateScopes`；
   `RequiredDependencyArchitectureTests` 在同一组合上检查，并带拒绝违规形状的反例。服务自己组装的对象（容器、会话、上下文）不在此列，由持有依赖的 owner 负责。
 - 注册跟着领域走：Application 各领域在 `<领域>/<领域>Registration.cs` 的 `Add<领域>()` 里登记自己的服务，`ApplicationModule` 只按序调用，
-  机制与尚未拆分的部分仍留在模块里。同一服务类型只登记一种实现，除非有构造器以 `IEnumerable` 整组读取它；
+  World 按玩法拆成 `World/` 下的几个 `Add…()`；模块里只留机制和零散的单条登记。同一服务类型只登记一种实现，除非有构造器以 `IEnumerable` 整组读取它；
   `RegistrationArchitectureTests` 在生产组合上检查，后登记者静默覆盖前者的情形会被拒绝。
 - 分层先看项目引用图；CMD 注入与结构由 `CommandHandlerArchitectureTests` 的真实类型判据守护。
 - 内容源只进规则服务：`ContentBoundaryArchitectureTests` 把「构造参数含 PVF 档案或频道脚本的 Infrastructure 实现所实现的接口」认定为内容源，
