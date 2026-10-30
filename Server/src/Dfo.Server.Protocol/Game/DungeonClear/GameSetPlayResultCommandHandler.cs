@@ -25,13 +25,10 @@ namespace Dfo.Server.Protocol.Game.DungeonClear;
 internal sealed partial class GameSetPlayResultCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    ICharacterDomainService characters, ICharacterExperienceAwardDomainService experience,
-    IDungeonRunSettlementDomainService runs,
-    ICardRewardDomainService cardRewards,
+    ICharacterDomainService characters,
+    IDungeonRunQueryDomainService runs,
+    IDungeonClearSettlementDomainService settlements,
     ICommandWorkUnits units,
-    ICharacterDungeonDifficultyDomainService difficulties, TimeProvider clock,
-    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService attendance, IQuestProgressDomainService quests,
-    IDespairTowerDomainService despair, Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
     IQuestOfferRefreshDomainService offers,
     IGameCommandOutbox outbox,
     ILogger<GameSetPlayResultCommandHandler> logger,
@@ -45,9 +42,6 @@ internal sealed partial class GameSetPlayResultCommandHandler(
         await RunAsync(execution, command.Dispatch, command.Input, cancellationToken).ConfigureAwait(false);
         return true;
     }
-
-    private ValueTask<DungeonSettlementRules> RulesAsync(SelectedSessionIdentity session, DungeonRunState run, CancellationToken ct) =>
-        runs.SettlementRulesForAsync(session.AccountId, session.CharacterId, run, ct);
 
     private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispatchContext context, SetPlayResultRequest message, CancellationToken cancellationToken)
     {
@@ -85,96 +79,37 @@ internal sealed partial class GameSetPlayResultCommandHandler(
             return;
         }
 
-        // Both story and ordinary runs settle from the run's verified clear fact. A party
-        // member's personal quest progress is not a second completion gate.
-        var settlement = await RulesAsync(
-            session,
-            currentRun,
-            cancellationToken).ConfigureAwait(false);
-        if (!settlement.CanComplete)
+        var start = await settlements.BeginAsync(session, currentRun, cancellationToken).ConfigureAwait(false);
+        var settlement = start.Rules;
+        switch (start.Kind)
         {
-            logger.LogWarning(
-                "Set play result {ConnectionId} character={CharacterId}: run purpose {Purpose} "
-                    + "has not met its completion rule; ignoring",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value,
-                currentRun.Layout.Purpose);
-            return;
+            case ClearSettlementStartKind.NotReady:
+                logger.LogWarning(
+                    "Set play result {ConnectionId} character={CharacterId}: run purpose {Purpose} "
+                        + "has not met its completion rule; ignoring",
+                    context.Connection.ConnectionId,
+                    session.CharacterId.Value,
+                    currentRun.Layout.Purpose);
+                return;
+            case ClearSettlementStartKind.AlreadySettled:
+                logger.LogWarning(
+                    "Set play result {ConnectionId} character={CharacterId}: no run in progress, or "
+                        + "one already settled; ignoring",
+                    context.Connection.ConnectionId,
+                    session.CharacterId.Value);
+                return;
+            case ClearSettlementStartKind.NotInWorld or ClearSettlementStartKind.Abandoned:
+                return;
         }
-
-        // Claimed, not merely looked up. The client says when a run is over, and since 2026-08-29
-        // saying so pays experience -- so a repeated report would be a repeated payment. The same
-        // guard a kill has, for the same reason, and the run is left in progress either way: what
-        // ends it is the character walking out.
-        if (!selectedSessions.IsInWorld(session))
-            return;
-
-        var settlementClaim = runs.TryClaimSettlement(session.CharacterId, currentRun.RunId);
-        if (settlementClaim is null)
-        {
-            logger.LogWarning(
-                "Set play result {ConnectionId} character={CharacterId}: no run in progress, or "
-                    + "one already settled; ignoring",
-                context.Connection.ConnectionId,
-                session.CharacterId.Value);
-            return;
-        }
-        var run = settlementClaim.Run;
+        var attempt = start.Attempt!;
+        var run = attempt.Claim.Run;
         var settlementCommitted = false;
         var durableCommitted = false;
         try
         {
-            // The cards are fixed here, and here is the only place they can be fixed. Above is the
-            // claim: a repeated result report is turned back before it reaches this line, so one run
-            // draws one pair of faces however many times its result is reported. Below is every frame
-            // this settlement sends, and the reward breakdown is one of them -- so a face fixed after
-            // them would be reported as the zeroes it was before it existed.
-            //
-            // The level handed in is the one the character cleared at, taken before the award below
-            // can move it: what band a clear's cards are drawn from is a fact about the run that was
-            // just fought, not about the level the last of its experience happened to buy.
-            var clearProgress = await characters.Get(session.CharacterId).ProgressAsync(cancellationToken).ConfigureAwait(false);
-            if (clearProgress is null)
-            {
-                runs.ReleaseSettlement(settlementClaim);
-                return;
-            }
-            var settled = !run.Layout.Mode.Capabilities.DrawsClearCards
-                ? new ClearRewardSettlementResult(new(new(ClearRewardCardKind.Free, [], 0),
-                    new(ClearRewardCardKind.Paid, [], 0), System.Collections.Immutable.ImmutableHashSet<ClearRewardCardId>.Empty, null), null)
-                : await cardRewards.SettleAsync(
-                new ClearRewardSettlement(
-                    session.CharacterId,
-                    clearProgress.Level,
-                    run.PartyMemberCount,
-                    run.RunId),
-                cancellationToken).ConfigureAwait(false);
-            if (settled is null)
-            {
-                runs.ReleaseSettlement(settlementClaim);
-                return;
-            }
-            // Every client needs the same reward row indexed by party seat. Fixing the
-            // other faces is idempotent and does not grant their experience or inventory.
-            List<PartyCardReward>? partyCards = null;
-            if (run.Participants.Count > 1)
-            {
-                partyCards = [];
-                foreach (var participant in run.Participants.OrderBy(value => value.Slot))
-                {
-                    if (runs.Find(participant.CharacterId)?.RunId != run.RunId) continue;
-                    var participantProgress = await characters.Get(participant.CharacterId)
-                        .ProgressAsync(cancellationToken).ConfigureAwait(false);
-                    if (participantProgress is null) continue;
-                    var memberCards = participant.CharacterId == session.CharacterId ? settled
-                        : await cardRewards.SettleAsync(new ClearRewardSettlement(
-                            participant.CharacterId, participantProgress.Level, run.PartyMemberCount,
-                            run.RunId), cancellationToken).ConfigureAwait(false);
-                    if (memberCards is not null)
-                        partyCards.Add(new(participant.Slot, memberCards.Cards.Free.Slots,
-                            memberCards.Cards.Free.Gold) { BlackDiamond = memberCards.Cards.BlackDiamond });
-                }
-            }
+            var settled = attempt.Cards;
+            var partyCards = attempt.MemberCards?.Select(member => new PartyCardReward(member.Seat, member.Cards.Cards.Free.Slots,
+                member.Cards.Cards.Free.Gold) { BlackDiamond = member.Cards.Cards.BlackDiamond }).ToList();
             var freeCards = settled.Cards.Free.Slots;
             var cardGold = settled.Cards.Free.Gold;
 
@@ -189,24 +124,10 @@ internal sealed partial class GameSetPlayResultCommandHandler(
             var elapsed = DateTimeOffset.UtcNow - run.StartedAt;
             var clearTime = (int)Math.Clamp(elapsed.TotalMilliseconds, 0, int.MaxValue);
 
-            // Asked before anything is paid, and the same refusal a kill makes. The experience frame
-            // carries the character's remaining skill points as well as the total, so without them
-            // there is no frame to report the new standing on -- and paying anyway would leave the
-            // character credited, the run spent, and the client still drawing the total it entered
-            // with.
-            //
-            // Asked of the character rather than read off the session, for the reason a kill asks:
-            // the session's copy is entry's projection and nothing recomputes it, so a character who
-            // levelled during the run would be told the figure they walked in with.
-            //
-            // The settlement claim remains retryable until the award commits. Missing this mirror
-            // therefore leaves the run unpaid rather than spending its one settlement attempt.
             var character = characters.Get(session.CharacterId);
-            var mirror = await character.RemainingSkillPointsAsync(cancellationToken)
-                .ConfigureAwait(false);
+            var mirror = attempt.SkillMirror;
             if (mirror is null)
             {
-                runs.ReleaseSettlement(settlementClaim);
                 logger.LogWarning(
                     "Set play result {ConnectionId} character={CharacterId}: the character has no "
                         + "skill point ledger to report, so the clear was neither paid nor reported",
@@ -232,11 +153,11 @@ internal sealed partial class GameSetPlayResultCommandHandler(
             var paid = await GrantAsync(execution, capturedRecipient!, run,
                 new ClearCircumstances(run.Layout.BasisLevel, run.Difficulty,
                     run.Layout.ExperienceWeight, message.ClientRankPoint, run.KillSummary.Total,
-                    run.PartyMemberCount), clearProgress.Level, cancellationToken).ConfigureAwait(false);
+                    run.PartyMemberCount), attempt.SettlementLevel, cancellationToken).ConfigureAwait(false);
 
             if (run.Layout.Mode is DungeonRunMode.Despair && paid.Despair is null)
             {
-                runs.ReleaseSettlement(settlementClaim);
+                settlements.Abandon(attempt);
                 return;
             }
             durableCommitted = true;
@@ -266,11 +187,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
             if (currentProgress is null)
                 throw new InvalidOperationException("The current progress disappeared after its durable award.");
 
-            if (runs.CommitSettlement(settlementClaim) is null)
-            {
-                throw new InvalidOperationException(
-                    "The dungeon settlement claim was no longer current after its durable award.");
-            }
+            settlements.Finish(attempt);
             settlementCommitted = true;
             if (paid.AttendanceChanged)
                 await eventNotices.ProjectAsync(new Dfo.Server.Abstractions.Notifications.NotificationAudience.TheseSessions([session]),
@@ -346,8 +263,9 @@ internal sealed partial class GameSetPlayResultCommandHandler(
                 throw new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
                         Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
                         "Durable clear effects could not be published.", failure);
-            if (!settlementCommitted && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
-                runs.ReleaseSettlement(settlementClaim);
+            if (start.Kind is ClearSettlementStartKind.Claimed && !settlementCommitted
+                && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(failure))
+                settlements.Abandon(attempt);
             throw;
         }
     }
