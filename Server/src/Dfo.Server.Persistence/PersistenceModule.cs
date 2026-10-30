@@ -45,6 +45,8 @@ public sealed class PersistenceModule : IServerModule
 
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPersistence, Dfo.Server.Persistence.Events.SqliteEventPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDropDrawMultiplierPersistence, Dfo.Server.Persistence.World.SqliteDropDrawMultiplierPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IManagedEventActivationPersistence, Dfo.Server.Persistence.Events.SqliteManagedEventActivationPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Characters.IFatigueConsumptionSettingsPersistence, Dfo.Server.Persistence.Accounts.SqliteFatigueConsumptionSettingsPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.DomainEvents.IDomainEventPersistence,
             Dfo.Server.Persistence.DomainEvents.SqliteDomainEventPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IJoustPersistence, Dfo.Server.Persistence.Events.SqliteJoustPersistence>();

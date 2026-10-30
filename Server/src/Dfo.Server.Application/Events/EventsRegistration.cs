@@ -5,6 +5,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Scheduling;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,17 @@ internal static class EventsRegistration
 {
     internal static IServiceCollection AddEvents(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddDomainEvent<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged>("activity.activation-changed", 1);
+        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, UnlimitedFatigueActivationSubscriber>();
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, EventsActivationNotificationSubscriber>(
+            "activity.activation-refresh", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
+            fact => fact.EventId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, UnlimitedFatigueEventDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IManagedEventLifecycleDomainService, ManagedEventLifecycleDomainService>();
+        services.AddInternalCommandHandler<InitializeManagedEventsCommand, bool, InitializeManagedEventsCommandHandler>();
+        services.AddScoped<ManagedEventLifecycleTask>();
+        services.AddScheduledTask(new("activity.reconciliation", new IntervalTaskSchedule(TimeSpan.FromMinutes(1)), typeof(ManagedEventLifecycleTask))
+        { MissedRun = Dfo.Server.Abstractions.Scheduling.ScheduledTaskMissedRunPolicy.RunOnce });
         services.AddDomainEvent<Dfo.Server.Abstractions.Events.ManagedEventConfigurationChanged>("activity.configuration-changed", 1);
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Events.ManagedEventConfigurationChanged,
             Dfo.Server.Application.Events.EventsConfigurationNotificationSubscriber>("activity.refresh",

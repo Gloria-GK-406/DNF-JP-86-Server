@@ -5,6 +5,35 @@ namespace DbMigrate.Tests;
 
 public sealed class SchemaVersionTests
 {
+    [Fact]
+    public void Version_two_upgrade_adds_activity_state_without_changing_character_fatigue()
+    {
+        var path = Unversioned.NewPath("activity-v2");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE event_activation_state;
+                DROP TABLE fatigue_consumption_settings;
+                PRAGMA user_version=2;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp) VALUES(71,7,'kept',0,0,1,0);
+                INSERT INTO character_fatigue(character_id,used,consumed_today,updated_at) VALUES(71,25,40,123456);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal(2L, migrated.From);
+            Assert.Equal(CharacterDatabaseSchema.Version, migrated.To);
+            Assert.Equal(25, Scalar(path, "SELECT used FROM character_fatigue WHERE character_id=71"));
+            Assert.Equal(40, Scalar(path, "SELECT consumed_today FROM character_fatigue WHERE character_id=71"));
+            Assert.Equal(123456, Scalar(path, "SELECT updated_at FROM character_fatigue WHERE character_id=71"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM fatigue_consumption_settings"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM event_activation_state"));
+            _ = Unversioned.Open(path);
+            Assert.Null(Migrator.Migrate(path, backup: false).Backup);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
     /// <summary>
     /// An unversioned database with what the old server left in it comes out of the tool in
     /// exactly the shape the server builds a new one in.

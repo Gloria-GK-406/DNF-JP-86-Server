@@ -5,6 +5,14 @@ using Dfo.Server.Abstractions.Sessions;
 
 namespace Dfo.Server.Application.Events;
 
+internal sealed class EventsActivationNotificationSubscriber(IEventService events, ISelectedSessionSnapshotQuery online)
+    : IDomainEventSubscriber<ManagedEventActivationChanged>
+{
+    public async ValueTask HandleAsync(DomainEventEnvelope<ManagedEventActivationChanged> message, CancellationToken ct) =>
+        await events.ProjectAsync(new NotificationAudience.TheseSessions(online.Snapshot()),
+            new EventsChanged { RefreshQuestOffers = message.Payload.EventId == Dfo.Server.Application.World.SouthernDaleRuleService.ActivityId }, ct);
+}
+
 internal sealed class JoustLifecycleNotificationSubscriber(IEventService events, ISelectedSessionSnapshotQuery online)
     : IDomainEventSubscriber<JoustLifecycleChanged>
 {

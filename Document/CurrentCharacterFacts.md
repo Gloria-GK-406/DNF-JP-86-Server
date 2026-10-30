@@ -97,6 +97,10 @@ GM、选角与入场，以及需要账号值本身（而非核对归属）的地
 
 ## 疲劳
 
+全服免扣设置由疲劳服务拥有，唯一控制方是无限疲劳活动的同步订阅者；GM 仅管理活动。
+免扣时 `SpendAsync` 不写角色账本，`CanEnterDungeonAsync` 允许零余额；普通与竞技地下城共用该能力。
+准入准备及最终消费均查询当前设置。余额、退款、药物和每日重置仍使用真实账本，不伪造客户端数值。
+
 `CharacterFatigueDomainService` 将配置总量与账号黑钻加成合并，
 按 `IDailyResetRuleService` 的当前周期读取已用量；`SpendAsync`/`RefundAsync` 在命令事务内
 通过条件写入更新，退款不降低当日累计消耗。`DungeonVisitDomainService` 先检查

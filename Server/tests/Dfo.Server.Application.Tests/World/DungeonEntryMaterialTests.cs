@@ -15,6 +15,35 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonEntryMaterialTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Unlimited_fatigue_allows_zero_balance_party_and_commit_rechecks_the_current_policy(bool disableBeforeConsume)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var f = Fixture();
+            await f.SeedAsync();
+            var events = f.Services.GetRequiredService<Dfo.Server.Abstractions.Events.IEventManagementDomainService>();
+            var admission = Admission(f, []);
+            var now = DateTimeOffset.UtcNow;
+            await using var tx = f.Scope.Begin();
+            foreach (var member in Party) await Fatigue(f).SpendAsync(member.CharacterId, ushort.MaxValue, default);
+            Assert.Equal(DungeonEntryFailure.InsufficientFatigue,
+                (await admission.PrepareAsync(Context(Party), new(), default)).Refusal!.Failure);
+            await events.ChangeAsync(new(1_000_230, 0, "configure", "无限疲劳", "免疲劳", "组队验收", "", "",
+                now.AddHours(-1), now.AddHours(1)), "test", now, default);
+            await events.ChangeAsync(new(1_000_230, 1, "enable"), "test", now, default);
+            var prepared = await admission.PrepareAsync(Context(Party), new(), default);
+            Assert.NotNull(prepared.Batch);
+            if (disableBeforeConsume) await events.ChangeAsync(new(1_000_230, 2, "disable"), "test", now, default);
+            var consumed = await admission.ConsumeAsync(prepared.Batch, default);
+            if (disableBeforeConsume) Assert.Equal(DungeonEntryFailure.InsufficientFatigue, consumed.Refusal!.Failure);
+            else Assert.NotNull(consumed.Receipt);
+            await tx.CommitAsync(default);
+        });
+    }
+
     private static readonly DungeonRunParticipant[] Party = [new(new(1), new(71), 0, true), new(new(2), new(72), 1, false)];
     private static readonly DungeonLayout Layout = new(1500, 0, 1, 1, new(0, 0), new(0, 0), 800, 42,
         new Dictionary<MazeCell, DungeonCellDefinition> { [new(0,0)] = DungeonCellDefinition.Fixed(800) });

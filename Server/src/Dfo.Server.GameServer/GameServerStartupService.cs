@@ -28,6 +28,12 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
         var serverConfig = services.GetRequiredService<IServerConfigService>();
         var pvf = services.GetRequiredService<PvfContentOptions>();
 
+        // Run even without a PVF: a persisted active switch may have expired while offline.
+        const string activitiesLabel = "startup:GameServerStartupService/managed-events";
+        await services.GetRequiredService<ICommandBus>().SendInternalAsync(new Dfo.Server.Application.Events.InitializeManagedEventsCommand(),
+            new(GameplayCallSource.StartupRecovery, GameplayCallChain.NewRoot(GameplayCallSource.StartupRecovery), activitiesLabel),
+            cancellationToken).ConfigureAwait(false);
+
         logger.LogInformation(
             "Starting DFO server with modules: {Modules}",
             string.Join(", ", services.GetServices<IServerModule>().Select(module => module.Name)));

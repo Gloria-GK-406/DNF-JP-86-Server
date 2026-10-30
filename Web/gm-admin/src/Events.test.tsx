@@ -47,6 +47,19 @@ beforeEach(() => {
   });
 });
 
+it('无限疲劳仅通过活动启停，并展示已应用效果及同步缺口', async () => {
+  data.entries[0] = { ...data.entries[0], eventId: 1000230, type: 'unlimited-fatigue', title: '无限疲劳值', shortName: '免疲劳',
+    enabled: true, status: 'active', appliedActive: false, appliedRevision: 7 };
+  open();
+  expect(await screen.findByText('效果待同步')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '设置活动' })).toBeNull();
+  expect(screen.queryByRole('button', { name: '更多' })).toBeNull();
+  fireEvent.click(await screen.findByRole('button', { name: '停用' }));
+  expect(await screen.findByText('停用后，后续进图、换房及竞技地下城每轮恢复扣除疲劳，现有余额保留。')).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: /取\s*消/ }));
+  expect(writes()).toHaveLength(0);
+});
+
 it('活动列表和通用配置仅展示公共信息，不读取或展示专属规则', async () => {
   open(); expect(await screen.findByRole('button', { name: /活动管理/ })).toBeTruthy();
   expect(await screen.findByText('season-one')).toBeTruthy(); expect(screen.getByText('已停用')).toBeTruthy();

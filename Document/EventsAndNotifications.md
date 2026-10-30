@@ -66,6 +66,12 @@ LiveOnly 只处理本进程的新鲜事件：发送前提交一次消费决定�
 
 ## 消费边界
 
+托管活动的 `ManagedEventActivationChanged` 表达目标生效状态与配置修订号，由生命周期服务在可写事务内对账。
+同步业务订阅、已应用记录与待投递通知一起提交；GM 配置事务内立即应用效果并沿用配置变化刷新，避免重复广播。
+分钟任务处理时间边界，每活动独立事务；启动恢复命令必须在开放监听前完成，不依赖后台 `RunOnce` 的排队时序。
+重复目标不重新发布，活动中改配置则重新应用；停机跨过整个活动期不补历史启停。细节见
+[无限疲劳活动](tasks/unlimited-fatigue/implementation.md)。
+
 - 人群通知用于 PvP 大厅公示、会话清理以及队伍城镇投影等路径；
   `PartyTownProjectionDelivery` 使用 `TheseSessions` 指定精确会话。
 - `SessionAdjacentEntryDomainService` 给入场者本人计算周围角色，不因此成为多人扇出。

@@ -26,6 +26,34 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class TournamentDungeonTests
 {
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Unlimited_fatigue_preserves_the_ledger_through_all_four_rounds_even_at_zero(bool exhausted)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+            await using var f = await Fixture();
+            var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
+            var events = f.Services.GetRequiredService<Dfo.Server.Abstractions.Events.IEventManagementDomainService>();
+            var now = DateTimeOffset.UtcNow;
+            await using (var tx = f.Scope.Begin())
+            {
+                await fatigue.SpendAsync(new(71), exhausted ? ushort.MaxValue : (ushort)7, default);
+                await events.ChangeAsync(new(1_000_230, 0, "configure", "无限疲劳", "免疲劳", "竞技验收", "", "",
+                    now.AddHours(-1), now.AddHours(1)), "test", now, default);
+                await events.ChangeAsync(new(1_000_230, 1, "enable"), "test", now, default);
+                await tx.CommitAsync(default);
+            }
+            var before = await fatigue.BalanceOfAsync(new(71), default);
+            await Champion(f);
+            Assert.Equal(TournamentStatus.Champion, State(f).Status);
+            Assert.Equal(before, await fatigue.BalanceOfAsync(new(71), default));
+            Assert.Equal(2, Count(f, 4726));
+        });
+    }
+
     private static DungeonEntryContext Entry() => new(120,
         DungeonEntryFacts.None with { Difficulty = (DungeonDifficulty)2 }, 0, 0,
         [new(new(1), new(71), 0, true)]);
