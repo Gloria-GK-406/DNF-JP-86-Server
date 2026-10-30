@@ -132,8 +132,8 @@ public sealed class LostLandCompletionTests
         .OfType<IGameNotiMessage>().Where(message => message.MessageType == ServerMessageType.GameEnableClearDungeon).ToArray();
     private static InternalCommandOrigin Origin() => new(GameplayCallSource.Timer,
         GameplayCallChain.NewRoot(GameplayCallSource.Timer), "timer:lost-land-completion-test");
-    private static ValueTask<IReadOnlyList<LostLandCompletion>> Capture(ShopFixture fixture) => fixture.Services
-        .GetRequiredService<ICommandBus>().SendInternalAsync(new CaptureLostLandCompletionsCommand(), Origin());
+    private static async ValueTask<IReadOnlyList<LostLandCompletion>> Capture(ShopFixture fixture) => (await fixture.Services
+        .GetRequiredService<ICommandBus>().SendInternalAsync(new CaptureLostLandCompletionsCommand(), Origin())).Due;
     private static ValueTask<bool> Complete(ShopFixture fixture, LostLandCompletion completion) => fixture.Services
         .GetRequiredService<ICommandBus>().SendInternalAsync(new CompleteLostLandCommand(completion), Origin());
 

@@ -92,8 +92,6 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
         [typeof(Dfo.Server.Protocol.Game.CharacterDeath.DungeonPartyWipeService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Protocol.Game.Creatures.CreatureClockService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
-        [typeof(Dfo.Server.Protocol.Game.StateSynchronization.LostLandCompletionMaintenanceService)] = new(Category.E1, ProducerRow, "typed source scheduling and drain; run completion state stays in the domain owner"),
-        [typeof(Dfo.Server.Protocol.Game.StateSynchronization.LostLandFeverMaintenanceService)] = new(Category.E1, ProducerRow, "typed source scheduling and drain; fever state stays in the domain owner"),
         [typeof(Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; what each session was sent stays in the domain owner"),
         [typeof(Dfo.Server.Protocol.Game.Tournament.TournamentRewardSweepService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Protocol.Game.Weakness.WeaknessRecoveryService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),

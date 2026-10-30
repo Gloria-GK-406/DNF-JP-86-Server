@@ -711,8 +711,11 @@ public interface IDungeonRunTimerDomainService : IDungeonRunQueryDomainService
 {
     IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now);
     IReadOnlyList<LostLandCompletion> FindDueLostLandCompletions(DateTimeOffset now);
+    /// <summary>The earliest completion that can come due; a closed room still loading has none until a participant is ready.</summary>
+    DateTimeOffset? NextLostLandCompletionAt();
     bool StageLostLandCompletion(LostLandCompletion completion, DateTimeOffset now, bool notifyReady);
     IReadOnlyList<LostLandFeverExpiry> FindExpiredLostLandFevers(DateTimeOffset now);
+    DateTimeOffset? NextLostLandFeverExpiryAt();
     bool StageLostLandFeverExpiry(LostLandFeverExpiry expiry, DateTimeOffset now);
 
     ValueTask<DungeonRunState?> TryEndPartyWipeAsync(DungeonRunId runId, DateTimeOffset now);

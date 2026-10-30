@@ -140,6 +140,7 @@ internal sealed partial class DungeonRunStore
                     if (aggregate.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration } && previousFever is not null)
                         aggregate.LostLandFever = this.lostLandFever.Award(previousFever, killedActor,
                             claim.OccurredAt ?? this.clock.GetUtcNow(), exploration.FeverDuration);
+                    if (aggregate.LostLandFever?.ActiveUntil != previousFever?.ActiveUntil) this.deadlines.Wake(DungeonDeadlineKind.LostLandFever);
                 }
                 cell.SuppressEnemies(autoKilled);
                 if (cell.IsCleared)

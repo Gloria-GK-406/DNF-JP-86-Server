@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Application.DomainEvents;
@@ -36,11 +37,11 @@ internal static class StateSynchronizationRegistration
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Accounts.ClientAppearanceSettingsChanged,
             ClientAppearanceSettingsSubscriber>("settings.appearance-visibility", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
             fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
-        services.AddTypedGameplayTimer<LostLandCompletionMaintenanceService>();
-        services.AddInternalCommandHandler<CaptureLostLandCompletionsCommand, IReadOnlyList<LostLandCompletion>, LostLandCompletionCommandHandler>();
+        services.AddDungeonDeadlineSource<LostLandCompletionDeadlineSource>();
+        services.AddInternalCommandHandler<CaptureLostLandCompletionsCommand, LostLandCompletionSchedule, LostLandCompletionCommandHandler>();
         services.AddInternalCommandHandler<CompleteLostLandCommand, bool, LostLandCompletionCommandHandler>();
-        services.AddTypedGameplayTimer<LostLandFeverMaintenanceService>();
-        services.AddInternalCommandHandler<CaptureLostLandFeverExpiriesCommand, IReadOnlyList<LostLandFeverExpiry>, LostLandFeverCommandHandler>();
+        services.AddDungeonDeadlineSource<LostLandFeverDeadlineSource>();
+        services.AddInternalCommandHandler<CaptureLostLandFeverExpiriesCommand, LostLandFeverSchedule, LostLandFeverCommandHandler>();
         services.AddInternalCommandHandler<ExpireLostLandFeverCommand, bool, LostLandFeverCommandHandler>();
         var lotteryCounterExperiment = new LotteryCounterExperimentOptions(
             configuration.GetValue<bool>("LotteryCounterExperiment:Enabled"),

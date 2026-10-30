@@ -1,7 +1,7 @@
 namespace Dfo.Server.Abstractions.World;
 
 /// <summary>Kinds of in-run deadline served by the dungeon deadline scheduler; one registered source per kind.</summary>
-public enum DungeonDeadlineKind { RoomMechanism, Altar, GuardianAltar }
+public enum DungeonDeadlineKind { RoomMechanism, Altar, GuardianAltar, LostLandCompletion, LostLandFever }
 
 /// <summary>Tells the dungeon deadline scheduler that one kind's deadlines may have changed.</summary>
 /// <remarks>
