@@ -1,0 +1,156 @@
+using Dfo.Server.Application.Mail;
+using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Data.Authentication;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Inventory;
+using Dfo.Server.Application.Quests;
+using Dfo.Server.Application.Sessions;
+using Dfo.Server.Application.Users;
+using Dfo.Server.Application.World;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Dfo.Server.Application.Inventory;
+
+/// <summary>What the Inventory domain registers; called once from <see cref="Dfo.Server.Application.ApplicationModule"/>.</summary>
+internal static class InventoryRegistration
+{
+    internal static IServiceCollection AddInventory(this IServiceCollection services)
+    {
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.ISharedEffectDomainService, Dfo.Server.Application.Inventory.SharedEffectDomainService>();
+        services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
+        services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
+        services.TryAddSingleton<IEquipmentDomainService, EquipmentDomainService>();
+        services.TryAddSingleton<IAvatarDomainService, AvatarDomainService>();
+        services.TryAddSingleton<IItemSocketRuleService, ItemSocketRuleService>();
+        services.TryAddSingleton<IItemSocketDomainService, ItemSocketDomainService>();
+        services.TryAddSingleton<LegacyWornItemNormalizer>();
+        services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
+        services.TryAddSingleton<IInventoryExpansionRuleService, InventoryExpansionRuleService>();
+        services.TryAddSingleton<IInventoryExpansionDomainService, InventoryExpansionDomainService>();
+        services.TryAddSingleton<IInventoryLevelRuleService, InventoryLevelRuleService>();
+        services.TryAddSingleton<IInventoryLevelDomainService, InventoryLevelDomainService>();
+        services.TryAddSingleton<IInventoryCapacityRuleService, InventoryCapacityRuleService>();
+        services.TryAddSingleton<IInventoryCapacityDomainService, InventoryCapacityDomainService>();
+        services.TryAddSingleton<ICargoItemRuleService, CargoItemRuleService>();
+        services.TryAddSingleton<ICargoTransferDomainService, CargoTransferDomainService>();
+        // Where an item belongs, which slot it is worn in, and whether it is equipment at all --
+        // the one place the archive's item definitions are read for those three answers.
+        services.TryAddSingleton<IItemPlacementRuleService, ItemPlacementRuleService>();
+        // Where an arriving item goes, and which day a refill belongs to.
+        services.TryAddSingleton<IItemArrivalRuleService, ItemArrivalRuleService>();
+        services.TryAddSingleton<IItemLifecycleDomainService, ItemLifecycleDomainService>();
+        services.TryAddSingleton<IItemExpirationRuleService, ItemExpirationRuleService>();
+        services.TryAddSingleton<IInventoryContentsEventDomainService, InventoryContentsEventDomainService>();
+        services.TryAddSingleton<IDailyRefillRuleService, DailyRefillRuleService>();
+        services.TryAddSingleton<IAccountMaterialRuleService, AccountMaterialRuleService>();
+        services.TryAddSingleton<IItemGrantDomainService, ItemGrantDomainService>();
+        services.TryAddSingleton<IItemDeliveryRuleService, ItemDeliveryRuleService>();
+        services.TryAddSingleton<IItemDeliveryDomainService, ItemDeliveryDomainService>();
+        services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
+        services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
+        services.TryAddSingleton<IEpicCraftDomainService, EpicCraftDomainService>();
+        services.TryAddSingleton<IEquipmentQualitySeedSource, EquipmentQualitySeedSource>();
+        services.TryAddSingleton<IEquipmentQualityRuleService, EquipmentQualityRuleService>();
+        services.TryAddSingleton<IEquipmentMagicSealGradeRuleService, EquipmentMagicSealGradeRuleService>();
+        services.TryAddSingleton<IEquipmentQualityDomainService, EquipmentQualityDomainService>();
+        services.TryAddSingleton<IEquipmentResealRuleService, EquipmentResealRuleService>();
+        services.TryAddSingleton<IEquipmentResealDomainService, EquipmentResealDomainService>();
+        services.TryAddSingleton<IAvatarCompoundRuleService, AvatarCompoundRuleService>();
+        services.TryAddSingleton<IAvatarCompoundDomainService, AvatarCompoundDomainService>();
+        services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
+        services.TryAddSingleton<AvatarAppearanceRuleService>();
+        services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();
+        services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
+        services.TryAddSingleton<IInventoryMoveDomainService, InventoryMoveDomainService>();
+        services.TryAddSingleton<IItemMirrorDomainService, ItemMirrorDomainService>();
+        services.TryAddSingleton<IInventorySortDomainService, InventorySortDomainService>();
+        services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
+        services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
+        services.TryAddSingleton<ICeraShopRuleService, CeraShopRuleService>();
+        services.TryAddSingleton<ICeraShopPurchaseRestrictionDomainService, CeraShopPurchaseRestrictionDomainService>();
+        services.TryAddSingleton<ICeraShopDomainService, CeraShopDomainService>();
+        services.TryAddSingleton<IRecipeCraftRuleService, RecipeCraftRuleService>();
+        services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
+        services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
+        services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();
+        services.TryAddSingleton<IOpeningEffectPlanRuleService, OpeningEffectPlanRuleService>();
+        services.TryAddSingleton<ISpecialConsumableEffectPlanRuleService, SpecialConsumableEffectPlanRuleService>();
+        services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
+        services.TryAddSingleton<ILotteryRandomSource, LotteryRandomSource>();
+        services.TryAddSingleton<ILotteryResultSelector, WeightedLotteryResultSelector>();
+        services.TryAddSingleton<IVendingMachineDomainService, VendingMachineDomainService>();
+        services.TryAddSingleton<ILotteryOpeningDomainService, LotteryOpeningDomainService>();
+        services.TryAddSingleton<IPackageOpeningDomainService, PackageOpeningDomainService>();
+        services.TryAddSingleton<IAvatarPackageOpeningDomainService, AvatarPackageOpeningDomainService>();
+        services.TryAddSingleton<ITeleportConsumableDomainService, TeleportConsumableDomainService>();
+        services.TryAddSingleton<ITeleportConsumableRuleService, TeleportConsumableRuleService>();
+        services.TryAddSingleton<IItemSaleDomainService, ItemSaleDomainService>();
+        services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
+        services.TryAddSingleton<IEquipmentRepairRuleService, EquipmentRepairRuleService>();
+        services.TryAddSingleton<IEquipmentEnchantRuleService, EquipmentEnchantRuleService>();
+        services.TryAddSingleton<IEquipmentUpgradeRuleService, EquipmentUpgradeRuleService>();
+        services.TryAddSingleton<IEquipmentReinforcementFailureRuleService, EquipmentReinforcementFailureRuleService>();
+        services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
+        services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
+        services.TryAddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();
+        services.TryAddSingleton<IEquipmentEnchantDomainService, EquipmentEnchantDomainService>();
+        services.TryAddSingleton<IEquipmentMagicSealSeedSource, EquipmentMagicSealSeedSource>();
+        services.TryAddSingleton<IEquipmentMagicSealRuleService, EquipmentMagicSealRuleService>();
+        services.TryAddSingleton<IEquipmentMagicSealDomainService, EquipmentMagicSealDomainService>();
+        services.TryAddSingleton<IEquipmentOutworldSeedSource, EquipmentOutworldSeedSource>();
+        services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
+        services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
+        services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
+        services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
+        services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
+        services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
+        services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
+        services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();
+        services.TryAddSingleton<IMaterialConsumptionDomainService, MaterialConsumptionDomainService>();
+        services.TryAddSingleton<IMaterialConsumptionRuleService, MaterialConsumptionRuleService>();
+        services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
+        services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
+        services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
+        services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
+        services.TryAddSingleton<IItemUsageDomainService, ItemUsageDomainService>();
+        services.AddInternalCommandHandler<InitializeEpicBookCommand, bool, InitializeEpicBookCommandHandler>();
+        services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();
+        services.TryAddSingleton<IAccountInventoryEntryDomainService, AccountInventoryEntryDomainService>();
+        services.TryAddSingleton<IEquippedCreatureQuery, EquippedCreatureQuery>();
+        // Fourteen inventory tables, and the sequencing that makes them one inventory.
+        services.TryAddSingleton<InventoryEntryAssembly>();
+        services.TryAddSingleton<ICharacterInventoryEntryRepository>(
+            provider => provider.GetRequiredService<InventoryEntryAssembly>());
+        services.TryAddSingleton<IAccountInventoryEntryRepository>(
+            provider => provider.GetRequiredService<InventoryEntryAssembly>());
+        services.TryAddSingleton<IDailyRefillDomainService, DailyRefillDomainService>();
+        services.TryAddSingleton<ItemGrantDelivery>();
+        services.TryAddSingleton<ICharacterContainerDomainService, CharacterContainerDomainService>();
+        services.TryAddSingleton<IDailyRefillConfigurationRuleService, DailyRefillConfigurationRuleService>();
+        services.TryAddSingleton<IItemCatalogRuleService, ItemCatalogRuleService>();
+        services.TryAddSingleton<IItemCatalogDomainService, ItemCatalogDomainService>();
+        services.TryAddSingleton<IDailyRefillConfigurationDomainService, DailyRefillConfigurationDomainService>();
+        services.TryAddSingleton<IItemUseEffectDomainService, ItemUseEffectDomainService>();
+        services.TryAddSingleton<IItemUseEffectRuleService, ItemUseEffectRuleService>();
+        services.TryAddSingleton<IEntryAllowanceItemRuleService, EntryAllowanceItemRuleService>();
+        services.TryAddSingleton<IEntryAllowanceItemDomainService, EntryAllowanceItemDomainService>();
+        services.TryAddSingleton<IExperienceItemRuleService, ExperienceItemRuleService>();
+        services.TryAddSingleton<IExperienceItemDomainService, ExperienceItemDomainService>();
+        services.TryAddSingleton<IReviveCoinRuleService, ReviveCoinRuleService>();
+        services.TryAddSingleton<IReviveCoinQueryDomainService, ReviveCoinQueryDomainService>();
+        services.TryAddSingleton<IReviveCoinDomainService, ReviveCoinDomainService>();
+        services.TryAddSingleton<IEquipmentEffectPlanRuleService, EquipmentEffectPlanRuleService>();
+        services.TryAddSingleton<ISelectCharacterEntryInventoryDomainService, SelectCharacterEntryInventoryDomainService>();
+        services.TryAddSingleton<IExpiredCharacterItemCleanupDomainService, ExpiredCharacterItemCleanupDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IItemEquipmentRuleService, Dfo.Server.Application.Inventory.ItemEquipmentRuleService>();
+        return services;
+    }
+}
